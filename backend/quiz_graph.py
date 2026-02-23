@@ -23,9 +23,12 @@ class QuizGenState(TypedDict, total=False):
     quiz_history: list[dict]    # recent quiz topics + scores
     concept_prerequisites: list[str]
     common_mistakes: list[str]
+    rag_context: list[str]       # top-k curriculum chunks from context_store
+    use_hs_context: bool         # enables RAG retrieval (default True)
     built_prompt: str
     questions_json: list[dict]
     _ai_client: Any
+    _hs_ai_client: Any           # dedicated AI client for HS-context-enriched generation
     _db_factory: Any
 
 
@@ -116,12 +119,48 @@ async def fetch_context(state: QuizGenState) -> dict:
         except Exception as e:
             logger.warning(f"Neo4j context fetch failed in quiz graph: {e}")
 
+    # RAG: fetch HS curriculum / personal doc context
+    rag_chunks: list[str] = []
+    topic = state.get("topic", "")
+    use_hs = state.get("use_hs_context", True)
+    logger.info(f"[QUIZ RAG] topic='{topic}' use_hs_context={use_hs} user_id={user_id}")
+    if topic and use_hs:
+        try:
+            import context_store
+            if context_store.available():
+                results = context_store.search_context(
+                    query=topic,
+                    user_id=user_id,
+                    use_hs=True,
+                    top_k=5,
+                )
+                rag_chunks = [r["text"] for r in results]
+                if rag_chunks:
+                    logger.info(
+                        f"[QUIZ RAG] *** HS CONTEXT FOUND *** {len(rag_chunks)} chunk(s) retrieved for '{topic}'"
+                    )
+                    for i, r in enumerate(results):
+                        preview = r["text"][:120].replace("\n", " ")
+                        logger.info(
+                            f"[QUIZ RAG]   chunk[{i}] source={r['source']} dist={r['distance']:.4f} | {preview}..."
+                        )
+                else:
+                    logger.info(f"[QUIZ RAG] No matching chunks found for '{topic}' in curriculum/docs")
+            else:
+                logger.info("[QUIZ RAG] context_store not available — skipping RAG")
+        except Exception as e:
+            logger.warning(f"RAG context fetch failed: {e}")
+    else:
+        if not use_hs:
+            logger.info(f"[QUIZ RAG] HS Mode OFF — RAG skipped for '{topic}'")
+
     return {
         "student_weaknesses": weaknesses,
         "student_strengths": strengths,
         "quiz_history": quiz_history,
         "concept_prerequisites": concept_prerequisites,
         "common_mistakes": common_mistakes,
+        "rag_context": rag_chunks,
     }
 
 
@@ -246,6 +285,20 @@ def build_prompt(state: QuizGenState) -> dict:
     if additional_specs:
         parts.append(f"ADDITIONAL INSTRUCTIONS FROM STUDENT:\n{additional_specs}\n")
 
+    # Curriculum RAG context
+    rag_context = state.get("rag_context", [])
+    if rag_context:
+        logger.info(f"[QUIZ PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) into prompt ***")
+        context_block = "\n---\n".join(rag_context[:5])
+        parts.append(
+            f"RELEVANT CURRICULUM CONTEXT (from student's documents and HS curriculum):\n"
+            f"{context_block}\n\n"
+            "Prioritise this material when relevant to the topic. "
+            "Use it to make quiz questions more curriculum-aligned and accurate.\n"
+        )
+    else:
+        logger.info("[QUIZ PROMPT] No RAG context — generating from model knowledge only")
+
     # Output format — strict JSON schema
     parts.append(
         "FORMAT: Return ONLY a valid JSON array. Each object must have:\n"
@@ -270,9 +323,16 @@ def build_prompt(state: QuizGenState) -> dict:
 
 def generate_questions_node(state: QuizGenState) -> dict:
     """Call AI and parse the quiz questions JSON."""
-    ai_client = state.get("_ai_client")
+    rag_active = bool(state.get("rag_context"))
+    hs_ai = state.get("_hs_ai_client")
+    ai_client = (hs_ai if rag_active and hs_ai else None) or state.get("_ai_client")
     if not ai_client:
         return {"questions_json": []}
+
+    if rag_active and hs_ai:
+        logger.info("[QUIZ GEN] Using HS context AI client (RAG-enriched prompt)")
+    else:
+        logger.info("[QUIZ GEN] Using main AI client")
 
     prompt = state.get("built_prompt", "")
     difficulty = state.get("difficulty", "mixed")
@@ -336,8 +396,9 @@ def generate_questions_node(state: QuizGenState) -> dict:
 
 class QuizGraph:
 
-    def __init__(self, ai_client: Any, db_session_factory: Any = None):
+    def __init__(self, ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None):
         self.ai_client = ai_client
+        self.hs_ai_client = hs_ai_client
         self.db_factory = db_session_factory
         self._graph = self._build()
 
@@ -362,6 +423,7 @@ class QuizGraph:
         difficulty: str = "mixed",
         question_types: Optional[list] = None,
         additional_specs: str = "",
+        use_hs_context: bool = True,
     ) -> list[dict]:
         initial_state: QuizGenState = {
             "user_id": user_id,
@@ -372,7 +434,9 @@ class QuizGraph:
             "difficulty": difficulty,
             "question_types": question_types or ["multiple_choice"],
             "additional_specs": additional_specs,
+            "use_hs_context": use_hs_context,
             "_ai_client": self.ai_client,
+            "_hs_ai_client": self.hs_ai_client,
             "_db_factory": self.db_factory,
         }
         try:
@@ -386,9 +450,9 @@ class QuizGraph:
 _quiz_graph: Optional[QuizGraph] = None
 
 
-def create_quiz_graph(ai_client: Any, db_session_factory: Any = None) -> QuizGraph:
+def create_quiz_graph(ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None) -> QuizGraph:
     global _quiz_graph
-    _quiz_graph = QuizGraph(ai_client, db_session_factory)
+    _quiz_graph = QuizGraph(ai_client, db_session_factory, hs_ai_client=hs_ai_client)
     return _quiz_graph
 
 

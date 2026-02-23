@@ -56,6 +56,7 @@ async def ask_ai(
     user_id: str = Form(...),
     question: str = Form(...),
     chat_id: Optional[str] = Form(None),
+    use_hs_context: bool = Form(True),
     db: Session = Depends(get_db),
 ):
     try:
@@ -64,6 +65,12 @@ async def ask_ai(
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+
+        logger.info(
+            f"[CHAT ROUTE] message | user={user.id} "
+            f"HS_MODE={'ON  <-- curriculum RAG will run' if use_hs_context else 'OFF <-- no RAG, model-only'} "
+            f"| q='{question[:80]}'"
+        )
 
         today = datetime.now(timezone.utc).date()
         daily_metric = db.query(models.DailyLearningMetrics).filter(
@@ -120,6 +127,7 @@ async def ask_ai(
                 user_input=question,
                 chat_id=chat_id_int,
                 chat_history=chat_history_for_tutor,
+                use_hs_context=bool(use_hs_context),
             )
             response_text = result.get("response", "")
             try:
@@ -180,6 +188,7 @@ async def ask_simple(
     user_id: str = Form(...),
     question: str = Form(...),
     chat_id: Optional[str] = Form(None),
+    use_hs_context: bool = Form(True),
     db: Session = Depends(get_db),
 ):
     try:
@@ -218,6 +227,7 @@ async def ask_simple(
                 user_input=question,
                 chat_id=chat_id_int,
                 chat_history=chat_history,
+                use_hs_context=bool(use_hs_context),
             )
             response_text = result.get("response", "")
             try:

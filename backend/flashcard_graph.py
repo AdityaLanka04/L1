@@ -23,9 +23,12 @@ class FlashcardGenState(TypedDict, total=False):
     student_strengths: list[str]
     concept_prerequisites: list[str]
     common_mistakes: list[str]
+    rag_context: list[str]       # top-k curriculum chunks from context_store
+    use_hs_context: bool         # enables RAG retrieval (default True)
     built_prompt: str
     flashcards_json: list[dict]
     _ai_client: Any
+    _hs_ai_client: Any           # dedicated AI client for HS-context-enriched generation
     _db_factory: Any
 
 
@@ -91,11 +94,47 @@ async def fetch_context(state: FlashcardGenState) -> dict:
         except Exception as e:
             logger.warning(f"Neo4j context fetch failed: {e}")
 
+    # RAG: fetch HS curriculum / personal doc context
+    rag_chunks: list[str] = []
+    topic = state.get("topic", "")
+    use_hs = state.get("use_hs_context", True)
+    logger.info(f"[FLASHCARD RAG] topic='{topic}' use_hs_context={use_hs} user_id={user_id}")
+    if topic and use_hs:
+        try:
+            import context_store
+            if context_store.available():
+                results = context_store.search_context(
+                    query=topic,
+                    user_id=user_id,
+                    use_hs=True,
+                    top_k=5,
+                )
+                rag_chunks = [r["text"] for r in results]
+                if rag_chunks:
+                    logger.info(
+                        f"[FLASHCARD RAG] *** HS CONTEXT FOUND *** {len(rag_chunks)} chunk(s) retrieved for '{topic}'"
+                    )
+                    for i, r in enumerate(results):
+                        preview = r["text"][:120].replace("\n", " ")
+                        logger.info(
+                            f"[FLASHCARD RAG]   chunk[{i}] source={r['source']} dist={r['distance']:.4f} | {preview}..."
+                        )
+                else:
+                    logger.info(f"[FLASHCARD RAG] No matching chunks found for '{topic}' in curriculum/docs")
+            else:
+                logger.info("[FLASHCARD RAG] context_store not available — skipping RAG")
+        except Exception as e:
+            logger.warning(f"RAG context fetch failed: {e}")
+    else:
+        if not use_hs:
+            logger.info(f"[FLASHCARD RAG] HS Mode OFF — RAG skipped for '{topic}'")
+
     return {
         "student_weaknesses": weaknesses,
         "student_strengths": strengths,
         "concept_prerequisites": prerequisites,
         "common_mistakes": mistakes,
+        "rag_context": rag_chunks,
     }
 
 
@@ -207,6 +246,20 @@ def build_prompt(state: FlashcardGenState) -> dict:
     if additional_specs.strip():
         parts.append(f"ADDITIONAL INSTRUCTIONS FROM STUDENT:\n{additional_specs.strip()}\n")
 
+    # Curriculum RAG context
+    rag_context = state.get("rag_context", [])
+    if rag_context:
+        logger.info(f"[FLASHCARD PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) into prompt ***")
+        context_block = "\n---\n".join(rag_context[:5])
+        parts.append(
+            f"RELEVANT CURRICULUM CONTEXT (from student's documents and HS curriculum):\n"
+            f"{context_block}\n\n"
+            "Prioritise this material when relevant to the topic. "
+            "Use it to make flashcards more curriculum-aligned and accurate.\n"
+        )
+    else:
+        logger.info("[FLASHCARD PROMPT] No RAG context — generating from model knowledge only")
+
     # Output format
     parts.append(
         "FORMAT: Return ONLY a valid JSON array. Each object must have:\n"
@@ -225,9 +278,16 @@ def build_prompt(state: FlashcardGenState) -> dict:
 
 def generate_cards(state: FlashcardGenState) -> dict:
     """Call AI and parse the flashcards JSON."""
-    ai_client = state.get("_ai_client")
+    rag_active = bool(state.get("rag_context"))
+    hs_ai = state.get("_hs_ai_client")
+    ai_client = (hs_ai if rag_active and hs_ai else None) or state.get("_ai_client")
     if not ai_client:
         return {"flashcards_json": []}
+
+    if rag_active and hs_ai:
+        logger.info("[FLASHCARD GEN] Using HS context AI client (RAG-enriched prompt)")
+    else:
+        logger.info("[FLASHCARD GEN] Using main AI client")
 
     prompt = state.get("built_prompt", "")
     difficulty = state.get("difficulty", "medium")
@@ -271,8 +331,9 @@ def generate_cards(state: FlashcardGenState) -> dict:
 
 class FlashcardGraph:
 
-    def __init__(self, ai_client: Any, db_session_factory: Any = None):
+    def __init__(self, ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None):
         self.ai_client = ai_client
+        self.hs_ai_client = hs_ai_client
         self.db_factory = db_session_factory
         self._graph = self._build()
 
@@ -297,6 +358,7 @@ class FlashcardGraph:
         difficulty: str = "medium",
         depth_level: str = "standard",
         additional_specs: str = "",
+        use_hs_context: bool = True,
     ) -> list[dict]:
         initial_state: FlashcardGenState = {
             "user_id": user_id,
@@ -307,7 +369,9 @@ class FlashcardGraph:
             "difficulty": difficulty,
             "depth_level": depth_level,
             "additional_specs": additional_specs,
+            "use_hs_context": use_hs_context,
             "_ai_client": self.ai_client,
+            "_hs_ai_client": self.hs_ai_client,
             "_db_factory": self.db_factory,
         }
         try:
@@ -321,9 +385,9 @@ class FlashcardGraph:
 _flashcard_graph: Optional[FlashcardGraph] = None
 
 
-def create_flashcard_graph(ai_client: Any, db_session_factory: Any = None) -> FlashcardGraph:
+def create_flashcard_graph(ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None) -> FlashcardGraph:
     global _flashcard_graph
-    _flashcard_graph = FlashcardGraph(ai_client, db_session_factory)
+    _flashcard_graph = FlashcardGraph(ai_client, db_session_factory, hs_ai_client=hs_ai_client)
     return _flashcard_graph
 
 

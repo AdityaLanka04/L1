@@ -3,21 +3,38 @@ import { useNavigate } from 'react-router-dom';
 import { User, Users, Swords, ChevronRight, Zap , Menu} from 'lucide-react';
 import './QuizHub.css';
 import ImportExportModal from '../components/ImportExportModal';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 const QuizHub = () => {
   const navigate = useNavigate();
   const [showImportExport, setShowImportExport] = useState(false);
   const [hoveredSection, setHoveredSection] = useState(null);
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-    
+
     return () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
   }, []);
+
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
+  };
 
   return (
     <div className="qh">
@@ -42,11 +59,12 @@ const QuizHub = () => {
           <span className="gm-subtitle">QUIZ HUB</span>
         </div>
         <nav className="gm-header-right">
-          <button 
+          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+          <button
             onClick={(e) => {
               e.stopPropagation();
               setShowImportExport(true);
-            }} 
+            }}
             className="gm-nav-btn gm-nav-btn-accent"
           >
             <Zap size={16} />
@@ -175,6 +193,14 @@ const QuizHub = () => {
             alert("Successfully converted questions!");
           }
         }}
+      />
+
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
       />
     </div>
   );

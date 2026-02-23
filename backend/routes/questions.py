@@ -78,10 +78,16 @@ async def generate_practice_questions(
         content = payload.get("content", "")
         generation_type = payload.get("generation_type", "topic")
         additional_specs = payload.get("additional_specs", "")
+        use_hs_context = bool(payload.get("use_hs_context", True))
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+
+        logger.info(
+            f"[QUIZ ROUTE] generate request | topic='{topic}' user={user.id} "
+            f"HS_MODE={'ON  <-- curriculum RAG will run' if use_hs_context else 'OFF <-- no RAG, model-only'}"
+        )
 
         if not topic:
             raise HTTPException(status_code=400, detail="Topic or content required")
@@ -101,6 +107,7 @@ async def generate_practice_questions(
                     difficulty=difficulty,
                     question_types=question_types,
                     additional_specs=additional_specs,
+                    use_hs_context=use_hs_context,
                 )
         except Exception as graph_err:
             logger.warning(f"Quiz graph invoke failed, falling back to direct: {graph_err}")

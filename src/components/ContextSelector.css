@@ -1,0 +1,79 @@
+/* ContextSelector.css — matches each page's ghost nav-button pattern */
+
+.context-selector-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  transition: color 0.15s, opacity 0.15s;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.context-selector-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0;
+}
+
+.context-selector-btn:hover {
+  opacity: 1;
+  color: var(--accent, #7c6ff7);
+}
+
+/* HS Mode active — button turns green */
+.context-selector-btn.hs-active {
+  color: #22c55e;
+  opacity: 1;
+}
+
+.context-selector-btn.hs-active:hover {
+  color: #4ade80;
+}
+
+/* Small green dot shown when HS mode is on */
+.cs-hs-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+  box-shadow: 0 0 4px rgba(34, 197, 94, 0.6);
+}
+
+/* Small gray count badge when docs uploaded but HS mode off */
+.cs-doc-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary, #888);
+  background: var(--border-color, rgba(255, 255, 255, 0.12));
+  padding: 1px 5px;
+  border-radius: 10px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+/* ── SearchHub override: their buttons use accent color not text-secondary ── */
+.search-hub-page .context-selector-btn {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.search-hub-page .context-selector-btn:hover {
+  color: var(--text-primary, #fff);
+  transform: translateY(-2px);
+}
+
+.search-hub-page .context-selector-btn.hs-active {
+  color: #22c55e;
+}

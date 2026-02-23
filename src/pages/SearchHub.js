@@ -4,6 +4,9 @@ import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRigh
 import { useTheme } from '../contexts/ThemeContext';
 import './SearchHub.css';
 import { API_URL } from '../config/api';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 const SearchHub = () => {
   const navigate = useNavigate();
@@ -49,7 +52,11 @@ const SearchHub = () => {
   const autocompleteDebounceRef = useRef(null);
   const [showLoginMessage, setShowLoginMessage] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  
+
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
+
   // NLP-powered session ID for context tracking
   const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);  useEffect(() => {
     const username = localStorage.getItem('username');
@@ -79,6 +86,17 @@ const SearchHub = () => {
 
     loadCommandCatalog();
   }, []);
+
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
+  };
 
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -859,10 +877,11 @@ const SearchHub = () => {
             },
             body: JSON.stringify({
               user_id: userName,
-              topic: parameters.topic || searchQuery
+              topic: parameters.topic || searchQuery,
+              use_hs_context: hsMode
             })
           });
-          
+
           if (noteResponse.ok) {
             const noteData = await noteResponse.json();
             if (noteData.success && noteData.navigate_to) {
@@ -888,14 +907,15 @@ const SearchHub = () => {
           // Use SearchHub agent to create flashcards with full content
           const fcResponse = await fetch(`${API_URL}/agents/searchhub/create-flashcards`, {
             method: 'POST',
-            headers: { 
+            headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               user_id: userName,
               topic: parameters.topic || searchQuery,
-              count: parameters.count || 10
+              count: parameters.count || 10,
+              use_hs_context: hsMode
             })
           });
           
@@ -943,10 +963,11 @@ const SearchHub = () => {
             body: JSON.stringify({
               user_id: userName,
               topic: parameters.topic || searchQuery,
-              count: parameters.count || 10
+              count: parameters.count || 10,
+              use_hs_context: hsMode
             })
           });
-          
+
           if (qResponse.ok) {
             const qData = await qResponse.json();
             if (qData.success && qData.navigate_to) {
@@ -979,7 +1000,8 @@ const SearchHub = () => {
             body: JSON.stringify({
               user_id: userName,
               topic: parameters.topic || searchQuery,
-              count: parameters.count || 10
+              count: parameters.count || 10,
+              use_hs_context: hsMode
             })
           });
           
@@ -1555,7 +1577,8 @@ const SearchHub = () => {
           body: JSON.stringify({
             user_id: userName,
             topic: topic,
-            count: 10
+            count: 10,
+            use_hs_context: hsMode
           })
         });
 
@@ -1572,18 +1595,19 @@ const SearchHub = () => {
         }
         // Fallback
         navigate('/flashcards');
-        
+
       } else if (type === 'notes') {
         // Use SearchHub agent to create note with AI content
         const response = await fetch(`${API_URL}/agents/searchhub/create-note`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             user_id: userName,
-            topic: topic
+            topic: topic,
+            use_hs_context: hsMode
           })
         });
 
@@ -1612,7 +1636,8 @@ const SearchHub = () => {
           body: JSON.stringify({
             user_id: userName,
             topic: topic,
-            count: 10
+            count: 10,
+            use_hs_context: hsMode
           })
         });
 
@@ -1699,6 +1724,7 @@ const SearchHub = () => {
             ) : (
               <button className="header-text-btn login-signup-btn" onClick={() => { setShowLoginMessage(true); setTimeout(() => setShowLoginMessage(false), 3000); }}>Dashboard</button>
             )}
+            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
           </div>
         </div>
       </header>
@@ -1706,6 +1732,14 @@ const SearchHub = () => {
       {showLoginMessage && (
         <div className="login-required-message">
           PLEASE LOGIN TO CONTINUE
+        </div>
+      )}
+
+      {hsMode && (
+        <div className="hs-mode-banner">
+          <span className="hs-mode-banner-icon">📚</span>
+          <span>HS Mode active — curriculum context is enriching your results</span>
+          <button className="hs-mode-banner-dismiss" onClick={() => handleHsModeToggle(false)}>✕</button>
         </div>
       )}
 
@@ -2393,6 +2427,14 @@ const SearchHub = () => {
           </div>
         </div>
       )}
+
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
+      />
     </div>
   );
 };

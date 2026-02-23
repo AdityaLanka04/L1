@@ -30,6 +30,11 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_MODEL = "gemini-2.0-flash"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
+# HS Context AI — dedicated client for HS-mode-enriched generation
+HS_CONTEXT_API_KEY  = os.getenv("HS_CONTEXT_API_KEY")
+HS_AI_BASE_URL      = os.getenv("HS_AI_BASE_URL", "https://api.groq.com/openai/v1")
+HS_AI_MODEL         = os.getenv("HS_AI_MODEL", "llama-3.3-70b-versatile")
+
 
 def _init_ai_client() -> UnifiedAIClient:
     from groq import Groq
@@ -45,7 +50,25 @@ def _init_ai_client() -> UnifiedAIClient:
     return UnifiedAIClient(gemini_client, groq_client, GEMINI_MODEL, GROQ_MODEL, GEMINI_API_KEY)
 
 
-unified_ai = _init_ai_client()
+def _init_hs_context_ai() -> UnifiedAIClient:
+    """
+    Dedicated AI client for HS-context-enriched generation.
+    Uses HS_CONTEXT_API_KEY via OpenAI-compatible REST endpoint.
+    Falls back to main unified_ai if key not set.
+    """
+    if not HS_CONTEXT_API_KEY:
+        logger.warning("HS_CONTEXT_API_KEY not set — HS context AI will use main client")
+        return _init_ai_client()
+    logger.info(f"HS context AI initialised: model={HS_AI_MODEL} base_url={HS_AI_BASE_URL}")
+    return UnifiedAIClient(
+        openai_compat_api_key=HS_CONTEXT_API_KEY,
+        openai_compat_base_url=HS_AI_BASE_URL,
+        openai_compat_model=HS_AI_MODEL,
+    )
+
+
+unified_ai    = _init_ai_client()
+hs_context_ai = _init_hs_context_ai()
 
 
 def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7,

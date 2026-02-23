@@ -2210,6 +2210,38 @@ class StudyPlan(Base):
     user = relationship("User")
 
 
+class ContextDocument(Base):
+    """
+    Tracks uploaded curriculum documents for Cerbyl HS Mode.
+    scope: 'private' (user only) | 'hs_shared' (contributes to global hs_curriculum ChromaDB collection)
+
+    FREE US HS Curriculum Sources for seeding hs_curriculum:
+      OpenStax (CC-BY):   https://openstax.org/subjects
+      CK-12 (free):       https://www.ck12.org
+      LibreTexts:         math/chem/bio.libretexts.org
+      AP Frameworks:      https://collegeboard.org/courses  (free PDF CED per course)
+      Common Core:        https://corestandards.org
+      NCBI Bookshelf:     https://www.ncbi.nlm.nih.gov/books/ (bio/anatomy, public domain)
+    """
+    __tablename__ = "context_documents"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    user_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
+    doc_id       = Column(String(36), unique=True, index=True, nullable=False)
+    filename     = Column(String(255), nullable=False)
+    file_type    = Column(String(10), nullable=False, default="pdf")
+    subject      = Column(String(100), nullable=True)
+    grade_level  = Column(String(20), nullable=True)
+    scope        = Column(String(20), nullable=False, default="private")  # private | hs_shared
+    chunk_count  = Column(Integer, default=0)
+    status       = Column(String(20), default="processing")  # processing | ready | failed
+    source_url   = Column(String(500), nullable=True)
+    created_at   = Column(DateTime, default=datetime.utcnow)
+    updated_at   = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", backref="context_documents")
+
+
 class GeneratedQuestion(Base):
     """AI-generated questions for practice"""
     __tablename__ = "generated_questions"

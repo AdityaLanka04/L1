@@ -240,6 +240,7 @@ async def generate_flashcards_endpoint(
     difficulty: str = Form("medium"),
     depth_level: str = Form("standard"),
     additional_specs: str = Form(""),
+    use_hs_context: bool = Form(True),
     set_title: str = Form(None),
     is_public: bool = Form(False),
     db: Session = Depends(get_db),
@@ -265,6 +266,12 @@ async def generate_flashcards_endpoint(
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    hs_flag = bool(_coerce_bool(_unwrap_form_value(use_hs_context), default=True))
+    logger.info(
+        f"[FLASHCARD ROUTE] generate request | topic='{topic}' user={user.id} "
+        f"HS_MODE={'ON  <-- curriculum RAG will run' if hs_flag else 'OFF <-- no RAG, model-only'}"
+    )
 
     # Resolve content for chat_history mode
     chat_content = ""
@@ -298,6 +305,7 @@ async def generate_flashcards_endpoint(
             difficulty=difficulty,
             depth_level=depth_level,
             additional_specs=additional_specs,
+            use_hs_context=bool(use_hs_context),
         )
     else:
         # Fallback: direct AI call if graph not initialized

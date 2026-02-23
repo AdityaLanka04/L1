@@ -22,6 +22,9 @@ import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
 import noteAgentService from '../services/noteAgentService';
 import ImportExportModal from '../components/ImportExportModal';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 // Enhanced Notes Features
 import SimpleBlockEditor from '../components/SimpleBlockEditor';
@@ -312,6 +315,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
   // User state
   const [userName, setUserName] = useState("");
   const [userProfile, setUserProfile] = useState(null);
+
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
   
   // Notes state
   const [notes, setNotes] = useState([]);
@@ -462,6 +469,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const timer = setTimeout(() => setPendingFocusBlockId(null), 300);
     return () => clearTimeout(timer);
   }, [pendingFocusBlockId]);
+
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
+  };
 
   // Font registration
   useEffect(() => {
@@ -2603,6 +2621,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         <nav className="nav-actions-new">
           {!isSharedContent && (
             <>
+              <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
               <button className="nr-nav-btn-ghost" onClick={() => setShowRecentlyViewed(!showRecentlyViewed)}>
                 <span>Recent</span>
                 <ChevronRight size={14} />
@@ -3907,6 +3926,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
           </div>
         </>
       )}
+
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
+      />
     </div>
   );
 };

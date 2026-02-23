@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 
 class TutorGraph:
 
-    def __init__(self, ai_client: Any, db_session_factory: Any = None):
+    def __init__(self, ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None):
         self.ai_client = ai_client
+        self.hs_ai_client = hs_ai_client
         self.db_factory = db_session_factory
         self._graph = self._build()
 
@@ -46,13 +47,16 @@ class TutorGraph:
         user_input: str,
         chat_id: int | None = None,
         chat_history: list[dict] | None = None,
+        use_hs_context: bool = True,
     ) -> dict:
         initial_state: TutorState = {
             "user_id": user_id,
             "user_input": user_input,
             "chat_id": chat_id,
             "chat_history": chat_history or [],
+            "use_hs_context": use_hs_context,
             "_ai_client": self.ai_client,
+            "_hs_ai_client": self.hs_ai_client,
             "_db_factory": self.db_factory,
         }
         try:
@@ -72,9 +76,9 @@ class TutorGraph:
 _tutor: Optional[TutorGraph] = None
 
 
-def create_tutor(ai_client: Any, db_session_factory: Any = None) -> TutorGraph:
+def create_tutor(ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None) -> TutorGraph:
     global _tutor
-    _tutor = TutorGraph(ai_client, db_session_factory)
+    _tutor = TutorGraph(ai_client, db_session_factory, hs_ai_client=hs_ai_client)
     return _tutor
 
 

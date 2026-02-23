@@ -22,10 +22,13 @@ class NoteGenState(TypedDict, total=False):
     student_strengths: list[str]
     concept_prerequisites: list[str]
     common_mistakes: list[str]
+    rag_context: list[str]       # top-k curriculum chunks from context_store
+    use_hs_context: bool         # enables RAG retrieval (default True)
     # Output
     built_prompt: str
     note_content: str
     _ai_client: Any
+    _hs_ai_client: Any           # dedicated AI client for HS-context-enriched generation
     _db_factory: Any
 
 
@@ -96,11 +99,46 @@ async def fetch_context(state: NoteGenState) -> dict:
         except Exception as e:
             logger.warning(f"NoteGraph Neo4j context fetch failed: {e}")
 
+    # RAG: fetch HS curriculum / personal doc context
+    rag_chunks: list[str] = []
+    use_hs = state.get("use_hs_context", True)
+    logger.info(f"[NOTE RAG] topic='{topic}' use_hs_context={use_hs} user_id={user_id}")
+    if topic and use_hs:
+        try:
+            import context_store
+            if context_store.available():
+                results = context_store.search_context(
+                    query=topic,
+                    user_id=user_id,
+                    use_hs=True,
+                    top_k=5,
+                )
+                rag_chunks = [r["text"] for r in results]
+                if rag_chunks:
+                    logger.info(
+                        f"[NOTE RAG] *** HS CONTEXT FOUND *** {len(rag_chunks)} chunk(s) retrieved for '{topic}'"
+                    )
+                    for i, r in enumerate(results):
+                        preview = r["text"][:120].replace("\n", " ")
+                        logger.info(
+                            f"[NOTE RAG]   chunk[{i}] source={r['source']} dist={r['distance']:.4f} | {preview}..."
+                        )
+                else:
+                    logger.info(f"[NOTE RAG] No matching chunks found for '{topic}' in curriculum/docs")
+            else:
+                logger.info("[NOTE RAG] context_store not available — skipping RAG")
+        except Exception as e:
+            logger.warning(f"RAG context fetch failed: {e}")
+    else:
+        if not use_hs:
+            logger.info(f"[NOTE RAG] HS Mode OFF — RAG skipped for '{topic}'")
+
     return {
         "student_weaknesses": weaknesses,
         "student_strengths": strengths,
         "concept_prerequisites": prerequisites,
         "common_mistakes": mistakes,
+        "rag_context": rag_chunks,
     }
 
 
@@ -207,6 +245,20 @@ def build_prompt(state: NoteGenState) -> dict:
     if additional_specs:
         parts.append(f"ADDITIONAL INSTRUCTIONS:\n{additional_specs}\n")
 
+    # Curriculum RAG context
+    rag_context = state.get("rag_context", [])
+    if rag_context:
+        logger.info(f"[NOTE PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) into prompt ***")
+        context_block = "\n---\n".join(rag_context[:5])
+        parts.append(
+            f"RELEVANT CURRICULUM CONTEXT (from student's documents and HS curriculum):\n"
+            f"{context_block}\n\n"
+            "Prioritise this material when relevant to the topic. "
+            "Use it to make the notes more curriculum-aligned and accurate.\n"
+        )
+    else:
+        logger.info("[NOTE PROMPT] No RAG context — generating from model knowledge only")
+
     # Format requirements
     parts.append(
         "FORMAT REQUIREMENTS:\n"
@@ -222,9 +274,16 @@ def build_prompt(state: NoteGenState) -> dict:
 
 def generate_note(state: NoteGenState) -> dict:
     """Call AI and return the markdown note content."""
-    ai_client = state.get("_ai_client")
+    rag_active = bool(state.get("rag_context"))
+    hs_ai = state.get("_hs_ai_client")
+    ai_client = (hs_ai if rag_active and hs_ai else None) or state.get("_ai_client")
     if not ai_client:
         return {"note_content": ""}
+
+    if rag_active and hs_ai:
+        logger.info("[NOTE GEN] Using HS context AI client (RAG-enriched prompt)")
+    else:
+        logger.info("[NOTE GEN] Using main AI client")
 
     prompt = state.get("built_prompt", "")
     depth = state.get("depth", "standard")
@@ -242,8 +301,9 @@ def generate_note(state: NoteGenState) -> dict:
 
 class NoteGraph:
 
-    def __init__(self, ai_client: Any, db_session_factory: Any = None):
+    def __init__(self, ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None):
         self.ai_client = ai_client
+        self.hs_ai_client = hs_ai_client
         self.db_factory = db_session_factory
         self._graph = self._build()
 
@@ -267,6 +327,7 @@ class NoteGraph:
         depth: str = "standard",
         tone: str = "professional",
         additional_specs: str = "",
+        use_hs_context: bool = True,
     ) -> str:
         initial_state: NoteGenState = {
             "user_id": user_id,
@@ -276,7 +337,9 @@ class NoteGraph:
             "depth": depth,
             "tone": tone,
             "additional_specs": additional_specs,
+            "use_hs_context": use_hs_context,
             "_ai_client": self.ai_client,
+            "_hs_ai_client": self.hs_ai_client,
             "_db_factory": self.db_factory,
         }
         try:
@@ -290,9 +353,9 @@ class NoteGraph:
 _note_graph: Optional[NoteGraph] = None
 
 
-def create_note_graph(ai_client: Any, db_session_factory: Any = None) -> NoteGraph:
+def create_note_graph(ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None) -> NoteGraph:
     global _note_graph
-    _note_graph = NoteGraph(ai_client, db_session_factory)
+    _note_graph = NoteGraph(ai_client, db_session_factory, hs_ai_client=hs_ai_client)
     return _note_graph
 
 

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import logging
+
 from tutor.state import TutorState, StudentState, Neo4jInsights
+
+logger = logging.getLogger(__name__)
 
 
 def build_tutor_prompt(state: TutorState) -> str:
@@ -11,6 +15,8 @@ def build_tutor_prompt(state: TutorState) -> str:
     chat_history = state.get("chat_history", [])
     task = state.get("instructional_task", "")
     user_input = state.get("user_input", "")
+
+    rag_context = state.get("rag_context", [])
 
     sections = []
 
@@ -27,6 +33,13 @@ def build_tutor_prompt(state: TutorState) -> str:
 
     if memories:
         sections.append(_memory_section(memories))
+
+    # HS curriculum / personal doc RAG context
+    if rag_context:
+        logger.info(f"[TUTOR PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) into tutor prompt ***")
+        sections.append(_rag_section(rag_context))
+    else:
+        logger.info("[TUTOR PROMPT] No RAG context — tutor answering from model knowledge only")
 
     sections.append(_task_section(task, user_input))
 
@@ -95,6 +108,16 @@ def _memory_section(memories: list[str]) -> str:
     lines = ["[RELEVANT HISTORY (from episodic memory)]"]
     for m in memories:
         lines.append(f"- {m}")
+    return "\n".join(lines)
+
+
+def _rag_section(chunks: list[str]) -> str:
+    """Section containing HS curriculum / personal document RAG context."""
+    lines = ["[CURRICULUM CONTEXT (from student's uploaded documents and HS curriculum)]"]
+    lines.append("Prioritise this material when relevant. Use it to give accurate, curriculum-aligned answers.")
+    for i, chunk in enumerate(chunks[:5], 1):
+        lines.append(f"\n--- Source {i} ---")
+        lines.append(chunk)
     return "\n".join(lines)
 
 

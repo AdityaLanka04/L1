@@ -20,6 +20,7 @@ class SearchHubRequest(BaseModel):
     query: str
     session_id: Optional[str] = None
     context: Optional[dict] = None
+    use_hs_context: bool = True
 
 
 class CreateNoteRequest(BaseModel):
@@ -28,6 +29,7 @@ class CreateNoteRequest(BaseModel):
     content: Optional[str] = None
     depth: str = "standard"
     tone: str = "professional"
+    use_hs_context: bool = True
 
 
 class CreateFlashcardsRequest(BaseModel):
@@ -44,6 +46,7 @@ class CreateQuestionsRequest(BaseModel):
     count: int = 10
     difficulty_mix: Optional[dict] = None
     content: Optional[str] = None
+    use_hs_context: bool = True
 
 
 class ExplainRequest(BaseModel):
@@ -686,8 +689,13 @@ async def _create_note_with_ai(
     content: Optional[str],
     depth: str,
     tone: str,
+    use_hs_context: bool = True,
 ) -> dict:
     note_title = topic.strip() if topic else "New Note"
+    logger.info(
+        f"[NOTE ROUTE] create note | topic='{note_title}' user={user.id} "
+        f"HS_MODE={'ON  <-- curriculum RAG will run' if use_hs_context else 'OFF <-- no RAG, model-only'}"
+    )
     if not content:
         # Preferred: personalised NoteGraph (uses Neo4j + DB context)
         try:
@@ -700,6 +708,7 @@ async def _create_note_with_ai(
                     generation_type="topic",
                     depth=depth or "standard",
                     tone=tone or "professional",
+                    use_hs_context=use_hs_context,
                 )
         except Exception as e:
             logger.warning(f"Note graph invoke failed: {e}")
@@ -990,6 +999,7 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
             None,
             note_depth or "standard",
             note_tone or "professional",
+            use_hs_context=request.use_hs_context,
         )
         return {
             "success": True,
@@ -1138,6 +1148,7 @@ async def create_note_endpoint(request: CreateNoteRequest, db: Session = Depends
         content=request.content,
         depth=request.depth,
         tone=request.tone,
+        use_hs_context=request.use_hs_context,
     )
 
     return {
@@ -1194,6 +1205,7 @@ async def create_questions_endpoint(request: CreateQuestionsRequest, db: Session
         "difficulty_mix": request.difficulty_mix or {"easy": 3, "medium": 5, "hard": 2},
         "question_types": ["multiple_choice"],
         "title": f"Practice: {request.topic[:50]}",
+        "use_hs_context": request.use_hs_context,
     }
     response = await question_routes.generate_practice_questions(payload=payload, db=db)
     content_id = response.get("question_set_id") or response.get("id")

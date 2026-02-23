@@ -481,10 +481,44 @@ def gate_and_retrieve(state: TutorState) -> dict:
             structured_context.extend(fc_context)
             structured_context.extend(note_context)
 
+    # RAG: fetch HS curriculum / personal doc context
+    rag_chunks: list[str] = []
+    use_hs = state.get("use_hs_context", True)
+    logger.info(f"[TUTOR RAG] query='{user_input[:80]}' use_hs_context={use_hs} user_id={user_id}")
+    if use_hs:
+        try:
+            import context_store
+            if context_store.available():
+                rag_results = context_store.search_context(
+                    query=user_input,
+                    user_id=user_id,
+                    use_hs=True,
+                    top_k=5,
+                )
+                rag_chunks = [r["text"] for r in rag_results]
+                if rag_chunks:
+                    logger.info(
+                        f"[TUTOR RAG] *** HS CONTEXT FOUND *** {len(rag_chunks)} chunk(s) retrieved"
+                    )
+                    for i, r in enumerate(rag_results):
+                        preview = r["text"][:120].replace("\n", " ")
+                        logger.info(
+                            f"[TUTOR RAG]   chunk[{i}] source={r['source']} dist={r['distance']:.4f} | {preview}..."
+                        )
+                else:
+                    logger.info(f"[TUTOR RAG] No matching chunks found for query in curriculum/docs")
+            else:
+                logger.info("[TUTOR RAG] context_store not available — skipping RAG")
+        except Exception as e:
+            logger.warning(f"RAG context fetch failed in tutor: {e}")
+    else:
+        logger.info(f"[TUTOR RAG] HS Mode OFF — RAG skipped")
+
     return {
         "retrieval_gated": should_retrieve,
         "episodic_memories": memories,
         "structured_context": structured_context,
+        "rag_context": rag_chunks,
     }
 
 
@@ -570,9 +604,17 @@ def _build_instructional_task(state: TutorState) -> str:
 
 
 def build_prompt_and_respond(state: TutorState) -> dict:
-    ai_client = state.get("_ai_client")
+    rag_active = bool(state.get("rag_context"))
+    hs_ai = state.get("_hs_ai_client")
+    ai_client = (hs_ai if rag_active and hs_ai else None) or state.get("_ai_client")
+
     if not ai_client:
         return {"response": "AI client not available.", "error": "no_ai_client"}
+
+    if rag_active and hs_ai:
+        logger.info("[TUTOR GEN] *** Using HS context AI client (RAG-enriched prompt) ***")
+    else:
+        logger.info("[TUTOR GEN] Using main AI client (no RAG or HS client unavailable)")
 
     task = _build_instructional_task(state)
     state_with_task = {**state, "instructional_task": task}

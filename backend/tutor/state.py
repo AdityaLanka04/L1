@@ -43,6 +43,8 @@ class TutorState(TypedDict, total=False):
     neo4j_insights: Neo4jInsights
     episodic_memories: list[str]
     structured_context: list[str]
+    rag_context: list[str]       # top-k curriculum chunks from context_store
+    use_hs_context: bool         # enables RAG retrieval (default True)
     retrieval_gated: bool
     instructional_task: str
     response: str
@@ -51,4 +53,5 @@ class TutorState(TypedDict, total=False):
     chroma_writes: list[dict]
     error: Optional[str]
     _ai_client: Any
+    _hs_ai_client: Any           # dedicated AI client for HS-context-enriched generation
     _db_factory: Any

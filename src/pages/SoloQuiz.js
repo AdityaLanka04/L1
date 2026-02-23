@@ -1,20 +1,26 @@
 ﻿import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
+import {
   Play, Brain, Sparkles, Loader, AlertCircle, BarChart3,
   BookOpen, Gauge, Cpu, Database, ArrowRight, History, TrendingUp, Zap, ChevronRight
 , Menu} from 'lucide-react';
 import './SoloQuiz.css';
 import quizAgentService from '../services/quizAgentService';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 const SoloQuiz = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const username = localStorage.getItem('username');
-  
+
   const [activeTab, setActiveTab] = useState('generator');
   const [subject, setSubject] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
   const [questionCount, setQuestionCount] = useState(10);
   const [questionTypes] = useState(['multiple_choice']);
   const [useAdaptive, setUseAdaptive] = useState(false);
@@ -32,6 +38,17 @@ const SoloQuiz = () => {
       case 'hard': return { easy: 1, medium: 4, hard: 5 };
       default: return { easy: 3, medium: 5, hard: 2 };
     }
+  };
+
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
   };
 
   useEffect(() => {
@@ -75,7 +92,8 @@ const SoloQuiz = () => {
           topic: topicToUse,
           questionCount: countToUse,
           difficultyMix: getDifficultyMix(),
-          questionTypes
+          questionTypes,
+          use_hs_context: hsMode
         });
       }
 
@@ -114,7 +132,8 @@ const SoloQuiz = () => {
           <span className="sq-subtitle">AI QUIZ</span>
         </div>
         <div className="sq-header-right">
-          <button 
+          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+          <button
             className="sq-nav-btn sq-nav-btn-accent"
             onClick={() => navigate('/quiz-hub')}
           >
@@ -447,6 +466,13 @@ const SoloQuiz = () => {
         </main>
       </div>
 
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
+      />
     </div>
   );
 };

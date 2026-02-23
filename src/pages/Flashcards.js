@@ -7,6 +7,9 @@ import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
 import ImportExportModal from '../components/ImportExportModal';
 import MathRenderer from '../components/MathRenderer';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 const Flashcards = () => {
   const navigate = useNavigate();
@@ -14,6 +17,9 @@ const Flashcards = () => {
   const [userName, setUserName] = useState('');
   const [userProfile, setUserProfile] = useState(null);
   const [activePanel, setActivePanel] = useState('cards');
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Flashcard data
@@ -918,6 +924,17 @@ const Flashcards = () => {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
+  };
+
   // Load flashcard set by share code
   const loadFlashcardSetByCode = useCallback(async (shareCode, mode = 'preview') => {
     try {
@@ -1276,6 +1293,7 @@ const Flashcards = () => {
       formData.append('depth_level', depthLevel);
       formData.append('additional_specs', additionalSpecs);
       formData.append('is_public', isPublic.toString());
+      formData.append('use_hs_context', hsMode.toString());
 
       if (generationMode === 'topic') {
         formData.append('topic', topic);
@@ -2504,6 +2522,9 @@ const Flashcards = () => {
             <div className="hub-header-divider"></div>
             <p className="hub-header-subtitle">FLASHCARDS</p>
           </div>
+          <div className="hub-header-right">
+            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+          </div>
         </header>
 
         <div className="fc-layout-body">
@@ -3569,6 +3590,14 @@ const Flashcards = () => {
             loadFlashcardHistory(true); // Reset pagination after conversion
           }
         }}
+      />
+
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
       />
     </div>
   );

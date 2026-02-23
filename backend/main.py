@@ -126,6 +126,7 @@ from routes import (
     reviews,
     weakness,
     imports,
+    context as context_routes,
 )
 
 app.include_router(auth.router)
@@ -148,6 +149,7 @@ app.include_router(searchhub.router)
 app.include_router(reviews.router)
 app.include_router(weakness.router)
 app.include_router(imports.router)
+app.include_router(context_routes.router)
 
 try:
     from flashcard_api_minimal import register_flashcard_api_minimal
@@ -215,17 +217,17 @@ async def startup():
             logger.warning(f"Sequence fix error: {e}")
 
     try:
-        from deps import unified_ai
+        from deps import unified_ai, hs_context_ai as _hs_ai
         from tutor.graph import create_tutor
-        create_tutor(unified_ai, SessionLocal)
+        create_tutor(unified_ai, SessionLocal, hs_ai_client=_hs_ai)
         logger.info("Tutor graph initialized")
     except Exception as e:
         logger.warning(f"Tutor init failed: {e}")
 
     try:
-        from deps import unified_ai as _ai
+        from deps import unified_ai as _ai, hs_context_ai as _hs_ai
         from flashcard_graph import create_flashcard_graph
-        create_flashcard_graph(_ai, SessionLocal)
+        create_flashcard_graph(_ai, SessionLocal, hs_ai_client=_hs_ai)
         logger.info("Flashcard graph initialized")
     except Exception as e:
         logger.warning(f"Flashcard graph init failed: {e}")
@@ -247,17 +249,17 @@ async def startup():
         logger.warning(f"SearchHub graph init failed: {e}")
 
     try:
-        from deps import unified_ai as _ai
+        from deps import unified_ai as _ai, hs_context_ai as _hs_ai
         from quiz_graph import create_quiz_graph
-        create_quiz_graph(_ai, SessionLocal)
+        create_quiz_graph(_ai, SessionLocal, hs_ai_client=_hs_ai)
         logger.info("Quiz graph initialized")
     except Exception as e:
         logger.warning(f"Quiz graph init failed: {e}")
 
     try:
-        from deps import unified_ai as _ai
+        from deps import unified_ai as _ai, hs_context_ai as _hs_ai
         from note_graph import create_note_graph
-        create_note_graph(_ai, SessionLocal)
+        create_note_graph(_ai, SessionLocal, hs_ai_client=_hs_ai)
         logger.info("Note graph initialized")
     except Exception as e:
         logger.warning(f"Note graph init failed: {e}")
@@ -279,6 +281,29 @@ async def startup():
         logger.info("Chroma store initialized")
     except Exception as e:
         logger.warning(f"Chroma init failed: {e}")
+
+    try:
+        import context_store
+        from tutor import chroma_store as _cs
+        if _cs.available():
+            context_store.initialize(_cs._client, _cs._embed_model)
+            logger.info("Context store (HS Mode) initialized")
+            # Log what's already seeded in hs_curriculum at startup
+            try:
+                subjects = context_store.list_hs_subjects()
+                if subjects:
+                    logger.info(
+                        f"[HS CURRICULUM] {len(subjects)} subject(s) seeded: "
+                        + ", ".join(f"{s['subject']} ({s['doc_count']} doc(s), grade {s['grade_level']})" for s in subjects)
+                    )
+                else:
+                    logger.info("[HS CURRICULUM] hs_curriculum collection is empty — seed with seed_hs_curriculum.py")
+            except Exception as se:
+                logger.warning(f"hs_curriculum subject listing failed: {se}")
+        else:
+            logger.warning("Context store skipped — ChromaDB unavailable")
+    except Exception as e:
+        logger.warning(f"Context store init failed: {e}")
 
     logger.info("Startup complete")
 

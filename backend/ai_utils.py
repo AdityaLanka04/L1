@@ -20,14 +20,25 @@ class UnifiedAIClient:
         gemini_model: str = "gemini-2.0-flash",
         groq_model: str = "llama-3.3-70b-versatile",
         gemini_api_key: str = None,
+        # OpenAI-compatible fallback (used for HS context AI key)
+        openai_compat_api_key: str = None,
+        openai_compat_base_url: str = "https://api.openai.com/v1",
+        openai_compat_model: str = "gpt-4o-mini",
     ):
         self.gemini_module = gemini_client
         self.groq_client = groq_client
         self.gemini_model = gemini_model
         self.groq_model = groq_model
         self.gemini_api_key = gemini_api_key
+        self.openai_compat_api_key = openai_compat_api_key
+        self.openai_compat_base_url = openai_compat_base_url.rstrip("/")
+        self.openai_compat_model = openai_compat_model
 
-        if gemini_client:
+        if openai_compat_api_key and not gemini_client and not groq_client:
+            # HS context-only client — primary is openai-compatible
+            self.gemini_client = None
+            self.primary_ai = "openai_compat"
+        elif gemini_client:
             try:
                 self.gemini_client = gemini_client.GenerativeModel(gemini_model)
                 self.primary_ai = "gemini"
@@ -41,7 +52,7 @@ class UnifiedAIClient:
             self.gemini_client = None
             self.primary_ai = "groq"
         else:
-            raise ValueError("At least one AI client (Gemini or Groq) must be provided")
+            raise ValueError("At least one AI client (Gemini, Groq, or OpenAI-compat) must be provided")
 
     def generate(
         self,
@@ -52,7 +63,9 @@ class UnifiedAIClient:
         conversation_id: str = None,
     ) -> str:
         try:
-            if self.primary_ai == "gemini" and self.gemini_api_key:
+            if self.primary_ai == "openai_compat" and self.openai_compat_api_key:
+                return self._call_openai_compat(prompt, max_tokens, temperature)
+            elif self.primary_ai == "gemini" and self.gemini_api_key:
                 return self._call_gemini(prompt, max_tokens, temperature)
             elif self.groq_client:
                 return self._call_groq(prompt, max_tokens, temperature)
@@ -106,7 +119,44 @@ class UnifiedAIClient:
         self._log_usage(usage, model=self.groq_model, provider="groq")
         return resp.choices[0].message.content.strip()
 
+    def _call_openai_compat(self, prompt: str, max_tokens: int, temperature: float) -> str:
+        """Call any OpenAI-compatible REST API (sk-* key format)."""
+        url = f"{self.openai_compat_base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.openai_compat_api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.openai_compat_model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        for attempt in range(3):
+            try:
+                resp = requests.post(url, json=payload, headers=headers, timeout=90)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    usage = extract_usage_from_openai_like(data)
+                    self._log_usage(usage, model=self.openai_compat_model, provider="hs_context")
+                    return data["choices"][0]["message"]["content"].strip()
+                if resp.status_code == 429:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise Exception(f"HS context AI error {resp.status_code}: {resp.text[:200]}")
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                if attempt == 2:
+                    raise
+                time.sleep(2)
+        raise Exception("HS context AI request failed after retries")
+
     def _fallback(self, prompt: str, max_tokens: int, temperature: float) -> str:
+        if self.primary_ai == "openai_compat":
+            # Fall back through standard clients
+            if self.gemini_api_key:
+                return self._call_gemini(prompt, max_tokens, temperature)
+            if self.groq_client:
+                return self._call_groq(prompt, max_tokens, temperature)
         if self.primary_ai == "gemini" and self.groq_client:
             return self._call_groq(prompt, max_tokens, temperature)
         if self.primary_ai == "groq" and self.gemini_api_key:

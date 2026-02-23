@@ -6,6 +6,9 @@ import gamificationService from '../services/gamificationService';
 import MathRenderer from '../components/MathRenderer';
 //import { processMathInContent } from '../utils/mathUtils';
 import './AIChat.css';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 const AIChat = ({ sharedMode = false }) => {
   const { chatId } = useParams();
@@ -41,7 +44,11 @@ const AIChat = ({ sharedMode = false }) => {
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [conversationMode, setConversationMode] = useState('tutoring');
   const [agentAnalysis, setAgentAnalysis] = useState(null);
-  
+
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
+
   const handleFolderCreation = async () => {
     if (!folderName.trim()) return;
     
@@ -214,6 +221,17 @@ const AIChat = ({ sharedMode = false }) => {
     }, 50);
     return () => clearTimeout(timer);
   }, [messages]);
+
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
+  };
 
   // Enhanced scroll handling from Knowledge Roadmap
   const handleScroll = () => {
@@ -677,6 +695,7 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('user_id', userName);
       formData.append('question', messageText || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
+      formData.append('use_hs_context', hsMode.toString());
 
       console.log('📤 Sending message to backend:');
       console.log('   user_id:', userName);
@@ -1881,6 +1900,9 @@ const AIChat = ({ sharedMode = false }) => {
           <div className="hub-header-divider"></div>
           <p className="hub-header-subtitle">AI CHAT</p>
         </div>
+        <div className="hub-header-right">
+          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+        </div>
       </header>
 
       <div className="ac-layout">
@@ -2503,6 +2525,14 @@ const AIChat = ({ sharedMode = false }) => {
           </div>
         </>
       )}
+
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
+      />
     </div>
   );
 };
