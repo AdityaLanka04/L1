@@ -78,6 +78,8 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="File is empty.")
 
     doc_id = str(uuid.uuid4())
+    clean_subject = context_store.canonicalize_subject(subject) if subject else ""
+    clean_grade = (grade_level or "").strip()
 
     # Create DB record (status="processing")
     doc_record = models.ContextDocument(
@@ -85,8 +87,8 @@ async def upload_document(
         doc_id=doc_id,
         filename=(file.filename or "upload")[:255],
         file_type=lower_name.rsplit(".", 1)[-1],
-        subject=subject[:100] if subject else "",
-        grade_level=grade_level[:20] if grade_level else "",
+        subject=clean_subject[:100] if clean_subject else "",
+        grade_level=clean_grade[:20] if clean_grade else "",
         scope=scope,
         source_url=source_url[:500] if source_url else "",
         status="processing",
@@ -100,8 +102,8 @@ async def upload_document(
         result = process_upload(
             file_bytes=file_bytes,
             filename=file.filename or "upload",
-            subject=subject,
-            grade_level=grade_level,
+            subject=clean_subject,
+            grade_level=clean_grade,
             scope=scope,
             source_url=source_url,
         )
@@ -133,8 +135,8 @@ async def upload_document(
             doc_id=doc_id,
             filename=file.filename or "upload",
             chunks=result["chunks"],
-            subject=subject,
-            grade_level=grade_level,
+            subject=clean_subject,
+            grade_level=clean_grade,
             scope=scope,
             source_url=source_url,
         )
@@ -283,6 +285,8 @@ def delete_document(
 def search_context_endpoint(
     query: str = Query(..., min_length=2, description="Search query"),
     use_hs: bool = Query(True, description="Include shared HS curriculum in results"),
+    subject: str = Query("", description="Optional HS subject filter (e.g., Biology)"),
+    grade_level: str = Query("", description="Optional grade level filter (e.g., 9-12, AP)"),
     top_k: int = Query(5, ge=1, le=20, description="Number of results to return"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -303,6 +307,8 @@ def search_context_endpoint(
             user_id=str(current_user.id),
             use_hs=use_hs,
             top_k=top_k,
+            subject=subject or None,
+            grade_level=grade_level or None,
         )
         # Strip internal distance metric from response
         cleaned = [

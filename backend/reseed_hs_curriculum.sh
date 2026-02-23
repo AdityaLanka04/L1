@@ -1,0 +1,1 @@
+cd "$(dirname "$0")" && python -c "import chromadb; c=chromadb.PersistentClient(path='.chroma_data'); existing=set(getattr(col,'name',col) for col in c.list_collections()); targets=['hs_curriculum','user_docs_bbc5e661e106c6dc']; [c.delete_collection(n) or print(f'deleted: {n}') for n in targets if n in existing]" && python seed_hs_curriculum.py

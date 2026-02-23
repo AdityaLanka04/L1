@@ -52,6 +52,7 @@ Seeding Process:
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -62,6 +63,99 @@ _client = None
 _embed_model = None
 
 HS_CURRICULUM_COLLECTION = "hs_curriculum"
+
+# Subject inference helpers (shared by seed script + retrieval)
+_SUBJECT_ALIASES: list[tuple[str, list[str]]] = [
+    ("US History", ["us history", "u.s. history", "us hist", "ush", "american history"]),
+    ("World History", ["world history", "world hist"]),
+    ("History", ["history", "hist"]),
+    ("Pre-Calculus", ["precalculus", "pre-calc", "pre calc", "precalc", "pre calculus"]),
+    ("Calculus", ["calculus", "calc"]),
+    ("Statistics", ["statistics", "stats", "stat"]),
+    ("Algebra", ["algebra", "alg"]),
+    ("Geometry", ["geometry", "geom"]),
+    ("Biology", ["biology", "bio"]),
+    ("Chemistry", ["chemistry", "chem"]),
+    ("Physics", ["physics", "phys"]),
+    ("Earth Science", ["earth science", "geology", "geoscience", "geosci"]),
+    ("Environmental Science", ["environmental science", "environmental", "env sci", "environ"]),
+    ("Anatomy", ["anatomy"]),
+    ("Psychology", ["psychology", "psych"]),
+    ("Sociology", ["sociology", "socio"]),
+    ("Economics", ["economics", "econ"]),
+    ("Government", ["government", "gov", "civics"]),
+    ("English", ["english", "ela", "literature", "lit", "language arts"]),
+]
+
+_KNOWN_SUBJECTS = {canon for canon, _ in _SUBJECT_ALIASES}
+
+_STOPWORDS = {
+    "the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with", "at", "by",
+    "from", "about", "as", "is", "are", "was", "were", "be", "been", "being",
+    "i", "you", "he", "she", "it", "they", "them", "we", "me", "my", "your", "our", "their",
+    "this", "that", "these", "those", "what", "why", "how", "when", "where", "which",
+    "do", "does", "did", "can", "could", "should", "would", "will", "just", "need", "want",
+    "help", "explain", "again", "please",
+}
+
+
+def _normalize_subject_text(text: str) -> str:
+    return re.sub(r"[_\-\/]+", " ", (text or "").lower()).strip()
+
+
+def _matches_alias(text: str, alias: str) -> bool:
+    if not text or not alias:
+        return False
+    if " " in alias:
+        return alias in text
+    return re.search(rf"\b{re.escape(alias)}\b", text) is not None
+
+
+def canonicalize_subject(subject: str) -> str:
+    """
+    Map a subject string to a canonical HS subject name when possible.
+    Returns the input trimmed if no mapping found.
+    """
+    if not subject:
+        return ""
+    text = _normalize_subject_text(subject)
+    for canonical, aliases in _SUBJECT_ALIASES:
+        if _matches_alias(text, canonical.lower()):
+            return canonical
+        for alias in aliases:
+            if _matches_alias(text, alias):
+                return canonical
+    return subject.strip()
+
+
+def infer_subject(text: str, default: str = "") -> str:
+    """
+    Infer a canonical HS subject from free text (query or filename).
+    Returns default if nothing matches.
+    """
+    if not text:
+        return default
+    normalized = _normalize_subject_text(text)
+    for canonical, aliases in _SUBJECT_ALIASES:
+        for alias in aliases + [canonical.lower()]:
+            if _matches_alias(normalized, alias):
+                return canonical
+    return default
+
+
+def _keyword_tokens(text: str) -> set[str]:
+    tokens = re.findall(r"[a-zA-Z0-9]+", (text or "").lower())
+    return {t for t in tokens if len(t) > 2 and t not in _STOPWORDS}
+
+
+def _overlap_ratio(query_tokens: set[str], doc_text: str) -> float:
+    if not query_tokens:
+        return 0.0
+    doc_tokens = _keyword_tokens(doc_text)
+    if not doc_tokens:
+        return 0.0
+    overlap = len(query_tokens & doc_tokens)
+    return overlap / max(1, len(query_tokens))
 
 
 # ── Initialisation ────────────────────────────────────────────────────────────
@@ -131,6 +225,8 @@ def add_document_chunks(
         raise ValueError("No chunks provided")
 
     timestamp = datetime.now(timezone.utc).isoformat()
+    clean_subject = canonicalize_subject(subject) if subject else ""
+    clean_grade = (grade_level or "").strip()
 
     def _write_to_collection(col_name: str) -> int:
         col = _get_collection(col_name)
@@ -142,8 +238,8 @@ def add_document_chunks(
             meta = {
                 "doc_id": doc_id,
                 "filename": filename[:200],
-                "subject": subject[:100] if subject else "",
-                "grade_level": grade_level[:50] if grade_level else "",
+                "subject": clean_subject[:100] if clean_subject else "",
+                "grade_level": clean_grade[:50] if clean_grade else "",
                 "scope": scope,
                 "user_id": str(user_id),
                 "chunk_index": str(i),
@@ -184,15 +280,18 @@ def search_context(
     user_id: str,
     use_hs: bool = True,
     top_k: int = 5,
+    subject: Optional[str] = None,
+    grade_level: Optional[str] = None,
 ) -> list[dict]:
     """
     Semantic search across user's private docs and optionally the shared HS curriculum.
+    If subject/grade_level are provided (or inferred), HS results are filtered when possible.
 
     Strategy:
       1. Query user_docs_{hash} (always, if collection has docs)
       2. Query hs_curriculum (if use_hs=True and collection has docs)
       3. Deduplicate by doc_id+chunk_index
-      4. Re-rank by cosine distance (lower = more similar)
+      4. Re-rank by cosine distance + keyword overlap (favor direct matches)
       5. Return top_k results
 
     Returns list of dicts: {"text": str, "metadata": dict, "source": "private"|"hs", "distance": float}
@@ -207,42 +306,99 @@ def search_context(
         logger.warning(f"Query embedding failed: {e}")
         return []
 
-    results = []
+    results: list[dict] = []
     seen_keys: set[str] = set()
 
-    def _fetch_from(col_name: str, source_label: str):
+    query_tokens = _keyword_tokens(query)
+    subject_filter = canonicalize_subject(subject) if subject else ""
+    if subject_filter not in _KNOWN_SUBJECTS:
+        subject_filter = ""
+    if not subject_filter:
+        inferred = infer_subject(query, default="")
+        subject_filter = inferred if inferred in _KNOWN_SUBJECTS else ""
+    if subject_filter == "General":
+        subject_filter = ""
+    grade_filter = (grade_level or "").strip()
+
+    overlap_boost = 0.35
+    subject_boost = 0.05
+
+    def _fetch_from(col_name: str, source_label: str, where: Optional[dict] = None, n_multiplier: int = 2):
         try:
             col = _get_collection(col_name)
             if col.count() == 0:
                 return
-            n = min(top_k, col.count())
-            r = col.query(
-                query_embeddings=[query_embedding],
-                n_results=n,
-                include=["documents", "metadatas", "distances"],
-            )
+
+            n = min(max(top_k * n_multiplier, top_k), col.count())
+            def _do_query(where_clause: Optional[dict]):
+                kwargs = {
+                    "query_embeddings": [query_embedding],
+                    "n_results": n,
+                    "include": ["documents", "metadatas", "distances"],
+                }
+                if where_clause:
+                    kwargs["where"] = where_clause
+                return col.query(**kwargs)
+
+            r = _do_query(where)
             docs = r.get("documents", [[]])[0]
             metas = r.get("metadatas", [[]])[0]
             distances = r.get("distances", [[]])[0]
+            if where and not docs:
+                # Fallback to unfiltered query if the filter is too restrictive
+                r = _do_query(None)
+                docs = r.get("documents", [[]])[0]
+                metas = r.get("metadatas", [[]])[0]
+                distances = r.get("distances", [[]])[0]
+
             for doc, meta, dist in zip(docs, metas, distances):
+                meta = meta or {}
                 key = f"{meta.get('doc_id', '')}_{meta.get('chunk_index', '')}"
                 if key not in seen_keys:
                     seen_keys.add(key)
+                    overlap = _overlap_ratio(query_tokens, doc)
+                    subject_match = (
+                        bool(subject_filter)
+                        and canonicalize_subject(meta.get("subject", "")) == subject_filter
+                    )
                     results.append({
                         "text": doc,
                         "metadata": meta,
                         "source": source_label,
                         "distance": dist,
+                        "_overlap": overlap,
+                        "_subject_match": subject_match,
                     })
         except Exception as e:
             logger.warning(f"context_store search failed for {col_name}: {e}")
 
-    _fetch_from(_user_docs_name(user_id), "private")
+    _fetch_from(_user_docs_name(user_id), "private", n_multiplier=2)
     if use_hs:
-        _fetch_from(HS_CURRICULUM_COLLECTION, "hs")
+        hs_where = {}
+        if subject_filter:
+            hs_where["subject"] = subject_filter
+        if grade_filter:
+            hs_where["grade_level"] = grade_filter
+        _fetch_from(HS_CURRICULUM_COLLECTION, "hs", where=hs_where or None, n_multiplier=4)
 
-    results.sort(key=lambda x: x.get("distance", 1.0))
-    return results[:top_k]
+    def _score(item: dict) -> float:
+        score = item.get("distance", 1.0)
+        if query_tokens:
+            score -= overlap_boost * item.get("_overlap", 0.0)
+        if item.get("_subject_match"):
+            score -= subject_boost
+        return score
+
+    ranked = sorted(results, key=_score)
+    if query_tokens:
+        with_overlap = [r for r in ranked if r.get("_overlap", 0.0) > 0.0]
+        if len(with_overlap) >= top_k:
+            ranked = with_overlap
+
+    cleaned = []
+    for r in ranked[:top_k]:
+        cleaned.append({k: v for k, v in r.items() if not k.startswith("_")})
+    return cleaned
 
 
 # ── Listing ───────────────────────────────────────────────────────────────────

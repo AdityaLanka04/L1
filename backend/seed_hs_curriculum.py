@@ -26,7 +26,6 @@ import argparse
 import hashlib
 import os
 import sys
-import uuid
 from pathlib import Path
 
 # Force UTF-8 output on Windows so unicode chars don't crash
@@ -60,38 +59,9 @@ def _load_chroma_and_embed():
 
 
 def _infer_subject(filename: str) -> str:
-    """Guess subject from filename keywords."""
-    name = filename.lower()
-    mapping = {
-        "bio": "Biology",
-        "chem": "Chemistry",
-        "phys": "Physics",
-        "algebra": "Algebra",
-        "precalc": "Pre-Calculus",
-        "calculus": "Calculus",
-        "calc": "Calculus",
-        "stat": "Statistics",
-        "history": "History",
-        "us_hist": "US History",
-        "world_hist": "World History",
-        "english": "English",
-        "psychology": "Psychology",
-        "psych": "Psychology",
-        "sociology": "Sociology",
-        "economics": "Economics",
-        "econ": "Economics",
-        "geometry": "Geometry",
-        "geom": "Geometry",
-        "anatomy": "Anatomy",
-        "environ": "Environmental Science",
-        "earth": "Earth Science",
-        "government": "Government",
-        "gov": "Government",
-    }
-    for key, subject in mapping.items():
-        if key in name:
-            return subject
-    return "General"
+    """Guess subject from filename keywords using context_store helpers."""
+    import context_store
+    return context_store.infer_subject(filename, default="General")
 
 
 def _read_url_sidecar(file_path: Path) -> str:
@@ -121,6 +91,7 @@ def seed_file(
 
     filename = file_path.name
     inferred_subject = subject or _infer_subject(filename)
+    inferred_subject = context_store.canonicalize_subject(inferred_subject)
     source_url = _read_url_sidecar(file_path)
 
     # Stable doc_id — same file name always produces the same ID so re-runs are safe

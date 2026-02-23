@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import io
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -81,28 +82,72 @@ def extract_text_from_txt(file_bytes: bytes) -> str:
 
 # ── Chunking ──────────────────────────────────────────────────────────────────
 
-def chunk_text(
+_BULLET_RE = re.compile("^\\s*(?:[-*]|\\u2022|\\d+[\\.\\)])\\s+")
+
+
+def _normalize_text(text: str) -> str:
+    """
+    Normalize extracted text for more coherent chunking.
+
+    - Fix hyphenated line breaks
+    - Merge wrapped lines into paragraphs
+    - Preserve bullet-like lines as standalone paragraphs
+    - Collapse excessive whitespace
+    """
+    if not text:
+        return ""
+
+    text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\x00", "")
+    # Join hyphenated line breaks: "exam-\nple" -> "example"
+    text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
+
+    lines = [ln.strip() for ln in text.split("\n")]
+    paragraphs: list[str] = []
+    current: list[str] = []
+
+    def _flush_current():
+        if current:
+            paragraphs.append(" ".join(current).strip())
+            current.clear()
+
+    for line in lines:
+        if not line:
+            _flush_current()
+            continue
+
+        if _BULLET_RE.match(line):
+            _flush_current()
+            paragraphs.append(line.strip())
+            continue
+
+        current.append(line)
+
+    _flush_current()
+
+    # Collapse whitespace inside paragraphs
+    cleaned = [re.sub(r"\s+", " ", p).strip() for p in paragraphs if p.strip()]
+    return "\n\n".join(cleaned)
+
+
+def _tail_overlap(text: str, overlap: int) -> str:
+    if overlap <= 0 or not text:
+        return ""
+    if len(text) <= overlap:
+        return text.strip()
+    snippet = text[-overlap:]
+    # Drop partial word at the start of the snippet
+    idx = snippet.find(" ")
+    if idx != -1 and idx + 1 < len(snippet):
+        snippet = snippet[idx + 1 :]
+    return snippet.strip()
+
+
+def _sliding_window_chunks(
     text: str,
-    chunk_size: int = CHUNK_SIZE,
-    overlap: int = CHUNK_OVERLAP,
-    min_length: int = MIN_CHUNK_LEN,
+    chunk_size: int,
+    overlap: int,
+    min_length: int,
 ) -> list[str]:
-    """
-    Sliding-window character chunker.
-
-    Algorithm:
-      - Start at position 0
-      - Extract text[start : start + chunk_size]
-      - Advance by (chunk_size - overlap)  →  step = 450 with defaults
-      - Repeat until end of text
-      - Discard chunks shorter than min_length
-
-    Example for defaults (chunk_size=500, overlap=50, step=450):
-      chunk 0: text[0:500]
-      chunk 1: text[450:950]
-      chunk 2: text[900:1400]
-      ...
-    """
     if not text or len(text) < min_length:
         return []
 
@@ -115,6 +160,78 @@ def chunk_text(
         if len(chunk) >= min_length:
             chunks.append(chunk)
         start += step
+
+    return chunks
+
+
+def chunk_text(
+    text: str,
+    chunk_size: int = CHUNK_SIZE,
+    overlap: int = CHUNK_OVERLAP,
+    min_length: int = MIN_CHUNK_LEN,
+) -> list[str]:
+    """
+    Paragraph-aware chunker with sliding-window fallback.
+
+    Algorithm:
+      - Normalize text into paragraphs
+      - Build chunks by aggregating paragraphs until chunk_size
+      - Add small overlap between chunks for continuity
+      - Split any single paragraph that exceeds chunk_size via sliding window
+      - Discard chunks shorter than min_length
+
+    Example for defaults (chunk_size=500, overlap=50, step=450):
+      chunk 0: text[0:500]
+      chunk 1: text[450:950]
+      chunk 2: text[900:1400]
+      ...
+    """
+    if not text or len(text) < min_length:
+        return []
+
+    normalized = _normalize_text(text)
+    if not normalized or len(normalized) < min_length:
+        return []
+
+    paragraphs = [p for p in normalized.split("\n\n") if p.strip()]
+    if len(paragraphs) <= 1:
+        return _sliding_window_chunks(normalized, chunk_size, overlap, min_length)
+
+    chunks: list[str] = []
+    current = ""
+
+    for para in paragraphs:
+        para = para.strip()
+        if not para:
+            continue
+
+        # If a paragraph is too long, split it directly
+        if len(para) > chunk_size:
+            if len(current) >= min_length:
+                chunks.append(current.strip())
+            current = ""
+            chunks.extend(_sliding_window_chunks(para, chunk_size, overlap, min_length))
+            continue
+
+        if not current:
+            current = para
+            continue
+
+        if len(current) + 2 + len(para) <= chunk_size:
+            current = f"{current}\n\n{para}"
+        else:
+            if len(current) >= min_length:
+                chunks.append(current.strip())
+                overlap_text = _tail_overlap(current, overlap)
+                if overlap_text and len(overlap_text) + 2 + len(para) <= chunk_size:
+                    current = f"{overlap_text}\n\n{para}"
+                else:
+                    current = para
+            else:
+                current = para
+
+    if current and len(current) >= min_length:
+        chunks.append(current.strip())
 
     return chunks
 
