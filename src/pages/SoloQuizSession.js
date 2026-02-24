@@ -263,30 +263,77 @@ const SoloQuizSession = () => {
       setResults(gradeResponse);
 
       // Analyze performance
+      let performanceAnalysis = null;
       if (gradeResponse.results) {
-        const analyzeResponse = await quizAgentService.analyzePerformance({
-          userId: username,
-          results: gradeResponse.results,
-          timeTakenSeconds: timeTaken
-        });
-        setAnalysis(analyzeResponse.analysis);
+        try {
+          const analyzeResponse = await quizAgentService.analyzePerformance({
+            userId: username,
+            results: gradeResponse.results,
+            timeTakenSeconds: timeTaken
+          });
+          performanceAnalysis = analyzeResponse?.analysis || null;
+          setAnalysis(performanceAnalysis);
+        } catch (analyzeError) {
+          console.error('Performance analysis failed:', analyzeError);
+        }
       }
+
+      // Store results for review page
+      const reviewData = {
+        questions,
+        results: gradeResponse.results || [],
+        score: gradeResponse.correct_answers || score,
+        total_questions: gradeResponse.total_questions || questions.length,
+        correct_answers: gradeResponse.correct_answers || score,
+        percentage: gradeResponse.percentage || Math.round((score / questions.length) * 100),
+        time_taken: timeTaken,
+        topic: quizData?.topic || 'Quiz',
+        difficulty: quizData?.difficulty || 'medium',
+        analysis: performanceAnalysis
+      };
+      sessionStorage.setItem('lastQuizResults', JSON.stringify(reviewData));
 
       setShowResult(true);
     } catch (error) {
-            // Fallback to local grading
+      console.error('Quiz grading error:', error);
+      // Fallback to local grading
+      const localResults = questions.map((q, idx) => {
+        const questionId = String(q.id ?? idx);
+        const userAnswer = userAnswers[questionId] || '';
+        const correctAnswer = String(q.correct_answer || '');
+        const isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase() || 
+                         userAnswer.toLowerCase() === correctAnswer.toLowerCase().charAt(0);
+        return {
+          question_text: q.question || q.question_text,
+          user_answer: userAnswer,
+          correct_answer: correctAnswer,
+          is_correct: isCorrect,
+          explanation: q.explanation
+        };
+      });
+
+      const localScore = localResults.filter(r => r.is_correct).length;
+      const reviewData = {
+        questions,
+        results: localResults,
+        score: localScore,
+        total_questions: questions.length,
+        correct_answers: localScore,
+        percentage: Math.round((localScore / questions.length) * 100),
+        time_taken: timeTaken,
+        topic: quizData?.topic || 'Quiz',
+        difficulty: quizData?.difficulty || 'medium',
+        analysis: null
+      };
+
       setResults({
         total_questions: questions.length,
-        correct_answers: score,
-        percentage: Math.round((score / questions.length) * 100),
-        results: questions.map((q, idx) => ({
-          question_text: q.question_text,
-          user_answer: userAnswers[String(q.id ?? idx)] || '',
-          correct_answer: q.correct_answer,
-          is_correct: (userAnswers[String(q.id ?? idx)] || '').toLowerCase() === String(q.correct_answer || '').toLowerCase().charAt(0),
-          explanation: q.explanation
-        }))
+        correct_answers: localScore,
+        percentage: reviewData.percentage,
+        results: localResults
       });
+      
+      sessionStorage.setItem('lastQuizResults', JSON.stringify(reviewData));
       setShowResult(true);
     } finally {
       setGrading(false);
@@ -444,11 +491,29 @@ const SoloQuizSession = () => {
           </div>
 
           <div className="result-actions">
-            <button className="result-button primary" onClick={handleRetry}>
+            <button className="result-button primary" onClick={() => {
+              const reviewData = {
+                questions,
+                results: results?.results || [],
+                score: results?.correct_answers || score,
+                total_questions: results?.total_questions || questions.length,
+                correct_answers: results?.correct_answers || score,
+                percentage: results?.percentage || percentage,
+                time_taken: Math.round((Date.now() - startTime) / 1000),
+                topic: quizData?.topic || 'Quiz',
+                difficulty: quizData?.difficulty || 'medium',
+                analysis: analysis
+              };
+              navigate('/solo-quiz/review', { state: { quizResults: reviewData } });
+            }}>
+              <Lightbulb size={18} />
+              Review Answers
+            </button>
+            <button className="result-button secondary" onClick={handleRetry}>
               <RefreshCw size={18} />
               Try Another Quiz
             </button>
-            <button className="result-button secondary" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+            <button className="result-button secondary" onClick={() => navigate('/dashboard')}>
               Back to Dashboard
             </button>
           </div>
@@ -486,15 +551,7 @@ const SoloQuizSession = () => {
       <div className="battle-session-container">
         <div className="question-card">
           <div className="question-header">
-            <div className="question-meta">
-              <span className="question-type-badge">
-                {currentQuestion?.question_type?.replace('_', ' ')}
-              </span>
-              <span className={`difficulty-badge ${currentQuestion?.difficulty}`}>
-                {currentQuestion?.difficulty}
-              </span>
-            </div>
-            <MathRenderer content={currentQuestion?.question_text || ''} className="question-text" />
+            <MathRenderer content={currentQuestion?.question || currentQuestion?.question_text || ''} className="question-text" />
           </div>
 
           <div className="answers-grid">

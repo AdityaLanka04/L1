@@ -104,7 +104,8 @@ const SoloQuiz = () => {
           difficulty: difficultyToUse,
           adaptiveConfig: response.adaptive_config,
           quizMode,
-          timingMode
+          timingMode,
+          quiz_id: response.quiz_id
         }));
         navigate('/solo-quiz/session');
       } else {
@@ -346,7 +347,7 @@ const SoloQuiz = () => {
                       </>
                     ) : (
                       <>
-                        <Play size={20} />
+                        <span style={{ fontSize: '24px', fontWeight: '400', lineHeight: '1' }}>+</span>
                         <span>START QUIZ</span>
                       </>
                     )}
@@ -358,14 +359,6 @@ const SoloQuiz = () => {
 
           {activeTab === 'completed' && (
             <div className="sq-content">
-              <div className="sq-section-header">
-                <History size={32} />
-                <div>
-                  <h2 className="sq-section-title">Completed Quizzes</h2>
-                  <p className="sq-section-desc">Review your past quiz attempts and analyze your performance</p>
-                </div>
-              </div>
-              
               <div className="sq-completed-list">
                 {completedQuizzes.length === 0 ? (
                   <div className="sq-empty-state">
@@ -373,8 +366,8 @@ const SoloQuiz = () => {
                     <h3>No Completed Quizzes Yet</h3>
                     <p>Start a new quiz to see your results here</p>
                     <button className="sq-empty-btn" onClick={() => setActiveTab('generator')}>
-                      <Sparkles size={16} />
-                      Generate Quiz
+                      <span style={{ fontSize: '24px', fontWeight: '400', lineHeight: '1' }}>+</span>
+                      <span>GENERATE QUIZ</span>
                     </button>
                   </div>
                 ) : (

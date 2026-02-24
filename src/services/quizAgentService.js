@@ -7,8 +7,8 @@ import { API_URL, getAuthToken } from '../config';
 
 class QuizAgentService {
   constructor() {
-    // API_URL already includes /api, so we just add /agents/quiz
-    this.baseUrl = `${API_URL}/agents/quiz`;
+    // Social routes are at /api directly, not /api/social
+    this.baseUrl = `${API_URL}`;
   }
 
   /**
@@ -73,22 +73,43 @@ class QuizAgentService {
       difficultyMix = { easy: 3, medium: 5, hard: 2 },
       questionTypes = ['multiple_choice'],
       topics,
-      sessionId
+      sessionId,
+      use_hs_context
     } = params;
 
-    return this.request('/generate', {
+    // Create the quiz
+    const createResponse = await this.request('/create_solo_quiz', {
       method: 'POST',
       body: JSON.stringify({
-        user_id: userId,
-        topic,
-        content,
-        question_count: questionCount,
-        difficulty_mix: difficultyMix,
-        question_types: questionTypes,
-        topics,
-        session_id: sessionId
+        subject: topic,
+        difficulty: this._getDifficultyFromMix(difficultyMix),
+        question_count: questionCount
       })
     });
+
+    if (!createResponse.quiz_id) {
+      return { success: false, questions: [] };
+    }
+
+    // Fetch the quiz with questions
+    const quizResponse = await this.request(`/solo_quiz/${createResponse.quiz_id}`, {
+      method: 'GET'
+    });
+
+    // Transform to expected format and include quiz_id
+    return {
+      success: true,
+      questions: quizResponse.questions || [],
+      quiz_id: createResponse.quiz_id,
+      quiz: quizResponse.quiz
+    };
+  }
+
+  _getDifficultyFromMix(mix) {
+    // Convert difficulty mix to single difficulty level
+    if (mix.hard >= mix.medium && mix.hard >= mix.easy) return 'hard';
+    if (mix.medium >= mix.easy) return 'medium';
+    return 'easy';
   }
 
   /**
@@ -96,24 +117,8 @@ class QuizAgentService {
    * @param {Object} params - Adaptive generation parameters
    */
   async generateAdaptiveQuiz(params) {
-    const {
-      userId,
-      topic,
-      content,
-      questionCount = 10,
-      sessionId
-    } = params;
-
-    return this.request('/adaptive', {
-      method: 'POST',
-      body: JSON.stringify({
-        user_id: userId,
-        topic,
-        content,
-        question_count: questionCount,
-        session_id: sessionId
-      })
-    });
+    // Adaptive quiz not implemented in backend yet, fall back to regular quiz
+    return this.generateQuiz(params);
   }
 
   /**
@@ -133,16 +138,66 @@ class QuizAgentService {
       sessionId
     } = params;
 
-    return this.request('/grade', {
-      method: 'POST',
-      body: JSON.stringify({
-        user_id: userId,
-        questions,
-        answers,
-        time_taken_seconds: timeTakenSeconds,
-        session_id: sessionId
-      })
+    // Calculate score
+    let correctCount = 0;
+    const results = questions.map((q, idx) => {
+      const questionId = String(q.id ?? idx);
+      const userAnswer = String(answers[questionId] || '').trim().toUpperCase();
+      const correctAnswer = String(q.correct_answer || '').trim().toUpperCase();
+      
+      // Check if correct - handle both full answer and letter-only format
+      let isCorrect = false;
+      if (userAnswer === correctAnswer) {
+        isCorrect = true;
+      } else if (userAnswer.length === 1 && correctAnswer.startsWith(userAnswer)) {
+        // User answered with just the letter (A, B, C, D)
+        isCorrect = true;
+      } else if (correctAnswer.length === 1 && userAnswer.startsWith(correctAnswer)) {
+        // Correct answer is just a letter
+        isCorrect = true;
+      }
+      
+      if (isCorrect) correctCount++;
+      
+      return {
+        question_text: q.question || q.question_text,
+        user_answer: answers[questionId] || '',
+        correct_answer: q.correct_answer,
+        is_correct: isCorrect,
+        explanation: q.explanation
+      };
     });
+
+    const percentage = Math.round((correctCount / questions.length) * 100);
+
+    // Get quiz_id from sessionStorage
+    const quizData = JSON.parse(sessionStorage.getItem('quizData') || '{}');
+    const quiz_id = quizData.quiz_id;
+
+    if (quiz_id) {
+      try {
+        // Submit completion to backend
+        await this.request('/complete_solo_quiz', {
+          method: 'POST',
+          body: JSON.stringify({
+            quiz_id,
+            score: percentage,
+            answers: results
+          })
+        });
+      } catch (error) {
+        console.error('Failed to submit quiz completion:', error);
+        // Continue even if submission fails
+      }
+    }
+
+    return {
+      success: true,
+      total_questions: questions.length,
+      correct_answers: correctCount,
+      percentage,
+      results
+    };
   }
 
   /**

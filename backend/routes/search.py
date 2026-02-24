@@ -256,6 +256,8 @@ def generate_filter_description(filters: dict) -> str:
 
 def _clean_prompt_topic(text: str) -> str:
     cleaned = re.sub(r'^(AI Generated:|Cerbyl:|Flashcards?:|Notes?:|Practice:\s*)', '', text, flags=re.IGNORECASE)
+    # Remove markdown bold/italic symbols
+    cleaned = re.sub(r'\*+', '', cleaned)
     return cleaned.strip()
 
 

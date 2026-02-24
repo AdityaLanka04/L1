@@ -2366,6 +2366,25 @@ async def complete_solo_quiz(
         db.commit()
         logger.info("Quiz saved successfully")
 
+        # Log activity for analytics
+        try:
+            from activity_logger import log_activity
+            log_activity(
+                db=db,
+                user_id=current_user.id,
+                activity_type="solo_quiz",
+                details={
+                    "quiz_id": quiz_id,
+                    "subject": quiz.subject,
+                    "score": score,
+                    "difficulty": quiz.difficulty,
+                    "question_count": quiz.question_count
+                }
+            )
+            logger.info(f"Logged solo_quiz activity for user {current_user.id}")
+        except Exception as log_error:
+            logger.warning(f"Failed to log activity: {log_error}")
+
         try:
             from agents.agent_api import get_user_kg
             user_kg = get_user_kg()
@@ -2383,6 +2402,8 @@ async def complete_solo_quiz(
                         difficulty=0.3 if quiz.difficulty == "easy" else 0.5 if quiz.difficulty == "medium" else 0.7
                     )
                 logger.info(f"KG: Recorded {len(answers)} quiz interactions for user {current_user.id}")
+        except ImportError as import_error:
+            logger.warning(f"Agent API module not available: {import_error}")
         except Exception as kg_error:
             logger.warning(f"Failed to record KG quiz interactions: {kg_error}")
 
