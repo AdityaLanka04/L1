@@ -451,13 +451,15 @@ const QuestionBankDashboard = () => {
         sourceId: selectedDocument,
         questionCount: questionCount || 10,
         difficultyMix: difficultyCount,
-        sessionId: `qb_pdf_${userId}_${Date.now()}`
+        questionTypes,
+        topics: selectedTopics.length > 0 ? selectedTopics : null,
+        title: null
       });
 
       console.log('✅ Agent response:', response);
       
-      if (response.success) {
-        alert(`Successfully generated ${response.questions?.length || questionCount} questions!`);
+      if (response.status === 'success') {
+        alert(`Successfully generated ${response.question_count || questionCount} questions!`);
         setShowUploadModal(false);
         setSelectedDocument(null);
         await fetchQuestionSets();
@@ -484,6 +486,29 @@ const QuestionBankDashboard = () => {
       
       // Check if using smart generation (custom prompt or reference doc)
       const useSmartGeneration = customPrompt.trim() || referenceDocId;
+
+      const isSingleQuestionDoc = !useSmartGeneration
+        && selectedPDFs.length === 1
+        && ((selectedPDFs[0].document_type || '').toLowerCase() === 'questions');
+
+      if (isSingleQuestionDoc) {
+        const response = await questionBankAgentService.generateFromPDF({
+          userId,
+          sourceId: selectedPDFs[0].id,
+          questionCount: questionCount || 10,
+          difficultyMix: difficultyCount,
+          questionTypes,
+          topics: selectedTopics.length > 0 ? selectedTopics : null
+        });
+
+        if (response.status === 'success') {
+          alert(`Generated ${response.question_count} similar questions from ${selectedPDFs[0].filename}!`);
+          resetSelections();
+          await fetchQuestionSets();
+          setActiveView('question-sets');
+          return;
+        }
+      }
       
       if (useSmartGeneration) {
         console.log('🧠 Smart generation:', { userId, selectedPDFs, customPrompt, referenceDocId, difficultyCount });
@@ -1084,18 +1109,62 @@ const QuestionBankDashboard = () => {
       );
 
       if (result.status === 'success') {
+        const focusTopics = result.weakness_analysis?.recommendations?.focus_topics
+          || (result.weakness_analysis?.weak_topics || []).map(t => t.topic).filter(Boolean);
+
         setPreviewQuestions(result.questions);
         setWeaknessAnalysis(result.weakness_analysis);
         setPreviewStats({
           total: result.questions.length,
           average_quality_score: 7,
-          adaptive: true
+          adaptive: true,
+          weak_topics: focusTopics || []
         });
         setShowPreviewModal(true);
       }
     } catch (error) {
       console.error('Adaptive generation error:', error);
       alert('Failed to generate adaptive questions: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate related questions using strengths/weaknesses
+  const handleGenerateRelatedFromPDF = async () => {
+    if (selectedPDFs.length === 0) {
+      alert('Please select at least one PDF');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const result = await questionBankAgentService.generateRelatedFromPDF({
+        userId,
+        sourceIds: selectedPDFs.map(p => p.id),
+        questionCount: questionCount || 10,
+        difficultyMix: difficultyCount,
+        questionTypes,
+        title: selectedPDFs.length === 1
+          ? `Related Questions from ${selectedPDFs[0].filename}`
+          : `Related Questions from ${selectedPDFs.length} documents`
+      });
+
+      if (result.status === 'success') {
+        setPreviewQuestions(result.questions || []);
+        setPreviewStats({
+          total: result.questions?.length || 0,
+          average_quality_score: 7,
+          personalized: true,
+          weak_topics: result.personalization?.weak_topics || [],
+          strong_topics: result.personalization?.strong_topics || []
+        });
+        setShowPreviewModal(true);
+      }
+    } catch (error) {
+      console.error('Related generation error:', error);
+      alert('Failed to generate related questions: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -1531,6 +1600,16 @@ const QuestionBankDashboard = () => {
                   >
                     <Target size={16} />
                     <span>Adaptive</span>
+                  </button>
+
+                  <button
+                    className="qbd-btn-secondary qbd-ai-btn qbd-personalized-btn"
+                    onClick={handleGenerateRelatedFromPDF}
+                    disabled={loading || selectedPDFs.length === 0}
+                    title="Generate related questions using strengths and weaknesses"
+                  >
+                    <TrendingUp size={16} />
+                    <span>Personalized</span>
                   </button>
                 </div>
 
@@ -2874,6 +2953,26 @@ const QuestionBankDashboard = () => {
                   <Star size={14} />
                   <span>Quality: {previewStats.average_quality_score}/10</span>
                 </div>
+                {previewStats.weak_topics && previewStats.weak_topics.length > 0 && (
+                  <div className="qbd-topic-badges">
+                    <span className="qbd-topic-badge-label">Weak focus:</span>
+                    {previewStats.weak_topics.map((topic, idx) => (
+                      <span key={`${topic}-${idx}`} className="qbd-topic-badge weak">
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {previewStats.strong_topics && previewStats.strong_topics.length > 0 && (
+                  <div className="qbd-topic-badges">
+                    <span className="qbd-topic-badge-label">Strong challenge:</span>
+                    {previewStats.strong_topics.map((topic, idx) => (
+                      <span key={`${topic}-${idx}`} className="qbd-topic-badge strong">
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {previewStats.potential_duplicates > 0 && (
                   <div className="qbd-stat-chip warning">
                     <AlertTriangle size={14} />

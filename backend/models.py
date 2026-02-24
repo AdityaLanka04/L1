@@ -2236,6 +2236,8 @@ class ContextDocument(Base):
     chunk_count  = Column(Integer, default=0)
     status       = Column(String(20), default="processing")  # processing | ready | failed
     source_url   = Column(String(500), nullable=True)
+    source_name  = Column(String(200), nullable=True)
+    license      = Column(String(80), nullable=True)
     created_at   = Column(DateTime, default=datetime.utcnow)
     updated_at   = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

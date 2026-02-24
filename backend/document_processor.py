@@ -2,12 +2,13 @@
 document_processor.py — PDF/text ingestion and chunking for Cerbyl HS Mode.
 
 Supported file types: .pdf, .txt, .md
-Max file size: enforced by the calling route (10 MB)
+Max file size: enforced by the calling route (50 MB)
 
 Chunking strategy:
-  - Chunk size: ~500 characters
-  - Overlap:    50 characters (sliding window, step = 450)
+  - Chunk size: ~700 characters
+  - Overlap:    80 characters (sliding window, step = 620)
   - Minimum chunk length: 80 characters (discard short trailing fragments)
+  - Optional TOC-aware chunking uses detected headings to split sections
 
 PDF extraction priority:
   1. PyPDF2 (try first)
@@ -25,9 +26,10 @@ import re
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 500
-CHUNK_OVERLAP = 50
+CHUNK_SIZE = 700
+CHUNK_OVERLAP = 80
 MIN_CHUNK_LEN = 80
+MAX_HEADING_LEN = 90
 
 
 # ── Text extraction ───────────────────────────────────────────────────────────
@@ -83,6 +85,11 @@ def extract_text_from_txt(file_bytes: bytes) -> str:
 # ── Chunking ──────────────────────────────────────────────────────────────────
 
 _BULLET_RE = re.compile("^\\s*(?:[-*]|\\u2022|\\d+[\\.\\)])\\s+")
+_HEADING_RE = re.compile(
+    r"^(chapter|unit|module|lesson|section|part)\s+([0-9ivxlcdm]+)([:\-\.\s].*)?$",
+    re.IGNORECASE,
+)
+_ALLCAPS_RE = re.compile(r"^[A-Z0-9][A-Z0-9\s\-:]{6,}$")
 
 
 def _normalize_text(text: str) -> str:
@@ -129,6 +136,62 @@ def _normalize_text(text: str) -> str:
     return "\n\n".join(cleaned)
 
 
+def _is_heading(line: str) -> bool:
+    if not line:
+        return False
+    if len(line) > MAX_HEADING_LEN:
+        return False
+    compact = re.sub(r"\s+", " ", line.strip())
+    if len(compact) < 4:
+        return False
+    if _HEADING_RE.match(compact):
+        return True
+    if _ALLCAPS_RE.match(compact) and len(compact.split()) <= 8:
+        return True
+    return False
+
+
+def extract_chapter_headings(text: str, limit: int = 16) -> list[str]:
+    """
+    Extract likely chapter/section headings for preview and TOC-aware chunking.
+    """
+    if not text:
+        return []
+    headings: list[str] = []
+    seen = set()
+    for line in text.splitlines():
+        candidate = line.strip()
+        if not candidate:
+            continue
+        if _is_heading(candidate):
+            normalized = re.sub(r"\s+", " ", candidate)
+            if normalized not in seen:
+                headings.append(normalized)
+                seen.add(normalized)
+        if len(headings) >= limit:
+            break
+    return headings
+
+
+_GRADE_PATTERNS: list[tuple[str, re.Pattern]] = [
+    ("AP", re.compile(r"\bAP\b|\bAdvanced Placement\b", re.IGNORECASE)),
+    ("Honors", re.compile(r"\bHonors?\b", re.IGNORECASE)),
+    ("Grade 12", re.compile(r"\b(12th|grade\s*12|grade\s*twelve|senior)\b", re.IGNORECASE)),
+    ("Grade 11", re.compile(r"\b(11th|grade\s*11|grade\s*eleven|junior)\b", re.IGNORECASE)),
+    ("Grade 10", re.compile(r"\b(10th|grade\s*10|grade\s*ten|sophomore)\b", re.IGNORECASE)),
+    ("Grade 9", re.compile(r"\b(9th|grade\s*9|grade\s*nine|freshman)\b", re.IGNORECASE)),
+]
+
+
+def infer_grade_level(text: str) -> str:
+    if not text:
+        return ""
+    for label, pattern in _GRADE_PATTERNS:
+        if pattern.search(text):
+            return label
+    return ""
+
+
 def _tail_overlap(text: str, overlap: int) -> str:
     if overlap <= 0 or not text:
         return ""
@@ -164,32 +227,12 @@ def _sliding_window_chunks(
     return chunks
 
 
-def chunk_text(
-    text: str,
-    chunk_size: int = CHUNK_SIZE,
-    overlap: int = CHUNK_OVERLAP,
-    min_length: int = MIN_CHUNK_LEN,
+def _chunk_normalized_text(
+    normalized: str,
+    chunk_size: int,
+    overlap: int,
+    min_length: int,
 ) -> list[str]:
-    """
-    Paragraph-aware chunker with sliding-window fallback.
-
-    Algorithm:
-      - Normalize text into paragraphs
-      - Build chunks by aggregating paragraphs until chunk_size
-      - Add small overlap between chunks for continuity
-      - Split any single paragraph that exceeds chunk_size via sliding window
-      - Discard chunks shorter than min_length
-
-    Example for defaults (chunk_size=500, overlap=50, step=450):
-      chunk 0: text[0:500]
-      chunk 1: text[450:950]
-      chunk 2: text[900:1400]
-      ...
-    """
-    if not text or len(text) < min_length:
-        return []
-
-    normalized = _normalize_text(text)
     if not normalized or len(normalized) < min_length:
         return []
 
@@ -236,6 +279,92 @@ def chunk_text(
     return chunks
 
 
+def _split_sections(text: str) -> list[tuple[str, str]]:
+    if not text:
+        return []
+    sections: list[tuple[str, str]] = []
+    current_heading = "Intro"
+    buffer: list[str] = []
+
+    def _flush():
+        if buffer:
+            sections.append((current_heading, "\n".join(buffer).strip()))
+            buffer.clear()
+
+    for line in text.splitlines():
+        if _is_heading(line):
+            _flush()
+            current_heading = re.sub(r"\s+", " ", line.strip())
+        else:
+            buffer.append(line)
+
+    _flush()
+    return sections
+
+
+def chunk_text(
+    text: str,
+    chunk_size: int = CHUNK_SIZE,
+    overlap: int = CHUNK_OVERLAP,
+    min_length: int = MIN_CHUNK_LEN,
+    toc_aware: bool = False,
+) -> list[str]:
+    """
+    Paragraph-aware chunker with optional TOC-aware sectioning.
+
+    Algorithm:
+      - Normalize text into paragraphs
+      - Build chunks by aggregating paragraphs until chunk_size
+      - Add small overlap between chunks for continuity
+      - Split any single paragraph that exceeds chunk_size via sliding window
+      - Discard chunks shorter than min_length
+
+    Example for defaults (chunk_size=700, overlap=80, step=620):
+      chunk 0: text[0:700]
+      chunk 1: text[620:1320]
+      chunk 2: text[1240:1940]
+      ...
+    """
+    if not text or len(text) < min_length:
+        return []
+
+    normalized = _normalize_text(text)
+    if not normalized or len(normalized) < min_length:
+        return []
+
+    if not toc_aware:
+        return _chunk_normalized_text(normalized, chunk_size, overlap, min_length)
+
+    sections = _split_sections(text)
+    if len(sections) <= 1:
+        return _chunk_normalized_text(normalized, chunk_size, overlap, min_length)
+
+    chunks: list[str] = []
+    for heading, section_text in sections:
+        if not section_text:
+            continue
+        normalized_section = _normalize_text(section_text)
+        if not normalized_section:
+            continue
+
+        prefix = "" if heading.lower() == "intro" else heading
+        effective_size = chunk_size
+        if prefix:
+            effective_size = max(min_length, chunk_size - len(prefix) - 2)
+
+        section_chunks = _chunk_normalized_text(
+            normalized_section,
+            effective_size,
+            overlap,
+            min_length,
+        )
+        if prefix:
+            section_chunks = [f"{prefix}\n\n{chunk}" for chunk in section_chunks]
+        chunks.extend(section_chunks)
+
+    return chunks
+
+
 # ── Main pipeline ─────────────────────────────────────────────────────────────
 
 def process_upload(
@@ -245,6 +374,9 @@ def process_upload(
     grade_level: str = "",
     scope: str = "private",
     source_url: str = "",
+    chunk_size: int = CHUNK_SIZE,
+    chunk_overlap: int = CHUNK_OVERLAP,
+    toc_aware: bool = True,
 ) -> dict:
     """
     Full pipeline: extract text → chunk → return structured result.
@@ -274,6 +406,9 @@ def process_upload(
     lower_name = (filename or "").lower()
     text = ""
     error = None
+    detected_subject = ""
+    detected_grade = ""
+    chapters: list[str] = []
 
     try:
         if lower_name.endswith(".pdf"):
@@ -292,7 +427,26 @@ def process_upload(
     if not text and not error:
         error = "No text could be extracted from this file. It may be a scanned image PDF."
 
-    chunks = chunk_text(text) if text else []
+    if text:
+        chapters = extract_chapter_headings(text)
+        if not subject:
+            try:
+                import context_store
+                detected_subject = context_store.infer_subject(f"{filename} {text[:4000]}", default="")
+                subject = detected_subject or subject
+            except Exception:
+                detected_subject = ""
+        if not grade_level:
+            detected_grade = infer_grade_level(f"{filename}\n{text[:4000]}")
+            grade_level = detected_grade or grade_level
+
+    chunks = chunk_text(
+        text,
+        chunk_size=chunk_size,
+        overlap=chunk_overlap,
+        min_length=MIN_CHUNK_LEN,
+        toc_aware=toc_aware,
+    ) if text else []
 
     return {
         "chunks":      chunks,
@@ -303,4 +457,10 @@ def process_upload(
         "grade_level": grade_level,
         "scope":       scope,
         "error":       error,
+        "detected_subject": detected_subject,
+        "detected_grade": detected_grade,
+        "chapters":    chapters,
+        "chunk_size":  chunk_size,
+        "chunk_overlap": chunk_overlap,
+        "toc_aware":   toc_aware,
     }

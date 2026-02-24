@@ -207,6 +207,8 @@ def add_document_chunks(
     grade_level: str = "",
     scope: str = "private",          # "private" | "hs_shared"
     source_url: str = "",
+    source_name: str = "",
+    license: str = "",
 ) -> int:
     """
     Embed and store text chunks into the appropriate ChromaDB collection(s).
@@ -244,6 +246,8 @@ def add_document_chunks(
                 "user_id": str(user_id),
                 "chunk_index": str(i),
                 "source_url": source_url[:300] if source_url else "",
+                "source_name": source_name[:120] if source_name else "",
+                "license": license[:60] if license else "",
                 "timestamp": timestamp,
             }
             ids.append(chunk_id)

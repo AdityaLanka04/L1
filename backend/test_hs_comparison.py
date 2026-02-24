@@ -18,7 +18,7 @@ import json
 import sys
 import textwrap
 import time
-from typing import Any
+from typing import Any, Optional, Union
 
 # Force UTF-8 on Windows console
 if hasattr(sys.stdout, "reconfigure"):
@@ -33,7 +33,7 @@ HALF_DIV = "-" * 80
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
 
-def _post(path: str, data: dict | None = None, files: dict | None = None) -> dict | list:
+def _post(path: str, data: Optional[dict] = None, files: Optional[dict] = None) -> Union[dict, list]:
     url = f"{BASE_URL}{path}"
     try:
         if files:
@@ -51,7 +51,7 @@ def _post(path: str, data: dict | None = None, files: dict | None = None) -> dic
         sys.exit(1)
 
 
-def _get(path: str, params: dict | None = None) -> dict | list:
+def _get(path: str, params: Optional[dict] = None) -> Union[dict, list]:
     url = f"{BASE_URL}{path}"
     try:
         r = requests.get(url, params=params, timeout=30)

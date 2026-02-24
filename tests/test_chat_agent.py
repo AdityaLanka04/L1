@@ -24,7 +24,8 @@ import statistics
 import sys
 import io
 try:
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    if "pytest" not in sys.modules:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 except Exception:
     pass
 import random

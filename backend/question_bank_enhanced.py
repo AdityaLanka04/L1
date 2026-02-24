@@ -121,6 +121,114 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
         # Don't raise - this is a non-critical operation
 
 
+def _compute_topic_performance_from_sessions(sessions) -> List[Dict[str, Any]]:
+    """Aggregate topic accuracy stats from question sessions."""
+    topic_stats: Dict[str, Dict[str, int]] = {}
+
+    for session in sessions:
+        if not session or not session.results:
+            continue
+        try:
+            results = json.loads(session.results) if session.results else []
+        except Exception:
+            continue
+
+        for result in results:
+            topic = result.get("topic") or "General"
+            is_correct = result.get("is_correct", False)
+
+            if topic not in topic_stats:
+                topic_stats[topic] = {"total": 0, "correct": 0}
+
+            topic_stats[topic]["total"] += 1
+            if is_correct:
+                topic_stats[topic]["correct"] += 1
+
+    topic_performance = []
+    for topic, stats in topic_stats.items():
+        total = stats.get("total", 0)
+        correct = stats.get("correct", 0)
+        accuracy = (correct / total) * 100 if total > 0 else 0
+        topic_performance.append({
+            "topic": topic,
+            "accuracy": round(accuracy, 1),
+            "total_questions": total,
+            "correct_answers": correct
+        })
+
+    return topic_performance
+
+
+def _merge_topics(*topic_lists: List[str], limit: int = 8) -> List[str]:
+    """Merge topic lists, de-duping case-insensitively while preserving order."""
+    merged: List[str] = []
+    seen = set()
+    for topics in topic_lists:
+        if not topics:
+            continue
+        for topic in topics:
+            if not topic:
+                continue
+            clean = str(topic).strip()
+            if not clean:
+                continue
+            key = clean.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(clean)
+            if limit and len(merged) >= limit:
+                return merged
+    return merged
+
+
+def _topic_in_text(topic: str, text: str) -> bool:
+    if not topic or not text:
+        return False
+    t = str(topic).lower().strip()
+    if not t:
+        return False
+    return t in str(text).lower()
+
+
+def _filter_analysis_by_topics(analysis: Dict[str, Any], topics: List[str]) -> Dict[str, Any]:
+    """Filter analysis items to those that mention any of the focus topics."""
+    if not topics:
+        return analysis
+
+    def _matches(item: Any) -> bool:
+        if not item:
+            return False
+        if isinstance(item, str):
+            return any(_topic_in_text(t, item) for t in topics)
+        if isinstance(item, dict):
+            for v in item.values():
+                if _matches(v):
+                    return True
+        if isinstance(item, list):
+            return any(_matches(v) for v in item)
+        return False
+
+    filtered = dict(analysis)
+    for key in [
+        "key_facts",
+        "definitions",
+        "relationships",
+        "processes",
+        "comparisons",
+        "cause_effects",
+        "numerical_data",
+        "examples"
+    ]:
+        items = analysis.get(key, [])
+        if isinstance(items, list):
+            filtered[key] = [item for item in items if _matches(item)]
+
+    # Keep headings but override lists
+    filtered["subtopics"] = [t for t in analysis.get("subtopics", []) if _matches(t)] if isinstance(analysis.get("subtopics", []), list) else analysis.get("subtopics", [])
+    return filtered
+
+
 def generate_question_set_pdf(question_set, questions, include_answers: bool = False, user_name: str = "Student"):
     """
     Generate a professionally formatted PDF for a question set with LaTeX support.
@@ -561,6 +669,16 @@ class MultiPDFGenerationRequest(BaseModel):
     content_document_ids: Optional[List[int]] = None  # IDs of documents to generate questions FROM (e.g., textbook)
 
 
+class RelatedPDFGenerationRequest(BaseModel):
+    """Request model for generating related questions from PDFs using strengths/weaknesses."""
+    user_id: str
+    source_ids: List[int]
+    question_count: int = 10
+    difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
+    question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
+    title: Optional[str] = None
+
+
 class DifficultyClassifierAgent:
     def __init__(self, unified_ai):
         self.unified_ai = unified_ai
@@ -638,6 +756,35 @@ class PDFProcessorAgent:
             text = ""
             pdf_bytes = io.BytesIO(pdf_content)
             
+            # Method 0: Try PyMuPDF4LLM for layout-aware extraction
+            try:
+                import pymupdf4llm
+                logger.info("Attempting PyMuPDF4LLM extraction...")
+                
+                try:
+                    import pymupdf.layout  # Enables layout mode if installed
+                    logger.info("PyMuPDF layout mode enabled for extraction")
+                except Exception:
+                    pass
+                
+                import fitz  # PyMuPDF
+                doc = fitz.open(stream=pdf_content, filetype="pdf")
+                try:
+                    llm_text = pymupdf4llm.to_text(doc)
+                finally:
+                    doc.close()
+                
+                if llm_text and llm_text.strip():
+                    logger.info(f"PyMuPDF4LLM extracted {len(llm_text)} characters from PDF")
+                    return llm_text.strip()
+                else:
+                    logger.warning("PyMuPDF4LLM returned empty text, trying other methods...")
+                    
+            except ImportError:
+                logger.info("PyMuPDF4LLM not available, trying PyMuPDF...")
+            except Exception as llm_error:
+                logger.warning(f"PyMuPDF4LLM extraction failed: {llm_error}")
+
             # Method 1: Try PyMuPDF (fitz) first - handles more PDF types
             try:
                 import fitz  # PyMuPDF
@@ -1157,6 +1304,38 @@ Generate questions from this content that specifically help with these weak area
         return prompt
 
 
+class RelatedQuestionAgent:
+    """Builds prompts for related questions using strengths/weaknesses."""
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
+
+    def build_prompt(self, weak_topics: List[str], strong_topics: List[str]) -> str:
+        weak_list = ", ".join(weak_topics) if weak_topics else "None"
+        strong_list = ", ".join(strong_topics) if strong_topics else "None"
+
+        if not weak_topics and not strong_topics:
+            return (
+                "Generate questions that are closely related to the document's most important concepts. "
+                "Prioritize core ideas, definitions, and applications supported by the content."
+            )
+
+        guidance = [
+            "- Aim for roughly 60-70% of questions to target weak topics when available.",
+            "- Include a smaller set of challenge questions on strong topics (applied or higher-difficulty).",
+            "- Use remaining questions to cover other key concepts from the document.",
+            "- Only use topics supported by the document; if a listed topic is missing, choose the closest related concept."
+        ]
+
+        return (
+            "Personalize question generation based on student performance.\n\n"
+            f"STUDENT WEAK TOPICS (prioritize): {weak_list}\n"
+            f"STUDENT STRONG TOPICS (challenge lightly): {strong_list}\n\n"
+            "GUIDELINES:\n"
+            + "\n".join(guidance)
+            + "\n\nWhen focusing on weak topics, address common misconceptions and provide clear explanations."
+        )
+
+
 class ExplanationEnhancerAgent:
     """Enhances question explanations with detailed steps"""
     def __init__(self, unified_ai):
@@ -1530,7 +1709,7 @@ class QuestionGeneratorAgent:
         
         # STEP 3: GENERATE - Create questions from blueprint
         questions = await self._agent_generate_from_blueprint(
-            content, blueprint, question_types, custom_prompt, reference_content
+            content, blueprint, question_types, custom_prompt, reference_content, topics
         )
         
         # STEP 4: VALIDATE & REFINE
@@ -1613,48 +1792,61 @@ Return ONLY valid JSON."""
     ) -> List[Dict]:
         """AGENT STEP 2: Create a detailed blueprint for each question"""
         
+        analysis_for_topics = analysis
+        if topics:
+            filtered = _filter_analysis_by_topics(analysis, topics)
+            has_items = any(
+                len(filtered.get(k, []) or []) > 0
+                for k in ["key_facts", "definitions", "relationships", "processes", "comparisons", "cause_effects", "numerical_data"]
+            )
+            if has_items:
+                analysis_for_topics = filtered
+                logger.info("Blueprint topic filter applied")
+            else:
+                logger.info("Blueprint topic filter produced no matches; using full analysis")
+
         # Build question targets based on analysis
         blueprint = []
         
         # EASY questions: Direct facts, definitions, simple recall
         easy_sources = []
-        for fact in analysis.get('key_facts', []):
+        for fact in analysis_for_topics.get('key_facts', []):
             if fact.get('complexity') == 'simple':
                 easy_sources.append({"type": "fact", "data": fact})
-        for defn in analysis.get('definitions', []):
+        for defn in analysis_for_topics.get('definitions', []):
             easy_sources.append({"type": "definition", "data": defn})
-        for num in analysis.get('numerical_data', []):
+        for num in analysis_for_topics.get('numerical_data', []):
             easy_sources.append({"type": "numerical", "data": num})
         
         # MEDIUM questions: Relationships, cause-effect, moderate complexity
         medium_sources = []
-        for fact in analysis.get('key_facts', []):
+        for fact in analysis_for_topics.get('key_facts', []):
             if fact.get('complexity') == 'moderate':
                 medium_sources.append({"type": "fact", "data": fact})
-        for rel in analysis.get('relationships', []):
+        for rel in analysis_for_topics.get('relationships', []):
             if rel.get('complexity') in ['simple', 'moderate']:
                 medium_sources.append({"type": "relationship", "data": rel})
-        for ce in analysis.get('cause_effects', []):
+        for ce in analysis_for_topics.get('cause_effects', []):
             if ce.get('complexity') in ['simple', 'moderate']:
                 medium_sources.append({"type": "cause_effect", "data": ce})
-        for proc in analysis.get('processes', []):
+        for proc in analysis_for_topics.get('processes', []):
             if proc.get('complexity') in ['simple', 'moderate']:
                 medium_sources.append({"type": "process", "data": proc})
         
         # HARD questions: Complex relationships, comparisons, analysis
         hard_sources = []
-        for fact in analysis.get('key_facts', []):
+        for fact in analysis_for_topics.get('key_facts', []):
             if fact.get('complexity') == 'complex':
                 hard_sources.append({"type": "fact", "data": fact})
-        for rel in analysis.get('relationships', []):
+        for rel in analysis_for_topics.get('relationships', []):
             if rel.get('complexity') == 'complex':
                 hard_sources.append({"type": "relationship", "data": rel})
-        for comp in analysis.get('comparisons', []):
+        for comp in analysis_for_topics.get('comparisons', []):
             hard_sources.append({"type": "comparison", "data": comp})
-        for ce in analysis.get('cause_effects', []):
+        for ce in analysis_for_topics.get('cause_effects', []):
             if ce.get('complexity') == 'complex':
                 hard_sources.append({"type": "cause_effect", "data": ce})
-        for proc in analysis.get('processes', []):
+        for proc in analysis_for_topics.get('processes', []):
             if proc.get('complexity') == 'complex':
                 hard_sources.append({"type": "process", "data": proc})
         
@@ -1711,7 +1903,8 @@ Return ONLY valid JSON."""
     
     async def _agent_generate_from_blueprint(
         self, content: str, blueprint: List[Dict], 
-        question_types: List[str], custom_prompt: str, reference_content: str
+        question_types: List[str], custom_prompt: str, reference_content: str,
+        topics: List[str]
     ) -> List[Dict]:
         """AGENT STEP 3: Generate questions following the blueprint"""
         
@@ -1756,11 +1949,19 @@ Question {i}:
         if reference_content:
             reference_section = f"\nREFERENCE QUESTIONS (match this style):\n{reference_content[:2000]}\n"
         
+        topics_section = ""
+        if topics:
+            topics_section = (
+                "\nFOCUS TOPICS (prioritize): "
+                + ", ".join(topics)
+                + "\n- Each question's 'topic' field MUST be one of these topics if provided.\n"
+            )
+
         generation_prompt = f"""You are an expert exam question writer. Generate questions following the EXACT blueprint below.
 
 SOURCE CONTENT (all questions MUST be answerable from this):
 {content[:10000]}
-{custom_section}{reference_section}
+{custom_section}{reference_section}{topics_section}
 QUESTION BLUEPRINT (follow EXACTLY):
 {blueprint_text}
 
@@ -2305,6 +2506,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         "bloom_tagger": BloomTaxonomyAgent(unified_ai),
         "duplicate_detector": DuplicateDetectorAgent(unified_ai),
         "adaptive_generator": AdaptiveGeneratorAgent(unified_ai),
+        "related_question_agent": RelatedQuestionAgent(unified_ai),
         "explanation_enhancer": ExplanationEnhancerAgent(unified_ai),
         "question_preview": QuestionPreviewAgent(unified_ai)
     }
@@ -2727,6 +2929,128 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         except Exception as e:
             logger.error(f"Error generating questions from multiple PDFs: {e}", exc_info=True)
             db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/api/qb/generate_related_from_pdf")
+    async def generate_related_from_pdf(
+        request: RelatedPDFGenerationRequest,
+        db: Session = Depends(get_db_func)
+    ):
+        """Generate related questions from PDFs using the user's strengths/weaknesses."""
+        try:
+            import models
+
+            logger.info(
+                f"Generating related questions from {len(request.source_ids)} PDFs for user {request.user_id}"
+            )
+
+            user = db.query(models.User).filter(
+                (models.User.username == request.user_id) | (models.User.email == request.user_id)
+            ).first()
+
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            if not request.source_ids:
+                raise HTTPException(status_code=400, detail="At least one PDF source is required")
+
+            documents = db.query(models.UploadedDocument).filter(
+                models.UploadedDocument.id.in_(request.source_ids),
+                models.UploadedDocument.user_id == user.id
+            ).all()
+
+            if not documents:
+                raise HTTPException(status_code=404, detail="No documents found")
+
+            # Combine content from all PDFs
+            combined_content_parts = []
+            document_names = []
+            for doc in documents:
+                document_names.append(doc.filename)
+                combined_content_parts.append(f"=== Document: {doc.filename} ===\n{doc.content}")
+
+            combined_content = "\n\n".join(combined_content_parts)
+            logger.info(f"Combined content length: {len(combined_content)} chars")
+
+            # Weak topics from tracked weak areas
+            weak_areas = db.query(models.UserWeakArea).filter(
+                models.UserWeakArea.user_id == user.id,
+                models.UserWeakArea.status != "mastered"
+            ).order_by(
+                models.UserWeakArea.priority.desc(),
+                models.UserWeakArea.weakness_score.desc()
+            ).limit(5).all()
+            weak_topics = [wa.topic for wa in weak_areas if wa.topic]
+
+            # Weak topics from ChromaDB quiz history (if available)
+            chroma_weak_topics = []
+            try:
+                from tutor import chroma_store
+                if chroma_store.available():
+                    chroma_weak_topics = chroma_store.get_weak_quiz_topics(str(user.id), top_k=5)
+            except Exception as e:
+                logger.warning(f"Chroma weak topic retrieval failed: {e}")
+
+            # Strength topics from recent question sessions
+            sessions = db.query(models.QuestionSession).filter(
+                models.QuestionSession.user_id == user.id
+            ).order_by(models.QuestionSession.completed_at.desc()).limit(50).all()
+
+            topic_performance = _compute_topic_performance_from_sessions(sessions)
+
+            # If no weak topics captured yet, fall back to lowest-accuracy topics
+            analytics_weak_topics = []
+            if topic_performance:
+                analytics_weak_topics = [t["topic"] for t in topic_performance if t["accuracy"] < 60][:5]
+
+            weak_topics = _merge_topics(weak_topics, chroma_weak_topics, analytics_weak_topics, limit=8)
+
+            strong_topics = [
+                t["topic"]
+                for t in sorted(topic_performance, key=lambda x: -x["accuracy"])
+                if t["accuracy"] >= 80
+                and t["total_questions"] >= 3
+                and t["topic"] not in weak_topics
+            ][:5]
+
+            strong_topics = _merge_topics(strong_topics, limit=5)
+
+            personalized_prompt = agents["related_question_agent"].build_prompt(
+                weak_topics, strong_topics
+            )
+
+            questions = await agents["question_generator"].generate_questions(
+                combined_content,
+                request.question_count,
+                request.question_types,
+                request.difficulty_mix,
+                weak_topics or None,
+                custom_prompt=personalized_prompt
+            )
+
+            if not questions:
+                raise HTTPException(status_code=500, detail="Failed to generate related questions")
+
+            title = request.title or (
+                f"Related Questions from {document_names[0]}"
+                if len(document_names) == 1
+                else f"Related Questions from {len(document_names)} documents"
+            )
+
+            return {
+                "status": "success",
+                "questions": questions,
+                "title": title,
+                "personalization": {
+                    "weak_topics": weak_topics,
+                    "strong_topics": strong_topics
+                }
+            }
+
+        except HTTPException as http_e:
+            raise http_e
+        except Exception as e:
+            logger.error(f"Error generating related questions from PDFs: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
     
     @app.post("/api/qb/smart_generate")
@@ -3833,6 +4157,48 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     })
             
             weakness_analysis = await agents["adaptive_generator"].analyze_weaknesses(performance_data) if performance_data else {}
+
+            # Merge weak topics from ChromaDB quiz history if available
+            chroma_weak_topics = []
+            try:
+                from tutor import chroma_store
+                if chroma_store.available():
+                    chroma_weak_topics = chroma_store.get_weak_quiz_topics(str(user.id), top_k=5)
+            except Exception as e:
+                logger.warning(f"Chroma weak topic retrieval failed: {e}")
+
+            if chroma_weak_topics:
+                existing_weak = weakness_analysis.get("weak_topics", []) if isinstance(weakness_analysis, dict) else []
+                existing_focus = []
+                if isinstance(weakness_analysis, dict):
+                    existing_focus = weakness_analysis.get("recommendations", {}).get("focus_topics", []) or []
+
+                weak_topic_names = [t.get("topic") for t in existing_weak if isinstance(t, dict)]
+                merged_focus = _merge_topics(weak_topic_names, existing_focus, chroma_weak_topics, limit=8)
+
+                # Ensure weakness_analysis has structure
+                if not isinstance(weakness_analysis, dict):
+                    weakness_analysis = {}
+                if "recommendations" not in weakness_analysis or not isinstance(weakness_analysis.get("recommendations"), dict):
+                    weakness_analysis["recommendations"] = {}
+
+                # Add chroma weak topics to weak_topics list if missing
+                existing_lower = {str(t).lower() for t in weak_topic_names if t}
+                for topic in chroma_weak_topics:
+                    if not topic:
+                        continue
+                    if topic.lower() in existing_lower:
+                        continue
+                    existing_weak.append({
+                        "topic": topic,
+                        "accuracy": 0.0,
+                        "attempts": 0,
+                        "source": "chroma"
+                    })
+                    existing_lower.add(topic.lower())
+
+                weakness_analysis["weak_topics"] = existing_weak
+                weakness_analysis["recommendations"]["focus_topics"] = merged_focus
             
             # Get content from documents
             content_parts = []

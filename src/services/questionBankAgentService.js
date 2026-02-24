@@ -65,20 +65,32 @@ class QuestionBankAgentService {
    * Generate questions from PDF document
    */
   async generateFromPDF(params) {
-    const { userId, sourceId, questionCount, difficultyMix, sessionId } = params;
+    const { userId, sourceId, questionCount, difficultyMix, questionTypes, topics, title } = params;
 
-    return this.request('/generate', {
+    const response = await fetch(`${API_URL}/qb/generate_from_pdf`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
       body: JSON.stringify({
         user_id: userId,
-        action: 'generate',
         source_type: 'pdf',
         source_id: sourceId,
         question_count: questionCount,
         difficulty_mix: difficultyMix,
-        session_id: sessionId
+        question_types: questionTypes || ['multiple_choice', 'true_false', 'short_answer'],
+        topics: topics || null,
+        title: title || null
       })
     });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to generate questions');
+    }
+
+    return await response.json();
   }
 
   /**
@@ -107,6 +119,36 @@ class QuestionBankAgentService {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
       throw new Error(error.detail || 'Failed to generate questions');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Generate related questions from PDFs using strengths/weaknesses
+   */
+  async generateRelatedFromPDF(params) {
+    const { userId, sourceIds, questionCount, difficultyMix, questionTypes, title } = params;
+
+    const response = await fetch(`${API_URL}/qb/generate_related_from_pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        source_ids: sourceIds,
+        question_count: questionCount,
+        difficulty_mix: difficultyMix,
+        question_types: questionTypes || ['multiple_choice', 'true_false', 'short_answer'],
+        title: title || null
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to generate related questions');
     }
 
     return await response.json();

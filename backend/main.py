@@ -59,6 +59,17 @@ with engine.connect() as _conn:
         logger.info("Added column comprehensive_user_profiles.notifications_enabled")
     _conn.commit()
 
+# --- Migrate: add provenance fields to context_documents if missing ---
+with engine.connect() as _conn:
+    _ctx_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(context_documents)"))}
+    if "source_name" not in _ctx_cols:
+        _conn.execute(text("ALTER TABLE context_documents ADD COLUMN source_name VARCHAR(200)"))
+        logger.info("Added column context_documents.source_name")
+    if "license" not in _ctx_cols:
+        _conn.execute(text("ALTER TABLE context_documents ADD COLUMN license VARCHAR(80)"))
+        logger.info("Added column context_documents.license")
+    _conn.commit()
+
 
 def _sync_sequences():
     if not DATABASE_URL or "postgres" not in DATABASE_URL.lower():
