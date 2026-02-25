@@ -43,6 +43,7 @@ class ContextService {
   async listDocuments() {
     const response = await fetch(`${API_URL}/context/documents`, {
       headers: this._headers(),
+      cache: 'no-store',
     });
     if (!response.ok) throw new Error(`List failed (${response.status})`);
     return response.json();
@@ -70,6 +71,7 @@ class ContextService {
     });
     const response = await fetch(`${API_URL}/context/search?${params}`, {
       headers: this._headers(),
+      cache: 'no-store',
     });
     if (!response.ok) throw new Error(`Search failed (${response.status})`);
     return response.json();

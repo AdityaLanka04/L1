@@ -23,6 +23,33 @@ class ImportExportService:
     def __init__(self, db: Session):
         self.db = db
 
+    def _combine_titles(self, titles: List[str], max_titles: int = 2, fallback: str = "Untitled") -> str:
+        cleaned = []
+        seen = set()
+        for title in titles:
+            if not title:
+                continue
+            text = str(title).strip()
+            if not text:
+                continue
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            cleaned.append(text)
+
+        if not cleaned:
+            return fallback
+        if len(cleaned) == 1:
+            return cleaned[0]
+
+        head = cleaned[:max_titles]
+        rest = len(cleaned) - len(head)
+        title = ", ".join(head)
+        if rest > 0:
+            title = f"{title} +{rest} more"
+        return title
+
     def _log_groq_usage(self, user_id: int, tool_name: str, response):
         usage = extract_usage_from_openai_like(response)
         if not usage:
@@ -94,7 +121,7 @@ Return ONLY a JSON array of flashcards with this exact format:
             
             flashcards_data = json.loads(content)
             
-            set_title = f"Flashcards from {len(notes)} note(s)"
+            set_title = self._combine_titles([note.title for note in notes], fallback="Flashcards")
             flashcard_set = FlashcardSet(
                 user_id=user_id,
                 title=set_title,
@@ -182,7 +209,7 @@ Return ONLY a JSON array with this exact format:
             
             questions_data = json.loads(content)
             
-            set_title = f"Questions from {len(notes)} note(s)"
+            set_title = self._combine_titles([note.title for note in notes], fallback="Practice Questions")
             question_set = QuestionSet(
                 user_id=user_id,
                 title=set_title,
@@ -254,7 +281,7 @@ Return ONLY a JSON array with this exact format:
             else:
                 content = self._format_flashcards_summary(all_cards)
             
-            note_title = f"Study Guide from {len(flashcard_sets)} Flashcard Set(s)"
+            note_title = self._combine_titles([fs.title for fs in flashcard_sets], fallback="Study Guide")
             note = Note(
                 user_id=user_id,
                 title=note_title,
@@ -369,7 +396,7 @@ Return ONLY a JSON array:
             
             questions_data = json.loads(content)
             
-            set_title = f"Quiz from {len(flashcard_sets)} Flashcard Set(s)"
+            set_title = self._combine_titles([fs.title for fs in flashcard_sets], fallback="Quiz")
             question_set = QuestionSet(
                 user_id=user_id,
                 title=set_title,
@@ -424,7 +451,7 @@ Return ONLY a JSON array:
             if not question_sets:
                 return {"success": False, "error": "No question sets found"}
             
-            set_title = f"Flashcards from {len(question_sets)} Question Set(s)"
+            set_title = self._combine_titles([qs.title for qs in question_sets], fallback="Flashcards")
             flashcard_set = FlashcardSet(
                 user_id=user_id,
                 title=set_title,
@@ -527,7 +554,7 @@ Return ONLY a JSON array:
                     
                     content += "<br>\n"
             
-            note_title = f"Study Guide from {len(question_sets)} Question Set(s)"
+            note_title = self._combine_titles([qs.title for qs in question_sets], fallback="Study Guide")
             note = Note(
                 user_id=user_id,
                 title=note_title,
@@ -603,7 +630,7 @@ Return ONLY a JSON array:
             
             questions_data = json.loads(content)
             
-            set_title = f"Questions from {len(media_files)} Media File(s)"
+            set_title = self._combine_titles([mf.original_filename for mf in media_files], fallback="Media Questions")
             question_set = QuestionSet(
                 user_id=user_id,
                 title=set_title,
@@ -736,7 +763,7 @@ Write at least 500 words of educational content."""
             
             note = Note(
                 user_id=user_id,
-                title=f"Study Notes: {playlist.title}",
+                title=playlist.title or "Study Notes",
                 content=ai_content
             )
             self.db.add(note)
@@ -842,8 +869,8 @@ Return ONLY a JSON array:
             
             flashcard_set = FlashcardSet(
                 user_id=user_id,
-                title=f"Flashcards: {playlist.title}",
-                description=f"From playlist: {playlist.title}"
+                title=playlist.title or "Flashcards",
+                description=f"From playlist: {playlist.title or 'Untitled'}"
             )
             self.db.add(flashcard_set)
             self.db.flush()

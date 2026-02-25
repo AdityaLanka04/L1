@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+import json
 from pathlib import Path
 from urllib.parse import urlparse, unquote
 import ipaddress
@@ -30,7 +31,7 @@ from sqlalchemy.orm import Session
 
 import models
 import context_store
-from deps import get_db, get_current_user
+from deps import get_db, get_current_user, call_ai
 from document_processor import process_upload, CHUNK_SIZE, CHUNK_OVERLAP
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,76 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/context", tags=["context"])
 
 MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
+
+class RelatedTopicsRequest(BaseModel):
+    topics: list[str]
+    use_hs: bool = True
+    top_k: int = 5
+    max_related: int = 8
+
+def _clean_topic_text(text: str) -> str:
+    cleaned = re.sub(r"\.[a-zA-Z0-9]{1,5}$", "", text or "")
+    cleaned = re.sub(r"[_\-\/]+", " ", cleaned)
+    cleaned = re.sub(r"\b(chapter|unit|lesson|notes?|doc|document|slides?)\b", " ", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+def _title_case_topic(text: str) -> str:
+    return " ".join(word.capitalize() for word in (text or "").split())
+
+def _extract_topic_from_result(result: dict) -> str:
+    meta = result.get("metadata") or {}
+    subject = (meta.get("subject") or "").strip()
+    if subject and subject.lower() != "general":
+        return context_store.canonicalize_subject(subject) or subject
+
+    filename = (meta.get("filename") or "").strip()
+    if filename:
+        cleaned = _clean_topic_text(filename)
+        if cleaned:
+            return _title_case_topic(cleaned)
+
+    text = (result.get("text") or "").strip()
+    if not text:
+        return ""
+    first_line = text.splitlines()[0].strip()
+    tokens = re.findall(r"[A-Za-z][A-Za-z'\-]+", first_line.lower())
+    stopwords = context_store._STOPWORDS if hasattr(context_store, "_STOPWORDS") else set()
+    generic = {
+        "flashcards", "flashcard", "notes", "note", "quiz", "quizzes",
+        "roadmap", "path", "plan", "study", "learning", "guide",
+        "review", "overview", "summary", "explain", "practice"
+    }
+    keywords = [t for t in tokens if t not in stopwords and t not in generic]
+    if not keywords:
+        return ""
+    return _title_case_topic(" ".join(keywords[:3]))
+
+def _parse_ai_topics(raw: str) -> list[str]:
+    if not raw:
+        return []
+    cleaned = raw.strip()
+    cleaned = re.sub(r"```(?:json)?", "", cleaned, flags=re.IGNORECASE).strip("`\n ")
+    try:
+        data = json.loads(cleaned)
+        if isinstance(data, dict):
+            topics = data.get("topics") or data.get("related_topics") or data.get("data") or []
+        elif isinstance(data, list):
+            topics = data
+        else:
+            topics = []
+    except Exception:
+        topics = []
+        match = re.search(r"\[[\s\S]*\]", cleaned)
+        if match:
+            try:
+                topics = json.loads(match.group(0))
+            except Exception:
+                topics = []
+        if not topics:
+            lines = [re.sub(r"^[\s\-*\d.]+", "", line).strip() for line in cleaned.splitlines()]
+            topics = [line for line in lines if line]
+    return [str(t).strip() for t in topics if str(t).strip()]
 
 def _is_safe_url(url: str) -> bool:
     try:
@@ -570,6 +641,117 @@ def search_context_endpoint(
     except Exception as e:
         logger.error(f"context search endpoint failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/related-topics")
+def related_topics_endpoint(
+    payload: RelatedTopicsRequest,
+    current_user: models.User = Depends(get_current_user),
+):
+    topics = [t.strip() for t in (payload.topics or []) if t and t.strip()]
+    if not topics:
+        return {"topics": [], "seed_topics": [], "source_counts": {}}
+    if not context_store.available():
+        return {"topics": [], "seed_topics": topics, "source_counts": {}}
+
+    topics = topics[:6]
+    top_k = max(1, min(payload.top_k or 5, 10))
+    max_related = max(1, min(payload.max_related or 8, 12))
+
+    results = []
+    seen = set()
+    for topic in topics:
+        try:
+            search_results = context_store.search_context(
+                query=topic,
+                user_id=str(current_user.id),
+                use_hs=payload.use_hs,
+                top_k=top_k,
+            )
+        except Exception as e:
+            logger.warning(f"related-topics context search failed: {e}")
+            search_results = []
+
+        for res in search_results:
+            meta = res.get("metadata") or {}
+            key = f"{meta.get('doc_id', '')}:{meta.get('chunk_index', '')}:{res.get('source', '')}"
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(res)
+
+    candidate_counts: dict[str, int] = {}
+    candidate_sources: dict[str, set[str]] = {}
+    snippets: list[str] = []
+    for res in results:
+        topic = _extract_topic_from_result(res)
+        if topic:
+            key = topic.lower()
+            candidate_counts[key] = candidate_counts.get(key, 0) + 1
+            candidate_sources.setdefault(key, set()).add(res.get("source", ""))
+
+        text = (res.get("text") or "").strip()
+        if text and len(snippets) < 12:
+            cleaned = re.sub(r"\s+", " ", text).strip()
+            if cleaned:
+                snippets.append(cleaned[:240])
+
+    seed_set = {t.lower() for t in topics}
+    sorted_candidates = sorted(candidate_counts.items(), key=lambda item: item[1], reverse=True)
+    candidate_list = [f"{topic} ({count})" for topic, count in sorted_candidates[:20]]
+    candidate_str = ", ".join(candidate_list) if candidate_list else "none"
+
+    prompt = (
+        "You are a study assistant. Return related study topics based on the user's context.\n"
+        "Output must be valid JSON: {\"topics\": [\"Topic 1\", \"Topic 2\", ...]}.\n"
+        "Rules:\n"
+        "- 2-4 words per topic\n"
+        "- Avoid repeating seed topics\n"
+        "- Prefer concrete academic topics, not generic actions\n\n"
+        f"Seed topics: {', '.join(topics)}\n"
+        f"Candidate topics from context: {candidate_str}\n"
+        "Context snippets:\n"
+        + "\n".join([f"- {s}" for s in snippets[:10]])
+    )
+
+    ai_topics = []
+    try:
+        raw = call_ai(prompt, max_tokens=200, temperature=0.3)
+        ai_topics = _parse_ai_topics(raw)
+    except Exception as e:
+        logger.warning(f"related-topics AI call failed: {e}")
+
+    cleaned_ai = []
+    seen_ai = set()
+    for topic in ai_topics:
+        cleaned = _clean_topic_text(topic)
+        if not cleaned:
+            continue
+        key = cleaned.lower()
+        if key in seed_set or key in seen_ai:
+            continue
+        seen_ai.add(key)
+        cleaned_ai.append(_title_case_topic(cleaned))
+        if len(cleaned_ai) >= max_related:
+            break
+
+    if not cleaned_ai:
+        for topic, _ in sorted_candidates:
+            if topic in seed_set:
+                continue
+            cleaned_ai.append(_title_case_topic(topic))
+            if len(cleaned_ai) >= max_related:
+                break
+
+    source_counts = {}
+    for sources in candidate_sources.values():
+        for src in sources:
+            source_counts[src] = source_counts.get(src, 0) + 1
+
+    return {
+        "topics": cleaned_ai,
+        "seed_topics": topics,
+        "source_counts": source_counts,
+    }
 
 @router.get("/hs/subjects")
 def get_hs_subjects(

@@ -59,6 +59,55 @@ const SearchHub = () => {
 
   
   const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const lastRecommendationRefreshRef = useRef(0);
+
+  const loadRecentSearches = (username) => {
+    const saved = localStorage.getItem(`recentSearches_${username}`);
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved));
+      } catch (error) {
+              }
+    }
+  };
+
+  const refreshRecommendations = async (reason = 'manual') => {
+    const now = Date.now();
+    if (now - lastRecommendationRefreshRef.current < 5000) return;
+    lastRecommendationRefreshRef.current = now;
+
+    const username = localStorage.getItem('username');
+    const token = localStorage.getItem('token');
+    if (!username || !token) return;
+    loadRecentSearches(username);
+    await loadPersonalizedPrompts(username);
+  };
+
+  const getUsedRecommendationKeys = (username) => {
+    if (!username) return new Set();
+    const raw = localStorage.getItem(`searchhub_used_recs_${username}`);
+    if (!raw) return new Set();
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed.map(key => String(key)));
+      }
+    } catch (error) {
+    }
+    return new Set();
+  };
+
+  const markRecommendationUsed = (username, rec) => {
+    if (!username || !rec) return;
+    const topic = (rec.topic || extractTopicName(rec.text || '') || '').toLowerCase();
+    const action = inferActionType(rec.text || '');
+    if (!topic || !action) return;
+    const key = `${topic}:${action}`;
+    const used = getUsedRecommendationKeys(username);
+    if (used.has(key)) return;
+    used.add(key);
+    localStorage.setItem(`searchhub_used_recs_${username}`, JSON.stringify(Array.from(used)));
+  };
 
   useEffect(() => {
     const username = localStorage.getItem('username');
@@ -72,11 +121,12 @@ const SearchHub = () => {
       setUserName('');
       const defaultPrompts = [
         { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
-        { text: '/notes world history', reason: 'Start documenting', priority: 'high' },
-        { text: '/flashcards biology', reason: 'Build study materials', priority: 'high' },
+        { text: '/notes', reason: 'Capture notes', priority: 'medium' },
+        { text: '/flashcards', reason: 'Study with flashcards', priority: 'medium' },
         { text: '/weak', reason: 'Identify gaps', priority: 'high' },
+        { text: '/progress', reason: 'Track your journey', priority: 'low' },
       ];
-      setPersonalizedPrompts(defaultPrompts);
+      setPersonalizedPrompts(finalizeRecommendations(defaultPrompts));
       setIsLoadingPrompts(false);
     }
 
@@ -93,9 +143,33 @@ const SearchHub = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (userDocCount > 0) {
+      refreshRecommendations('doc_count');
+    }
+  }, [userDocCount]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshRecommendations('focus');
+    };
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        refreshRecommendations('visibility');
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
   const handleHsModeToggle = (val) => {
     setHsMode(val);
     localStorage.setItem('hs_mode_enabled', String(val));
+    refreshRecommendations('hs_mode');
   };
 
   useEffect(() => {
@@ -157,15 +231,236 @@ const SearchHub = () => {
     }
   }, []);
 
-  const loadRecentSearches = (username) => {
-    const saved = localStorage.getItem(`recentSearches_${username}`);
-    if (saved) {
-      try {
-        setRecentSearches(JSON.parse(saved));
-      } catch (error) {
-              }
+
+  const GENERIC_TOKENS = new Set([
+    'flashcards', 'flashcard', 'notes', 'note', 'quiz', 'quizzes',
+    'roadmap', 'path', 'plan', 'study', 'learning', 'guide',
+    'review', 'overview', 'summary', 'explain', 'practice'
+  ]);
+
+  const stripHtml = (text = '') => text.replace(/<[^>]*>/g, ' ');
+
+  const extractTopicFromFreeText = (text) => {
+    if (!text) return null;
+    const cleaned = text
+      .toLowerCase()
+      .replace(/[?!.,:;(){}[\]"'`~]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleaned) return null;
+    const stopwords = new Set([
+      'the', 'and', 'for', 'with', 'from', 'this', 'that', 'into', 'over',
+      'about', 'your', 'their', 'there', 'what', 'which', 'when', 'where',
+      'will', 'would', 'could', 'should', 'have', 'has', 'had', 'are', 'was',
+      'were', 'been', 'being', 'you', 'your', 'our', 'they', 'them', 'than'
+    ]);
+    const words = cleaned
+      .split(' ')
+      .filter(word => word.length > 2 && !stopwords.has(word) && !GENERIC_TOKENS.has(word));
+
+    if (!words.length) return null;
+    const topicWords = words.slice(0, 3);
+    return topicWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  const extractTopicFromNote = (note) => {
+    if (!note) return null;
+    const title = (note.title || '').trim();
+    const titleTopic = extractTopicName(title);
+    if (titleTopic && titleTopic.toLowerCase() !== 'new note') return titleTopic;
+
+    const content = stripHtml(note.content || '');
+    const headingMatch = content.match(/^\s*#+\s+(.+)$/m);
+    if (headingMatch && headingMatch[1]) {
+      const headingTopic = extractTopicFromFreeText(headingMatch[1]);
+      if (headingTopic) return headingTopic;
+    }
+
+    const firstLine = content.split('\n').map(line => line.trim()).find(Boolean) || '';
+    return extractTopicFromFreeText(firstLine) || extractTopicFromFreeText(content);
+  };
+
+  const extractTopicFromTitle = (title) => {
+    if (!title) return null;
+    const trimmed = title.trim();
+    if (!trimmed) return null;
+    const lower = trimmed.toLowerCase();
+    if (['new chat', 'chat', 'untitled', 'session'].includes(lower)) return null;
+    const cleaned = trimmed.replace(/^(practice:|quiz:|set:|flashcards?:|notes?:|chat:)\s*/i, '').trim();
+    return extractTopicName(cleaned) || extractTopicFromFreeText(cleaned);
+  };
+
+  const extractTopicName = (text) => {
+    if (!text) return null;
+    
+    
+    let cleaned = text
+      .toLowerCase()
+      .replace(/[?!.,:;]+/g, ' ')
+      .replace(/^(explain|create|make|generate|write|what is|tell me about|learn about|study|understand|summarize|summary|overview|review|practice|quiz on|notes on|flashcards on|about|a quiz on|a note on)\s+/gi, '')
+      .replace(/\s+(flashcards?|notes?|quiz|quizzes|roadmap|export|step-by-step)$/gi, '')
+      .trim();
+
+    
+    if (cleaned.startsWith('/')) {
+      const parts = cleaned.replace(/^\/+/, '').split(/\s+/);
+      if (parts.length >= 2) {
+        cleaned = parts.slice(1).join(' ').trim();
+      } else {
+        return null;
+      }
+    }
+    
+    
+    const prefixMatch = cleaned.match(/^(?:learning path|study plan|study guide|flashcards?|notes?|quiz(?:zes)?|roadmap|path)\s+(?:on|about|for|of)?\s*(.+)$/i);
+    if (prefixMatch && prefixMatch[1]) {
+      cleaned = prefixMatch[1].trim();
+    }
+
+    
+    const onMatch = cleaned.match(/(?:on|about|for|of)\s+(.+)/i);
+    if (onMatch && onMatch[1]) {
+      cleaned = onMatch[1].trim();
+    }
+    
+    
+    const words = cleaned.split(/\s+/).filter(w => w.length > 2);
+    if (words.length === 0) return null;
+    
+    
+    if (words.every(word => GENERIC_TOKENS.has(word))) {
+      return null;
+    }
+
+    const topicWords = words.slice(0, 4);
+    return topicWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  const inferActionType = (text = '') => {
+    const safeText = typeof text === 'string' ? text.trim() : '';
+    const lower = safeText.toLowerCase();
+    const command = lower.startsWith('/') ? lower.slice(1).split(/\s+/)[0] : '';
+
+    if (command) {
+      if (command === 'flashcards') return 'flashcards';
+      if (command === 'notes') return 'notes';
+      if (command === 'quiz') return 'quiz';
+      if (command === 'path') return 'path';
+      if (command === 'chat') return 'chat';
+      if (command === 'weak') return 'weak';
+      if (command === 'progress') return 'progress';
+      if (command === 'review') return 'review';
+    }
+
+    if (lower.includes('flashcard')) return 'flashcards';
+    if (lower.includes('note')) return 'notes';
+    if (lower.includes('quiz')) return 'quiz';
+    if (lower.includes('path') || lower.includes('roadmap') || lower.includes('study plan')) return 'path';
+    if (lower.includes('chat') || lower.includes('talk')) return 'chat';
+    if (lower.includes('weak')) return 'weak';
+    if (lower.includes('progress')) return 'progress';
+    if (lower.includes('review')) return 'review';
+    if (lower.startsWith('explain') || lower.includes(' explain ')) return 'explain';
+    if (lower.startsWith('learn') || lower.includes(' learn ')) return 'learn';
+
+    return '';
+  };
+
+  const actionLabelForType = (type) => {
+    switch (type) {
+      case 'flashcards':
+        return 'Flashcards';
+      case 'notes':
+        return 'Notes';
+      case 'quiz':
+        return 'Quiz';
+      case 'path':
+        return 'Path';
+      case 'chat':
+        return 'Chat';
+      case 'weak':
+        return 'Weakness';
+      case 'progress':
+        return 'Progress';
+      case 'review':
+        return 'Review';
+      case 'explain':
+        return 'Explain';
+      case 'learn':
+        return 'Learn';
+      default:
+        return '';
     }
   };
+
+  const buildActionCommand = (type, topic) => {
+    const safeTopic = (topic || '').trim();
+    switch (type) {
+      case 'flashcards':
+      case 'notes':
+      case 'quiz':
+      case 'path':
+      case 'chat':
+        return safeTopic ? `/${type} ${safeTopic}` : `/${type}`;
+      case 'review':
+        return '/review';
+      case 'weak':
+        return '/weak';
+      case 'progress':
+        return '/progress';
+      case 'explain':
+        return safeTopic ? `/explain ${safeTopic}` : '/explain';
+      case 'learn':
+        return safeTopic ? `learn ${safeTopic}` : 'learn';
+      default:
+        return safeTopic ? safeTopic : '/chat';
+    }
+  };
+
+  const extractTopicFromContextResult = (result) => {
+    const meta = result?.metadata || {};
+    const subject = (meta.subject || '').trim();
+    if (subject && subject.toLowerCase() !== 'general') {
+      return subject
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    }
+
+    const filename = (meta.filename || '').trim();
+    if (filename) {
+      const base = filename.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ');
+      const cleaned = base.replace(/\b(chapter|unit|lesson|notes?|doc|document|slides?)\b/gi, ' ');
+      const fromFile = extractTopicName(cleaned);
+      if (fromFile) return fromFile;
+    }
+
+    return extractTopicName(result?.text || '');
+  };
+
+  const buildRecommendationLabel = (text, topic) => {
+    const safeText = typeof text === 'string' ? text.trim() : '';
+    const topicName = (topic || extractTopicName(safeText) || '').trim();
+    const topicWords = topicName ? topicName.split(/\s+/) : [];
+
+    const pickTopic = (maxWords) => topicWords.slice(0, maxWords).join(' ');
+    const topicLabel = topicName ? pickTopic(2) : '';
+
+    const actionType = inferActionType(safeText);
+    const actionLabel = actionLabelForType(actionType);
+
+    if (topicLabel && actionLabel) return `${topicLabel} ${actionLabel}`;
+    if (topicLabel) return topicLabel;
+    if (actionLabel) return actionLabel;
+
+    return 'Suggested Topic';
+  };
+
+  const finalizeRecommendations = (items) => items.map(item => ({
+    ...item,
+    label: item.label || buildRecommendationLabel(item.text, item.topic)
+  }));
 
   const loadPersonalizedPrompts = async (username) => {
     setIsLoadingPrompts(true);
@@ -184,58 +479,539 @@ const SearchHub = () => {
         const data = await response.json();
         
         
-        const extractTopicName = (text) => {
-          if (!text) return null;
-          
-          
-          let cleaned = text
-            .toLowerCase()
-            .replace(/^(explain|create|make|generate|write|what is|tell me about|learn about|study|understand|quiz on|notes on|flashcards on|about|a quiz on|a note on)\s+/gi, '')
-            .replace(/\s+(flashcards?|notes?|quiz|quizzes|roadmap|export|step-by-step)$/gi, '')
-            .trim();
-
-          
-          if (cleaned.startsWith('/')) {
-            const parts = cleaned.replace(/^\/+/, '').split(/\s+/);
-            if (parts.length >= 2) {
-              cleaned = parts.slice(1).join(' ').trim();
-            } else {
-              return null;
-            }
-          }
-          
-          
-          const onMatch = cleaned.match(/(?:on|about)\s+(.+)/i);
-          if (onMatch && onMatch[1]) {
-            cleaned = onMatch[1].trim();
-          }
-          
-          
-          const words = cleaned.split(/\s+/).filter(w => w.length > 2);
-          if (words.length === 0) return null;
-          
-          
-          const topicWords = words.slice(0, 4);
-          return topicWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        };
-        
-        
         const backendPrompts = (data.prompts || []).map(prompt => ({
           text: typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || ''),
           reason: typeof prompt.reason === 'string' ? prompt.reason : (prompt.reason?.label || 'Based on your activity'),
           priority: prompt.priority || 'medium',
           topic: extractTopicName(typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || ''))
         })).filter(p => p.text);
-        
-        
-        const recommendations = [];
-        
-        
-        recommendations.push({ 
-          text: '/chat', 
-          reason: 'AI tutor ready to help', 
-          priority: 'high' 
+
+        const topicSignals = new Map();
+        const usedRecommendationKeys = getUsedRecommendationKeys(username);
+        const addTopicSignal = (topic, { score = 1, action = '', source = 'activity' } = {}) => {
+          const topicKey = (topic || '').trim();
+          if (!topicKey) return;
+          const key = topicKey.toLowerCase();
+          const entry = topicSignals.get(key) || {
+            topic: topicKey,
+            score: 0,
+            actionCounts: {},
+            sources: new Set(),
+            sourceActions: {}
+          };
+          entry.score += score;
+          if (action) {
+            entry.actionCounts[action] = (entry.actionCounts[action] || 0) + 1;
+          }
+          if (source) {
+            entry.sources.add(source);
+            if (action) entry.sourceActions[source] = action;
+          }
+          topicSignals.set(key, entry);
+        };
+
+        backendPrompts.forEach(prompt => {
+          if (prompt.topic) {
+            const action = inferActionType(prompt.text);
+            addTopicSignal(prompt.topic, { score: 1, action, source: 'activity' });
+          }
         });
+
+        const savedRecent = localStorage.getItem(`recentSearches_${username}`);
+        let recentSeeds = [];
+        if (savedRecent) {
+          try {
+            recentSeeds = JSON.parse(savedRecent);
+          } catch (error) {
+            recentSeeds = [];
+          }
+        }
+        if (!recentSeeds.length) {
+          recentSeeds = recentSearches;
+        }
+
+        recentSeeds.forEach((query, index) => {
+          const topic = extractTopicName(query);
+          if (topic) {
+            const action = inferActionType(query);
+            addTopicSignal(topic, { score: Math.max(1, 3 - index), action, source: 'recent' });
+          }
+        });
+
+        const fetchNoteTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/get_notes?user_id=${username}`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const notes = (data || [])
+              .filter(note => !note.is_deleted)
+              .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
+            const topics = [];
+            const seen = new Set();
+            for (const note of notes) {
+              const topic = extractTopicFromNote(note);
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: note.updated_at || note.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchDocumentTopics = async () => {
+          try {
+            const docData = await contextService.listDocuments();
+            const docs = docData?.user_docs || [];
+            const sortedDocs = docs.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            const topics = [];
+            const seen = new Set();
+            for (const doc of sortedDocs) {
+              const topic = doc.subject && doc.subject.trim()
+                ? doc.subject.trim()
+                : extractTopicName(doc.filename || '');
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                createdAt: doc.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchFlashcardTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/get_flashcard_history?user_id=${username}&limit=20`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const history = data?.flashcard_history || [];
+            const topics = [];
+            const seen = new Set();
+            for (const set of history) {
+              const topic = extractTopicFromTitle(set.title) || extractTopicFromFreeText(set.description || '');
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: set.updated_at || set.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchQuestionSetTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/get_question_sets?user_id=${username}`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const sets = data?.question_sets || [];
+            const topics = [];
+            const seen = new Set();
+            for (const set of sets) {
+              const topic = extractTopicFromTitle(set.title) || extractTopicFromFreeText(set.description || '');
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: set.updated_at || set.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchChatTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${username}`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const sessions = data?.sessions || [];
+            const topics = [];
+            const seen = new Set();
+            for (const session of sessions) {
+              const topic = extractTopicFromTitle(session.title);
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: session.updated_at || session.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchLearningPathTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/learning-paths`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const paths = data?.paths || [];
+            const topics = [];
+            const seen = new Set();
+            for (const path of paths) {
+              const topic = extractTopicFromTitle(path.title) || extractTopicFromFreeText(path.topic_prompt || path.description || '');
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: path.updated_at || path.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchPlaylistTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/playlists?my_playlists=true`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const playlists = data?.playlists || [];
+            const topics = [];
+            const seen = new Set();
+            for (const playlist of playlists) {
+              const topic = extractTopicFromTitle(playlist.title) || extractTopicFromFreeText(playlist.description || playlist.category || '');
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: playlist.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const [
+          noteTopics,
+          documentTopics,
+          flashcardTopics,
+          questionTopics,
+          chatTopics,
+          learningPathTopics,
+          playlistTopics
+        ] = await Promise.all([
+          fetchNoteTopics(),
+          fetchDocumentTopics(),
+          fetchFlashcardTopics(),
+          fetchQuestionSetTopics(),
+          fetchChatTopics(),
+          fetchLearningPathTopics(),
+          fetchPlaylistTopics()
+        ]);
+
+        noteTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 3 ? 5 : ageDays <= 10 ? 4 : ageDays <= 30 ? 3 : 2;
+          addTopicSignal(entry.topic, { score, action: 'notes', source: 'notes' });
+        });
+
+        flashcardTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 5 ? 4 : ageDays <= 20 ? 3 : 2;
+          addTopicSignal(entry.topic, { score, action: 'flashcards', source: 'flashcards' });
+        });
+
+        questionTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 7 ? 4 : ageDays <= 25 ? 3 : 2;
+          addTopicSignal(entry.topic, { score, action: 'quiz', source: 'questions' });
+        });
+
+        chatTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 3 ? 3 : ageDays <= 14 ? 2 : 1;
+          addTopicSignal(entry.topic, { score, action: 'chat', source: 'chat' });
+        });
+
+        learningPathTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 7 ? 4 : ageDays <= 30 ? 3 : 2;
+          addTopicSignal(entry.topic, { score, action: 'path', source: 'paths' });
+        });
+
+        playlistTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 7 ? 3 : ageDays <= 30 ? 2 : 1;
+          addTopicSignal(entry.topic, { score, action: 'notes', source: 'playlists' });
+        });
+
+        documentTopics.forEach(entry => {
+          const createdAt = entry.createdAt ? new Date(entry.createdAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - createdAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 7 ? 3 : ageDays <= 30 ? 2 : 1;
+          addTopicSignal(entry.topic, { score, action: 'flashcards', source: 'docs' });
+        });
+
+        const seedQueries = Array.from(
+          new Set([
+            ...(recentSeeds || []).filter(q => typeof q === 'string' && q.trim().length >= 2),
+            ...backendPrompts.map(p => p.topic).filter(Boolean),
+            ...noteTopics.map(entry => entry.topic),
+            ...documentTopics.map(entry => entry.topic),
+            ...flashcardTopics.map(entry => entry.topic),
+            ...questionTopics.map(entry => entry.topic),
+            ...chatTopics.map(entry => entry.topic),
+            ...learningPathTopics.map(entry => entry.topic),
+            ...playlistTopics.map(entry => entry.topic),
+          ])
+        ).slice(0, 5);
+
+        const fetchContextTopics = async () => {
+          if (!seedQueries.length) return [];
+          const responses = await Promise.all(
+            seedQueries.map(query =>
+              contextService.searchContext(query, hsMode, 6).catch(() => null)
+            )
+          );
+          const rawResults = responses.flatMap(res => res?.results || []);
+          const sorted = rawResults.sort((a, b) => {
+            if (a.source === b.source) return 0;
+            return a.source === 'private' ? -1 : 1;
+          });
+          const topics = [];
+          const seen = new Set();
+          for (const result of sorted) {
+            const topic = extractTopicFromContextResult(result);
+            if (!topic) continue;
+            const key = topic.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            topics.push({ topic, source: result.source });
+            if (topics.length >= 6) break;
+          }
+          return topics;
+        };
+
+        const contextTopics = await fetchContextTopics();
+        contextTopics.forEach(({ topic, source }) => {
+          const score = source === 'private' ? 6 : 3;
+          addTopicSignal(topic, { score, source });
+        });
+
+        const fetchRelatedTopics = async (seedTopics) => {
+          if (!seedTopics.length) return [];
+          try {
+            const response = await fetch(`${API_URL}/context/related-topics`, {
+              method: 'POST',
+              headers: { 
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                topics: seedTopics,
+                use_hs: hsMode,
+                top_k: 5,
+                max_related: 6
+              }),
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            return data?.topics || [];
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const relatedSeeds = Array.from(topicSignals.values())
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3)
+          .map(entry => entry.topic);
+
+        const relatedTopics = await fetchRelatedTopics(relatedSeeds);
+        relatedTopics.forEach((topic, index) => {
+          const relatedActions = ['flashcards', 'notes', 'quiz', 'chat'];
+          const action = relatedActions[index % relatedActions.length];
+          addTopicSignal(topic, { score: 2, action, source: 'related' });
+        });
+
+        const sourcePriority = ['private', 'notes', 'flashcards', 'questions', 'chat', 'paths', 'playlists', 'docs', 'related', 'hs', 'recent', 'activity'];
+        const rankedTopics = Array.from(topicSignals.values()).sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          const aRank = sourcePriority.findIndex(src => a.sources.has(src));
+          const bRank = sourcePriority.findIndex(src => b.sources.has(src));
+          return (aRank === -1 ? 99 : aRank) - (bRank === -1 ? 99 : bRank);
+        });
+
+        const pickPrimarySource = (entry) => {
+          for (const src of sourcePriority) {
+            if (entry.sources.has(src)) return src;
+          }
+          return 'activity';
+        };
+
+        const pickActionForEntry = (entry, fallbackAction, preferredAction = '') => {
+          if (preferredAction) return preferredAction;
+          const actions = entry.actionCounts || {};
+          const sorted = Object.entries(actions).sort((a, b) => b[1] - a[1]);
+          if (sorted.length > 0) return sorted[0][0];
+          return fallbackAction;
+        };
+
+        const actionCycle = ['flashcards', 'notes', 'quiz', 'chat'];
+        let actionIndex = 0;
+
+        const recommendations = [];
+        const maxRecommendations = 8;
+        const recommendationKeys = new Set();
+
+        const getRecommendationKey = (rec) => {
+          const action = inferActionType(rec.text);
+          const topicKey = (rec.topic || extractTopicName(rec.text) || '').toLowerCase();
+          if (topicKey && action) return `${topicKey}:${action}`;
+          return (rec.text || rec.label || '').toLowerCase();
+        };
+
+        const addRecommendation = (rec) => {
+          if (recommendations.length >= maxRecommendations) return;
+          const key = getRecommendationKey(rec);
+          if (key && usedRecommendationKeys.has(key)) return;
+          if (key && recommendationKeys.has(key)) return;
+          if (key) recommendationKeys.add(key);
+          recommendations.push(rec);
+        };
+
+        const pickForSource = (source) => {
+          if (recommendations.length >= maxRecommendations) return;
+          const candidate = rankedTopics.find(entry => entry.sources.has(source) && !(entry._usedSources?.has(source)));
+          if (!candidate) return;
+          const fallbackAction = actionCycle[actionIndex++ % actionCycle.length];
+          const preferredAction = candidate.sourceActions?.[source];
+          const action = pickActionForEntry(candidate, fallbackAction, preferredAction);
+          const reason = source === 'private'
+            ? 'From your context'
+            : source === 'notes'
+              ? 'From your notes'
+              : source === 'flashcards'
+                ? 'From your flashcards'
+                : source === 'questions'
+                  ? 'From your quizzes'
+                  : source === 'chat'
+                    ? 'From your chats'
+                    : source === 'paths'
+                      ? 'From your learning paths'
+                      : source === 'playlists'
+                        ? 'From your playlists'
+                        : source === 'related'
+                          ? 'Related to your topics'
+                    : source === 'docs'
+                      ? 'From your uploads'
+                      : source === 'hs'
+                        ? 'From curriculum'
+                        : source === 'recent'
+                          ? 'From your searches'
+                          : 'Based on your activity';
+          addRecommendation({
+            text: buildActionCommand(action, candidate.topic),
+            reason,
+            priority: 'high',
+            topic: candidate.topic
+          });
+          candidate._usedSources = candidate._usedSources || new Set();
+          candidate._usedSources.add(source);
+        };
+
+        ['private', 'notes', 'flashcards', 'questions', 'chat', 'paths', 'playlists', 'docs', 'related', 'hs', 'recent'].forEach(pickForSource);
+
+        for (const entry of rankedTopics) {
+          if (recommendations.length >= maxRecommendations) break;
+          const fallbackAction = actionCycle[actionIndex++ % actionCycle.length];
+          const action = pickActionForEntry(entry, fallbackAction);
+          const source = pickPrimarySource(entry);
+          const reason = source === 'private'
+            ? 'From your context'
+            : source === 'notes'
+              ? 'From your notes'
+              : source === 'flashcards'
+                ? 'From your flashcards'
+                : source === 'questions'
+                  ? 'From your quizzes'
+                  : source === 'chat'
+                    ? 'From your chats'
+                    : source === 'paths'
+                      ? 'From your learning paths'
+                      : source === 'playlists'
+                        ? 'From your playlists'
+                        : source === 'related'
+                          ? 'Related to your topics'
+                : source === 'docs'
+                  ? 'From your uploads'
+                  : source === 'hs'
+                    ? 'From curriculum'
+                    : 'Based on your activity';
+          addRecommendation({
+            text: buildActionCommand(action, entry.topic),
+            reason,
+            priority: 'high',
+            topic: entry.topic
+          });
+        }
         
         
         const weakAreaPrompts = backendPrompts.filter(p => 
@@ -244,34 +1020,11 @@ const SearchHub = () => {
         );
         
         if (weakAreaPrompts.length > 0) {
-          recommendations.push({
-            text: weakAreaPrompts[0].text,
-            reason: weakAreaPrompts[0].reason,
+          addRecommendation({
+            text: '/weak',
+            reason: 'Focus on weak areas',
             priority: 'high'
           });
-        }
-        
-        
-        const topicPrompts = backendPrompts.filter(p => 
-          p.topic && 
-          !p.text.toLowerCase().includes('weak') &&
-          !p.text.toLowerCase().includes('review weak')
-        );
-        
-        
-        const addedTopics = new Set();
-        for (const prompt of topicPrompts) {
-          if (recommendations.length >= 6) break;
-          
-          const topicLower = prompt.topic?.toLowerCase() || '';
-          if (!addedTopics.has(topicLower) && topicLower) {
-            addedTopics.add(topicLower);
-            recommendations.push({
-              text: prompt.text,
-              reason: prompt.reason,
-              priority: prompt.priority
-            });
-          }
         }
         
         
@@ -279,59 +1032,41 @@ const SearchHub = () => {
           p.text.toLowerCase().includes('review') && 
           !p.text.toLowerCase().includes('weak')
         );
-        if (reviewPrompt && recommendations.length < 7) {
-          recommendations.push({
-            text: reviewPrompt.text,
-            reason: reviewPrompt.reason,
-            priority: 'medium'
+        if (reviewPrompt) {
+          addRecommendation({
+            text: '/review',
+            reason: 'Quick review session',
+            priority: 'medium',
           });
         }
-        
-        
-        const genericPrompts = [
-          { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
-          { text: '/flashcards biology', reason: 'Build study materials', priority: 'medium' },
-          { text: '/notes world history', reason: 'Document your learning', priority: 'medium' },
-          { text: '/progress', reason: 'Track your journey', priority: 'medium' }
+
+        const fallbackActions = [
+          { text: '/progress', reason: 'Track your journey', priority: 'low' },
+          { text: '/chat', reason: 'Ask your AI tutor', priority: 'low' }
         ];
-        
-        for (const generic of genericPrompts) {
-          if (recommendations.length >= 8) break;
-          
-          
-          const alreadyExists = recommendations.some(r => 
-            r.text.toLowerCase() === generic.text.toLowerCase()
-          );
-          
-          if (!alreadyExists) {
-            recommendations.push(generic);
-          }
+
+        for (const fallback of fallbackActions) {
+          addRecommendation(fallback);
         }
         
-        setPersonalizedPrompts(recommendations.slice(0, 8));
+        setPersonalizedPrompts(finalizeRecommendations(recommendations));
       } else {
         
-        setPersonalizedPrompts([
-          { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
-          { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
-          { text: '/flashcards biology', reason: 'Build study materials', priority: 'high' },
-          { text: '/notes world history', reason: 'Document your learning', priority: 'high' },
-          { text: '/progress', reason: 'Track your journey', priority: 'medium' },
-          { text: '/review', reason: 'Practice what you learned', priority: 'medium' }
-        ]);
-      }
-    } catch (error) {
-      console.error('Error loading prompts:', error);
-      
-      setPersonalizedPrompts([
+      setPersonalizedPrompts(finalizeRecommendations([
         { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
         { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
-        { text: '/flashcards biology', reason: 'Build study materials', priority: 'high' },
-        { text: '/notes world history', reason: 'Document your learning', priority: 'high' },
-        { text: '/progress', reason: 'Track your journey', priority: 'medium' },
-        { text: '/review', reason: 'Practice what you learned', priority: 'medium' }
-      ]);
-    } finally {
+        { text: '/progress', reason: 'Track your journey', priority: 'medium' }
+      ]));
+    }
+  } catch (error) {
+    console.error('Error loading prompts:', error);
+    
+    setPersonalizedPrompts(finalizeRecommendations([
+      { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
+      { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
+      { text: '/progress', reason: 'Track your journey', priority: 'medium' }
+    ]));
+  } finally {
       setIsLoadingPrompts(false);
     }
   };
@@ -594,18 +1329,6 @@ const SearchHub = () => {
       
       if (response.ok) {
         const data = await response.json();
-        
-        
-        if (data.metadata) {
-            action: data.metadata.action,
-            confidence: data.metadata.confidence,
-            topic: data.metadata.topic,
-            contextUsed: data.metadata.context_used,
-            language: data.metadata.language,
-            responseType: data.metadata.response_type,
-            chatbotMessage: data.metadata.chatbot_message
-          });
-        }
         
         
         if (data.navigate_to) {
@@ -1775,6 +2498,7 @@ const SearchHub = () => {
                           className="recommendation-card"
                           data-priority={prompt.priority}
                           onClick={() => {
+                            markRecommendationUsed(userName, prompt);
                             setSearchQuery(prompt.text);
                             handleSearch(prompt.text);
                           }}
@@ -1785,11 +2509,13 @@ const SearchHub = () => {
                           <div className="rec-content">
                             <span className="rec-category">{prompt.priority || 'Suggestion'}</span>
                             <span className="rec-text">{
-                            prompt.text?.startsWith('/')
-                              ? prompt.text.slice(1)
-                              : prompt.text?.startsWith('> ')
-                                ? prompt.text.slice(2)
-                                : prompt.text
+                            prompt.label || (
+                              prompt.text?.startsWith('/')
+                                ? prompt.text.slice(1)
+                                : prompt.text?.startsWith('> ')
+                                  ? prompt.text.slice(2)
+                                  : prompt.text
+                            )
                           }</span>
                             {prompt.reason && <span className="rec-reason">{prompt.reason}</span>}
                           </div>
@@ -1875,7 +2601,7 @@ const SearchHub = () => {
                     )}
                   </div>
                   <p className="search-helper-text">
-                    Type a command or ask naturally. Try "/flashcards biology" • Press ? for commands
+                    Type a command or ask naturally. Try "/flashcards &lt;topic&gt;" • Press ? for commands
                   </p>
                   <button
                     type="button"

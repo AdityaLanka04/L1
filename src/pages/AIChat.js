@@ -739,12 +739,6 @@ const AIChat = ({ sharedMode = false }) => {
         aiProvider: data.ai_provider || 'AI'
       };
 
-        ragUsed: aiMessage.ragUsed,
-        ragResults: aiMessage.ragResultsCount,
-        weakConcepts: aiMessage.weakConcepts,
-        buttons: aiMessage.actionButtons?.length || 0
-      });
-
       setMessages(prev => [...prev, aiMessage]);
       clearAllFiles();
       

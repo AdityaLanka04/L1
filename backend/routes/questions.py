@@ -428,25 +428,34 @@ def get_question_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
             .all()
         )
 
-        return {
-            "question_sets": [
-                {
-                    "id": qs.id,
-                    "title": qs.title,
-                    "description": qs.description,
-                    "question_count": qs.question_count,
-                    "easy_count": qs.easy_count,
-                    "medium_count": qs.medium_count,
-                    "hard_count": qs.hard_count,
-                    "best_score": round(qs.best_score, 1),
-                    "attempt_count": qs.attempt_count,
-                    "status": qs.status,
-                    "can_practice": True,
-                    "created_at": qs.created_at.isoformat() + "Z",
-                }
-                for qs in question_sets
-            ]
-        }
+        question_sets_payload = []
+        for qs in question_sets:
+            total_questions = getattr(qs, "total_questions", None)
+            if total_questions is None:
+                total_questions = getattr(qs, "question_count", 0)
+
+            attempt_count = getattr(qs, "attempt_count", None)
+            if attempt_count is None:
+                attempt_count = getattr(qs, "attempts", 0) or 0
+
+            status = getattr(qs, "status", None) or "ready"
+
+            question_sets_payload.append({
+                "id": qs.id,
+                "title": qs.title,
+                "description": qs.description,
+                "question_count": total_questions,
+                "easy_count": getattr(qs, "easy_count", 0),
+                "medium_count": getattr(qs, "medium_count", 0),
+                "hard_count": getattr(qs, "hard_count", 0),
+                "best_score": round(getattr(qs, "best_score", 0) or 0, 1),
+                "attempt_count": attempt_count,
+                "status": status,
+                "can_practice": True,
+                "created_at": qs.created_at.isoformat() + "Z",
+            })
+
+        return {"question_sets": question_sets_payload}
 
     except Exception as e:
         logger.error(f"Error getting question sets: {str(e)}")
@@ -847,20 +856,29 @@ def get_generated_questions(user_id: str = Query(...), db: Session = Depends(get
             .all()
         )
 
-        return {
-            "question_sets": [
-                {
-                    "id": qs.id,
-                    "title": qs.title,
-                    "question_count": qs.question_count,
-                    "created_at": qs.created_at.isoformat() + "Z",
-                    "status": qs.status,
-                    "best_score": round(qs.best_score, 1),
-                    "attempt_count": qs.attempt_count,
-                }
-                for qs in question_sets
-            ]
-        }
+        question_sets_payload = []
+        for qs in question_sets:
+            total_questions = getattr(qs, "total_questions", None)
+            if total_questions is None:
+                total_questions = getattr(qs, "question_count", 0)
+
+            attempt_count = getattr(qs, "attempt_count", None)
+            if attempt_count is None:
+                attempt_count = getattr(qs, "attempts", 0) or 0
+
+            status = getattr(qs, "status", None) or "ready"
+
+            question_sets_payload.append({
+                "id": qs.id,
+                "title": qs.title,
+                "question_count": total_questions,
+                "created_at": qs.created_at.isoformat() + "Z",
+                "status": status,
+                "best_score": round(getattr(qs, "best_score", 0) or 0, 1),
+                "attempt_count": attempt_count,
+            })
+
+        return {"question_sets": question_sets_payload}
 
     except Exception as e:
         logger.error(f"Error getting generated questions: {str(e)}")
