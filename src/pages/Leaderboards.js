@@ -10,7 +10,7 @@ const Leaderboards = () => {
   const [currentUserRank, setCurrentUserRank] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Filters
+  
   const [category, setCategory] = useState('global');
   const [metric, setMetric] = useState('total_hours');
   const [period, setPeriod] = useState('all_time');

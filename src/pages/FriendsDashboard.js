@@ -58,7 +58,6 @@ const FriendsDashboard = () => {
     } catch (error) { return friendsList; }
   };
 
-
   const fetchFriendRequests = async () => {
     try {
       const response = await fetch(`${API_URL}/friend_requests`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -155,7 +154,6 @@ const FriendsDashboard = () => {
     return <div className={className}>{initial}</div>;
   };
 
-
   const renderFriendCard = (friend) => (
     <div key={friend.id} className="fd-friend-card">
       <div className="fd-friend-header">
@@ -211,7 +209,6 @@ const FriendsDashboard = () => {
 
   return (
     <div className="fd-container">
-      {/* Header - Matching Games */}
       <header className="gm-header">
         <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -236,7 +233,6 @@ const FriendsDashboard = () => {
       </header>
 
       <div className="fd-layout">
-        {/* Sidebar */}
         <div className="fd-sidebar">
           <nav className="fd-sidebar-nav">
             <button className={`fd-sidebar-item ${activeView === 'my-friends' ? 'active' : ''}`} onClick={() => setActiveView('my-friends')}>
@@ -257,8 +253,6 @@ const FriendsDashboard = () => {
           </nav>
         </div>
 
-
-        {/* Main Content */}
         <div className="fd-main">
           {activeView === 'find-friends' && (
             <div className="fd-header-actions">
@@ -271,7 +265,6 @@ const FriendsDashboard = () => {
           )}
 
           <div className="fd-content">
-            {/* My Friends View */}
             {activeView === 'my-friends' && (
               loading ? <div className="fd-loading"><div className="fd-spinner"></div><p>Loading friends...</p></div>
               : friends.length > 0 ? <div className="fd-friends-grid">{friends.map(friend => renderFriendCard(friend))}</div>
@@ -283,7 +276,6 @@ const FriendsDashboard = () => {
                 </div>
             )}
 
-            {/* Find Friends View */}
             {activeView === 'find-friends' && (
               <>
                 <div className="fd-users-list">
@@ -311,7 +303,6 @@ const FriendsDashboard = () => {
               </>
             )}
 
-            {/* Requests View */}
             {activeView === 'requests' && (
               <>
                 {friendRequests.received.length > 0 && (

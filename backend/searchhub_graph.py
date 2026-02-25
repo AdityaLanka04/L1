@@ -7,7 +7,6 @@ from langgraph.graph import StateGraph, END
 
 logger = logging.getLogger(__name__)
 
-
 class SearchHubState(TypedDict, total=False):
     user_id: str
     query: str
@@ -23,7 +22,6 @@ class SearchHubState(TypedDict, total=False):
     command: str
     _ai_client: Any
     _db_factory: Any
-
 
 def detect_action(state: SearchHubState) -> dict:
     query = state.get("query", "")
@@ -45,7 +43,6 @@ def detect_action(state: SearchHubState) -> dict:
         "tone": intent.get("tone"),
         "command": intent.get("command"),
     }
-
 
 class SearchHubGraph:
 
@@ -91,15 +88,12 @@ class SearchHubGraph:
             logger.warning(f"SearchHub graph failed: {e}")
             return {"action": "search", "topic": query, "confidence": 0.0}
 
-
 _searchhub_graph: Optional[SearchHubGraph] = None
-
 
 def create_searchhub_graph(ai_client: Any, db_session_factory: Any = None) -> SearchHubGraph:
     global _searchhub_graph
     _searchhub_graph = SearchHubGraph(ai_client, db_session_factory)
     return _searchhub_graph
-
 
 def get_searchhub_graph() -> Optional[SearchHubGraph]:
     return _searchhub_graph

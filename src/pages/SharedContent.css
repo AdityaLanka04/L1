@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== FORCE BOXY DESIGN ==================== */
 .shared-content-page *,
 .shared-content-page *::before,
 .shared-content-page *::after {
@@ -44,7 +43,6 @@
   z-index: 100;
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .shared-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -601,8 +599,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

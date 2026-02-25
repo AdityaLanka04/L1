@@ -41,7 +41,6 @@
   z-index: 100;
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .leaderboard-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -469,17 +468,12 @@
   }
 }
 
-
-/* ==================== FORCE BOXY DESIGN ==================== */
 .leaderboard-page *,
 .leaderboard-page *::before,
 .leaderboard-page *::after {
   border-radius: 0 !important;
 }
 
-
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

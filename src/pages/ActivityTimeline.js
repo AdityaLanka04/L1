@@ -20,19 +20,19 @@ const ActivityTimeline = () => {
   const navigate = useNavigate();
   const userName = localStorage.getItem('username');
   
-  // Core view states
-  const [viewMode, setViewMode] = useState('calendar');
-  const [calendarViewType, setCalendarViewType] = useState('week'); // 'day', 'week' or 'month'
-  const [timelineViewType, setTimelineViewType] = useState('list'); // 'list' or 'compact'
-  const [filterMonth, setFilterMonth] = useState(new Date()); // Month filter for reminders
   
-  // Data states
+  const [viewMode, setViewMode] = useState('calendar');
+  const [calendarViewType, setCalendarViewType] = useState('week'); 
+  const [timelineViewType, setTimelineViewType] = useState('list'); 
+  const [filterMonth, setFilterMonth] = useState(new Date()); 
+  
+  
   const [activities, setActivities] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [reminderLists, setReminderLists] = useState([]);
   const [smartListCounts, setSmartListCounts] = useState({});
   
-  // Loading and UI states
+  
   const [loading, setLoading] = useState(true);
   const [selectedFilters, setSelectedFilters] = useState(['all', 'note', 'flashcard', 'quiz', 'chat']);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -48,7 +48,7 @@ const ActivityTimeline = () => {
   const [popupActivities, setPopupActivities] = useState([]);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   
-  // Reminder states
+  
   const [selectedSmartList, setSelectedSmartList] = useState('all');
   const [selectedListId, setSelectedListId] = useState(null);
   const [expandedReminders, setExpandedReminders] = useState({});
@@ -57,7 +57,7 @@ const ActivityTimeline = () => {
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   
-  // Calendar preferences
+  
   const [preferences, setPreferences] = useState({
     showWeekends: true,
     startWeekOnMonday: false,
@@ -72,7 +72,7 @@ const ActivityTimeline = () => {
     notificationSound: true
   });
   
-  // Time slots for week view
+  
   const [timeSlots, setTimeSlots] = useState(
     Array.from({ length: 24 }, (_, i) => ({
       hour: i,
@@ -80,16 +80,16 @@ const ActivityTimeline = () => {
     }))
   );
   
-  // Drag and drop states
+  
   const [draggedReminder, setDraggedReminder] = useState(null);
   const [dragOverSlot, setDragOverSlot] = useState(null);
   
-  // Refs
+  
   const notificationCheckRef = useRef(null);
   const weekScrollRef = useRef(null);
   const monthScrollRef = useRef(null);
   
-  // Forms
+  
   const [reminderForm, setReminderForm] = useState({
     title: '',
     description: '',
@@ -117,7 +117,7 @@ const ActivityTimeline = () => {
     icon: 'list'
   });
 
-  // Helper function to get week start
+  
   function getWeekStart(date) {
     const d = new Date(date);
     const day = d.getDay();
@@ -125,7 +125,7 @@ const ActivityTimeline = () => {
     return new Date(d.setDate(diff));
   }
 
-  // Helper function to format hour
+  
   function formatHour(hour, is24h) {
     if (is24h) {
       return `${hour.toString().padStart(2, '0')}:00`;
@@ -135,7 +135,7 @@ const ActivityTimeline = () => {
     return hour > 12 ? `${hour - 12} PM` : `${hour} AM`;
   }
 
-  // Icon mappings
+  
   const listIcons = [
     { id: 'list', icon: List, label: 'List' },
     { id: 'star', icon: Star, label: 'Star' },
@@ -167,7 +167,7 @@ const ActivityTimeline = () => {
     email: Mail
   };
 
-  // Color palette for customization
+  
   const colorPalette = [
     { id: 'blue', value: 'var(--accent-primary)', label: 'Blue' },
     { id: 'purple', value: 'var(--accent-purple)', label: 'Purple' },
@@ -179,13 +179,13 @@ const ActivityTimeline = () => {
     { id: 'teal', value: 'var(--accent-teal)', label: 'Teal' }
   ];
 
-  // Request notification permission on mount
+  
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
     
-    // Load preferences from localStorage
+    
     const savedPrefs = localStorage.getItem('calendarPreferences');
     if (savedPrefs) {
       try {
@@ -196,11 +196,11 @@ const ActivityTimeline = () => {
     }
   }, []);
 
-  // Save preferences to localStorage
+  
   useEffect(() => {
     localStorage.setItem('calendarPreferences', JSON.stringify(preferences));
     
-    // Update time slots when format changes
+    
     setTimeSlots(
       Array.from({ length: 24 }, (_, i) => ({
         hour: i,
@@ -209,29 +209,29 @@ const ActivityTimeline = () => {
     );
   }, [preferences]);
 
-  // Load all data
+  
   useEffect(() => {
     loadAllActivities();
     loadReminders();
     loadReminderLists();
   }, []);
 
-  // Reload reminders when filters change
+  
   useEffect(() => {
     loadReminders();
   }, [selectedSmartList, selectedListId]);
   
-  // Reload lists to update counts when reminders change
+  
   useEffect(() => {
     loadReminderLists();
   }, [reminders.length]);
 
-  // Auto-scroll to current time in week view
+  
   useEffect(() => {
     if (calendarViewType === 'week' && weekScrollRef.current) {
       const now = new Date();
       const currentHour = now.getHours();
-      const scrollPosition = (currentHour * 80) - 200; // 80px per hour, offset for visibility
+      const scrollPosition = (currentHour * 80) - 200; 
       
       setTimeout(() => {
         weekScrollRef.current?.scrollTo({
@@ -242,7 +242,7 @@ const ActivityTimeline = () => {
     }
   }, [calendarViewType]);
 
-  // Data loading functions
+  
   const loadReminderLists = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -288,7 +288,7 @@ const ActivityTimeline = () => {
       const token = localStorage.getItem('token');
       const allActivities = [];
 
-      // Load Notes
+      
       const notesRes = await fetch(`${API_URL}/get_notes?user_id=${userName}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -309,7 +309,7 @@ const ActivityTimeline = () => {
         });
       }
 
-      // Load Flashcard Sets
+      
       try {
         const flashcardsRes = await fetch(`${API_URL}/get_flashcards?user_id=${userName}`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -347,7 +347,7 @@ const ActivityTimeline = () => {
         console.error('Error loading flashcards:', e);
       }
 
-      // Load Chat Sessions
+      
       const chatRes = await fetch(`${API_URL}/get_chat_sessions?user_id=${userName}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -375,7 +375,7 @@ const ActivityTimeline = () => {
     }
   };
 
-  // Reminder CRUD operations
+  
   const createReminderList = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -579,7 +579,7 @@ const ActivityTimeline = () => {
     resetReminderForm();
   };
 
-  // Drag and drop handlers
+  
   const handleDragStart = (e, reminder) => {
     setDraggedReminder(reminder);
     e.dataTransfer.effectAllowed = 'move';
@@ -611,7 +611,7 @@ const ActivityTimeline = () => {
     setDragOverSlot(null);
   };
 
-  // Analytics and stats
+  
   const getActivityStats = () => {
     return {
       total: activities.length,
@@ -671,7 +671,7 @@ const ActivityTimeline = () => {
     return formatHour(hour, preferences.timeFormat24h);
   };
 
-  // Export functionality
+  
   const exportCalendarData = () => {
     const data = {
       activities: activities.map(a => ({
@@ -702,7 +702,7 @@ const ActivityTimeline = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Navigation
+  
   const handleActivityClick = (activity) => {
     switch (activity.type) {
       case 'note':
@@ -729,23 +729,23 @@ const ActivityTimeline = () => {
 
   const toggleFilter = (filter) => {
     if (filter === 'all') {
-      // If clicking "all", select everything
+      
       setSelectedFilters(['all', 'note', 'flashcard', 'quiz', 'chat']);
     } else {
-      // Remove 'all' if it's there
+      
       let newFilters = selectedFilters.filter(f => f !== 'all');
       
       if (newFilters.includes(filter)) {
-        // Remove the filter
+        
         newFilters = newFilters.filter(f => f !== filter);
-        // If nothing left, select all
+        
         if (newFilters.length === 0) {
           newFilters = ['all', 'note', 'flashcard', 'quiz', 'chat'];
         }
       } else {
-        // Add the filter
+        
         newFilters = [...newFilters, filter];
-        // If all types are selected, add 'all'
+        
         if (newFilters.length === 4 && 
             newFilters.includes('note') && 
             newFilters.includes('flashcard') && 
@@ -759,7 +759,7 @@ const ActivityTimeline = () => {
     }
   };
 
-  // Get activities and reminders for a specific day
+  
   const getItemsForDay = (date) => {
     const dayActivities = getFilteredActivities().filter(activity => 
       activity.timestamp.toDateString() === date.toDateString()
@@ -774,7 +774,7 @@ const ActivityTimeline = () => {
     return { activities: dayActivities, reminders: dayReminders };
   };
 
-  // Get items for a specific hour on a specific day
+  
   const getItemsForHour = (date, hour) => {
     const items = getItemsForDay(date);
     
@@ -790,7 +790,7 @@ const ActivityTimeline = () => {
     return { reminders: hourReminders, activities: hourActivities };
   };
 
-  // Calendar helper functions
+  
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -804,7 +804,7 @@ const ActivityTimeline = () => {
     const days = [];
     const prevMonthDays = new Date(year, month, 0).getDate();
     
-    // Previous month days
+    
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       days.push({ 
         date: prevMonthDays - i, 
@@ -813,7 +813,7 @@ const ActivityTimeline = () => {
       });
     }
     
-    // Current month days
+    
     for (let i = 1; i <= daysInMonth; i++) {
       days.push({ 
         date: i, 
@@ -822,7 +822,7 @@ const ActivityTimeline = () => {
       });
     }
     
-    // Next month days to complete grid
+    
     const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       days.push({ 
@@ -854,7 +854,7 @@ const ActivityTimeline = () => {
     return date1.toDateString() === date2.toDateString();
   };
 
-  // Navigation functions
+  
   const goToPreviousMonth = () => {
     const newDate = new Date(currentMonth);
     newDate.setMonth(currentMonth.getMonth() - 1);
@@ -883,10 +883,10 @@ const ActivityTimeline = () => {
     const today = new Date();
     setCurrentMonth(today);
     setCurrentWeekStart(getWeekStart(today));
-    setCalendarViewType('day'); // Switch to day view
+    setCalendarViewType('day'); 
   };
 
-  // Render mini calendar (left sidebar)
+  
   const renderMiniCalendar = () => {
     const days = getDaysInMonth(currentMonth);
     const weekDays = preferences.startWeekOnMonday 
@@ -934,7 +934,7 @@ const ActivityTimeline = () => {
     );
   };
 
-  // Render week view
+  
   const renderWeekView = () => {
     const weekDays = getWeekDays(currentWeekStart);
     const weekDayLabels = preferences.startWeekOnMonday
@@ -1153,9 +1153,9 @@ const ActivityTimeline = () => {
     );
   };
 
-  // Render day view (Today's activities and reminders)
+  
   const renderDayView = () => {
-    const viewDate = currentMonth; // Use currentMonth as the selected date for day view
+    const viewDate = currentMonth; 
     const { activities: dayActivities, reminders: dayReminders } = getItemsForDay(viewDate);
     
     return (
@@ -1214,7 +1214,6 @@ const ActivityTimeline = () => {
         </div>
 
         <div className="at-day-view-content">
-          {/* Reminders Section */}
           {dayReminders.length > 0 && (
             <div className="at-day-section">
               <div className="at-day-section-header">
@@ -1294,7 +1293,6 @@ const ActivityTimeline = () => {
             </div>
           )}
 
-          {/* Activities Section */}
           {dayActivities.length > 0 && (
             <div className="at-day-section">
               <div className="at-day-section-header">
@@ -1341,7 +1339,6 @@ const ActivityTimeline = () => {
             </div>
           )}
 
-          {/* Empty State */}
           {dayReminders.length === 0 && dayActivities.length === 0 && (
             <div className="at-day-empty-state">
               <Sun size={48} />
@@ -1361,7 +1358,7 @@ const ActivityTimeline = () => {
     );
   };
 
-  // Render month view
+  
   const renderMonthView = () => {
     const days = getDaysInMonth(currentMonth);
     const weekDays = preferences.startWeekOnMonday
@@ -1482,7 +1479,7 @@ const ActivityTimeline = () => {
                 <div className="at-month-day-items">
                   {displayItems.map((item, itemIndex) => {
                     if (item.reminder_date) {
-                      // It's a reminder
+                      
                       return (
                         <div
                           key={`reminder-${item.id}`}
@@ -1508,7 +1505,7 @@ const ActivityTimeline = () => {
                         </div>
                       );
                     } else {
-                      // It's an activity
+                      
                       return (
                         <div
                           key={item.id}
@@ -1547,7 +1544,7 @@ const ActivityTimeline = () => {
     );
   };
 
-  // Render timeline view
+  
   const renderTimeline = () => {
     const filtered = getFilteredActivities();
     
@@ -1643,12 +1640,12 @@ const ActivityTimeline = () => {
     );
   };
 
-  // Render reminders view
+  
   const renderReminders = () => {
-    // Start with all reminders from backend (already filtered by smart list)
+    
     let filteredReminders = reminders;
     
-    // Apply search filter
+    
     if (searchQuery) {
       filteredReminders = filteredReminders.filter(r => 
         r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1656,14 +1653,14 @@ const ActivityTimeline = () => {
       );
     }
     
-    // Apply month filter only if a specific month is selected (not current month)
+    
     const currentMonth = new Date();
     const isCurrentMonth = filterMonth.getMonth() === currentMonth.getMonth() && 
                           filterMonth.getFullYear() === currentMonth.getFullYear();
     
     if (!isCurrentMonth) {
       filteredReminders = filteredReminders.filter(r => {
-        if (!r.reminder_date) return true; // Show reminders without dates
+        if (!r.reminder_date) return true; 
         const reminderDate = new Date(r.reminder_date);
         return reminderDate.getMonth() === filterMonth.getMonth() && 
                reminderDate.getFullYear() === filterMonth.getFullYear();
@@ -1994,10 +1991,9 @@ const ActivityTimeline = () => {
     );
   };
 
-  // Main render
+  
   return (
     <div className="at-activity-timeline-page">
-      {/* Top Navigation Bar */}
       <header className="at-profile-header">
         <div className="at-profile-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -2032,11 +2028,9 @@ const ActivityTimeline = () => {
         </nav>
       </header>
 
-      {/* Main Content Area */}
       <div className="at-main-content-area">
         {preferences.showMiniCalendar && (
           <aside className="at-left-sidebar">
-            {/* View Mode Buttons */}
             <div className="at-sidebar-view-modes">
               <button 
                 className={`at-sidebar-view-btn ${viewMode === 'calendar' ? 'active' : ''}`}
@@ -2066,7 +2060,6 @@ const ActivityTimeline = () => {
             
             {viewMode === 'calendar' && renderMiniCalendar()}
             
-            {/* Activity Filters Box */}
             {viewMode !== 'reminders' && (
               <div className="at-sidebar-filters">
                 <button 
@@ -2149,7 +2142,6 @@ const ActivityTimeline = () => {
         </main>
       </div>
 
-      {/* Day Detail Modal / Reminder View */}
       {showDayModal && selectedDay && (
         <div className="at-modal-overlay" onClick={() => setShowDayModal(false)}>
           <div className="at-modal-container at-reminder-view-modal" onClick={(e) => e.stopPropagation()}>
@@ -2172,7 +2164,7 @@ const ActivityTimeline = () => {
             
             <div className="at-modal-content">
               {selectedDay.reminders?.length === 1 && !selectedDay.activities?.length ? (
-                /* Single Reminder View */
+                
                 <div className="at-reminder-detail-view">
                   {selectedDay.reminders.map(reminder => (
                     <div key={reminder.id} className="at-reminder-detail-card">
@@ -2301,7 +2293,7 @@ const ActivityTimeline = () => {
                   ))}
                 </div>
               ) : (
-                /* Day Timeline View */
+                
                 <>
                   <div className="at-day-summary">
                     <span>{selectedDay.reminders?.length || 0} reminders</span>
@@ -2400,7 +2392,6 @@ const ActivityTimeline = () => {
         </div>
       )}
 
-      {/* Reminder Create/Edit Modal */}
       {showReminderModal && (
         <div className="at-modal-overlay" onClick={() => { setShowReminderModal(false); resetReminderForm(); }}>
           <div className="at-modal-container reminder-modal" onClick={(e) => e.stopPropagation()}>
@@ -2413,7 +2404,6 @@ const ActivityTimeline = () => {
             
             <div className="at-modal-content">
               <div className="at-reminder-form-container">
-                {/* Title */}
                 <div className="at-form-field">
                   <label className="at-form-label">Title *</label>
                   <input 
@@ -2426,7 +2416,6 @@ const ActivityTimeline = () => {
                   />
                 </div>
                 
-                {/* Description */}
                 <div className="at-form-field">
                   <label className="at-form-label">Description</label>
                   <textarea 
@@ -2438,7 +2427,6 @@ const ActivityTimeline = () => {
                   />
                 </div>
                 
-                {/* Date & Time Row */}
                 <div className="at-form-row">
                   <div className="at-form-field">
                     <label className="at-form-label">
@@ -2473,7 +2461,6 @@ const ActivityTimeline = () => {
                   </div>
                 </div>
 
-                {/* Priority & List Row */}
                 <div className="at-form-row">
                   <div className="at-form-field">
                     <label className="at-form-label">
@@ -2510,7 +2497,6 @@ const ActivityTimeline = () => {
                   </div>
                 </div>
 
-                {/* Repeat & Color Row */}
                 <div className="at-form-row">
                   <div className="at-form-field">
                     <label className="at-form-label">
@@ -2548,7 +2534,6 @@ const ActivityTimeline = () => {
                   </div>
                 </div>
 
-                {/* Recurring Options */}
                 {reminderForm.recurring !== 'none' && (
                   <div className="at-form-row">
                     <div className="at-form-field">
@@ -2573,7 +2558,6 @@ const ActivityTimeline = () => {
                   </div>
                 )}
 
-                {/* Location */}
                 <div className="at-form-field">
                   <label className="at-form-label">
                     <MapPin size={14} />
@@ -2588,7 +2572,6 @@ const ActivityTimeline = () => {
                   />
                 </div>
 
-                {/* URL */}
                 <div className="at-form-field">
                   <label className="at-form-label">
                     <Link size={14} />
@@ -2603,7 +2586,6 @@ const ActivityTimeline = () => {
                   />
                 </div>
 
-                {/* Flag Toggle */}
                 <div className="at-form-field checkbox-field">
                   <label className="at-checkbox-label">
                     <input 
@@ -2616,7 +2598,6 @@ const ActivityTimeline = () => {
                   </label>
                 </div>
                 
-                {/* Action Buttons */}
                 <div className="at-form-actions">
                   <button 
                     className="at-form-btn cancel"
@@ -2641,7 +2622,6 @@ const ActivityTimeline = () => {
         </div>
       )}
 
-      {/* List Create Modal */}
       {showListModal && (
         <div className="at-modal-overlay" onClick={() => setShowListModal(false)}>
           <div className="at-modal-container list-modal" onClick={(e) => e.stopPropagation()}>
@@ -2654,7 +2634,6 @@ const ActivityTimeline = () => {
             
             <div className="at-modal-content">
               <div className="at-list-form-container">
-                {/* List Name */}
                 <div className="at-form-field">
                   <label className="at-form-label">List Name *</label>
                   <input 
@@ -2667,7 +2646,6 @@ const ActivityTimeline = () => {
                   />
                 </div>
                 
-                {/* Color Picker */}
                 <div className="at-form-field">
                   <label className="at-form-label">Color</label>
                   <div className="at-color-picker-grid">
@@ -2682,7 +2660,6 @@ const ActivityTimeline = () => {
                   </div>
                 </div>
 
-                {/* Icon Picker */}
                 <div className="at-form-field">
                   <label className="at-form-label">Icon</label>
                   <div className="at-icon-picker-grid">
@@ -2702,7 +2679,6 @@ const ActivityTimeline = () => {
                   </div>
                 </div>
                 
-                {/* Action Buttons */}
                 <div className="at-form-actions">
                   <button 
                     className="at-form-btn cancel"
@@ -2726,7 +2702,6 @@ const ActivityTimeline = () => {
         </div>
       )}
 
-      {/* Activities Popup */}
       {showActivitiesPopup && (
         <div 
           className="at-activities-popup-overlay"
@@ -2781,7 +2756,6 @@ const ActivityTimeline = () => {
         </div>
       )}
       
-      {/* Floating Action Button for New Reminder */}
       {viewMode === 'reminders' && (
         <button 
           className="at-fab-btn"

@@ -11,7 +11,7 @@ import { API_URL } from '../config';
 
 const LearningPlaylists = ({ currentUserId, token }) => {
   const navigate = useNavigate();
-  const [view, setView] = useState('discover'); // discover, my-playlists, following
+  const [view, setView] = useState('discover'); 
   const [playlists, setPlaylists] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,14 +83,10 @@ const LearningPlaylists = ({ currentUserId, token }) => {
           }
   };
 
-
-
   const fetchPlaylistDetails = async (playlistId) => {
-    // Navigate to dedicated playlist detail page
+    
         navigate(`/social/playlists/${playlistId}`);
   };
-
-
 
   return (
     <div className="learning-playlists-container">
@@ -222,9 +218,6 @@ const LearningPlaylists = ({ currentUserId, token }) => {
 
 export default LearningPlaylists;
 
-
-// ==================== PLAYLIST CARD ====================
-
 const PlaylistCard = ({ playlist, onClick }) => {
   return (
     <div className="playlist-card" style={{ borderTop: `4px solid ${playlist.cover_color}` }} onClick={onClick}>
@@ -281,8 +274,6 @@ const PlaylistCard = ({ playlist, onClick }) => {
     </div>
   );
 };
-
-// ==================== CREATE PLAYLIST MODAL ====================
 
 const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties, coverColors }) => {
   const [formData, setFormData] = useState({

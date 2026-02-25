@@ -1,6 +1,5 @@
-/* src/components/TrialModal.css */
 
-/* ==================== FORCE BOXY DESIGN ==================== */
+
 .trial-modal-overlay *,
 .trial-modal-overlay *::before,
 .trial-modal-overlay *::after {
@@ -225,7 +224,6 @@
   line-height: 1.4;
 }
 
-/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -255,7 +253,6 @@
   }
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .trial-modal {
     padding: 24px 20px;

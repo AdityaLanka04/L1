@@ -1,4 +1,4 @@
-/* Smart Folders - Auto-grouping Component */
+
 
 .smart-folders-panel {
   position: fixed;
@@ -31,7 +31,6 @@
   }
 }
 
-/* Loading State */
 .sf-loading {
   display: flex;
   flex-direction: column;
@@ -57,7 +56,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* Header */
 .sf-header {
   display: flex;
   justify-content: space-between;
@@ -102,7 +100,6 @@
   color: #D7B38C;
 }
 
-/* Content */
 .sf-content {
   flex: 1;
   overflow-y: auto;
@@ -118,7 +115,6 @@
   border-radius: 3px;
 }
 
-/* Empty State */
 .sf-empty {
   display: flex;
   flex-direction: column;
@@ -138,7 +134,6 @@
   font-size: 13px;
 }
 
-/* Folders List */
 .sf-folders-list {
   display: flex;
   flex-direction: column;
@@ -194,7 +189,6 @@
   border-radius: 10px;
 }
 
-/* Notes Preview */
 .sf-notes-preview {
   margin-top: 16px;
   padding-top: 16px;
@@ -243,7 +237,6 @@
   flex-shrink: 0;
 }
 
-/* Light Mode */
 [data-theme-mode="light"] .smart-folders-panel {
   background: #fff;
   border-color: #e0e0e0;

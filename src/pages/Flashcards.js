@@ -22,28 +22,28 @@ const Flashcards = () => {
   const [userDocCount, setUserDocCount] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
-  // Flashcard data
+  
   const [flashcards, setFlashcards] = useState([]);
   const [flashcardHistory, setFlashcardHistory] = useState([]);
   const [flashcardStats, setFlashcardStats] = useState(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [currentSetInfo, setCurrentSetInfo] = useState(null);
   
-  // Lazy loading state
+  
   const [hasMoreSets, setHasMoreSets] = useState(true);
   const [currentOffset, setCurrentOffset] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const SETS_PER_PAGE = 8; // Show 8 flashcard sets at a time
-  const [displayedSets, setDisplayedSets] = useState([]); // Currently displayed sets
+  const SETS_PER_PAGE = 8; 
+  const [displayedSets, setDisplayedSets] = useState([]); 
   
-  // Card navigation
+  
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [mcqOptions, setMcqOptions] = useState([]);
   
-  // Generation
+  
   const [generating, setGenerating] = useState(false);
   const [generationMode, setGenerationMode] = useState('topic');
   const [topic, setTopic] = useState('');
@@ -54,38 +54,38 @@ const Flashcards = () => {
   const [isPublic, setIsPublic] = useState(false);
   const [additionalSpecs, setAdditionalSpecs] = useState('');
 
-  // Custom flashcard creation
+  
   const [customCards, setCustomCards] = useState([{ question: '', answer: '' }]);
   const [customSetTitle, setCustomSetTitle] = useState('');
   const [customCreateMode, setCustomCreateMode] = useState(false);
   
-  // Edit mode for existing sets
+  
   const [editMode, setEditMode] = useState(false);
   const [editingCards, setEditingCards] = useState([]);
   const [editingSetTitle, setEditingSetTitle] = useState('');
   
-  // Public flashcards search
+  
   const [publicSearchQuery, setPublicSearchQuery] = useState('');
   const [publicFlashcards, setPublicFlashcards] = useState([]);
   const [loadingPublic, setLoadingPublic] = useState(false);
   
-  // Chat sessions
+  
   const [chatSessions, setChatSessions] = useState([]);
   const [selectedSessions, setSelectedSessions] = useState([]);
   
-  // Study mode
+  
   const [studyMode, setStudyMode] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [studySessionStats, setStudySessionStats] = useState({ correct: 0, incorrect: 0, skipped: 0 });
-  const gradedCardsRef = useRef(new Set()); // tracks which card indices have been graded
+  const gradedCardsRef = useRef(new Set()); 
   const [showStudyResults, setShowStudyResults] = useState(false);
   const [shuffledCards, setShuffledCards] = useState([]);
   const [studySettings, setStudySettings] = useState({ shuffle: false });
   const [currentStreak, setCurrentStreak] = useState(0);
   
-  const [loadingSetId, setLoadingSetId] = useState(null); // tracks which set is being loaded
+  const [loadingSetId, setLoadingSetId] = useState(null); 
 
-  // UI state
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recent');
   const [editingSetId, setEditingSetId] = useState(null);
@@ -96,11 +96,11 @@ const Flashcards = () => {
   const [difficultyDropdownOpen, setDifficultyDropdownOpen] = useState(false);
   const [depthDropdownOpen, setDepthDropdownOpen] = useState(false);
   
-  // Needs Review state
+  
   const [reviewCards, setReviewCards] = useState({ total_cards: 0, sets: [] });
   const [loadingReviewCards, setLoadingReviewCards] = useState(false);
 
-  // Spaced Repetition state
+  
   const [dueCards, setDueCards] = useState({ due_count: 0, new_count: 0, review_count: 0, learning_count: 0, relearning_count: 0, cards: [] });
   const [srStudyMode, setSrStudyMode] = useState(false);
   const [srCurrentCard, setSrCurrentCard] = useState(0);
@@ -112,7 +112,7 @@ const Flashcards = () => {
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   
-  // Flashcard Agent Integration States
+  
   const [agentSessionActive, setAgentSessionActive] = useState(false);
   const [agentSessionId, setAgentSessionId] = useState(null);
   const [cardMetrics, setCardMetrics] = useState({});
@@ -126,7 +126,7 @@ const Flashcards = () => {
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
   const closePopup = () => setPopup({ isOpen: false, message: '', title: '' });
 
-  // Icons
+  
   const Icons = {
     menu: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>,
     fire: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2c.5 2.5 2 4.5 2 7a4 4 0 1 1-8 0c0-2.5 1.5-4.5 2-7 1.5 1.5 2.5 2 4 0z"/></svg>,
@@ -156,18 +156,18 @@ const Flashcards = () => {
     chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
   };
 
-  // Helper function to clean and format title
+  
   const formatTitle = (title) => {
     if (!title) return '';
-    // Remove prefixes like "Cerbyl:", "Flashcards:", etc.
+    
     let cleaned = title.replace(/^(Cerbyl:\s*|AI Generated:\s*|Flashcards:\s*)/i, '');
-    // Convert to title case (capitalize first letter of each word)
+    
     return cleaned.split(' ').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     ).join(' ');
   };
 
-  // Data loading functions
+  
   const loadChatSessions = useCallback(async () => {
     if (!userName) return;
     try {
@@ -186,14 +186,14 @@ const Flashcards = () => {
   const loadFlashcardHistory = useCallback(async (reset = false) => {
     if (!userName) return;
     
-    // Prevent duplicate loading
+    
     if (loadingHistory) return;
     
     setLoadingHistory(true);
     
     try {
       const token = localStorage.getItem('token');
-      // Load all flashcard sets at once (or a large limit)
+      
       const response = await fetch(
         `${API_URL}/get_flashcard_history?user_id=${userName}&limit=1000&offset=0`, 
         {
@@ -206,7 +206,7 @@ const Flashcards = () => {
         const newSets = Array.isArray(data.flashcard_history) ? data.flashcard_history : [];
         setFlashcardHistory(newSets);
         
-        // Initialize displayed sets with first batch
+        
         setDisplayedSets(newSets.slice(0, SETS_PER_PAGE));
         setHasMoreSets(newSets.length > SETS_PER_PAGE);
       } else {
@@ -246,7 +246,7 @@ const Flashcards = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        // Ensure data has the expected structure
+        
         setReviewCards({
           total_cards: data.total_cards || 0,
           sets: Array.isArray(data.sets) ? data.sets : []
@@ -258,7 +258,7 @@ const Flashcards = () => {
     setLoadingReviewCards(false);
   }, [userName]);
 
-  // ==================== SPACED REPETITION FUNCTIONS ====================
+  
 
   const loadDueCards = useCallback(async () => {
     if (!userName) return;
@@ -371,7 +371,7 @@ const Flashcards = () => {
       });
       
       if (response.ok) {
-        // Refresh review cards list
+        
         loadReviewCards();
         return true;
       }
@@ -381,12 +381,12 @@ const Flashcards = () => {
     }
   };
 
-  // Flashcard Agent Integration Functions
+  
   const startAgentSession = async () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Use the new agent API endpoint
+      
       const response = await fetch(`${API_URL}/agents/flashcards`, {
         method: 'POST',
         headers: {
@@ -407,7 +407,7 @@ const Flashcards = () => {
         setAgentSessionId(`session_${Date.now()}`);
         setSessionStartTime(Date.now());
                 
-        // Store recommendations
+        
         if (result.recommendations) {
           setStudyRecommendations(result.recommendations);
         }
@@ -422,7 +422,7 @@ const Flashcards = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Use the new agent review endpoint
+      
       const response = await fetch(`${API_URL}/agents/flashcards/review`, {
         method: 'POST',
         headers: {
@@ -445,7 +445,7 @@ const Flashcards = () => {
       if (result.success) {
         const data = result.data || result;
         
-        // Update card metrics
+        
         setCardMetrics(prev => ({
           ...prev,
           [cardId]: {
@@ -461,8 +461,8 @@ const Flashcards = () => {
           }
   };
 
-  // Simple mastery update function
-  // mode: 'preview' = 5% per correct card (max 50%), 'study' = 10% per correct card (max 100%)
+  
+  
   const updateCardMastery = async (cardId, wasCorrect, mode = 'preview') => {
     try {
       const token = localStorage.getItem('token');
@@ -477,23 +477,23 @@ const Flashcards = () => {
           card_id: cardId.toString(),
           was_correct: wasCorrect,
           mode: mode,
-          response_time: 5.0 // Default response time
+          response_time: 5.0 
         })
       });
       
       const result = await response.json();
       if (result.success) {
-        // ADAPTIVE LEARNING: Show adaptive feedback if available
+        
         if (result.adaptive_feedback) {
           const feedback = result.adaptive_feedback;
           
-          // Show cognitive load warning if high
+          
           if (feedback.cognitive_load === 'high' || feedback.cognitive_load === 'very_high' || feedback.cognitive_load === 'overload') {
             const recommendations = feedback.recommendations?.slice(0, 2).join('. ') || 'Consider taking a break';
             showPopup('Cognitive Load Alert', `Your cognitive load is ${feedback.cognitive_load}. ${recommendations}`);
           }
           
-          // Show difficulty adaptation
+          
           if (feedback.current_difficulty && mode === 'study') {
             console.log(`Adaptive difficulty adjusted to: ${feedback.current_difficulty}`);
           }
@@ -509,7 +509,7 @@ const Flashcards = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Get analysis from the agent
+      
       const response = await fetch(`${API_URL}/agents/flashcards/analyze?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -522,7 +522,7 @@ const Flashcards = () => {
         
         const sessionDuration = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 60000) : 0;
         
-        // Show session summary
+        
         showPopup('Session Complete!', 
           `Duration: ${sessionDuration} min\n` +
           `${result.response || 'Great study session!'}`
@@ -539,7 +539,7 @@ const Flashcards = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Use the new agent analyze endpoint
+      
       const response = await fetch(`${API_URL}/agents/flashcards/analyze?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -553,7 +553,7 @@ const Flashcards = () => {
           }
   };
 
-  // Get study recommendations from agent
+  
   const getAgentRecommendations = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -572,7 +572,7 @@ const Flashcards = () => {
           }
   };
 
-  // Get concept explanation from agent
+  
   const explainConcept = async (concept) => {
     try {
       const token = localStorage.getItem('token');
@@ -598,7 +598,7 @@ const Flashcards = () => {
           }
   };
 
-  // Custom flashcard creation functions
+  
   const addCustomCard = () => {
     setCustomCards([...customCards, { question: '', answer: '' }]);
   };
@@ -615,7 +615,7 @@ const Flashcards = () => {
     setCustomCards(updated);
   };
 
-  // Enter custom create mode (fullscreen editor for new flashcards)
+  
   const enterCustomCreateMode = () => {
     setCustomCards([{ question: '', answer: '', isNew: true }]);
     setCustomSetTitle('');
@@ -665,7 +665,7 @@ const Flashcards = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Create the set first
+      
       const setResponse = await fetch(`${API_URL}/flashcards/sets/create`, {
         method: 'POST',
         headers: {
@@ -683,7 +683,7 @@ const Flashcards = () => {
       if (!setResponse.ok) throw new Error('Failed to create set');
       const setData = await setResponse.json();
 
-      // Add cards to the set
+      
       for (const card of validCards) {
         await fetch(`${API_URL}/flashcards/cards/create`, {
           method: 'POST',
@@ -705,7 +705,7 @@ const Flashcards = () => {
       setCustomCards([{ question: '', answer: '' }]);
       setCustomSetTitle('');
       setCurrentCard(0);
-      loadFlashcardHistory(true); // Reset pagination after create
+      loadFlashcardHistory(true); 
       loadFlashcardStats();
     } catch (error) {
       showPopup('Error', 'Failed to save flashcards');
@@ -713,7 +713,7 @@ const Flashcards = () => {
     setGenerating(false);
   };
 
-  // Edit existing flashcard set functions
+  
   const enterEditMode = async (setId) => {
     try {
       const token = localStorage.getItem('token');
@@ -732,7 +732,7 @@ const Flashcards = () => {
           cardCount: data.flashcards.length
         });
         setCurrentCard(0);
-        setEditMode(true);  // This will trigger the fullscreen edit overlay
+        setEditMode(true);  
       }
     } catch (error) {
       showPopup('Error', 'Failed to load flashcard set for editing');
@@ -746,17 +746,17 @@ const Flashcards = () => {
   const updateEditingCard = (index, field, value) => {
     const updated = [...editingCards];
     updated[index][field] = value;
-    updated[index].wasModified = true; // Track that this card was changed
+    updated[index].wasModified = true; 
     setEditingCards(updated);
   };
 
   const markCardForDeletion = (index) => {
     const updated = [...editingCards];
     if (updated[index].isNew) {
-      // Remove new cards immediately
+      
       setEditingCards(editingCards.filter((_, i) => i !== index));
     } else {
-      // Mark existing cards for deletion
+      
       updated[index].isDeleted = !updated[index].isDeleted;
       setEditingCards(updated);
     }
@@ -769,7 +769,7 @@ const Flashcards = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Update set title if changed
+      
       if (editingSetTitle !== currentSetInfo.setTitle) {
         await fetch(`${API_URL}/update_flashcard_set`, {
           method: 'POST',
@@ -785,16 +785,16 @@ const Flashcards = () => {
         });
       }
 
-      // Process cards
+      
       for (const card of editingCards) {
         if (card.isDeleted && card.id) {
-          // Delete existing card
+          
           await fetch(`${API_URL}/flashcards/cards/${card.id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
           });
         } else if (card.isNew && card.question.trim() && card.answer.trim()) {
-          // Create new card
+          
           await fetch(`${API_URL}/flashcards/cards/create`, {
             method: 'POST',
             headers: {
@@ -809,7 +809,7 @@ const Flashcards = () => {
             })
           });
         } else if (!card.isNew && !card.isDeleted && card.id && card.wasModified) {
-          // Update existing card ONLY if it was actually modified
+          
           await fetch(`${API_URL}/flashcards/cards/${card.id}`, {
             method: 'PUT',
             headers: {
@@ -829,7 +829,7 @@ const Flashcards = () => {
       setEditMode(false);
       setEditingCards([]);
       setCurrentCard(0);
-      loadFlashcardHistory(true); // Reset pagination after edit
+      loadFlashcardHistory(true); 
     } catch (error) {
       showPopup('Error', 'Failed to save changes');
     }
@@ -841,11 +841,11 @@ const Flashcards = () => {
     setEditingCards([]);
     setCurrentCard(0);
     setCurrentSetInfo(null);
-    // Clear URL parameters
+    
     window.history.replaceState({}, '', '/flashcards');
   };
 
-  // Public flashcards search functions
+  
   const searchPublicFlashcards = async (query = '') => {
     setLoadingPublic(true);
     try {
@@ -898,14 +898,14 @@ const Flashcards = () => {
       if (response.ok) {
         const data = await response.json();
         showPopup('Copied Successfully', `"${data.title}" has been added to your flashcard sets.`);
-        loadFlashcardHistory(true); // Reset pagination after copy
+        loadFlashcardHistory(true); 
       }
     } catch (error) {
       showPopup('Error', 'Failed to copy flashcard set');
     }
   };
 
-  // Effects
+  
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -935,7 +935,7 @@ const Flashcards = () => {
     localStorage.setItem('hs_mode_enabled', String(val));
   };
 
-  // Load flashcard set by share code
+  
   const loadFlashcardSetByCode = useCallback(async (shareCode, mode = 'preview') => {
     try {
       const token = localStorage.getItem('token');
@@ -960,15 +960,15 @@ const Flashcards = () => {
           setShuffledCards(cards);
           setPreviewMode(true);
         } else if (mode === 'study') {
-          // Sort cards: marked_for_review first, then shuffle if enabled
+          
           let cards = [...data.flashcards].sort((a, b) => {
-            // Cards marked for review come first
+            
             if (a.marked_for_review && !b.marked_for_review) return -1;
             if (!a.marked_for_review && b.marked_for_review) return 1;
             return 0;
           });
           if (studySettings.shuffle) {
-            // Shuffle within each group (review cards and non-review cards)
+            
             const reviewCards = cards.filter(c => c.marked_for_review);
             const otherCards = cards.filter(c => !c.marked_for_review);
             cards = [
@@ -992,12 +992,12 @@ const Flashcards = () => {
   useEffect(() => {
     if (userName) {
       loadChatSessions();
-      loadFlashcardHistory(true); // Reset and load initial data
+      loadFlashcardHistory(true); 
       loadFlashcardStats();
       loadReviewCards();
       loadDueCards();
       
-      // Check for URL parameters to load a specific set
+      
       const params = new URLSearchParams(location.search);
       const shareCode = params.get('code');
       const mode = params.get('mode') || 'preview';
@@ -1030,7 +1030,7 @@ const Flashcards = () => {
     }
   }, []);
 
-  // Handle generated flashcards from Learning Path
+  
   useEffect(() => {
     const generatedFlashcards = location.state?.generatedFlashcards;
     
@@ -1054,7 +1054,7 @@ const Flashcards = () => {
           if (response.ok) {
             const data = await response.json();
             
-            // Set the flashcards and show them
+            
             setFlashcards(generatedFlashcards.cards);
             setCurrentCard(0);
             setIsFlipped(false);
@@ -1067,7 +1067,7 @@ const Flashcards = () => {
               cardCount: generatedFlashcards.cards.length
             });
             
-            // Auto-open preview mode
+            
             const shuffledCards = studySettings.shuffle ? [...generatedFlashcards.cards].sort(() => Math.random() - 0.5) : generatedFlashcards.cards;
             setShuffledCards(shuffledCards);
             setPreviewMode(true);
@@ -1075,7 +1075,7 @@ const Flashcards = () => {
             loadFlashcardHistory(true);
             loadFlashcardStats();
             
-            // Clear the state
+            
             navigate('/flashcards', { replace: true, state: {} });
           }
         } catch (error) {
@@ -1088,7 +1088,7 @@ const Flashcards = () => {
     }
   }, [location.state, userName, navigate, studySettings.shuffle]);
 
-  // Close dropdown when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.fc-custom-select-wrapper')) {
@@ -1102,7 +1102,7 @@ const Flashcards = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Initialize displayed sets when flashcardHistory changes
+  
   useEffect(() => {
     if (flashcardHistory && flashcardHistory.length > 0) {
       const allSets = getFilteredAndSortedSets();
@@ -1112,7 +1112,7 @@ const Flashcards = () => {
     }
   }, [flashcardHistory, searchQuery, sortBy]);
 
-  // Load more sets when scrolling
+  
   const loadMoreSets = useCallback(() => {
     const allSets = getFilteredAndSortedSets();
     const currentLength = displayedSets.length;
@@ -1127,7 +1127,7 @@ const Flashcards = () => {
     setHasMoreSets(currentLength + SETS_PER_PAGE < allSets.length);
   }, [displayedSets, flashcardHistory, searchQuery, sortBy]);
 
-  // Infinite scroll observer for lazy loading
+  
   useEffect(() => {
     if (activePanel !== 'cards') return;
     
@@ -1138,7 +1138,7 @@ const Flashcards = () => {
           const allSets = getFilteredAndSortedSets();
           if (displayedSets.length < allSets.length) {
             setIsLoadingMore(true);
-            // Small delay to show loading state
+            
             setTimeout(() => {
               loadMoreSets();
               setIsLoadingMore(false);
@@ -1148,7 +1148,7 @@ const Flashcards = () => {
       },
       {
         root: null,
-        rootMargin: '100px', // Start loading 100px before reaching the bottom
+        rootMargin: '100px', 
         threshold: 0.1
       }
     );
@@ -1165,8 +1165,7 @@ const Flashcards = () => {
     };
   }, [activePanel, displayedSets, isLoadingMore, loadMoreSets]);
 
-
-  // Helper functions
+  
   const getDisplayName = () => {
     if (userProfile?.name) return userProfile.name.split(' ')[0];
     if (userName) return userName.charAt(0).toUpperCase() + userName.slice(1);
@@ -1214,13 +1213,13 @@ const Flashcards = () => {
     return filtered;
   };
 
-  // Get sets to display with lazy loading (only show SETS_PER_PAGE at a time)
+  
   const getSetsToDisplay = () => {
     const allSets = getFilteredAndSortedSets();
     return allSets.slice(0, displayedSets.length || SETS_PER_PAGE);
   };
 
-  // Flashcard operations
+  
   const loadChatHistoryData = async () => {
     if (selectedSessions.length === 0) return [];
     try {
@@ -1363,7 +1362,7 @@ const Flashcards = () => {
     setLoadingSetId(setId);
     try {
       const token = localStorage.getItem('token');
-      // Use the existing endpoint that works
+      
       const response = await fetch(`${API_URL}/get_flashcards_in_set?set_id=${setId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1381,28 +1380,28 @@ const Flashcards = () => {
           cardCount: data.flashcards.length
         });
         
-        // Update URL with share code if available
+        
         if (data.share_code) {
           const newUrl = `/flashcards?code=${data.share_code}&mode=${mode}`;
           window.history.replaceState({}, '', newUrl);
         }
         
         if (mode === 'preview') {
-          // Preview mode = Flippable cards in full screen
+          
           const cards = studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards;
           setShuffledCards(cards);
           setPreviewMode(true);
         } else if (mode === 'study') {
-          // Study mode = MCQ quiz with mastery tracking
-          // Sort cards: marked_for_review first, then shuffle if enabled
+          
+          
           let cards = [...data.flashcards].sort((a, b) => {
-            // Cards marked for review come first
+            
             if (a.marked_for_review && !b.marked_for_review) return -1;
             if (!a.marked_for_review && b.marked_for_review) return 1;
             return 0;
           });
           if (studySettings.shuffle) {
-            // Shuffle within each group (review cards and non-review cards)
+            
             const reviewCards = cards.filter(c => c.marked_for_review);
             const otherCards = cards.filter(c => !c.marked_for_review);
             cards = [
@@ -1435,7 +1434,7 @@ const Flashcards = () => {
       });
       if (response.ok) {
         showPopup('Deleted Successfully', 'The flashcard set has been removed.');
-        loadFlashcardHistory(true); // Reset pagination after delete
+        loadFlashcardHistory(true); 
         loadFlashcardStats();
         if (currentSetInfo && currentSetInfo.setId === setId) {
           setFlashcards([]);
@@ -1463,7 +1462,7 @@ const Flashcards = () => {
         body: JSON.stringify({ set_id: setId, title: editingTitle.trim(), description: '' })
       });
       if (response.ok) {
-        loadFlashcardHistory(true); // Reset pagination after rename
+        loadFlashcardHistory(true); 
         showPopup('Renamed Successfully', 'The flashcard set has been renamed.');
       }
     } catch (error) {
@@ -1472,7 +1471,7 @@ const Flashcards = () => {
     setEditingTitle('');
   };
 
-  // Study mode functions
+  
   const updateStreak = () => {
     const today = new Date().toDateString();
     const lastStudy = localStorage.getItem('lastFlashcardStudy');
@@ -1490,18 +1489,18 @@ const Flashcards = () => {
     const currentCardData = cards[cardIndex];
     const correctAnswer = currentCardData.answer;
     
-    // Check if AI-generated wrong options are available
+    
     if (currentCardData.wrong_options && currentCardData.wrong_options.length >= 3) {
-      // Use AI-generated wrong options
+      
       const allOptions = [correctAnswer, ...currentCardData.wrong_options.slice(0, 3)].sort(() => Math.random() - 0.5);
       setMcqOptions(allOptions);
     } else {
-      // Fallback: Get 3 random wrong answers from other cards
+      
       const otherCards = cards.filter((_, idx) => idx !== cardIndex);
       const shuffledOthers = [...otherCards].sort(() => Math.random() - 0.5);
       const wrongAnswers = shuffledOthers.slice(0, 3).map(card => card.answer);
       
-      // Combine and shuffle all options
+      
       const allOptions = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
       setMcqOptions(allOptions);
     }
@@ -1510,7 +1509,7 @@ const Flashcards = () => {
   };
 
   const handleMCQSelection = async (option) => {
-    if (showAnswer) return; // Already answered
+    if (showAnswer) return; 
     
     setSelectedOption(option);
     setShowAnswer(true);
@@ -1518,14 +1517,14 @@ const Flashcards = () => {
     const cards = shuffledCards.length > 0 ? shuffledCards : flashcards;
     const isCorrect = option === cards[currentCard]?.answer;
     
-    // Update stats
+    
     setStudySessionStats(prev => ({
       ...prev,
       correct: isCorrect ? prev.correct + 1 : prev.correct,
       incorrect: !isCorrect ? prev.incorrect + 1 : prev.incorrect
     }));
     
-    // Update mastery in study mode (10% per correct answer)
+    
     const card = cards[currentCard];
     if (card?.id) {
       await updateCardMastery(card.id, isCorrect, 'study');
@@ -1538,7 +1537,7 @@ const Flashcards = () => {
   const handleNextMCQ = () => {
     const cards = shuffledCards.length > 0 ? shuffledCards : flashcards;
     
-    // Scroll to top
+    
     const studyContent = document.querySelector('.fc-study-content');
     if (studyContent) {
       studyContent.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1558,12 +1557,12 @@ const Flashcards = () => {
     setStudySessionStats(prev => ({ ...prev, [response]: prev[response] + 1 }));
     const cards = studySettings.shuffle ? shuffledCards : flashcards;
     
-    // Track with agent if session is active
+    
     if (agentSessionActive && cards[currentCard]) {
       const quality = response === 'correct' ? 5 : response === 'incorrect' ? 1 : 3;
       const responseTime = sessionStartTime ? (Date.now() - sessionStartTime) / 1000 : 5;
       await reviewCardWithAgent(cards[currentCard].id, quality, responseTime);
-      setSessionStartTime(Date.now()); // Reset for next card
+      setSessionStartTime(Date.now()); 
     }
     
     if (currentCard < cards.length - 1) {
@@ -1591,10 +1590,10 @@ const Flashcards = () => {
     setShowAnswer(false);
     setMcqOptions([]);
     
-    // Reload flashcard history to update mastery percentages
-    loadFlashcardHistory(true); // Reset pagination after study
     
-    // Clear URL parameters
+    loadFlashcardHistory(true); 
+    
+    
     window.history.replaceState({}, '', '/flashcards');
   };
 
@@ -1607,15 +1606,15 @@ const Flashcards = () => {
     setSelectedOption(null);
     setShowAnswer(false);
     
-    // For preview mode, keep the same cards
+    
     if (previewMode) {
       const cards = studySettings.shuffle ? [...flashcards].sort(() => Math.random() - 0.5) : flashcards;
       setShuffledCards(cards);
     } else {
-      // For study mode, regenerate and shuffle
+      
       const cards = studySettings.shuffle ? [...flashcards].sort(() => Math.random() - 0.5) : flashcards;
       setShuffledCards(cards);
-      // Regenerate MCQ options for first card
+      
       generateMCQOptions(cards, 0);
     }
   };
@@ -1636,12 +1635,11 @@ const Flashcards = () => {
 
   const currentStudyCards = studySettings.shuffle ? shuffledCards : flashcards;
 
-
-  // Custom Create Mode UI (Fullscreen Editor for New Flashcards)
+  
   if (customCreateMode) {
     const currentCustomCard = customCards[currentCard] || customCards[0];
     
-    // Auto-save function
+    
     const autoSaveCustomCards = async () => {
       const validCards = customCards.filter(c => c.question.trim() && c.answer.trim());
       if (validCards.length === 0 || !customSetTitle.trim()) return;
@@ -1649,7 +1647,7 @@ const Flashcards = () => {
       try {
         const token = localStorage.getItem('token');
         
-        // Create the set first
+        
         const setResponse = await fetch(`${API_URL}/flashcards/sets/create`, {
           method: 'POST',
           headers: {
@@ -1667,7 +1665,7 @@ const Flashcards = () => {
         if (!setResponse.ok) return;
         const setData = await setResponse.json();
 
-        // Add cards to the set
+        
         for (const card of validCards) {
           await fetch(`${API_URL}/flashcards/cards/create`, {
             method: 'POST',
@@ -1684,14 +1682,14 @@ const Flashcards = () => {
           });
         }
 
-        loadFlashcardHistory(true); // Reset pagination after auto-save
+        loadFlashcardHistory(true); 
         loadFlashcardStats();
       } catch (error) {
-        // Silent fail for auto-save
+        
       }
     };
     
-    // Check if we have at least one valid card (both question and answer filled)
+    
     const hasValidCard = customCards.some(c => c.question.trim() && c.answer.trim());
     const canSave = !generating && customSetTitle.trim() && hasValidCard;
     
@@ -1839,8 +1837,7 @@ const Flashcards = () => {
     );
   }
 
-
-  // Edit Mode UI (Fullscreen Card Editor)
+  
   if (editMode && editingCards.length > 0) {
     const activeCards = editingCards.filter(c => !c.isDeleted);
     const currentEditCard = activeCards[currentCard] || activeCards[0];
@@ -1971,7 +1968,7 @@ const Flashcards = () => {
                 className="fc-btn fc-btn-secondary fc-add-card-btn"
                 onClick={() => {
                   addCardToEdit();
-                  // Navigate to the new card
+                  
                   setTimeout(() => {
                     setCurrentCard(editingCards.filter(c => !c.isDeleted).length);
                   }, 50);
@@ -1996,8 +1993,7 @@ const Flashcards = () => {
     );
   }
 
-
-  // Preview Mode UI (Flippable Cards)
+  
   if (previewMode && flashcards.length > 0) {
     const previewCards = shuffledCards.length > 0 ? shuffledCards : flashcards;
     
@@ -2009,7 +2005,7 @@ const Flashcards = () => {
       setIsFlipped(prev => !prev);
     };
     
-    // Show results at the end of preview session
+    
     if (showStudyResults) {
       const totalReviewed = studySessionStats.correct + studySessionStats.incorrect;
       const knownPercentage = totalReviewed > 0 ? Math.round((studySessionStats.correct / totalReviewed) * 100) : 0;
@@ -2060,7 +2056,7 @@ const Flashcards = () => {
                   <button 
                     className="fc-btn fc-btn-primary" 
                     onClick={() => {
-                      // Switch to study mode (quiz)
+                      
                       setPreviewMode(false);
                       setShowStudyResults(false);
                       setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
@@ -2093,7 +2089,7 @@ const Flashcards = () => {
               <span className="fc-card-counter">CARD {currentCard + 1} OF {previewCards.length}</span>
             </div>
             <button className="fc-exit-btn fc-exit-styled" onClick={() => {
-              // Show results before exiting
+              
               setShowStudyResults(true);
             }}>
               EXIT {Icons.chevronRight}
@@ -2493,11 +2489,10 @@ const Flashcards = () => {
     );
   }
 
-  // Main Dashboard UI
+  
   return (
     <div className="flashcards-page">
       <div className="fc-layout">
-        {/* Standardized Header */}
         <header className="hub-header">
           {sidebarCollapsed && (
             <button 
@@ -2528,7 +2523,6 @@ const Flashcards = () => {
         </header>
 
         <div className="fc-layout-body">
-          {/* Sidebar */}
           <aside className={`fc-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
             <div className="fc-sidebar-header">
               <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -2592,9 +2586,7 @@ const Flashcards = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="fc-main">
-          {/* My Flashcards Panel */}
           {activePanel === 'cards' && (
             <>
 
@@ -2631,7 +2623,7 @@ const Flashcards = () => {
                     <div className={`fc-grid ${isRearranging ? 'fc-grid-rearranging' : ''}`}>
                       {displayedSets.map((set, index) => {
                         const mastery = getMasteryLevel(set.accuracy_percentage || 0);
-                        // Generate different colors for each set
+                        
                         const colors = [
                           '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
                           '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
@@ -2639,7 +2631,6 @@ const Flashcards = () => {
                         const cardColor = colors[index % colors.length];
                         return (
                           <div key={set.id} className="fc-set-card-new">
-                            {/* Colored Thumbnail with Title */}
                             <div className="fc-set-thumbnail" style={{ background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}dd 100%)` }}>
                               <div className="fc-set-thumbnail-content">
                                 {editingSetId === set.id ? (
@@ -2680,7 +2671,6 @@ const Flashcards = () => {
                               </button>
                             </div>
 
-                            {/* Content Section */}
                             <div className="fc-set-content-new">
                               <div className="fc-set-meta-new">
                               </div>
@@ -2699,7 +2689,6 @@ const Flashcards = () => {
                               <p className="fc-set-date-new">Created: {formatDate(set.created_at)}</p>
                             </div>
 
-                            {/* Actions */}
                             <div className="fc-set-actions-new">
                               <button className="fc-action-btn-new fc-action-edit" onClick={() => enterEditMode(set.id)} disabled={loadingSetId === set.id}>
                                 <span>EDIT</span>
@@ -2716,10 +2705,8 @@ const Flashcards = () => {
                       })}
                     </div>
                     
-                    {/* Infinite scroll sentinel */}
                     <div className="fc-load-more-sentinel" style={{ height: '20px', margin: '20px 0' }} />
                     
-                    {/* Loading more indicator */}
                     {isLoadingMore && (
                       <div className="fc-loading-more">
                         <div className="fc-spinner-small">
@@ -2731,7 +2718,6 @@ const Flashcards = () => {
                       </div>
                     )}
                     
-                    {/* End of list indicator */}
                     {displayedSets.length >= getFilteredAndSortedSets().length && displayedSets.length > 0 && (
                       <div className="fc-end-of-list">
                         <p>You've reached the end of your flashcard sets</p>
@@ -2742,7 +2728,6 @@ const Flashcards = () => {
               </div>
             </>
           )}
-
 
           {/* Generator Panel */}
           {activePanel === 'generator' && (
@@ -3169,7 +3154,7 @@ const Flashcards = () => {
                         <button 
                           className="fc-btn fc-btn-primary fc-review-study-btn"
                           onClick={() => {
-                            // Load just the review cards from this set for study
+                            
                             const reviewCardsForSet = setData.cards || [];
                             setFlashcards(reviewCardsForSet);
                             setShuffledCards(reviewCardsForSet);
@@ -3195,7 +3180,6 @@ const Flashcards = () => {
             </>
           )}
 
-          {/* Explore Public Flashcards Panel */}
           {activePanel === 'explore' && (
             <>
               <div className="fc-content fc-cards-panel">
@@ -3306,7 +3290,6 @@ const Flashcards = () => {
             </>
           )}
 
-          {/* Spaced Repetition - Study Queue Panel */}
           {activePanel === 'sr_study' && (
             <div className="fc-content">
               <div className="fc-sr-panel-header">
@@ -3314,7 +3297,6 @@ const Flashcards = () => {
                 <p><span>{dueCards.due_count}</span> Cards Due Today</p>
               </div>
 
-              {/* Due cards summary */}
               <div className="fc-sr-summary">
                 <div className="fc-sr-summary-item">
                   <span className="fc-sr-dot fc-sr-dot-new"></span>
@@ -3604,6 +3586,4 @@ const Flashcards = () => {
 };
 
 export default Flashcards;
-
-
 

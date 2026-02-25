@@ -1,7 +1,5 @@
-/* ==================== IMPORTS ==================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== LAYOUT ==================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 .weaknesses-page,
 .weaknesses-container {
@@ -22,8 +20,6 @@
   display: flex;
   flex-direction: column;
 }
-
-/* ==================== LOADING STATE ==================== */
 
 .weaknesses-loading {
   display: flex;
@@ -78,8 +74,6 @@
   text-transform: uppercase;
   letter-spacing: 2px;
 }
-
-/* ==================== HEADER ==================== */
 
 .weaknesses-header {
   position: sticky;
@@ -223,16 +217,12 @@
   color: var(--accent);
 }
 
-/* ==================== BODY LAYOUT ==================== */
-
 .weaknesses-body {
   display: flex;
   flex: 1;
   overflow: hidden;
   height: 100%;
 }
-
-/* ==================== SIDEBAR ==================== */
 
 .weaknesses-sidebar {
   width: 260px;
@@ -418,8 +408,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* ==================== MAIN CONTENT ==================== */
-
 .weaknesses-main {
   flex: 1;
   display: flex;
@@ -432,8 +420,6 @@
   overflow-x: hidden;
   padding: 32px 40px;
 }
-
-/* ==================== EMPTY STATE ==================== */
 
 .empty-container {
   display: flex;
@@ -501,8 +487,6 @@
   transform: translateY(-2px);
 }
 
-/* ==================== WEAKNESSES GRID ==================== */
-
 .weaknesses-grid {
   width: 100%;
   max-width: 1400px;
@@ -511,8 +495,6 @@
   gap: 20px;
   margin: 0 auto;
 }
-
-/* ==================== WEAKNESS CARD - PLAYLIST STYLE ==================== */
 
 .weakness-card {
   background: linear-gradient(145deg, var(--bg-secondary), var(--bg-tertiary));
@@ -793,8 +775,6 @@
   transform: translateY(-1px);
 }
 
-/* ==================== TOPIC MODAL ==================== */
-
 .topic-modal-overlay {
   position: fixed;
   top: 0;
@@ -954,8 +934,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* ==================== SUGGESTIONS LIST ==================== */
-
 .suggestions-list {
   display: flex;
   flex-direction: column;
@@ -1038,8 +1016,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* ==================== STUDY TIPS ==================== */
-
 .tips-list {
   list-style: none;
   padding: 0;
@@ -1075,8 +1051,6 @@
   top: 16px;
   font-size: 18px;
 }
-
-/* ==================== QUESTIONS LIST ==================== */
 
 .questions-list {
   display: flex;
@@ -1213,8 +1187,6 @@
   transform: translateY(-2px);
 }
 
-/* ==================== RESPONSIVE ==================== */
-
 @media (max-width: 1024px) {
   .weaknesses-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1282,8 +1254,6 @@
   }
 }
 
-/* ==================== SCROLLBAR STYLING ==================== */
-
 .weaknesses-sidebar::-webkit-scrollbar,
 .weaknesses-main::-webkit-scrollbar,
 .topic-modal-content::-webkit-scrollbar {
@@ -1309,8 +1279,6 @@
   background: color-mix(in srgb, var(--accent) 120%, white);
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

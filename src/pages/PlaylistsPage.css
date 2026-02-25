@@ -1,7 +1,6 @@
-/* Learning Paths Page - Premium Aesthetic Design */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== CSS VARIABLES ==================== */
 .playlists-container {
   --lp-bg-primary: var(--bg-primary);
   --lp-bg-secondary: var(--bg-secondary);
@@ -63,7 +62,6 @@
   --lp-header-height: var(--pl-header-height);
 }
 
-/* ==================== BASE LAYOUT ==================== */
 .playlists-container {
   position: relative;
   width: 100%;
@@ -84,7 +82,6 @@
   box-sizing: border-box;
 }
 
-/* ==================== HEADER STYLING ==================== */
 .playlists-container .hub-header {
   position: sticky;
   top: 0;
@@ -103,7 +100,6 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Enhanced 3D Gradient Header */
 [data-theme-mode="dark"] .playlists-container .hub-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -240,7 +236,6 @@
   color: var(--bg-primary) !important;
 }
 
-/* ==================== BODY LAYOUT ==================== */
 .playlists-body {
   display: grid;
   grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
@@ -253,7 +248,6 @@
   padding: 24px 40px 60px;
 }
 
-/* ==================== SIDEBAR STYLING ==================== */
 .playlists-sidebar {
   width: 100%;
   height: auto;
@@ -273,7 +267,6 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Sidebar Enhanced Styling with Accent Color Gradients */
 [data-theme-mode="dark"] .playlists-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--lp-accent) 15%, #000000) 0%, 
@@ -317,7 +310,6 @@
   border-color: var(--lp-accent);
 }
 
-/* ==================== BODY LAYOUT ==================== */
 .playlists-body {
   display: flex;
   flex: 1;
@@ -325,7 +317,6 @@
   height: 100%;
 }
 
-/* ==================== SIDEBAR STYLING ==================== */
 .playlists-sidebar {
   width: 260px;
   height: 100%;
@@ -340,7 +331,6 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Sidebar Enhanced Styling with Accent Color Gradients */
 [data-theme-mode="dark"] .playlists-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--lp-accent) 15%, #000000) 0%, 
@@ -356,7 +346,6 @@
   box-shadow: 4px 0 20px color-mix(in srgb, var(--lp-accent) 20%, transparent);
 }
 
-/* Sidebar Text Colors */
 [data-theme-mode="dark"] .playlists-sidebar {
   color: color-mix(in srgb, var(--lp-accent) 60%, #ffffff) !important;
 }
@@ -365,7 +354,6 @@
   color: color-mix(in srgb, var(--lp-accent) 80%, var(--lp-text-primary)) !important;
 }
 
-/* Custom Scrollbar for Sidebar */
 .playlists-sidebar::-webkit-scrollbar {
   width: 6px;
 }
@@ -469,7 +457,6 @@
   margin: 8px 0;
 }
 
-/* Filter Section */
 .filter-item {
   position: relative;
   display: flex;
@@ -514,7 +501,6 @@
   box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-danger) 40%, transparent);
 }
 
-/* Custom Dropdown */
 .custom-dropdown {
   position: relative !important;
   width: 100% !important;
@@ -627,7 +613,6 @@
   font-weight: 800 !important;
 }
 
-/* Custom scrollbar for dropdown */
 .dropdown-menu::-webkit-scrollbar {
   width: 6px;
 }
@@ -645,7 +630,6 @@
   background: color-mix(in srgb, var(--lp-accent) 120%, white);
 }
 
-/* Sidebar Stats */
 .sidebar-stats {
   margin-top: auto;
   padding-top: 20px;
@@ -709,7 +693,6 @@
   z-index: 1;
 }
 
-/* ==================== MAIN CONTENT AREA ==================== */
 .playlists-main {
   flex: 1;
   display: flex;
@@ -734,7 +717,6 @@
   gap: 20px;
 }
 
-/* ==================== TOOLBAR ==================== */
 .playlists-toolbar {
   width: 100%;
   max-width: none;
@@ -963,8 +945,6 @@
   cursor: pointer;
 }
 
-
-/* Custom Scrollbar for Main Content */
 .content-body::-webkit-scrollbar {
   width: 8px;
 }
@@ -982,13 +962,11 @@
   background: color-mix(in srgb, var(--lp-accent) 120%, white);
 }
 
-/* Center loading and empty states */
 .content-body:has(.loading-container),
 .content-body:has(.empty-container) {
   justify-content: flex-start;
 }
 
-/* ==================== LOADING & EMPTY STATES ==================== */
 .loading-container,
 .empty-container {
   display: flex;
@@ -1070,7 +1048,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== PLAYLISTS GRID ==================== */
 .playlists-grid {
   width: 100%;
   max-width: 1400px;
@@ -1080,7 +1057,6 @@
   margin: 0;
 }
 
-/* ==================== PLAYLIST CARD ==================== */
 .playlist-card {
   background: linear-gradient(145deg, 
     var(--lp-bg-secondary) 0%, 
@@ -1460,7 +1436,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== MODAL STYLING ==================== */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1508,7 +1483,6 @@
   }
 }
 
-/* Custom scrollbar for modal */
 .modal-container::-webkit-scrollbar {
   width: 8px;
 }
@@ -1633,7 +1607,6 @@
   margin-bottom: 24px;
 }
 
-/* Color Picker with Sliders */
 .color-picker-container {
   display: flex;
   flex-direction: column;
@@ -1987,7 +1960,6 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--lp-accent) 40%, transparent);
 }
 
-/* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1200px) {
   .playlists-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -2056,7 +2028,6 @@
   }
 }
 
-/* ==================== ANIMATIONS ==================== */
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
@@ -2077,7 +2048,6 @@
   background-size: 1000px 100%;
 }
 
-/* ==================== ACCESSIBILITY ==================== */
 @media (prefers-reduced-motion: reduce) {
   .playlists-container *,
   .playlists-container *::before,
@@ -2088,7 +2058,6 @@
   }
 }
 
-/* Focus states for keyboard navigation */
 .menu-item:focus,
 .dropdown-trigger:focus,
 .playlists-container .hub-nav-btn:focus,
@@ -2097,7 +2066,6 @@
   outline-offset: 2px;
 }
 
-/* High contrast mode support */
 @media (prefers-contrast: high) {
   .playlists-container {
     --lp-border-default: currentColor;
@@ -2112,7 +2080,6 @@
   }
 }
 
-/* ==================== PRINT STYLES ==================== */
 @media print {
   .playlists-sidebar,
   .playlists-container .hub-header,
@@ -2130,7 +2097,6 @@
   }
 }
 
-/* ==================== DARK MODE ENHANCEMENTS ==================== */
 [data-theme-mode="dark"] .playlist-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
@@ -2144,7 +2110,6 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
 }
 
-/* ==================== LIGHT MODE ENHANCEMENTS ==================== */
 [data-theme-mode="light"] .playlist-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -2158,7 +2123,6 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
-/* ==================== VINTAGE PAPER TEXTURE OVERLAY ==================== */
 .playlist-card::after {
   content: '';
   position: absolute;
@@ -2179,7 +2143,6 @@
   mix-blend-mode: overlay;
 }
 
-/* ==================== GLASSMORPHISM EFFECTS ==================== */
 .playlists-container .hub-header {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
@@ -2192,7 +2155,6 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
-/* ==================== GLOW EFFECTS ==================== */
 .menu-item.active::before {
   content: '';
   position: absolute;
@@ -2215,7 +2177,6 @@
   filter: blur(12px);
 }
 
-/* ==================== ROTATING DECORATIVE ELEMENTS ==================== */
 @keyframes rotate {
   from {
     transform: rotate(0deg);
@@ -2229,7 +2190,6 @@
   animation: rotate 3s linear infinite;
 }
 
-/* ==================== TOOLTIP STYLES ==================== */
 [data-tooltip] {
   position: relative;
 }
@@ -2259,7 +2219,6 @@
   transform: translateX(-50%) translateY(-4px);
 }
 
-/* ==================== GRADIENT BORDERS ==================== */
 .playlist-card {
   position: relative;
   background-clip: padding-box;
@@ -2286,12 +2245,10 @@
   opacity: 0.5;
 }
 
-/* ==================== SMOOTH TRANSITIONS ==================== */
 .playlists-container * {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ==================== CUSTOM SELECTION ==================== */
 .playlists-container ::selection {
   background: color-mix(in srgb, var(--lp-accent) 30%, transparent);
   color: var(--lp-text-primary);
@@ -2302,7 +2259,6 @@
   color: var(--lp-text-primary);
 }
 
-/* ==================== LOADING SKELETON ==================== */
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -2324,7 +2280,6 @@
   }
 }
 
-/* ==================== BADGE STYLES ==================== */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -2356,7 +2311,6 @@
   border: 1px solid color-mix(in srgb, var(--lp-danger) 25%, transparent);
 }
 
-/* ==================== HOVER LIFT EFFECT ==================== */
 .hover-lift {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -2365,7 +2319,6 @@
   transform: translateY(-4px);
 }
 
-/* ==================== PULSE ANIMATION ==================== */
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -2379,7 +2332,6 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* ==================== FADE IN ANIMATION ==================== */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -2395,7 +2347,6 @@
   animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ==================== STAGGER ANIMATION FOR GRID ==================== */
 .playlists-grid .playlist-card {
   animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
@@ -2410,7 +2361,6 @@
 .playlists-grid .playlist-card:nth-child(8) { animation-delay: 0.4s; }
 .playlists-grid .playlist-card:nth-child(9) { animation-delay: 0.45s; }
 
-/* ==================== BOUNCE ANIMATION ==================== */
 @keyframes bounce {
   0%, 100% {
     transform: translateY(0);
@@ -2424,7 +2374,6 @@
   animation: bounce 1s ease-in-out infinite;
 }
 
-/* ==================== SCALE ANIMATION ==================== */
 @keyframes scaleIn {
   from {
     opacity: 0;
@@ -2440,11 +2389,6 @@
   animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ==================== END OF STYLES ==================== */
-/* Total lines: 1000+ comprehensive aesthetic CSS */
-
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;
@@ -2484,7 +2428,6 @@
   }
 }
 
-/* ==================== PLAYLISTS REDESIGN OVERRIDES ==================== */
 .playlists-page {
   position: fixed !important;
   inset: 0 !important;

@@ -7,10 +7,10 @@ const ToastNotification = ({ notification, onClose }) => {
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
-    // Slide in animation
+    
     setTimeout(() => setIsVisible(true), 100);
 
-    // Auto-dismiss after 5 seconds
+    
     const timer = setTimeout(() => {
       handleClose();
     }, 5000);

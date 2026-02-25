@@ -15,7 +15,6 @@ from deps import call_ai, get_current_user, get_user_by_email, get_user_by_usern
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["roadmaps"])
 
-
 def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
     profile = {
         "user_id": getattr(user, "id", "unknown"),
@@ -39,7 +38,6 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
             "archetype_description": getattr(comprehensive_profile, "archetype_description", ""),
         })
     return profile
-
 
 @router.post("/create_knowledge_roadmap")
 async def create_knowledge_roadmap(
@@ -118,7 +116,6 @@ async def create_knowledge_roadmap(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create roadmap: {str(e)}")
 
-
 @router.post("/create_roadmap_from_chat")
 async def create_roadmap_from_chat(
     payload: dict = Body(...),
@@ -174,7 +171,6 @@ Topic:"""
     except Exception as e:
         logger.error(f"Error creating roadmap from chat: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/expand_knowledge_node/{node_id}")
 async def expand_knowledge_node(
@@ -343,7 +339,6 @@ Generate 4-5 specific subtopics (more specific than parent, 2-5 words each).
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to expand node: {str(e)}")
 
-
 @router.post("/explore_node/{node_id}")
 async def explore_node(
     node_id: int,
@@ -466,7 +461,6 @@ Level: {user_profile.get('difficulty_level', 'intermediate')}
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to explore node: {str(e)}")
 
-
 @router.get("/get_knowledge_roadmap/{roadmap_id}")
 async def get_knowledge_roadmap(
     roadmap_id: int,
@@ -563,7 +557,6 @@ async def get_knowledge_roadmap(
         logger.error(f"Error getting roadmap: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get roadmap: {str(e)}")
 
-
 @router.get("/get_user_roadmaps")
 async def get_user_roadmaps(
     user_id: str = Query(...),
@@ -596,7 +589,6 @@ async def get_user_roadmaps(
     except Exception as e:
         logger.error(f"Error getting user roadmaps: {str(e)}")
         return {"status": "error", "roadmaps": []}
-
 
 @router.get("/get_knowledge_roadmaps")
 async def get_knowledge_roadmaps(
@@ -632,7 +624,6 @@ async def get_knowledge_roadmaps(
         logger.error(f"Error getting user roadmaps: {str(e)}")
         return {"roadmaps": []}
 
-
 @router.post("/save_node_notes/{node_id}")
 async def save_node_notes(
     node_id: int,
@@ -658,7 +649,6 @@ async def save_node_notes(
         logger.error(f"Error saving notes: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.delete("/delete_roadmap/{roadmap_id}")
 async def delete_roadmap(
@@ -701,7 +691,6 @@ async def delete_roadmap(
         logger.error(f"Error deleting roadmap: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/add_manual_node")
 async def add_manual_node(
@@ -774,7 +763,6 @@ async def add_manual_node(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.delete("/delete_roadmap_node/{node_id}")
 async def delete_roadmap_node(
     node_id: int,
@@ -836,7 +824,6 @@ async def delete_roadmap_node(
         logger.error(f"Error deleting node: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/get_learning_hints")
 async def get_learning_hints(
@@ -907,7 +894,6 @@ Generate hint now:"""
         logger.error(f"Error generating hints: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate hints: {str(e)}")
 
-
 @router.get("/get_concept_web")
 async def get_concept_web(
     user_id: str = Query(...),
@@ -960,7 +946,6 @@ async def get_concept_web(
     except Exception as e:
         logger.error(f"Error getting concept web: {str(e)}")
         return {"nodes": [], "connections": []}
-
 
 @router.post("/generate_concept_web")
 async def generate_concept_web(
@@ -1221,7 +1206,6 @@ async def generate_concept_web(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/add_concept_node")
 async def add_concept_node(
     payload: dict = Body(...),
@@ -1329,7 +1313,6 @@ async def add_concept_node(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.put("/update_node_position")
 async def update_node_position(
     payload: dict = Body(...),
@@ -1355,7 +1338,6 @@ async def update_node_position(
         logger.error(f"Error updating node position: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.put("/update_concept_mastery")
 async def update_concept_mastery(
@@ -1383,7 +1365,6 @@ async def update_concept_mastery(
         logger.error(f"Error updating mastery level: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/generate_concept_notes")
 async def generate_concept_notes(
@@ -1459,7 +1440,6 @@ Format as clear, organized study notes."""
         logger.error(f"Error generating notes: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/generate_concept_flashcards")
 async def generate_concept_flashcards(
@@ -1550,7 +1530,6 @@ Make questions clear and answers concise."""
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/generate_concept_quiz")
 async def generate_concept_quiz(
     payload: dict = Body(...),
@@ -1639,7 +1618,6 @@ Return ONLY a JSON array:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.delete("/delete_concept_node/{node_id}")
 async def delete_concept_node(
     node_id: int,
@@ -1661,7 +1639,6 @@ async def delete_concept_node(
         logger.error(f"Error deleting concept node: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.delete("/delete_all_concepts")
 async def delete_all_concepts(

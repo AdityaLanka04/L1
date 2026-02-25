@@ -1,7 +1,6 @@
-/* Solo Quiz Review Page - Beautiful Styling */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Variables */
 .sqr-page {
   --sqr-accent: var(--accent);
   --sqr-success: #22c55e;
@@ -14,7 +13,6 @@
   --sqr-text-secondary: var(--text-secondary);
 }
 
-/* Base */
 .sqr-page {
   position: fixed;
   top: 0;
@@ -36,7 +34,6 @@
   box-sizing: border-box;
 }
 
-/* Header */
 .sqr-header {
   height: 70px;
   padding: 0 40px;
@@ -161,14 +158,12 @@
   background: color-mix(in srgb, var(--sqr-accent) 10%, transparent);
 }
 
-/* Content */
 .sqr-content {
   height: calc(100vh - 70px);
   overflow-y: auto;
   padding: 40px;
 }
 
-/* Performance Summary */
 .sqr-summary-section {
   max-width: 1400px;
   margin: 0 auto 40px;
@@ -236,7 +231,6 @@
   text-transform: uppercase;
 }
 
-/* Stats Grid */
 .sqr-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -317,7 +311,6 @@
   color: var(--sqr-text-secondary);
 }
 
-/* Difficulty Section */
 .sqr-difficulty-section {
   background: linear-gradient(145deg, 
     color-mix(in srgb, var(--sqr-accent) 6%, var(--sqr-panel)) 0%,

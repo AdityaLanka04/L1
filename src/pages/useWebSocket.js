@@ -13,19 +13,19 @@ const useWebSocket = (token, onMessage) => {
             return;
     }
 
-    // Determine WebSocket URL based on environment
+    
     let wsUrl;
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
     
-    // Convert HTTP/HTTPS to WS/WSS
+    
     if (API_URL.includes('localhost')) {
       wsUrl = API_URL.replace('http://', 'ws://').replace('https://', 'ws://');
     } else {
-      // Production - use WSS for secure WebSocket
+      
       wsUrl = API_URL.replace('http://', 'wss://').replace('https://', 'wss://');
     }
     
-    // Remove /api suffix if present
+    
     wsUrl = wsUrl.replace('/api', '');
     
     const wsEndpoint = `${wsUrl}/ws?token=${encodeURIComponent(token)}`;
@@ -38,7 +38,7 @@ const useWebSocket = (token, onMessage) => {
                 setIsConnected(true);
         reconnectAttempts.current = 0;
 
-        // Send any queued messages
+        
         while (messageQueue.current.length > 0) {
           const msg = messageQueue.current.shift();
           ws.current.send(JSON.stringify(msg));
@@ -63,12 +63,12 @@ const useWebSocket = (token, onMessage) => {
       ws.current.onclose = (event) => {
                 setIsConnected(false);
 
-        // Don't reconnect if it's an authentication error (1008)
+        
         if (event.code === 1008) {
                     return;
         }
 
-        // Attempt to reconnect with exponential backoff
+        
         if (reconnectAttempts.current < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
           `);

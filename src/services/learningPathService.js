@@ -1,7 +1,4 @@
-/**
- * Learning Path Service
- * Frontend service for interacting with Learning Paths API
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
@@ -10,9 +7,7 @@ class LearningPathService {
     this.baseUrl = `${API_URL}/learning-paths`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -21,9 +16,7 @@ class LearningPathService {
     };
   }
 
-  /**
-   * Generate a new learning path
-   */
+  
   async generatePath(topicPrompt, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/generate`, {
@@ -49,9 +42,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Get all learning paths for current user
-   */
+  
   async getPaths() {
     try {
       const response = await fetch(this.baseUrl, {
@@ -70,9 +61,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Get detailed information about a specific path
-   */
+  
   async getPath(pathId) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}`, {
@@ -91,9 +80,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Get all nodes for a path
-   */
+  
   async getPathNodes(pathId) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes`, {
@@ -112,9 +99,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Start a node
-   */
+  
   async startNode(pathId, nodeId) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/start`, {
@@ -134,9 +119,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Get completion quiz for a node
-   */
+  
   async getCompletionQuiz(pathId, nodeId) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/completion-quiz`, {
@@ -156,9 +139,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Complete a node
-   */
+  
   async completeNode(pathId, nodeId, evidence = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/complete`, {
@@ -179,9 +160,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Evaluate node completion requirements
-   */
+  
   async evaluateNode(pathId, nodeId) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/evaluate`, {
@@ -201,9 +180,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Update progress for a specific activity
-   */
+  
   async updateNodeProgress(pathId, nodeId, activityType, completed, metadata = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/progress`, {
@@ -228,9 +205,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Get overall path progress
-   */
+  
   async getPathProgress(pathId) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/progress`, {
@@ -249,9 +224,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Delete (archive) a learning path
-   */
+  
   async deletePath(pathId) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}`, {
@@ -270,9 +243,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Generate content for a node activity (notes, flashcards, quiz, chat)
-   */
+  
   async generateNodeContent(pathId, nodeId, activityType, count = null) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/generate-content`, {
@@ -296,9 +267,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Get user's note for a specific node
-   */
+  
   async getNodeNote(pathId, nodeId) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/note`, {
@@ -317,9 +286,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Save user's note for a specific node
-   */
+  
   async saveNodeNote(pathId, nodeId, content) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/note`, {
@@ -340,9 +307,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Update difficulty view preference for a node
-   */
+  
   async updateDifficultyView(pathId, nodeId, difficultyView) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/difficulty-view`, {
@@ -362,9 +327,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Rate a resource
-   */
+  
   async rateResource(pathId, nodeId, resourceId, rating) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/resources/${encodeURIComponent(resourceId)}/rate`, {
@@ -384,9 +347,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Mark a resource as completed
-   */
+  
   async markResourceCompleted(pathId, nodeId, resourceId, timeSpentMinutes) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/resources/${encodeURIComponent(resourceId)}/complete`, {
@@ -406,9 +367,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Update time spent on a node
-   */
+  
   async updateTimeSpent(pathId, nodeId, minutes) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/time-spent`, {
@@ -428,9 +387,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Export node content to notes
-   */
+  
   async exportToNotes(pathId, nodeId, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/export-to-notes`, {
@@ -454,9 +411,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Export node content to flashcards
-   */
+  
   async exportToFlashcards(pathId, nodeId, conceptFocus = null) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/export-to-flashcards`, {
@@ -479,9 +434,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Export node as calendar event
-   */
+  
   async exportToCalendar(pathId, nodeId, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/export-to-calendar`, {
@@ -505,9 +458,7 @@ class LearningPathService {
     }
   }
 
-  /**
-   * Check prerequisites for a node
-   */
+  
   async checkPrerequisites(pathId, nodeId) {
     try {
       const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/prerequisite-check`, {

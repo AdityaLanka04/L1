@@ -58,13 +58,11 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Module-level references — shared with tutor/chroma_store via initialize()
 _client = None
 _embed_model = None
 
 HS_CURRICULUM_COLLECTION = "hs_curriculum"
 
-# Subject inference helpers (shared by seed script + retrieval)
 _SUBJECT_ALIASES: list[tuple[str, list[str]]] = [
     ("US History", ["us history", "u.s. history", "us hist", "ush", "american history"]),
     ("World History", ["world history", "world hist"]),
@@ -98,10 +96,8 @@ _STOPWORDS = {
     "help", "explain", "again", "please",
 }
 
-
 def _normalize_subject_text(text: str) -> str:
     return re.sub(r"[_\-\/]+", " ", (text or "").lower()).strip()
-
 
 def _matches_alias(text: str, alias: str) -> bool:
     if not text or not alias:
@@ -109,7 +105,6 @@ def _matches_alias(text: str, alias: str) -> bool:
     if " " in alias:
         return alias in text
     return re.search(rf"\b{re.escape(alias)}\b", text) is not None
-
 
 def canonicalize_subject(subject: str) -> str:
     """
@@ -127,7 +122,6 @@ def canonicalize_subject(subject: str) -> str:
                 return canonical
     return subject.strip()
 
-
 def infer_subject(text: str, default: str = "") -> str:
     """
     Infer a canonical HS subject from free text (query or filename).
@@ -142,11 +136,9 @@ def infer_subject(text: str, default: str = "") -> str:
                 return canonical
     return default
 
-
 def _keyword_tokens(text: str) -> set[str]:
     tokens = re.findall(r"[a-zA-Z0-9]+", (text or "").lower())
     return {t for t in tokens if len(t) > 2 and t not in _STOPWORDS}
-
 
 def _overlap_ratio(query_tokens: set[str], doc_text: str) -> float:
     if not query_tokens:
@@ -156,9 +148,6 @@ def _overlap_ratio(query_tokens: set[str], doc_text: str) -> float:
         return 0.0
     overlap = len(query_tokens & doc_tokens)
     return overlap / max(1, len(query_tokens))
-
-
-# ── Initialisation ────────────────────────────────────────────────────────────
 
 def initialize(chroma_client, embed_model):
     """
@@ -173,30 +162,21 @@ def initialize(chroma_client, embed_model):
     _client = chroma_client
     _embed_model = embed_model
 
-
 def available() -> bool:
     return _client is not None and _embed_model is not None
-
-
-# ── Collection name helpers ───────────────────────────────────────────────────
 
 def _hash(user_id: str) -> str:
     import hashlib
     return hashlib.sha256(str(user_id).encode()).hexdigest()[:16]
 
-
 def _user_docs_name(user_id: str) -> str:
     return f"user_docs_{_hash(user_id)}"
-
 
 def _get_collection(name: str):
     return _client.get_or_create_collection(
         name=name,
         metadata={"hnsw:space": "cosine"},
     )
-
-
-# ── Document ingestion ────────────────────────────────────────────────────────
 
 def add_document_chunks(
     user_id: str,
@@ -205,7 +185,7 @@ def add_document_chunks(
     chunks: list[str],
     subject: str = "",
     grade_level: str = "",
-    scope: str = "private",          # "private" | "hs_shared"
+    scope: str = "private",
     source_url: str = "",
     source_name: str = "",
     license: str = "",
@@ -255,7 +235,6 @@ def add_document_chunks(
             documents.append(chunk)
             metadatas.append(meta)
 
-        # Batch writes to avoid memory spikes
         batch_size = 100
         for start in range(0, len(ids), batch_size):
             col.add(
@@ -275,9 +254,6 @@ def add_document_chunks(
             logger.warning(f"HS curriculum write failed for doc {doc_id}: {e}")
 
     return stored
-
-
-# ── Retrieval ─────────────────────────────────────────────────────────────────
 
 def search_context(
     query: str,
@@ -349,7 +325,6 @@ def search_context(
             metas = r.get("metadatas", [[]])[0]
             distances = r.get("distances", [[]])[0]
             if where and not docs:
-                # Fallback to unfiltered query if the filter is too restrictive
                 r = _do_query(None)
                 docs = r.get("documents", [[]])[0]
                 metas = r.get("metadatas", [[]])[0]
@@ -404,9 +379,6 @@ def search_context(
         cleaned.append({k: v for k, v in r.items() if not k.startswith("_")})
     return cleaned
 
-
-# ── Listing ───────────────────────────────────────────────────────────────────
-
 def list_user_docs(user_id: str) -> list[dict]:
     """
     List unique documents stored in user_docs_{hash}.
@@ -445,7 +417,6 @@ def list_user_docs(user_id: str) -> list[dict]:
         logger.warning(f"list_user_docs failed: {e}")
         return []
 
-
 def list_hs_subjects() -> list[dict]:
     """
     Return a deduplicated list of subjects present in the hs_curriculum collection.
@@ -479,9 +450,6 @@ def list_hs_subjects() -> list[dict]:
     except Exception as e:
         logger.warning(f"list_hs_subjects failed: {e}")
         return []
-
-
-# ── Deletion ──────────────────────────────────────────────────────────────────
 
 def delete_document(user_id: str, doc_id: str, is_admin: bool = False):
     """

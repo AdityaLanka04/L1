@@ -17,7 +17,6 @@ import './Dashboard.css';
 import { API_URL } from '../config';
 import logo from '../assets/logo.svg';
 
-// Default layout configuration (same as CustomizeDashboard)
 const DEFAULT_LAYOUT_WIDGETS = [
   { id: 'ai-tutor', col: 1, row: 1, cols: 1, rows: 3, color: null, size: 'M' },
   { id: 'learning-hub-grid', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'L' },
@@ -30,7 +29,6 @@ const DEFAULT_LAYOUT_WIDGETS = [
   { id: 'heatmap', col: 1, row: 6, cols: 4, rows: 2, color: null, size: 'L' }
 ];
 
-// Random greeting messages
 const GREETING_MESSAGES = [
   "Ready to Learn?",
   "Let's Get Started",
@@ -73,7 +71,7 @@ const Dashboard = () => {
     totalChatSessions: 0
   });
 
-  // Layout state - load from localStorage
+  
   const [dashboardLayout, setDashboardLayout] = useState(DEFAULT_LAYOUT_WIDGETS);
 
   const [heatmapData, setHeatmapData] = useState([]);
@@ -101,7 +99,6 @@ const Dashboard = () => {
   const [dailyBreakdown, setDailyBreakdown] = useState([]);
   const [weeklyStats, setWeeklyStats] = useState({});
   const [motivationalQuote, setMotivationalQuote] = useState('');
-  const [randomQuote, setRandomQuote] = useState('');
   const [achievements, setAchievements] = useState([]);
   const [learningAnalytics, setLearningAnalytics] = useState(null);
   const [conversationStarters, setConversationStarters] = useState([]);
@@ -143,19 +140,19 @@ const Dashboard = () => {
       } catch (error) {}
     }
 
-    // Load saved dashboard layout from localStorage
+    
     try {
-      const LAYOUT_VERSION = '2.1'; // Increment this to force layout reset
+      const LAYOUT_VERSION = '2.1'; 
       const savedVersion = localStorage.getItem('dashboardLayoutVersion');
       const layoutName = localStorage.getItem('currentLayoutName') || 'Default';
       
-      // Force reset to new layout if version changed
+      
       if (savedVersion !== LAYOUT_VERSION) {
         localStorage.setItem('dashboardLayoutVersion', LAYOUT_VERSION);
         localStorage.setItem('currentLayoutName', 'Default');
         setDashboardLayout(DEFAULT_LAYOUT_WIDGETS);
       }
-      // For Default layout, always use the hardcoded DEFAULT_LAYOUT_WIDGETS
+      
       else if (layoutName === 'Default') {
         setDashboardLayout(DEFAULT_LAYOUT_WIDGETS);
       } else {
@@ -203,7 +200,7 @@ const Dashboard = () => {
       const lastLoginDate = localStorage.getItem(`lastLoginDate_${userName}`);
       const isFirstLoginToday = lastLoginDate !== today;
       
-      // Check if study insights is enabled in user profile
+      
       const profile = localStorage.getItem('userProfile');
       let showStudyInsights = true;
       if (profile) {
@@ -217,21 +214,21 @@ const Dashboard = () => {
         localStorage.setItem(`lastLoginDate_${userName}`, today);
         sessionStorage.removeItem('justLoggedIn');
         
-        // Check if user just completed onboarding
+        
         const isFirstTimeUser = sessionStorage.getItem('isFirstTimeUser') === 'true';
         sessionStorage.removeItem('isFirstTimeUser');
         
-        // Get display name
+        
         const welcomeName = userProfile?.firstName || userProfile?.first_name || userName.split('@')[0];
         
-        // For returning users, fetch personalized welcome notification
+        
         if (!isFirstTimeUser && showStudyInsights) {
           fetchPersonalizedWelcome(welcomeName);
         } else if (!isFirstTimeUser && !showStudyInsights) {
-          // Show simple welcome without study insights - create in database
+          
           createWelcomeNotification(welcomeName, 'Welcome Back!', `Ready to continue learning, ${welcomeName}?`);
         } else {
-          // For first-time users, show simple welcome - create in database
+          
           createWelcomeNotification(welcomeName, 'Welcome!', `Let's get started with your learning journey, ${welcomeName}!`);
         }
       }
@@ -243,7 +240,7 @@ const Dashboard = () => {
     };
   }, [userName]);
 
-  // Click outside handler for notifications
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showNotifications) {
@@ -270,7 +267,7 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // First, create the notification in the database
+      
       const createResponse = await fetch(`${API_URL}/create_notification`, {
         method: 'POST',
         headers: { 
@@ -289,7 +286,7 @@ const Dashboard = () => {
         const createData = await createResponse.json();
         console.log('✅ Welcome notification created in DB:', createData);
         
-        // Now fetch study insights if available
+        
         const insightsResponse = await fetch(`${API_URL}/study_insights/welcome_notification?user_id=${userName}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -299,7 +296,7 @@ const Dashboard = () => {
           const notifData = insightsData.notification;
           
           if (notifData.has_insights) {
-            // Update the notification with insights
+            
             await fetch(`${API_URL}/create_notification`, {
               method: 'POST',
               headers: { 
@@ -316,14 +313,14 @@ const Dashboard = () => {
           }
         }
         
-        // Trigger a notification poll to show the new notification
+        
         setTimeout(() => {
           refreshNotifications();
         }, 1000);
       }
     } catch (error) {
       console.error('❌ Error creating welcome notification:', error);
-      // Fallback: create simple notification
+      
       createWelcomeNotification(displayName, 'Welcome Back!', `Ready to continue learning, ${displayName}?`);
     }
   };
@@ -347,7 +344,7 @@ const Dashboard = () => {
       
       if (response.ok) {
         console.log('✅ Welcome notification created');
-        // Trigger notification poll
+        
         setTimeout(() => {
           refreshNotifications();
         }, 1000);
@@ -421,7 +418,7 @@ const Dashboard = () => {
           weeklyStudyMinutes
         }));
         
-        // Extract weekly progress for graph
+        
         const progressData = history.map(day => day.ai_chats + day.flashcards + day.notes);
         setWeeklyProgress(progressData.length === 7 ? progressData : [0, 0, 0, 0, 0, 0, 0]);
       }
@@ -450,7 +447,6 @@ const Dashboard = () => {
         
         setRecentActivities(data.recent_activities || []);
         setMotivationalQuote(data.motivational_quote || 'Keep learning every day!');
-        setRandomQuote(data.random_quote || 'Every expert was once a beginner.');
         setAchievements(data.achievements || []);
         setLearningAnalytics(data.learning_analytics || null);
         setConversationStarters(data.conversation_starters || []);
@@ -609,7 +605,7 @@ const Dashboard = () => {
     return num.toString();
   };
 
-  // Heatmap helper functions
+  
   const getActivityColor = (level, customColor = null) => {
     const colorToUse = customColor || selectedTheme?.tokens?.['--accent'] || '#D7B38C';
     switch (level) {
@@ -712,12 +708,12 @@ const Dashboard = () => {
   const openProfile = () => navigate('/profile');
   const navigateToCustomize = () => navigate('/customize-dashboard');
 
-  // Helper to get widget config from layout
+  
   const getWidgetConfig = (widgetId) => {
     return dashboardLayout.find(w => w.id === widgetId) || null;
   };
 
-  // Helper to get widget style
+  
   const getWidgetStyle = (widgetId) => {
     const config = getWidgetConfig(widgetId);
     if (!config) return {};
@@ -727,13 +723,13 @@ const Dashboard = () => {
     };
   };
 
-  // Helper to get widget color
+  
   const getWidgetColor = (widgetId) => {
     const config = getWidgetConfig(widgetId);
     return config?.color || accent;
   };
 
-  // Helper to check if widget is small (1 row)
+  
   const isWidgetSmall = (widgetId) => {
     const config = getWidgetConfig(widgetId);
     return config?.rows === 1;
@@ -799,7 +795,6 @@ const Dashboard = () => {
               
               {showNotifications && (
                 <>
-                  {/* Backdrop blur overlay */}
                   <div 
                     className="ds-notif-backdrop" 
                     onClick={() => setShowNotifications(false)}
@@ -1017,7 +1012,7 @@ const Dashboard = () => {
                   const maxRounded = Math.ceil(maxValue / 10) * 10;
                   const streakColor = getWidgetColor('streak');
                   
-                  // Generate day labels based on current timezone
+                  
                   const getDayLabels = () => {
                     const today = new Date();
                     const dayLabels = [];
@@ -1025,7 +1020,7 @@ const Dashboard = () => {
                       const date = new Date(today);
                       date.setDate(today.getDate() - i);
                       const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-                      // Use 'Th' for Thursday, first letter for others
+                      
                       if (dayName === 'Thu') {
                         dayLabels.push('Th');
                       } else {
@@ -1037,7 +1032,7 @@ const Dashboard = () => {
                   
                   const dayLabels = getDayLabels();
                   
-                  // Center the graph by adjusting starting position
+                  
                   const startX = 30;
                   const spacing = 37;
                   

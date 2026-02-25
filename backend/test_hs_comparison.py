@@ -20,7 +20,6 @@ import textwrap
 import time
 from typing import Any, Optional, Union
 
-# Force UTF-8 on Windows console
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -29,9 +28,6 @@ import requests
 BASE_URL = "http://localhost:8000"
 DIVIDER = "=" * 80
 HALF_DIV = "-" * 80
-
-
-# ─── helpers ─────────────────────────────────────────────────────────────────
 
 def _post(path: str, data: Optional[dict] = None, files: Optional[dict] = None) -> Union[dict, list]:
     url = f"{BASE_URL}{path}"
@@ -50,7 +46,6 @@ def _post(path: str, data: Optional[dict] = None, files: Optional[dict] = None) 
         print(f"\n[ERROR] HTTP {e.response.status_code}: {e.response.text[:300]}")
         sys.exit(1)
 
-
 def _get(path: str, params: Optional[dict] = None) -> Union[dict, list]:
     url = f"{BASE_URL}{path}"
     try:
@@ -61,24 +56,18 @@ def _get(path: str, params: Optional[dict] = None) -> Union[dict, list]:
         print(f"\n[ERROR] Cannot connect to {BASE_URL}.")
         sys.exit(1)
 
-
 def _wrap(text: str, width: int = 76, indent: int = 4) -> str:
     return textwrap.fill(text, width=width, initial_indent=" " * indent, subsequent_indent=" " * indent)
-
 
 def _banner(label: str, prefix: str = ">>"):
     print(f"\n{DIVIDER}")
     print(f"  {prefix}  {label}")
     print(DIVIDER)
 
-
 def _section(label: str):
     print(f"\n{HALF_DIV}")
     print(f"  {label}")
     print(HALF_DIV)
-
-
-# ─── RAG search sanity check ──────────────────────────────────────────────────
 
 def check_rag(topic: str, user_id: str, token: str):
     """Hit /api/context/search directly so we can see raw RAG results."""
@@ -106,9 +95,6 @@ def check_rag(topic: str, user_id: str, token: str):
     except Exception as e:
         print(f"  RAG search failed: {e}")
 
-
-# ─── Login helper ──────────────────────────────────────────────────────────
-
 def login(user: str, password: str) -> str:
     """Returns JWT token."""
     print(f"\n  Logging in as {user}...")
@@ -126,9 +112,6 @@ def login(user: str, password: str) -> str:
         print("  Continuing without token — /api/context/search will be skipped")
         return ""
 
-
-# ─── Quiz comparison ──────────────────────────────────────────────────────────
-
 def compare_quiz(topic: str, user_id: str, token: str):
     _banner("QUIZ COMPARISON", "[QUIZ]")
     print(f"  Topic   : {topic}")
@@ -144,7 +127,6 @@ def compare_quiz(topic: str, user_id: str, token: str):
         "use_hs_context": False,
     }
 
-    # ── WITHOUT HS ────────────────────────────────────────────────────────
     _section("WITHOUT HS Mode  (use_hs_context=False — model knowledge only)")
     print("  Sending request...", flush=True)
     t0 = time.time()
@@ -163,7 +145,6 @@ def compare_quiz(topic: str, user_id: str, token: str):
             print(f"      {marker} {opt.get('text', opt)}")
         print()
 
-    # ── WITH HS ───────────────────────────────────────────────────────────
     _section("WITH HS Mode  (use_hs_context=True — curriculum RAG injected)")
     payload_hs = {**payload_base, "use_hs_context": True}
     print("  Sending request...", flush=True)
@@ -183,9 +164,6 @@ def compare_quiz(topic: str, user_id: str, token: str):
             print(f"      {marker} {opt.get('text', opt)}")
         print()
 
-
-# ─── Flashcard comparison ────────────────────────────────────────────────────
-
 def compare_flashcards(topic: str, user_id: str, token: str):
     _banner("FLASHCARD COMPARISON", "[FLASH]")
     print(f"  Topic   : {topic}")
@@ -203,7 +181,6 @@ def compare_flashcards(topic: str, user_id: str, token: str):
             "use_hs_context": str(use_hs).lower(),
         }
 
-    # ── WITHOUT HS ────────────────────────────────────────────────────────
     _section("WITHOUT HS Mode  (use_hs_context=false — model knowledge only)")
     print("  Sending request...", flush=True)
     t0 = time.time()
@@ -221,7 +198,6 @@ def compare_flashcards(topic: str, user_id: str, token: str):
         print(f"       A: {a[:180]}")
         print()
 
-    # ── WITH HS ───────────────────────────────────────────────────────────
     _section("WITH HS Mode  (use_hs_context=true — curriculum RAG injected)")
     print("  Sending request...", flush=True)
     t0 = time.time()
@@ -239,9 +215,6 @@ def compare_flashcards(topic: str, user_id: str, token: str):
         print(f"       A: {a[:180]}")
         print()
 
-
-# ─── Notes comparison ────────────────────────────────────────────────────────
-
 def compare_notes(topic: str, user_id: str, token: str):
     _banner("NOTES COMPARISON", "[NOTE]")
     print(f"  Topic   : {topic}")
@@ -257,7 +230,6 @@ def compare_notes(topic: str, user_id: str, token: str):
             "use_hs_context": use_hs,
         }
 
-    # ── WITHOUT HS ────────────────────────────────────────────────────────
     _section("WITHOUT HS Mode  (use_hs_context=False — model knowledge only)")
     print("  Sending request...", flush=True)
     t0 = time.time()
@@ -268,7 +240,6 @@ def compare_notes(topic: str, user_id: str, token: str):
     print(f"\n  Note preview (first 800 chars):\n")
     print(_wrap(content_no_hs[:800], width=76, indent=4))
 
-    # ── WITH HS ───────────────────────────────────────────────────────────
     _section("WITH HS Mode  (use_hs_context=True — curriculum RAG injected)")
     payload_hs = _make_payload(True)
     print("  Sending request...", flush=True)
@@ -279,9 +250,6 @@ def compare_notes(topic: str, user_id: str, token: str):
     content_hs = res_hs.get("content", res_hs.get("note", {}).get("content", ""))
     print(f"\n  Note preview (first 800 chars):\n")
     print(_wrap(content_hs[:800], width=76, indent=4))
-
-
-# ─── Direct RAG-only test (no auth needed) ───────────────────────────────────
 
 def quick_rag_test(topic: str):
     """Test context_store directly without hitting the API — just embedding search."""
@@ -327,9 +295,6 @@ def quick_rag_test(topic: str):
         import traceback
         traceback.print_exc()
 
-
-# ─── main ─────────────────────────────────────────────────────────────────────
-
 def main():
     parser = argparse.ArgumentParser(description="Compare AI output with/without HS Mode")
     parser.add_argument("--topic",    default="photosynthesis",  help="Biology topic to test (default: photosynthesis)")
@@ -349,10 +314,8 @@ def main():
     print(f"  Topic: '{topic}'  |  Mode: {args.mode}")
     print(f"{'#'*80}")
 
-    # Always run the direct RAG test first — no server needed
     quick_rag_test(topic)
 
-    # Try to get a token for the /api/context/search endpoint
     if args.mode in ("all", "rag"):
         token = login(user_id, args.password)
         if token:
@@ -367,13 +330,11 @@ def main():
     if args.mode in ("all", "notes"):
         compare_notes(topic, user_id, token)
 
-
     print(f"\n{'#'*80}")
     print(f"  TEST COMPLETE")
     print(f"  Check your uvicorn terminal for the [*_RAG] and [*_PROMPT] log lines.")
     print(f"  Lines with '*** HS CONTEXT FOUND ***' confirm RAG is working.")
     print(f"{'#'*80}\n")
-
 
 if __name__ == "__main__":
     main()

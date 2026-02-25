@@ -1,17 +1,11 @@
-/**
- * RAG (Retrieval-Augmented Generation) Service
- * Frontend service for interacting with the Advanced RAG System
- * Provides semantic search, context retrieval, and learning context
- */
+
 
 import { API_URL } from '../config';
 
 const API_BASE_URL = API_URL;
 
 class RAGService {
-  /**
-   * Search across user's content with advanced RAG
-   */
+  
   async search(query, options = {}) {
     const token = localStorage.getItem('token');
     
@@ -38,9 +32,7 @@ class RAGService {
     return await response.json();
   }
 
-  /**
-   * Get formatted context string for a query
-   */
+  
   async getContext(query, maxLength = 2000) {
     const token = localStorage.getItem('token');
     
@@ -61,9 +53,7 @@ class RAGService {
     return await response.json();
   }
 
-  /**
-   * Get comprehensive learning context
-   */
+  
   async getLearningContext(query) {
     const token = localStorage.getItem('token');
     
@@ -84,9 +74,7 @@ class RAGService {
     return await response.json();
   }
 
-  /**
-   * Index user content for retrieval
-   */
+  
   async indexContent(contentType, items) {
     const token = localStorage.getItem('token');
     
@@ -109,9 +97,7 @@ class RAGService {
     return await response.json();
   }
 
-  /**
-   * Get RAG system statistics
-   */
+  
   async getStats() {
     const token = localStorage.getItem('token');
     
@@ -129,9 +115,7 @@ class RAGService {
     return await response.json();
   }
 
-  /**
-   * Clear RAG result cache
-   */
+  
   async clearCache() {
     const token = localStorage.getItem('token');
     
@@ -149,9 +133,7 @@ class RAGService {
     return await response.json();
   }
 
-  /**
-   * Get available search modes
-   */
+  
   async getSearchModes() {
     const token = localStorage.getItem('token');
     
@@ -169,11 +151,9 @@ class RAGService {
     return await response.json();
   }
 
-  // ==================== User-Specific RAG ====================
+  
 
-  /**
-   * Index content for a specific user
-   */
+  
   async indexUserContent(userId, contentType, items) {
     const token = localStorage.getItem('token');
     
@@ -197,9 +177,7 @@ class RAGService {
     return await response.json();
   }
 
-  /**
-   * Retrieve from user's personal RAG
-   */
+  
   async retrieveUserContent(userId, query, options = {}) {
     const token = localStorage.getItem('token');
     
@@ -224,9 +202,7 @@ class RAGService {
     return await response.json();
   }
 
-  /**
-   * Submit feedback on retrieved content
-   */
+  
   async submitFeedback(userId, query, retrievedItems, feedback) {
     const token = localStorage.getItem('token');
     
@@ -254,9 +230,7 @@ class RAGService {
     return await response.json();
   }
 
-  /**
-   * Auto-index user's recent activity
-   */
+  
   async autoIndexUserActivity(userId) {
     const token = localStorage.getItem('token');
     
@@ -274,9 +248,7 @@ class RAGService {
     return await response.json();
   }
 
-  /**
-   * Get user RAG statistics
-   */
+  
   async getUserStats(userId) {
     const token = localStorage.getItem('token');
     

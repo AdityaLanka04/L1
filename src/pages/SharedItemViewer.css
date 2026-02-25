@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== FORCE BOXY DESIGN ==================== */
 .shared-viewer-page *,
 .shared-viewer-page *::before,
 .shared-viewer-page *::after,
@@ -242,7 +241,6 @@
   padding: 32px;
 }
 
-/* Chat Messages */
 .chat-messages {
   display: flex;
   flex-direction: column;
@@ -324,7 +322,6 @@
   font-size: 16px;
 }
 
-/* Note Content */
 .note-content {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -395,7 +392,6 @@
   margin: 16px 0;
 }
 
-/* Edit Controls */
 .edit-controls {
   display: flex;
   flex-direction: column;
@@ -476,7 +472,6 @@
   transform: translateY(-2px);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .shared-viewer-container {
     padding: 20px 16px;

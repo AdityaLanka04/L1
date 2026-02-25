@@ -20,7 +20,7 @@ const LearningPaths = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('recent');
   
-  // Create form state
+  
   const [topicPrompt, setTopicPrompt] = useState('');
   const [difficulty, setDifficulty] = useState('intermediate');
   const [length, setLength] = useState('medium');
@@ -29,19 +29,19 @@ const LearningPaths = () => {
   useEffect(() => {
     loadPaths();
     
-    // Check if we should auto-generate from SearchHub
+    
     if (location.state?.autoGenerate && location.state?.topic) {
       setTopicPrompt(location.state.topic);
       setDifficulty(location.state.difficulty || 'intermediate');
       setLength(location.state.length || 'medium');
       setShowCreateModal(true);
       
-      // Auto-trigger generation after a brief delay
+      
       setTimeout(() => {
         handleCreatePath();
       }, 500);
       
-      // Clear the state to prevent re-triggering
+      
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -140,7 +140,7 @@ const LearningPaths = () => {
         setGoals('');
         await loadPaths();
         
-        // Navigate to the new path
+        
         navigate(`/learning-paths/${response.path_id}`);
       }
     } catch (error) {
@@ -197,7 +197,6 @@ const LearningPaths = () => {
 
   return (
     <div className="lp-container">
-      {/* Header */}
       <header className="lp-header">
         <div className="lp-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -217,9 +216,7 @@ const LearningPaths = () => {
         </div>
       </header>
 
-      {/* Body with Sidebar */}
       <div className="lp-layout-body">
-        {/* Sidebar */}
         <aside className="lp-sidebar">
           <div className="lp-sidebar-section">
             <h3 className="lp-sidebar-heading">Browse</h3>
@@ -258,7 +255,6 @@ const LearningPaths = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="lp-main">
           <section className="lp-toolbar">
             <div className="lp-toolbar-left">
@@ -299,7 +295,6 @@ const LearningPaths = () => {
           </section>
 
           <div className="lp-content">
-            {/* Paths Grid */}
             {filteredPaths.length === 0 ? (
               <div className="lp-empty-state">
                 <div className="lp-empty-icon">
@@ -365,7 +360,6 @@ const LearningPaths = () => {
                           </div>
                         </div>
 
-                        {/* Progress Bar */}
                         <div className="lp-path-progress">
                           <div className="lp-progress-bar">
                             <div
@@ -391,7 +385,6 @@ const LearningPaths = () => {
         </main>
       </div>
 
-      {/* Create Modal */}
       {showCreateModal && (
         <div className="lp-modal-overlay" onClick={() => !generating && setShowCreateModal(false)}>
           <div className="lp-modal" onClick={(e) => e.stopPropagation()}>

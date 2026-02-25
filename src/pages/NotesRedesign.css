@@ -1,14 +1,12 @@
-/* NotesRedesign Page - Flashcards-Style Layout */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== REMOVE BOXY DESIGN - USE ROUNDED LIKE MYNOTES ==================== */
 .notes-redesign *,
 .notes-redesign *::before,
 .notes-redesign *::after {
-  /* Allow natural border-radius */
+  
 }
 
-/* Base CSS Variables - Required for theme support */
 :root {
   --bg-top: var(--bg-primary);
   --bg-bottom: var(--bg-secondary);
@@ -27,7 +25,6 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
-/* CSS Variables - Matching MyNotes Exactly */
 .notes-redesign {
   --nr-bg-primary: var(--bg-primary);
   --nr-bg-secondary: var(--bg-secondary);
@@ -60,7 +57,6 @@
   --selection-bg: rgba(215, 179, 140, 0.3);
 }
 
-/* Reset and Base */
 .notes-redesign {
   position: fixed !important;
   top: 0 !important;
@@ -86,14 +82,12 @@
   padding: 0;
 }
 
-/* Body - Contains Sidebar and Main */
 .nr-body {
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
-/* ==================== SIDEBAR - Matching MyNotes nt-sidebar ==================== */
 .tools-sidepanel {
   width: var(--nr-sidebar-width);
   height: 100%;
@@ -108,7 +102,6 @@
   padding-top: 16px;
 }
 
-/* Sidebar Text Colors - Exact MyNotes */
 [data-theme-mode="dark"] .tools-sidepanel {
   background: var(--bg-secondary) !important;
   color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
@@ -143,7 +136,6 @@
   border-right: none !important;
 }
 
-/* Floating button to show sidebar when collapsed */
 .nr-show-sidebar-btn {
   position: fixed !important;
   top: calc(var(--nr-header-height) + 28px) !important;
@@ -207,7 +199,6 @@
   color: var(--nr-accent);
 }
 
-/* Sidebar Nav - Matching Flashcards fc-sidebar-nav */
 .tools-panel-content {
   flex: 1;
   padding: 16px 12px;
@@ -276,7 +267,6 @@
   text-overflow: ellipsis;
 }
 
-/* Enhanced Nav Items - Exact MyNotes */
 .tool-panel-btn::before {
   content: '';
   position: absolute;
@@ -323,7 +313,6 @@
   padding: 12px;
 }
 
-/* Convert button style - Enhanced with gradient and animations */
 .notes-redesign .tool-panel-btn.convert-btn {
   background: linear-gradient(135deg, var(--nr-accent), var(--nr-accent-dark));
   font-weight: 600;
@@ -333,7 +322,6 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Shimmer effect on convert button */
 .notes-redesign .tool-panel-btn.convert-btn::after {
   content: '';
   position: absolute;
@@ -375,7 +363,6 @@
   box-shadow: 0 2px 8px color-mix(in srgb, var(--nr-accent) 30%, transparent);
 }
 
-/* Note Stats in Sidebar */
 .note-stats {
   display: flex;
   flex-direction: column;
@@ -403,7 +390,6 @@
   font-weight: 600;
 }
 
-/* ==================== MAIN CONTENT AREA - Matching Flashcards fc-main ==================== */
 .editor-area-new {
   flex: 1;
   display: flex;
@@ -413,7 +399,6 @@
   background: var(--nr-bg-primary);
 }
 
-/* ==================== HEADER - Matching MyNotes mn-header Exactly ==================== */
 .top-nav-new {
   height: var(--nr-header-height);
   min-height: var(--nr-header-height);
@@ -457,7 +442,6 @@
   color: var(--nr-accent);
 }
 
-/* Nav Title - Matching MyNotes mn-header-title Exactly */
 .nav-title {
   display: flex;
   align-items: center;
@@ -467,7 +451,6 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Header Title - Exact MyNotes Style */
 .nr-header-title {
   font-size: 24px;
   font-weight: 800;
@@ -483,14 +466,12 @@
   text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-/* Header Divider - Exact MyNotes Style */
 .nr-header-divider {
   width: 1px;
   height: 20px;
   background: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* Header Subtitle - Exact MyNotes Style */
 .nr-header-subtitle {
   font-size: 11px;
   font-weight: 600;
@@ -579,7 +560,6 @@
   color: var(--nr-text-muted);
 }
 
-/* Nav Actions - Matching MyNotes mn-header-right Exactly */
 .nav-actions-new {
   display: flex;
   align-items: center;
@@ -616,7 +596,6 @@
   height: 14px !important;
 }
 
-/* Ghost Nav Button - Exact MyNotes Style */
 .nr-nav-btn-ghost {
   background: transparent;
   border: none;
@@ -662,12 +641,10 @@
   transition: all 0.2s;
 }
 
-/* Dark mode - black text on accent button */
 [data-theme-mode="dark"] .logout-btn-new {
   color: #000000 !important;
 }
 
-/* Light mode - white text on accent button */
 [data-theme-mode="light"] .logout-btn-new {
   color: #ffffff !important;
 }
@@ -677,7 +654,6 @@
   box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
 }
 
-/* ==================== EDITOR CONTENT - Matching Flashcards fc-content ==================== */
 .editor-with-sidepanel {
   display: flex;
   flex: 1;
@@ -687,12 +663,10 @@
   background: #ffffff !important;
 }
 
-/* When editor content has dark-mode, apply dark background to parent */
 .editor-with-sidepanel:has(.editor-content.dark-mode) {
   background: #1a1a1a !important;
 }
 
-/* Force light background even when global theme is dark */
 [data-theme-mode="dark"] .editor-with-sidepanel:has(.editor-content:not(.dark-mode)) {
   background: #ffffff !important;
 }
@@ -706,7 +680,6 @@
   color: var(--bg-primary) !important;
 }
 
-/* Light mode - ensure white background everywhere */
 .editor-content:not(.dark-mode) {
   background: #ffffff !important;
 }
@@ -716,7 +689,6 @@
   color: #ffffff !important;
 }
 
-/* Title Section */
 .title-section {
   padding: 0 0 20px;
   margin-bottom: 20px;
@@ -727,7 +699,6 @@
   display: none;
 }
 
-/* When sidebar is closed, add left padding to avoid collision with floating menu button */
 .editor-content.sidebar-closed .title-section {
   padding-left: 70px !important;
 }
@@ -803,7 +774,6 @@
   transform: rotate(180deg);
 }
 
-/* Floating Expand Button */
 .floating-expand-btn {
   position: absolute;
   top: 10px;
@@ -826,7 +796,6 @@
   transform: rotate(180deg);
 }
 
-/* Light mode - dark button */
 .floating-expand-btn.light {
   background: var(--bg-primary);
   color: #ffffff;
@@ -839,7 +808,6 @@
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
-/* Dark mode - white button */
 .floating-expand-btn.dark {
   background: #ffffff;
   color: var(--bg-primary);
@@ -852,7 +820,6 @@
   box-shadow: 0 6px 16px rgba(255, 255, 255, 0.3);
 }
 
-/* ==================== FORMATTING TOOLBAR ==================== */
 .formatting-toolbar-wrapper {
   position: sticky;
   top: 0;
@@ -863,7 +830,6 @@
   margin-bottom: 20px;
 }
 
-/* Dark mode formatting toolbar wrapper */
 .editor-content.dark-mode .formatting-toolbar-wrapper {
   background: #1a1a1a;
   border-color: rgba(255, 255, 255, 0.1);
@@ -880,7 +846,6 @@
   padding: 8px 0 !important;
 }
 
-/* Fix for toolbar button icon clipping */
 .formatting-toolbar .toolbar-btn {
   display: inline-flex !important;
   align-items: center !important;
@@ -935,7 +900,6 @@
   color: var(--bg-primary);
 }
 
-/* Dark mode formatting toolbar */
 .editor-content.dark-mode .format-btn {
   background: #2a2a2a;
   border-color: rgba(255, 255, 255, 0.15);
@@ -975,7 +939,6 @@
   margin: 0 8px;
 }
 
-/* ==================== BLOCK EDITOR ==================== */
 .block-editor-wrapper {
   flex: 1;
   display: flex;
@@ -1021,7 +984,6 @@
   color: #ffffff !important;
 }
 
-/* Light mode block wrapper - explicit white background context */
 .block-editor-container:not(.dark-mode) .block-wrapper {
   margin-bottom: 4px;
   padding: 8px 12px;
@@ -1040,7 +1002,6 @@
   box-shadow: inset 3px 0 0 rgba(241, 178, 108, 0.45);
 }
 
-/* Dark mode block wrapper */
 .block-editor-container.dark-mode .block-wrapper {
   margin-bottom: 4px;
   padding: 8px 12px;
@@ -1059,7 +1020,6 @@
   box-shadow: inset 3px 0 0 rgba(241, 178, 108, 0.35);
 }
 
-/* Light mode block content */
 .block-editor-container:not(.dark-mode) .block-content {
   min-height: 1.5em;
   outline: none;
@@ -1075,7 +1035,6 @@
   pointer-events: none;
 }
 
-/* Dark mode block content */
 .block-editor-container.dark-mode .block-content {
   min-height: 1.5em;
   outline: none;
@@ -1091,21 +1050,18 @@
   pointer-events: none;
 }
 
-/* Headings in light mode */
 .block-editor-container:not(.dark-mode) .block-content.block-heading1,
 .block-editor-container:not(.dark-mode) .block-content.block-heading2,
 .block-editor-container:not(.dark-mode) .block-content.block-heading3 {
   color: var(--nr-text-primary) !important;
 }
 
-/* Headings in dark mode */
 .block-editor-container.dark-mode .block-content.block-heading1,
 .block-editor-container.dark-mode .block-content.block-heading2,
 .block-editor-container.dark-mode .block-content.block-heading3 {
   color: #ffffff !important;
 }
 
-/* AI Floating Button */
 .ai-floating-button {
   animation: fadeInUp 0.2s ease;
 }
@@ -1134,7 +1090,6 @@
   transition: all 0.2s ease;
 }
 
-/* Light mode - black background, white text */
 .ai-assist-btn.light {
   background: var(--bg-primary);
   color: #ffffff;
@@ -1147,7 +1102,6 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
-/* Dark mode - white background, black text */
 .ai-assist-btn.dark {
   background: #ffffff;
   color: var(--bg-primary);
@@ -1160,7 +1114,6 @@
   box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
 }
 
-/* ==================== QUILL EDITOR ==================== */
 .quill-container {
   flex: 1;
   display: flex;
@@ -1250,7 +1203,6 @@
   font-style: italic;
 }
 
-/* ==================== FOOTER ==================== */
 .note-footer {
   padding: 12px 32px;
   border-top: 1px solid var(--nr-border-subtle);
@@ -1301,7 +1253,6 @@
   font-weight: 500;
 }
 
-/* ==================== EMPTY STATE ==================== */
 .empty-state-new {
   flex: 1;
   display: flex;
@@ -1360,7 +1311,6 @@
   box-shadow: 0 6px 16px rgba(215, 179, 140, 0.3);
 }
 
-/* ==================== MODALS & OVERLAYS ==================== */
 .ai-overlay {
   position: fixed;
   top: 0;
@@ -1488,7 +1438,6 @@
   cursor: not-allowed;
 }
 
-/* Form Elements */
 .ai-text-input,
 .folder-name-input {
   width: 100%;
@@ -1535,7 +1484,6 @@
   color: var(--nr-text-primary);
 }
 
-/* Voice Recording */
 .voice-to-text-container {
   display: flex;
   flex-direction: column;
@@ -1607,7 +1555,6 @@
   margin: 0;
 }
 
-/* Modal Actions */
 .ai-assistant-actions,
 .folder-modal-actions,
 .modal-footer-new {
@@ -1677,7 +1624,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* Color Picker */
 .color-picker-section {
   margin-top: 16px;
 }
@@ -1714,7 +1660,6 @@
   box-shadow: 0 0 0 2px var(--nr-bg-primary);
 }
 
-/* ==================== CHAT IMPORT MODAL ==================== */
 .chat-import-overlay {
   position: fixed;
   top: 0;
@@ -1827,7 +1772,6 @@
   color: var(--nr-text-primary);
 }
 
-/* Sessions List */
 .sessions-list-new {
   max-height: 250px;
   overflow-y: auto;
@@ -1884,7 +1828,6 @@
   color: var(--nr-text-muted);
 }
 
-/* ==================== AI DROPDOWN ==================== */
 .ai-dropdown-new {
   background: var(--nr-bg-secondary);
   border: 1px solid var(--nr-border-subtle);
@@ -1950,7 +1893,6 @@
   gap: 8px;
 }
 
-/* ==================== RECENTLY VIEWED MODAL ==================== */
 .recently-viewed-modal {
   position: fixed;
   top: 50%;
@@ -1967,7 +1909,6 @@
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
-/* ==================== EXIT PREVIEW BUTTON ==================== */
 .exit-preview-btn {
   display: flex;
   align-items: center;
@@ -1989,7 +1930,6 @@
   color: var(--nr-accent);
 }
 
-/* ==================== FULLSCREEN MODE ==================== */
 .notes-redesign.fullscreen-mode .tools-sidepanel {
   display: none;
 }
@@ -2002,12 +1942,10 @@
   padding: 40px;
 }
 
-/* ==================== PREVIEW MODE ==================== */
 .notes-redesign.preview-mode .block-editor-container {
   background: var(--nr-bg-primary);
 }
 
-/* ==================== SCROLLBAR STYLING ==================== */
 .tools-panel-content::-webkit-scrollbar,
 .editor-content::-webkit-scrollbar,
 .sessions-list-new::-webkit-scrollbar,
@@ -2041,7 +1979,6 @@
   background: var(--nr-accent);
 }
 
-/* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1024px) {
   .tools-sidepanel {
     width: var(--nr-sidebar-collapsed);
@@ -2101,7 +2038,6 @@
   }
 }
 
-/* ==================== LOADING STATE ==================== */
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -2125,8 +2061,6 @@
   color: var(--nr-text-muted);
 }
 
-/* ==================== DARK MODE SPECIFIC ==================== */
-/* Dark mode via class */
 .block-editor-container.dark-mode {
   background: #1a1a1a !important;
   color: #ffffff !important;
@@ -2147,7 +2081,6 @@
   border-left-color: var(--nr-accent) !important;
 }
 
-/* Editor Light Mode - Override global dark theme when editor is in light mode */
 .block-editor-container:not(.dark-mode) {
   background: #ffffff !important;
   color: var(--bg-primary) !important;
@@ -2158,7 +2091,6 @@
   color: var(--bg-primary) !important;
 }
 
-/* Force light mode even when global theme is dark */
 [data-theme-mode="dark"] .block-editor-container:not(.dark-mode) {
   background: #ffffff !important;
   color: var(--bg-primary) !important;
@@ -2182,7 +2114,6 @@
   color: var(--bg-primary) !important;
 }
 
-/* Formatting toolbar - Force light mode when global theme is dark but editor is light */
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) .format-btn {
   background: #ffffff !important;
   border-color: rgba(0, 0, 0, 0.15) !important;
@@ -2205,7 +2136,6 @@
   border-color: rgba(0, 0, 0, 0.1) !important;
 }
 
-/* Title input - Light mode (black text) */
 .editor-content:not(.dark-mode) .title-input-new {
   color: var(--bg-primary) !important;
 }
@@ -2214,12 +2144,10 @@
   color: var(--bg-primary) !important;
 }
 
-/* Title input - Dark mode (white text) */
 .editor-content.dark-mode .title-input-new {
   color: #ffffff !important;
 }
 
-/* Placeholder text - Light mode */
 .editor-content:not(.dark-mode) .block-content:empty:before,
 .editor-content:not(.dark-mode) .block-content[data-placeholder]:empty:before {
   color: #999999 !important;
@@ -2230,13 +2158,11 @@
   color: #999999 !important;
 }
 
-/* Placeholder text - Dark mode */
 .editor-content.dark-mode .block-content:empty:before,
 .editor-content.dark-mode .block-content[data-placeholder]:empty:before {
   color: rgba(255, 255, 255, 0.4) !important;
 }
 
-/* Block controls (drag handle, plus, menu icons) - Light mode (black/gray) */
 .editor-content:not(.dark-mode) .block-controls {
   background: rgba(255, 255, 255, 0.98) !important;
   border-color: rgba(0, 0, 0, 0.1) !important;
@@ -2265,7 +2191,6 @@
   background: rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Block controls - Dark mode (white/gray) */
 .editor-content.dark-mode .block-controls {
   background: rgba(40, 40, 40, 0.95) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
@@ -2280,7 +2205,6 @@
   background: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Headings - Light mode */
 .editor-content:not(.dark-mode) .block-content.block-heading1,
 .editor-content:not(.dark-mode) .block-content.block-heading2,
 .editor-content:not(.dark-mode) .block-content.block-heading3,
@@ -2299,7 +2223,6 @@
   color: var(--bg-primary) !important;
 }
 
-/* Headings - Dark mode */
 .editor-content.dark-mode .block-content.block-heading1,
 .editor-content.dark-mode .block-content.block-heading2,
 .editor-content.dark-mode .block-content.block-heading3,
@@ -2309,7 +2232,6 @@
   color: #ffffff !important;
 }
 
-/* Editor Dark Mode - Apply dark styles when editor toggle is dark */
 .block-editor-container.dark-mode {
   background: #1a1a1a !important;
   color: #ffffff !important;
@@ -2337,7 +2259,6 @@
   color: #ffffff !important;
 }
 
-/* ==================== QUILL ADDITIONAL STYLES ==================== */
 .quill-editor-enhanced .ql-editor p {
   margin: 12px 0;
   line-height: 1.8;
@@ -2422,7 +2343,6 @@
   font-weight: 600;
 }
 
-/* Quill Tooltip */
 .ql-snow .ql-tooltip {
   background: var(--nr-bg-secondary) !important;
   border: 1px solid var(--nr-border-subtle) !important;
@@ -2451,7 +2371,6 @@
   color: var(--nr-accent) !important;
 }
 
-/* ==================== KATEX FORMULA STYLING ==================== */
 .katex {
   font-size: 1.1em !important;
 }
@@ -2465,8 +2384,6 @@
   overflow-x: auto !important;
 }
 
-/* ==================== SELECTION STYLING ==================== */
-/* Light mode selection - black highlight with white text */
 .quill-editor-enhanced .ql-editor ::selection,
 .block-editor-container ::selection,
 .block-editor-container:not(.dark-mode) ::selection,
@@ -2491,7 +2408,6 @@ h1.note-title ::-moz-selection,
   color: #ffffff !important;
 }
 
-/* Dark mode selection - white highlight with dark text */
 .block-editor-container.dark-mode ::selection,
 .block-editor-container.dark-mode *::selection,
 .dark-mode .note-title-input ::selection,
@@ -2526,7 +2442,6 @@ h1.note-title ::-moz-selection,
   -webkit-text-fill-color: #000000 !important;
 }
 
-/* ==================== AI BUTTON FLOATING ==================== */
 .ai-button-icon {
   display: inline-block;
   width: 16px;
@@ -2539,7 +2454,6 @@ h1.note-title ::-moz-selection,
   font-weight: 600;
 }
 
-/* ==================== NOTES GRID (if used) ==================== */
 .notes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -2592,7 +2506,6 @@ h1.note-title ::-moz-selection,
   color: var(--nr-text-muted);
 }
 
-/* ==================== FOLDER ITEMS ==================== */
 .folder-item {
   display: flex;
   align-items: center;
@@ -2643,7 +2556,6 @@ h1.note-title ::-moz-selection,
   border-radius: 10px;
 }
 
-/* ==================== NOTE LIST ITEMS ==================== */
 .note-list-item {
   display: flex;
   align-items: center;
@@ -2738,7 +2650,6 @@ h1.note-title ::-moz-selection,
   color: var(--nr-warning);
 }
 
-/* ==================== SEARCH BOX ==================== */
 .search-box {
   display: flex;
   align-items: center;
@@ -2773,7 +2684,6 @@ h1.note-title ::-moz-selection,
   color: var(--nr-text-muted);
 }
 
-/* ==================== SIDEBAR FOOTER ==================== */
 .sidebar-footer {
   padding: 16px 12px;
   border-top: 1px solid var(--nr-border-subtle);
@@ -2782,7 +2692,6 @@ h1.note-title ::-moz-selection,
   gap: 4px;
 }
 
-/* ==================== STATS CARDS (Matching Flashcards) ==================== */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2822,7 +2731,6 @@ h1.note-title ::-moz-selection,
   color: var(--nr-text-muted);
 }
 
-/* ==================== BUTTONS MATCHING FLASHCARDS ==================== */
 .btn-primary {
   display: flex;
   align-items: center;
@@ -2862,7 +2770,6 @@ h1.note-title ::-moz-selection,
   background: var(--nr-bg-elevated);
 }
 
-/* ==================== ICON BUTTONS ==================== */
 .icon-btn {
   width: 36px;
   height: 36px;
@@ -2887,7 +2794,6 @@ h1.note-title ::-moz-selection,
   height: 18px;
 }
 
-/* ==================== BADGES ==================== */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -2918,7 +2824,6 @@ h1.note-title ::-moz-selection,
   color: var(--nr-danger);
 }
 
-/* ==================== DROPDOWN MENUS ==================== */
 .dropdown-menu {
   position: absolute;
   background: var(--nr-bg-secondary);
@@ -2964,7 +2869,6 @@ h1.note-title ::-moz-selection,
   margin: 6px 0;
 }
 
-/* ==================== TOOLTIPS ==================== */
 [data-tooltip] {
   position: relative;
 }
@@ -2993,7 +2897,6 @@ h1.note-title ::-moz-selection,
   visibility: visible;
 }
 
-/* ==================== ANIMATIONS ==================== */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -3033,7 +2936,6 @@ h1.note-title ::-moz-selection,
   animation: slideDown 0.2s ease;
 }
 
-/* ==================== PRINT STYLES ==================== */
 @media print {
   .tools-sidepanel,
   .top-nav-new,
@@ -3053,7 +2955,6 @@ h1.note-title ::-moz-selection,
   }
 }
 
-/* ==================== SMART FOLDERS - SCOPED STYLES ==================== */
 .notes-redesign .smart-folders-panel *,
 .notes-redesign .smart-folders-panel *::before,
 .notes-redesign .smart-folders-panel *::after {
@@ -3312,7 +3213,6 @@ h1.note-title ::-moz-selection,
   transform: scale(1.1);
 }
 
-/* Smart Folder Modal */
 .notes-redesign .smart-folder-modal {
   position: fixed;
   top: 0;
@@ -3516,7 +3416,6 @@ h1.note-title ::-moz-selection,
   box-shadow: var(--nr-shadow-md);
 }
 
-/* ==================== SBE DROPDOWN MENU - SOLID OPAQUE ==================== */
 .sbe-dropdown-menu {
   position: fixed !important;
   background: #ffffff !important;
@@ -3537,7 +3436,6 @@ h1.note-title ::-moz-selection,
   border-radius: 0 !important;
 }
 
-/* Light mode dropdown */
 .block-editor-container:not(.dark-mode) .sbe-dropdown-menu,
 .block-editor:not(.dark-mode) .sbe-dropdown-menu,
 .notes-redesign .sbe-dropdown-menu {
@@ -3547,7 +3445,6 @@ h1.note-title ::-moz-selection,
   border-color: #ddd !important;
 }
 
-/* Dark mode dropdown */
 .block-editor-container.dark-mode .sbe-dropdown-menu,
 .block-editor.dark-mode .sbe-dropdown-menu {
   background: #1a1a1a !important;
@@ -3557,7 +3454,6 @@ h1.note-title ::-moz-selection,
   box-shadow: 0 8px 32px rgba(0,0,0,0.7) !important;
 }
 
-/* Dropdown buttons - light mode */
 .sbe-dropdown-menu button {
   background: #ffffff !important;
   background-color: #ffffff !important;
@@ -3577,7 +3473,6 @@ h1.note-title ::-moz-selection,
   background-color: #f0f0f0 !important;
 }
 
-/* Dropdown buttons - dark mode */
 .block-editor-container.dark-mode .sbe-dropdown-menu button,
 .block-editor.dark-mode .sbe-dropdown-menu button {
   background: #1a1a1a !important;
@@ -3591,7 +3486,6 @@ h1.note-title ::-moz-selection,
   background-color: #333333 !important;
 }
 
-/* Scrollbar - light mode (black) */
 .sbe-dropdown-menu::-webkit-scrollbar {
   width: 8px !important;
 }
@@ -3609,7 +3503,6 @@ h1.note-title ::-moz-selection,
   background: var(--bg-primary) !important;
 }
 
-/* Scrollbar - dark mode (white) */
 .block-editor-container.dark-mode .sbe-dropdown-menu::-webkit-scrollbar-track,
 .block-editor.dark-mode .sbe-dropdown-menu::-webkit-scrollbar-track {
   background: #2a2a2a !important;
@@ -3625,7 +3518,6 @@ h1.note-title ::-moz-selection,
   background: #ffffff !important;
 }
 
-/* ==================== SBE SLASH MENU - SOLID OPAQUE ==================== */
 .sbe-slash-menu {
   position: fixed !important;
   background: #ffffff !important;
@@ -3645,7 +3537,6 @@ h1.note-title ::-moz-selection,
   border-radius: 0 !important;
 }
 
-/* Dark mode slash menu */
 .sbe-slash-menu[style*="background: rgb(26, 26, 26)"],
 .sbe-slash-menu[style*="background:#1a1a1a"] {
   background: #1a1a1a !important;
@@ -3654,7 +3545,6 @@ h1.note-title ::-moz-selection,
   box-shadow: 0 8px 32px rgba(0,0,0,0.7) !important;
 }
 
-/* Slash menu scrollbar - light mode (black) */
 .sbe-slash-menu::-webkit-scrollbar {
   width: 8px !important;
 }
@@ -3672,9 +3562,6 @@ h1.note-title ::-moz-selection,
   background: var(--bg-primary) !important;
 }
 
-
-
-/* ==================== EXIT BUTTON ==================== */
 .nr-exit-btn {
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
@@ -3688,7 +3575,6 @@ h1.note-title ::-moz-selection,
   border-color: var(--accent) !important;
 }
 
-/* ==================== AI SUGGESTION MODAL ==================== */
 .ai-suggestion-modal {
   position: fixed;
   top: 50%;
@@ -3820,7 +3706,6 @@ h1.note-title ::-moz-selection,
   border-left: 4px solid var(--accent);
 }
 
-/* Inline diff highlighting */
 .diff-removed {
   background: color-mix(in srgb, #ef4444 20%, transparent);
   color: #fca5a5;
@@ -3905,7 +3790,6 @@ h1.note-title ::-moz-selection,
   box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
 }
 
-/* Rendered HTML content in suggestion modal */
 .ai-suggestion-text.suggested h1,
 .ai-suggestion-text.suggested h2,
 .ai-suggestion-text.suggested h3,
@@ -3983,8 +3867,6 @@ h1.note-title ::-moz-selection,
   padding: 4px;
 }
 
-
-/* Explain Only Button */
 .ai-action-btn.explain-only {
   background: color-mix(in srgb, var(--accent) 15%, var(--bg-secondary));
   border-color: var(--accent);
@@ -3999,9 +3881,6 @@ h1.note-title ::-moz-selection,
   color: var(--bg-primary);
 }
 
-/* ==================== ENHANCED UI IMPROVEMENTS - Exact MyNotes ==================== */
-
-/* Advanced Gradient Backgrounds */
 [data-theme-mode="dark"] .notes-redesign {
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
 }
@@ -4010,7 +3889,6 @@ h1.note-title ::-moz-selection,
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
 }
 
-/* Sidebar Enhanced Styling - Exact MyNotes */
 [data-theme-mode="dark"] .tools-sidepanel {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
@@ -4024,7 +3902,6 @@ h1.note-title ::-moz-selection,
     color-mix(in srgb, var(--accent) 18%, #ffffff) 100%) !important;
 }
 
-/* Enhanced Header - Exact MyNotes */
 [data-theme-mode="dark"] .top-nav-new {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -4036,7 +3913,6 @@ h1.note-title ::-moz-selection,
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
 }
 
-/* Enhanced Main Content - Exact MyNotes */
 [data-theme-mode="dark"] .editor-area-new {
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
 }
@@ -4045,7 +3921,6 @@ h1.note-title ::-moz-selection,
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
 }
 
-/* Ambient Background Effect - Exact MyNotes */
 .notes-redesign::before {
   content: '';
   position: fixed;
@@ -4058,7 +3933,6 @@ h1.note-title ::-moz-selection,
   z-index: 0;
 }
 
-/* Ensure content is above ambient background */
 .top-nav-new,
 .nr-body,
 .tools-sidepanel,
@@ -4067,7 +3941,6 @@ h1.note-title ::-moz-selection,
   z-index: 1;
 }
 
-/* Enhanced Scrollbar - Exact MyNotes */
 .tools-panel-content::-webkit-scrollbar {
   width: 8px;
 }
@@ -4082,7 +3955,6 @@ h1.note-title ::-moz-selection,
   border-radius: 4px;
 }
 
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;
@@ -4110,7 +3982,6 @@ h1.note-title ::-moz-selection,
   stroke-width: 2;
 }
 
-/* ==================== NAVIGATE TO NEW NOTE DIALOG ==================== */
 .navigate-dialog-modal {
   position: fixed;
   top: 50%;
@@ -4223,12 +4094,10 @@ h1.note-title ::-moz-selection,
   box-shadow: 0 2px 8px rgba(215, 179, 140, 0.3);
 }
 
-/* Dark mode - black text on accent button */
 [data-theme-mode="dark"] .navigate-btn-primary {
   color: #000000 !important;
 }
 
-/* Light mode - white text on accent button */
 [data-theme-mode="light"] .navigate-btn-primary {
   color: #ffffff !important;
 }
@@ -4238,7 +4107,6 @@ h1.note-title ::-moz-selection,
   box-shadow: 0 4px 16px rgba(215, 179, 140, 0.4);
 }
 
-/* Responsive */
 @media (max-width: 600px) {
   .navigate-dialog-modal {
     width: 95%;
@@ -4255,8 +4123,6 @@ h1.note-title ::-moz-selection,
   }
 }
 
-/* ==================== CONVERT NOTES MODAL - MATCHING CHAT IMPORT DESIGN ==================== */
-/* Force all elements to be boxy */
 .notes-redesign .iem-overlay,
 .notes-redesign .iem-modal,
 .notes-redesign .iem-modal *,
@@ -4692,9 +4558,6 @@ h1.note-title ::-moz-selection,
   background: var(--iem-accent);
 }
 
-
-/* ==================== TEMPLATE MODAL STYLING FOR NOTES-REDESIGN ==================== */
-/* Overlay for template modal */
 .notes-redesign .ai-overlay {
   position: fixed !important;
   top: 0 !important;
@@ -4706,12 +4569,10 @@ h1.note-title ::-moz-selection,
   z-index: 10000 !important;
 }
 
-/* Template modal container in NotesRedesign context */
 .notes-redesign .tpl-modal {
   z-index: 10001 !important;
 }
 
-/* Ensure proper colors in dark mode */
 [data-theme-mode="dark"] .notes-redesign .tpl-modal {
   background: var(--bg-secondary) !important;
   border-color: var(--border) !important;
@@ -4865,7 +4726,6 @@ h1.note-title ::-moz-selection,
   color: var(--accent) !important;
 }
 
-/* Light mode overrides */
 [data-theme-mode="light"] .notes-redesign .tpl-modal {
   background: #ffffff !important;
   border-color: rgba(0, 0, 0, 0.1) !important;
@@ -4945,7 +4805,6 @@ h1.note-title ::-moz-selection,
   color: #ffffff !important;
 }
 
-/* ==================== NOTES REDESIGN ROUNDING OVERRIDES ==================== */
 .notes-redesign .block-controls,
 .notes-redesign .block-controls::before {
   border-radius: 999px !important;
@@ -4955,7 +4814,6 @@ h1.note-title ::-moz-selection,
   border-radius: 8px !important;
 }
 
-/* ==================== UI ENHANCEMENTS ==================== */
 .notes-redesign .tools-sidepanel {
   background: linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 92%, #ffffff 8%), var(--bg-secondary)) !important;
   box-shadow: inset -1px 0 0 var(--nr-border-subtle), 0 16px 28px rgba(15, 23, 42, 0.08);

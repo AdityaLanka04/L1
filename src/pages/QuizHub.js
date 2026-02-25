@@ -38,14 +38,12 @@ const QuizHub = () => {
 
   return (
     <div className="qh">
-      {/* Ambient Background */}
       <div className="qh-ambient">
         <div className="qh-ambient-orb qh-ambient-orb-1"></div>
         <div className="qh-ambient-orb qh-ambient-orb-2"></div>
         <div className="qh-ambient-grid"></div>
       </div>
 
-      {/* Header */}
       <header className="gm-header">
         <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -80,9 +78,7 @@ const QuizHub = () => {
         </nav>
       </header>
 
-      {/* Main Content - Split View */}
       <main className="qh-main">
-        {/* Left Section - Solo Practice */}
         <section 
           className={`qh-section qh-section-solo ${hoveredSection === 'solo' ? 'qh-section-hovered' : ''}`}
           onClick={() => navigate('/solo-quiz')}
@@ -122,12 +118,10 @@ const QuizHub = () => {
           <div className="qh-section-line"></div>
         </section>
 
-        {/* Divider */}
         <div className="qh-divider">
           <span className="qh-divider-text">or</span>
         </div>
 
-        {/* Right Section - 1v1 Battles */}
         <section 
           className={`qh-section qh-section-battle ${hoveredSection === 'battle' ? 'qh-section-hovered' : ''}`}
           onClick={() => navigate('/quiz-battles')}
@@ -168,7 +162,6 @@ const QuizHub = () => {
         </section>
       </main>
 
-      {/* Import/Export Modal */}
       <ImportExportModal
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}

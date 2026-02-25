@@ -30,11 +30,9 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_MODEL = "gemini-2.0-flash"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# HS Context AI — dedicated client for HS-mode-enriched generation
 HS_CONTEXT_API_KEY  = os.getenv("HS_CONTEXT_API_KEY")
 HS_AI_BASE_URL      = os.getenv("HS_AI_BASE_URL", "https://api.groq.com/openai/v1")
 HS_AI_MODEL         = os.getenv("HS_AI_MODEL", "llama-3.3-70b-versatile")
-
 
 def _init_ai_client() -> UnifiedAIClient:
     from groq import Groq
@@ -49,13 +47,7 @@ def _init_ai_client() -> UnifiedAIClient:
         pass
     return UnifiedAIClient(gemini_client, groq_client, GEMINI_MODEL, GROQ_MODEL, GEMINI_API_KEY)
 
-
 def _init_hs_context_ai() -> UnifiedAIClient:
-    """
-    Dedicated AI client for HS-context-enriched generation.
-    Uses HS_CONTEXT_API_KEY via OpenAI-compatible REST endpoint.
-    Falls back to main unified_ai if key not set.
-    """
     if not HS_CONTEXT_API_KEY:
         logger.warning("HS_CONTEXT_API_KEY not set — HS context AI will use main client")
         return _init_ai_client()
@@ -66,10 +58,8 @@ def _init_hs_context_ai() -> UnifiedAIClient:
         openai_compat_model=HS_AI_MODEL,
     )
 
-
 unified_ai    = _init_ai_client()
 hs_context_ai = _init_hs_context_ai()
-
 
 def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7,
             use_cache: bool = False, conversation_id: str = None) -> str:
@@ -82,7 +72,6 @@ def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7,
         pass
     return response
 
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         ph.verify(hashed_password, plain_password)
@@ -90,17 +79,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except VerifyMismatchError:
         return False
 
-
 def get_password_hash(password: str) -> str:
     return ph.hash(password)
 
-
 def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(days=30))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(days=30))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     try:
@@ -112,7 +98,6 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
-
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(verify_token)):
     user = db.query(models.User).filter(models.User.username == token).first()
     if not user:
@@ -121,14 +106,11 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(verify_
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 
-
 def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
-
 
 def authenticate_user(db: Session, username: str, password: str):
     user = get_user_by_username(db, username)
@@ -137,7 +119,6 @@ def authenticate_user(db: Session, username: str, password: str):
     if not user or not verify_password(password, user.hashed_password):
         return False
     return user
-
 
 def verify_google_token(token: str):
     from google.oauth2 import id_token
@@ -150,7 +131,6 @@ def verify_google_token(token: str):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid token: {str(e)}")
 
-
 def get_comprehensive_profile_safe(db: Session, user_id: int):
     try:
         return db.query(models.ComprehensiveUserProfile).filter(
@@ -158,7 +138,6 @@ def get_comprehensive_profile_safe(db: Session, user_id: int):
         ).first()
     except Exception:
         return None
-
 
 def calculate_day_streak(db: Session, user_id: int) -> int:
     today = datetime.now(timezone.utc).date()

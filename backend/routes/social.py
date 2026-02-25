@@ -25,14 +25,12 @@ ws_router = APIRouter(tags=["websocket"])
 
 security = HTTPBearer()
 
-
 class ShareContentRequest(BaseModel):
     content_type: str
     content_id: int
     friend_ids: List[int]
     message: Optional[str] = None
     permission: str = "view"
-
 
 @router.get("/search_users")
 async def search_users(
@@ -119,7 +117,6 @@ async def search_users(
         logger.error(f"Error searching users: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/send_friend_request")
 async def send_friend_request(
     payload: dict = Body(...),
@@ -189,7 +186,6 @@ async def send_friend_request(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/friend_requests")
 async def get_friend_requests(
     username: str = Depends(verify_token),
@@ -250,7 +246,6 @@ async def get_friend_requests(
     except Exception as e:
         logger.error(f"Error getting friend requests: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/respond_friend_request")
 async def respond_friend_request(
@@ -339,7 +334,6 @@ async def respond_friend_request(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/friends")
 async def get_friends(
     username: str = Depends(verify_token),
@@ -397,7 +391,6 @@ async def get_friends(
         logger.error(f"Error getting friends: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.delete("/remove_friend")
 async def remove_friend(
     payload: dict = Body(...),
@@ -447,7 +440,6 @@ async def remove_friend(
         logger.error(f"Error removing friend: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/friend_activity_feed")
 async def get_friend_activity_feed(
@@ -510,7 +502,6 @@ async def get_friend_activity_feed(
         logger.error(f"Error fetching friend activity feed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/give_kudos")
 async def give_kudos(
     payload: dict = Body(...),
@@ -554,7 +545,6 @@ async def give_kudos(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/create_activity")
 async def create_activity(
     payload: dict = Body(...),
@@ -584,7 +574,6 @@ async def create_activity(
         logger.error(f"Error creating activity: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/leaderboard")
 async def get_leaderboard(
@@ -659,7 +648,6 @@ async def get_leaderboard(
     except Exception as e:
         logger.error(f"Error fetching leaderboard: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/create_quiz_battle")
 async def create_quiz_battle(
@@ -755,7 +743,6 @@ async def create_quiz_battle(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/quiz_battles")
 async def get_quiz_battles(
     username: str = Depends(verify_token),
@@ -810,7 +797,6 @@ async def get_quiz_battles(
     except Exception as e:
         logger.error(f"Error fetching quiz battles: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/complete_quiz_battle")
 async def complete_quiz_battle(
@@ -924,7 +910,6 @@ async def complete_quiz_battle(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/create_challenge")
 async def create_challenge(
     payload: dict = Body(...),
@@ -961,7 +946,6 @@ async def create_challenge(
         logger.error(f"Error creating challenge: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/challenges")
 async def get_challenges(
@@ -1022,7 +1006,6 @@ async def get_challenges(
         logger.error(f"Error fetching challenges: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/join_challenge")
 async def join_challenge(
     payload: dict = Body(...),
@@ -1076,7 +1059,6 @@ async def join_challenge(
         logger.error(f"Error joining challenge: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/quiz_battle/{battle_id}")
 async def get_quiz_battle_detail(
@@ -1160,7 +1142,6 @@ async def get_quiz_battle_detail(
     except Exception as e:
         logger.error(f"Error getting battle detail: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/generate_battle_questions")
 async def generate_battle_questions(
@@ -1273,7 +1254,7 @@ Requirements:
 
         if battle.status == "pending":
             battle.status = "active"
-            battle.started_at = datetime.utcnow()
+            battle.started_at = datetime.now(timezone.utc)
 
         db.commit()
 
@@ -1286,7 +1267,6 @@ Requirements:
         db.rollback()
         logger.error(f"Error generating battle questions: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/challenge/{challenge_id}")
 async def get_challenge_detail(
@@ -1348,7 +1328,6 @@ async def get_challenge_detail(
     except Exception as e:
         logger.error(f"Error getting challenge detail: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/generate_challenge_questions")
 async def generate_challenge_questions(
@@ -1478,7 +1457,6 @@ Requirements:
         logger.error(f"Error generating challenge questions: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/update_challenge_progress")
 async def update_challenge_progress(
     payload: dict,
@@ -1532,7 +1510,7 @@ async def update_challenge_progress(
 
         if progress >= 100:
             participation.completed = True
-            participation.completed_at = datetime.utcnow()
+            participation.completed_at = datetime.now(timezone.utc)
 
             activity = models.FriendActivity(
                 user_id=current_user.id,
@@ -1579,7 +1557,6 @@ async def update_challenge_progress(
         db.rollback()
         logger.error(f"Error updating challenge progress: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/share_content")
 async def share_content(
@@ -1681,7 +1658,6 @@ async def share_content(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/shared_with_me")
 def get_shared_with_me(
     current_user: models.User = Depends(get_current_user),
@@ -1747,7 +1723,6 @@ def get_shared_with_me(
         logger.error(f"Error getting shared content: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/debug_friendships")
 def debug_friendships(
     current_user: models.User = Depends(get_current_user),
@@ -1794,7 +1769,6 @@ def debug_friendships(
 
     except Exception as e:
         return {"error": str(e)}
-
 
 @router.get("/shared/{content_type}/{content_id}")
 def get_shared_content(
@@ -1889,7 +1863,6 @@ def get_shared_content(
         logger.error(f"Error getting shared content: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/debug_shared_content")
 def debug_shared_content(
     current_user: models.User = Depends(get_current_user),
@@ -1942,7 +1915,6 @@ def debug_shared_content(
     except Exception as e:
         return {"error": str(e)}
 
-
 @router.delete("/remove_shared_access/{share_id}")
 def remove_shared_access(
     share_id: int,
@@ -1983,7 +1955,6 @@ def remove_shared_access(
         logger.error(f"Error removing shared access: {str(e)}", exc_info=True)
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.put("/update_shared_note/{note_id}")
 def update_shared_note(
@@ -2041,7 +2012,6 @@ def update_shared_note(
         logger.error(f"Error updating shared note: {str(e)}", exc_info=True)
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/accept_quiz_battle")
 async def accept_quiz_battle(
@@ -2118,7 +2088,6 @@ async def accept_quiz_battle(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/decline_quiz_battle")
 async def decline_quiz_battle(
     payload: dict = Body(...),
@@ -2180,7 +2149,6 @@ async def decline_quiz_battle(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/submit_battle_answer")
 async def submit_battle_answer(
     payload: dict = Body(...),
@@ -2234,7 +2202,6 @@ async def submit_battle_answer(
         logger.error(f"Error submitting answer: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/create_solo_quiz")
 async def create_solo_quiz(
     payload: dict = Body(...),
@@ -2286,7 +2253,6 @@ async def create_solo_quiz(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/solo_quiz/{quiz_id}")
 async def get_solo_quiz(
     quiz_id: int,
@@ -2331,7 +2297,6 @@ async def get_solo_quiz(
         logger.error(f"Error getting solo quiz: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/complete_solo_quiz")
 async def complete_solo_quiz(
     payload: dict = Body(...),
@@ -2366,7 +2331,6 @@ async def complete_solo_quiz(
         db.commit()
         logger.info("Quiz saved successfully")
 
-        # Log activity for analytics
         try:
             from activity_logger import log_activity
             log_activity(
@@ -2471,7 +2435,6 @@ async def complete_solo_quiz(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/debug/websocket-connections")
 async def debug_websocket_connections(username: str = Depends(verify_token)):
     return {
@@ -2479,7 +2442,6 @@ async def debug_websocket_connections(username: str = Depends(verify_token)):
         "total_connections": len(manager.active_connections),
         "requesting_user": username
     }
-
 
 async def _generate_quiz_questions(subject: str, difficulty: str, count: int):
     try:
@@ -2519,7 +2481,6 @@ Use this exact structure:
             "correct_answer": 0,
             "explanation": "This is a sample explanation."
         } for i in range(count)]
-
 
 @ws_router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):

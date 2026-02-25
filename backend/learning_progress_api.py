@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 security = HTTPBearer()
 
-# Auth configuration (must match main.py)
 SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-change-this-in-production")
 ALGORITHM = "HS256"
 
@@ -37,19 +36,16 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
-
 class TrackActivityRequest(BaseModel):
-    activity_type: str  # 'note', 'flashcard', 'quiz', 'chat', 'slide', 'practice'
+    activity_type: str
     content: str
     title: Optional[str] = ""
     metadata: Optional[Dict] = None
-
 
 class AnalyzeContentRequest(BaseModel):
     content: str
     content_type: str
     title: Optional[str] = ""
-
 
 @router.post("/track-activity")
 async def track_learning_activity(
@@ -83,7 +79,6 @@ async def track_learning_activity(
         logger.error(f"Error tracking activity: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/analyze-content")
 async def analyze_content_mapping(
     request: AnalyzeContentRequest,
@@ -114,7 +109,6 @@ async def analyze_content_mapping(
         logger.error(f"Error analyzing content: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/manual-progress-update")
 async def manual_progress_update(
     node_id: str,
@@ -144,7 +138,6 @@ async def manual_progress_update(
     except Exception as e:
         logger.error(f"Error updating progress: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/node-progress/{node_id}")
 async def get_node_progress(
@@ -194,7 +187,6 @@ async def get_node_progress(
         logger.error(f"Error getting node progress: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/path-progress/{path_id}")
 async def get_path_progress_summary(
     path_id: str,
@@ -211,12 +203,10 @@ async def get_path_progress_summary(
         
         _, LearningPathNode, _, LearningNodeProgress, _ = create_learning_paths_models(Base)
         
-        # Get all nodes in path
         nodes = db.query(LearningPathNode).filter(
             LearningPathNode.path_id == path_id
         ).all()
         
-        # Get progress for each node
         node_progress = []
         total_progress = 0
         completed_count = 0

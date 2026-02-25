@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ==================== CSS VARIABLES ==================== */
 .sq-page {
   --sq-bg-primary: var(--bg);
   --sq-bg-secondary: var(--panel);
@@ -19,7 +18,6 @@
   --sq-gradient-accent: linear-gradient(135deg, var(--sq-accent), var(--sq-accent-dark));
 }
 
-/* ==================== BASE LAYOUT ==================== */
 .sq-page {
   position: fixed !important;
   top: 0 !important;
@@ -47,7 +45,6 @@
   display: none;
 }
 
-/* ==================== HEADER (Profile Style) ==================== */
 .sq-header {
   position: sticky;
   top: 0;
@@ -182,7 +179,6 @@
   color: var(--sq-accent);
 }
 
-/* ==================== MAIN CONTENT ==================== */
 .sq-content {
   flex: 1;
   overflow-y: auto;
@@ -212,7 +208,6 @@
   background: var(--sq-accent);
 }
 
-/* ==================== GENERATOR CONTAINER ==================== */
 .sq-generator-container {
   max-width: 1200px;
   width: 100%;
@@ -261,7 +256,6 @@
   line-height: 1.6;
 }
 
-/* ==================== GENERATOR FORM ==================== */
 .sq-generator-form {
   width: 100%;
   display: flex;
@@ -369,7 +363,6 @@
   gap: 20px;
 }
 
-/* ==================== ADAPTIVE TOGGLE ==================== */
 .sq-generator-form .sq-adaptive-toggle {
   background: transparent;
   padding: 20px;
@@ -417,7 +410,6 @@
   letter-spacing: normal;
 }
 
-/* ==================== QUIZ MODE OPTIONS ==================== */
 .sq-mode-options {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -473,7 +465,6 @@
   margin: 0;
 }
 
-/* ==================== TIMING OPTIONS ==================== */
 .sq-timing-options {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -523,7 +514,6 @@
   margin: 0;
 }
 
-/* ==================== SUBMIT BUTTON ==================== */
 .sq-generator-form .sq-submit-btn {
   display: flex;
   align-items: center;
@@ -585,7 +575,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* ==================== ERROR MESSAGE ==================== */
 .sq-generator-form .sq-error {
   display: flex;
   align-items: center;
@@ -636,9 +625,6 @@
   background: color-mix(in srgb, var(--sq-danger) 20%, transparent);
 }
 
-
-
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 1024px) {
   .sq-generator-form .sq-form-row {
     grid-template-columns: 1fr;
@@ -690,15 +676,12 @@
   }
 }
 
-
-/* ==================== BODY WITH SIDEBAR ==================== */
 .sq-body {
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
-/* ==================== SIDEBAR ==================== */
 .sq-sidebar {
   width: 260px;
   height: 100%;
@@ -795,7 +778,6 @@
   border-radius: 0;
 }
 
-/* ==================== MAIN CONTENT AREA ==================== */
 .sq-main {
   flex: 1;
   overflow-y: auto;
@@ -803,7 +785,6 @@
   background: var(--sq-bg-primary);
 }
 
-/* ==================== SECTION HEADERS ==================== */
 .sq-section-header {
   display: flex;
   align-items: center;
@@ -831,7 +812,6 @@
   margin: 4px 0 0 0;
 }
 
-/* ==================== COMPLETED QUIZZES ==================== */
 .sq-completed-list {
   padding: 32px 40px;
   display: flex;
@@ -927,7 +907,6 @@
   transform: translateX(4px);
 }
 
-/* ==================== STATISTICS ==================== */
 .sq-stats-grid {
   padding: 32px 40px;
   display: grid;
@@ -989,7 +968,6 @@
   margin: 0;
 }
 
-/* ==================== EMPTY STATE ==================== */
 .sq-empty-state {
   display: flex;
   flex-direction: column;
@@ -1047,10 +1025,6 @@
   box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-
-
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

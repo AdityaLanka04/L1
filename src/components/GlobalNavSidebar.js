@@ -134,14 +134,11 @@ const GlobalNavSidebar = ({ isOpen, onClose }) => {
 
   return (
     <>
-      {/* Overlay */}
       {isOpen && (
         <div className="global-nav-overlay" onClick={onClose} />
       )}
 
-      {/* Sidebar */}
       <div className={`global-nav-sidebar ${isOpen ? 'open' : ''}`}>
-        {/* Header */}
         <div className="global-nav-header">
           <div className="global-nav-logo">
             <div className="global-nav-logo-icon" />
@@ -152,7 +149,6 @@ const GlobalNavSidebar = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Search */}
         <div className="global-nav-search">
           <Search size={16} />
           <input
@@ -163,7 +159,6 @@ const GlobalNavSidebar = ({ isOpen, onClose }) => {
           />
         </div>
 
-        {/* Navigation */}
         <div className="global-nav-content">
           {filteredNavigation.map(section => {
             const SectionIcon = section.icon;
@@ -207,7 +202,6 @@ const GlobalNavSidebar = ({ isOpen, onClose }) => {
           })}
         </div>
 
-        {/* Footer */}
         <div className="global-nav-footer">
           <button
             className="global-nav-footer-btn"

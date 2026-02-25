@@ -24,14 +24,12 @@ const NotesHub = () => {
 
   return (
     <div className="nh">
-      {/* Ambient Background */}
       <div className="nh-ambient">
         <div className="nh-ambient-orb nh-ambient-orb-1"></div>
         <div className="nh-ambient-orb nh-ambient-orb-2"></div>
         <div className="nh-ambient-grid"></div>
       </div>
 
-      {/* Header */}
       <header className="nh-header">
         <div className="nh-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -62,9 +60,7 @@ const NotesHub = () => {
         </nav>
       </header>
 
-      {/* Main Content - Split View */}
       <main className="nh-main">
-        {/* Left Section - AI Media Notes */}
         <section 
           className={`nh-section nh-section-ai ${hoveredSection === 'ai' ? 'nh-section-hovered' : ''}`}
           onClick={() => navigate('/notes/ai-media')}
@@ -104,12 +100,10 @@ const NotesHub = () => {
           <div className="nh-section-line"></div>
         </section>
 
-        {/* Divider */}
         <div className="nh-divider">
           <span className="nh-divider-text">or</span>
         </div>
 
-        {/* Right Section - My Notes */}
         <section 
           className={`nh-section nh-section-manual ${hoveredSection === 'manual' ? 'nh-section-hovered' : ''}`}
           onClick={() => navigate('/notes/my-notes')}

@@ -10,7 +10,6 @@ from ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_p
 
 logger = logging.getLogger(__name__)
 
-
 class UnifiedAIClient:
 
     def __init__(
@@ -20,7 +19,6 @@ class UnifiedAIClient:
         gemini_model: str = "gemini-2.0-flash",
         groq_model: str = "llama-3.3-70b-versatile",
         gemini_api_key: str = None,
-        # OpenAI-compatible fallback (used for HS context AI key)
         openai_compat_api_key: str = None,
         openai_compat_base_url: str = "https://api.openai.com/v1",
         openai_compat_model: str = "gpt-4o-mini",
@@ -35,7 +33,6 @@ class UnifiedAIClient:
         self.openai_compat_model = openai_compat_model
 
         if openai_compat_api_key and not gemini_client and not groq_client:
-            # HS context-only client — primary is openai-compatible
             self.gemini_client = None
             self.primary_ai = "openai_compat"
         elif gemini_client:
@@ -152,7 +149,6 @@ class UnifiedAIClient:
 
     def _fallback(self, prompt: str, max_tokens: int, temperature: float) -> str:
         if self.primary_ai == "openai_compat":
-            # Fall back through standard clients
             if self.gemini_api_key:
                 return self._call_gemini(prompt, max_tokens, temperature)
             if self.groq_client:

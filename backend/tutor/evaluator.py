@@ -35,7 +35,6 @@ Rules:
 - new_struggle: true if this reveals a new topic the student struggles with
 - distilled_memory: a short factual sentence about what happened pedagogically, or null if nothing noteworthy"""
 
-
 def evaluate(
     ai_client: UnifiedAIClient,
     user_input: str,

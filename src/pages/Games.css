@@ -28,7 +28,6 @@
   overflow-x: hidden;
 }
 
-/* Header Styles - Matching AI Chat */
 .gm-header {
   position: sticky;
   top: 0;
@@ -1257,7 +1256,6 @@
   border-radius: 0 !important;
 }
 
-/* Rounded corners for interactive elements */
 .stat-card-main,
 .daily-challenge-banner,
 .section-card,
@@ -1300,8 +1298,6 @@
   }
 }
 
-/* Removed pulse animation on hover */
-
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
@@ -1320,9 +1316,6 @@
   animation: shimmer 3s linear infinite;
 }
 
-
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

@@ -7,8 +7,6 @@
   --qb-transition-elastic: cubic-bezier(0.68, -0.6, 0.32, 1.6);
 }
 
-/* Rounded corners for all elements */
-
 .qb-page {
   --qb-bg-primary: var(--bg);
   --qb-bg-secondary: var(--panel);
@@ -116,7 +114,6 @@
   flex-shrink: 0;
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .qb-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -1532,7 +1529,6 @@
   }
 }
 
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

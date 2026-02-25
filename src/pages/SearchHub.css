@@ -17,7 +17,6 @@
   scroll-behavior: smooth;
 }
 
-/* Hide scrollbar by default */
 .search-hub-page {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -36,7 +35,6 @@
   border-radius: 8px;
 }
 
-/* Show scrollbar when scrolling or hovering */
 .search-hub-page.is-scrolling,
 .search-hub-page:hover {
   scrollbar-color: var(--accent) var(--bg-secondary);
@@ -88,7 +86,6 @@
   border-radius: 0;
 }
 
-/* ==================== HEADER (floating overlay) ==================== */
 .search-hub-page .search-hub-header {
   position: absolute;
   top: 0;
@@ -174,7 +171,6 @@
   }
 }
 
-/* MAIN CONTENT AREA */
 .search-hub-page .search-hub-content {
   flex: 1;
   position: relative;
@@ -183,7 +179,6 @@
   flex-direction: column;
 }
 
-/* ==================== BOLD TYPOGRAPHY HERO SECTION ==================== */
 .search-hub-page .hero-section {
   position: relative;
   height: 100vh;
@@ -641,7 +636,6 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Autocomplete Dropdown */
 .search-hub-page .autocomplete-dropdown {
   position: absolute;
   top: calc(100% - 3px);
@@ -715,7 +709,6 @@
   opacity: 0.6;
 }
 
-/* Command Suggestions */
 .search-hub-page .command-suggestions {
   position: absolute;
   top: calc(100% + 0.5rem);
@@ -757,7 +750,6 @@
   flex-shrink: 0;
 }
 
-/* ==================== CONTENT SECTION ==================== */
 .search-hub-page .content-section {
   display: none;
 }
@@ -784,7 +776,6 @@
   margin: 0;
 }
 
-/* Initial Loading State - Centered */
 .search-hub-page .initial-loader {
   position: fixed;
   top: 0;
@@ -1003,7 +994,6 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* ==================== LOADING STATES ==================== */
 .search-hub-page .loading-state,
 .search-hub-page .creating-content {
   display: flex;
@@ -1083,7 +1073,6 @@
   margin: 0;
 }
 
-/* ==================== RESULTS CONTAINER ==================== */
 .search-hub-page .results-container {
   max-width: 1600px;
   margin: 0 auto;
@@ -1111,7 +1100,6 @@
   margin-top: -40px;
 }
 
-/* Back Button */
 .search-hub-page .back-btn-compact {
   padding: 8px 16px;
   background: transparent;
@@ -1236,7 +1224,6 @@
   color: var(--bg-primary);
 }
 
-/* Filters Panel */
 .search-hub-page .filters-panel {
   background: var(--bg-secondary);
   border: 3px solid var(--accent);
@@ -1308,7 +1295,6 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
-/* ==================== AI DESCRIPTION SECTION ==================== */
 .search-hub-page .ai-description-section {
   background: var(--bg-secondary);
   border: 2px solid var(--accent);
@@ -1364,13 +1350,11 @@
   white-space: pre-line;
 }
 
-/* Style for bullet points in AI description */
 .search-hub-page .ai-description-text::first-line {
   font-weight: 600;
   color: var(--text-primary);
 }
 
-/* Continue in AI Chat Button */
 .search-hub-page .continue-chat-btn {
   display: flex;
   align-items: center;
@@ -1425,7 +1409,6 @@
   height: 18px;
 }
 
-/* Login Required Modal */
 .search-hub-page .login-required-modal {
   position: fixed;
   top: 0;
@@ -1539,7 +1522,6 @@
   }
 }
 
-/* No Results with AI */
 .search-hub-page .no-results-with-ai {
   margin-top: 32px;
 }
@@ -1554,7 +1536,6 @@
   margin-bottom: 24px;
 }
 
-/* Results Section Header */
 .search-hub-page .results-section-header {
   margin-bottom: 40px;
   padding: 24px 32px;
@@ -1585,7 +1566,6 @@
   letter-spacing: 0.3px;
 }
 
-/* Results Grid */
 .search-hub-page .results-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
@@ -1605,7 +1585,6 @@
   }
 }
 
-/* Stagger animation for result cards */
 .search-hub-page .result-card:nth-child(1) { animation-delay: 0.05s; }
 .search-hub-page .result-card:nth-child(2) { animation-delay: 0.1s; }
 .search-hub-page .result-card:nth-child(3) { animation-delay: 0.15s; }
@@ -1919,7 +1898,6 @@
   filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--accent) 50%, rgba(0, 0, 0, 0.4)));
 }
 
-/* Related Searches */
 .search-hub-page .related-searches {
   margin-top: 48px;
   padding: 24px;
@@ -1965,7 +1943,6 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-/* No Results / AI Response */
 .search-hub-page .no-results,
 .search-hub-page .ai-response-section {
   display: flex;
@@ -2143,7 +2120,6 @@
   font-weight: 500;
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
   .search-hub-page .hero-section {
     min-height: 75vh;
@@ -2267,9 +2243,6 @@
   }
 }
 
-/* ==================== NLP-POWERED SUGGESTIONS ==================== */
-
-/* Smart assistant header */
 .search-hub-page .autocomplete-dropdown::before {
   content: 'Smart Suggestions Powered by AI';
   display: flex;
@@ -2300,7 +2273,6 @@
   }
 }
 
-/* NLP suggestion item styling */
 .search-hub-page .autocomplete-item {
   width: 100%;
   padding: 1rem 1.5rem;
@@ -2361,7 +2333,6 @@
     transparent 100%);
 }
 
-/* Suggestion icon styling */
 .search-hub-page .autocomplete-item svg {
   color: var(--accent);
   flex-shrink: 0;
@@ -2375,7 +2346,6 @@
   filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--accent) 50%, rgba(0, 0, 0, 0.4)));
 }
 
-/* Suggestion text styling */
 .search-hub-page .autocomplete-item .suggestion-text {
   flex: 1;
   overflow: hidden;
@@ -2391,7 +2361,6 @@
   color: var(--accent);
 }
 
-/* Suggestion type badges */
 .search-hub-page .suggestion-type {
   margin-left: auto;
   font-size: 0.65rem;
@@ -2417,7 +2386,6 @@
   box-shadow: 0 4px 8px color-mix(in srgb, var(--accent) 40%, rgba(0, 0, 0, 0.3));
 }
 
-/* Type-specific badge colors */
 .search-hub-page .suggestion-type.recent {
   background: color-mix(in srgb, #6b7280 15%, transparent);
   color: #9ca3af;
@@ -2503,7 +2471,6 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 50%, rgba(0, 0, 0, 0.4));
 }
 
-/* Animation for new suggestions appearing */
 @keyframes suggestionSlideIn {
   from {
     opacity: 0;
@@ -2530,7 +2497,6 @@
 .search-hub-page .autocomplete-item:nth-child(9) { animation-delay: 0.24s; }
 .search-hub-page .autocomplete-item:nth-child(10) { animation-delay: 0.27s; }
 
-/* Empty state for autocomplete */
 .search-hub-page .autocomplete-empty {
   padding: 2rem;
   text-align: center;
@@ -2546,7 +2512,6 @@
   opacity: 0.5;
 }
 
-/* Loading state for autocomplete */
 .search-hub-page .autocomplete-loading {
   padding: 2rem;
   display: flex;
@@ -2586,7 +2551,6 @@
   }
 }
 
-/* Keyboard navigation hint */
 .search-hub-page .autocomplete-footer {
   padding: 10px 20px;
   background: color-mix(in srgb, var(--accent) 5%, transparent);
@@ -2615,7 +2579,6 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Context indicator for suggestions using previous topic */
 .search-hub-page .autocomplete-item[data-context="true"]::after {
   content: '(from context)';
   font-size: 0.6rem;
@@ -2625,7 +2588,6 @@
   opacity: 0.7;
 }
 
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;
@@ -2653,7 +2615,6 @@
   stroke-width: 2;
 }
 
-/* ==================== HS MODE BANNER ==================== */
 .hs-mode-banner {
   display: none !important;
 }

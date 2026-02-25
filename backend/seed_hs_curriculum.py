@@ -29,13 +29,10 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-# Force UTF-8 output on Windows so unicode chars don't crash
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-# Bootstrap path so we can import backend modules
 sys.path.insert(0, str(Path(__file__).parent))
-
 
 def _load_chroma_and_embed():
     """
@@ -58,12 +55,10 @@ def _load_chroma_and_embed():
     print("  [context_store]  ready")
     return client, model
 
-
 def _infer_subject(filename: str) -> str:
     """Guess subject from filename keywords using context_store helpers."""
     import context_store
     return context_store.infer_subject(filename, default="General")
-
 
 def _read_url_sidecar(file_path: Path) -> str:
     """Read a .url sidecar file if present, return first non-empty line."""
@@ -75,7 +70,6 @@ def _read_url_sidecar(file_path: Path) -> str:
             if line and not line.startswith("#"):
                 return line
     return ""
-
 
 def seed_file(
     file_path: Path,
@@ -95,7 +89,6 @@ def seed_file(
     inferred_subject = context_store.canonicalize_subject(inferred_subject)
     source_url = _read_url_sidecar(file_path)
 
-    # Stable doc_id — same file name always produces the same ID so re-runs are safe
     doc_id = hashlib.sha256(filename.encode()).hexdigest()[:36]
 
     print(f"\n  {'[DRY RUN] ' if dry_run else ''}Processing: {filename}")
@@ -127,13 +120,13 @@ def seed_file(
 
     try:
         stored = context_store.add_document_chunks(
-            user_id="system",         # sentinel user — no real account needed
+            user_id="system",
             doc_id=doc_id,
             filename=filename,
             chunks=chunks,
             subject=inferred_subject,
             grade_level=grade_level,
-            scope="hs_shared",        # writes to BOTH user_docs_system AND hs_curriculum
+            scope="hs_shared",
             source_url=source_url,
         )
         print(f"    [OK] stored {stored} chunks")
@@ -141,7 +134,6 @@ def seed_file(
     except Exception as e:
         print(f"    [FAIL] DB write error: {e}")
         return {"filename": filename, "chunks": 0, "status": "error", "error": str(e)}
-
 
 def cmd_list():
     """Print what's already in the hs_curriculum collection."""
@@ -155,7 +147,6 @@ def cmd_list():
     for s in subjects:
         print(f"  {s['subject']:<30} {s['grade_level']:<12} {s['doc_count']}")
     print()
-
 
 def main():
     parser = argparse.ArgumentParser(description="Seed hs_curriculum ChromaDB collection")
@@ -213,7 +204,6 @@ def main():
         r = seed_file(f, subject=args.subject, grade_level=args.grade, dry_run=args.dry_run)
         results.append(r)
 
-    # Summary
     ok = [r for r in results if r["status"] == "ok"]
     dry = [r for r in results if r["status"] == "dry_run"]
     err = [r for r in results if r["status"] == "error"]
@@ -232,7 +222,6 @@ def main():
 
     if ok and not args.dry_run:
         print("\nRun with --list to verify what's now in hs_curriculum.")
-
 
 if __name__ == "__main__":
     main()

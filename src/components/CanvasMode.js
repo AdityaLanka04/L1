@@ -90,7 +90,6 @@ const simplifyPath = (points, tolerance) => {
   return points.filter((_, i) => markers[i]);
 };
 
-// Apple Notes Feature: Shape Recognition
 const recognizeShape = (points) => {
   if (points.length < 8) return null;
 
@@ -176,7 +175,6 @@ const recognizeShape = (points) => {
   return null;
 };
 
-// Apple Notes Feature: Smooth Drawing (Catmull-Rom spline)
 const smoothPath = (points) => {
   if (points.length < 4) return points;
   
@@ -188,7 +186,7 @@ const smoothPath = (points) => {
     const p2 = points[i + 2];
     const p3 = points[i + 3];
     
-    // Add interpolated points
+    
     for (let t = 0; t < 1; t += 0.25) {
       const t2 = t * t;
       const t3 = t2 * t;
@@ -314,13 +312,13 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   const [showRuler, setShowRuler] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [editingText, setEditingText] = useState(null);
-  const [rulerTool, setRulerTool] = useState(null); // { x, y, angle, length }
-  const [draggingRuler, setDraggingRuler] = useState(null); // 'body', 'start', 'end'
+  const [rulerTool, setRulerTool] = useState(null); 
+  const [draggingRuler, setDraggingRuler] = useState(null); 
   const [rulerDragStart, setRulerDragStart] = useState(null);
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const autoSaveTimeout = useRef(null);
-  const [selectedElements, setSelectedElements] = useState([]); // Multi-select
+  const [selectedElements, setSelectedElements] = useState([]); 
   const [selectionBox, setSelectionBox] = useState(null);
   const [copiedElements, setCopiedElements] = useState([]);
   const [fillColor, setFillColor] = useState('transparent');
@@ -329,11 +327,11 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   const [drawStyle, setDrawStyle] = useState('pen');
   const [backgroundPattern, setBackgroundPattern] = useState('dots');
   const [showMinimap, setShowMinimap] = useState(false);
-  const [resizing, setResizing] = useState(null); // { element, handle: 'se' | 'sw' | 'ne' | 'nw' | 'n' | 's' | 'e' | 'w' }
-  const [rotating, setRotating] = useState(null); // { element, startAngle }
-  const [previewShape, setPreviewShape] = useState(null); // Live preview while drawing
-  const [shapeRecognition, setShapeRecognition] = useState(true); // Apple Notes feature
-  const [smoothDrawing, setSmoothDrawing] = useState(true); // Smooth curves
+  const [resizing, setResizing] = useState(null); 
+  const [rotating, setRotating] = useState(null); 
+  const [previewShape, setPreviewShape] = useState(null); 
+  const [shapeRecognition, setShapeRecognition] = useState(true); 
+  const [smoothDrawing, setSmoothDrawing] = useState(true); 
   const [showTableCreator, setShowTableCreator] = useState(false);
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
@@ -348,16 +346,16 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   ];
 
   const STICKY_COLORS = [
-    '#FFF59D', // Classic yellow
-    '#FFE082', // Warm yellow
-    '#FFCCBC', // Peach
-    '#F8BBD0', // Pink
-    '#E1BEE7', // Purple
-    '#C5CAE9', // Blue
-    '#B2DFDB', // Teal
-    '#C8E6C9', // Green
-    '#FFE0B2', // Orange
-    '#D7CCC8', // Brown
+    '#FFF59D', 
+    '#FFE082', 
+    '#FFCCBC', 
+    '#F8BBD0', 
+    '#E1BEE7', 
+    '#C5CAE9', 
+    '#B2DFDB', 
+    '#C8E6C9', 
+    '#FFE0B2', 
+    '#D7CCC8', 
   ];
 
   const STROKE_WIDTHS = [1, 2, 4, 6, 8, 12];
@@ -438,7 +436,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     if (addHistory) addToHistory(newElements);
   };
 
-  // Load initial content
+  
   useEffect(() => {
     let parsedElements = [];
     if (initialContent) {
@@ -487,7 +485,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
   }, []);
 
-  // Copy/Paste functionality
+  
   const copySelected = () => {
     if (selectedIdsRef.current.size > 0) {
       setCopiedElements(getElementsByIds(selectedIdsRef.current).map(el => ({ ...el })));
@@ -515,10 +513,10 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     setTimeout(() => pasteElements(), 10);
   };
 
-  // Keyboard shortcuts
+  
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (editingText) return; // Don't trigger shortcuts while editing text
+      if (editingText) return; 
       
       if (e.key === 'v' || e.key === 'V') setTool('select');
       else if (e.key === 'p' || e.key === 'P') setTool('pan');
@@ -598,22 +596,22 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     let x = (e.clientX - rect.left - pan.x) / zoom;
     let y = (e.clientY - rect.top - pan.y) / zoom;
     
-    // Snap to ruler if ruler tool is active and we're drawing
+    
     if (rulerTool && (drawing || tool === 'draw' || tool === 'line')) {
       const angle = rulerTool.angle || 0;
       
-      // Rotate point to ruler's coordinate system
+      
       const dx = x - rulerTool.x;
       const dy = y - rulerTool.y;
       const rotatedX = dx * Math.cos(-angle) - dy * Math.sin(-angle);
       const rotatedY = dx * Math.sin(-angle) + dy * Math.cos(-angle);
       
-      // Check if close to ruler (within 20px)
+      
       if (Math.abs(rotatedY) < 20 && rotatedX >= -10 && rotatedX <= rulerTool.length + 10) {
-        // Snap to ruler line
+        
         const snappedRotatedY = 0;
         
-        // Rotate back to canvas coordinates
+        
         const snappedDx = rotatedX * Math.cos(angle) - snappedRotatedY * Math.sin(angle);
         const snappedDy = rotatedX * Math.sin(angle) + snappedRotatedY * Math.cos(angle);
         
@@ -621,7 +619,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         y = rulerTool.y + snappedDy;
       }
     }
-    // Snap to grid if enabled
+    
     else if (snapToGrid && showGrid) {
       x = Math.round(x / GRID_SIZE) * GRID_SIZE;
       y = Math.round(y / GRID_SIZE) * GRID_SIZE;
@@ -654,7 +652,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         return Math.sqrt(dx * dx + dy * dy) <= 10;
       });
     } else if (element.type === 'line' || element.type === 'arrow') {
-      // Check if point is near the line
+      
       const dx = element.x2 - element.x1;
       const dy = element.y2 - element.y1;
       const length = Math.sqrt(dx * dx + dy * dy);
@@ -674,7 +672,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     const handleSize = 8;
     
     if (element.type === 'circle' || element.type === 'ellipse') {
-      // For circles/ellipses, only provide handles at cardinal directions
+      
       const radiusX = element.type === 'ellipse' ? (element.rx || 0) : (element.radius || 0);
       const radiusY = element.type === 'ellipse' ? (element.ry || 0) : (element.radius || 0);
       if (Math.abs(x - (element.x + radiusX)) < handleSize && Math.abs(y - element.y) < handleSize) return 'e';
@@ -689,13 +687,13 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     const right = element.x + width;
     const bottom = element.y + height;
     
-    // Check corners first
+    
     if (Math.abs(x - right) < handleSize && Math.abs(y - bottom) < handleSize) return 'se';
     if (Math.abs(x - element.x) < handleSize && Math.abs(y - bottom) < handleSize) return 'sw';
     if (Math.abs(x - right) < handleSize && Math.abs(y - element.y) < handleSize) return 'ne';
     if (Math.abs(x - element.x) < handleSize && Math.abs(y - element.y) < handleSize) return 'nw';
     
-    // Check edges
+    
     if (Math.abs(x - right) < handleSize && y > element.y + handleSize && y < bottom - handleSize) return 'e';
     if (Math.abs(x - element.x) < handleSize && y > element.y + handleSize && y < bottom - handleSize) return 'w';
     if (Math.abs(y - bottom) < handleSize && x > element.x + handleSize && x < right - handleSize) return 's';
@@ -708,24 +706,24 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     const pos = getMousePos(e);
     const liveElements = elementsRef.current;
 
-    // Check if clicking on ruler tool
+    
     if (rulerTool && tool === 'select') {
       const startDist = Math.sqrt(Math.pow(pos.x - rulerTool.x, 2) + Math.pow(pos.y - rulerTool.y, 2));
       const endDist = Math.sqrt(Math.pow(pos.x - (rulerTool.x + rulerTool.length), 2) + Math.pow(pos.y - rulerTool.y, 2));
       
-      // Check if clicking on start handle
+      
       if (startDist < 15) {
         setDraggingRuler('start');
         setRulerDragStart(pos);
         return;
       }
-      // Check if clicking on end handle
+      
       if (endDist < 15) {
         setDraggingRuler('end');
         setRulerDragStart(pos);
         return;
       }
-      // Check if clicking on ruler body
+      
       const distToLine = Math.abs((pos.y - rulerTool.y));
       if (distToLine < 10 && pos.x >= rulerTool.x && pos.x <= rulerTool.x + rulerTool.length) {
         setDraggingRuler('body');
@@ -741,14 +739,14 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     }
 
     if (tool === 'select') {
-      // Check for resize handles on all resizable shapes
+      
       const clicked = [...liveElements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
       
       if (clicked) {
         const handle = getResizeHandle(pos.x, pos.y, clicked);
         
         if (handle) {
-          // Start resizing
+          
           updateSelection(new Set([clicked.id]));
           const resizeData = {
             element: clicked,
@@ -801,7 +799,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       currentPathRef.current = [pos];
       scheduleStateUpdate({ currentPath: currentPathRef.current });
     } else if (tool === 'eraser') {
-      // Eraser: find and delete element under cursor
+      
       eraseDirtyRef.current = false;
       const clicked = [...liveElements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
       if (clicked) {
@@ -809,7 +807,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         commitElements(newElements);
         eraseDirtyRef.current = true;
       }
-      setDrawing(true); // Allow continuous erasing
+      setDrawing(true); 
     } else if (tool === 'text') {
       const newElement = {
         id: Date.now(),
@@ -825,7 +823,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       commitElements(newElements, { addHistory: true });
       setTool('select');
     } else if (tool === 'sticky') {
-      // Use sticky colors or default to yellow
+      
       const stickyColor = STICKY_COLORS.includes(color) ? color : '#FFF59D';
       const newElement = {
         id: Date.now(),
@@ -863,22 +861,22 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     const liveElements = elementsRef.current;
     const activeElement = selectedElementRef.current;
 
-    // Handle ruler dragging
+    
     if (draggingRuler && rulerTool) {
       if (draggingRuler === 'body') {
-        // Move entire ruler
+        
         setRulerTool({
           ...rulerTool,
           x: pos.x - rulerDragStart.x,
           y: pos.y - rulerDragStart.y
         });
       } else if (draggingRuler === 'start') {
-        // Move start point - calculate end point first
+        
         const angle = rulerTool.angle || 0;
         const endX = rulerTool.x + rulerTool.length * Math.cos(angle);
         const endY = rulerTool.y + rulerTool.length * Math.sin(angle);
         
-        // Calculate new angle and length from new start to old end
+        
         const dx = endX - pos.x;
         const dy = endY - pos.y;
         const newLength = Math.sqrt(dx * dx + dy * dy);
@@ -891,7 +889,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           angle: newAngle
         });
       } else if (draggingRuler === 'end') {
-        // Move end point (changes length and angle)
+        
         const dx = pos.x - rulerTool.x;
         const dy = pos.y - rulerTool.y;
         const newLength = Math.sqrt(dx * dx + dy * dy);
@@ -906,7 +904,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       return;
     }
 
-    // Handle resizing all shapes
+    
     if (resizing) {
       const pos = getMousePos(e);
       const deltaX = pos.x - resizing.startX;
@@ -917,7 +915,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           const minSize = el.type === 'sticky' ? 100 : 20;
           
           if (el.type === 'circle' || el.type === 'ellipse') {
-            // Handle circle/ellipse resizing
+            
             if (el.type === 'ellipse') {
               let newRx = resizing.startRx || 0;
               let newRy = resizing.startRy || 0;
@@ -935,7 +933,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             else if (resizing.handle === 'n') newRadius = Math.max(minSize, resizing.startRadius - deltaY);
             return { ...el, radius: newRadius };
           } else {
-            // Handle rectangle/sticky resizing
+            
             let newWidth = resizing.startWidth;
             let newHeight = resizing.startHeight;
             let newX = el.x;
@@ -1006,7 +1004,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       const newPanX = e.clientX - panStart.x;
       const newPanY = e.clientY - panStart.y;
       
-      // Constrain pan so you can't go beyond 0,0
+      
       setPan({
         x: Math.min(newPanX, 0),
         y: Math.min(newPanY, 0)
@@ -1019,7 +1017,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           scheduleStateUpdate({ currentPath: currentPathRef.current });
         }
       } else if (tool === 'eraser') {
-        // Continuous erasing while dragging
+        
         const clicked = [...liveElements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
         if (clicked) {
           const newElements = liveElements.filter(el => el.id !== clicked.id);
@@ -1027,7 +1025,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           eraseDirtyRef.current = true;
         }
       } else if (dragStart) {
-        // Update live preview for shapes
+        
         if (tool === 'rectangle') {
           scheduleStateUpdate({ previewShape: {
             type: 'rectangle',
@@ -1071,14 +1069,14 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   const handleMouseUp = (e) => {
     const pos = getMousePos(e);
 
-    // Stop ruler dragging
+    
     if (draggingRuler) {
       setDraggingRuler(null);
       setRulerDragStart(null);
       return;
     }
 
-    // Finish resizing
+    
     if (resizing) {
       addToHistory(elementsRef.current);
       setResizing(null);
@@ -1137,7 +1135,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         let finalElement;
         const pathPoints = currentPathRef.current;
         
-        // Apple Notes Feature: Shape Recognition
+        
         if (shapeRecognition && pathPoints.length > 10) {
           const recognized = recognizeShape(pathPoints);
           if (recognized) {
@@ -1145,7 +1143,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           }
         }
         
-        // If no shape recognized or recognition disabled, use smooth drawing
+        
         if (!finalElement) {
           const smoothedPath = smoothDrawing ? smoothPath(pathPoints) : pathPoints;
           finalElement = {
@@ -1244,7 +1242,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       }
       setDrawing(false);
       setDragStart(null);
-      scheduleStateUpdate({ previewShape: null }); // Clear preview
+      scheduleStateUpdate({ previewShape: null }); 
     }
 
     if (isPanning) {
@@ -1432,7 +1430,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     handleSave(true);
   };
 
-  // Auto-save effect
+  
   useEffect(() => {
     if (!onSave || !hydratedRef.current) return;
 
@@ -1496,7 +1494,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
 
   return (
     <div className="canvas-mode">
-      {/* Toolbar */}
       <div className="canvas-toolbar">
         <div className="toolbar-section">
           <button onClick={handleClose} className="tool-btn back-btn" title="Back to note">
@@ -1740,7 +1737,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         </div>
       </div>
 
-      {/* Color & Stroke Picker */}
       <div className="canvas-properties">
         <div className="property-group">
           <label>{tool === 'sticky' ? 'Sticky Color:' : 'Color:'}</label>
@@ -1877,10 +1873,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         </div>
       </div>
 
-      {/* Fixed Rulers */}
       {showRuler && (
         <>
-          {/* Horizontal Ruler */}
           <div className="horizontal-ruler">
             {Array.from({ length: 100 }, (_, i) => i * 100).map(x => {
               const screenX = x * zoom + pan.x;
@@ -1894,7 +1888,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             })}
           </div>
           
-          {/* Vertical Ruler */}
           <div className="vertical-ruler">
             {Array.from({ length: 100 }, (_, i) => i * 100).map(y => {
               const screenY = y * zoom + pan.y;
@@ -1910,7 +1903,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         </>
       )}
 
-      {/* Canvas Container */}
       <div 
         ref={containerRef}
         className={`canvas-container ${snapToGrid ? 'snap-active' : ''} pattern-${backgroundPattern}`}
@@ -1937,7 +1929,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             transformOrigin: '0 0'
           }}
         >
-          {/* Grid */}
           {showGrid && (
             <defs>
               <pattern id="grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
@@ -1947,10 +1938,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           )}
           {showGrid && <rect x="-10000" y="-10000" width="20000" height="20000" fill="url(#grid)" />}
 
-          {/* Draggable Ruler Tool */}
           {rulerTool && (
             <g transform={`rotate(${(rulerTool.angle || 0) * 180 / Math.PI} ${rulerTool.x} ${rulerTool.y})`}>
-              {/* Ruler snap zone (invisible but shows the snap area) */}
               <line
                 x1={rulerTool.x}
                 y1={rulerTool.y}
@@ -1961,7 +1950,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 strokeLinecap="round"
                 opacity="0.1"
               />
-              {/* Ruler body */}
               <line
                 x1={rulerTool.x}
                 y1={rulerTool.y}
@@ -1971,7 +1959,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 strokeWidth="4"
                 strokeLinecap="round"
               />
-              {/* Measurement marks */}
               {Array.from({ length: Math.floor(rulerTool.length / 50) + 1 }, (_, i) => i * 50).map(offset => (
                 <g key={offset}>
                   <line
@@ -1997,7 +1984,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   )}
                 </g>
               ))}
-              {/* Drag handles */}
               <circle
                 cx={rulerTool.x}
                 cy={rulerTool.y}
@@ -2016,7 +2002,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 strokeWidth="2"
                 style={{ cursor: 'ew-resize' }}
               />
-              {/* Length label */}
               <text
                 x={rulerTool.x + rulerTool.length / 2}
                 y={rulerTool.y + 35}
@@ -2031,7 +2016,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             </g>
           )}
 
-          {/* Render Elements */}
           {elements.map(el => {
             if (el.type === 'draw') {
               return (
@@ -2061,15 +2045,12 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     opacity={el.opacity || 1}
                     className={selectedIdSet.has(el.id) ? 'selected' : ''}
                   />
-                  {/* Resize handles - only show when selected */}
                   {selectedElement?.id === el.id && tool === 'select' && selectedIdSet.size <= 1 && (
                     <>
-                      {/* Corner handles */}
                       <circle cx={el.x} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
                       <circle cx={el.x + el.width} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
                       <circle cx={el.x} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
                       <circle cx={el.x + el.width} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
-                      {/* Edge handles */}
                       <circle cx={el.x + el.width / 2} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
                       <circle cx={el.x + el.width / 2} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
                       <circle cx={el.x} cy={el.y + el.height / 2} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
@@ -2091,7 +2072,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     opacity={el.opacity || 1}
                     className={selectedIdSet.has(el.id) ? 'selected' : ''}
                   />
-                  {/* Resize handles - only show when selected */}
                   {selectedElement?.id === el.id && tool === 'select' && selectedIdSet.size <= 1 && (
                     <>
                       <circle cx={el.x + el.radius} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
@@ -2200,7 +2180,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             } else if (el.type === 'sticky') {
               return (
                 <g key={el.id} className={selectedIdSet.has(el.id) ? 'selected' : ''} opacity={el.opacity || 1}>
-                  {/* Shadow layers for depth */}
                   <rect
                     x={el.x + 3}
                     y={el.y + 3}
@@ -2217,7 +2196,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     fill="rgba(0,0,0,0.1)"
                     rx="2"
                   />
-                  {/* Main sticky note body */}
                   <rect
                     x={el.x}
                     y={el.y}
@@ -2228,7 +2206,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     strokeWidth="1"
                     rx="2"
                   />
-                  {/* Top fold/tape effect */}
                   <rect
                     x={el.x}
                     y={el.y}
@@ -2238,7 +2215,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     opacity="0.6"
                     rx="2"
                   />
-                  {/* Priority badge */}
                   {el.priority && el.priority !== 'normal' && (
                     <g>
                       <circle
@@ -2261,7 +2237,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                       </text>
                     </g>
                   )}
-                  {/* Subtle lines for paper texture */}
                   <line
                     x1={el.x + 15}
                     y1={el.y + 40}
@@ -2286,7 +2261,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     stroke="rgba(0,0,0,0.05)"
                     strokeWidth="1"
                   />
-                  {/* Content */}
                   <foreignObject x={el.x} y={el.y} width={el.width} height={el.height}>
                     <div 
                       style={{
@@ -2310,7 +2284,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                       {el.text}
                     </div>
                   </foreignObject>
-                  {/* Corner curl effect */}
                   <path
                     d={`M ${el.x + el.width - 20} ${el.y + el.height} 
                         L ${el.x + el.width} ${el.y + el.height - 20} 
@@ -2319,10 +2292,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     opacity="0.3"
                   />
                   
-                  {/* Resize handles - only show when selected */}
                   {selectedElement?.id === el.id && tool === 'select' && selectedIdSet.size <= 1 && (
                     <>
-                      {/* Southeast handle (bottom-right) */}
                       <circle
                         cx={el.x + el.width}
                         cy={el.y + el.height}
@@ -2332,7 +2303,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                         strokeWidth="1.5"
                         style={{ cursor: 'nwse-resize' }}
                       />
-                      {/* Southwest handle (bottom-left) */}
                       <circle
                         cx={el.x}
                         cy={el.y + el.height}
@@ -2342,7 +2312,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                         strokeWidth="1.5"
                         style={{ cursor: 'nesw-resize' }}
                       />
-                      {/* Northeast handle (top-right) */}
                       <circle
                         cx={el.x + el.width}
                         cy={el.y}
@@ -2352,7 +2321,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                         strokeWidth="1.5"
                         style={{ cursor: 'nesw-resize' }}
                       />
-                      {/* Northwest handle (top-left) */}
                       <circle
                         cx={el.x}
                         cy={el.y}
@@ -2367,10 +2335,9 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 </g>
               );
             } else if (el.type === 'table') {
-              // Apple Notes Feature: Tables
+              
               return (
                 <g key={el.id} className={selectedIdSet.has(el.id) ? 'selected' : ''} opacity={el.opacity || 1}>
-                  {/* Table background */}
                   <rect
                     x={el.x}
                     y={el.y}
@@ -2381,7 +2348,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     strokeWidth={el.strokeWidth || 2}
                   />
                   
-                  {/* Header row background */}
                   <rect
                     x={el.x}
                     y={el.y}
@@ -2391,7 +2357,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     opacity="0.8"
                   />
                   
-                  {/* Draw horizontal grid lines */}
                   {Array.from({ length: el.rows - 1 }, (_, i) => (
                     <line
                       key={`row-${i}`}
@@ -2404,7 +2369,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     />
                   ))}
                   
-                  {/* Draw vertical grid lines */}
                   {Array.from({ length: el.cols - 1 }, (_, i) => (
                     <line
                       key={`col-${i}`}
@@ -2417,7 +2381,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     />
                   ))}
                   
-                  {/* Cell labels for header */}
                   {Array.from({ length: el.cols }, (_, colIndex) => (
                     <text
                       key={`header-${colIndex}`}
@@ -2433,7 +2396,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     </text>
                   ))}
                   
-                  {/* Row numbers */}
                   {Array.from({ length: el.rows - 1 }, (_, rowIndex) => (
                     <text
                       key={`row-label-${rowIndex}`}
@@ -2448,14 +2410,12 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     </text>
                   ))}
                   
-                  {/* Resize handles */}
                   {selectedElement?.id === el.id && tool === 'select' && selectedIdSet.size <= 1 && (
                     <>
                       <circle cx={el.x + el.width} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
                       <circle cx={el.x} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
                       <circle cx={el.x + el.width} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
                       <circle cx={el.x} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
-                      {/* Edge handles */}
                       <circle cx={el.x + el.width / 2} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
                       <circle cx={el.x + el.width / 2} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
                       <circle cx={el.x} cy={el.y + el.height / 2} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
@@ -2468,7 +2428,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             return null;
           })}
 
-          {/* Current Drawing Path */}
           {drawing && tool === 'draw' && currentPath.length > 0 && (
             <polyline
               points={currentPath.map(p => `${p.x},${p.y}`).join(' ')}
@@ -2481,7 +2440,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             />
           )}
 
-          {/* Live Preview shapes while drawing */}
           {previewShape && (
             <>
               {previewShape.type === 'rectangle' && (
@@ -2545,7 +2503,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         </svg>
       </div>
 
-      {/* Table Creator Modal */}
       {showTableCreator && (
         <div className="text-edit-modal" onClick={() => setShowTableCreator(false)}>
           <div className="text-edit-content" onClick={(e) => e.stopPropagation()} style={{ minWidth: '300px' }}>
@@ -2576,7 +2533,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             </div>
             <div className="text-edit-actions">
               <button onClick={() => {
-                // Create table
+                
                 const cellWidth = 120;
                 const cellHeight = 40;
                 const tableWidth = tableCols * cellWidth;
@@ -2616,7 +2573,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         </div>
       )}
 
-      {/* Text Editing Modal */}
       {editingText && (
         <div className="text-edit-modal">
           <div className="text-edit-content">
@@ -2642,7 +2598,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         </div>
       )}
 
-      {/* Minimap */}
       {showMinimap && (
         <div className="minimap">
           <div className="minimap-header">
@@ -2665,7 +2620,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
               }
               return null;
             })}
-            {/* Viewport indicator */}
             <rect
               x={-pan.x * zoom * 0.05}
               y={-pan.y * zoom * 0.05}
@@ -2680,7 +2634,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         </div>
       )}
 
-      {/* Keyboard Shortcuts Panel */}
       {showShortcuts && (
         <div className="shortcuts-overlay" onClick={() => setShowShortcuts(false)}>
           <div className="shortcuts-panel" onClick={(e) => e.stopPropagation()}>
@@ -2735,7 +2688,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         </div>
       )}
 
-      {/* Floating Help Button */}
       <button 
         className="floating-help-btn" 
         onClick={() => setShowShortcuts(true)}

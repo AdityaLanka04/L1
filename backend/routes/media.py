@@ -35,7 +35,6 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(prefix="/api", tags=["media"])
 
-
 @router.post("/transcribe_audio/")
 async def transcribe_audio(
     audio_file: UploadFile = File(...),
@@ -97,7 +96,6 @@ async def transcribe_audio(
             except Exception as cleanup_error:
                 logger.warning(f"Failed to cleanup temp file: {cleanup_error}")
 
-
 @router.get("/test_transcribe")
 def test_transcribe_endpoint():
     groq_api_key = os.getenv("GROQ_API_KEY")
@@ -107,7 +105,6 @@ def test_transcribe_endpoint():
         "groq_available": groq_api_key is not None,
         "groq_key_prefix": groq_api_key[:10] if groq_api_key else "None",
     }
-
 
 @router.post("/transcribe_audio_test/")
 async def transcribe_audio_test(
@@ -131,7 +128,6 @@ async def transcribe_audio_test(
     except Exception as e:
         logger.error(f"Test endpoint error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/media/process")
 async def process_media(
@@ -295,7 +291,6 @@ async def process_media(
         logger.error(f"Media processing error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
-
 @router.post("/media/save-notes")
 async def save_media_notes(
     user_id: str = Body(...),
@@ -323,8 +318,8 @@ async def save_media_notes(
             flashcards=json.dumps(flashcards) if flashcards else None,
             quiz_questions=json.dumps(quiz_questions) if quiz_questions else None,
             key_moments=json.dumps(key_moments) if key_moments else None,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
 
         db.add(new_note)
@@ -368,7 +363,6 @@ async def save_media_notes(
         logger.error(f"Error saving notes: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save notes: {str(e)}")
 
-
 @router.post("/media/regenerate-notes")
 async def regenerate_notes(
     transcript: str = Body(...),
@@ -410,7 +404,6 @@ async def regenerate_notes(
         logger.error(f"Error regenerating notes: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to regenerate notes: {str(e)}")
 
-
 @router.get("/media/estimate-cost")
 async def estimate_processing_cost(
     duration_seconds: int = Query(...),
@@ -420,7 +413,6 @@ async def estimate_processing_cost(
         raise HTTPException(status_code=500, detail="Media processor not available")
     cost_info = ai_media_processor.estimate_processing_cost(duration_seconds, file_size_mb)
     return cost_info
-
 
 @router.post("/media/generate-title")
 async def generate_smart_title(
@@ -448,7 +440,6 @@ Return ONLY the title, nothing else. Make it descriptive and catchy."""
     except Exception as e:
         logger.error(f"Title generation error: {str(e)}")
         return {"title": "Media Notes"}
-
 
 @router.get("/get_note/{note_id}")
 async def get_single_note(
@@ -515,7 +506,6 @@ async def get_single_note(
         logger.error(f"Error fetching note {note_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/media/history")
 async def get_media_history(
     user_id: str = Query(...),
@@ -569,7 +559,6 @@ async def get_media_history(
     except Exception as e:
         logger.error(f"History fetch error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/upload_slides")
 async def upload_slides(
@@ -662,7 +651,6 @@ async def upload_slides(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to upload slides: {str(e)}")
 
-
 @router.get("/get_uploaded_slides")
 def get_uploaded_slides(
     user_id: str = Query(...),
@@ -702,7 +690,6 @@ def get_uploaded_slides(
         logger.error(f"Error getting slides: {str(e)}")
         return {"slides": []}
 
-
 @router.delete("/delete_slide/{slide_id}")
 def delete_slide(
     slide_id: int,
@@ -733,7 +720,6 @@ def delete_slide(
         logger.error(f"Error deleting slide: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/analyze_slide/{slide_id}")
 async def analyze_slide(
@@ -783,7 +769,6 @@ async def analyze_slide(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error analyzing slide: {str(e)}")
 
-
 @router.get("/slide_file/{slide_id}")
 async def get_slide_file(
     slide_id: int,
@@ -825,7 +810,6 @@ async def get_slide_file(
     except Exception as e:
         logger.error(f"Error serving slide file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error serving slide file: {str(e)}")
-
 
 @router.get("/slide_image/{slide_id}/{page_number}")
 async def get_slide_image(

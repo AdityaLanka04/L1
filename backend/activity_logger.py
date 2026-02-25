@@ -28,7 +28,6 @@ def resolve_user_id(user_id) -> Optional[int]:
     except Exception:
         return None
 
-
 def log_activity(user_id, tool_name, action, tokens_used=0, metadata=None):
     """
     Log user activity to database

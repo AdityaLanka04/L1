@@ -9,7 +9,6 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-
 class FlashcardGenerationRequest(BaseModel):
     user_id: str
     topic: Optional[str] = None
@@ -19,7 +18,6 @@ class FlashcardGenerationRequest(BaseModel):
     save_to_set: bool = False
     set_title: Optional[str] = None
     is_public: bool = False
-
 
 class MinimalFlashcardPrompts:
     """Streamlined prompts for flashcard generation"""
@@ -81,7 +79,6 @@ RULES:
 - Progressive difficulty if mixed
 - No fluff or filler content"""
 
-
 class SmartFlashcardAgent:
     """
     Simplified agent - tracks only essential metrics
@@ -90,7 +87,7 @@ class SmartFlashcardAgent:
     
     def __init__(self, user_id: str):
         self.user_id = user_id
-        self.card_reviews = {}  # card_id -> {correct: int, total: int}
+        self.card_reviews = {}
         self.session_active = False
         self.current_session = None
     
@@ -125,7 +122,7 @@ class SmartFlashcardAgent:
         """Get cards with < 70% retention"""
         weak = []
         for card_id, reviews in self.card_reviews.items():
-            if reviews["total"] >= 3:  # At least 3 reviews
+            if reviews["total"] >= 3:
                 retention = self._get_retention(card_id)
                 if retention < 0.7:
                     weak.append(card_id)
@@ -147,7 +144,6 @@ class SmartFlashcardAgent:
             "average_retention": avg_retention,
             "weak_cards": len(self.get_weak_cards())
         }
-
 
 def generate_flashcards_minimal(
     unified_ai,
@@ -171,35 +167,28 @@ def generate_flashcards_minimal(
                 content_or_topic, card_count, difficulty
             )
         
-        # Single AI call
         response = unified_ai.chat(
             message=prompt,
             model="gemini-2.0-flash-exp",
             temperature=0.7
         )
         
-        # Parse JSON response
         import json
         import re
         
-        # Extract JSON from response
         json_match = re.search(r'\{[\s\S]*"flashcards"[\s\S]*\}', response)
         if json_match:
             data = json.loads(json_match.group())
             flashcards = data.get("flashcards", [])
             
-            # Validate and clean
             valid_cards = []
             for card in flashcards[:card_count]:
                 if "question" in card and "answer" in card:
-                    # Trim answers to prevent scrolling
                     answer = card["answer"]
-                    if len(answer) > 400:  # ~4 sentences max
+                    if len(answer) > 400:
                         answer = answer[:400] + "..."
                     
-                    # Get wrong options if provided by AI
                     wrong_options = card.get("wrong_options", [])
-                    # Ensure we have exactly 3 wrong options, trim if too long
                     wrong_options = [opt[:400] + "..." if len(opt) > 400 else opt for opt in wrong_options[:3]]
                     
                     valid_cards.append({
@@ -218,8 +207,6 @@ def generate_flashcards_minimal(
         logger.error(f"Flashcard generation error: {e}")
         return []
 
-
-# Active agents (in-memory, use Redis in production)
 active_agents = {}
 
 def get_agent(user_id: str) -> SmartFlashcardAgent:

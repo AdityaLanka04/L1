@@ -1,7 +1,4 @@
-/**
- * Question Bank Agent Service
- * Frontend service for interacting with the Question Bank Agent API
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
@@ -43,7 +40,7 @@ class QuestionBankAgentService {
         const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
         console.error('📋 Full error response:', error);
         
-        // Handle validation errors
+        
         if (error.detail && Array.isArray(error.detail)) {
           const validationErrors = error.detail.map(e => `${e.loc?.join('.')} - ${e.msg}`).join('; ');
           console.error('📋 Validation errors:', validationErrors);
@@ -61,9 +58,7 @@ class QuestionBankAgentService {
     }
   }
 
-  /**
-   * Generate questions from PDF document
-   */
+  
   async generateFromPDF(params) {
     const { userId, sourceId, questionCount, difficultyMix, questionTypes, topics, title } = params;
 
@@ -93,9 +88,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Generate questions from multiple PDF documents (NotebookLM style)
-   */
+  
   async generateFromMultiplePDFs(params) {
     const { userId, sourceIds, questionCount, difficultyMix, title, questionTypes, topics } = params;
 
@@ -124,9 +117,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Generate related questions from PDFs using strengths/weaknesses
-   */
+  
   async generateRelatedFromPDF(params) {
     const { userId, sourceIds, questionCount, difficultyMix, questionTypes, title } = params;
 
@@ -154,13 +145,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Smart question generation with custom prompts and reference documents
-   * Use cases:
-   * - "Generate questions like these sample questions from my textbook"
-   * - "Create easy questions focusing on chapter 3 topics"
-   * - "Make questions similar to last year's exam from this study material"
-   */
+  
   async smartGenerate(params) {
     const { 
       userId, 
@@ -203,9 +188,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Delete an uploaded PDF document
-   */
+  
   async deleteDocument(userId, documentId) {
     const response = await fetch(`${API_URL}/qb/delete_document/${documentId}?user_id=${userId}`, {
       method: 'DELETE',
@@ -222,9 +205,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Generate questions from chat sessions and slides
-   */
+  
   async generateFromSources(params) {
     const { userId, sources, questionCount, difficultyMix, sessionId } = params;
 
@@ -242,9 +223,7 @@ class QuestionBankAgentService {
     });
   }
 
-  /**
-   * Generate questions from custom content
-   */
+  
   async generateFromCustom(params) {
     const { userId, content, title, questionCount, difficultyMix, sessionId } = params;
 
@@ -263,9 +242,7 @@ class QuestionBankAgentService {
     });
   }
 
-  /**
-   * Search questions in the question bank
-   */
+  
   async searchQuestions(params) {
     const { userId, searchQuery, filters = {}, sessionId } = params;
 
@@ -280,9 +257,7 @@ class QuestionBankAgentService {
     });
   }
 
-  /**
-   * Organize questions into logical groups
-   */
+  
   async organizeQuestions(params) {
     const { userId, questions, sessionId } = params;
 
@@ -296,9 +271,7 @@ class QuestionBankAgentService {
     });
   }
 
-  /**
-   * Analyze performance on questions
-   */
+  
   async analyzePerformance(params) {
     const { userId, performanceData, sessionId } = params;
 
@@ -312,9 +285,7 @@ class QuestionBankAgentService {
     });
   }
 
-  /**
-   * Get recommendations for question review
-   */
+  
   async getRecommendations(params) {
     const { userId, performanceData, sessionId } = params;
 
@@ -328,9 +299,7 @@ class QuestionBankAgentService {
     });
   }
 
-  /**
-   * Categorize questions by topic and concept
-   */
+  
   async categorizeQuestions(params) {
     const { userId, questions, sessionId } = params;
 
@@ -344,9 +313,7 @@ class QuestionBankAgentService {
     });
   }
 
-  /**
-   * Assess and validate question difficulty levels
-   */
+  
   async assessDifficulty(params) {
     const { userId, questions, sessionId } = params;
 
@@ -360,11 +327,9 @@ class QuestionBankAgentService {
     });
   }
 
-  // ==================== AI ENHANCEMENT FEATURES ====================
+  
 
-  /**
-   * Enhance a user prompt for better question generation
-   */
+  
   async enhancePrompt(prompt, contentSummary = '') {
     const response = await fetch(`${API_URL}/qb/enhance_prompt`, {
       method: 'POST',
@@ -386,9 +351,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Extract topics from document content
-   */
+  
   async extractTopics(userId, documentId = null, content = '') {
     const response = await fetch(`${API_URL}/qb/extract_topics`, {
       method: 'POST',
@@ -411,9 +374,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Score question quality
-   */
+  
   async scoreQuestions(questions) {
     const response = await fetch(`${API_URL}/qb/score_questions`, {
       method: 'POST',
@@ -432,9 +393,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Tag questions with Bloom's Taxonomy levels
-   */
+  
   async tagBloomTaxonomy(questions) {
     const response = await fetch(`${API_URL}/qb/tag_bloom_taxonomy`, {
       method: 'POST',
@@ -453,9 +412,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Check for duplicate questions
-   */
+  
   async checkDuplicates(userId, question, questionSetId = null) {
     const response = await fetch(`${API_URL}/qb/check_duplicates`, {
       method: 'POST',
@@ -478,9 +435,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Analyze user's weak areas
-   */
+  
   async analyzeWeaknesses(userId) {
     const response = await fetch(`${API_URL}/qb/analyze_weaknesses`, {
       method: 'POST',
@@ -499,24 +454,21 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Generate adaptive questions targeting weak areas
-   * Uses the new Agent-based endpoint that integrates with Master Agent
-   */
+  
   async generateAdaptive(userId, documentIds, questionCount = 10) {
-    // Try the new agent endpoint first
+    
     try {
       return await this.request('/adaptive', {
         method: 'POST',
         body: JSON.stringify({
           user_id: userId,
-          content: '', // Will be fetched from sources
+          content: '', 
           source_type: 'custom',
           question_count: questionCount,
         })
       });
     } catch (e) {
-      // Fallback to legacy endpoint
+      
       const response = await fetch(`${API_URL}/qb/generate_adaptive`, {
         method: 'POST',
         headers: {
@@ -539,13 +491,7 @@ class QuestionBankAgentService {
     }
   }
 
-  /**
-   * Generate questions using the new agentic pipeline
-   * This uses the enhanced agent with:
-   * - Content analysis
-   * - Question blueprint creation
-   * - Master Agent integration for user context
-   */
+  
   async generateWithAgent(params) {
     const { 
       userId, 
@@ -580,9 +526,7 @@ class QuestionBankAgentService {
     });
   }
 
-  /**
-   * Enhance question explanations
-   */
+  
   async enhanceExplanations(questions) {
     const response = await fetch(`${API_URL}/qb/enhance_explanations`, {
       method: 'POST',
@@ -601,9 +545,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Regenerate a single question with feedback
-   */
+  
   async regenerateQuestion(userId, question, feedback, documentId = null) {
     const response = await fetch(`${API_URL}/qb/regenerate_question`, {
       method: 'POST',
@@ -627,9 +569,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Preview generate questions (not saved)
-   */
+  
   async previewGenerate(params) {
     const { 
       userId, sourceIds, questionCount, difficultyMix, 
@@ -661,9 +601,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Save previewed questions after review
-   */
+  
   async savePreviewedQuestions(userId, questions, title, description = '', sourceType = 'preview') {
     const response = await fetch(`${API_URL}/qb/save_previewed_questions`, {
       method: 'POST',
@@ -688,9 +626,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Batch delete multiple question sets
-   */
+  
   async batchDelete(userId, setIds) {
     const response = await fetch(`${API_URL}/qb/batch_delete`, {
       method: 'POST',
@@ -712,9 +648,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Merge multiple question sets into one
-   */
+  
   async mergeSets(userId, setIds, title, deleteOriginals = false) {
     const response = await fetch(`${API_URL}/qb/merge_sets`, {
       method: 'POST',
@@ -738,11 +672,9 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  // ==================== WEAK AREAS TRACKING ====================
+  
 
-  /**
-   * Get user's weak areas sorted by priority
-   */
+  
   async getWeakAreas(userId) {
     const response = await fetch(`${API_URL}/qb/weak_areas?user_id=${encodeURIComponent(userId)}`, {
       method: 'GET',
@@ -760,9 +692,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Get wrong answer history for review
-   */
+  
   async getWrongAnswers(userId, topic = null, limit = 50) {
     let url = `${API_URL}/qb/wrong_answers?user_id=${encodeURIComponent(userId)}&limit=${limit}`;
     if (topic) {
@@ -785,9 +715,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Mark a wrong answer as reviewed
-   */
+  
   async markWrongAnswerReviewed(wrongAnswerId, understood = true) {
     const response = await fetch(`${API_URL}/qb/mark_reviewed`, {
       method: 'POST',
@@ -809,9 +737,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Generate practice questions focused on weak areas
-   */
+  
   async generatePractice(userId, topic = null, questionCount = 10, includeReview = true) {
     const response = await fetch(`${API_URL}/qb/generate_practice`, {
       method: 'POST',
@@ -835,9 +761,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Get AI-powered practice recommendations
-   */
+  
   async getPracticeRecommendations(userId) {
     const response = await fetch(`${API_URL}/qb/practice_recommendations?user_id=${encodeURIComponent(userId)}`, {
       method: 'GET',
@@ -855,9 +779,7 @@ class QuestionBankAgentService {
     return await response.json();
   }
 
-  /**
-   * Reset a weak area (mark as mastered or delete)
-   */
+  
   async resetWeakArea(weakAreaId, action = 'mastered') {
     const response = await fetch(`${API_URL}/qb/reset_weak_area`, {
       method: 'POST',

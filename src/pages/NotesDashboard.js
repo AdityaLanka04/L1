@@ -46,7 +46,7 @@ const NotesDashboard = () => {
     loadNotes(username);
     loadFolders(username);
     
-    // Load saved font preference
+    
     const savedFont = localStorage.getItem('preferredFont');
     if (savedFont) setSelectedFont(savedFont);
   }, [navigate]);
@@ -111,7 +111,7 @@ const NotesDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Convert blocks to HTML if blocks are provided
+      
       let content = template.content;
       if (template.blocks && template.blocks.length > 0) {
         content = blocksToHtml(template.blocks);
@@ -138,7 +138,7 @@ const NotesDashboard = () => {
           }
   };
 
-  // Helper function to convert blocks to HTML
+  
   const blocksToHtml = (blocks) => {
     if (!blocks || blocks.length === 0) return '';
     
@@ -175,8 +175,6 @@ const NotesDashboard = () => {
       }
     }).join('\n');
   };
-
-
 
   const handleFontChange = (font) => {
     setSelectedFont(font);

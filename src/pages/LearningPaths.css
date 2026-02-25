@@ -1,7 +1,6 @@
-/* Learning Paths Page - Premium Aesthetic Design */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ==================== BASE LAYOUT ==================== */
 .lp-container {
   --lp-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --lp-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -29,7 +28,6 @@
   box-sizing: border-box;
 }
 
-/* ==================== HEADER ==================== */
 .lp-header {
   position: sticky;
   top: 0;
@@ -48,7 +46,6 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .lp-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -189,7 +186,6 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* ==================== LAYOUT BODY ==================== */
 .lp-layout-body {
   display: flex;
   flex: 1;
@@ -197,7 +193,6 @@
   height: 100%;
 }
 
-/* ==================== SIDEBAR ==================== */
 .lp-sidebar {
   width: 260px;
   height: 100%;
@@ -359,7 +354,6 @@
   font-family: var(--lp-body);
 }
 
-/* ==================== MAIN CONTENT ==================== */
 .lp-main {
   flex: 1;
   display: flex;
@@ -415,7 +409,6 @@
   }
 }
 
-/* ==================== TOOLBAR ==================== */
 .lp-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -529,7 +522,6 @@
   padding: 8px 12px;
 }
 
-/* ==================== LOADING STATE ==================== */
 .lp-loading {
   display: flex;
   flex-direction: column;
@@ -560,7 +552,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== EMPTY STATE ==================== */
 .lp-empty-state {
   display: flex;
   flex-direction: column;
@@ -633,7 +624,6 @@
   box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* ==================== PATHS GRID ==================== */
 .lp-paths-grid {
   width: 100%;
   max-width: 1400px;
@@ -643,7 +633,6 @@
   margin: 0 auto;
 }
 
-/* ==================== PATH CARD ==================== */
 .lp-path-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -829,7 +818,6 @@
   font-weight: 700;
 }
 
-/* ==================== MODAL ==================== */
 .lp-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1079,7 +1067,6 @@
   cursor: not-allowed;
 }
 
-/* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1200px) {
   .lp-paths-grid {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1177,7 +1164,6 @@
 
 }
 
-/* ==================== ANIMATIONS ==================== */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -1203,7 +1189,6 @@
 .lp-paths-grid .lp-path-card:nth-child(8) { animation-delay: 0.4s; }
 .lp-paths-grid .lp-path-card:nth-child(9) { animation-delay: 0.45s; }
 
-/* ==================== ACCESSIBILITY ==================== */
 @media (prefers-reduced-motion: reduce) {
   .lp-container *,
   .lp-container *::before,
@@ -1236,7 +1221,6 @@
   }
 }
 
-/* ==================== PRINT STYLES ==================== */
 @media print {
   .lp-sidebar,
   .lp-header,
@@ -1254,7 +1238,6 @@
   }
 }
 
-/* ==================== DARK MODE ENHANCEMENTS ==================== */
 [data-theme-mode="dark"] .lp-path-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
@@ -1268,7 +1251,6 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
 }
 
-/* ==================== LIGHT MODE ENHANCEMENTS ==================== */
 [data-theme-mode="light"] .lp-path-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -1282,7 +1264,6 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
-/* ==================== VINTAGE PAPER TEXTURE ==================== */
 .lp-path-card::after {
   content: '';
   position: absolute;
@@ -1304,7 +1285,6 @@
   border-radius: 24px;
 }
 
-/* ==================== GLASSMORPHISM EFFECTS ==================== */
 .lp-header {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
@@ -1313,9 +1293,6 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* ==================== GLOW EFFECTS REMOVED ==================== */
-
-/* ==================== CUSTOM SELECTION ==================== */
 ::selection {
   background: color-mix(in srgb, var(--accent) 30%, transparent);
   color: var(--text-primary);
@@ -1326,7 +1303,6 @@
   color: var(--text-primary);
 }
 
-/* ==================== TOOLTIP STYLES ==================== */
 [data-tooltip] {
   position: relative;
 }
@@ -1356,7 +1332,6 @@
   transform: translateX(-50%) translateY(-4px);
 }
 
-/* ==================== GRADIENT BORDERS ==================== */
 .lp-path-card {
   position: relative;
   background-clip: padding-box;
@@ -1383,7 +1358,6 @@
   opacity: 0.5;
 }
 
-/* ==================== BADGE STYLES ==================== */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -1415,7 +1389,6 @@
   border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
 }
 
-/* ==================== HOVER LIFT EFFECT ==================== */
 .hover-lift {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1424,7 +1397,6 @@
   transform: translateY(-4px);
 }
 
-/* ==================== PULSE ANIMATION ==================== */
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -1438,7 +1410,6 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* ==================== BOUNCE ANIMATION ==================== */
 @keyframes bounce {
   0%, 100% {
     transform: translateY(0);
@@ -1452,7 +1423,6 @@
   animation: bounce 1s ease-in-out infinite;
 }
 
-/* ==================== SCALE ANIMATION ==================== */
 @keyframes scaleIn {
   from {
     opacity: 0;
@@ -1468,7 +1438,6 @@
   animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ==================== SHIMMER ANIMATION ==================== */
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
@@ -1489,7 +1458,6 @@
   background-size: 1000px 100%;
 }
 
-/* ==================== SKELETON LOADING ==================== */
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -1511,12 +1479,10 @@
   }
 }
 
-/* ==================== SMOOTH TRANSITIONS ==================== */
 .lp-container * {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ==================== FOCUS VISIBLE ==================== */
 .lp-nav-item:focus-visible,
 .lp-back-btn:focus-visible,
 .lp-create-btn:focus-visible,
@@ -1528,18 +1494,15 @@
   outline-offset: 2px;
 }
 
-/* ==================== LOADING STATES ==================== */
 .lp-btn-primary:disabled .lp-spinner,
 .lp-empty-create-btn:disabled .lp-spinner {
   animation: spin 1s linear infinite;
 }
 
-/* ==================== CARD HOVER STATES ==================== */
 .lp-path-card:active {
   transform: translateY(-2px) scale(0.98);
 }
 
-/* ==================== BUTTON ACTIVE STATES ==================== */
 .lp-back-btn:active,
 .lp-create-btn:active,
 .lp-btn-primary:active,
@@ -1547,7 +1510,6 @@
   transform: translateY(0) scale(0.95);
 }
 
-/* ==================== MODAL ANIMATIONS ==================== */
 .lp-modal-overlay.closing {
   animation: fadeOut 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1576,12 +1538,10 @@
   }
 }
 
-/* ==================== GRID ANIMATIONS ==================== */
 .lp-paths-grid.loading .lp-path-card {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-/* ==================== SIDEBAR ANIMATIONS ==================== */
 .lp-sidebar.entering {
   animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1595,21 +1555,14 @@
   }
 }
 
-/* ==================== HEADER ANIMATIONS ==================== */
 .lp-header.scrolled {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
-/* ==================== CONTENT FADE IN ==================== */
 .lp-content > * {
   animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
 
-/* ==================== END OF STYLES ==================== */
-/* Total: 1000+ lines of comprehensive aesthetic CSS */
-
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

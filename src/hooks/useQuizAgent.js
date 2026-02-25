@@ -1,14 +1,8 @@
-/**
- * useQuizAgent Hook
- * React hook for interacting with the Quiz Agent
- */
+
 
 import { useState, useCallback } from 'react';
 import quizAgentService from '../services/quizAgentService';
 
-/**
- * Hook for quiz generation and management
- */
 export function useQuizAgent(userId) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -17,9 +11,7 @@ export function useQuizAgent(userId) {
   const [analysis, setAnalysis] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
 
-  /**
-   * Generate a new quiz
-   */
+  
   const generateQuiz = useCallback(async (params) => {
     setLoading(true);
     setError(null);
@@ -38,9 +30,7 @@ export function useQuizAgent(userId) {
     }
   }, [userId]);
 
-  /**
-   * Generate adaptive quiz based on performance
-   */
+  
   const generateAdaptiveQuiz = useCallback(async (params) => {
     setLoading(true);
     setError(null);
@@ -59,9 +49,7 @@ export function useQuizAgent(userId) {
     }
   }, [userId]);
 
-  /**
-   * Grade quiz answers
-   */
+  
   const gradeQuiz = useCallback(async (answers, timeTakenSeconds = null) => {
     if (!questions.length) {
       throw new Error('No questions to grade');
@@ -86,9 +74,7 @@ export function useQuizAgent(userId) {
     }
   }, [userId, questions]);
 
-  /**
-   * Analyze quiz performance
-   */
+  
   const analyzePerformance = useCallback(async (gradingResults = null, timeTakenSeconds = null) => {
     const resultsToAnalyze = gradingResults || results?.results;
     if (!resultsToAnalyze) {
@@ -113,9 +99,7 @@ export function useQuizAgent(userId) {
     }
   }, [userId, results]);
 
-  /**
-   * Get study recommendations
-   */
+  
   const getRecommendations = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -131,9 +115,7 @@ export function useQuizAgent(userId) {
     }
   }, [userId]);
 
-  /**
-   * Get explanation for a question
-   */
+  
   const explainQuestion = useCallback(async (question, userAnswer = '') => {
     setLoading(true);
     setError(null);
@@ -152,9 +134,7 @@ export function useQuizAgent(userId) {
     }
   }, [userId]);
 
-  /**
-   * Generate similar questions for practice
-   */
+  
   const generateSimilar = useCallback(async (question, count = 1, difficulty = null) => {
     setLoading(true);
     setError(null);
@@ -174,9 +154,7 @@ export function useQuizAgent(userId) {
     }
   }, [userId]);
 
-  /**
-   * Review wrong answers
-   */
+  
   const reviewWrongAnswers = useCallback(async (gradingResults = null) => {
     const resultsToReview = gradingResults || results?.results;
     if (!resultsToReview) {
@@ -199,9 +177,7 @@ export function useQuizAgent(userId) {
     }
   }, [userId, results]);
 
-  /**
-   * Reset quiz state
-   */
+  
   const resetQuiz = useCallback(() => {
     setQuestions([]);
     setResults(null);
@@ -210,7 +186,7 @@ export function useQuizAgent(userId) {
   }, []);
 
   return {
-    // State
+    
     loading,
     error,
     questions,
@@ -218,7 +194,7 @@ export function useQuizAgent(userId) {
     analysis,
     recommendations,
     
-    // Actions
+    
     generateQuiz,
     generateAdaptiveQuiz,
     gradeQuiz,
@@ -229,7 +205,7 @@ export function useQuizAgent(userId) {
     reviewWrongAnswers,
     resetQuiz,
     
-    // Setters for manual control
+    
     setQuestions,
     setResults,
     setError

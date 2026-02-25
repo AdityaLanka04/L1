@@ -212,7 +212,6 @@ const PlaylistsPage = () => {
 
   return (
     <div className="playlists-container playlists-page">
-      {/* Top Navigation Bar */}
       <header className="hub-header">
         <div className="hub-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -241,9 +240,7 @@ const PlaylistsPage = () => {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <div className="playlists-body">
-        {/* Left Sidebar */}
         <aside className="playlists-sidebar">
           <div className="sidebar-section">
             <h3 className="sidebar-heading">Browse</h3>
@@ -384,7 +381,6 @@ const PlaylistsPage = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="playlists-main">
           <div className="content-body">
             <div className="playlists-toolbar">
@@ -506,7 +502,6 @@ const PlaylistsPage = () => {
         />
       )}
       
-      {/* Import/Export Modal */}
       <ImportExportModal
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
@@ -553,8 +548,6 @@ const PlaylistsPage = () => {
 };
 
 export default PlaylistsPage;
-
-// ==================== PLAYLIST CARD ====================
 
 const PlaylistCard = ({
   playlist,
@@ -707,8 +700,6 @@ const PlaylistCard = ({
   );
 };
 
-// ==================== CREATE MODAL ====================
-
 const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties, coverColors }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -751,7 +742,7 @@ const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties, cove
     }));
   };
 
-  // Convert HSL to Hex
+  
   const hslToHex = (h, s, l) => {
     l /= 100;
     const a = s * Math.min(l, 1 - l) / 100;
@@ -763,7 +754,7 @@ const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties, cove
     return `#${f(0)}${f(8)}${f(4)}`;
   };
 
-  // Update color when sliders change
+  
   const updateColor = (newHue, newSat, newBright) => {
     const hexColor = hslToHex(newHue, newSat, newBright);
     setFormData(prev => ({ ...prev, cover_color: hexColor }));

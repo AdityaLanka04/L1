@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ==================== BASE & RESET ==================== */
 .lrh {
   min-height: 100vh;
   display: flex;
@@ -18,7 +17,6 @@
   padding: 0;
 }
 
-/* ==================== AMBIENT BACKGROUND ==================== */
 .lrh-ambient {
   position: fixed;
   inset: 0;
@@ -70,7 +68,6 @@
   75% { transform: translate(-30px, -10px) scale(1.02); }
 }
 
-/* ==================== HEADER ==================== */
 .lrh-header {
   position: sticky;
   top: 0;
@@ -184,7 +181,6 @@
   color: var(--bg-primary, var(--bg-primary));
 }
 
-/* ==================== MAIN CONTENT ==================== */
 .lrh-main {
   flex: 1;
   display: flex;
@@ -198,7 +194,6 @@
   min-height: 0;
 }
 
-/* ==================== HERO SECTION ==================== */
 .lrh-hero {
   text-align: center;
   margin-bottom: 32px;
@@ -236,7 +231,6 @@
   }
 }
 
-/* ==================== TOOLS GRID ==================== */
 .lrh-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -245,7 +239,6 @@
   min-height: 0;
 }
 
-/* ==================== CARD STYLES ==================== */
 .lrh-card {
   position: relative;
   cursor: pointer;
@@ -316,7 +309,6 @@
   display: none;
 }
 
-/* Card Top Section */
 .lrh-card-top {
   display: flex;
   justify-content: space-between;
@@ -373,7 +365,6 @@
   text-transform: uppercase;
 }
 
-/* Card Body */
 .lrh-card-body {
   flex: 1;
   display: flex;
@@ -401,7 +392,6 @@
   font-weight: 400;
 }
 
-/* Card Footer */
 .lrh-card-footer {
   margin-top: 20px;
 }
@@ -438,7 +428,6 @@
   transform: translateX(4px);
 }
 
-/* Featured Card */
 .lrh-card-featured .lrh-card-border {
   border-color: color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: 8px;
@@ -462,8 +451,6 @@
   );
 }
 
-
-/* ==================== LIGHT MODE ==================== */
 [data-theme-mode="light"] .lrh {
   background: var(--bg-primary, #fafafa);
 }
@@ -559,7 +546,6 @@
   color: color-mix(in srgb, var(--text-primary, #1a1a2e) 50%, transparent);
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 1200px) {
   .lrh-main {
     padding: 32px;
@@ -665,7 +651,6 @@
   }
 }
 
-/* ==================== ANIMATIONS ==================== */
 @media (prefers-reduced-motion: reduce) {
   .lrh-ambient-orb {
     animation: none;
@@ -688,7 +673,6 @@
   }
 }
 
-/* ==================== SCROLLBAR ==================== */
 .lrh::-webkit-scrollbar {
   width: 8px;
 }
@@ -705,10 +689,6 @@
   background: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-
-
-
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .lrh-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -721,8 +701,6 @@
   border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

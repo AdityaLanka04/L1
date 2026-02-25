@@ -14,7 +14,6 @@ from deps import call_ai, get_current_user, get_user_by_email, get_user_by_usern
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["weakness"])
 
-
 def _get_topic_mastery(db: Session, user_id: int) -> list[dict]:
     records = db.query(models.TopicMastery).filter(
         models.TopicMastery.user_id == user_id
@@ -36,11 +35,9 @@ def _get_topic_mastery(db: Session, user_id: int) -> list[dict]:
         })
     return result
 
-
 def _identify_weaknesses(topic_records: list[dict]) -> list[dict]:
     weaknesses = [t for t in topic_records if t["mastery_level"] < 0.5 or t["accuracy"] < 60]
     return sorted(weaknesses, key=lambda x: x["mastery_level"])
-
 
 def _generate_question_for_topic(topic: str, difficulty: str, db: Session) -> dict:
     existing = db.query(models.GeneratedQuestion).filter(
@@ -124,7 +121,6 @@ def _generate_question_for_topic(topic: str, difficulty: str, db: Session) -> di
         "difficulty": new_q.difficulty,
     }
 
-
 def _evaluate_answer(question: dict, user_answer: str) -> tuple[bool, str]:
     correct_answer = question.get("correct_answer", "")
     question_type = question.get("question_type", "short_answer")
@@ -154,7 +150,6 @@ def _evaluate_answer(question: dict, user_answer: str) -> tuple[bool, str]:
     except (json.JSONDecodeError, ValueError):
         is_correct = user_answer.strip().lower() in correct_answer.strip().lower()
         return is_correct, f"Expected: {correct_answer}"
-
 
 @router.get("/weakness-practice/analysis")
 async def get_weakness_analysis(
@@ -205,7 +200,6 @@ async def get_weakness_analysis(
         logger.error(f"Error in weakness analysis: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
 
-
 @router.post("/weakness-practice/start-session")
 async def start_weakness_practice_session(
     user_id: int = Body(...),
@@ -221,7 +215,7 @@ async def start_weakness_practice_session(
             topic=topic,
             difficulty=difficulty,
             target_question_count=question_count,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(timezone.utc),
             status="active",
         )
         db.add(session)
@@ -242,7 +236,6 @@ async def start_weakness_practice_session(
     except Exception as e:
         logger.error(f"Error starting practice session: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
-
 
 @router.get("/weakness-practice/next-question")
 async def get_next_practice_question(
@@ -288,7 +281,6 @@ async def get_next_practice_question(
         logger.error(f"Error getting next question: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
 
-
 @router.post("/weakness-practice/submit-answer")
 async def submit_practice_answer(
     session_id: str = Body(...),
@@ -330,7 +322,7 @@ async def submit_practice_answer(
             correct_answer=generated_q.correct_answer,
             is_correct=is_correct,
             time_taken=time_taken,
-            answered_at=datetime.utcnow(),
+            answered_at=datetime.now(timezone.utc),
         )
         db.add(answer)
 
@@ -351,7 +343,7 @@ async def submit_practice_answer(
             mastery.questions_asked += 1
             if is_correct:
                 mastery.correct_answers += 1
-            mastery.last_practiced = datetime.utcnow()
+            mastery.last_practiced = datetime.now(timezone.utc)
             accuracy = mastery.correct_answers / mastery.questions_asked
             mastery.mastery_level = min(1.0, mastery.mastery_level * 0.9 + accuracy * 0.1)
             mastery.confidence_level = accuracy
@@ -363,7 +355,7 @@ async def submit_practice_answer(
                 correct_answers=1 if is_correct else 0,
                 mastery_level=0.1 if is_correct else 0.0,
                 confidence_level=1.0 if is_correct else 0.0,
-                last_practiced=datetime.utcnow(),
+                last_practiced=datetime.now(timezone.utc),
             )
             db.add(mastery)
 
@@ -386,7 +378,6 @@ async def submit_practice_answer(
         logger.error(f"Error submitting answer: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
 
-
 @router.post("/weakness-practice/end-session")
 async def end_weakness_practice_session(
     session_id: str = Body(...),
@@ -402,7 +393,7 @@ async def end_weakness_practice_session(
             return JSONResponse(status_code=404, content={"status": "error", "error": "Session not found"})
 
         session.status = "completed"
-        session.completed_at = datetime.utcnow()
+        session.completed_at = datetime.now(timezone.utc)
 
         answers = db.query(models.PracticeAnswer).filter(
             models.PracticeAnswer.session_id == session.id
@@ -449,7 +440,6 @@ async def end_weakness_practice_session(
         logger.error(f"Error ending practice session: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
 
-
 @router.get("/weakness-practice/mastery-overview")
 async def get_mastery_overview(
     user_id: int = Query(...),
@@ -493,7 +483,6 @@ async def get_mastery_overview(
         logger.error(f"Error getting mastery overview: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
 
-
 @router.get("/weakness-practice/weekly-progress")
 async def get_weekly_progress(
     user_id: int = Query(...),
@@ -501,7 +490,7 @@ async def get_weekly_progress(
     token: str = Depends(verify_token),
 ):
     try:
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         week_start = today - timedelta(days=6)
 
         daily_metrics = db.query(models.DailyLearningMetrics).filter(
@@ -559,7 +548,6 @@ async def get_weekly_progress(
     except Exception as e:
         logger.error(f"Error getting weekly progress: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
-
 
 @router.post("/weakness-practice/generate-study-plan")
 async def generate_study_plan(
@@ -628,7 +616,6 @@ async def generate_study_plan(
         logger.error(f"Error generating study plan: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
 
-
 @router.get("/weakness-practice/daily-recommendations")
 async def get_daily_recommendations(
     user_id: int = Query(...),
@@ -639,7 +626,7 @@ async def get_daily_recommendations(
         topic_records = _get_topic_mastery(db, user_id)
         weaknesses = _identify_weaknesses(topic_records)
 
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         today_metrics = db.query(models.DailyLearningMetrics).filter(
             models.DailyLearningMetrics.user_id == user_id,
             models.DailyLearningMetrics.date == today,
@@ -652,7 +639,7 @@ async def get_daily_recommendations(
         review_topics = [
             t["topic"] for t in topic_records
             if t["mastery_level"] >= 0.5 and t["last_practiced"]
-            and (datetime.utcnow() - datetime.fromisoformat(t["last_practiced"])).days > 3
+            and (datetime.now(timezone.utc) - datetime.fromisoformat(t["last_practiced"])).days > 3
         ][:2]
 
         active_plan = db.query(models.StudyPlan).filter(

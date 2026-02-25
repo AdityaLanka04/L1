@@ -187,8 +187,6 @@
   }
 }
 
-
-/* Enhanced LaTeX Styling for Better Visual Appearance */
 .math-content .katex .base {
   color: var(--accent) !important;
 }
@@ -201,13 +199,11 @@
   color: var(--accent) !important;
 }
 
-/* Fraction lines */
 .math-content .katex .frac-line {
   border-bottom-color: var(--accent) !important;
   background-color: var(--accent) !important;
 }
 
-/* Square root styling */
 .math-content .katex .sqrt > .root {
   color: var(--accent) !important;
 }
@@ -216,7 +212,6 @@
   border-color: var(--accent) !important;
 }
 
-/* Integral and sum symbols */
 .math-content .katex .op-symbol {
   color: var(--accent) !important;
 }
@@ -225,7 +220,6 @@
   color: var(--accent) !important;
 }
 
-/* Parentheses and brackets */
 .math-content .katex .delimsizing {
   color: var(--accent) !important;
 }
@@ -237,24 +231,20 @@
   color: var(--accent) !important;
 }
 
-/* Ensure all math elements inherit accent color */
 .math-content .katex * {
   color: var(--accent) !important;
 }
 
-/* Display math gets extra emphasis */
 .math-content .katex-display .katex {
   color: var(--accent) !important;
   font-weight: 400;
 }
 
-/* Light mode adjustments */
 [data-theme-mode="light"] .math-content .katex,
 [data-theme-mode="light"] .math-content .katex * {
   color: var(--accent) !important;
 }
 
-/* Ensure proper spacing around display math */
 .math-content p + .katex-display {
   margin-top: 1.5em;
 }
@@ -263,21 +253,16 @@
   margin-top: 1.5em;
 }
 
-/* Make inline math slightly larger and more prominent */
 .math-content p .katex {
   font-size: 0.91em !important;
   vertical-align: middle;
   padding: 0 0.1em;
 }
 
-/* Ensure proper line height for lines with inline math */
 .math-content p:has(.katex) {
   line-height: 1.9;
 }
 
-/* ---- Context overrides for quiz options, card text, question text ---- */
-
-/* Option text inside flex buttons/labels: inline-flex so it doesn't break button layout */
 .math-content.option-text {
   display: inline-flex;
   align-items: center;
@@ -289,7 +274,6 @@
   min-width: 0;
 }
 
-/* Question text in quiz: block, slightly larger */
 .math-content.question-text {
   display: block;
   font-size: 1.15em;
@@ -297,14 +281,12 @@
   margin: 0;
 }
 
-/* Question text in results review */
 .math-content.question-text-full {
   display: inline;
   font-size: inherit;
   line-height: inherit;
 }
 
-/* Question bank dashboard question text */
 .math-content.qbd-question-text {
   display: block;
   font-size: inherit;
@@ -312,7 +294,6 @@
   margin: 0;
 }
 
-/* Question bank wrong answer question */
 .math-content.qbd-wrong-question-text {
   display: block;
   font-size: inherit;
@@ -320,7 +301,6 @@
   margin: 0;
 }
 
-/* Question bank option text inside radio label */
 .math-content.qbd-option-text {
   display: inline-flex;
   align-items: center;
@@ -330,14 +310,12 @@
   line-height: 1.4;
 }
 
-/* Question bank results question text */
 .math-content.qbd-result-question-math {
   display: inline;
   font-size: inherit;
   line-height: inherit;
 }
 
-/* Flashcard study card text: centered, full size */
 .math-content.fc-study-card-text {
   display: flex;
   align-items: center;
@@ -349,7 +327,6 @@
   min-height: 40px;
 }
 
-/* SR card content: same centered treatment */
 .math-content.fc-sr-card-content {
   display: flex;
   align-items: center;
@@ -361,7 +338,6 @@
   min-height: 40px;
 }
 
-/* Display math inside card/option contexts: don't over-center */
 .math-content.option-text .katex-display,
 .math-content.qbd-option-text .katex-display {
   display: inline-block;

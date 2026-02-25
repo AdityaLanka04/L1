@@ -165,7 +165,6 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
 
       <div className={`context-panel ${isOpen ? 'open' : ''}`}>
 
-        {/* ── Header ── */}
         <div className="cp-header">
           <div className="cp-header-left">
             <BookOpen size={16} />
@@ -178,7 +177,6 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
 
         <div className="cp-body">
 
-          {/* ── HS Mode Toggle ── */}
           <div className="cp-section">
             <div className="cp-hs-toggle-row">
               <div className="cp-hs-toggle-label">
@@ -204,7 +202,6 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             </div>
           </div>
 
-          {/* ── HS Curriculum Subjects ── */}
           {hsMode && (
             <div className="cp-section">
               <button
@@ -259,7 +256,6 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             </div>
           )}
 
-          {/* ── My Documents ── */}
           <div className="cp-section">
             <div className="cp-section-title">My Documents</div>
             {loading ? (
@@ -302,7 +298,6 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             )}
           </div>
 
-          {/* ── Add Document ── */}
           <div className="cp-section cp-upload-section">
             <div className="cp-section-title">
               <Upload size={13} />

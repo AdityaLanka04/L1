@@ -145,7 +145,7 @@ const Profile = () => {
         setLastSaved(new Date().toLocaleTimeString());
         localStorage.setItem('userProfile', profileSnapshot);
       } else {
-        // Profile not found
+        
       }
     } catch (error) {
           } finally {
@@ -224,7 +224,7 @@ const Profile = () => {
           secondaryArchetype: data.secondaryArchetype || '',
           archetypeDescription: data.archetypeDescription || '',
           archetypeScores: {},
-          // Only default to true if showStudyInsights is undefined/null, otherwise use the actual value
+          
           showStudyInsights: data.showStudyInsights === false ? false : true,
           notificationsEnabled: data.notificationsEnabled === false ? false : true
         };
@@ -271,7 +271,7 @@ const Profile = () => {
         [field]: value
       };
       
-      // For toggle settings, immediately update localStorage AND trigger immediate save
+      
       if (field === 'showStudyInsights' || field === 'notificationsEnabled') {
         const currentProfile = localStorage.getItem('userProfile');
         if (currentProfile) {
@@ -287,7 +287,7 @@ const Profile = () => {
           window.dispatchEvent(new Event('notification-settings-changed'));
         } catch (e) {}
         
-        // Immediately save to backend (don't wait for auto-save timer)
+        
         const saveData = {
           ...newData,
           user_id: userName,

@@ -8,7 +8,7 @@ const QuickSwitcher = ({ isOpen, onClose, notes, folders, onSelectNote, recentNo
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  // Filter and sort notes
+  
   const filteredNotes = notes.filter(note => {
     const query = searchQuery.toLowerCase();
     return (
@@ -17,7 +17,7 @@ const QuickSwitcher = ({ isOpen, onClose, notes, folders, onSelectNote, recentNo
     );
   }).slice(0, 10);
 
-  // Combine recent notes with filtered results
+  
   const displayNotes = searchQuery ? filteredNotes : recentNotes.slice(0, 5);
 
   useEffect(() => {

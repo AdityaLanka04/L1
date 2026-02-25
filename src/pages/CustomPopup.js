@@ -1,4 +1,4 @@
-// CustomPopup.js - Styled popup component matching website theme
+
 import React, { useState, useEffect } from 'react';
 
 const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
@@ -7,7 +7,7 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
-      // Auto close after 3 seconds
+      
       const timer = setTimeout(() => {
         handleClose();
       }, 3000);
@@ -22,7 +22,7 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
 
   if (!isVisible) return null;
 
-  // Determine if this is a success, error, or info popup based on title
+  
   const isSuccess = title.toLowerCase().includes('success') || 
                     title.toLowerCase().includes('copied') || 
                     title.toLowerCase().includes('created') ||
@@ -65,7 +65,6 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Icon */}
         <div style={{
           width: '56px',
           height: '56px',
@@ -91,7 +90,6 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
           )}
         </div>
 
-        {/* Title */}
         <h3 style={{
           color: 'var(--accent, #D7B38C)',
           fontSize: '11px',
@@ -104,7 +102,6 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
           {title.toUpperCase()}
         </h3>
 
-        {/* Message */}
         <p style={{
           color: 'var(--text-secondary, rgba(215, 179, 140, 0.8))',
           fontSize: '14px',
@@ -115,7 +112,6 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
           {message}
         </p>
 
-        {/* Close button */}
         <button
           onClick={handleClose}
           style={{

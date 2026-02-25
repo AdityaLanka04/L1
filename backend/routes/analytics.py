@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["analytics"])
 
-
 @router.get("/get_enhanced_user_stats")
 def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
@@ -78,7 +77,6 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
             "streak": 0, "lessons": 0, "hours": 0, "minutes": 0, "accuracy": 0,
             "totalQuestions": 0, "totalFlashcards": 0, "totalNotes": 0, "totalChatSessions": 0
         }
-
 
 @router.get("/get_activity_heatmap")
 def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -143,11 +141,9 @@ def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db
         logger.error(f"Error getting heatmap: {str(e)}")
         return {"heatmap_data": [], "total_count": 0, "date_range": {"start": "", "end": ""}}
 
-
 @router.get("/get_recent_activities")
 def get_recent_activities(user_id: str = Query(...), limit: int = Query(5), db: Session = Depends(get_db)):
     return []
-
 
 @router.get("/get_weekly_progress")
 def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -247,7 +243,6 @@ def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)
             "total_sessions": 0,
             "average_per_day": 0
         }
-
 
 @router.get("/get_analytics_history")
 def get_analytics_history(
@@ -419,7 +414,6 @@ def get_analytics_history(
         traceback.print_exc()
         return {"history": [], "period": period, "error": str(e)}
 
-
 @router.get("/get_global_leaderboard")
 def get_global_leaderboard(limit: int = Query(10), db: Session = Depends(get_db)):
     try:
@@ -442,7 +436,6 @@ def get_global_leaderboard(limit: int = Query(10), db: Session = Depends(get_db)
     except Exception as e:
         logger.error(f"Error getting leaderboard: {str(e)}")
         return {"leaderboard": []}
-
 
 @router.get("/get_learning_analytics")
 def get_learning_analytics(user_id: str = Query(...), period: str = Query("week"), db: Session = Depends(get_db)):
@@ -475,7 +468,6 @@ def get_learning_analytics(user_id: str = Query(...), period: str = Query("week"
         "days_active": total_sessions,
         "daily_data": []
     }
-
 
 @router.get("/check_profile_quiz")
 async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -513,7 +505,6 @@ async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(ge
     except Exception as e:
         logger.error(f"Error checking quiz: {str(e)}")
         return {"completed": False}
-
 
 @router.get("/is_first_time_user")
 async def is_first_time_user(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -572,7 +563,6 @@ async def is_first_time_user(user_id: str = Query(...), db: Session = Depends(ge
         logger.error(f"Error checking first-time user: {str(e)}")
         return {"is_first_time": False}
 
-
 @router.post("/start_session")
 def start_session(
     user_id: str = Form(...),
@@ -596,7 +586,6 @@ def start_session(
     except Exception as e:
         logger.error(f"Error starting session: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to start session")
-
 
 @router.post("/end_session")
 def end_session(
@@ -661,7 +650,6 @@ def end_session(
         logger.error(f"Error ending session: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to end session")
 
-
 @router.get("/get_daily_goal_progress")
 def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
@@ -702,36 +690,30 @@ def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get
         logger.error(f"Error getting daily goal: {str(e)}")
         return {"questions_today": 0, "daily_goal": 20, "percentage": 0, "streak": 0}
 
-
 @router.get("/admin/analytics/overview")
 async def admin_analytics_overview(days: int = Query(30), x_user_id: str = Header(None, alias="X-User-Id")):
     from admin_analytics import get_analytics_overview
     return await get_analytics_overview(days, x_user_id)
-
 
 @router.get("/admin/analytics/users")
 async def admin_analytics_users(days: int = Query(30), x_user_id: str = Header(None, alias="X-User-Id")):
     from admin_analytics import get_user_analytics
     return await get_user_analytics(days, x_user_id)
 
-
 @router.get("/admin/analytics/user/{target_user_id}")
 async def admin_analytics_user_detail(target_user_id: int, x_user_id: str = Header(None, alias="X-User-Id")):
     from admin_analytics import get_user_detail
     return await get_user_detail(target_user_id, x_user_id)
-
 
 @router.get("/admin/analytics/export/csv")
 async def admin_analytics_export_csv(days: int = Query(30), x_user_id: str = Header(None, alias="X-User-Id")):
     from admin_analytics import export_analytics_csv
     return await export_analytics_csv(days, x_user_id)
 
-
 @router.get("/admin/analytics/export/user/{target_user_id}/csv")
 async def admin_analytics_export_user_csv(target_user_id: int, x_user_id: str = Header(None, alias="X-User-Id")):
     from admin_analytics import export_user_csv
     return await export_user_csv(target_user_id, x_user_id)
-
 
 @router.get("/study_insights/comprehensive")
 async def get_comprehensive_insights(
@@ -974,7 +956,6 @@ async def get_comprehensive_insights(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/study_insights/session_summary")
 async def get_study_session_summary(
     user_id: str = Query(...),
@@ -997,7 +978,6 @@ async def get_study_session_summary(
     except Exception as e:
         logger.error(f"Error getting study session summary: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/study_insights/ai_summary")
 async def get_ai_study_summary(
@@ -1022,7 +1002,6 @@ async def get_ai_study_summary(
         logger.error(f"Error getting AI study summary: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/study_insights/strengths_weaknesses")
 async def get_strengths_weaknesses(
     user_id: str = Query(...),
@@ -1042,7 +1021,6 @@ async def get_strengths_weaknesses(
         logger.error(f"Error getting comprehensive strengths/weaknesses: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/study_insights/topic_suggestions")
 async def get_topic_suggestions(
@@ -1065,7 +1043,6 @@ async def get_topic_suggestions(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/study_insights/similar_questions")
 async def get_similar_questions(
     user_id: str = Query(...),
@@ -1086,7 +1063,6 @@ async def get_similar_questions(
         logger.error(f"Error finding similar questions: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/study_insights/recommendations")
 async def get_study_recommendations(
@@ -1111,7 +1087,6 @@ async def get_study_recommendations(
         logger.error(f"Error getting study recommendations: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/study_insights/debug_session")
 async def debug_session_tracking(
     user_id: str = Query(...),
@@ -1122,7 +1097,7 @@ async def debug_session_tracking(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         last_login = user.last_login
         session_start = last_login if last_login else (now - timedelta(hours=4))
@@ -1171,7 +1146,6 @@ async def debug_session_tracking(
         logger.error(f"Error in debug session: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/study_insights/reset_stats")
 async def reset_user_stats(
     payload: dict = Body(...),
@@ -1205,7 +1179,6 @@ async def reset_user_stats(
         logger.error(f"Error resetting stats: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/study_insights/generate_content")
 async def generate_study_content(
@@ -1329,7 +1302,6 @@ Make it suitable for exam preparation."""
     except Exception as e:
         logger.error(f"Error generating study content: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/study_insights/welcome_notification")
 async def get_welcome_notification(

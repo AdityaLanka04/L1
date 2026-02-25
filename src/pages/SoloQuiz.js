@@ -24,8 +24,8 @@ const SoloQuiz = () => {
   const [questionCount, setQuestionCount] = useState(10);
   const [questionTypes] = useState(['multiple_choice']);
   const [useAdaptive, setUseAdaptive] = useState(false);
-  const [quizMode, setQuizMode] = useState('standard'); // standard, sequential, sequential-instant
-  const [timingMode, setTimingMode] = useState('timed'); // timed, stopwatch, none
+  const [quizMode, setQuizMode] = useState('standard'); 
+  const [timingMode, setTimingMode] = useState('timed'); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [completedQuizzes, setCompletedQuizzes] = useState([]);
@@ -149,7 +149,6 @@ const SoloQuiz = () => {
       </header>
 
       <div className="sq-body">
-        {/* Sidebar */}
         <aside className="sq-sidebar">
           <div className="sq-sidebar-section">
             <h3 className="sq-sidebar-heading">Navigation</h3>
@@ -184,7 +183,6 @@ const SoloQuiz = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="sq-main">
           {activeTab === 'generator' && (
             <div className="sq-content">

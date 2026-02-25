@@ -84,7 +84,7 @@ const TableBlock = ({ data, onChange, readOnly = false }) => {
   };
 
   const deleteRow = (index) => {
-    if (rows.length <= 2) return; // Keep at least header + 1 row
+    if (rows.length <= 2) return; 
     const newRows = rows.filter((_, i) => i !== index);
     setRows(newRows);
     onChange?.({ rows: newRows });
@@ -111,14 +111,14 @@ const TableBlock = ({ data, onChange, readOnly = false }) => {
   };
 
   const deleteColumn = (index) => {
-    if (rows[0].length <= 2) return; // Keep at least 2 columns
+    if (rows[0].length <= 2) return; 
     const newRows = rows.map(row => row.filter((_, i) => i !== index));
     setRows(newRows);
     onChange?.({ rows: newRows });
   };
 
   const moveRow = (index, direction) => {
-    if (index === 0) return; // Don't move header
+    if (index === 0) return; 
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 1 || newIndex >= rows.length) return;
     

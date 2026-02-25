@@ -42,7 +42,6 @@
   z-index: 100;
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .challenges-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -424,7 +423,6 @@
   border: 1px solid var(--success);
 }
 
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -601,17 +599,12 @@
   }
 }
 
-
-/* ==================== FORCE BOXY DESIGN ==================== */
 .challenges-page *,
 .challenges-page *::before,
 .challenges-page *::after {
   border-radius: 0 !important;
 }
 
-
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

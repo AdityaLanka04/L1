@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ==================== CSS VARIABLES ==================== */
 :root {
   --qbs-bg-primary: var(--bg, #0a0a0f);
   --qbs-bg-secondary: var(--panel, #12121a);
@@ -16,7 +15,6 @@
   --qbs-gradient-accent: linear-gradient(135deg, var(--qbs-accent), color-mix(in srgb, var(--qbs-accent) 80%, black));
 }
 
-/* ==================== LOADING STATE ==================== */
 .battle-session-loading {
   min-height: 100vh;
   display: flex;
@@ -68,7 +66,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* ==================== SESSION PAGE ==================== */
 .battle-session-page {
   min-height: 100vh;
   background: var(--qbs-bg-primary);
@@ -91,7 +88,6 @@
   z-index: 0;
 }
 
-/* ==================== SESSION HEADER ==================== */
 .session-header {
   width: 100% !important;
   padding: 32px 0 !important;
@@ -160,7 +156,6 @@
   50% { opacity: 0.5; }
 }
 
-/* ==================== PROGRESS BAR ==================== */
 .progress-bar {
   width: 100%;
   height: 6px;
@@ -179,7 +174,6 @@
   box-shadow: 0 0 20px var(--qbs-accent-glow);
 }
 
-/* ==================== SESSION CONTAINER ==================== */
 .battle-session-container {
   width: 100%;
   display: grid;
@@ -192,7 +186,6 @@
   box-sizing: border-box;
 }
 
-/* ==================== QUESTION CARD ==================== */
 .question-card {
   background: color-mix(in srgb, var(--qbs-bg-secondary) 80%, transparent);
   backdrop-filter: blur(20px);
@@ -280,7 +273,6 @@
   border: 1px solid var(--qbs-danger);
 }
 
-/* ==================== ANSWERS GRID ==================== */
 .answers-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -426,7 +418,6 @@
   filter: drop-shadow(0 0 8px currentColor);
 }
 
-/* ==================== SIDEBAR ==================== */
 .battle-sidebar {
   display: flex;
   flex-direction: column;
@@ -566,7 +557,6 @@
   color: var(--qbs-danger);
 }
 
-/* ==================== QUESTION NAVIGATION ==================== */
 .question-navigation {
   display: flex;
   justify-content: center;
@@ -613,7 +603,6 @@
   filter: none;
 }
 
-/* ==================== INSTANT FEEDBACK ==================== */
 .instant-feedback-info {
   width: 100%;
   padding: 16px 24px;
@@ -650,7 +639,6 @@
   border-color: var(--qbs-accent);
 }
 
-/* ==================== SIDEBAR SUBMIT BUTTON ==================== */
 .sidebar-submit-btn {
   width: 100%;
   display: flex;
@@ -688,7 +676,6 @@
   transform: none;
 }
 
-/* ==================== OPPONENT NOTIFICATION ==================== */
 .opponent-notification {
   position: fixed;
   top: 24px;
@@ -742,7 +729,6 @@
   }
 }
 
-/* ==================== RESULT PAGE ==================== */
 .battle-result-page {
   min-height: 100vh;
   display: flex;
@@ -929,7 +915,6 @@
   background: transparent;
 }
 
-/* ==================== DETAILED RESULTS ==================== */
 .result-comparison {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -990,7 +975,6 @@
   border-radius: 14px;
 }
 
-/* ==================== QUESTION REVIEW ==================== */
 .question-by-question {
   text-align: left;
 }
@@ -1103,7 +1087,6 @@
   border: 1px solid var(--qbs-danger);
 }
 
-/* ==================== ANSWER OPTIONS REVIEW ==================== */
 .answer-options-review {
   display: flex;
   flex-direction: column;
@@ -1227,7 +1210,6 @@
   margin-top: 2px;
 }
 
-/* ==================== PERFORMANCE INSIGHTS ==================== */
 .performance-insights {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1291,7 +1273,6 @@
   color: var(--qbs-success);
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 1024px) {
   .battle-session-container {
     grid-template-columns: 1fr;

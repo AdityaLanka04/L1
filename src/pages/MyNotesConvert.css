@@ -1,4 +1,4 @@
-/* MyNotes Convert Modal - ROUNDED Design */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 .my-notes-page-full .iem-overlay,
@@ -9,7 +9,6 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Overlay */
 .my-notes-page-full .iem-overlay {
   position: fixed !important;
   top: 0 !important;
@@ -21,7 +20,6 @@
   z-index: 9998 !important;
 }
 
-/* Modal */
 .my-notes-page-full .iem-modal {
   position: fixed !important;
   top: 50% !important;
@@ -40,7 +38,6 @@
   flex-direction: column !important;
 }
 
-/* Modal Header */
 .my-notes-page-full .iem-header {
   display: flex !important;
   align-items: center !important;
@@ -98,7 +95,6 @@
   color: var(--bg-secondary) !important;
 }
 
-/* Modal Body */
 .my-notes-page-full .iem-body {
   padding: 24px !important;
   overflow-y: auto !important;
@@ -115,7 +111,6 @@
   letter-spacing: 2px !important;
 }
 
-/* Select Bar */
 .my-notes-page-full .iem-select-bar {
   display: flex !important;
   align-items: center !important;
@@ -152,7 +147,6 @@
   font-weight: 600 !important;
 }
 
-/* Items List */
 .my-notes-page-full .iem-items-list {
   max-height: 350px !important;
   overflow-y: auto !important;
@@ -220,7 +214,6 @@
   margin: 0 !important;
 }
 
-/* Conversion Grid */
 .my-notes-page-full .iem-conversion-grid {
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
@@ -270,7 +263,6 @@
   line-height: 1.4 !important;
 }
 
-/* Settings */
 .my-notes-page-full .iem-settings {
   padding: 20px !important;
   background: var(--bg-secondary) !important;
@@ -322,7 +314,6 @@
   border-color: #D7B38C !important;
 }
 
-/* Result */
 .my-notes-page-full .iem-result {
   text-align: center !important;
   padding: 40px 20px !important;
@@ -366,7 +357,6 @@
   color: #EAECEF !important;
 }
 
-/* Loading & Empty */
 .my-notes-page-full .iem-loading,
 .my-notes-page-full .iem-empty {
   padding: 60px 20px !important;
@@ -389,7 +379,6 @@
   margin-bottom: 16px !important;
 }
 
-/* Modal Footer Actions */
 .my-notes-page-full .iem-actions {
   display: flex !important;
   justify-content: flex-end !important;
@@ -441,12 +430,10 @@
   border-color: #D7B38C !important;
 }
 
-/* Animations */
 @keyframes mn-iem-spin {
   to { transform: rotate(360deg); }
 }
 
-/* Enhanced UI Overrides */
 .my-notes-page-full .iem-header {
   background: linear-gradient(135deg, var(--bg-secondary), rgba(215, 179, 140, 0.05)) !important;
 }

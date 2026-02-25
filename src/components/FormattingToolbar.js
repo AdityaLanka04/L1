@@ -8,21 +8,21 @@ import {
 import './FormattingToolbar.css';
 
 const FONTS = [
-  // Sans-serif fonts
+  
   'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat',
   'Source Sans 3', 'Arial', 'Helvetica', 'Verdana', 'Tahoma',
   'Trebuchet MS', 'Segoe UI', 'Calibri', 'Futura', 'Avenir',
   
-  // Serif fonts
+  
   'Merriweather', 'Playfair Display', 'EB Garamond', 'Georgia',
   'Times New Roman', 'Baskerville', 'Palatino', 'Garamond',
   'Didot', 'Bodoni', 'Rockwell',
   
-  // Monospace fonts
+  
   'Courier New', 'Monaco', 'Consolas', 'Fira Code', 'Source Code Pro',
   'JetBrains Mono', 'IBM Plex Mono', 'Inconsolata',
   
-  // Display/Decorative fonts
+  
   'Comic Sans MS', 'Impact', 'Brush Script MT', 'Papyrus',
   'Copperplate', 'Luminari', 'Chalkboard', 'Marker Felt'
 ];
@@ -64,15 +64,15 @@ const FormattingToolbar = ({ onFormat, onAIAssist, showAI = true, onInsertBlock 
         strikeThrough: document.queryCommandState('strikeThrough')
       });
     } catch (err) {
-      // Ignore errors
+      
     }
   };
 
   const formatText = (command, value = null) => {
-    // Restore selection if it was saved
+    
     restoreSelection();
     
-    // Apply formatting
+    
     try {
       const success = document.execCommand(command, false, value);
       if (!success) {
@@ -80,13 +80,13 @@ const FormattingToolbar = ({ onFormat, onAIAssist, showAI = true, onInsertBlock 
       
       if (onFormat) onFormat(command, value);
       
-      // Save the new selection and update active formats
+      
       saveSelection();
     } catch (err) {
           }
   };
 
-  // Update active formats when selection changes
+  
   React.useEffect(() => {
     const handleSelectionChange = () => {
       updateActiveFormats();
@@ -110,7 +110,7 @@ const FormattingToolbar = ({ onFormat, onAIAssist, showAI = true, onInsertBlock 
     <div 
       className="formatting-toolbar"
       onMouseDown={(e) => {
-        // Prevent toolbar clicks from removing selection
+        
         e.preventDefault();
         saveSelection();
       }}
@@ -178,16 +178,16 @@ const FormattingToolbar = ({ onFormat, onAIAssist, showAI = true, onInsertBlock 
                     const selectedText = range.toString();
                     
                     if (selectedText) {
-                      // Create a span with the font
+                      
                       const span = document.createElement('span');
                       span.style.fontFamily = font;
                       span.textContent = selectedText;
                       
-                      // Replace selection with styled span
+                      
                       range.deleteContents();
                       range.insertNode(span);
                       
-                      // Move cursor after the span
+                      
                       range.setStartAfter(span);
                       range.setEndAfter(span);
                       selection.removeAllRanges();

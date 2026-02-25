@@ -30,7 +30,7 @@ const ActivityFeed = () => {
 
   useEffect(() => {
     fetchActivityFeed();
-    // Poll for new activities every 30 seconds
+    
     const interval = setInterval(fetchActivityFeed, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -87,12 +87,12 @@ const ActivityFeed = () => {
   const applyFilters = () => {
     let filtered = [...activities];
 
-    // Activity type filter
+    
     if (activeFilter !== 'all') {
       filtered = filtered.filter(a => a.activity_type === activeFilter);
     }
 
-    // Time filter
+    
     const now = new Date();
     if (timeFilter === 'today') {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -120,7 +120,7 @@ const ActivityFeed = () => {
       });
 
       if (response.ok) {
-        // Update local state immediately for better UX
+        
         setActivities(prev => prev.map(activity => {
           if (activity.id === activityId) {
             const wasGiven = activity.user_gave_kudos;
@@ -142,12 +142,12 @@ const ActivityFeed = () => {
     if (!commentText.trim()) return;
 
     try {
-      // For now, just show the comment locally
-      // You can implement backend endpoint for comments later
+      
+      
       setCommentText('');
       setCommentingOn(null);
       
-      // Show success feedback
+      
       alert('Comment feature coming soon!');
     } catch (error) {
       console.error('Error posting comment:', error);
@@ -284,7 +284,6 @@ const ActivityFeed = () => {
           </div>
         </div>
 
-        {/* Stats Overview */}
         <div className="af-stats-grid">
           <div className="af-stat-card">
             <div className="af-stat-icon" style={{ background: 'linear-gradient(135deg, #D7B38C 0%, #B88F63 100%)' }}>
@@ -324,7 +323,6 @@ const ActivityFeed = () => {
           </div>
         </div>
 
-        {/* Filters Panel */}
         {showFilters && (
           <div className="af-filters-panel">
             <div className="af-filter-section">

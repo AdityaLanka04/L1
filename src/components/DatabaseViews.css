@@ -1,4 +1,4 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
+
 .database-views-container *,
 .database-views-container *::before,
 .database-views-container *::after {
@@ -52,7 +52,6 @@
   padding: 20px;
 }
 
-/* Table View */
 .table-view {
   width: 100%;
   border-collapse: collapse;
@@ -129,7 +128,6 @@
   font-weight: 600;
 }
 
-/* Kanban View */
 .kanban-view {
   display: flex;
   gap: 16px;
@@ -220,7 +218,6 @@
   color: var(--text-secondary);
 }
 
-/* Calendar View */
 .calendar-view {
   display: flex;
   flex-direction: column;
@@ -335,7 +332,6 @@
   color: white;
 }
 
-/* Gallery View */
 .gallery-view {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -400,7 +396,6 @@
   color: var(--text-secondary);
 }
 
-/* Timeline View */
 .timeline-view {
   position: relative;
   padding-left: 40px;

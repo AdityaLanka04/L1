@@ -9,7 +9,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Validate notification
+    
     if (!notification || !notification.id || (!notification.title && !notification.message)) {
             setIsValid(false);
       if (onClose) {
@@ -18,10 +18,10 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       return;
     }
 
-    // Show notification immediately (no delay)
+    
     setVisible(true);
 
-    // Auto-dismiss after 12 seconds
+    
     const dismissTimer = setTimeout(() => {
       handleClose();
     }, 12000);
@@ -31,7 +31,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
     };
   }, [notification]);
 
-  // Don't render if invalid
+  
   if (!isValid || !notification || !notification.id) {
     return null;
   }
@@ -47,7 +47,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
   };
 
   const handleClick = () => {
-    // Check if study insights is enabled for study_insights notifications
+    
     if (notification.notification_type === 'study_insights' || notification.notification_type === 'welcome_insights') {
       const profile = localStorage.getItem('userProfile');
       let showStudyInsights = true;
@@ -59,13 +59,13 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       }
       
       if (!showStudyInsights) {
-        // If study insights is disabled, stay on dashboard
+        
         handleClose();
         return;
       }
     }
     
-    // Navigate based on notification type
+    
     switch (notification.notification_type) {
       case 'reminder':
       case 'calendar_event':
@@ -135,7 +135,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         navigate('/study-insights');
         break;
       case 'welcome':
-        // For welcome notifications without insights, stay on dashboard
+        
         break;
       default:
         navigate('/dashboard');

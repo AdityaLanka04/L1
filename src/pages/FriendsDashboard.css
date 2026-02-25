@@ -1,10 +1,6 @@
-/* ============================================
-   FRIENDS DASHBOARD - PREMIUM AESTHETIC DESIGN
-   Curved boxes, glassmorphism, vintage accents
-============================================ */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ==================== CSS VARIABLES ==================== */
 .fd-container {
   --fd-bg-primary: var(--bg);
   --fd-bg-secondary: var(--panel);
@@ -30,7 +26,6 @@
   --fd-transition-bounce: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* ==================== RESET & BASE ==================== */
 .fd-container * {
   box-sizing: border-box;
   margin: 0;
@@ -47,7 +42,6 @@
   border-radius: 8px;
 }
 
-/* ==================== PAGE CONTAINER ==================== */
 .fd-container {
   position: fixed !important;
   top: 0 !important;
@@ -71,7 +65,6 @@
   flex-direction: column;
 }
 
-/* ==================== HEADER - MATCHING GAMES ==================== */
 .gm-header {
   position: sticky;
   top: 0;
@@ -207,7 +200,6 @@
   color: var(--text-primary, #1a1a2e);
 }
 
-/* Animated background gradient */
 .fd-container::before {
   content: '';
   position: absolute;
@@ -223,7 +215,6 @@
   opacity: 0.6;
 }
 
-/* ==================== MAIN LAYOUT ==================== */
 .fd-layout {
   display: flex;
   width: 100%;
@@ -234,7 +225,6 @@
   z-index: 1;
 }
 
-/* ==================== SIDEBAR - MATCHING FLASHCARDS DESIGN ==================== */
 .fd-sidebar {
   width: var(--fd-sidebar-width);
   height: 100%;
@@ -246,7 +236,6 @@
   transition: width 0.3s ease;
 }
 
-/* Sidebar Enhanced Styling with Accent Color Gradients - MATCHING FLASHCARDS */
 [data-theme-mode="dark"] .fd-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
@@ -262,7 +251,6 @@
   box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* Sidebar Text Colors */
 [data-theme-mode="dark"] .fd-sidebar {
   color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
 }
@@ -271,7 +259,6 @@
   color: color-mix(in srgb, var(--accent) 80%, var(--text-primary)) !important;
 }
 
-/* Sidebar Nav */
 .fd-sidebar-nav {
   flex: 1;
   padding: 16px 12px 16px 12px;
@@ -280,7 +267,6 @@
   gap: 4px;
 }
 
-/* Sidebar Items */
 .fd-sidebar-item {
   display: flex;
   align-items: center;
@@ -328,7 +314,6 @@
   height: 20px;
 }
 
-/* Badge */
 .fd-badge {
   margin-left: auto;
   background: linear-gradient(135deg, var(--fd-accent) 0%, var(--fd-accent-2) 100%);
@@ -342,7 +327,6 @@
   box-shadow: 0 2px 8px var(--fd-accent-glow);
 }
 
-/* ==================== MAIN CONTENT AREA ==================== */
 .fd-main {
   flex: 1;
   display: flex;
@@ -352,7 +336,6 @@
   background: transparent;
 }
 
-/* Header Actions */
 .fd-header-actions {
   padding: 24px 32px;
   background: var(--fd-bg-secondary);
@@ -363,7 +346,6 @@
   gap: 16px;
 }
 
-/* Search Box - Curved Design */
 .fd-search {
   display: flex;
   align-items: center;
@@ -429,7 +411,6 @@
   color: var(--fd-text-muted);
 }
 
-/* ==================== BUTTONS - PREMIUM CURVED DESIGN ==================== */
 .fd-btn {
   display: flex;
   align-items: center;
@@ -496,7 +477,6 @@
   z-index: 1;
 }
 
-/* ==================== SCROLLABLE CONTENT ==================== */
 .fd-content {
   flex: 1;
   overflow-y: auto;
@@ -505,7 +485,6 @@
   position: relative;
 }
 
-/* Custom scrollbar */
 .fd-content::-webkit-scrollbar {
   width: 10px;
 }
@@ -526,7 +505,6 @@
   background: var(--fd-accent);
 }
 
-/* Section Title - Curved Design */
 .fd-section-title {
   font-size: 12px;
   font-weight: 800;
@@ -545,7 +523,6 @@
   gap: 12px;
 }
 
-/* ==================== FRIENDS GRID - PREMIUM CARDS ==================== */
 .fd-friends-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -564,7 +541,6 @@
   }
 }
 
-/* Friend Card - Curved Aesthetic Design */
 .fd-friend-card {
   background: linear-gradient(145deg,
     color-mix(in srgb, var(--fd-accent) 3%, var(--fd-bg-card)) 0%,
@@ -581,7 +557,6 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* Vintage paper texture overlay */
 .fd-friend-card::before {
   content: '';
   position: absolute;
@@ -603,7 +578,6 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-/* Friend Card Header */
 .fd-friend-header {
   display: flex;
   align-items: center;
@@ -617,7 +591,6 @@
   border-radius: 10px 10px 0 0;
 }
 
-/* Friend Avatar - Curved Design */
 .fd-friend-avatar {
   width: 64px;
   height: 64px;
@@ -639,7 +612,6 @@
   position: relative;
 }
 
-/* Rotating decorative ring */
 .fd-friend-avatar::before {
   content: '';
   position: absolute;
@@ -685,7 +657,6 @@
   z-index: 1;
 }
 
-/* Friend Info */
 .fd-friend-info {
   flex: 1;
   min-width: 0;
@@ -714,7 +685,6 @@
   font-weight: 500;
 }
 
-/* Friend Stats - Curved Bento Grid */
 .fd-friend-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -790,7 +760,6 @@
   z-index: 1;
 }
 
-/* ==================== USERS LIST - CURVED DESIGN ==================== */
 .fd-users-list {
   display: flex;
   flex-direction: column;
@@ -798,7 +767,6 @@
   animation: fadeInUp 0.5s ease-out;
 }
 
-/* User Card - Curved Design */
 .fd-user-card {
   display: flex;
   align-items: center;
@@ -832,7 +800,6 @@
   opacity: 0.3;
 }
 
-/* User Avatar - Curved Design */
 .fd-user-avatar {
   width: 52px;
   height: 52px;
@@ -863,7 +830,6 @@
     0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* User Info */
 .fd-user-info {
   flex: 1;
   min-width: 0;
@@ -896,7 +862,6 @@
   z-index: 1;
 }
 
-/* ==================== ACTION BUTTONS - CURVED PREMIUM DESIGN ==================== */
 .fd-action-btn {
   padding: 10px 14px;
   border: 2px solid var(--fd-border-subtle);
@@ -944,7 +909,6 @@
   transform: scale(1.15);
 }
 
-/* Add Friend Button */
 .fd-action-btn.add {
   border-color: var(--fd-accent);
   color: var(--fd-accent);
@@ -962,7 +926,6 @@
     0 0 40px var(--fd-accent-glow);
 }
 
-/* Accept Button */
 .fd-action-btn.accept {
   border-color: var(--fd-success);
   color: var(--fd-success);
@@ -980,7 +943,6 @@
     0 0 40px rgba(34, 197, 94, 0.3);
 }
 
-/* Reject/Cancel Button */
 .fd-action-btn.reject,
 .fd-action-btn.cancel {
   border-color: var(--fd-danger);
@@ -1000,7 +962,6 @@
     0 0 40px rgba(239, 68, 68, 0.3);
 }
 
-/* Remove Button */
 .fd-action-btn.remove {
   border-color: var(--fd-border-subtle);
   color: var(--fd-text-muted);
@@ -1012,7 +973,6 @@
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* ==================== STATUS BADGES - CURVED ORNAMENTAL DESIGN ==================== */
 .fd-status-badge {
   padding: 10px 20px;
   font-size: 11px;
@@ -1052,7 +1012,6 @@
     0 0 20px rgba(245, 158, 11, 0.15);
 }
 
-/* ==================== REQUESTS SECTION ==================== */
 .fd-requests-section {
   margin-bottom: 40px;
 }
@@ -1063,7 +1022,6 @@
   gap: 12px;
 }
 
-/* Request Card - Curved Design */
 .fd-request-card {
   display: flex;
   align-items: center;
@@ -1105,7 +1063,6 @@
   z-index: 1;
 }
 
-/* ==================== EMPTY STATE - CURVED DESIGN ==================== */
 .fd-empty-state {
   display: flex;
   flex-direction: column;
@@ -1175,7 +1132,6 @@
   z-index: 1;
 }
 
-/* ==================== LOADING STATE ==================== */
 .fd-loading {
   display: flex;
   flex-direction: column;
@@ -1206,7 +1162,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== LIGHT MODE STYLES ==================== */
 [data-theme-mode="light"] .fd-container {
   --fd-bg-primary: var(--bg, #f8f6f3);
   --fd-bg-secondary: var(--panel, #ffffff);
@@ -1251,7 +1206,6 @@
     0 0 20px var(--fd-accent-glow);
 }
 
-/* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1400px) {
   .fd-friends-grid {
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -1354,7 +1308,6 @@
   }
 }
 
-/* ==================== ANIMATIONS ==================== */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1381,7 +1334,6 @@
   50% { box-shadow: 0 0 40px var(--fd-accent-glow-strong); }
 }
 
-/* Apply animations */
 .fd-friend-card {
   animation: fadeInUp 0.4s ease-out backwards;
 }
@@ -1411,7 +1363,6 @@
 .fd-sidebar-item:nth-child(2) { animation-delay: 0.15s; }
 .fd-sidebar-item:nth-child(3) { animation-delay: 0.2s; }
 
-/* ==================== ACCESSIBILITY ==================== */
 @media (prefers-reduced-motion: reduce) {
   .fd-container *,
   .fd-container *::before,
@@ -1451,7 +1402,6 @@
   }
 }
 
-/* ==================== SELECTION STYLES ==================== */
 .fd-container ::selection {
   background: var(--fd-accent);
   color: var(--fd-bg-primary);
@@ -1462,7 +1412,6 @@
   color: var(--fd-bg-primary);
 }
 
-/* ==================== FOCUS STYLES ==================== */
 .fd-container *:focus-visible {
   outline: 3px solid var(--fd-accent);
   outline-offset: 3px;
@@ -1476,7 +1425,6 @@
   box-shadow: 0 0 0 6px var(--fd-accent-glow);
 }
 
-/* ==================== INTERACTIVE STATES ==================== */
 .fd-container button:active,
 .fd-friend-card:active,
 .fd-user-card:active,
@@ -1484,7 +1432,6 @@
   transform: scale(0.98);
 }
 
-/* Prevent text selection on interactive elements */
 .fd-sidebar-item,
 .fd-action-btn,
 .fd-btn,
@@ -1493,7 +1440,6 @@
   -webkit-user-select: none;
 }
 
-/* ==================== TOOLTIP STYLES ==================== */
 .fd-container [data-tooltip] {
   position: relative;
 }
@@ -1525,7 +1471,6 @@
   transform: translateX(-50%) translateY(-4px);
 }
 
-/* ==================== SCROLLBAR STYLES ==================== */
 .fd-container ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -1546,13 +1491,11 @@
   background: var(--fd-accent);
 }
 
-/* Firefox scrollbar */
 .fd-container * {
   scrollbar-width: thin;
   scrollbar-color: var(--fd-accent) var(--fd-bg-secondary);
 }
 
-/* ==================== UTILITY CLASSES ==================== */
 .fd-container .text-accent {
   color: var(--fd-accent);
 }
@@ -1585,7 +1528,6 @@
   box-shadow: 0 0 40px var(--fd-accent-glow-strong);
 }
 
-/* ==================== PRINT STYLES ==================== */
 @media print {
   .fd-container {
     background: white !important;
@@ -1605,7 +1547,6 @@
   }
 }
 
-/* ==================== ENHANCED HOVER EFFECTS ==================== */
 .fd-friend-card,
 .fd-user-card,
 .fd-request-card {
@@ -1618,8 +1559,6 @@
   will-change: transform;
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

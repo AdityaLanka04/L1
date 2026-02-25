@@ -342,7 +342,6 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
 
   return (
     <div className="playlist-detail-container playlist-detail-page">
-      {/* Top Bar */}
       <div className="detail-topbar">
         <div className="topbar-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -394,7 +393,6 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
         </div>
       </div>
 
-      {/* Header Section */}
       <div className="detail-header">
         <div 
           className="header-banner" 
@@ -562,7 +560,6 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
         </div>
       </div>
 
-      {/* Items Section */}
       <div className="detail-body">
         <div className="items-header">
           <h2 className="items-title">Playlist Items</h2>
@@ -717,7 +714,6 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
         )}
       </div>
 
-      {/* Modals */}
       {showViewModal && itemContent && (
         <ViewItemModal
           item={viewingItem}
@@ -749,9 +745,6 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
 };
 
 export default PlaylistDetailPage;
-
-
-// ==================== VIEW ITEM MODAL ====================
 
 const ViewItemModal = ({ item, content, onClose }) => {
   return (
@@ -795,8 +788,6 @@ const ViewItemModal = ({ item, content, onClose }) => {
     </div>
   );
 };
-
-// ==================== ADD ITEM MODAL - FULL PAGE DESIGN ====================
 
 const AddItemModal = ({ onClose, onAdd }) => {
   const token = localStorage.getItem('token');
@@ -877,7 +868,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
     };
     setAddedItems(prev => [...prev, newItem]);
     
-    // Reset form
+    
     setFormData({
       title: '',
       url: '',
@@ -1041,7 +1032,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
                         </div>
                       ))}
                       {itemType === 'flashcard' && userFlashcards.map(flashcard => {
-                        // Clean up the title: remove "Flashcards:", "Cerbyl", " : ", and capitalize first letter
+                        
                         let cleanTitle = (flashcard.title || flashcard.name || '')
                           .replace(/^(Flashcards?:\s*|Cerbyl\s*|AI Generated\s*|ai generated\s*)/gi, '')
                           .replace(/^\s*:\s*/, '')

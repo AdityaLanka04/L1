@@ -1,7 +1,4 @@
-/**
- * Global WebSocket Manager
- * Ensures single WebSocket connection shared across all components
- */
+
 
 class WebSocketManager {
   constructor() {
@@ -16,7 +13,7 @@ class WebSocketManager {
   }
 
   connect(token) {
-    // Prevent multiple connections
+    
     if (this.ws) {
       if (this.ws.readyState === WebSocket.OPEN) {
                 return;
@@ -31,7 +28,7 @@ class WebSocketManager {
 
     this.token = token;
 
-    // Determine WebSocket URL
+    
     let wsUrl;
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
     
@@ -51,10 +48,10 @@ class WebSocketManager {
                 this.isConnected = true;
         this.reconnectAttempts = 0;
         
-        // Notify all listeners
+        
         this.notifyListeners({ type: '_connected', isConnected: true });
 
-        // Send queued messages
+        
         while (this.messageQueue.length > 0) {
           const msg = this.messageQueue.shift();
           this.ws.send(JSON.stringify(msg));
@@ -65,7 +62,7 @@ class WebSocketManager {
         try {
           const data = JSON.parse(event.data);
                     
-          // Broadcast to all listeners
+          
           this.notifyListeners(data);
         } catch (error) {
                   }
@@ -80,12 +77,12 @@ class WebSocketManager {
                 this.isConnected = false;
         this.notifyListeners({ type: '_connected', isConnected: false });
 
-        // Don't reconnect if authentication error
+        
         if (event.code === 1008) {
                     return;
         }
 
-        // Attempt reconnect
+        
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
                     
@@ -115,14 +112,14 @@ class WebSocketManager {
   subscribe(id, callback) {
         this.listeners.set(id, callback);
     
-    // Send current connection status
+    
     callback({ type: '_connected', isConnected: this.isConnected });
   }
 
   unsubscribe(id) {
         this.listeners.delete(id);
     
-    // If no more listeners, disconnect
+    
     if (this.listeners.size === 0) {
             this.disconnect();
     }
@@ -146,7 +143,6 @@ class WebSocketManager {
   }
 }
 
-// Global singleton instance
 const wsManager = new WebSocketManager();
 
 export default wsManager;

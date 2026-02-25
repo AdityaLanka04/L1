@@ -19,10 +19,8 @@ from typing import Dict, Optional, Any, List
 from pathlib import Path
 import asyncio
 
-# Initialize logger first
 logger = logging.getLogger(__name__)
 
-# YouTube Transcript API (primary method)
 try:
     from youtube_transcript_api import YouTubeTranscriptApi
     from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
@@ -35,7 +33,6 @@ except ImportError:
     TRANSCRIPT_API_AVAILABLE = False
     logger.warning("youtube-transcript-api not installed. Install with: pip install youtube-transcript-api")
 
-# Google API Client (for video metadata)
 try:
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
@@ -46,13 +43,10 @@ except ImportError:
     GOOGLE_API_AVAILABLE = False
     logger.warning("google-api-python-client not installed. Install with: pip install google-api-python-client")
 
-# Get YouTube API key from environment
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
-# Cache directory for transcripts
 CACHE_DIR = Path("backend/cache/transcripts")
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
 
 class YouTubeAPIService:
     """
@@ -70,7 +64,6 @@ class YouTubeAPIService:
         self.cache_dir = CACHE_DIR
         self.youtube_api = None
         
-        # Initialize YouTube Data API if available
         if GOOGLE_API_AVAILABLE and YOUTUBE_API_KEY:
             try:
                 self.youtube_api = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
@@ -137,12 +130,10 @@ class YouTubeAPIService:
         Get video transcript using multiple methods
         Priority: 1) Cache, 2) youtube-transcript-api, 3) yt-dlp
         """
-        # Check cache first
         cached = self._load_from_cache(video_id)
         if cached:
             return cached
         
-        # Method 1: Try youtube-transcript-api (most reliable)
         if TRANSCRIPT_API_AVAILABLE:
             result = await self._fetch_with_transcript_api(video_id, language)
             if result.get("success"):
@@ -150,10 +141,8 @@ class YouTubeAPIService:
                 return result
             logger.warning(f"youtube-transcript-api failed: {result.get('error')}")
         
-        # Method 2: Fall back to yt-dlp
         result = await self._fetch_with_ytdlp(video_id, language)
         
-        # Cache successful results
         if result.get("success"):
             self._save_to_cache(video_id, result)
         
@@ -164,37 +153,30 @@ class YouTubeAPIService:
         try:
             logger.info(f"Fetching transcript with youtube-transcript-api for: {video_id}")
             
-            # Run in executor to avoid blocking
             loop = asyncio.get_event_loop()
             
-            # Try to get transcript in requested language, then English, then any available
             transcript_list = await loop.run_in_executor(
                 None,
                 lambda: YouTubeTranscriptApi.list_transcripts(video_id)
             )
             
-            # Try to find transcript
             transcript = None
             transcript_lang = language
             is_auto_generated = False
             
             try:
-                # Try requested language first
                 transcript = transcript_list.find_transcript([language])
                 transcript_lang = language
             except NoTranscriptFound:
                 try:
-                    # Try English
                     transcript = transcript_list.find_transcript(['en', 'en-US', 'en-GB'])
                     transcript_lang = 'en'
                 except NoTranscriptFound:
-                    # Get any available transcript
                     try:
                         transcript = transcript_list.find_generated_transcript(['en'])
                         transcript_lang = 'en'
                         is_auto_generated = True
                     except NoTranscriptFound:
-                        # Get absolutely any transcript
                         available = list(transcript_list)
                         if available:
                             transcript = available[0]
@@ -204,7 +186,6 @@ class YouTubeAPIService:
             if not transcript:
                 return {"success": False, "error": "No transcripts available"}
             
-            # Fetch the actual transcript data
             transcript_data = await loop.run_in_executor(
                 None,
                 lambda: transcript.fetch()
@@ -213,7 +194,6 @@ class YouTubeAPIService:
             if not transcript_data:
                 return {"success": False, "error": "Transcript data is empty"}
             
-            # Format segments
             segments = []
             full_text = []
             
@@ -231,7 +211,6 @@ class YouTubeAPIService:
             if not segments:
                 return {"success": False, "error": "No transcript segments found"}
             
-            # Get video metadata
             video_info = await self._get_video_metadata(video_id)
             
             logger.info(f"✅ Successfully fetched transcript: {len(full_text)} segments, {len(' '.join(full_text))} chars")
@@ -276,7 +255,6 @@ class YouTubeAPIService:
                     snippet = item.get("snippet", {})
                     content_details = item.get("contentDetails", {})
                     
-                    # Parse duration (PT1H2M10S format)
                     duration_str = content_details.get("duration", "PT0S")
                     duration = self._parse_duration(duration_str)
                     
@@ -292,7 +270,6 @@ class YouTubeAPIService:
         except Exception as e:
             logger.warning(f"Could not fetch video metadata: {e}")
         
-        # Fallback metadata
         return {
             "title": f"YouTube Video {video_id}",
             "author": "Unknown",
@@ -321,7 +298,6 @@ class YouTubeAPIService:
             url = f"https://www.youtube.com/watch?v={video_id}"
             
             with tempfile.TemporaryDirectory() as tmpdir:
-                # First, try to list available subtitles
                 list_cmd = [
                     "yt-dlp",
                     "--list-subs",
@@ -343,13 +319,11 @@ class YouTubeAPIService:
                 
                 logger.info(f"Available subtitles output: {list_process.stdout[:500]}")
                 
-                # Try multiple subtitle language combinations
-                # Priority: requested language, English, any auto-generated, any available
                 sub_lang_options = [
-                    f"{language},en",  # Requested + English
-                    "en",              # English only
-                    "en-US,en-GB,en",  # English variants
-                    "*",               # All available (fallback)
+                    f"{language},en",
+                    "en",
+                    "en-US,en-GB,en",
+                    "*",
                 ]
                 
                 subtitle_file = None
@@ -358,11 +332,10 @@ class YouTubeAPIService:
                 for sub_langs in sub_lang_options:
                     logger.info(f"Trying subtitle languages: {sub_langs}")
                     
-                    # yt-dlp command to get subtitles and video info
                     cmd = [
                         "yt-dlp",
-                        "--write-auto-sub",      # Include auto-generated
-                        "--write-sub",           # Include manual subs
+                        "--write-auto-sub",
+                        "--write-sub",
                         "--sub-lang", sub_langs,
                         "--sub-format", "vtt",
                         "--skip-download",
@@ -371,7 +344,6 @@ class YouTubeAPIService:
                         url
                     ]
                     
-                    # Run yt-dlp
                     process = await loop.run_in_executor(
                         None,
                         lambda: subprocess.run(
@@ -386,33 +358,27 @@ class YouTubeAPIService:
                         error_msg = process.stderr or "Unknown error"
                         logger.warning(f"yt-dlp attempt failed with {sub_langs}: {error_msg[:200]}")
                         
-                        # Check for fatal errors
                         if "Video unavailable" in error_msg:
                             return {"success": False, "error": "Video is unavailable or private"}
                         if "Sign in" in error_msg:
                             return {"success": False, "error": "Video requires sign-in (age-restricted)"}
                         
-                        # Continue to next language option
                         continue
                     
-                    # Parse video info from JSON output
                     if process.stdout:
                         try:
                             video_info = json.loads(process.stdout)
                         except json.JSONDecodeError:
                             pass
                     
-                    # Find subtitle file
                     tmppath = Path(tmpdir)
                     
-                    # Look for any VTT files (be very permissive)
                     vtt_files = list(tmppath.glob("*.vtt"))
                     if vtt_files:
-                        subtitle_file = vtt_files[0]  # Take the first one found
+                        subtitle_file = vtt_files[0]
                         logger.info(f"Found subtitle file: {subtitle_file.name}")
                         break
                     
-                    # Also check for specific patterns
                     for pattern in ["*.en.vtt", "*.en-*.vtt", f"*.{language}.vtt", "*auto*.vtt"]:
                         matches = list(tmppath.glob(pattern))
                         if matches:
@@ -424,7 +390,6 @@ class YouTubeAPIService:
                         break
                 
                 if not subtitle_file:
-                    # Last resort: check video info for subtitle availability
                     if video_info:
                         subs = video_info.get("subtitles", {})
                         auto_subs = video_info.get("automatic_captions", {})
@@ -440,14 +405,12 @@ class YouTubeAPIService:
                     logger.error("No subtitle files found after all attempts")
                     return {"success": False, "error": "No captions available for this video"}
                 
-                # Parse VTT file
                 transcript_data = self._parse_vtt(subtitle_file)
                 
                 if not transcript_data.get("segments"):
                     logger.error("Could not parse subtitle file")
                     return {"success": False, "error": "Could not parse subtitle file"}
                 
-                # Get video metadata
                 title = video_info.get("title", f"YouTube Video {video_id}")
                 author = video_info.get("uploader", video_info.get("channel", "Unknown"))
                 duration = video_info.get("duration", 0)
@@ -493,11 +456,9 @@ class YouTubeAPIService:
             segments = []
             full_text = []
             
-            # VTT format parsing
             lines = content.split('\n')
             i = 0
             
-            # Skip WEBVTT header and any metadata
             while i < len(lines) and not re.match(r'\d{2}:\d{2}', lines[i]):
                 i += 1
             
@@ -512,15 +473,12 @@ class YouTubeAPIService:
             while i < len(lines):
                 line = lines[i].strip()
                 
-                # Timestamp line: 00:00:00.000 --> 00:00:05.000
-                # Also support format without hours: 00:00.000 --> 00:05.000
                 timestamp_match = re.match(
                     r'(?:(\d{2}):)?(\d{2}):(\d{2})\.(\d{3})\s*-->\s*(?:(\d{2}):)?(\d{2}):(\d{2})\.(\d{3})',
                     line
                 )
                 
                 if timestamp_match:
-                    # Save previous segment
                     if current_text:
                         text = ' '.join(current_text).strip()
                         text = self._clean_vtt_text(text)
@@ -533,7 +491,6 @@ class YouTubeAPIService:
                             })
                             full_text.append(text)
                     
-                    # Parse new timestamps
                     groups = timestamp_match.groups()
                     start_h = int(groups[0]) if groups[0] else 0
                     start_m = int(groups[1])
@@ -550,12 +507,10 @@ class YouTubeAPIService:
                     current_text = []
                 
                 elif line and not line.isdigit() and not line.startswith('NOTE') and not line.startswith('WEBVTT'):
-                    # Text line
                     current_text.append(line)
                 
                 i += 1
             
-            # Don't forget last segment
             if current_text:
                 text = ' '.join(current_text).strip()
                 text = self._clean_vtt_text(text)
@@ -572,7 +527,6 @@ class YouTubeAPIService:
                 logger.error("No segments extracted from VTT file")
                 return {"transcript": "", "segments": []}
             
-            # Deduplicate consecutive identical segments (common in auto-captions)
             deduped_segments = []
             deduped_text = []
             prev_text = ""
@@ -596,14 +550,9 @@ class YouTubeAPIService:
     
     def _clean_vtt_text(self, text: str) -> str:
         """Clean VTT text - remove tags, timestamps, etc."""
-        # Remove VTT tags like <c>, </c>, <00:00:00.000>
         text = re.sub(r'<[^>]+>', '', text)
-        # Remove position/alignment tags
         text = re.sub(r'align:start position:\d+%', '', text)
-        # Remove multiple spaces
         text = re.sub(r'\s+', ' ', text)
-        # Remove common filler words (optional, can be aggressive)
-        # text = re.sub(r'\b(um|uh|like|you know)\b', '', text, flags=re.IGNORECASE)
         return text.strip()
     
     async def get_video_info(self, video_id: str) -> Dict[str, Any]:
@@ -665,7 +614,6 @@ class YouTubeAPIService:
             
             logger.info(f"Processing YouTube video: {video_id}")
             
-            # Get transcript (includes video info)
             result = await self.get_transcript(video_id)
             
             if not result.get("success"):
@@ -705,6 +653,4 @@ class YouTubeAPIService:
                 f.unlink()
             logger.info("Cleared all transcript cache")
 
-
-# Global instance
 youtube_service = YouTubeAPIService()

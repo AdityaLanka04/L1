@@ -12,7 +12,7 @@ const Challenges = () => {
   const [filterType, setFilterType] = useState('active');
   const [showCreateModal, setShowCreateModal] = useState(false);
   
-  // Create challenge form
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [challengeType, setChallengeType] = useState('speed');

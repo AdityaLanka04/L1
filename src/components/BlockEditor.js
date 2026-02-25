@@ -47,7 +47,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
     bt.type.toLowerCase().includes(slashMenuFilter.toLowerCase())
   );
 
-  // Block manipulation functions
+  
   const addBlock = (index, type = 'paragraph') => {
     const newBlock = {
       id: Date.now() + Math.random(),
@@ -116,7 +116,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
     onChange(newBlocks);
   };
 
-  // Drag and drop handlers
+  
   const handleDragStart = (e, blockId) => {
     if (readOnly) return;
     setDraggedBlockId(blockId);
@@ -153,7 +153,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
   const handleKeyDown = (e, blockId, blockIndex) => {
     if (readOnly) return;
 
-    // Handle slash command
+    
     if (e.key === '/') {
       const selection = window.getSelection();
       const range = selection.getRangeAt(0);
@@ -169,7 +169,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
       setSelectedBlockIndex(0);
     }
 
-    // Handle slash menu navigation
+    
     if (showSlashMenu) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -189,7 +189,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
       }
     }
 
-    // Handle Enter key for new blocks
+    
     if (e.key === 'Enter' && !e.shiftKey && !showSlashMenu) {
       e.preventDefault();
       const newBlock = {
@@ -208,7 +208,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
       }, 0);
     }
 
-    // Handle Backspace on empty block
+    
     if (e.key === 'Backspace') {
       const block = blocks[blockIndex];
       if (!block.content || block.content.trim() === '') {
@@ -241,7 +241,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
     
     const content = e.currentTarget.textContent || '';
     
-    // Check for slash command
+    
     if (content.endsWith('/') && !showSlashMenu) {
       const selection = window.getSelection();
       if (selection.rangeCount > 0) {
@@ -319,12 +319,12 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
     const isDragging = draggedBlockId === block.id;
     const isFocused = focusedBlockId === block.id;
     
-    // Use a ref-based approach to avoid re-rendering issues
+    
     const getCommonProps = (TagName) => ({
       ref: (el) => {
         if (el && blockRefs.current[block.id] !== el) {
           blockRefs.current[block.id] = el;
-          // Only set content if it's different to avoid cursor jump
+          
           if (el.textContent !== block.content) {
             el.textContent = block.content;
           }
@@ -338,7 +338,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
       onFocus: () => setFocusedBlockId(block.id),
       onBlur: () => {
         setFocusedBlockId(null);
-        // Sync content on blur to ensure consistency
+        
         const el = blockRefs.current[block.id];
         if (el && el.textContent !== block.content) {
           const newBlocks = blocks.map(b =>

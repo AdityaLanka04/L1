@@ -19,7 +19,6 @@
   flex-direction: column;
 }
 
-/* Loading */
 .tips-loading {
   display: flex;
   flex-direction: column;
@@ -74,7 +73,6 @@
   letter-spacing: 2px;
 }
 
-/* Header */
 .tips-header {
   position: sticky;
   top: 0;
@@ -201,7 +199,6 @@
   color: var(--accent);
 }
 
-/* Body */
 .tips-body {
   flex: 1;
   overflow-y: auto;
@@ -263,7 +260,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Suggestions */
 .suggestions-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -346,7 +342,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Tips List */
 .tips-list {
   list-style: none;
   padding: 0;
@@ -383,7 +378,6 @@
   font-size: 20px;
 }
 
-/* Questions */
 .questions-grid {
   display: flex;
   flex-direction: column;
@@ -518,7 +512,6 @@
   box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-/* Empty State */
 .tips-empty {
   display: flex;
   flex-direction: column;
@@ -551,7 +544,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .tips-body {
     padding: 20px;
@@ -566,7 +558,6 @@
   }
 }
 
-/* Practice Generator Section */
 .practice-generator-section {
   margin-top: 32px;
 }
@@ -806,7 +797,6 @@
   height: 18px;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .practice-generator-card {
     padding: 24px;
@@ -833,8 +823,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

@@ -37,11 +37,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
-
 class Token(BaseModel):
     access_token: str
     token_type: str
-
 
 class RegisterPayload(BaseModel):
     first_name: str
@@ -54,7 +52,6 @@ class RegisterPayload(BaseModel):
     learning_style: Optional[str] = None
     school_university: Optional[str] = None
 
-
 class UserCreate(BaseModel):
     first_name: str
     last_name: str
@@ -66,10 +63,8 @@ class UserCreate(BaseModel):
     learning_style: Optional[str] = None
     school_university: Optional[str] = None
 
-
 class GoogleAuth(BaseModel):
     token: str
-
 
 class UserProfileUpdate(BaseModel):
     user_id: str
@@ -94,7 +89,6 @@ class UserProfileUpdate(BaseModel):
     preferredLanguage: Optional[str] = "english"
     preferredSessionLength: Optional[int] = None
     bestStudyTimes: Optional[List[str]] = []
-
 
 @router.get("/get_daily_goal_progress")
 def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -135,7 +129,6 @@ def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get
     except Exception as e:
         logger.error(f"Error getting daily goal: {str(e)}")
         return {"questions_today": 0, "daily_goal": 20, "percentage": 0, "streak": 0}
-
 
 @router.post("/register")
 async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
@@ -204,19 +197,17 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
 
     raise HTTPException(status_code=500, detail="Registration failed after retries")
 
-
 @router.post("/token", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.commit()
 
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
-
 
 @router.post("/token_form")
 async def login_form(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
@@ -224,12 +215,11 @@ async def login_form(username: str = Form(...), password: str = Form(...), db: S
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
 
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.commit()
 
     access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
     return {"access_token": access_token, "token_type": "bearer"}
-
 
 @router.post("/google-auth")
 async def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
@@ -265,7 +255,7 @@ async def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
             db.add(user_stats)
             db.commit()
         else:
-            user.last_login = datetime.utcnow()
+            user.last_login = datetime.now(timezone.utc)
             db.commit()
 
         access_token = create_access_token(data={"sub": user.username})
@@ -284,7 +274,6 @@ async def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Google auth error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/firebase-auth")
 async def firebase_authentication(request: Request, db: Session = Depends(get_db)):
@@ -379,7 +368,6 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
 
     raise HTTPException(status_code=500, detail="Authentication failed after retries")
 
-
 @router.get("/me")
 async def get_current_user_info(current_user: models.User = Depends(get_current_user)):
     return {
@@ -395,7 +383,6 @@ async def get_current_user_info(current_user: models.User = Depends(get_current_
         "picture_url": current_user.picture_url,
         "google_user": current_user.google_user
     }
-
 
 @router.get("/check_profile_quiz")
 async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -433,7 +420,6 @@ async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(ge
     except Exception as e:
         logger.error(f"Error checking quiz: {str(e)}")
         return {"completed": False}
-
 
 @router.get("/is_first_time_user")
 async def is_first_time_user(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -494,7 +480,6 @@ async def is_first_time_user(user_id: str = Query(...), db: Session = Depends(ge
         logger.error(f"Error checking first-time user: {str(e)}")
         return {"is_first_time": False}
 
-
 @router.post("/start_session")
 def start_session(
     user_id: str = Form(...),
@@ -518,7 +503,6 @@ def start_session(
     except Exception as e:
         logger.error(f"Error starting session: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to start session")
-
 
 @router.post("/end_session")
 def end_session(
@@ -583,7 +567,6 @@ def end_session(
         logger.error(f"Error ending session: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to end session")
 
-
 @router.post("/save_archetype_profile")
 async def save_archetype_profile(
     payload: dict = Body(...),
@@ -635,7 +618,6 @@ async def save_archetype_profile(
     except Exception as e:
         logger.error(f"Error saving archetype: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save archetype: {str(e)}")
-
 
 @router.get("/get_comprehensive_profile")
 async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -692,7 +674,6 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
     except Exception as e:
         logger.error(f"Error getting profile: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/update_comprehensive_profile")
 async def update_comprehensive_profile(
@@ -765,7 +746,6 @@ async def update_comprehensive_profile(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/suggest_subjects")
 async def suggest_subjects(
     payload: dict = Body(...),
@@ -809,7 +789,6 @@ Suggestions:"""
     except Exception as e:
         logger.error(f"Error generating subject suggestions: {str(e)}")
         return {"suggestions": []}
-
 
 @router.post("/save_complete_profile")
 async def save_complete_profile(

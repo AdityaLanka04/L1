@@ -1,15 +1,8 @@
-/**
- * useAgentStatus Hook
- * React hook for checking agent system status
- */
+
 
 import { useState, useCallback, useEffect } from 'react';
 import { API_URL, getAuthToken } from '../config';
 
-/**
- * Hook for checking agent system status
- * @param {boolean} autoFetch - Whether to fetch status on mount
- */
 const useAgentStatus = (autoFetch = true) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

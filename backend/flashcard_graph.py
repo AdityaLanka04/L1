@@ -9,7 +9,6 @@ from langgraph.graph import StateGraph, END
 
 logger = logging.getLogger(__name__)
 
-
 class FlashcardGenState(TypedDict, total=False):
     user_id: str
     topic: str
@@ -23,14 +22,13 @@ class FlashcardGenState(TypedDict, total=False):
     student_strengths: list[str]
     concept_prerequisites: list[str]
     common_mistakes: list[str]
-    rag_context: list[str]       # top-k curriculum chunks from context_store
-    use_hs_context: bool         # enables RAG retrieval (default True)
+    rag_context: list[str]
+    use_hs_context: bool
     built_prompt: str
     flashcards_json: list[dict]
     _ai_client: Any
-    _hs_ai_client: Any           # dedicated AI client for HS-context-enriched generation
+    _hs_ai_client: Any
     _db_factory: Any
-
 
 async def fetch_context(state: FlashcardGenState) -> dict:
     """Fetch student strengths/weaknesses from DB and Neo4j."""
@@ -84,7 +82,6 @@ async def fetch_context(state: FlashcardGenState) -> dict:
                 if c not in strengths:
                     strengths.append(c)
 
-            # Get prerequisites and common mistakes for the specific topic
             topic = state.get("topic", "")
             topic_concepts = [w for w in topic.split() if len(w) > 3]
             if topic_concepts:
@@ -94,7 +91,6 @@ async def fetch_context(state: FlashcardGenState) -> dict:
         except Exception as e:
             logger.warning(f"Neo4j context fetch failed: {e}")
 
-    # RAG: fetch HS curriculum / personal doc context
     rag_chunks: list[str] = []
     topic = state.get("topic", "")
     use_hs = state.get("use_hs_context", True)
@@ -136,7 +132,6 @@ async def fetch_context(state: FlashcardGenState) -> dict:
         "common_mistakes": mistakes,
         "rag_context": rag_chunks,
     }
-
 
 DIFFICULTY_GUIDES = {
     "easy": (
@@ -180,7 +175,6 @@ DEPTH_GUIDES = {
     ),
 }
 
-
 def build_prompt(state: FlashcardGenState) -> dict:
     """Build a detailed, context-aware generation prompt."""
     topic = state.get("topic", "")
@@ -199,7 +193,6 @@ def build_prompt(state: FlashcardGenState) -> dict:
 
     parts = []
 
-    # Source material
     if generation_type == "chat_history" and content:
         parts.append(
             f"Generate {card_count} flashcards from this conversation/content:\n\n"
@@ -208,15 +201,12 @@ def build_prompt(state: FlashcardGenState) -> dict:
     else:
         parts.append(f"Generate {card_count} flashcards about: {topic}\n")
 
-    # Difficulty
     diff_guide = DIFFICULTY_GUIDES.get(difficulty, DIFFICULTY_GUIDES["medium"])
     parts.append(f"DIFFICULTY:\n{diff_guide}\n")
 
-    # Depth
     depth_guide = DEPTH_GUIDES.get(depth_level, DEPTH_GUIDES["standard"])
     parts.append(f"DEPTH:\n{depth_guide}\n")
 
-    # Student context
     if weaknesses:
         parts.append(
             f"STUDENT WEAKNESSES: {', '.join(weaknesses[:5])}\n"
@@ -228,25 +218,21 @@ def build_prompt(state: FlashcardGenState) -> dict:
             "Skip overly basic questions on these topics — challenge the student.\n"
         )
 
-    # Concept prerequisites from knowledge graph
     if prerequisites:
         parts.append(
             f"PREREQUISITE CONCEPTS (from knowledge graph): {', '.join(prerequisites[:5])}\n"
             "Include 1-2 cards covering these foundational concepts so the student has the necessary base.\n"
         )
 
-    # Common mistakes — target them explicitly
     if mistakes:
         parts.append(
             f"COMMON MISTAKES STUDENTS MAKE: {', '.join(mistakes[:5])}\n"
             "Include cards specifically testing these pitfalls so the student learns to avoid them.\n"
         )
 
-    # Additional specifications
     if additional_specs.strip():
         parts.append(f"ADDITIONAL INSTRUCTIONS FROM STUDENT:\n{additional_specs.strip()}\n")
 
-    # Curriculum RAG context
     rag_context = state.get("rag_context", [])
     if rag_context:
         logger.info(f"[FLASHCARD PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) into prompt ***")
@@ -260,7 +246,6 @@ def build_prompt(state: FlashcardGenState) -> dict:
     else:
         logger.info("[FLASHCARD PROMPT] No RAG context — generating from model knowledge only")
 
-    # Output format
     parts.append(
         "FORMAT: Return ONLY a valid JSON array. Each object must have:\n"
         '{"question": "...", "answer": "...", "difficulty": "' + difficulty + '", '
@@ -274,7 +259,6 @@ def build_prompt(state: FlashcardGenState) -> dict:
     )
 
     return {"built_prompt": "\n".join(parts)}
-
 
 def generate_cards(state: FlashcardGenState) -> dict:
     """Call AI and parse the flashcards JSON."""
@@ -301,7 +285,6 @@ def generate_cards(state: FlashcardGenState) -> dict:
 
         data = json.loads(cleaned)
 
-        # Handle both array and {"flashcards": [...]} formats
         if isinstance(data, dict):
             data = data.get("flashcards", [])
 
@@ -327,7 +310,6 @@ def generate_cards(state: FlashcardGenState) -> dict:
     except Exception as e:
         logger.error(f"Flashcard generation failed: {e}")
         return {"flashcards_json": []}
-
 
 class FlashcardGraph:
 
@@ -381,15 +363,12 @@ class FlashcardGraph:
             logger.error(f"Flashcard graph failed: {e}")
             return []
 
-
 _flashcard_graph: Optional[FlashcardGraph] = None
-
 
 def create_flashcard_graph(ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None) -> FlashcardGraph:
     global _flashcard_graph
     _flashcard_graph = FlashcardGraph(ai_client, db_session_factory, hs_ai_client=hs_ai_client)
     return _flashcard_graph
-
 
 def get_flashcard_graph() -> Optional[FlashcardGraph]:
     return _flashcard_graph

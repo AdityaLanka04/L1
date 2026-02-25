@@ -1,8 +1,7 @@
-/* ==================== UNIFIED HUB PAGE STYLES ==================== */
+
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== FORCE BOXY DESIGN ==================== */
 .hub-page *,
 .hub-page *::before,
 .hub-page *::after {
@@ -31,7 +30,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* ==================== MAIN PAGE CONTAINER ==================== */
 .hub-page {
   min-height: 100vh;
   background: linear-gradient(135deg, var(--bg-bottom) 0%, var(--bg-top) 100%);
@@ -44,7 +42,6 @@ html {
   line-height: 1.5;
 }
 
-/* ==================== HEADER ==================== */
 .hub-header {
   background: var(--panel);
   border-bottom: 1px solid var(--border);
@@ -70,7 +67,6 @@ html {
   gap: 20px;
 }
 
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;
@@ -168,7 +164,6 @@ html {
   color: var(--accent);
 }
 
-/* ==================== MAIN CONTENT ==================== */
 .hub-main {
   flex: 1;
   padding: 40px 0;
@@ -186,7 +181,6 @@ html {
   flex-direction: column;
 }
 
-/* ==================== PANEL SWITCHER ==================== */
 .panel-switcher {
   display: flex;
   gap: 12px;
@@ -220,7 +214,6 @@ html {
   border-bottom-color: var(--accent);
 }
 
-/* ==================== SECTIONS ==================== */
 .generator-section,
 .saved-section {
   flex: 1;
@@ -240,7 +233,6 @@ html {
   letter-spacing: -0.5px;
 }
 
-/* ==================== FORMS ==================== */
 .generation-form-container {
   display: flex;
   flex-direction: column;
@@ -298,7 +290,6 @@ html {
   gap: 8px;
 }
 
-/* ==================== BUTTONS ==================== */
 .button-group {
   display: flex;
   gap: 12px;
@@ -358,7 +349,6 @@ html {
   box-shadow: var(--shadow-md);
 }
 
-/* ==================== STATE MESSAGES ==================== */
 .empty-state,
 .loading-state {
   display: flex;
@@ -384,7 +374,6 @@ html {
   color: var(--text-secondary);
 }
 
-/* ==================== SAVED ITEMS GRID ==================== */
 .saved-items {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -425,7 +414,6 @@ html {
   padding: 10px 12px;
 }
 
-/* ==================== DISPLAY SECTIONS ==================== */
 .roadmap-display,
 .content-display {
   background: var(--bg-bottom);
@@ -459,7 +447,6 @@ html {
   overflow-x: auto;
 }
 
-/* ==================== UPLOAD ZONE ==================== */
 .upload-zone {
   border: 2px dashed var(--border);
   border-radius: 0;
@@ -491,7 +478,6 @@ html {
   color: var(--accent);
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;

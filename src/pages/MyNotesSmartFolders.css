@@ -1,6 +1,5 @@
-/* MyNotes Smart Folders - Auto-grouping Styles */
 
-/* Override to use centered modal */
+
 .my-notes-page-full .smart-folders-panel {
   position: fixed !important;
   top: 50% !important;
@@ -20,7 +19,6 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
 }
 
-/* Loading State */
 .my-notes-page-full .smart-folders-panel .sf-loading {
   display: flex !important;
   flex-direction: column !important;
@@ -46,7 +44,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* Header */
 .my-notes-page-full .smart-folders-panel .sf-header {
   display: flex !important;
   justify-content: space-between !important;
@@ -91,14 +88,12 @@
   color: #D7B38C !important;
 }
 
-/* Content */
 .my-notes-page-full .smart-folders-panel .sf-content {
   flex: 1 !important;
   overflow-y: auto !important;
   padding: 16px !important;
 }
 
-/* Empty State */
 .my-notes-page-full .smart-folders-panel .sf-empty {
   display: flex !important;
   flex-direction: column !important;
@@ -118,7 +113,6 @@
   font-size: 13px !important;
 }
 
-/* Folders List */
 .my-notes-page-full .smart-folders-panel .sf-folders-list {
   display: flex !important;
   flex-direction: column !important;
@@ -174,7 +168,6 @@
   border-radius: 10px !important;
 }
 
-/* Notes Preview */
 .my-notes-page-full .smart-folders-panel .sf-notes-preview {
   margin-top: 16px !important;
   padding-top: 16px !important;
@@ -223,7 +216,6 @@
   flex-shrink: 0 !important;
 }
 
-/* Light Mode */
 [data-theme-mode="light"] .my-notes-page-full .smart-folders-panel {
   background: #fff !important;
   border-color: #e0e0e0 !important;

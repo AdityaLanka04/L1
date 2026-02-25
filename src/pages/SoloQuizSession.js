@@ -28,7 +28,7 @@ const SoloQuizSession = () => {
   const [showInstantFeedback, setShowInstantFeedback] = useState(false);
   const [instantFeedbackCorrect, setInstantFeedbackCorrect] = useState(false);
 
-  // Load quiz from sessionStorage
+  
   useEffect(() => {
     const storedData = sessionStorage.getItem('quizData');
     if (storedData) {
@@ -38,9 +38,9 @@ const SoloQuizSession = () => {
       setQuizMode(data.quizMode || 'standard');
       setTimingMode(data.timingMode || 'timed');
       
-      // Set up timer based on timing mode
+      
       if (data.timingMode === 'timed') {
-        setTimeRemaining((data.questions?.length || 10) * 60); // 1 min per question
+        setTimeRemaining((data.questions?.length || 10) * 60); 
       } else if (data.timingMode === 'stopwatch') {
         setTimeElapsed(0);
       }
@@ -52,7 +52,7 @@ const SoloQuizSession = () => {
     }
   }, [navigate]);
 
-  // Timer
+  
   useEffect(() => {
     if (showResult || loading) return;
     
@@ -72,12 +72,12 @@ const SoloQuizSession = () => {
   }, [timeRemaining, timeElapsed, showResult, loading, questions.length, timingMode]);
 
   const handleAnswerSelect = (answerIndex) => {
-    // For instant feedback mode, show feedback immediately
+    
     if (quizMode === 'sequential-instant') {
       const currentQuestion = questions[currentQuestionIndex];
       const questionId = String(currentQuestion.id ?? currentQuestionIndex);
       
-      // Determine answer value
+      
       let answerValue;
       if (currentQuestion.question_type === 'multiple_choice') {
         answerValue = String.fromCharCode(65 + answerIndex);
@@ -87,7 +87,7 @@ const SoloQuizSession = () => {
         answerValue = String(answerIndex);
       }
       
-      // Check if correct
+      
       const correctAnswer = String(currentQuestion.correct_answer || '').toLowerCase();
       const isCorrect = answerValue.toLowerCase() === correctAnswer || 
                         answerValue.toLowerCase() === correctAnswer.charAt(0);
@@ -96,7 +96,7 @@ const SoloQuizSession = () => {
       setShowInstantFeedback(true);
       setInstantFeedbackCorrect(isCorrect);
       
-      // Store answer
+      
       setUserAnswers(prev => ({
         ...prev,
         [questionId]: answerValue
@@ -106,7 +106,7 @@ const SoloQuizSession = () => {
         setScore(prev => prev + 1);
       }
       
-      // Auto-advance after 1.5 seconds
+      
       setTimeout(() => {
         setShowInstantFeedback(false);
         if (currentQuestionIndex < questions.length - 1) {
@@ -117,15 +117,15 @@ const SoloQuizSession = () => {
         }
       }, 1500);
     } else {
-      // For other modes, just highlight the selection
+      
       setSelectedAnswer(answerIndex);
     }
   };
 
   const handleNext = () => {
-    // In standard mode, allow navigation without answer
+    
     if (quizMode === 'standard') {
-      // Store answer if one was selected (but don't calculate score)
+      
       if (selectedAnswer !== null) {
         const currentQuestion = questions[currentQuestionIndex];
         const questionId = String(currentQuestion.id ?? currentQuestionIndex);
@@ -144,10 +144,10 @@ const SoloQuizSession = () => {
           [questionId]: answerValue
         }));
         
-        // Don't calculate score in standard mode - wait until submission
+        
       }
       
-      // Move to next question
+      
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
         setSelectedAnswer(null);
@@ -155,15 +155,15 @@ const SoloQuizSession = () => {
       return;
     }
     
-    // For sequential modes, require answer
+    
     if (selectedAnswer === null) return;
     
     const currentQuestion = questions[currentQuestionIndex];
     const questionId = String(currentQuestion.id ?? currentQuestionIndex);
     
-    // For sequential and standard modes (not instant feedback)
+    
     if (quizMode !== 'sequential-instant') {
-      // Store answer based on question type
+      
       let answerValue;
       if (currentQuestion.question_type === 'multiple_choice') {
         answerValue = String.fromCharCode(65 + selectedAnswer);
@@ -178,7 +178,7 @@ const SoloQuizSession = () => {
         [questionId]: answerValue
       }));
 
-      // Check if correct
+      
       const correctAnswer = String(currentQuestion.correct_answer || '').toLowerCase();
       const isCorrect = answerValue.toLowerCase() === correctAnswer || 
                         answerValue.toLowerCase() === correctAnswer.charAt(0);
@@ -188,7 +188,7 @@ const SoloQuizSession = () => {
       }
     }
 
-    // Move to next question or submit
+    
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedAnswer(null);
@@ -200,13 +200,13 @@ const SoloQuizSession = () => {
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
-      // In standard mode, restore previous answer if exists
+      
       if (quizMode === 'standard') {
         const prevQuestion = questions[currentQuestionIndex - 1];
         const prevQuestionId = String(prevQuestion?.id ?? (currentQuestionIndex - 1));
         if (userAnswers[prevQuestionId]) {
           const prevAnswer = userAnswers[prevQuestionId];
-          // Convert answer back to index
+          
           if (prevQuestion.question_type === 'multiple_choice') {
             setSelectedAnswer(prevAnswer.charCodeAt(0) - 65);
           } else if (prevQuestion.question_type === 'true_false') {
@@ -224,7 +224,7 @@ const SoloQuizSession = () => {
   const handleQuestionJump = (index) => {
     if (quizMode === 'standard') {
       setCurrentQuestionIndex(index);
-      // Restore answer if exists
+      
       const question = questions[index];
       const questionId = String(question?.id ?? index);
       if (userAnswers[questionId]) {
@@ -241,7 +241,7 @@ const SoloQuizSession = () => {
   };
 
   const handleSubmitFromStandard = () => {
-    // For standard mode, allow submission anytime
+    
     if (quizMode === 'standard') {
       handleSubmitQuiz();
     }
@@ -252,7 +252,7 @@ const SoloQuizSession = () => {
     const timeTaken = Math.round((Date.now() - startTime) / 1000);
 
     try {
-      // Grade the quiz using the agent
+      
       const gradeResponse = await quizAgentService.gradeQuiz({
         userId: username,
         questions,
@@ -262,7 +262,7 @@ const SoloQuizSession = () => {
 
       setResults(gradeResponse);
 
-      // Analyze performance
+      
       let performanceAnalysis = null;
       if (gradeResponse.results) {
         try {
@@ -278,7 +278,7 @@ const SoloQuizSession = () => {
         }
       }
 
-      // Store results for review page
+      
       const reviewData = {
         questions,
         results: gradeResponse.results || [],
@@ -296,7 +296,7 @@ const SoloQuizSession = () => {
       setShowResult(true);
     } catch (error) {
       console.error('Quiz grading error:', error);
-      // Fallback to local grading
+      
       const localResults = questions.map((q, idx) => {
         const questionId = String(q.id ?? idx);
         const userAnswer = userAnswers[questionId] || '';
@@ -399,7 +399,6 @@ const SoloQuizSession = () => {
             )}
           </div>
 
-          {/* Weak/Strong Areas */}
           {analysis && (
             <div className="performance-insights">
               {analysis.weak_topics?.length > 0 && (
@@ -425,7 +424,6 @@ const SoloQuizSession = () => {
             </div>
           )}
 
-          {/* Question Review */}
           <div className="question-by-question">
             <h3>Review Your Answers</h3>
             <div className="questions-comparison-list">
@@ -522,7 +520,7 @@ const SoloQuizSession = () => {
     );
   }
 
-  // Quiz in progress
+  
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
   
@@ -534,7 +532,7 @@ const SoloQuizSession = () => {
     options = ['True', 'False'];
   }
 
-  // Check if current question has been answered
+  
   const currentQuestionId = String(currentQuestion?.id ?? currentQuestionIndex);
   const hasAnswered = userAnswers.hasOwnProperty(currentQuestionId);
 
@@ -559,7 +557,7 @@ const SoloQuizSession = () => {
               const isSelected = selectedAnswer === index;
               const optionText = typeof option === 'string' ? option.replace(/^[A-D]\)\s*/, '') : option;
               
-              // Show correct/incorrect in instant feedback mode
+              
               let feedbackClass = '';
               if (quizMode === 'sequential-instant' && showInstantFeedback && isSelected) {
                 feedbackClass = instantFeedbackCorrect ? 'correct' : 'incorrect';
@@ -674,7 +672,7 @@ const SoloQuizSession = () => {
                 const isAnswered = userAnswers.hasOwnProperty(questionId);
                 const isCurrent = index === currentQuestionIndex;
                 
-                // Check if answer was correct (only show in non-standard modes)
+                
                 let isCorrect = false;
                 if (isAnswered && quizMode !== 'standard') {
                   const q = questions[index];

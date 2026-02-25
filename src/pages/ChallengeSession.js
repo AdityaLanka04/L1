@@ -49,12 +49,12 @@ const ChallengeSession = () => {
         setChallenge(data.challenge);
         setTimeRemaining(data.challenge.time_limit_minutes * 60);
         
-        // Check if questions already exist
+        
         if (data.questions && data.questions.length > 0) {
           setQuestions(data.questions);
           setLoading(false);
         } else {
-          // Generate questions based on challenge target
+          
           await generateQuestions(data.challenge);
         }
       }
@@ -67,7 +67,7 @@ const ChallengeSession = () => {
   const generateQuestions = async (challengeData) => {
     setGeneratingQuestions(true);
     try {
-      // Determine question count based on target metric
+      
       let questionCount = 10;
       if (challengeData.target_metric === 'questions_answered') {
         questionCount = Math.ceil(challengeData.target_value);
@@ -125,12 +125,12 @@ const ChallengeSession = () => {
       setScore(score + 1);
     }
 
-    // Update accuracy
+    
     const totalAnswered = newAnsweredQuestions.length;
     const correctCount = newAnsweredQuestions.filter(q => q.is_correct).length;
     setAccuracy(Math.round((correctCount / totalAnswered) * 100));
 
-    // Update progress based on target metric
+    
     updateProgress(newAnsweredQuestions);
 
     if (currentQuestionIndex < questions.length - 1) {
@@ -157,7 +157,7 @@ const ChallengeSession = () => {
         currentProgress = (currentAccuracy / challenge.target_value) * 100;
         break;
       case 'study_hours':
-        // Time-based progress
+        
         const minutesSpent = (challenge.time_limit_minutes * 60 - timeRemaining) / 60;
         currentProgress = (minutesSpent / (challenge.target_value * 60)) * 100;
         break;

@@ -78,7 +78,6 @@ const Weaknesses = () => {
 
   return (
     <div className="weaknesses-container">
-      {/* Header */}
       <header className="weaknesses-header">
         <div className="weaknesses-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -104,7 +103,6 @@ const Weaknesses = () => {
       </header>
 
       <div className="weaknesses-body">
-        {/* Sidebar */}
         <aside className="weaknesses-sidebar">
           <div className="sidebar-section">
             <h3 className="sidebar-heading">FILTER BY SEVERITY</h3>
@@ -165,7 +163,6 @@ const Weaknesses = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="weaknesses-main">
           {filteredAreas.length === 0 ? (
             <div className="empty-container">

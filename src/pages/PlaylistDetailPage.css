@@ -1,7 +1,6 @@
-/* ==================== IMPORTS ==================== */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== VARIABLES ==================== */
 .playlist-detail-page {
   --pd-bg-primary: var(--bg-primary);
   --pd-bg-secondary: var(--bg-secondary);
@@ -14,8 +13,6 @@
   --pd-warning: var(--warning);
   --pd-success: #22c55e;
 }
-
-/* ==================== LAYOUT ==================== */
 
 .playlist-detail-container {
   position: relative;
@@ -97,8 +94,6 @@
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
-
-/* ==================== TOP BAR - MATCHING PLAYLISTS STYLE ==================== */
 
 .detail-topbar {
   height: 70px;
@@ -259,8 +254,6 @@
   background: color-mix(in srgb, var(--success) 25%, transparent);
 }
 
-/* ==================== HEADER SECTION - FULL WIDTH BENTO STYLE ==================== */
-
 .detail-header {
   background: var(--bg-secondary);
   border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
@@ -273,7 +266,6 @@
   margin: 28px auto 0;
 }
 
-/* ==================== STUDIO + INSIGHTS ==================== */
 .detail-panels {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
@@ -456,7 +448,6 @@
   color: var(--accent);
   font-family: 'Inter', sans-serif;
 }
-
 
 .header-banner {
   width: 100%;
@@ -647,8 +638,6 @@
   transition: width 0.3s ease;
   border-radius: 4px;
 }
-
-/* ==================== BODY SECTION - SCROLLABLE CONTENT ==================== */
 
 .detail-body {
   flex: 1;
@@ -990,8 +979,6 @@
   transform: translateY(-2px);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 50%, transparent);
 }
-
-/* ==================== MODALS - FULL SCREEN SWISS BENTO DESIGN ==================== */
 
 .modal-backdrop {
   position: fixed;
@@ -1335,8 +1322,6 @@
   box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-/* ==================== RESPONSIVE ==================== */
-
 @media (max-width: 768px) {
   .detail-topbar {
     padding: 12px 20px;
@@ -1398,8 +1383,6 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
-
-/* ==================== ADD ITEM FULL PAGE DESIGN ==================== */
 
 .add-item-fullpage {
   position: fixed;
@@ -1672,8 +1655,6 @@
   cursor: not-allowed;
 }
 
-/* ==================== SIDEBAR QUEUE ==================== */
-
 .add-item-sidebar {
   width: 400px;
   background: var(--bg-secondary);
@@ -1861,8 +1842,6 @@
   cursor: not-allowed;
 }
 
-/* ==================== RESPONSIVE ==================== */
-
 @media (max-width: 1024px) {
   .add-item-sidebar {
     width: 350px;
@@ -1926,7 +1905,6 @@
   }
 }
 
-/* ==================== DETAIL REDESIGN OVERRIDES ==================== */
 .playlist-detail-page {
   position: relative !important;
   min-height: 100vh !important;

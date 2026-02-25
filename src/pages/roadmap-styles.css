@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* ==================== FORCE BOXY DESIGN ==================== */
 .roadmap-container *,
 .roadmap-container *::before,
 .roadmap-container *::after {
@@ -1102,7 +1101,6 @@
   flex: 1;
 }
 
-
 .node-details-panel {
   position: absolute;
   top: 20px;
@@ -1334,7 +1332,6 @@
   z-index: 10;
 }
 
-/* ReactFlow safe click for interactive elements */
 .nodrag,
 .nopan {
   pointer-events: all !important;
@@ -1347,7 +1344,6 @@
   pointer-events: all !important;
 }
 
-/* Additional panel content styling for better text display */
 .panel-content p {
   white-space: pre-wrap;
   word-wrap: break-word;

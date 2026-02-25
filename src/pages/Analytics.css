@@ -1,4 +1,4 @@
-/* Analytics Page - Standardized Design */
+
 
 .analytics-page {
   min-height: 100vh;
@@ -14,7 +14,6 @@
   overflow-x: hidden;
 }
 
-/* ==================== HEADER (Exact copy from Profile) ==================== */
 .analytics-header {
   position: sticky;
   top: 0;
@@ -127,14 +126,12 @@
   background: transparent;
 }
 
-/* ==================== CONTAINER ==================== */
 .analytics-container {
   max-width: 1800px;
   margin: 0 auto;
   padding: 48px;
 }
 
-/* ==================== LOADING ==================== */
 .analytics-loading {
   display: flex;
   flex-direction: column;
@@ -163,7 +160,6 @@
   font-weight: 500;
 }
 
-/* ==================== SUMMARY CARDS ==================== */
 .analytics-summary-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -255,7 +251,6 @@
   font-weight: 500;
 }
 
-/* ==================== FILTERS ==================== */
 .analytics-filters {
   display: flex;
   gap: 32px;
@@ -314,7 +309,6 @@
   border-color: var(--accent);
 }
 
-/* ==================== METRICS TOGGLES ==================== */
 .analytics-metrics {
   display: flex;
   align-items: center;
@@ -363,7 +357,6 @@
   border-color: var(--accent);
 }
 
-/* ==================== CHART SECTION ==================== */
 .analytics-chart-section {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -435,7 +428,6 @@
   font-weight: 500;
 }
 
-/* ==================== BAR CHART ==================== */
 .analytics-bar-chart {
   display: flex;
   height: 420px;
@@ -508,7 +500,6 @@
   overflow: hidden;
 }
 
-/* ==================== LINE CHART ==================== */
 .analytics-line-chart {
   height: 420px;
   width: 100%;
@@ -521,7 +512,6 @@
   height: 100%;
 }
 
-/* ==================== STATS GRID ==================== */
 .analytics-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -596,7 +586,6 @@
   color: var(--accent);
 }
 
-/* ==================== POINTS REFERENCE ==================== */
 .analytics-points-reference {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -654,7 +643,6 @@
   font-size: 18px;
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 1400px) {
   .analytics-summary-cards {
     grid-template-columns: repeat(2, 1fr);
@@ -706,8 +694,6 @@
   }
 }
 
-
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .analytics-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -720,7 +706,6 @@
   border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
-/* ==================== TABS ==================== */
 .analytics-tabs {
   display: flex;
   gap: 12px;
@@ -758,7 +743,6 @@
   background: rgba(var(--accent-rgb, 215, 179, 140), 0.08);
 }
 
-/* ==================== WEAK AREAS ==================== */
 .weak-areas-content {
   animation: fadeIn 0.4s ease;
 }
@@ -1174,7 +1158,6 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* ==================== RESPONSIVE UPDATES ==================== */
 @media (max-width: 1400px) {
   .weak-areas-summary {
     grid-template-columns: repeat(2, 1fr);
@@ -1206,7 +1189,6 @@
   }
 }
 
-/* Weak Area Card Enhancements */
 .weak-card-doubtful,
 .weak-card-struggling {
   display: flex;
@@ -1252,7 +1234,6 @@
   transform: translateY(-1px);
 }
 
-/* Topic Modal */
 .topic-modal-overlay {
   position: fixed;
   top: 0;
@@ -1362,7 +1343,6 @@
   text-align: center;
 }
 
-/* Suggestions List */
 .topic-suggestions-list {
   display: flex;
   flex-direction: column;
@@ -1438,7 +1418,6 @@
   margin: 0;
 }
 
-/* Study Tips */
 .topic-tips-list {
   list-style: none;
   padding: 0;
@@ -1468,7 +1447,6 @@
   font-size: 16px;
 }
 
-/* Questions List */
 .topic-questions-list {
   display: flex;
   flex-direction: column;
@@ -1580,7 +1558,6 @@
   box-shadow: 0 6px 20px rgba(215, 179, 140, 0.3);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .topic-modal {
     max-width: 100%;
@@ -1602,8 +1579,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

@@ -1,11 +1,10 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
+
 .template-preview-overlay *,
 .template-preview-overlay *::before,
 .template-preview-overlay *::after {
   border-radius: 0 !important;
 }
 
-/* Template Preview Modal */
 .template-preview-overlay {
   position: fixed;
   top: 0;
@@ -187,7 +186,6 @@
   box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
 }
 
-/* Scrollbar */
 .template-preview-content::-webkit-scrollbar {
   width: 8px;
 }

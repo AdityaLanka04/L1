@@ -2,14 +2,6 @@ import React from 'react';
 import { BookOpen } from 'lucide-react';
 import './ContextSelector.css';
 
-/**
- * ContextSelector — compact header button that opens the ContextPanel.
- *
- * Props:
- *   hsMode   {boolean}  — shows green active state when true
- *   docCount {number}   — shows gray count badge when > 0 and !hsMode
- *   onOpen   {function} — called when the button is clicked
- */
 const ContextSelector = ({ hsMode, docCount = 0, onOpen }) => (
   <button
     className={`context-selector-btn ${hsMode ? 'hs-active' : ''}`}

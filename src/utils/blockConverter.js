@@ -1,8 +1,5 @@
-/**
- * Utility functions to convert between HTML (Quill format) and Block format
- */
 
-// Convert HTML content to blocks
+
 export const htmlToBlocks = (html) => {
   if (!html || html.trim() === '') {
     return [{
@@ -20,7 +17,7 @@ export const htmlToBlocks = (html) => {
 
   const processNode = (node) => {
     const tagName = node.tagName?.toLowerCase();
-    // Use innerHTML to preserve LaTeX formulas, fallback to textContent
+    
     const content = node.innerHTML || node.textContent || '';
     const textContent = node.textContent || '';
 
@@ -130,7 +127,6 @@ export const htmlToBlocks = (html) => {
   return blocks;
 };
 
-// Convert blocks to HTML
 export const blocksToHtml = (blocks) => {
   if (!blocks || blocks.length === 0) return '';
 
@@ -168,7 +164,6 @@ export const blocksToHtml = (blocks) => {
   }).join('\n');
 };
 
-// Merge consecutive list items
 export const mergeListBlocks = (blocks) => {
   const merged = [];
   let currentList = null;

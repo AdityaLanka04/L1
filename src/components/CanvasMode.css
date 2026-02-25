@@ -356,7 +356,6 @@
   }
 }
 
-/* Resize handles for sticky notes */
 .canvas-svg circle[fill="#f1b26c"] {
   transition: all 0.2s ease;
 }
@@ -503,7 +502,6 @@
   z-index: 1000;
 }
 
-/* Fixed Rulers */
 .horizontal-ruler {
   position: fixed;
   top: 128px;
@@ -582,7 +580,6 @@
   margin-top: 0;
 }
 
-/* Keyboard Shortcuts Panel */
 .shortcuts-overlay {
   position: fixed;
   top: 0;
@@ -678,7 +675,6 @@
   border-radius: 6px;
 }
 
-/* Minimap */
 .minimap {
   position: fixed;
   bottom: 80px;
@@ -702,7 +698,6 @@
   letter-spacing: 0.3px;
 }
 
-/* Floating Help Button */
 .floating-help-btn {
   position: fixed;
   bottom: 20px;

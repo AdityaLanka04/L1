@@ -1,4 +1,4 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
+
 .code-block-container *,
 .code-block-container *::before,
 .code-block-container *::after {
@@ -110,7 +110,6 @@
   color: #666;
 }
 
-/* Syntax highlighting colors */
 .language-javascript .keyword,
 .language-python .keyword {
   color: #569cd6;

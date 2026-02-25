@@ -10,7 +10,6 @@ import './XPRoadmap.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 
-// Main XP Milestones
 const MILESTONES = [
   { id: 1, xp: 0, title: 'Welcome Aboard', description: 'Start your learning journey', icon: 'rocket', tier: 'bronze', reward: 'Welcome Badge' },
   { id: 2, xp: 10, title: 'First Steps', description: 'Earn your first 10 XP', icon: 'star', tier: 'bronze', reward: 'Beginner Title' },
@@ -60,41 +59,40 @@ const MILESTONES = [
   { id: 40, xp: 100000, title: 'ULTIMATE LEGEND', description: 'Achieve 100000 XP!!!', icon: 'crown', tier: 'legendary', reward: 'ULTIMATE CROWN' },
 ];
 
-// Activity-based achievements (interspersed with XP milestones)
 const ACTIVITY_ACHIEVEMENTS = [
-  // AI Chat Achievements
+  
   { id: 'chat_5', type: 'ai_chat', target: 5, current: 0, title: 'Curious Mind', description: 'Ask AI 5 questions', icon: 'message-circle', reward: '10 XP Bonus' },
   { id: 'chat_10', type: 'ai_chat', target: 10, current: 0, title: 'Question Master', description: 'Ask AI 10 questions', icon: 'message-circle', reward: '20 XP Bonus' },
   { id: 'chat_25', type: 'ai_chat', target: 25, current: 0, title: 'AI Enthusiast', description: 'Ask AI 25 questions', icon: 'message-circle', reward: '50 XP Bonus' },
   { id: 'chat_50', type: 'ai_chat', target: 50, current: 0, title: 'AI Scholar', description: 'Ask AI 50 questions', icon: 'message-circle', reward: '100 XP Bonus' },
   { id: 'chat_100', type: 'ai_chat', target: 100, current: 0, title: 'AI Expert', description: 'Ask AI 100 questions', icon: 'message-circle', reward: '200 XP Bonus' },
   
-  // Flashcard Achievements
+  
   { id: 'flash_5', type: 'flashcards', target: 5, current: 0, title: 'Card Creator', description: 'Create 5 flashcard sets', icon: 'layers', reward: '25 XP Bonus' },
   { id: 'flash_10', type: 'flashcards', target: 10, current: 0, title: 'Memory Builder', description: 'Create 10 flashcard sets', icon: 'layers', reward: '50 XP Bonus' },
   { id: 'flash_20', type: 'flashcards', target: 20, current: 0, title: 'Flashcard Master', description: 'Create 20 flashcard sets', icon: 'layers', reward: '100 XP Bonus' },
   { id: 'flash_review_50', type: 'flashcard_reviews', target: 50, current: 0, title: 'Review Rookie', description: 'Review 50 flashcards', icon: 'layers', reward: '30 XP Bonus' },
   { id: 'flash_review_100', type: 'flashcard_reviews', target: 100, current: 0, title: 'Review Champion', description: 'Review 100 flashcards', icon: 'layers', reward: '60 XP Bonus' },
   
-  // Notes Achievements
+  
   { id: 'notes_3', type: 'notes', target: 3, current: 0, title: 'Note Taker', description: 'Create 3 notes', icon: 'file-text', reward: '15 XP Bonus' },
   { id: 'notes_10', type: 'notes', target: 10, current: 0, title: 'Documenter', description: 'Create 10 notes', icon: 'file-text', reward: '50 XP Bonus' },
   { id: 'notes_25', type: 'notes', target: 25, current: 0, title: 'Knowledge Keeper', description: 'Create 25 notes', icon: 'file-text', reward: '125 XP Bonus' },
   { id: 'notes_50', type: 'notes', target: 50, current: 0, title: 'Master Archivist', description: 'Create 50 notes', icon: 'file-text', reward: '250 XP Bonus' },
   
-  // Quiz Achievements
+  
   { id: 'quiz_3', type: 'quizzes', target: 3, current: 0, title: 'Quiz Starter', description: 'Complete 3 quizzes', icon: 'target', reward: '20 XP Bonus' },
   { id: 'quiz_10', type: 'quizzes', target: 10, current: 0, title: 'Quiz Enthusiast', description: 'Complete 10 quizzes', icon: 'target', reward: '75 XP Bonus' },
   { id: 'quiz_25', type: 'quizzes', target: 25, current: 0, title: 'Quiz Master', description: 'Complete 25 quizzes', icon: 'target', reward: '200 XP Bonus' },
   { id: 'quiz_perfect', type: 'quiz_perfect', target: 5, current: 0, title: 'Perfectionist', description: 'Get 100% on 5 quizzes', icon: 'trophy', reward: '150 XP Bonus' },
   
-  // Streak Achievements
+  
   { id: 'streak_3', type: 'streak', target: 3, current: 0, title: '3-Day Streak', description: 'Study for 3 days in a row', icon: 'flame', reward: '30 XP Bonus' },
   { id: 'streak_7', type: 'streak', target: 7, current: 0, title: 'Week Warrior', description: 'Study for 7 days in a row', icon: 'flame', reward: '70 XP Bonus' },
   { id: 'streak_14', type: 'streak', target: 14, current: 0, title: 'Two Week Champion', description: 'Study for 14 days in a row', icon: 'flame', reward: '150 XP Bonus' },
   { id: 'streak_30', type: 'streak', target: 30, current: 0, title: 'Monthly Master', description: 'Study for 30 days in a row', icon: 'flame', reward: '300 XP Bonus' },
   
-  // Study Time Achievements
+  
   { id: 'study_60', type: 'study_time', target: 60, current: 0, title: 'Hour Scholar', description: 'Study for 1 hour total', icon: 'clock', reward: '25 XP Bonus' },
   { id: 'study_300', type: 'study_time', target: 300, current: 0, title: '5 Hour Grind', description: 'Study for 5 hours total', icon: 'clock', reward: '100 XP Bonus' },
   { id: 'study_600', type: 'study_time', target: 600, current: 0, title: '10 Hour Dedication', description: 'Study for 10 hours total', icon: 'clock', reward: '200 XP Bonus' },
@@ -118,7 +116,7 @@ const XPRoadmap = () => {
       const token = localStorage.getItem('token');
       const userName = localStorage.getItem('username');
       
-      // Fetch gamification stats
+      
       const statsResponse = await fetch(`${API_BASE_URL}/api/get_gamification_stats?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -127,7 +125,7 @@ const XPRoadmap = () => {
         const stats = await statsResponse.json();
         setUserStats(stats);
         
-        // Update activity achievements with actual user data
+        
         const updatedAchievements = ACTIVITY_ACHIEVEMENTS.map(achievement => {
           let current = 0;
           switch(achievement.type) {
@@ -153,7 +151,7 @@ const XPRoadmap = () => {
               current = stats.total_study_minutes || 0;
               break;
             case 'quiz_perfect':
-              current = 0; // Would need separate tracking
+              current = 0; 
               break;
           }
           return { ...achievement, current, completed: current >= achievement.target };
@@ -246,7 +244,6 @@ const XPRoadmap = () => {
 
   return (
     <div className="xp-roadmap-container">
-      {/* Standardized Header */}
       <header className="xp-roadmap-header">
         <div className="xp-roadmap-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -272,7 +269,6 @@ const XPRoadmap = () => {
       </header>
 
       <div className="xp-roadmap-body">
-        {/* Main Roadmap Section - Full Width */}
         <div className="xp-roadmap-main-full">
           <div className="roadmap-section-header">
             <Trophy size={24} />
@@ -282,31 +278,29 @@ const XPRoadmap = () => {
             </div>
           </div>
 
-          {/* Progress Bar */}
           <div className="overall-progress">
             <div className="progress-bar-container">
               <div className="progress-bar-fill" style={{ width: `${completionPercentage}%` }} />
             </div>
           </div>
 
-          {/* Combined Milestones Path with Activity Achievements */}
           <div className="roadmap-path">
             {MILESTONES.map((milestone, index) => {
               const status = getMilestoneStatus(milestone);
               const progress = getProgressToMilestone(milestone);
               const IconComponent = getIconComponent(milestone.icon);
               
-              // Get relevant activity achievements to show after this milestone
+              
               const relevantAchievements = activityAchievements.filter(ach => {
-                // Show achievements between milestones based on their target values
+                
                 if (index < MILESTONES.length - 1) {
                   const nextMilestone = MILESTONES[index + 1];
-                  // Distribute achievements evenly
+                  
                   return ach.target <= (milestone.xp + nextMilestone.xp) / 2 && 
                          ach.target > (index > 0 ? (MILESTONES[index - 1].xp + milestone.xp) / 2 : 0);
                 }
                 return false;
-              }).slice(0, 2); // Show max 2 achievements between milestones
+              }).slice(0, 2); 
               
               return (
                 <React.Fragment key={milestone.id}>
@@ -386,7 +380,6 @@ const XPRoadmap = () => {
                     </div>
                   </div>
                   
-                  {/* Activity Achievements */}
                   {relevantAchievements.map((achievement, achIndex) => {
                     const AchIconComponent = getIconComponent(achievement.icon);
                     const achProgress = Math.min(100, (achievement.current / achievement.target) * 100);
@@ -440,7 +433,6 @@ const XPRoadmap = () => {
           </div>
         </div>
       </div>
-      {/* Reward Modal */}
       {showRewardModal && selectedMilestone && (
         <div className="reward-modal-overlay" onClick={() => setShowRewardModal(false)}>
           <div className="reward-modal" onClick={(e) => e.stopPropagation()}>

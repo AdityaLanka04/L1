@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import warnings
+from contextlib import asynccontextmanager
 from pathlib import Path
 from datetime import datetime, timezone
 from dotenv import load_dotenv
@@ -28,51 +29,48 @@ logger = logging.getLogger(__name__)
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
 
 models.Base.metadata.create_all(bind=engine)
 
-# --- Migrate: add spaced-repetition columns to flashcards if missing ---
-_SR_COLUMNS = {
-    "ease_factor": "FLOAT DEFAULT 2.5",
-    "interval": "FLOAT DEFAULT 0",
-    "repetitions": "INTEGER DEFAULT 0",
-    "next_review_date": "DATETIME",
-    "lapses": "INTEGER DEFAULT 0",
-    "sr_state": "VARCHAR(20) DEFAULT 'new'",
-    "learning_step": "INTEGER DEFAULT 0",
-}
+if "sqlite" in DATABASE_URL:
+    _SR_COLUMNS = {
+        "ease_factor": "FLOAT DEFAULT 2.5",
+        "interval": "FLOAT DEFAULT 0",
+        "repetitions": "INTEGER DEFAULT 0",
+        "next_review_date": "DATETIME",
+        "lapses": "INTEGER DEFAULT 0",
+        "sr_state": "VARCHAR(20) DEFAULT 'new'",
+        "learning_step": "INTEGER DEFAULT 0",
+    }
+    with engine.connect() as _conn:
+        _existing = {r[1] for r in _conn.execute(text("PRAGMA table_info(flashcards)"))}
+        for _col, _typ in _SR_COLUMNS.items():
+            if _col not in _existing:
+                _conn.execute(text(f"ALTER TABLE flashcards ADD COLUMN {_col} {_typ}"))
+                logger.info("Added column flashcards.%s", _col)
+        _conn.commit()
 
-with engine.connect() as _conn:
-    _existing = {r[1] for r in _conn.execute(text("PRAGMA table_info(flashcards)"))}
-    for _col, _typ in _SR_COLUMNS.items():
-        if _col not in _existing:
-            _conn.execute(text(f"ALTER TABLE flashcards ADD COLUMN {_col} {_typ}"))
-            logger.info("Added column flashcards.%s", _col)
-    _conn.commit()
+    with engine.connect() as _conn:
+        _profile_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(comprehensive_user_profiles)"))}
+        if "notifications_enabled" not in _profile_cols:
+            _conn.execute(text("ALTER TABLE comprehensive_user_profiles ADD COLUMN notifications_enabled BOOLEAN DEFAULT 1"))
+            logger.info("Added column comprehensive_user_profiles.notifications_enabled")
+        _conn.commit()
 
-# --- Migrate: add notifications_enabled to comprehensive_user_profiles if missing ---
-with engine.connect() as _conn:
-    _profile_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(comprehensive_user_profiles)"))}
-    if "notifications_enabled" not in _profile_cols:
-        _conn.execute(text("ALTER TABLE comprehensive_user_profiles ADD COLUMN notifications_enabled BOOLEAN DEFAULT 1"))
-        logger.info("Added column comprehensive_user_profiles.notifications_enabled")
-    _conn.commit()
-
-# --- Migrate: add provenance fields to context_documents if missing ---
-with engine.connect() as _conn:
-    _ctx_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(context_documents)"))}
-    if "source_name" not in _ctx_cols:
-        _conn.execute(text("ALTER TABLE context_documents ADD COLUMN source_name VARCHAR(200)"))
-        logger.info("Added column context_documents.source_name")
-    if "license" not in _ctx_cols:
-        _conn.execute(text("ALTER TABLE context_documents ADD COLUMN license VARCHAR(80)"))
-        logger.info("Added column context_documents.license")
-    _conn.commit()
+    with engine.connect() as _conn:
+        _ctx_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(context_documents)"))}
+        if "source_name" not in _ctx_cols:
+            _conn.execute(text("ALTER TABLE context_documents ADD COLUMN source_name VARCHAR(200)"))
+            logger.info("Added column context_documents.source_name")
+        if "license" not in _ctx_cols:
+            _conn.execute(text("ALTER TABLE context_documents ADD COLUMN license VARCHAR(80)"))
+            logger.info("Added column context_documents.license")
+        _conn.commit()
 
 
 def _sync_sequences():
-    if not DATABASE_URL or "postgres" not in DATABASE_URL.lower():
+    if "postgres" not in DATABASE_URL.lower():
         return
     try:
         sequences = [
@@ -99,107 +97,9 @@ def _sync_sequences():
 
 _sync_sequences()
 
-app = FastAPI(title="Brainwave Backend API", version="4.0.0")
 
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://cerbyl.com").split(",")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_origin_regex=r"https://(l1-.*\.vercel\.app|.*cerbyl\.com)$",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-try:
-    from activity_middleware import log_request_activity
-    app.middleware("http")(log_request_activity)
-except ImportError:
-    pass
-
-from routes import (
-    auth,
-    chat,
-    notes,
-    flashcards,
-    learningpath,
-    questions,
-    media,
-    roadmaps,
-    social,
-    gamification,
-    analytics,
-    notifications,
-    reminders,
-    playlists,
-    search,
-    searchhub,
-    reviews,
-    weakness,
-    imports,
-    context as context_routes,
-)
-
-app.include_router(auth.router)
-app.include_router(chat.router)
-app.include_router(notes.router)
-app.include_router(flashcards.router)
-app.include_router(learningpath.router)
-app.include_router(questions.router)
-app.include_router(media.router)
-app.include_router(roadmaps.router)
-app.include_router(social.router)
-app.include_router(social.ws_router)
-app.include_router(gamification.router)
-app.include_router(analytics.router)
-app.include_router(notifications.router)
-app.include_router(reminders.router)
-app.include_router(playlists.router)
-app.include_router(search.router)
-app.include_router(searchhub.router)
-app.include_router(reviews.router)
-app.include_router(weakness.router)
-app.include_router(imports.router)
-app.include_router(context_routes.router)
-
-try:
-    from flashcard_api_minimal import register_flashcard_api_minimal
-    register_flashcard_api_minimal(app)
-except ImportError:
-    pass
-
-try:
-    from question_bank_enhanced import register_question_bank_api
-    from deps import unified_ai
-    from database import get_db
-    register_question_bank_api(app, unified_ai, get_db)
-except ImportError:
-    pass
-
-try:
-    from learning_progress_api import router as learning_progress_router
-    app.include_router(learning_progress_router, prefix="/api/learning-progress", tags=["learning-progress"])
-except ImportError:
-    pass
-
-
-@app.get("/api/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "message": "Brainwave API is running",
-        "version": "4.0.0",
-        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
-    }
-
-
-@app.get("/api/test/hello")
-async def test_hello():
-    return {"message": "Hello! Routes are working!", "status": "success"}
-
-
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     logger.info("Starting Brainwave API v4.0.0")
 
     if "postgres" in DATABASE_URL:
@@ -299,24 +199,118 @@ async def startup():
         if _cs.available():
             context_store.initialize(_cs._client, _cs._embed_model)
             logger.info("Context store (HS Mode) initialized")
-            # Log what's already seeded in hs_curriculum at startup
             try:
                 subjects = context_store.list_hs_subjects()
                 if subjects:
                     logger.info(
-                        f"[HS CURRICULUM] {len(subjects)} subject(s) seeded: "
-                        + ", ".join(f"{s['subject']} ({s['doc_count']} doc(s), grade {s['grade_level']})" for s in subjects)
+                        f"HS curriculum: {len(subjects)} subject(s) seeded: "
+                        + ", ".join(f"{s['subject']} ({s['doc_count']} docs, grade {s['grade_level']})" for s in subjects)
                     )
                 else:
-                    logger.info("[HS CURRICULUM] hs_curriculum collection is empty — seed with seed_hs_curriculum.py")
+                    logger.info("HS curriculum collection is empty")
             except Exception as se:
-                logger.warning(f"hs_curriculum subject listing failed: {se}")
+                logger.warning(f"HS curriculum listing failed: {se}")
         else:
             logger.warning("Context store skipped — ChromaDB unavailable")
     except Exception as e:
         logger.warning(f"Context store init failed: {e}")
 
     logger.info("Startup complete")
+    yield
+
+
+app = FastAPI(title="Brainwave Backend API", version="4.0.0", lifespan=lifespan)
+
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://cerbyl.com").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://(l1-.*\.vercel\.app|.*cerbyl\.com)$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+try:
+    from activity_middleware import log_request_activity
+    app.middleware("http")(log_request_activity)
+except ImportError:
+    pass
+
+from routes import (
+    auth,
+    chat,
+    notes,
+    flashcards,
+    learningpath,
+    questions,
+    media,
+    roadmaps,
+    social,
+    gamification,
+    analytics,
+    notifications,
+    reminders,
+    playlists,
+    search,
+    searchhub,
+    reviews,
+    weakness,
+    imports,
+    context as context_routes,
+)
+
+app.include_router(auth.router)
+app.include_router(chat.router)
+app.include_router(notes.router)
+app.include_router(flashcards.router)
+app.include_router(learningpath.router)
+app.include_router(questions.router)
+app.include_router(media.router)
+app.include_router(roadmaps.router)
+app.include_router(social.router)
+app.include_router(social.ws_router)
+app.include_router(gamification.router)
+app.include_router(analytics.router)
+app.include_router(notifications.router)
+app.include_router(reminders.router)
+app.include_router(playlists.router)
+app.include_router(search.router)
+app.include_router(searchhub.router)
+app.include_router(reviews.router)
+app.include_router(weakness.router)
+app.include_router(imports.router)
+app.include_router(context_routes.router)
+
+try:
+    from flashcard_api_minimal import register_flashcard_api_minimal
+    register_flashcard_api_minimal(app)
+except ImportError:
+    pass
+
+try:
+    from question_bank_enhanced import register_question_bank_api
+    from deps import unified_ai
+    from database import get_db
+    register_question_bank_api(app, unified_ai, get_db)
+except ImportError:
+    pass
+
+try:
+    from learning_progress_api import router as learning_progress_router
+    app.include_router(learning_progress_router, prefix="/api/learning-progress", tags=["learning-progress"])
+except ImportError:
+    pass
+
+
+@app.get("/api/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "message": "Brainwave API is running",
+        "version": "4.0.0",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+    }
 
 
 build_dir = Path(__file__).parent.parent / "build"
@@ -341,16 +335,10 @@ else:
 
 if __name__ == "__main__":
     import uvicorn
-    
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
-    reload = os.getenv("RELOAD", "false").lower() == "true"
-    
-    logger.info(f"Starting uvicorn server on {host}:{port}")
     uvicorn.run(
         "main:app",
-        host=host,
-        port=port,
-        reload=reload,
-        log_level="info"
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", "8000")),
+        reload=os.getenv("RELOAD", "false").lower() == "true",
+        log_level="info",
     )

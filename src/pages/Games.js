@@ -67,12 +67,12 @@ const Games = () => {
     if (username) {
       loadAllData(username);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [navigate]);
 
   const loadAllData = async (username) => {
     try {
-      // Load all data
+      
       await Promise.all([
         loadGamificationStats(username),
         loadBingoStats(username),
@@ -86,7 +86,7 @@ const Games = () => {
     }
   };
   
-  // Backend now calculates points correctly - no need to recalculate on frontend
+  
 
   const loadGamificationStats = async (username) => {
     try {
@@ -99,7 +99,7 @@ const Games = () => {
         const data = await response.json();
         setGamificationStats(data);
         
-        // Use xp_to_next_level from backend if available, otherwise calculate
+        
         if (data.xp_to_next_level !== undefined) {
           setPointsToNextLevel(data.xp_to_next_level);
         } else {
@@ -121,7 +121,7 @@ const Games = () => {
       if (response.ok) {
         const data = await response.json();
                         
-        // Make sure we have the stats object
+        
         if (data.stats) {
           setBingoStats(data.stats);
                   } else {
@@ -175,7 +175,7 @@ const Games = () => {
         setDailyChallengeProgress(data.progress || 0);
       }
     } catch (error) {
-            // Generate a fallback challenge if backend doesn't support it yet
+            
       generateFallbackChallenge();
     }
   };
@@ -201,7 +201,7 @@ const Games = () => {
   };
 
   const calculateExpForLevel = (level) => {
-    // New level thresholds: 0, 100, 282, 500, 800, 1200, 1700, 2300, 3000...
+    
     const thresholds = [0, 100, 282, 500, 800, 1200, 1700, 2300, 3000];
     if (level < thresholds.length) {
       return thresholds[level];
@@ -211,9 +211,9 @@ const Games = () => {
   };
 
   const isTaskCompleted = (task) => {
-    // Use weeklyProgress instead of bingoStats for accurate data
+    
     const statValue = weeklyProgress[task.stat] || 0;
-    // Special handling for study_hours
+    
     if (task.stat === 'study_hours') {
       const hours = Math.floor(weeklyProgress.study_minutes / 60);
       return hours >= task.target;
@@ -222,9 +222,9 @@ const Games = () => {
   };
 
   const getProgress = (task) => {
-    // Use weeklyProgress instead of bingoStats for accurate data
+    
     let statValue = weeklyProgress[task.stat] || 0;
-    // Special handling for study_hours
+    
     if (task.stat === 'study_hours') {
       statValue = Math.floor(weeklyProgress.study_minutes / 60);
     }
@@ -416,7 +416,7 @@ const Games = () => {
               {bingoTasks.map((task) => {
                 const completed = isTaskCompleted(task);
                 const progress = getProgress(task);
-                // Use weeklyProgress for accurate stat values
+                
                 let statValue = weeklyProgress[task.stat] || 0;
                 if (task.stat === 'study_hours') {
                   statValue = Math.floor(weeklyProgress.study_minutes / 60);

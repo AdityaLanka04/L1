@@ -8,7 +8,7 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFriends, setSelectedFriends] = useState([]);
   const [shareMessage, setShareMessage] = useState('');
-  const [permission, setPermission] = useState('view'); // 'view' or 'edit'
+  const [permission, setPermission] = useState('view'); 
   const [loading, setLoading] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
@@ -136,7 +136,6 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
         ) : (
           <>
             <div className="share-modal-body">
-              {/* Permission Selection */}
               <div className="share-section">
                 <h3 className="share-section-title">Access Permission</h3>
                 <div className="permission-options">
@@ -163,7 +162,6 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
                 </div>
               </div>
 
-              {/* Friend Selection */}
               <div className="share-section">
                 <h3 className="share-section-title">Share with Friends</h3>
                 
@@ -224,7 +222,6 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
                 )}
               </div>
 
-              {/* Optional Message */}
               <div className="share-section">
                 <h3 className="share-section-title">Add a Message (Optional)</h3>
                 <textarea
@@ -236,7 +233,6 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
                 />
               </div>
 
-              {/* Share Link */}
               <div className="share-section">
                 <h3 className="share-section-title">Or Share via Link</h3>
                 <div className="share-link-container">

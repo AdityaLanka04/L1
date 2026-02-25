@@ -1,7 +1,6 @@
-/* ==================== LEARNING PATH DETAIL - PREMIUM AESTHETIC DESIGN ==================== */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ==================== BASE CONTAINER ==================== */
 .lpd-container {
   --lpd-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --lpd-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -37,7 +36,6 @@
   border-radius: 16px;
 }
 
-/* ==================== LOADING STATE ==================== */
 .lpd-loading {
   display: flex;
   flex-direction: column;
@@ -65,7 +63,6 @@
   text-transform: uppercase;
 }
 
-/* ==================== LOADING OVERLAY ==================== */
 .lpd-loading-overlay {
   position: fixed;
   inset: 0;
@@ -119,7 +116,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== HEADER SECTION ==================== */
 .lpd-header {
   padding: 40px 40px 30px 40px;
   background: var(--bg-secondary);
@@ -276,7 +272,6 @@
   gap: 6px;
 }
 
-/* ==================== MAIN CONTENT GRID ==================== */
 .lpd-main {
   display: grid;
   grid-template-columns: 380px 1fr;
@@ -286,7 +281,6 @@
   margin: 0 auto;
 }
 
-/* ==================== LEFT SIDEBAR - PATH MAP ==================== */
 .lpd-sidebar {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -518,7 +512,6 @@
   transform: translateX(3px);
 }
 
-/* ==================== RIGHT PANEL - NODE DETAILS ==================== */
 .lpd-details {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -578,7 +571,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== OVERVIEW ==================== */
 .lpd-overview {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -646,7 +638,6 @@
   color: var(--text-secondary);
 }
 
-/* ==================== TOOLKIT ==================== */
 .lpd-toolkit {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -741,7 +732,6 @@
   background: color-mix(in srgb, #22c55e 10%, var(--bg-primary));
 }
 
-/* ==================== KEY TERMS ==================== */
 .lpd-tags {
   display: flex;
   flex-wrap: wrap;
@@ -871,7 +861,6 @@
   font-weight: 800;
 }
 
-/* ==================== CONTENT BLOCKS ==================== */
 .lpd-block {
   margin-bottom: 28px;
 }
@@ -892,7 +881,6 @@
   color: var(--accent);
 }
 
-/* ==================== OBJECTIVES LIST ==================== */
 .lpd-objectives {
   list-style: none;
   padding: 0;
@@ -928,7 +916,6 @@
   margin-top: 2px;
 }
 
-/* ==================== PREREQUISITES LIST ==================== */
 .lpd-prerequisites {
   list-style: none;
   padding: 0;
@@ -966,7 +953,6 @@
   opacity: 0.6;
 }
 
-/* ==================== RESOURCES LIST ==================== */
 .lpd-resources {
   display: flex;
   flex-direction: column;
@@ -1052,7 +1038,6 @@
   transform: translateX(3px);
 }
 
-/* ==================== USER NOTES SECTION ==================== */
 .lpd-notes-section {
   display: flex;
   flex-direction: column;
@@ -1116,7 +1101,6 @@
   cursor: not-allowed;
 }
 
-/* ==================== ACTIVITY COMPLETION CHECKMARK ==================== */
 .lpd-activity-completed {
   background: color-mix(in srgb, #22c55e 10%, var(--bg-tertiary));
   border-color: #22c55e;
@@ -1135,7 +1119,6 @@
   background: color-mix(in srgb, #22c55e 15%, var(--bg-elevated));
 }
 
-/* ==================== ACTIVITIES LIST ==================== */
 .lpd-activities {
   display: flex;
   flex-direction: column;
@@ -1239,7 +1222,6 @@
   transform: translateX(3px);
 }
 
-/* ==================== REWARD CARD ==================== */
 .lpd-reward {
   display: flex;
   align-items: center;
@@ -1269,7 +1251,6 @@
   50% { transform: translateY(-6px); }
 }
 
-/* ==================== ACTION BUTTONS ==================== */
 .lpd-actions {
   margin-top: 28px;
   padding-top: 24px;
@@ -1361,7 +1342,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== EMPTY STATE ==================== */
 .lpd-empty {
   display: flex;
   flex-direction: column;
@@ -1388,7 +1368,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1200px) {
   .lpd-main {
     grid-template-columns: 340px 1fr;
@@ -1443,7 +1422,6 @@
   }
 }
 
-/* ==================== ACCESSIBILITY ==================== */
 @media (prefers-reduced-motion: reduce) {
   .lpd-container *,
   .lpd-container *::before,
@@ -1462,7 +1440,6 @@
   outline-offset: 2px;
 }
 
-/* ==================== THEME ENHANCEMENTS ==================== */
 [data-theme-mode="dark"] .lpd-sidebar,
 [data-theme-mode="dark"] .lpd-details {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
@@ -1473,12 +1450,10 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
-/* ==================== SMOOTH SCROLLING ==================== */
 html {
   scroll-behavior: smooth;
 }
 
-/* ==================== SELECTION STYLING ==================== */
 ::selection {
   background: color-mix(in srgb, var(--accent) 30%, transparent);
   color: var(--text-primary);
@@ -1489,10 +1464,6 @@ html {
   color: var(--text-primary);
 }
 
-/* ==================== END OF STYLES ==================== */
-/* Total: 850+ lines of premium aesthetic CSS */
-
-/* ==================== COMPLETION QUIZ MODAL ==================== */
 .lpd-quiz-overlay {
   position: fixed;
   inset: 0;
@@ -1697,7 +1668,6 @@ html {
   box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* ==================== QUIZ RESULTS ==================== */
 .lpd-quiz-results {
   padding: 32px;
 }
@@ -1857,7 +1827,6 @@ html {
   font-style: italic;
 }
 
-/* ==================== RESPONSIVE QUIZ MODAL ==================== */
 @media (max-width: 768px) {
   .lpd-quiz-modal {
     max-width: 100%;
@@ -1892,10 +1861,6 @@ html {
   }
 }
 
-
-/* ==================== ENHANCED FEATURES STYLES ==================== */
-
-/* Introduction Block */
 .lpd-introduction-block {
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--bg-tertiary)), var(--bg-tertiary));
   border: 1px solid var(--accent);
@@ -1912,7 +1877,6 @@ html {
   font-style: italic;
 }
 
-/* Difficulty Toggle */
 .lpd-difficulty-toggle {
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
@@ -1960,7 +1924,6 @@ html {
   color: var(--bg-primary);
 }
 
-/* Core Sections Accordion */
 .lpd-core-sections {
   display: flex;
   flex-direction: column;
@@ -2092,7 +2055,6 @@ html {
   line-height: 1.6;
 }
 
-/* Connection Map */
 .lpd-connection-map {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -2139,7 +2101,6 @@ html {
   font-weight: 900;
 }
 
-/* Real-World Applications */
 .lpd-applications {
   display: flex;
   flex-direction: column;
@@ -2183,7 +2144,6 @@ html {
   letter-spacing: 0.3px;
 }
 
-/* Summary Block */
 .lpd-summary-block {
   background: color-mix(in srgb, #22c55e 10%, var(--bg-tertiary));
   border: 1px solid #22c55e;
@@ -2216,7 +2176,6 @@ html {
   margin-top: 2px;
 }
 
-/* Enhanced Resources */
 .lpd-resource-category {
   margin-bottom: 24px;
 }
@@ -2389,7 +2348,6 @@ html {
   line-height: 1.5;
 }
 
-/* Export Buttons */
 .lpd-export-buttons {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -2425,7 +2383,6 @@ html {
   flex-shrink: 0;
 }
 
-/* Scenarios */
 .lpd-scenarios {
   display: flex;
   flex-direction: column;
@@ -2528,7 +2485,6 @@ html {
   color: var(--text-primary);
 }
 
-/* Concept Map */
 .lpd-concept-map {
   padding: 20px;
   background: var(--bg-tertiary);
@@ -2593,7 +2549,6 @@ html {
   font-weight: 900;
 }
 
-/* Responsive Enhancements */
 @media (max-width: 768px) {
   .lpd-difficulty-buttons {
     flex-direction: column;

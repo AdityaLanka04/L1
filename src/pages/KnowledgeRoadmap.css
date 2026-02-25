@@ -1,9 +1,7 @@
-/* ==================== KNOWLEDGE ROADMAP - COMPLETE REDESIGN ==================== */
-/* Matching Dashboard & Playlist aesthetic with proper card-based node design */
+
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ==================== BASE RESET ==================== */
 .kr-page,
 .kr-page *,
 .kr-page *::before,
@@ -13,7 +11,6 @@
   box-sizing: border-box;
 }
 
-/* ==================== PAGE LAYOUT ==================== */
 .kr-page {
   position: fixed !important;
   top: 0 !important;
@@ -33,7 +30,6 @@
   flex-direction: column;
 }
 
-/* ==================== UNIFIED HEADER - ALL BUTTONS IN ONE PLACE ==================== */
 .kr-header {
   height: 70px;
   min-height: 70px;
@@ -51,7 +47,6 @@
   z-index: 100;
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .kr-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -136,7 +131,6 @@
   flex-wrap: wrap;
 }
 
-/* All header buttons - unified styling */
 .kr-nav-btn,
 .kr-create-btn,
 .kr-back-to-list-compact,
@@ -219,7 +213,6 @@
   cursor: not-allowed;
 }
 
-/* ==================== CONTENT AREA ==================== */
 .kr-content {
   flex: 1;
   overflow-y: auto;
@@ -262,7 +255,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== MAIN CONTENT ==================== */
 .kr-main {
   width: 100%;
   max-width: 1400px;
@@ -273,7 +265,6 @@
   justify-content: flex-start;
 }
 
-/* ==================== LOADING & EMPTY STATES ==================== */
 .kr-loading,
 .kr-empty {
   display: flex;
@@ -320,7 +311,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== ROADMAPS GRID ==================== */
 .kr-grid {
   width: 100%;
   display: grid;
@@ -328,7 +318,6 @@
   gap: 24px;
 }
 
-/* ==================== ROADMAP CARDS - BENTO STYLE ==================== */
 .kr-card {
   background: var(--bg-secondary);
   border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
@@ -467,7 +456,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== VIEWER LAYOUT - NO SECOND HEADER ==================== */
 .kr-viewer-fullscreen {
   flex: 1;
   display: flex;
@@ -477,7 +465,6 @@
   height: 100%;
 }
 
-/* Remove the second header completely */
 .kr-viewer-header-compact {
   display: none !important;
 }
@@ -489,7 +476,6 @@
   display: none !important;
 }
 
-/* ==================== FLOW CONTAINER - CLEAN BACKGROUND ==================== */
 .kr-flow-wrapper {
   flex: 1;
   display: flex;
@@ -507,7 +493,6 @@
   position: relative;
 }
 
-/* ==================== CUSTOM NODES - PLAYLIST CARD STYLE ==================== */
 .custom-kr-node {
   background: var(--bg-secondary);
   border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
@@ -563,7 +548,6 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* Node Header */
 .kr-node-content-flow {
   display: flex;
   gap: 6px;
@@ -621,7 +605,6 @@
   overflow: hidden;
 }
 
-/* Node Badges */
 .kr-explored-badge-flow {
   display: inline-flex;
   align-items: center;
@@ -665,7 +648,6 @@
   height: 6px;
 }
 
-/* Node Actions */
 .kr-node-actions-flow {
   display: flex;
   gap: 2px;
@@ -754,7 +736,6 @@
   box-shadow: 0 2px 8px color-mix(in srgb, var(--info) 40%, transparent);
 }
 
-/* ==================== REACT FLOW CONTROLS - MODERN DESIGN ==================== */
 .react-flow {
   background: var(--bg-primary);
 }
@@ -791,7 +772,6 @@
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* Modern Control Panel - ICON ONLY WITH ACCENT FILL */
 .react-flow__controls {
   bottom: 24px;
   left: 24px;
@@ -836,7 +816,6 @@
   stroke: var(--accent) !important;
 }
 
-/* Modern Minimap - HIDDEN FOR CLEANER LOOK */
 .react-flow__minimap {
   display: none !important;
 }
@@ -845,14 +824,12 @@
   background: var(--bg-primary);
 }
 
-/* Hide React Flow attribution */
 .react-flow__attribution {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
 }
 
-/* ==================== EXPLANATION SIDEBAR ==================== */
 .kr-explanation-sidebar {
   width: 420px;
   max-width: 420px;
@@ -955,7 +932,6 @@
   margin-bottom: 8px;
 }
 
-/* ==================== MANUAL NOTES SECTION ==================== */
 .kr-manual-notes-section {
   margin-top: 24px;
   padding: 16px;
@@ -1047,7 +1023,6 @@
   opacity: 0.7;
 }
 
-/* ==================== CHAT SECTION ==================== */
 .kr-chat-section {
   margin-top: 24px;
   padding: 16px;
@@ -1214,7 +1189,6 @@
   cursor: not-allowed;
 }
 
-/* ==================== MODALS ==================== */
 .kr-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1418,7 +1392,6 @@
   cursor: not-allowed;
 }
 
-/* ==================== EXPORT SUCCESS MODAL ==================== */
 .kr-export-modal {
   max-width: 500px;
   text-align: center;
@@ -1502,7 +1475,6 @@
   box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-/* ==================== SCROLLBAR STYLING ==================== */
 .kr-content::-webkit-scrollbar,
 .kr-explanation-scrollable::-webkit-scrollbar,
 .kr-chat-messages::-webkit-scrollbar,
@@ -1532,7 +1504,6 @@
   background: color-mix(in srgb, var(--accent) 85%, black);
 }
 
-/* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1400px) {
   .kr-explanation-sidebar {
     width: 360px;
@@ -1620,7 +1591,6 @@
   }
 }
 
-/* ==================== ANIMATIONS ==================== */
 @keyframes kr-pulse {
   0%, 100% {
     opacity: 1;
@@ -1639,7 +1609,6 @@
   }
 }
 
-/* ==================== UTILITY CLASSES ==================== */
 .kr-hidden {
   display: none !important;
 }
@@ -1678,7 +1647,6 @@
   color: var(--info) !important;
 }
 
-/* ==================== PRINT STYLES ==================== */
 @media print {
   .kr-header,
   .react-flow__controls,
@@ -1695,7 +1663,6 @@
   }
 }
 
-/* ==================== ACCESSIBILITY ==================== */
 .kr-nav-btn:focus,
 .kr-create-btn:focus,
 .kr-node-btn-flow:focus,
@@ -1705,7 +1672,6 @@
   outline-offset: 2px;
 }
 
-/* ==================== DARK MODE ENHANCEMENTS ==================== */
 [data-theme-mode="dark"] .custom-kr-node {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
@@ -1722,7 +1688,6 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-/* ==================== LIGHT MODE ENHANCEMENTS ==================== */
 [data-theme-mode="light"] .custom-kr-node {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
@@ -1739,8 +1704,6 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

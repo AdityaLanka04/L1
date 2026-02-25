@@ -46,7 +46,7 @@ const SearchHub = () => {
   const [relatedSearches, setRelatedSearches] = useState([]);
   
   const [showAutocomplete, setShowAutocomplete] = useState(false);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);  // Track if user clicked on search
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);  
   const [autocompleteResults, setAutocompleteResults] = useState([]);
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(-1);
   const autocompleteDebounceRef = useRef(null);
@@ -57,18 +57,18 @@ const SearchHub = () => {
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
   const [userDocCount, setUserDocCount] = useState(0);
 
-  // NLP-powered session ID for context tracking
-  const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);  useEffect(() => {
+  
+  const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+
+  useEffect(() => {
     const username = localStorage.getItem('username');
     const token = localStorage.getItem('token');
 
-    // Only consider logged in if BOTH username AND token exist
     if (username && token) {
       setUserName(username);
       loadRecentSearches(username);
       loadPersonalizedPrompts(username);
     } else {
-      // Not logged in - clear any stale data and show default recommendations
       setUserName('');
       const defaultPrompts = [
         { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
@@ -116,7 +116,7 @@ const SearchHub = () => {
   }, []);
 
   useEffect(() => {
-    // Close autocomplete when clicking outside
+    
     const handleClickOutside = (e) => {
       const searchWrapper = searchInputRef.current?.closest('.search-box-wrapper');
       if (searchWrapper && !searchWrapper.contains(e.target)) {
@@ -133,7 +133,7 @@ const SearchHub = () => {
   }, [showAutocomplete, showSuggestions]);
 
   useEffect(() => {
-    // Auto-hide scrollbar when not scrolling
+    
     let scrollTimeout;
     const pageElement = document.querySelector('.search-hub-page');
     
@@ -144,7 +144,7 @@ const SearchHub = () => {
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => {
           pageElement.classList.remove('is-scrolling');
-        }, 1000); // Hide scrollbar 1 second after scrolling stops
+        }, 1000); 
       }
     };
 
@@ -183,18 +183,18 @@ const SearchHub = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Helper function to extract clean topic name
+        
         const extractTopicName = (text) => {
           if (!text) return null;
           
-          // Remove common action words and clean up
+          
           let cleaned = text
             .toLowerCase()
             .replace(/^(explain|create|make|generate|write|what is|tell me about|learn about|study|understand|quiz on|notes on|flashcards on|about|a quiz on|a note on)\s+/gi, '')
             .replace(/\s+(flashcards?|notes?|quiz|quizzes|roadmap|export|step-by-step)$/gi, '')
             .trim();
 
-          // Handle command-style prompts: "/flashcards topic"
+          
           if (cleaned.startsWith('/')) {
             const parts = cleaned.replace(/^\/+/, '').split(/\s+/);
             if (parts.length >= 2) {
@@ -204,22 +204,22 @@ const SearchHub = () => {
             }
           }
           
-          // Extract topic after "on" or "about"
+          
           const onMatch = cleaned.match(/(?:on|about)\s+(.+)/i);
           if (onMatch && onMatch[1]) {
             cleaned = onMatch[1].trim();
           }
           
-          // Take first 2-4 meaningful words for compound topics
+          
           const words = cleaned.split(/\s+/).filter(w => w.length > 2);
           if (words.length === 0) return null;
           
-          // Return up to 4 words for compound topics, capitalize properly
+          
           const topicWords = words.slice(0, 4);
           return topicWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         };
         
-        // Process backend prompts
+        
         const backendPrompts = (data.prompts || []).map(prompt => ({
           text: typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || ''),
           reason: typeof prompt.reason === 'string' ? prompt.reason : (prompt.reason?.label || 'Based on your activity'),
@@ -227,17 +227,17 @@ const SearchHub = () => {
           topic: extractTopicName(typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || ''))
         })).filter(p => p.text);
         
-        // Build smart recommendations
+        
         const recommendations = [];
         
-        // Always include: AI Chat
+        
         recommendations.push({ 
           text: '/chat', 
           reason: 'AI tutor ready to help', 
           priority: 'high' 
         });
         
-        // Get weak areas first (highest priority)
+        
         const weakAreaPrompts = backendPrompts.filter(p => 
           p.text.toLowerCase().includes('weak') || 
           p.reason.toLowerCase().includes('weak')
@@ -251,14 +251,14 @@ const SearchHub = () => {
           });
         }
         
-        // Get topic-based prompts (from flashcards, notes, chats)
+        
         const topicPrompts = backendPrompts.filter(p => 
           p.topic && 
           !p.text.toLowerCase().includes('weak') &&
           !p.text.toLowerCase().includes('review weak')
         );
         
-        // Add 2-3 diverse topic prompts
+        
         const addedTopics = new Set();
         for (const prompt of topicPrompts) {
           if (recommendations.length >= 6) break;
@@ -274,7 +274,7 @@ const SearchHub = () => {
           }
         }
         
-        // Add review prompt if available
+        
         const reviewPrompt = backendPrompts.find(p => 
           p.text.toLowerCase().includes('review') && 
           !p.text.toLowerCase().includes('weak')
@@ -287,7 +287,7 @@ const SearchHub = () => {
           });
         }
         
-        // Fill remaining slots with generic prompts if needed
+        
         const genericPrompts = [
           { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
           { text: '/flashcards biology', reason: 'Build study materials', priority: 'medium' },
@@ -298,7 +298,7 @@ const SearchHub = () => {
         for (const generic of genericPrompts) {
           if (recommendations.length >= 8) break;
           
-          // Only add if not already present
+          
           const alreadyExists = recommendations.some(r => 
             r.text.toLowerCase() === generic.text.toLowerCase()
           );
@@ -310,7 +310,7 @@ const SearchHub = () => {
         
         setPersonalizedPrompts(recommendations.slice(0, 8));
       } else {
-        // Fallback to generic prompts
+        
         setPersonalizedPrompts([
           { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
           { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
@@ -322,7 +322,7 @@ const SearchHub = () => {
       }
     } catch (error) {
       console.error('Error loading prompts:', error);
-      // Fallback to generic prompts
+      
       setPersonalizedPrompts([
         { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
         { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
@@ -573,13 +573,13 @@ const SearchHub = () => {
     setShowAutocomplete(false);
     saveRecentSearch(finalQuery);
 
-    // Scroll down to show results
+    
     window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
 
     try {
       const token = localStorage.getItem('token');
       
-      // Use the new SearchHub Agent - one endpoint does it all!
+      
       const response = await fetch(`${API_URL}/agents/searchhub`, {
         method: 'POST',
         headers: { 
@@ -589,7 +589,7 @@ const SearchHub = () => {
         body: JSON.stringify({
           user_id: userName || 'guest',
           query: finalQuery,
-          session_id: sessionId // Use persistent session ID for context tracking
+          session_id: sessionId 
         })
       });
       
@@ -600,7 +600,7 @@ const SearchHub = () => {
         console.log('search_results:', data.search_results);
         console.log('ai_response:', data.ai_response);
         
-        // Log NLP understanding details
+        
         if (data.metadata) {
           console.log('NLP Understanding:', {
             action: data.metadata.action,
@@ -613,25 +613,25 @@ const SearchHub = () => {
           });
         }
         
-        // Handle navigation actions (content was created or action requires navigation)
+        
         if (data.navigate_to) {
           setIsCreating(true);
           
-          // Show chatbot-like message based on confidence
+          
           const confidenceLevel = data.metadata?.confidence || 0;
           let message = data.metadata?.chatbot_message || data.message || 'Processing...';
           
-          // Add confidence indicator for low confidence
+          
           if (confidenceLevel < 0.6 && confidenceLevel > 0) {
             message = `I think you want to: ${message}`;
           }
           setCreatingMessage(message);
           
-          // Short delay to show the message, then navigate
+          
           setTimeout(() => {
             setIsCreating(false);
             
-            // Navigate with any params
+            
             if (data.navigate_params && Object.keys(data.navigate_params).length > 0) {
               navigate(data.navigate_to, { state: data.navigate_params });
             } else {
@@ -641,7 +641,7 @@ const SearchHub = () => {
           return;
         }
         
-        // Handle greeting/help responses (no navigation, just show response)
+        
         if (data.metadata?.response_type === 'chat' || data.metadata?.action === 'greeting' || data.metadata?.action === 'show_help') {
           setAiSuggestion({
             description: data.ai_response || data.message,
@@ -662,7 +662,7 @@ const SearchHub = () => {
           return;
         }
         
-        // Handle search results
+        
         if (data.search_results && data.search_results.length > 0) {
           setSearchResults({
             results: data.search_results,
@@ -677,7 +677,7 @@ const SearchHub = () => {
             nlp_metadata: data.metadata
           } : null);
         }
-        // Handle AI exploration (no search results but has explanation)
+        
         else if (data.ai_response) {
           setAiSuggestion({
             description: data.ai_response,
@@ -694,30 +694,30 @@ const SearchHub = () => {
             nlp_confidence: data.metadata?.confidence
           });
         }
-        // Fallback
+        
         else {
           await getAiDescription(finalQuery);
         }
       } else {
-        // Fallback to old method if agent fails
+        
         console.warn('SearchHub agent failed, falling back to legacy search');
         await legacySearch(finalQuery);
       }
     } catch (error) {
       console.error('Search error:', error);
-      // Fallback to AI description on error
+      
       await getAiDescription(finalQuery);
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Legacy search fallback
+  
   const legacySearch = async (finalQuery) => {
     try {
       const token = localStorage.getItem('token');
       
-      // First, detect intent using AI
+      
       const intentFormData = new FormData();
       intentFormData.append('user_id', userName || 'guest');
       intentFormData.append('query', finalQuery);
@@ -731,14 +731,14 @@ const SearchHub = () => {
       if (intentResponse.ok) {
         const intentData = await intentResponse.json();
         
-        // Execute action based on intent
+        
         if (intentData.intent === 'action') {
           await executeAction(intentData);
           return;
         }
       }
       
-      // If no action intent, perform regular search
+      
       const formData = new FormData();
       formData.append('user_id', userName || 'guest');
       formData.append('query', finalQuery);
@@ -776,7 +776,7 @@ const SearchHub = () => {
     try {
                   const token = localStorage.getItem('token');
       
-      // Try to get AI-generated description from backend
+      
       const formData = new FormData();
       formData.append('user_id', userName || 'guest');
       formData.append('topic', topic);
@@ -802,7 +802,7 @@ const SearchHub = () => {
           ]
         });
         
-        // Set empty results but keep the query
+        
         setSearchResults({
           results: [],
           total_results: 0,
@@ -812,7 +812,7 @@ const SearchHub = () => {
       } else {
                 const errorText = await response.text();
                 
-        // Fallback: Show helpful message
+        
         setAiSuggestion({
           description: `I couldn't find any existing study materials about "${topic}". Let's create some! I can help you generate flashcards, notes, or start a learning session.`,
           suggestions: [
@@ -831,7 +831,7 @@ const SearchHub = () => {
         });
       }
     } catch (error) {
-            // Fallback AI suggestion
+            
       setAiSuggestion({
         description: `I couldn't find any existing study materials about "${topic}". Would you like to create some? I can help you generate flashcards, notes, or start a learning session.`,
         suggestions: [
@@ -853,7 +853,7 @@ const SearchHub = () => {
   const executeAction = async (intentData) => {
     const { action, parameters } = intentData;
     
-    // Check if user is logged in for creation actions
+    
     if (!userName && ['create_note', 'create_flashcards', 'create_questions', 'create_quiz', 'create_learning_path'].includes(action)) {
       setShowLoginModal(true);
       setIsSearching(false);
@@ -868,7 +868,7 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Creating comprehensive note on ${parameters.topic || 'your topic'}...`);
           
-          // Use SearchHub agent to create note with full content
+          
           const noteResponse = await fetch(`${API_URL}/agents/searchhub/create-note`, {
             method: 'POST',
             headers: { 
@@ -904,7 +904,7 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Creating ${parameters.count || 10} flashcards on ${parameters.topic}...`);
           
-          // Use SearchHub agent to create flashcards with full content
+          
           const fcResponse = await fetch(`${API_URL}/agents/searchhub/create-flashcards`, {
             method: 'POST',
             headers: {
@@ -953,7 +953,7 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Creating ${parameters.count || 10} questions on ${parameters.topic}...`);
           
-          // Use SearchHub agent to create questions with full content
+          
           const qResponse = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
             method: 'POST',
             headers: { 
@@ -990,7 +990,7 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Creating quiz on ${parameters.topic}...`);
           
-          // Create questions first, then navigate to quiz
+          
           const quizResponse = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
             method: 'POST',
             headers: { 
@@ -1056,7 +1056,7 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Generating learning path for ${parameters.topic}...`);
           
-          // Navigate to learning paths with auto-generation
+          
           setTimeout(() => {
             setIsCreating(false);
             navigate('/learning-paths', { 
@@ -1075,7 +1075,7 @@ const SearchHub = () => {
           break;
           
         default:
-          // Fall back to regular search
+          
           setIsSearching(false);
           break;
       }
@@ -1087,7 +1087,7 @@ const SearchHub = () => {
   };
 
   const handleAutocomplete = async (query) => {
-    // If empty query, show personalized recommendations
+    
     if (!query || query.trim() === '') {
       showPersonalizedRecommendations();
       return;
@@ -1116,7 +1116,7 @@ const SearchHub = () => {
       try {
         const token = localStorage.getItem('token');
         
-        // Use the new NLP-powered suggestions endpoint
+        
         const response = await fetch(`${API_URL}/agents/searchhub/suggestions?query=${encodeURIComponent(query)}&user_id=${encodeURIComponent(userName || 'guest')}`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -1125,7 +1125,7 @@ const SearchHub = () => {
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.suggestions && data.suggestions.length > 0) {
-            // Format NLP suggestions with smart categorization
+            
             const formattedSuggestions = data.suggestions.map(suggestion => {
               const suggestionLower = suggestion.toLowerCase();
               let type = 'nlp_suggestion';
@@ -1135,7 +1135,7 @@ const SearchHub = () => {
                 type = 'command';
                 category = 'Command';
               }
-              // Intelligent categorization based on intent
+              
               else if (suggestionLower.includes('learning path') || suggestionLower.includes('roadmap') || suggestionLower.includes('step by step') || 
                   (suggestionLower.includes('path') && (suggestionLower.includes('create') || suggestionLower.includes('make') || suggestionLower.includes('generate'))) ||
                   suggestionLower.includes('study plan')) {
@@ -1190,7 +1190,7 @@ const SearchHub = () => {
           }
         }
         
-        // Fallback: Generate smart suggestions based on query
+        
         const smartSuggestions = generateSmartSuggestions(query);
         if (smartSuggestions.length > 0) {
           setAutocompleteResults(smartSuggestions);
@@ -1198,7 +1198,7 @@ const SearchHub = () => {
           return;
         }
         
-        // Final fallback: Show filtered recent searches and prompts
+        
         const queryLower = query.toLowerCase();
         const filteredRecent = recentSearches
           .filter(search => search.toLowerCase().includes(queryLower))
@@ -1234,15 +1234,15 @@ const SearchHub = () => {
     const queryLower = query.toLowerCase();
     const suggestions = [];
     
-    // Action-based suggestions
+    
     if (queryLower.includes('create') || queryLower.includes('make') || queryLower.includes('generate')) {
-      // Extract topic - handle "path", "roadmap", "learning path" variations
+      
       let topic = queryLower
         .replace(/^(create|make|generate)\s+(a\s+)?(learning\s+)?(path|roadmap|study\s+plan)\s+(on|for|about)\s+/i, '')
         .replace(/^(create|make|generate)\s+(a\s+)?/i, '')
         .trim();
       
-      // If topic contains "path" or "roadmap", extract the actual topic
+      
       const pathMatch = topic.match(/(?:path|roadmap|study\s+plan)\s+(?:on|for|about)\s+(.+)/i);
       if (pathMatch) {
         topic = pathMatch[1].trim();
@@ -1279,10 +1279,10 @@ const SearchHub = () => {
         { text: '/achievements', type: 'show_achievements', category: 'Progress', source: 'smart' }
       );
     } else {
-      // Topic-based suggestions - also handle "path on X" patterns
+      
       let topic = query.trim();
       
-      // Check if query is like "path on machine learning" or "roadmap for python"
+      
       const pathPatternMatch = topic.match(/^(path|roadmap|study\s+plan)\s+(on|for|about)\s+(.+)/i);
       if (pathPatternMatch) {
         const actualTopic = pathPatternMatch[3].trim();
@@ -1308,11 +1308,11 @@ const SearchHub = () => {
   };
 
   const showPersonalizedRecommendations = async () => {
-    // Get user's actual topics from backend
+    
     try {
       const token = localStorage.getItem('token');
       
-      // First, try to get personalized prompts which contain actual user topics
+      
       const promptsResponse = await fetch(`${API_URL}/get_personalized_prompts`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -1327,23 +1327,23 @@ const SearchHub = () => {
         const promptsData = await promptsResponse.json();
         const userPrompts = promptsData.prompts || [];
         
-        // Extract actual topics from user prompts
+        
         const topicSuggestions = [];
         
         for (const prompt of userPrompts) {
           const text = typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || '');
           const textLower = text.toLowerCase();
           
-          // Extract topic from the prompt text
+          
           let topic = null;
           
-          // Try to extract topic after "on", "about", "for"
+          
           const onMatch = text.match(/(?:on|about|for)\s+(.+?)(?:\s*$|flashcards?|notes?|quiz)/i);
           if (onMatch && onMatch[1]) {
             topic = onMatch[1].trim();
           }
 
-          // Handle command-style prompts like "/flashcards topic"
+          
           if (!topic && text.trim().startsWith('/')) {
             const parts = text.trim().replace(/^\/+/, '').split(/\s+/);
             if (parts.length >= 2) {
@@ -1351,7 +1351,7 @@ const SearchHub = () => {
             }
           }
           
-          // If we found a topic, create suggestions for it
+          
           if (topic && topic.length > 2) {
             topicSuggestions.push(
               { text: `/path ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'personalized' },
@@ -1362,19 +1362,19 @@ const SearchHub = () => {
           }
         }
         
-        // Add recent searches at the top
+        
         const recentItems = recentSearches
           .slice(0, 2)
           .map(text => ({ text, type: 'recent', category: 'Recent', source: 'history' }));
         
-        // Add generic helpful suggestions
+        
         const genericSuggestions = [
           { text: '/weak', type: 'show_weak_areas', category: 'Weak Areas', source: 'generic' },
           { text: '/progress', type: 'show_progress', category: 'Progress', source: 'generic' },
           { text: '/chat', type: 'chat', category: 'Chat', source: 'generic' }
         ];
         
-        // Combine: recent searches + topic suggestions + generic
+        
         const combined = [
           ...recentItems,
           ...topicSuggestions.slice(0, 4),
@@ -1391,7 +1391,7 @@ const SearchHub = () => {
       console.log('Personalized recommendations error:', error);
     }
     
-    // Fallback: Show recent searches and personalized prompts as-is
+    
     const recentItems = recentSearches
       .slice(0, 3)
       .map(text => ({ text, type: 'recent', category: 'Recent', source: 'history' }));
@@ -1499,13 +1499,13 @@ const SearchHub = () => {
   };
 
   const handleResultClick = (result) => {
-    // Use navigate_to if provided by the agent
+    
     if (result.navigate_to) {
       navigate(result.navigate_to);
       return;
     }
     
-    // Fallback to type-based navigation with correct paths
+    
     if (result.type === 'flashcards' || result.type === 'flashcard_deck' || result.type === 'flashcard_set') {
       navigate(`/flashcards?set_id=${result.id}`);
     } else if (result.type === 'notes' || result.type === 'note') {
@@ -1545,7 +1545,7 @@ const SearchHub = () => {
   };
 
   const handleCreateContent = async (type) => {
-    // Check if user is logged in
+    
     if (!userName) {
       setShowLoginModal(true);
       return;
@@ -1567,7 +1567,7 @@ const SearchHub = () => {
       const token = localStorage.getItem('token');
       
       if (type === 'flashcards') {
-        // Use SearchHub agent to create flashcards with AI content
+        
         const response = await fetch(`${API_URL}/agents/searchhub/create-flashcards`, {
           method: 'POST',
           headers: { 
@@ -1593,11 +1593,11 @@ const SearchHub = () => {
             return;
           }
         }
-        // Fallback
+        
         navigate('/flashcards');
 
       } else if (type === 'notes') {
-        // Use SearchHub agent to create note with AI content
+        
         const response = await fetch(`${API_URL}/agents/searchhub/create-note`, {
           method: 'POST',
           headers: {
@@ -1622,11 +1622,11 @@ const SearchHub = () => {
             return;
           }
         }
-        // Fallback
+        
         navigate(`/notes/new?topic=${encodeURIComponent(topic)}`);
         
       } else if (type === 'questions') {
-        // Use SearchHub agent to create questions with AI content
+        
         const response = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
           method: 'POST',
           headers: { 
@@ -1652,7 +1652,7 @@ const SearchHub = () => {
             return;
           }
         }
-        // Fallback
+        
         navigate('/question-bank');
         
       } else if (type === 'ai-chat') {
@@ -1824,9 +1824,9 @@ const SearchHub = () => {
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
                         onClick={() => {
-                          // Mark that user has interacted
+                          
                           setHasUserInteracted(true);
-                          // Show suggestions when clicking on search bar
+                          
                           if (!searchQuery || searchQuery.trim() === '') {
                             showPersonalizedRecommendations();
                           } else {
@@ -1834,7 +1834,7 @@ const SearchHub = () => {
                           }
                         }}
                         onFocus={() => {
-                          // Only show suggestions if user has already interacted (clicked)
+                          
                           if (hasUserInteracted) {
                             if (!searchQuery || searchQuery.trim() === '') {
                               showPersonalizedRecommendations();
@@ -2065,7 +2065,6 @@ const SearchHub = () => {
             )}
 
             <div className="results-content">
-              {/* AI Description Section - Show at top when available */}
               {aiSuggestion && aiSuggestion.description && (
                 <div className="ai-description-section">
                   <div className="ai-description-header">
@@ -2094,10 +2093,8 @@ const SearchHub = () => {
                 </div>
               )}
 
-              {/* Search Results Grid */}
               {searchResults && searchResults.results && searchResults.results.length > 0 ? (
                 <>
-                  {/* User Results Section Header */}
                   <div className="results-section-header">
                     <h3>User Results</h3>
                     <p>Study materials created by the community</p>
@@ -2199,7 +2196,7 @@ const SearchHub = () => {
                   )}
                 </>
               ) : searchResults?.has_ai_description ? (
-                /* No results but has AI description - show create options */
+                
                 <div className="no-results-with-ai">
                   <div className="create-options">
                     <h4>Create study materials or explore this topic:</h4>
@@ -2391,7 +2388,6 @@ const SearchHub = () => {
         )}
       </main>
 
-      {/* Login Required Modal */}
       {showLoginModal && (
         <div className="login-required-modal" onClick={() => setShowLoginModal(false)}>
           <div className="login-modal-content" onClick={(e) => e.stopPropagation()}>

@@ -1,11 +1,10 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
+
 .help-tour-overlay *,
 .help-tour-overlay *::before,
 .help-tour-overlay *::after {
   border-radius: 0 !important;
 }
 
-/* Help Tour Overlay */
 .help-tour-overlay {
   position: fixed;
   top: 0;
@@ -26,7 +25,6 @@
   pointer-events: auto;
 }
 
-/* Spotlight around target element */
 .help-tour-spotlight {
   position: fixed;
   border: 3px solid var(--accent, #E7B768);
@@ -39,7 +37,6 @@
   z-index: 10001;
 }
 
-/* Tooltip */
 .help-tour-tooltip {
   position: fixed;
   background: var(--panel, var(--bg-secondary));
@@ -206,7 +203,6 @@
   background: color-mix(in srgb, var(--accent, #E7B768) 50%, transparent);
 }
 
-/* Help Button */
 .help-button {
   position: fixed !important;
   bottom: 24px !important;
@@ -235,7 +231,6 @@
     0 0 20px rgba(231, 183, 104, 0.3);
 }
 
-/* Responsive */
 @media (max-width: 480px) {
   .help-tour-tooltip {
     width: calc(100vw - 32px);

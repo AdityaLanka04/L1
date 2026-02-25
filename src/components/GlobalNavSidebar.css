@@ -1,4 +1,4 @@
-/* Global Navigation Sidebar */
+
 .global-nav-overlay {
   position: fixed;
   top: 0;
@@ -45,7 +45,6 @@
   left: 0;
 }
 
-/* Header */
 .global-nav-header {
   display: flex;
   align-items: center;
@@ -107,7 +106,6 @@
   transform: rotate(90deg);
 }
 
-/* Search */
 .global-nav-search {
   position: relative;
   padding: 16px 24px;
@@ -148,7 +146,6 @@
   color: var(--text-tertiary);
 }
 
-/* Content */
 .global-nav-content {
   flex: 1;
   overflow-y: auto;
@@ -172,7 +169,6 @@
   background: color-mix(in srgb, var(--accent) 50%, var(--border));
 }
 
-/* Section */
 .global-nav-section {
   margin-bottom: 8px;
 }
@@ -206,7 +202,6 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
-/* Items */
 .global-nav-section-items {
   padding: 4px 0;
   animation: slideDown 0.2s ease;
@@ -291,7 +286,6 @@
   color: color-mix(in srgb, var(--accent) 70%, var(--text-secondary));
 }
 
-/* Footer */
 .global-nav-footer {
   padding: 20px 24px;
   border-top: 2px solid color-mix(in srgb, var(--accent) 15%, var(--border));
@@ -328,7 +322,6 @@
   box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-danger) 35%, rgba(0, 0, 0, 0.3));
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .global-nav-sidebar {
     width: 100%;

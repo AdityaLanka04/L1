@@ -14,7 +14,6 @@ from activity_logger import resolve_user_id
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
 
-
 def _safe_json_loads(value):
     if not value:
         return {}
@@ -24,7 +23,6 @@ def _safe_json_loads(value):
         return json.loads(value)
     except Exception:
         return {}
-
 
 def _parse_timestamp(value):
     if not value:
@@ -37,7 +35,6 @@ def _parse_timestamp(value):
         return datetime.fromisoformat(value)
     except Exception:
         return None
-
 
 def _is_ai_activity(tool_name: str, action: str, metadata: dict) -> bool:
     if metadata.get('token_source') == 'none':
@@ -91,18 +88,15 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
         
         start_date = datetime.now() - timedelta(days=days)
         
-        # Total users
         cursor.execute("SELECT COUNT(*) as count FROM users")
         total_users = cursor.fetchone()['count']
 
-        # New users in range
         try:
             cursor.execute("SELECT COUNT(*) as count FROM users WHERE created_at >= ?", (start_date.isoformat(),))
             new_users = cursor.fetchone()['count']
         except Exception:
             new_users = 0
 
-        # Pull activity logs for the date range
         cursor.execute("""
             SELECT * FROM user_activity_log
             WHERE timestamp >= ?
@@ -218,7 +212,6 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
             else:
                 status_buckets["unknown"] += 1
 
-            # Daily aggregation
             ts = _parse_timestamp(row.get('timestamp'))
             if ts:
                 key = ts.date().isoformat()
@@ -241,7 +234,6 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                     if isinstance(status_code, int) and status_code >= 400:
                         hourly_usage[hour_key]["errors"] += 1
 
-            # Tool stats
             tool = tool_stats.setdefault(tool_name, {
                 "tool_name": tool_name,
                 "usage_count": 0,
@@ -273,7 +265,6 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                 if candidate and (current is None or candidate > current):
                     tool["last_activity"] = row.get('timestamp')
 
-            # Provider stats
             provider = metadata.get('provider')
             if provider:
                 provider_stat = provider_stats.setdefault(provider, {
@@ -295,7 +286,6 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                 if isinstance(status_code, int) and status_code >= 400:
                     provider_stat["error_count"] += 1
 
-            # Endpoint stats
             endpoint = metadata.get('endpoint')
             method = metadata.get('method') or ''
             if endpoint:
@@ -322,7 +312,6 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                 if isinstance(status_code, int) and status_code >= 400:
                     endpoint_stat["error_count"] += 1
 
-            # Action stats
             if action:
                 action_stat = action_stats.setdefault(action, {
                     "action": action,
@@ -335,7 +324,6 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                 if is_ai:
                     action_stat["ai_tokens"] += tokens_used
 
-            # Model stats
             model_name = metadata.get('model')
             if model_name:
                 model = model_stats.setdefault(model_name, {
@@ -351,7 +339,6 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                 if is_ai:
                     model["requests"] += 1
 
-            # User rollups
             uid = row.get('user_id')
             if uid is not None:
                 user_stat = user_rollups.setdefault(uid, {
@@ -471,7 +458,6 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
         if total_requests == 0:
             total_requests = len(rows)
 
-        # Top users by AI tokens
         top_users = []
         if user_rollups:
             user_ids = list(user_rollups.keys())
@@ -666,7 +652,6 @@ async def get_user_detail(target_user_id: int, user_id: str = Header(None, alias
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # User info
         cursor.execute("SELECT * FROM users WHERE id = ?", (target_user_id,))
         user_row = cursor.fetchone()
         if not user_row:
@@ -674,7 +659,6 @@ async def get_user_detail(target_user_id: int, user_id: str = Header(None, alias
             raise HTTPException(status_code=404, detail='User not found')
         user = dict(user_row)
         
-        # Activity log
         cursor.execute("""
             SELECT * FROM user_activity_log 
             WHERE user_id = ?
@@ -816,7 +800,6 @@ async def export_analytics_csv(days: int = Query(30), user_id: str = Header(None
         
         start_date = datetime.now() - timedelta(days=days)
         
-        # Get all activity data
         cursor.execute("""
             SELECT 
                 u.id as user_id,
@@ -836,11 +819,9 @@ async def export_analytics_csv(days: int = Query(30), user_id: str = Header(None
         rows = cursor.fetchall()
         conn.close()
         
-        # Create CSV in memory
         output = io.StringIO()
         writer = csv.writer(output)
         
-        # Write header
         writer.writerow([
             'User ID', 'Username', 'Email', 'Tool Name',
             'Action', 'Tokens Used', 'Prompt Tokens', 'Completion Tokens',
@@ -848,7 +829,6 @@ async def export_analytics_csv(days: int = Query(30), user_id: str = Header(None
             'Endpoint', 'Method', 'Status Code'
         ])
         
-        # Write data
         for row in rows:
             metadata = _safe_json_loads(row['metadata'])
             
@@ -870,7 +850,6 @@ async def export_analytics_csv(days: int = Query(30), user_id: str = Header(None
                 metadata.get('status_code', '')
             ])
         
-        # Prepare file for download
         output.seek(0)
         
         return StreamingResponse(
@@ -890,14 +869,12 @@ async def export_user_csv(target_user_id: int, user_id: str = Header(None, alias
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Get user info
         cursor.execute("SELECT * FROM users WHERE id = ?", (target_user_id,))
         user = cursor.fetchone()
         
         if not user:
             raise HTTPException(status_code=404, detail='User not found')
         
-        # Get activity data
         cursor.execute("""
             SELECT 
                 tool_name,
@@ -913,17 +890,14 @@ async def export_user_csv(target_user_id: int, user_id: str = Header(None, alias
         rows = cursor.fetchall()
         conn.close()
         
-        # Create CSV
         output = io.StringIO()
         writer = csv.writer(output)
         
-        # Write header
         writer.writerow([
             'Tool Name', 'Action', 'Tokens Used', 'Prompt Tokens', 'Completion Tokens',
             'Model', 'Token Source', 'Timestamp', 'Duration (seconds)', 'Endpoint', 'Method', 'Status Code'
         ])
         
-        # Write data
         for row in rows:
             metadata = _safe_json_loads(row['metadata'])
                 
@@ -954,7 +928,6 @@ async def export_user_csv(target_user_id: int, user_id: str = Header(None, alias
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Initialize database table for activity logging
 def init_activity_log_table():
     """Create activity log table if it doesn't exist"""
     conn = get_db_connection()

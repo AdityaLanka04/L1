@@ -1,10 +1,6 @@
-/* ============================================
-   SHARED PAGE - PREMIUM DESIGN SYSTEM
-   Matching Social Hub aesthetic with unique namespace
-============================================ */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ==================== CSS VARIABLES ==================== */
 .sp-page {
   --sp-bg-primary: var(--bg-bottom, var(--bg-primary));
   --sp-bg-secondary: var(--panel, var(--bg-secondary));
@@ -27,7 +23,6 @@
   --sp-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.3);
 }
 
-/* ==================== RESET & BASE ==================== */
 .sp-page * {
   box-sizing: border-box;
   margin: 0;
@@ -43,7 +38,6 @@
   outline-offset: 2px;
 }
 
-/* ==================== PAGE CONTAINER ==================== */
 .sp-page {
   position: fixed !important;
   top: 0 !important;
@@ -79,7 +73,6 @@
   opacity: 0.6;
 }
 
-/* ==================== HEADER ==================== */
 .sp-header {
   position: sticky;
   top: 0;
@@ -228,7 +221,6 @@
   color: var(--accent);
 }
 
-/* ==================== CONTENT SECTION ==================== */
 .sp-content-section {
   flex: 1;
   overflow-y: auto;
@@ -333,7 +325,6 @@
   left: 100%;
 }
 
-/* ==================== CONTROLS ==================== */
 .sp-controls {
   display: flex;
   flex-direction: column;
@@ -446,7 +437,6 @@
   transform: translateY(-2px) scale(1.02);
 }
 
-/* ==================== ITEMS GRID ==================== */
 .sp-items-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -566,7 +556,6 @@
   border-color: var(--sp-warning);
 }
 
-/* ==================== ITEM CONTENT ==================== */
 .sp-item-content {
   flex: 1;
   display: flex;
@@ -685,7 +674,6 @@
   color: var(--sp-accent);
 }
 
-/* ==================== ITEM FOOTER ==================== */
 .sp-item-footer {
   display: flex;
   gap: 12px;
@@ -745,7 +733,6 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* ==================== EMPTY STATE ==================== */
 .sp-empty-state {
   text-align: center;
   padding: 80px 40px;
@@ -796,7 +783,6 @@
   font-size: 15px;
 }
 
-/* ==================== MODAL ==================== */
 .sp-modal-overlay {
   position: fixed;
   inset: 0;
@@ -970,7 +956,6 @@
   font-size: 14px;
 }
 
-/* ==================== ANIMATIONS ==================== */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1009,7 +994,6 @@
 .sp-item-card:nth-child(5) { animation-delay: 0.3s; }
 .sp-item-card:nth-child(6) { animation-delay: 0.35s; }
 
-/* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1024px) {
   .sp-header {
     padding: 0 24px;
@@ -1155,7 +1139,6 @@
   }
 }
 
-/* ==================== ACCESSIBILITY ==================== */
 @media (prefers-reduced-motion: reduce) {
   .sp-page *,
   .sp-page *::before,
@@ -1172,7 +1155,6 @@
   }
 }
 
-/* ==================== FOCUS STYLES ==================== */
 .sp-page *:focus-visible {
   outline: 2px solid var(--sp-accent);
   outline-offset: 2px;
@@ -1185,7 +1167,6 @@
   box-shadow: 0 0 0 4px var(--sp-accent-glow);
 }
 
-/* ==================== SELECTION STYLES ==================== */
 .sp-page ::selection {
   background: var(--sp-accent);
   color: var(--sp-bg-primary);
@@ -1196,7 +1177,6 @@
   color: var(--sp-bg-primary);
 }
 
-/* Prevent text selection on interactive elements */
 .sp-nav-btn,
 .sp-filter-btn,
 .sp-item-action-btn,
@@ -1205,7 +1185,6 @@
   -webkit-user-select: none;
 }
 
-/* ==================== LIGHT MODE STYLES ==================== */
 [data-theme-mode="light"] .sp-page {
   --sp-bg-primary: var(--bg-bottom, #f8f6f3);
   --sp-bg-secondary: var(--panel, #ffffff);

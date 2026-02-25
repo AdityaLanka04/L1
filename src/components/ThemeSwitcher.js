@@ -5,7 +5,6 @@ import { Palette, X, Sun, Moon, Check, Sparkles, Copy } from 'lucide-react';
 import logo from '../assets/logo.svg';
 import './ThemeSwitcher.css';
 
-// Google-style Color Picker Component
 const ColorPicker = ({ color, onChange, label }) => {
   const [hue, setHue] = useState(0);
   const [saturation, setSaturation] = useState(100);
@@ -186,7 +185,7 @@ const ThemeSwitcher = () => {
   const [showThemePanel, setShowThemePanel] = useState(false);
   const [activeTab, setActiveTab] = useState('presets');
   
-  // Pending selections
+  
   const [pendingPresetId, setPendingPresetId] = useState(null);
   const [primaryColor, setPrimaryColor] = useState('#0b0b0c');
   const [accentColor, setAccentColor] = useState('#D7B38C');
@@ -195,7 +194,7 @@ const ThemeSwitcher = () => {
   
   const panelRef = useRef(null);
 
-  // Initialize state when panel opens
+  
   useEffect(() => {
     if (showThemePanel) {
       setPendingPresetId(selectedThemeId);
@@ -268,7 +267,7 @@ const ThemeSwitcher = () => {
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.3;
   };
 
-  // Helper to convert hex to rgba with opacity
+  
   const hexToRgba = (hex, opacity) => {
     if (!hex) return `rgba(0, 0, 0, ${opacity})`;
     const r = parseInt(hex.slice(1, 3), 16);
@@ -277,7 +276,7 @@ const ThemeSwitcher = () => {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
 
-  // Helper to lighten a color by a percentage
+  
   const lightenColor = (hex, percent) => {
     if (!hex) return '#000000';
     const r = parseInt(hex.slice(1, 3), 16);
@@ -291,12 +290,12 @@ const ThemeSwitcher = () => {
     return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
   };
 
-  // Get background color for preview (lightened primary for dark themes)
+  
   const getPreviewBgColor = () => {
     return isColorDark(primaryColor) ? lightenColor(primaryColor, 8) : primaryColor;
   };
 
-  // Determine text color for preview based on primary brightness
+  
   const getPreviewTextColor = () => {
     return isColorDark(primaryColor) ? '#EAECEF' : '#1a1a1a';
   };
@@ -408,7 +407,6 @@ const ThemeSwitcher = () => {
               </div>
             ) : (
               <div className="ts-custom">
-                {/* Side by side pickers */}
                 <div className="ts-pickers-row">
                   <ColorPicker 
                     color={primaryColor}
@@ -422,7 +420,6 @@ const ThemeSwitcher = () => {
                   />
                 </div>
 
-                {/* Live Preview with Cerbyl branding */}
                 <div className="ts-live-preview">
                   <span className="ts-label">LIVE PREVIEW</span>
                   <div 

@@ -15,13 +15,11 @@ import random
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-# --- Card States ---
 STATE_NEW = "new"
 STATE_LEARNING = "learning"
 STATE_REVIEW = "review"
 STATE_RELEARNING = "relearning"
 
-# --- Grades ---
 GRADE_AGAIN = 0
 GRADE_HARD = 1
 GRADE_GOOD = 2
@@ -29,19 +27,17 @@ GRADE_EASY = 3
 
 GRADE_MAP = {"again": GRADE_AGAIN, "hard": GRADE_HARD, "good": GRADE_GOOD, "easy": GRADE_EASY}
 
-# --- Configuration ---
 DEFAULT_EASE = 2.5
 MIN_EASE = 1.3
-LEARNING_STEPS_MINUTES = [1, 10]       # minutes between learning steps
-RELEARNING_STEPS_MINUTES = [10]        # minutes for relearning
-GRADUATING_INTERVAL_DAYS = 1           # interval when card graduates from learning
-EASY_INTERVAL_DAYS = 4                 # interval when Easy is pressed on a learning card
-HARD_INTERVAL_MULTIPLIER = 1.2         # multiplier for Hard on review cards
-EASY_BONUS = 1.3                       # extra multiplier for Easy on review cards
-LAPSE_INTERVAL_PERCENT = 0.0           # on lapse, new interval = old * this (0 = reset)
-LAPSE_MIN_INTERVAL_DAYS = 1            # minimum interval after lapse
-MAX_INTERVAL_DAYS = 365 * 2            # cap at 2 years
-
+LEARNING_STEPS_MINUTES = [1, 10]
+RELEARNING_STEPS_MINUTES = [10]
+GRADUATING_INTERVAL_DAYS = 1
+EASY_INTERVAL_DAYS = 4
+HARD_INTERVAL_MULTIPLIER = 1.2
+EASY_BONUS = 1.3
+LAPSE_INTERVAL_PERCENT = 0.0
+LAPSE_MIN_INTERVAL_DAYS = 1
+MAX_INTERVAL_DAYS = 365 * 2
 
 def _apply_fuzz(interval_days: float) -> float:
     """Add ±5% random fuzz to intervals > 2 days to prevent clustering."""
@@ -50,14 +46,11 @@ def _apply_fuzz(interval_days: float) -> float:
     fuzz = interval_days * 0.05
     return max(1, interval_days + random.uniform(-fuzz, fuzz))
 
-
 def _clamp_ease(ease: float) -> float:
     return max(MIN_EASE, round(ease, 2))
 
-
 def _minutes_to_days(minutes: float) -> float:
     return minutes / (60 * 24)
-
 
 def calculate_next_review(
     sr_state: str,
@@ -107,19 +100,15 @@ def calculate_next_review(
             ease_factor, interval, grade, learning_step
         )
 
-    # Clamp values
     new_ease = _clamp_ease(new_ease)
     new_interval = min(new_interval, MAX_INTERVAL_DAYS)
     if new_interval < 0:
         new_interval = 0
 
-    # Calculate next review datetime
     if new_interval < 1:
-        # Sub-day interval (learning steps) - add minutes
         minutes = new_interval * 24 * 60
         next_review = now + timedelta(minutes=max(1, minutes))
     else:
-        # Day-level interval - apply fuzz
         fuzzed = _apply_fuzz(new_interval)
         next_review = now + timedelta(days=fuzzed)
 
@@ -133,17 +122,14 @@ def calculate_next_review(
         "next_review_date": next_review,
     }
 
-
 def _handle_learning(
     ease: float, grade: int, step: int, steps: list[int]
 ) -> tuple[str, float, float, int, int]:
     """Handle learning/new card review."""
     if grade == GRADE_AGAIN:
-        # Reset to first step
         return STATE_LEARNING, ease, _minutes_to_days(steps[0]), 0, 0
 
     if grade == GRADE_HARD:
-        # Stay at current step, use average of current and next
         if step < len(steps) - 1:
             avg_minutes = (steps[step] + steps[step + 1]) / 2
         else:
@@ -151,26 +137,21 @@ def _handle_learning(
         return STATE_LEARNING, ease, _minutes_to_days(avg_minutes), 0, step
 
     if grade == GRADE_GOOD:
-        # Advance to next step, or graduate
         next_step = step + 1
         if next_step >= len(steps):
-            # Graduate to review
             return STATE_REVIEW, ease, GRADUATING_INTERVAL_DAYS, 1, 0
         return STATE_LEARNING, ease, _minutes_to_days(steps[next_step]), 0, next_step
 
     if grade == GRADE_EASY:
-        # Graduate immediately with easy interval
         return STATE_REVIEW, ease + 0.15, EASY_INTERVAL_DAYS, 1, 0
 
     return STATE_LEARNING, ease, _minutes_to_days(steps[0]), 0, 0
-
 
 def _handle_review(
     ease: float, interval: float, reps: int, lapses: int, grade: int
 ) -> tuple[str, float, float, int, int, int]:
     """Handle review card grading."""
     if grade == GRADE_AGAIN:
-        # Lapse: go to relearning
         new_ease = ease - 0.20
         new_interval = max(LAPSE_MIN_INTERVAL_DAYS, interval * LAPSE_INTERVAL_PERCENT)
         return STATE_RELEARNING, new_ease, new_interval, 0, lapses + 1, 0
@@ -191,7 +172,6 @@ def _handle_review(
 
     return STATE_REVIEW, ease, interval, reps, lapses, 0
 
-
 def _handle_relearning(
     ease: float, interval: float, grade: int, step: int
 ) -> tuple[str, float, float, int, int]:
@@ -199,7 +179,6 @@ def _handle_relearning(
     steps = RELEARNING_STEPS_MINUTES
 
     if grade == GRADE_AGAIN:
-        # Reset to first relearning step
         return STATE_RELEARNING, ease, _minutes_to_days(steps[0]), 0, 0
 
     if grade == GRADE_HARD:
@@ -212,17 +191,14 @@ def _handle_relearning(
     if grade == GRADE_GOOD:
         next_step = step + 1
         if next_step >= len(steps):
-            # Return to review with the lapsed interval (min 1 day)
             return STATE_REVIEW, ease, max(LAPSE_MIN_INTERVAL_DAYS, interval), 1, 0
         return STATE_RELEARNING, ease, _minutes_to_days(steps[next_step]), 0, next_step
 
     if grade == GRADE_EASY:
-        # Return to review immediately with a boosted interval
         new_interval = max(LAPSE_MIN_INTERVAL_DAYS, interval) * 1.5
         return STATE_REVIEW, ease + 0.15, new_interval, 1, 0
 
     return STATE_RELEARNING, ease, _minutes_to_days(steps[0]), 0, 0
-
 
 def preview_intervals(
     sr_state: str,
@@ -243,7 +219,6 @@ def preview_intervals(
         )
         previews[grade_name] = _format_interval(result["new_interval"], result["new_state"])
     return previews
-
 
 def _format_interval(interval_days: float, state: str) -> str:
     """Convert interval in days to human-readable string."""

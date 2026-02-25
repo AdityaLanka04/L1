@@ -13,13 +13,13 @@ const ProfileQuiz = () => {
   const [showOtherSuggestions, setShowOtherSuggestions] = useState(false);
   const [showSkipWarning, setShowSkipWarning] = useState(false);
   
-  // Refs for auto-scroll
+  
   const mainSubjectRef = useRef(null);
   const otherSubjectsRef = useRef(null);
   const goalRef = useRef(null);
   const submitRef = useRef(null);
   
-  // Auto-scroll helper function
+  
   const scrollToRef = (ref) => {
     setTimeout(() => {
       if (ref.current) {
@@ -28,10 +28,10 @@ const ProfileQuiz = () => {
     }, 100);
   };
   
-  // Ref for tracking previous main subject value
+  
   const prevMainSubjectRef = useRef('');
 
-  // Common subjects list
+  
   const commonSubjects = [
     'Computer Science', 'Mathematics', 'Physics', 'Chemistry', 'Biology',
     'Engineering', 'Business Administration', 'Economics', 'Psychology', 'Sociology',
@@ -68,9 +68,9 @@ const ProfileQuiz = () => {
   });
   const [userName, setUserName] = useState('');
 
-  // Auto-scroll to other subjects section when main subject is typed
+  
   useEffect(() => {
-    // Only scroll if mainSubject just became valid (3+ chars) and wasn't before
+    
     if (answers.mainSubject.length >= 3 && prevMainSubjectRef.current.length < 3 && currentStep === 'form') {
       scrollToRef(otherSubjectsRef);
     }
@@ -237,7 +237,7 @@ const ProfileQuiz = () => {
     if (!answers.subjects.includes(subject)) {
       setAnswers(prev => {
         const newSubjects = [...prev.subjects, subject];
-                // Scroll to goal section after first subject is added
+                
         if (newSubjects.length === 1) {
           scrollToRef(goalRef);
         }
@@ -287,11 +287,11 @@ const ProfileQuiz = () => {
       if (response.ok) {
         const data = await response.json();
                         
-        // Set flag that user just completed onboarding (by skipping)
+        
         sessionStorage.setItem('justCompletedOnboarding', 'true');
         sessionStorage.setItem('isFirstTimeUser', 'true');
         
-        // Wait a moment for database to fully commit
+        
         await new Promise(resolve => setTimeout(resolve, 500));
         
         navigate('/dashboard');

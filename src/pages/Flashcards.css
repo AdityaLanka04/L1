@@ -1,14 +1,12 @@
-/* Flashcards Page - Isolated Styles */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== FORCE BOXY DESIGN ==================== */
 .flashcards-page *,
 .flashcards-page *::before,
 .flashcards-page *::after {
   border-radius: 0 !important;
 }
 
-/* Override: Keep buttons and widgets curved */
 .flashcards-page button,
 .flashcards-page .fc-set-card,
 .flashcards-page .fc-set-card-new,
@@ -26,16 +24,13 @@
   border-radius: 8px !important;
 }
 
-/* Results screen — rounded corners */
 .flashcards-page .fc-results-card { border-radius: 24px !important; }
 .flashcards-page .fc-result-stat  { border-radius: 16px !important; }
 .flashcards-page .fc-results-message { border-radius: 12px !important; }
 .flashcards-page .fc-results-icon { border-radius: 18px !important; }
 
-/* Quiz question card — rounded corners */
 .flashcards-page .fc-study-question-card { border-radius: 24px !important; }
 
-/* CSS Variables */
 .flashcards-page {
   --fc-bg-primary: var(--bg-primary);
   --fc-bg-secondary: var(--bg-secondary);
@@ -58,7 +53,6 @@
   --fc-header-height: 70px;
 }
 
-/* Reset and Base */
 .flashcards-page {
   position: fixed !important;
   top: 0 !important;
@@ -76,7 +70,6 @@
   padding: 0 !important;
 }
 
-/* Light mode - use theme background */
 [data-theme-mode="light"] .flashcards-page {
   background: var(--bg-primary) !important;
 }
@@ -99,7 +92,6 @@
   padding: 0;
 }
 
-/* Main Layout */
 .fc-layout {
   display: flex;
   flex-direction: column;
@@ -113,7 +105,6 @@
   overflow: hidden;
 }
 
-/* Sidebar */
 .fc-sidebar {
   width: var(--fc-sidebar-width);
   height: 100%;
@@ -125,7 +116,6 @@
   transition: width 0.3s ease;
 }
 
-/* Sidebar Enhanced Styling with Accent Color Gradients - MATCHING CONCEPT WEB */
 [data-theme-mode="dark"] .fc-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
@@ -141,7 +131,6 @@
   box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* Sidebar Text Colors */
 [data-theme-mode="dark"] .fc-sidebar {
   color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
 }
@@ -168,7 +157,6 @@
   border-right: none !important;
 }
 
-/* Show sidebar button in header - positioned absolutely */
 .fc-show-sidebar-btn {
   position: absolute;
   left: 20px;
@@ -285,7 +273,6 @@
   color: var(--fc-accent);
 }
 
-/* Sidebar Nav */
 .fc-sidebar-nav {
   flex: 1;
   padding: 16px 12px;
@@ -323,7 +310,6 @@
   color: var(--fc-accent);
 }
 
-/* Convert button - styled like a panel widget */
 .fc-nav-item.fc-convert-btn {
   background: linear-gradient(135deg, var(--fc-accent), var(--fc-accent-dark));
   font-weight: 600;
@@ -439,7 +425,6 @@
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Main Content Area */
 .fc-main {
   flex: 1;
   display: flex;
@@ -450,7 +435,6 @@
   position: relative;
 }
 
-/* Grid Pattern Background removed */
 [data-theme-mode="dark"] .fc-content.fc-cards-panel {
   background-image: none !important;
 }
@@ -459,7 +443,6 @@
   background-image: none !important;
 }
 
-/* ==================== HEADER - Matching NotesRedesign Exactly ==================== */
 .hub-header {
   height: 70px;
   min-height: 70px;
@@ -598,7 +581,6 @@
   color: var(--accent);
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .hub-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -611,7 +593,6 @@
   border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Stats Bar */
 .fc-stats-bar {
   padding: 0;
   text-align: center;
@@ -637,7 +618,6 @@
   gap: 12px;
 }
 
-/* Search Box */
 .fc-search {
   display: flex;
   align-items: center;
@@ -693,7 +673,6 @@
   letter-spacing: 2px;
 }
 
-/* Custom Select Dropdown */
 .fc-custom-select-wrapper {
   position: relative;
   display: inline-block;
@@ -813,7 +792,6 @@
   color: var(--bg-primary);
 }
 
-/* Buttons */
 .fc-btn {
   display: flex;
   align-items: center;
@@ -867,7 +845,6 @@
   height: 18px;
 }
 
-/* Scrollable Content */
 .fc-content {
   flex: 1;
   overflow-y: auto;
@@ -877,7 +854,6 @@
   flex-direction: column;
 }
 
-/* Only center generator and empty states - OVERRIDE - TRUE CENTER */
 .fc-content:has(.fc-generator),
 .fc-content:has(.fc-empty),
 .fc-content:has(.fc-loading) {
@@ -889,7 +865,6 @@
   min-height: calc(100vh - 70px) !important;
 }
 
-/* Center alignment only for generator content */
 .fc-content:has(.fc-generator) {
   display: flex;
   flex-direction: column;
@@ -897,7 +872,6 @@
   justify-content: center;
 }
 
-/* Cards Grid */
 .fc-grid {
   width: 100%;
   display: grid;
@@ -905,12 +879,10 @@
   gap: 20px;
 }
 
-/* Grid rearranging animation */
 .fc-grid-rearranging .fc-set-card-new {
   animation: cardShake 0.5s ease-in-out;
 }
 
-/* Load More Button */
 .fc-load-more-container {
   display: flex;
   justify-content: center;
@@ -993,7 +965,6 @@
   }
 }
 
-/* Flashcard Set Card */
 .fc-set-card {
   background: var(--fc-bg-secondary);
   border: 1px solid var(--border);
@@ -1188,7 +1159,6 @@
   height: 14px;
 }
 
-/* Empty State - Compact and Centered - OVERRIDE ALL */
 .fc-empty {
   display: flex !important;
   flex-direction: column !important;
@@ -1202,7 +1172,6 @@
   gap: 24px !important;
 }
 
-/* Remove icon completely */
 .fc-empty-icon {
   display: none !important;
 }
@@ -1215,7 +1184,6 @@
   margin-top: 0 !important;
 }
 
-/* Subtitle text - smaller and visible */
 .fc-empty > p {
   display: block !important;
   font-size: 14px !important;
@@ -1225,7 +1193,6 @@
   opacity: 0.7 !important;
 }
 
-/* Button styling - MATCH HEADER SUBTITLE */
 .fc-empty .fc-btn {
   margin-top: 0 !important;
   padding: 12px 24px !important;
@@ -1236,7 +1203,6 @@
   border-radius: 8px !important;
 }
 
-/* Search container in empty state - SEARCHHUB STYLE */
 .fc-empty-search-container {
   width: 100%;
   max-width: 700px;
@@ -1246,7 +1212,6 @@
   margin-top: 4px;
 }
 
-/* Search box wrapper - SEARCHHUB STYLE - NO LEFT ICON */
 .fc-empty .fc-search,
 .fc-empty .fc-search-large {
   all: unset !important;
@@ -1272,12 +1237,10 @@
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent) !important;
 }
 
-/* Hide left search icon */
 .fc-empty .fc-search-icon:not(.search-btn) {
   display: none !important;
 }
 
-/* Search input - SEARCHHUB STYLE - WIDER */
 .fc-empty .fc-search input,
 .fc-empty .fc-search-large input {
   all: unset !important;
@@ -1306,7 +1269,6 @@
   outline: none !important;
 }
 
-/* Search button integrated - SEARCHHUB STYLE */
 .fc-empty .fc-search-icon.search-btn,
 .fc-empty-search-container .fc-btn.search-btn-integrated {
   all: unset !important;
@@ -1337,12 +1299,10 @@
   stroke-width: 2.5 !important;
 }
 
-/* Hide button container */
 .fc-empty-search-buttons {
   display: none !important;
 }
 
-/* Override any background gradients on empty state */
 .fc-empty::before {
   display: none !important;
 }
@@ -1352,7 +1312,6 @@
   background: transparent !important;
 }
 
-/* Loading State */
 .fc-loading {
   display: flex;
   flex-direction: column;
@@ -1402,8 +1361,6 @@
   color: var(--fc-text-muted);
 }
 
-
-/* Generator Panel */
 .fc-generator {
   max-width: 700px;
   width: 100%;
@@ -1469,7 +1426,6 @@
   color: var(--fc-text-muted);
 }
 
-/* Form Elements */
 .fc-form-group {
   margin-bottom: 20px;
 }
@@ -1594,7 +1550,6 @@
   height: 18px;
 }
 
-/* Chat Sessions List */
 .fc-sessions-header {
   display: flex;
   align-items: center;
@@ -1664,7 +1619,6 @@
   color: var(--fc-text-muted);
 }
 
-/* Preview Section */
 .fc-preview {
   margin-top: 32px;
   padding-top: 32px;
@@ -1786,7 +1740,6 @@
   justify-content: center;
 }
 
-/* Statistics Panel */
 .fc-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1835,7 +1788,6 @@
   font-weight: 600;
 }
 
-/* Study Mode */
 .fc-study-mode {
   position: fixed;
   inset: 0;
@@ -1954,7 +1906,6 @@
   overflow-x: hidden;
 }
 
-/* Card counter above the flashcard */
 .fc-card-counter-above {
   font-size: 14px;
   font-weight: 700;
@@ -1988,7 +1939,6 @@
   margin-bottom: 32px;
 }
 
-/* Preview mode specific - center the card with arrow navigation */
 .fc-preview-card-container {
   display: flex;
   flex-direction: row;
@@ -2005,7 +1955,6 @@
   max-width: 700px;
 }
 
-/* Triangle Arrow Buttons */
 .fc-arrow-btn {
   width: 50px;
   height: 50px;
@@ -2072,7 +2021,6 @@
   height: 24px;
 }
 
-/* Light mode navigation - Pink with glow */
 [data-theme-mode="light"] .fc-study-nav {
   background: white !important;
   border-color: var(--fc-accent) !important;
@@ -2086,7 +2034,6 @@
   box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4) !important;
 }
 
-/* Dark mode navigation */
 [data-theme-mode="dark"] .fc-study-nav {
   background: var(--bg-secondary) !important;
   border-color: var(--fc-accent) !important;
@@ -2155,7 +2102,6 @@
   transform: rotateY(180deg);
 }
 
-/* Gold card in dark mode for better contrast */
 [data-theme-mode="dark"] .fc-study-card-front,
 [data-theme-mode="dark"] .fc-study-card-back {
   background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary)) !important;
@@ -2164,7 +2110,6 @@
   box-shadow: 0 8px 24px rgba(215, 179, 140, 0.3) !important;
 }
 
-/* Pink card in light mode with glow */
 [data-theme-mode="light"] .fc-study-card-front,
 [data-theme-mode="light"] .fc-study-card-back {
   background: linear-gradient(145deg, var(--fc-accent), color-mix(in srgb, var(--fc-accent) 85%, white)) !important;
@@ -2202,7 +2147,6 @@
   padding: 8px;
 }
 
-/* Edited Badge */
 .fc-edited-badge {
   display: block;
   margin-top: 12px;
@@ -2226,9 +2170,6 @@
   font-weight: 800;
 }
 
-/* Scrollbar removed - no scrolling allowed */
-
-/* Enhanced text visibility in dark mode */
 [data-theme-mode="dark"] .fc-study-card-text {
   color: var(--fc-accent) !important;
 }
@@ -2242,7 +2183,6 @@
   color: rgba(215, 179, 140, 0.7) !important;
 }
 
-/* Enhanced text visibility in light mode - White text on pink card */
 [data-theme-mode="light"] .fc-study-card-text {
   color: white !important;
 }
@@ -2311,7 +2251,6 @@
   font-weight: 500;
 }
 
-/* Knowledge Buttons (I know this / I don't know this) */
 .fc-knowledge-btns {
   display: flex;
   gap: 20px;
@@ -2355,7 +2294,6 @@
   stroke-width: 2.5;
 }
 
-/* Light mode styling - Pink with glow */
 [data-theme-mode="light"] .fc-knowledge-btn {
   background: white !important;
   border-color: var(--fc-accent) !important;
@@ -2369,7 +2307,6 @@
   box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4) !important;
 }
 
-/* Dark mode styling */
 [data-theme-mode="dark"] .fc-knowledge-btn {
   background: var(--bg-secondary) !important;
   border-color: var(--fc-accent) !important;
@@ -2381,7 +2318,6 @@
   color: var(--bg-primary) !important;
 }
 
-/* Study Results */
 @keyframes fc-results-fade-in {
   0% { opacity: 0; transform: translateY(20px) scale(0.97); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -2645,7 +2581,6 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* EXIT button on results - ghost style */
 .fc-results-actions .fc-btn:not(.fc-btn-primary):not(.fc-btn-secondary) {
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--fc-accent) 20%, transparent);
@@ -2658,7 +2593,6 @@
   transform: translateY(-2px);
 }
 
-/* Responsive Results */
 @media (max-width: 640px) {
   .fc-results {
     padding: 30px 16px;
@@ -2700,7 +2634,6 @@
   }
 }
 
-/* Responsive */
 @media (max-width: 1024px) {
   .fc-stats-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -2754,9 +2687,6 @@
   }
 }
 
-
-/* ==================== VERTICAL LAYOUT - SLIDE EXPLORER STYLE ==================== */
-
 .fc-preview-vertical {
   display: flex;
   flex-direction: column;
@@ -2792,7 +2722,6 @@
   color: var(--fc-accent);
 }
 
-/* Card Navigation */
 .fc-card-navigation {
   display: flex;
   align-items: center;
@@ -2860,7 +2789,6 @@
   border-radius: 5px;
 }
 
-/* Colored Card Preview on Top */
 .fc-card-preview-top {
   width: 100%;
   background: var(--fc-bg-secondary);
@@ -2937,7 +2865,6 @@
   color: var(--bg-primary) !important;
 }
 
-/* Content Below - Scrollable */
 .fc-card-content-below {
   flex: 1;
   background: var(--fc-bg-secondary);
@@ -3028,7 +2955,6 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* Responsive */
 @media (max-width: 1024px) {
   .fc-card-content-below {
     padding: 24px;
@@ -3053,9 +2979,6 @@
   }
 }
 
-
-/* ==================== NEW FLASHCARD SET CARDS - SLIDE STYLE ==================== */
-
 .fc-set-card-new {
   background: var(--fc-bg-secondary) !important;
   border: 1px solid var(--fc-border-default) !important;
@@ -3074,7 +2997,6 @@
   transform: translateY(-4px) !important;
 }
 
-/* Colored Thumbnail */
 .fc-set-thumbnail {
   width: 100% !important;
   height: 160px !important;
@@ -3174,7 +3096,6 @@
   color: white;
 }
 
-/* Content Section */
 .fc-set-content-new {
   padding: 20px !important;
   flex: 1 !important;
@@ -3210,7 +3131,6 @@
   opacity: 0.8 !important;
 }
 
-/* Hide card count from bottom - it's now in the thumbnail */
 .fc-meta-item-new:has(svg[data-icon="layers"]),
 .fc-meta-item-new:first-child {
   display: none !important;
@@ -3225,7 +3145,6 @@
   font-weight: 700 !important;
 }
 
-/* Move created date to top of content section */
 .fc-set-date-new {
   font-size: 10px !important;
   color: var(--text-secondary) !important;
@@ -3236,7 +3155,6 @@
   order: -1 !important;
 }
 
-/* Mastery Section */
 .fc-mastery-section {
   margin-bottom: 12px;
 }
@@ -3297,7 +3215,6 @@
   margin-top: auto;
 }
 
-/* Actions */
 .fc-set-actions-new {
   display: none;
 }
@@ -3367,7 +3284,6 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* Grid Layout */
 .fc-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(224px, 1fr));
@@ -3386,8 +3302,6 @@
   }
 }
 
-
-/* Centered Header for Generator */
 .fc-header-centered {
   justify-content: center;
 }
@@ -3435,7 +3349,6 @@
   border-radius: 5px;
 }
 
-/* Colored Card Preview on Top */
 .fc-card-preview-top {
   width: 100%;
   background: var(--fc-bg-secondary);
@@ -3512,7 +3425,6 @@
   color: var(--bg-primary) !important;
 }
 
-/* Content Below - Scrollable */
 .fc-card-content-below {
   flex: 1;
   background: var(--fc-bg-secondary);
@@ -3600,9 +3512,6 @@
   height: 20px;
 }
 
-
-/* ==================== MCQ STUDY MODE STYLES ==================== */
-
 .fc-study-mcq-area {
   width: 100%;
   max-width: 900px;
@@ -3613,7 +3522,6 @@
   padding: 20px 0 40px 0;
 }
 
-/* Container for question card with navigation arrows */
 .fc-mcq-question-container {
   display: flex;
   flex-direction: row;
@@ -3664,7 +3572,6 @@
   flex: 1;
 }
 
-/* Gold flashcard styling in dark mode for study question */
 [data-theme-mode="dark"] .fc-study-question-card {
   background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary)) !important;
   border: 2px solid var(--fc-accent) !important;
@@ -3680,7 +3587,6 @@
   color: var(--fc-accent) !important;
 }
 
-/* Pink flashcard styling in light mode for study question */
 [data-theme-mode="light"] .fc-study-question-card {
   background: linear-gradient(145deg, var(--fc-accent), color-mix(in srgb, var(--fc-accent) 85%, white)) !important;
   border: 2px solid var(--fc-accent) !important;
@@ -3696,7 +3602,6 @@
   color: white !important;
 }
 
-/* MCQ Options Container - 2x2 Grid */
 .fc-mcq-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3705,7 +3610,6 @@
   max-width: 900px;
 }
 
-/* Individual MCQ Option Button */
 .fc-mcq-option {
   display: flex;
   flex-direction: column;
@@ -3737,7 +3641,6 @@
   cursor: not-allowed;
 }
 
-/* MCQ Letter Badge (A, B, C, D) */
 .fc-mcq-letter {
   width: 32px;
   height: 32px;
@@ -3754,7 +3657,6 @@
   transition: all 0.2s;
 }
 
-/* MCQ Text */
 .fc-mcq-text {
   flex: 1;
   font-size: 14px;
@@ -3763,7 +3665,6 @@
   width: 100%;
 }
 
-/* MCQ Icon (Check/X) */
 .fc-mcq-icon {
   width: 24px;
   height: 24px;
@@ -3782,7 +3683,6 @@
   stroke-width: 3;
 }
 
-/* Correct Answer State */
 .fc-mcq-option.correct {
   background: rgba(34, 197, 94, 0.1) !important;
   border-color: var(--fc-success) !important;
@@ -3804,7 +3704,6 @@
   color: var(--fc-success) !important;
 }
 
-/* Incorrect Answer State */
 .fc-mcq-option.incorrect {
   background: color-mix(in srgb, var(--fc-danger) 10%, transparent) !important;
   border-color: var(--fc-danger) !important;
@@ -3826,7 +3725,6 @@
   color: var(--fc-danger) !important;
 }
 
-/* Disabled (Not Selected) State */
 .fc-mcq-option.disabled {
   opacity: 0.5;
   background: var(--fc-bg-tertiary) !important;
@@ -3838,7 +3736,6 @@
   border-color: var(--fc-border-subtle) !important;
 }
 
-/* Next Question Button */
 .fc-next-question-btn {
   width: 100%;
   max-width: 350px;
@@ -3872,7 +3769,6 @@
   height: 18px;
 }
 
-/* Theme-specific text colors for MCQ */
 [data-theme-mode="light"] .fc-mcq-option {
   background: white;
 }
@@ -3881,7 +3777,6 @@
   background: var(--fc-bg-card);
 }
 
-/* Responsive MCQ Styles */
 @media (max-width: 768px) {
   .fc-study-mcq-area {
     max-width: 100%;
@@ -3925,7 +3820,6 @@
   }
 }
 
-/* Animation for MCQ selection */
 @keyframes mcq-select {
   0% { transform: scale(1); }
   50% { transform: scale(0.98); }
@@ -3937,9 +3831,6 @@
   animation: mcq-select 0.3s ease-out;
 }
 
-/* ==================== NEEDS REVIEW SECTION ==================== */
-
-/* Badge for nav item */
 .fc-nav-badge {
   background: var(--fc-danger);
   color: white;
@@ -3951,7 +3842,6 @@
   text-align: center;
 }
 
-/* Review section container */
 .fc-review-section {
   display: flex;
   flex-direction: column;
@@ -3971,7 +3861,6 @@
   color: var(--fc-danger);
 }
 
-/* Review set card */
 .fc-review-set {
   background: var(--fc-bg-card);
   border: 1px solid var(--fc-border-subtle);
@@ -4001,7 +3890,6 @@
   padding: 4px 10px;
 }
 
-/* Review cards list */
 .fc-review-cards-list {
   display: flex;
   flex-direction: column;
@@ -4060,7 +3948,6 @@
   flex-shrink: 0;
 }
 
-/* Small button variant */
 .fc-btn-small {
   padding: 8px 12px;
   font-size: 13px;
@@ -4081,7 +3968,6 @@
   background: color-mix(in srgb, var(--fc-success) 85%, black);
 }
 
-/* Study button for review set */
 .fc-review-study-btn {
   width: 100%;
   justify-content: center;
@@ -4093,10 +3979,6 @@
   height: 18px;
 }
 
-
-/* ==================== ENHANCED VISUAL EFFECTS ==================== */
-
-/* Large Subtle Background Gradients */
 [data-theme-mode="dark"] .fc-main {
   background: radial-gradient(ellipse 120% 100% at 50% 0%, 
     color-mix(in srgb, var(--accent) 8%, var(--bg)) 0%, 
@@ -4111,7 +3993,6 @@
   ) !important;
 }
 
-/* Enhanced Card Hover Effects */
 .fc-set-card {
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -4135,7 +4016,6 @@
   box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* Glow Effects for Interactive Elements */
 [data-theme-mode="dark"] .fc-btn-primary {
   box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 25%, transparent);
 }
@@ -4148,13 +4028,11 @@
   box-shadow: 0 6px 24px color-mix(in srgb, var(--accent) 40%, transparent) !important;
 }
 
-/* Enhanced Input Focus States */
 .fc-input:focus,
 .fc-search:focus-within {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
-/* Subtle Shimmer Effect on Cards */
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
@@ -4187,7 +4065,6 @@
   opacity: 1;
 }
 
-/* Enhanced Button Ripple Effect */
 .fc-btn {
   position: relative;
   overflow: hidden;
@@ -4211,7 +4088,6 @@
   height: 300px;
 }
 
-/* Gradient Borders for Cards */
 .fc-set-card {
   background: var(--fc-bg-card);
   border: 1px solid transparent;
@@ -4238,7 +4114,6 @@
   opacity: 1;
 }
 
-/* Enhanced Progress Bar */
 .fc-set-progress-fill {
   background: linear-gradient(90deg, 
     var(--fc-accent),
@@ -4247,7 +4122,6 @@
   box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Floating Animation for Empty States - DISABLED */
 @keyframes float {
   0%, 100% {
     transform: translateY(0px);
@@ -4262,7 +4136,6 @@
   display: none !important;
 }
 
-/* Enhanced Nav Item Hover */
 .fc-nav-item {
   position: relative;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -4285,7 +4158,6 @@
   height: 60%;
 }
 
-/* Enhanced Search Box */
 .fc-search {
   position: relative;
   transition: all 0.3s;
@@ -4306,9 +4178,6 @@
   width: 100%;
 }
 
-/* Removed Pulse Animation - No pulsing for active elements */
-
-/* Enhanced Stat Cards */
 .fc-stat-card {
   position: relative;
   overflow: hidden;
@@ -4336,7 +4205,6 @@
   box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
-/* Gradient Overlay for Sidebar */
 [data-theme-mode="dark"] .fc-sidebar::before {
   content: '';
   position: absolute;
@@ -4372,7 +4240,6 @@
   z-index: 1;
 }
 
-/* Enhanced Select Dropdown */
 .fc-select {
   width: 100%;
   padding: 12px 16px;
@@ -4410,7 +4277,6 @@
   padding: 12px;
 }
 
-/* Glowing Accent for Convert Button */
 .fc-nav-item.fc-convert-btn {
   box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 30%, transparent);
 }
@@ -4419,12 +4285,10 @@
   box-shadow: 0 6px 24px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-/* Enhanced Loading Spinner */
 .fc-spinner span {
   box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-/* Subtle Background Pattern for Content */
 [data-theme-mode="dark"] .fc-content::before {
   content: '';
   position: absolute;
@@ -4456,7 +4320,6 @@
   z-index: 1;
 }
 
-/* Enhanced Study Button */
 .fc-set-btn.study {
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
@@ -4465,7 +4328,6 @@
   box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
-/* Gradient Border Animation */
 @keyframes borderGlow {
   0%, 100% {
     border-color: color-mix(in srgb, var(--accent) 30%, transparent);
@@ -4480,7 +4342,6 @@
   animation: borderGlow 2s infinite;
 }
 
-/* Enhanced Empty State - DISABLED */
 .fc-empty {
   position: relative;
 }
@@ -4490,7 +4351,6 @@
   content: none !important;
 }
 
-/* Smooth Transitions for All Interactive Elements */
 .fc-nav-item,
 .fc-btn,
 .fc-set-card,
@@ -4501,7 +4361,6 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Subtle Glow for Active Nav Items */
 [data-theme-mode="dark"] .fc-nav-item.active {
   box-shadow: inset 0 0 20px color-mix(in srgb, var(--accent) 15%, transparent);
 }
@@ -4510,13 +4369,11 @@
   box-shadow: inset 0 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* Enhanced Scrollbar */
 .fc-content::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, var(--fc-accent), color-mix(in srgb, var(--accent) 60%, transparent));
   box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Gradient Accent for Stats Bar */
 [data-theme-mode="dark"] .fc-stats-bar {
   background: linear-gradient(90deg, 
     transparent 0%,
@@ -4533,7 +4390,6 @@
   );
 }
 
-/* Enhanced Icon Glow */
 .fc-nav-icon,
 .fc-stat-icon {
   transition: all 0.3s;
@@ -4544,7 +4400,6 @@
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 60%, transparent));
 }
 
-/* Subtle Depth for Cards */
 [data-theme-mode="dark"] .fc-set-card {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4),
               inset 0 1px 0 color-mix(in srgb, var(--accent) 10%, transparent);
@@ -4555,14 +4410,12 @@
               inset 0 1px 0 color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
-/* Enhanced Focus Rings */
 .fc-btn:focus-visible,
 .fc-nav-item:focus-visible {
   outline: 2px solid var(--fc-accent);
   outline-offset: 2px;
 }
 
-/* Gradient Overlay for Footer */
 .fc-sidebar-footer {
   position: relative;
 }
@@ -4587,12 +4440,10 @@
   z-index: 1;
 }
 
-/* Enhanced Mastery Badge Colors */
 .fc-set-mastery {
   text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Subtle Animation for Page Load */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -4617,7 +4468,6 @@
 .fc-set-card:nth-child(5) { animation-delay: 0.25s; }
 .fc-set-card:nth-child(6) { animation-delay: 0.3s; }
 
-/* Enhanced Button States */
 .fc-btn:active {
   transform: scale(0.98);
 }
@@ -4626,7 +4476,6 @@
   box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent) !important;
 }
 
-/* Gradient Text for Stats */
 [data-theme-mode="dark"] .fc-stat-value {
   background: linear-gradient(135deg, 
     var(--fc-accent),
@@ -4645,7 +4494,6 @@
   color: var(--fc-accent) !important;
 }
 
-/* Enhanced Logo Hover */
 .fc-logo {
   transition: all 0.3s;
 }
@@ -4654,33 +4502,25 @@
   filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 40%, transparent));
 }
 
-/* Subtle Glow for Collapse Button */
 .fc-collapse-btn:hover {
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* Enhanced Grid Hover */
 .fc-grid {
   gap: 24px;
 }
 
-/* Smooth Color Transitions */
 .flashcards-page * {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-duration: 0.2s;
   transition-timing-function: ease-in-out;
 }
 
-/* Override for animations */
 .flashcards-page *[class*="animation"],
 .flashcards-page *[class*="animate"] {
   transition: none;
 }
 
-
-/* ==================== COMPREHENSIVE PANEL STYLING ==================== */
-
-/* Large Gradient Overlays for Each Panel */
 [data-theme-mode="dark"] .fc-content::after {
   content: '';
   position: absolute;
@@ -4709,12 +4549,10 @@
   z-index: 0;
 }
 
-/* Enhanced Title and Subtitle Spacing */
 .fc-header-left {
   padding: 8px 0;
 }
 
-/* Stat Card Enhanced Backgrounds */
 [data-theme-mode="dark"] .fc-stat-card {
   background: linear-gradient(135deg, 
     color-mix(in srgb, var(--accent) 5%, var(--panel)) 0%,
@@ -4729,7 +4567,6 @@
   );
 }
 
-/* Enhanced Set Card Backgrounds */
 [data-theme-mode="dark"] .fc-set-card {
   background: linear-gradient(145deg, 
     color-mix(in srgb, var(--accent) 4%, var(--panel)) 0%,
@@ -4744,7 +4581,6 @@
   ) !important;
 }
 
-/* Generator Panel Special Gradient */
 [data-theme-mode="dark"] .fc-generator {
   background: transparent;
   padding: 0;
@@ -4757,7 +4593,6 @@
   border-radius: 0;
 }
 
-/* Mode Selector Enhanced */
 .fc-mode-btn {
   position: relative;
   overflow: hidden;
@@ -4780,7 +4615,6 @@
   opacity: 1;
 }
 
-/* Enhanced Empty State Gradient - DISABLED */
 [data-theme-mode="dark"] .fc-empty {
   background: transparent !important;
 }
@@ -4789,7 +4623,6 @@
   background: transparent !important;
 }
 
-/* Stats Bar Enhanced */
 [data-theme-mode="dark"] .fc-stats-bar {
   background: linear-gradient(90deg, 
     transparent 0%,
@@ -4808,7 +4641,6 @@
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
-/* Review Panel Special Styling */
 [data-theme-mode="dark"] .fc-content:has(.fc-review-card) {
   background: radial-gradient(ellipse 100% 80% at 50% 30%, 
     color-mix(in srgb, var(--accent) 5%, var(--bg)) 0%,
@@ -4823,7 +4655,6 @@
   );
 }
 
-/* Enhanced Input Fields */
 [data-theme-mode="dark"] .fc-input,
 [data-theme-mode="dark"] .fc-textarea {
   background: linear-gradient(135deg, 
@@ -4840,7 +4671,6 @@
   );
 }
 
-/* Enhanced Search Box */
 [data-theme-mode="dark"] .fc-search {
   background: linear-gradient(135deg, 
     color-mix(in srgb, var(--accent) 4%, var(--hover-bg)) 0%,
@@ -4855,7 +4685,6 @@
   ) !important;
 }
 
-/* Enhanced Select Dropdown */
 [data-theme-mode="dark"] .fc-select {
   background-color: var(--fc-bg-tertiary);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
@@ -4870,9 +4699,6 @@
   background-position: right 12px center;
 }
 
-
-
-/* Enhanced Progress Bars */
 .fc-set-progress {
   background: linear-gradient(90deg, 
     color-mix(in srgb, var(--accent) 10%, var(--hover-bg)),
@@ -4880,7 +4706,6 @@
   );
 }
 
-/* Study Button Enhanced Gradient */
 .fc-set-btn.study {
   background: linear-gradient(135deg, 
     var(--fc-accent) 0%,
@@ -4888,7 +4713,6 @@
   ) !important;
 }
 
-/* Preview Button Enhanced */
 [data-theme-mode="dark"] .fc-set-btn.preview {
   background: linear-gradient(135deg, 
     color-mix(in srgb, var(--accent) 8%, var(--hover-bg)) 0%,
@@ -4903,12 +4727,10 @@
   ) !important;
 }
 
-/* Enhanced Logo Area */
 .fc-logo-text {
   text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* Sidebar Nav Enhanced Hover States */
 [data-theme-mode="dark"] .fc-nav-item:hover:not(.fc-convert-btn) {
   background: linear-gradient(90deg, 
     color-mix(in srgb, var(--accent) 12%, var(--hover-bg)) 0%,
@@ -4923,7 +4745,6 @@
   ) !important;
 }
 
-/* Active Nav Item Enhanced */
 [data-theme-mode="dark"] .fc-nav-item.active {
   background: linear-gradient(90deg, 
     color-mix(in srgb, var(--accent) 15%, var(--hover-bg)) 0%,
@@ -4938,7 +4759,6 @@
   ) !important;
 }
 
-/* Visibility Toggle */
 .fc-visibility-toggle {
   display: flex;
   gap: 12px;
@@ -4986,7 +4806,6 @@
   font-style: italic;
 }
 
-/* Light mode flashcard set cards - white bottom section */
 [data-theme-mode="light"] .fc-set-card {
   background: white !important;
   border-color: rgba(0, 0, 0, 0.1) !important;
@@ -5034,7 +4853,6 @@
   background: #f0f0f0 !important;
 }
 
-/* Light mode for NEW flashcard set cards - comprehensive overrides */
 [data-theme-mode="light"] .fc-set-card-new {
   background: white !important;
   border-color: rgba(0, 0, 0, 0.1) !important;
@@ -5108,10 +4926,6 @@
   color: #1a1a1a !important;
 }
 
-
-/* ==================== FLASHCARD FIX - NON-SCROLLABLE CARDS ==================== */
-
-/* Force flashcard content to not scroll */
 .fc-flashcard,
 .fc-flashcard-inner,
 .fc-flashcard-front,
@@ -5120,7 +4934,6 @@
   max-height: none !important;
 }
 
-/* Flashcard container - fixed dimensions */
 .fc-flashcard-container {
   width: 100%;
   max-width: 700px;
@@ -5130,7 +4943,6 @@
   position: relative;
 }
 
-/* Card wrapper */
 .fc-flashcard {
   width: 100%;
   height: 100%;
@@ -5143,7 +4955,6 @@
   transform: rotateY(180deg);
 }
 
-/* Card faces */
 .fc-flashcard-inner {
   width: 100%;
   height: 100%;
@@ -5164,7 +4975,6 @@
   transform: rotateY(180deg);
 }
 
-/* Card content - fixed height, centered, no scroll */
 .fc-card-content {
   flex: 1;
   display: flex;
@@ -5175,7 +4985,6 @@
   position: relative;
 }
 
-/* Text container - centered, limited height */
 .fc-card-text {
   max-width: 100%;
   max-height: 260px;
@@ -5188,7 +4997,6 @@
   color: var(--fc-text-primary);
 }
 
-/* Question text - larger */
 .fc-card-question {
   font-size: 22px;
   font-weight: 600;
@@ -5199,7 +5007,6 @@
   -webkit-box-orient: vertical;
 }
 
-/* Answer text - limited height */
 .fc-card-answer {
   font-size: 17px;
   line-height: 1.5;
@@ -5209,7 +5016,6 @@
   -webkit-box-orient: vertical;
 }
 
-/* Card header - info badge */
 .fc-card-header {
   padding: 12px 20px;
   border-bottom: 1px solid var(--fc-border-subtle);
@@ -5227,7 +5033,6 @@
   letter-spacing: 2px;
 }
 
-/* Card footer - fixed at bottom */
 .fc-card-footer {
   padding: 12px 20px;
   border-top: 1px solid var(--fc-border-subtle);
@@ -5237,7 +5042,6 @@
   flex-shrink: 0;
 }
 
-/* Study mode controls */
 .fc-study-controls {
   display: flex;
   gap: 12px;
@@ -5283,7 +5087,6 @@
   background: color-mix(in srgb, var(--fc-danger) 10%, var(--fc-bg-secondary));
 }
 
-/* Navigation buttons */
 .fc-nav-buttons {
   display: flex;
   gap: 16px;
@@ -5312,7 +5115,6 @@
   cursor: not-allowed;
 }
 
-/* Mobile responsive */
 @media (max-width: 768px) {
   .fc-flashcard-container {
     height: 320px;
@@ -5336,8 +5138,6 @@
   }
 }
 
-
-/* Mobile responsive for arrow buttons */
 @media (max-width: 768px) {
   .fc-preview-card-container {
     gap: 12px;
@@ -5360,7 +5160,6 @@
   }
 }
 
-/* Section Header Text */
 .fc-section-header-text {
   width: 100%;
   padding: 40px 0 32px 0;
@@ -5387,12 +5186,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-
-
-
-/* ==================== NEW FEATURES STYLES ==================== */
-
-/* 3-column mode selector for generator */
 .fc-mode-selector-3 {
   grid-template-columns: repeat(3, 1fr) !important;
 }
@@ -5403,7 +5196,6 @@
   }
 }
 
-/* Custom flashcard creation styles */
 .fc-custom-cards-container {
   margin-bottom: 24px;
 }
@@ -5513,7 +5305,6 @@
   height: 16px;
 }
 
-/* Edit mode actions */
 .fc-edit-actions {
   display: flex;
   gap: 12px;
@@ -5529,7 +5320,6 @@
   margin-top: 0;
 }
 
-/* Edit button in card actions */
 .fc-action-btn-new.fc-action-edit {
   background: var(--fc-bg-tertiary);
   border: 1px solid var(--fc-border-subtle);
@@ -5546,7 +5336,6 @@
   color: white;
 }
 
-/* Public flashcards search bar - Compact centered design */
 .fc-public-search-bar {
   display: flex;
   flex-direction: column;
@@ -5558,7 +5347,6 @@
   margin-right: auto;
 }
 
-/* When search bar is inside empty state */
 .fc-empty .fc-public-search-bar {
   margin-top: 0;
   margin-bottom: 0;
@@ -5581,7 +5369,6 @@
   height: 100%;
 }
 
-/* Public flashcard card badge */
 .fc-public-badge {
   position: absolute;
   top: 12px;
@@ -5601,12 +5388,10 @@
   position: relative;
 }
 
-/* Public card actions - 2 columns */
 .fc-public-card .fc-set-actions-new {
   grid-template-columns: repeat(2, 1fr);
 }
 
-/* Copy button style */
 .fc-action-btn-new.fc-action-copy {
   background: linear-gradient(135deg, var(--fc-accent), var(--fc-accent-dark));
   border: none;
@@ -5622,7 +5407,6 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--fc-accent) 40%, transparent);
 }
 
-/* Section header text */
 .fc-section-header-text {
   margin-bottom: 24px;
 }
@@ -5643,14 +5427,12 @@
   letter-spacing: 2px;
 }
 
-/* Small button variant */
 .fc-btn-small {
   height: 32px !important;
   padding: 0 12px !important;
   font-size: 10px !important;
 }
 
-/* Visibility toggle */
 .fc-visibility-toggle {
   display: flex;
   gap: 8px;
@@ -5689,7 +5471,6 @@
   margin-top: 8px;
 }
 
-/* Nav badge for review count */
 .fc-nav-badge {
   background: var(--fc-danger);
   color: white;
@@ -5700,7 +5481,6 @@
   margin-left: auto;
 }
 
-/* Set card new design - 3 action buttons */
 .fc-set-actions-new {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -5755,7 +5535,6 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--fc-accent) 40%, transparent);
 }
 
-/* Responsive adjustments for 3 buttons */
 @media (max-width: 400px) {
   .fc-set-actions-new {
     grid-template-columns: 1fr;
@@ -5765,9 +5544,6 @@
     display: none;
   }
 }
-
-
-/* ==================== FULLSCREEN EDIT MODE STYLES ==================== */
 
 .fc-edit-mode {
   background: var(--fc-bg-primary);
@@ -5793,7 +5569,6 @@
   border-radius: 4px 4px 0 0 !important;
 }
 
-/* Create mode header styling */
 .fc-create-header {
   background: transparent !important;
   border-bottom: none !important;
@@ -6119,7 +5894,6 @@
   border-color: var(--fc-accent);
 }
 
-/* Responsive adjustments for edit mode */
 @media (max-width: 768px) {
   .fc-edit-card-container {
     flex-direction: column;
@@ -6139,9 +5913,6 @@
   }
 }
 
-/* ==================== LAZY LOADING STYLES ==================== */
-
-/* Loading More Indicator */
 .fc-loading-more {
   display: flex;
   flex-direction: column;
@@ -6158,7 +5929,6 @@
   font-weight: 500;
 }
 
-/* Small Spinner for Load More */
 .fc-spinner-small {
   display: flex;
   gap: 6px;
@@ -6186,7 +5956,6 @@
   animation-delay: 0s;
 }
 
-/* End of List Indicator */
 .fc-end-of-list {
   display: flex;
   align-items: center;
@@ -6203,7 +5972,6 @@
   text-align: center;
 }
 
-/* Load More Sentinel (invisible trigger) */
 .fc-load-more-sentinel {
   height: 20px;
   margin: 20px 0;
@@ -6211,7 +5979,6 @@
   visibility: hidden;
 }
 
-/* Smooth fade-in for newly loaded cards */
 @keyframes fc-fade-in-up {
   from {
     opacity: 0;
@@ -6227,7 +5994,6 @@
   animation: fc-fade-in-up 0.4s ease-out;
 }
 
-/* Stagger animation for multiple cards loading at once */
 .fc-grid .fc-set-card-new:nth-child(n+1) {
   animation-delay: 0s;
 }
@@ -6244,7 +6010,6 @@
   animation-delay: 0.15s;
 }
 
-/* Performance optimization: Use will-change for smooth scrolling */
 .fc-main {
   will-change: scroll-position;
 }
@@ -6253,7 +6018,6 @@
   will-change: contents;
 }
 
-/* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
   .fc-set-card-new {
     animation: none;
@@ -6265,8 +6029,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;
@@ -6294,9 +6056,6 @@
   stroke-width: 2;
 }
 
-/* ==================== SPACED REPETITION STYLES ==================== */
-
-/* Due Banner on Cards Panel */
 .fc-due-banner {
   display: flex;
   align-items: center;
@@ -6346,7 +6105,6 @@
   text-transform: uppercase;
 }
 
-/* SR Nav Badge */
 .fc-nav-badge-sr {
   background: transparent !important;
   color: var(--fc-accent) !important;
@@ -6358,8 +6116,6 @@
   letter-spacing: 1px;
   margin-left: auto;
 }
-
-/* ---- Study Queue Panel ---- */
 
 .fc-sr-panel-header {
   width: 100%;
@@ -6392,7 +6148,6 @@
   color: var(--fc-accent);
 }
 
-/* SR Summary Cards */
 .fc-sr-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -6451,7 +6206,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* SR Start Button */
 .fc-sr-start-btn {
   width: 100%;
   padding: 16px 24px !important;
@@ -6487,7 +6241,6 @@
 }
 .fc-sr-start-btn svg { width: 18px; height: 18px; }
 
-/* SR Empty State */
 .fc-sr-empty {
   text-align: center;
   padding: 80px 20px;
@@ -6523,8 +6276,6 @@
   line-height: 1.5;
 }
 
-/* ---- SR Study Mode Body ---- */
-
 .fc-sr-body {
   flex: 1;
   display: flex;
@@ -6540,8 +6291,6 @@
   );
   overflow-y: auto;
 }
-
-/* ---- SR Study Mode Card ---- */
 
 .fc-sr-card-area {
   display: flex;
@@ -6668,7 +6417,6 @@
   letter-spacing: 2px;
 }
 
-/* SR Grade Buttons */
 .fc-sr-grade-buttons {
   display: flex;
   gap: 12px;
@@ -6677,7 +6425,6 @@
   max-width: 680px;
 }
 
-/* SR Nav Row */
 .fc-sr-nav-row {
   display: flex;
   gap: 16px;
@@ -6758,7 +6505,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Grade colors - Again (red) */
 .fc-sr-grade.fc-sr-again {
   border-color: color-mix(in srgb, #ef4444 30%, var(--fc-border-subtle)) !important;
   background: color-mix(in srgb, #ef4444 5%, var(--fc-bg-card)) !important;
@@ -6772,7 +6518,6 @@
 .fc-sr-grade.fc-sr-again .fc-sr-grade-interval,
 .fc-sr-grade.fc-sr-again .fc-sr-grade-label { color: #ef4444; }
 
-/* Grade colors - Hard (orange) */
 .fc-sr-grade.fc-sr-hard {
   border-color: color-mix(in srgb, #f97316 30%, var(--fc-border-subtle)) !important;
   background: color-mix(in srgb, #f97316 5%, var(--fc-bg-card)) !important;
@@ -6786,7 +6531,6 @@
 .fc-sr-grade.fc-sr-hard .fc-sr-grade-interval,
 .fc-sr-grade.fc-sr-hard .fc-sr-grade-label { color: #f97316; }
 
-/* Grade colors - Good (green) */
 .fc-sr-grade.fc-sr-good {
   border-color: color-mix(in srgb, #22c55e 30%, var(--fc-border-subtle)) !important;
   background: color-mix(in srgb, #22c55e 5%, var(--fc-bg-card)) !important;
@@ -6800,7 +6544,6 @@
 .fc-sr-grade.fc-sr-good .fc-sr-grade-interval,
 .fc-sr-grade.fc-sr-good .fc-sr-grade-label { color: #22c55e; }
 
-/* Grade colors - Easy (blue) */
 .fc-sr-grade.fc-sr-easy {
   border-color: color-mix(in srgb, #3b82f6 30%, var(--fc-border-subtle)) !important;
   background: color-mix(in srgb, #3b82f6 5%, var(--fc-bg-card)) !important;
@@ -6814,7 +6557,6 @@
 .fc-sr-grade.fc-sr-easy .fc-sr-grade-interval,
 .fc-sr-grade.fc-sr-easy .fc-sr-grade-label { color: #3b82f6; }
 
-/* SR Session mini counts in header */
 .fc-sr-session-counts {
   display: flex;
   gap: 6px;
@@ -6835,8 +6577,6 @@
 .fc-sr-mini-count.fc-sr-hard { background: #f97316; }
 .fc-sr-mini-count.fc-sr-good { background: #22c55e; }
 .fc-sr-mini-count.fc-sr-easy { background: #3b82f6; }
-
-/* ---- SR Results Screen ---- */
 
 .fc-sr-results {
   display: flex;
@@ -6936,7 +6676,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* SR Retention Bar */
 .fc-sr-retention-bar {
   position: relative;
   height: 36px;
@@ -6971,8 +6710,6 @@
   gap: 12px;
   justify-content: center;
 }
-
-/* ---- SR Stats Panel ---- */
 
 .fc-sr-stats-panel {
   margin-top: 32px;
@@ -7061,7 +6798,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* State Distribution Bars */
 .fc-sr-state-dist, .fc-sr-ease-dist { margin-top: 24px; }
 
 .fc-sr-state-dist h4, .fc-sr-forecast h4, .fc-sr-ease-dist h4 {
@@ -7119,7 +6855,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Review Forecast Chart */
 .fc-sr-forecast { margin-top: 24px; }
 
 .fc-sr-forecast-chart {
@@ -7171,8 +6906,6 @@
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
 }
-
-/* ---- AI Suggestions Section ---- */
 
 .fc-sr-ai-section {
   margin-top: 24px;
@@ -7279,7 +7012,6 @@
   margin-top: 4px;
 }
 
-/* Study Tips */
 .fc-sr-tips { margin-bottom: 20px; }
 
 .fc-sr-tips h4, .fc-sr-problem-areas h4 {
@@ -7320,7 +7052,6 @@
   font-weight: 600;
 }
 
-/* Problem Areas */
 .fc-sr-problem-card {
   padding: 16px 18px;
   background: var(--fc-bg-secondary);
@@ -7371,7 +7102,6 @@
   line-height: 1.6;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .fc-sr-summary { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .fc-sr-stats-grid { grid-template-columns: repeat(2, 1fr); }

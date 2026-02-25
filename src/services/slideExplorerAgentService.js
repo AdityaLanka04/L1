@@ -1,7 +1,4 @@
-/**
- * Slide Explorer Agent Service
- * Frontend service for interacting with the Slide Explorer Agent API
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
@@ -51,9 +48,7 @@ class SlideExplorerAgentService {
     }
   }
 
-  /**
-   * Extract structured content from slides
-   */
+  
   async extractContent(params) {
     const { userId, slideContent, extractionType = 'full', sessionId } = params;
 
@@ -68,9 +63,7 @@ class SlideExplorerAgentService {
     });
   }
 
-  /**
-   * Summarize slide content
-   */
+  
   async summarizeSlide(params) {
     const { userId, slideContent, sessionId } = params;
 
@@ -84,9 +77,7 @@ class SlideExplorerAgentService {
     });
   }
 
-  /**
-   * Extract key points from slides
-   */
+  
   async extractKeyPoints(params) {
     const { userId, slideContent, sessionId } = params;
 
@@ -100,9 +91,7 @@ class SlideExplorerAgentService {
     });
   }
 
-  /**
-   * Generate questions from slide content
-   */
+  
   async generateQuestions(params) {
     const { userId, slideContent, sessionId } = params;
 
@@ -116,9 +105,7 @@ class SlideExplorerAgentService {
     });
   }
 
-  /**
-   * Extract and map concepts from slides
-   */
+  
   async extractConcepts(params) {
     const { userId, slideContent, sessionId } = params;
 
@@ -132,9 +119,7 @@ class SlideExplorerAgentService {
     });
   }
 
-  /**
-   * Deep analysis of slide content
-   */
+  
   async analyzeSlide(params) {
     const { userId, slideContent, analysisDepth = 'standard', sessionId } = params;
 
@@ -149,9 +134,7 @@ class SlideExplorerAgentService {
     });
   }
 
-  /**
-   * Link slide content to other learning materials
-   */
+  
   async linkContent(params) {
     const { userId, slideContent, sessionId } = params;
 

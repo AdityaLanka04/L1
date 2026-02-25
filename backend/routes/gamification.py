@@ -17,7 +17,6 @@ from deps import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["gamification"])
 
-
 @router.get("/get_user_achievements")
 def get_user_achievements(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
@@ -59,7 +58,6 @@ def get_user_achievements(user_id: str = Query(...), db: Session = Depends(get_d
             "total_points": 0
         }
 
-
 @router.post("/track_gamification_activity")
 async def track_gamification_activity(
     payload: dict = Body(...),
@@ -89,7 +87,6 @@ async def track_gamification_activity(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/get_gamification_stats")
 async def get_gamification_stats(
     user_id: str = Query(...),
@@ -107,7 +104,6 @@ async def get_gamification_stats(
     except Exception as e:
         logger.error(f"Error getting gamification stats: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/xp_roadmap/personalized")
 async def get_personalized_xp_roadmap(
@@ -134,7 +130,6 @@ async def get_personalized_xp_roadmap(
     except Exception as e:
         logger.error(f"Error getting personalized roadmap: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/get_dashboard_data")
 async def get_dashboard_data(
@@ -172,7 +167,6 @@ async def get_dashboard_data(
     except Exception as e:
         logger.error(f"Error getting dashboard data: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/check_missed_achievements")
 async def check_missed_achievements(
@@ -212,7 +206,6 @@ async def check_missed_achievements(
         logger.error(f"Error checking missed achievements: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/get_weekly_bingo_stats")
 async def get_weekly_bingo_stats(
     user_id: str = Query(...),
@@ -250,7 +243,6 @@ async def get_weekly_bingo_stats(
     except Exception as e:
         logger.error(f"Error getting bingo stats: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/get_weekly_activity_progress")
 async def get_weekly_activity_progress(
@@ -295,7 +287,6 @@ async def get_weekly_activity_progress(
         logger.error(f"Error getting weekly progress: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/get_recent_point_activities")
 async def get_recent_point_activities(
     user_id: str = Query(...),
@@ -338,7 +329,6 @@ async def get_recent_point_activities(
     except Exception as e:
         logger.error(f"Error getting recent activities: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/get_daily_challenge")
 async def get_daily_challenge(
@@ -392,7 +382,6 @@ async def get_daily_challenge(
         logger.error(f"Error getting daily challenge: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/get_leaderboard")
 async def get_leaderboard(
     category: str = Query("global"),
@@ -435,7 +424,6 @@ async def get_leaderboard(
     except Exception as e:
         logger.error(f"Error getting leaderboard: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/admin/recalculate_gamification")
 async def recalculate_gamification(db: Session = Depends(get_db)):

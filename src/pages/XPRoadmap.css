@@ -1,7 +1,6 @@
-/* ==================== IMPORTS ==================== */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ==================== VARIABLES ==================== */
 :root {
   --bronze: #cd7f32;
   --silver: #c0c0c0;
@@ -12,7 +11,6 @@
   --legendary: #ff4500;
 }
 
-/* ==================== CONTAINER ==================== */
 .xp-roadmap-container {
   position: fixed;
   top: 0;
@@ -29,7 +27,6 @@
   flex-direction: column;
 }
 
-/* ==================== LOADING STATE ==================== */
 .xp-roadmap-loading {
   display: flex;
   flex-direction: column;
@@ -60,7 +57,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== HEADER (STANDARDIZED) ==================== */
 .xp-roadmap-header {
   position: sticky;
   top: 0;
@@ -203,7 +199,6 @@
   color: var(--accent);
 }
 
-/* ==================== BODY LAYOUT ==================== */
 .xp-roadmap-body {
   display: flex;
   flex: 1;
@@ -212,7 +207,6 @@
   position: relative;
 }
 
-/* Animated background effects */
 .xp-roadmap-body::before {
   content: '';
   position: absolute;
@@ -233,7 +227,6 @@
   50% { opacity: 0.8; }
 }
 
-/* ==================== MAIN ROADMAP SECTION ==================== */
 .xp-roadmap-main-full {
   flex: 1;
   overflow-y: auto;
@@ -296,7 +289,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== PROGRESS BAR ==================== */
 .overall-progress {
   margin-bottom: 32px;
 }
@@ -335,7 +327,6 @@
   100% { transform: translateX(100%); }
 }
 
-/* ==================== TOPIC MILESTONES SECTION ==================== */
 .topic-milestones-section {
   margin-bottom: 48px;
   padding: 24px;
@@ -461,7 +452,6 @@
   color: var(--accent);
 }
 
-/* ==================== ROADMAP PATH ==================== */
 .roadmap-path {
   max-width: 700px;
   margin: 0 auto;
@@ -826,7 +816,6 @@
   margin-top: 8px;
 }
 
-/* ==================== SIDEBAR (TOPIC MILESTONES) ==================== */
 .xp-roadmap-sidebar {
   width: 380px;
   height: 100%;
@@ -1152,7 +1141,6 @@
   flex-shrink: 0;
 }
 
-/* ==================== REWARD MODAL ==================== */
 .reward-modal-overlay {
   position: fixed;
   top: 0;
@@ -1355,7 +1343,6 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
-/* ==================== ACTIVITY ACHIEVEMENTS ==================== */
 .activity-achievement-node {
   width: 100%;
   background: linear-gradient(135deg, 
@@ -1583,7 +1570,6 @@
   flex-shrink: 0;
 }
 
-/* Activity Achievement Animations */
 .activity-achievement-node.completed {
   animation: achievement-unlock 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1602,7 +1588,6 @@
   }
 }
 
-/* Different icon colors for different achievement types */
 .activity-achievement-node[data-type="ai_chat"] .achievement-icon {
   background: linear-gradient(135deg, #8b5cf6, #7c3aed);
 }
@@ -1627,7 +1612,6 @@
   background: linear-gradient(135deg, #06b6d4, #0891b2);
 }
 
-/* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1024px) {
   .xp-roadmap-body {
     flex-direction: column;
@@ -1691,7 +1675,7 @@
     padding: 40px 24px 24px;
   }
 
-  /* Activity Achievement Mobile Styles */
+  
   .activity-achievement-node {
     padding: 14px 16px;
     flex-direction: row;
@@ -1728,10 +1712,6 @@
   }
 }
 
-/* ==================== END OF STYLES ==================== */
-
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

@@ -7,12 +7,11 @@ from typing import Any, Optional, TypedDict
 
 try:
     from langgraph.graph import StateGraph, END
-except Exception:  # pragma: no cover - optional dependency
+except Exception:
     StateGraph = None
     END = None
 
 logger = logging.getLogger(__name__)
-
 
 class LearningPathState(TypedDict, total=False):
     user_id: str
@@ -26,17 +25,14 @@ class LearningPathState(TypedDict, total=False):
     nodes: list[dict]
     _ai_client: Any
 
-
 _LENGTH_TO_COUNT = {
     "short": 6,
     "medium": 8,
     "long": 10,
 }
 
-
 def _clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", (value or "").strip())
-
 
 def _safe_list(value) -> list:
     if not value:
@@ -45,12 +41,10 @@ def _safe_list(value) -> list:
         return [v for v in value if v]
     return [value]
 
-
 def _topic_keywords(topic: str) -> list[str]:
     words = re.findall(r"[a-zA-Z0-9]+", topic.lower())
     stop = {"and", "or", "the", "of", "to", "in", "for", "with", "on", "a"}
     keywords = [w for w in words if w not in stop and len(w) > 2]
-    # Keep unique, preserve order
     seen = set()
     ordered = []
     for w in keywords:
@@ -58,7 +52,6 @@ def _topic_keywords(topic: str) -> list[str]:
             seen.add(w)
             ordered.append(w)
     return ordered[:8]
-
 
 def _default_node_titles(topic: str, count: int, difficulty: str) -> list[str]:
     core = [
@@ -81,7 +74,6 @@ def _default_node_titles(topic: str, count: int, difficulty: str) -> list[str]:
     if difficulty == "advanced":
         core[0] = f"Advanced Foundations of {topic}"
     return core[:count]
-
 
 def _default_content_plan(node_title: str, difficulty: str, length: str) -> list[dict]:
     flashcard_count = 6
@@ -113,7 +105,6 @@ def _default_content_plan(node_title: str, difficulty: str, length: str) -> list
         },
     ]
 
-
 def _default_core_sections(node_title: str, topic: str) -> list[dict]:
     return [
         {
@@ -133,7 +124,6 @@ def _default_core_sections(node_title: str, topic: str) -> list[dict]:
         },
     ]
 
-
 def _default_summary(node_title: str) -> list[str]:
     return [
         f"Define and explain the core components of {node_title}.",
@@ -141,14 +131,12 @@ def _default_summary(node_title: str) -> list[str]:
         "Identify typical mistakes and how to avoid them.",
     ]
 
-
 def _default_applications(topic: str) -> list[str]:
     return [
         f"Improve real-world projects that involve {topic}.",
         f"Communicate {topic} concepts clearly to teammates.",
         f"Evaluate tradeoffs when applying {topic} in production.",
     ]
-
 
 def _default_scenarios(topic: str, node_title: str) -> list[dict]:
     return [
@@ -167,7 +155,6 @@ def _default_scenarios(topic: str, node_title: str) -> list[dict]:
         }
     ]
 
-
 def _default_concept_map(topic: str) -> dict:
     concepts = [topic, "Foundations", "Applications", "Evaluation"]
     return {
@@ -178,7 +165,6 @@ def _default_concept_map(topic: str) -> dict:
             {"from": "Applications", "to": "Evaluation", "label": "validated by"},
         ],
     }
-
 
 def _default_outline(topic: str, difficulty: str, length: str, goals: list[str] | None) -> dict:
     topic = _clean_text(topic) or "Learning Path"
@@ -236,7 +222,6 @@ def _default_outline(topic: str, difficulty: str, length: str, goals: list[str] 
         "nodes": nodes,
     }
 
-
 def _build_prompt(topic: str, difficulty: str, length: str, goals: list[str]) -> str:
     goals_text = ", ".join(goals) if goals else "(none)"
     return (
@@ -249,7 +234,6 @@ def _build_prompt(topic: str, difficulty: str, length: str, goals: list[str]) ->
         f"Topic: {topic}\nDifficulty: {difficulty}\nLength: {length}\nGoals: {goals_text}\n"
         "Ensure 6-10 nodes depending on length."
     )
-
 
 def _parse_json_payload(raw: str) -> Optional[dict]:
     if not raw:
@@ -265,7 +249,6 @@ def _parse_json_payload(raw: str) -> Optional[dict]:
         return json.loads(cleaned[start : end + 1])
     except Exception:
         return None
-
 
 def build_outline(state: LearningPathState) -> dict:
     topic = _clean_text(state.get("topic", ""))
@@ -287,7 +270,6 @@ def build_outline(state: LearningPathState) -> dict:
         logger.warning(f"Learning path AI outline failed: {e}")
 
     return _default_outline(topic, difficulty, length, goals)
-
 
 def normalize_outline(state: LearningPathState) -> dict:
     topic = _clean_text(state.get("topic", ""))
@@ -373,7 +355,6 @@ def normalize_outline(state: LearningPathState) -> dict:
         "nodes": nodes,
     }
 
-
 class LearningPathGraph:
     def __init__(self, ai_client: Any, db_session_factory: Any = None):
         self.ai_client = ai_client
@@ -426,15 +407,12 @@ class LearningPathGraph:
                 "nodes": fallback.get("nodes", []),
             }
 
-
 _learningpath_graph: Optional[LearningPathGraph] = None
-
 
 def create_learningpath_graph(ai_client: Any, db_session_factory: Any = None) -> LearningPathGraph:
     global _learningpath_graph
     _learningpath_graph = LearningPathGraph(ai_client, db_session_factory)
     return _learningpath_graph
-
 
 def get_learningpath_graph() -> Optional[LearningPathGraph]:
     return _learningpath_graph

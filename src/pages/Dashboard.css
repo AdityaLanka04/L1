@@ -247,7 +247,6 @@
   transform: translateY(-2px);
 }
 
-/* Theme Switcher Styling */
 .ds-header-left .dashboard-theme-switcher {
   position: relative;
 }
@@ -398,7 +397,6 @@
   }
 }
 
-/* Notification Backdrop - Full Screen Frosted Glass */
 .ds-notif-backdrop {
   position: fixed;
   top: 0;
@@ -506,7 +504,6 @@
   padding: 8px;
 }
 
-/* Notification panel scrollbar - uses global auto-hiding styles */
 .ds-notif-panel-content {
   scrollbar-width: thin;
 }
@@ -664,7 +661,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Dark mode enhancements */
 [data-theme-mode="dark"] .ds-notif-panel {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
 }
@@ -673,7 +669,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Light mode enhancements */
 [data-theme-mode="light"] .ds-notif-panel {
   background: linear-gradient(145deg, #ffffff, #fafafa);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
@@ -965,8 +960,6 @@
   50% { transform: translateY(-12px); }
 }
 
-/* ==================== LEARNING HUB GRID ==================== */
-/* ==================== LEARNING HUB GRID ==================== */
 .ds-learning-hub-grid {
   grid-column: 2 / 4;
   grid-row: 1 / 4;
@@ -1124,7 +1117,6 @@
   z-index: 1;
 }
 
-/* ==================== LEARNING SQUARES (OLD - KEEP FOR BACKWARDS COMPATIBILITY) ==================== */
 .ds-learning-square {
   display: flex;
   align-items: center;
@@ -1437,7 +1429,6 @@
   letter-spacing: 2px;
 }
 
-/* Medium mode for Activity widget */
 .ds-activity .ds-feature-content {
   padding: 24px;
   gap: 16px;
@@ -1468,7 +1459,6 @@
   margin-top: 8px;
 }
 
-/* Small mode for Concept Web widget */
 .ds-concept-web .ds-feature-content {
   padding: 16px;
   gap: 8px;
@@ -1494,7 +1484,6 @@
   font-size: 9px;
 }
 
-/* Compact mode for Concept Web widget (small size) - REMOVED */
 .ds-stats-prompts .ds-feature-content {
   padding: 8px;
   gap: 2px;
@@ -1520,7 +1509,6 @@
   display: none;
 }
 
-/* Compact mode for Notes widget (small size only) */
 .ds-notes.ds-widget-small .ds-feature-content {
   padding: 8px;
   gap: 2px;
@@ -1551,7 +1539,6 @@
   margin-top: 4px;
 }
 
-/* Compact mode for Flashcards widget (small size only) */
 .ds-flashcards.ds-widget-small .ds-feature-content {
   padding: 8px;
   gap: 2px;
@@ -2110,11 +2097,6 @@
   }
 }
 
-/* Global scrollbar styles removed - using index.css auto-hiding scrollbars */
-
-/* ============================================
-   HEATMAP WIDGET
-============================================ */
 .ds-heatmap {
   grid-column: 1 / 5;
   grid-row: 7 / 9;
@@ -2321,9 +2303,6 @@
   font-weight: 500;
 }
 
-/* ============================================
-   CUSTOMIZATION MODE
-============================================ */
 .ds-customize-btn.active {
   background: var(--accent);
   color: var(--bg-primary);
@@ -2540,7 +2519,6 @@
   font-weight: 600;
 }
 
-/* Modal Styles */
 .ds-modal-overlay {
   position: fixed;
   inset: 0;
@@ -2708,7 +2686,6 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px var(--glow);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .ds-customize-overlay {
     width: calc(100% - 40px);
@@ -2717,9 +2694,6 @@
   }
 }
 
-
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

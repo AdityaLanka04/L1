@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== FORCE BOXY DESIGN ==================== */
 .share-modal-overlay *,
 .share-modal-overlay *::before,
 .share-modal-overlay *::after {
@@ -154,7 +153,6 @@
   letter-spacing: 2px;
 }
 
-/* Permission Options */
 .permission-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -211,7 +209,6 @@
   display: block;
 }
 
-/* Friend Search */
 .friend-search {
   position: relative;
   margin-bottom: 12px;
@@ -248,7 +245,6 @@
   color: var(--text-secondary);
 }
 
-/* Friends List */
 .friends-list {
   max-height: 300px;
   overflow-y: auto;
@@ -398,7 +394,6 @@
   color: var(--accent);
 }
 
-/* Share Message */
 .share-message-input {
   width: 100%;
   padding: 12px;
@@ -424,7 +419,6 @@
   color: var(--text-secondary);
 }
 
-/* Share Link */
 .share-link-container {
   display: flex;
   gap: 8px;
@@ -488,7 +482,6 @@
   color: var(--text-secondary);
 }
 
-/* Error Message */
 .share-error {
   display: flex;
   align-items: center;
@@ -506,7 +499,6 @@
   flex-shrink: 0;
 }
 
-/* Success Message */
 .share-success-message {
   padding: 48px 24px;
   text-align: center;
@@ -531,7 +523,6 @@
   margin: 0;
 }
 
-/* Footer */
 .share-modal-footer {
   display: flex;
   gap: 12px;
@@ -584,7 +575,6 @@
   cursor: not-allowed;
 }
 
-/* Responsive */
 @media (max-width: 640px) {
   .share-modal-content {
     max-height: 95vh;

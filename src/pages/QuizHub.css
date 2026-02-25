@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== BASE ==================== */
 .qh {
   position: fixed;
   top: 0;
@@ -17,7 +16,6 @@
   flex-direction: column;
 }
 
-/* ==================== AMBIENT BACKGROUND ==================== */
 .qh-ambient {
   position: fixed;
   inset: 0;
@@ -68,7 +66,6 @@
   opacity: 0.3;
 }
 
-/* ==================== HEADER ==================== */
 .qh-header {
   position: sticky;
   top: 0;
@@ -86,7 +83,6 @@
   flex-shrink: 0;
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .qh-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -208,7 +204,6 @@
   color: var(--accent);
 }
 
-/* ==================== MAIN CONTENT ==================== */
 .qh-main {
   flex: 1;
   display: grid;
@@ -218,7 +213,6 @@
   min-height: 0;
 }
 
-/* ==================== SECTIONS ==================== */
 .qh-section {
   position: relative;
   display: flex;
@@ -462,7 +456,6 @@
   width: 100%;
 }
 
-/* ==================== DIVIDER ==================== */
 .qh-divider {
   width: 80px;
   display: flex;
@@ -499,7 +492,6 @@
   z-index: 1;
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 1024px) {
   .qh-main {
     grid-template-columns: 1fr;
@@ -555,8 +547,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

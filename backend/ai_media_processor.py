@@ -25,7 +25,6 @@ import logging
 from activity_logger import log_ai_tokens
 from ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
 
-# Language detection
 try:
     from langdetect import detect, LangDetectException
 except ImportError:
@@ -37,7 +36,6 @@ try:
 except ImportError:
     pycountry = None
 
-# AI
 try:
     import google.generativeai as genai
     GEMINI_AVAILABLE = True
@@ -52,7 +50,6 @@ except ImportError:
     Groq = None
     GROQ_AVAILABLE = False
 
-# Audio processing
 try:
     from pydub import AudioSegment
     PYDUB_AVAILABLE = True
@@ -60,13 +57,11 @@ except ImportError:
     AudioSegment = None
     PYDUB_AVAILABLE = False
 
-# YouTube API Service (official API)
 from youtube_api_service import youtube_service, YouTubeAPIService
 from rate_limiter import rate_limiter
 
 logger = logging.getLogger(__name__)
 
-# Initialize AI clients
 GEMINI_API_KEY = os.getenv("GOOGLE_GENERATIVE_AI_KEY") or os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
@@ -75,7 +70,6 @@ if GEMINI_AVAILABLE and GEMINI_API_KEY:
 
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_AVAILABLE and GROQ_API_KEY else None
 
-
 class AIMediaProcessor:
     """
     AI-powered media processing with official YouTube API
@@ -83,11 +77,9 @@ class AIMediaProcessor:
     """
     
     def __init__(self):
-        # Prioritize Groq over Gemini (higher free tier limits)
         self.groq_client = groq_client
         self.youtube_service = youtube_service
         
-        # Gemini as fallback only (has strict rate limits)
         if GEMINI_AVAILABLE and GEMINI_API_KEY:
             try:
                 self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
@@ -151,11 +143,9 @@ class AIMediaProcessor:
         try:
             logger.info(f"Processing YouTube URL with official API: {url}")
             
-            # Validate URL
             if not url or url.strip() == "":
                 raise ValueError("YouTube URL is empty")
             
-            # Use the official YouTube API service
             result = await self.youtube_service.process_video(url.strip())
             
             if not result.get("success"):
@@ -163,10 +153,8 @@ class AIMediaProcessor:
                 logger.error(f"YouTube API error: {error_msg}")
                 raise ValueError(error_msg)
             
-            # Format response to match expected structure
             video_info = result.get("video_info", {})
             
-            # Detect language if not provided
             language = result.get("language", "en")
             if detect and result.get("transcript"):
                 try:
@@ -205,7 +193,6 @@ class AIMediaProcessor:
             if not self.groq_client:
                 raise ValueError("Groq client not available - check GROQ_API_KEY")
             
-            # Groq Whisper is free and fast
             with open(audio_path, "rb") as audio_file:
                 transcription = self.groq_client.audio.transcriptions.create(
                     file=audio_file,
@@ -214,7 +201,6 @@ class AIMediaProcessor:
                     temperature=0.0
                 )
             
-            # Extract segments with timestamps
             segments = []
             if hasattr(transcription, 'segments'):
                 for seg in transcription.segments:
@@ -225,10 +211,8 @@ class AIMediaProcessor:
                         "confidence": seg.get('confidence', 0.0)
                     })
             
-            # Detect language
             language = transcription.language if hasattr(transcription, 'language') else 'en'
             
-            # Calculate duration from segments
             duration = 0
             if segments:
                 duration = int(segments[-1].get("end", 0))
@@ -252,10 +236,8 @@ class AIMediaProcessor:
     async def analyze_transcript_ai(self, transcript: str, options: Dict = None, user_id: Optional[int] = None) -> Dict:
         """AI analysis of transcript using Groq (FREE with high limits), falls back to Gemini"""
         try:
-            # Try Groq first
             if self.groq_client:
                 try:
-                    # Check rate limit
                     can_call, wait_time = rate_limiter.can_call_groq()
                     if not can_call:
                         logger.warning(f"Groq rate limit reached, waiting {wait_time:.1f} seconds...")
@@ -265,7 +247,6 @@ class AIMediaProcessor:
                     subject = options.get('subject', 'general')
                     difficulty = options.get('difficulty', 'intermediate')
                     
-                    # Use more of the transcript for analysis (up to 30k chars)
                     transcript_sample = transcript[:30000]
                     
                     prompt = f"""Analyze this transcript and provide a comprehensive analysis:
@@ -284,7 +265,6 @@ Provide a JSON response with:
 
 Format as valid JSON."""
 
-                    # Use Groq with higher token limit
                     rate_limiter.record_groq_call()
                     response = self.groq_client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
@@ -300,7 +280,6 @@ Format as valid JSON."""
                     result_text = response.choices[0].message.content
                     
                     try:
-                        # Extract JSON if wrapped in markdown
                         if "```json" in result_text:
                             result_text = result_text.split("```json")[1].split("```")[0]
                         elif "```" in result_text:
@@ -309,7 +288,6 @@ Format as valid JSON."""
                         analysis = json.loads(result_text.strip())
                     except Exception as parse_error:
                         logger.warning(f"JSON parse error: {parse_error}, creating fallback response")
-                        # Fallback: create structured response
                         analysis = {
                             "key_concepts": self._extract_concepts(transcript),
                             "topics": [subject],
@@ -330,11 +308,9 @@ Format as valid JSON."""
                     error_msg = str(groq_error)
                     if "429" in error_msg or "rate_limit" in error_msg.lower():
                         logger.warning(f"Groq rate limit hit, falling back to Gemini: {error_msg}")
-                        # Fall through to Gemini
                     else:
                         raise
             
-            # Fallback to Gemini if Groq fails or unavailable
             if self.gemini_model:
                 logger.info("Using Gemini as fallback for analysis")
                 options = options or {}
@@ -415,20 +391,16 @@ Provide a JSON response with:
             subject = options.get('subject', 'general')
             custom_instructions = options.get('custom_instructions', '')
             
-            # Calculate word count
             word_count = len(transcript.split())
             logger.info(f"Transcript word count: {word_count}, style: {style}, difficulty: {difficulty}")
             
-            # For very long transcripts (>12k words), use chunking with Groq
             if word_count > 12000 and style == "detailed":
                 logger.info("Using chunked processing for long transcript")
                 return await self._generate_notes_chunked_groq(transcript, analysis, difficulty, subject, custom_instructions, user_id=user_id)
             
-            # Get style-specific prompt
             prompt = self._get_style_prompt(style, transcript, analysis, difficulty, subject, custom_instructions, word_count)
             system_prompt = self._get_system_prompt(style)
             
-            # Use Groq with maximum output tokens
             rate_limiter.record_groq_call()
             response = self.groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
@@ -443,7 +415,6 @@ Provide a JSON response with:
             
             html_content = response.choices[0].message.content
             
-            # Clean up markdown if present
             if "```html" in html_content:
                 html_content = html_content.split("```html")[1].split("```")[0]
             elif "```" in html_content:
@@ -480,7 +451,6 @@ Provide a JSON response with:
         
         key_concepts = json.dumps(analysis.get('key_concepts', []))
         
-        # Difficulty-specific instructions
         difficulty_instructions = {
             "beginner": "Use simple language, explain all terms, provide many examples, and avoid jargon.",
             "intermediate": "Balance technical accuracy with clarity, explain complex terms, and provide relevant examples.",
@@ -791,7 +761,7 @@ IMPORTANT: Base summary ONLY on transcript content.
 
 Return ONLY HTML content (no markdown code blocks)."""
 
-        else:  # detailed (default)
+        else:
             return f"""You are an expert professor creating comprehensive lecture notes for students.
 
 LECTURE DETAILS:
@@ -846,9 +816,8 @@ Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
     async def _generate_notes_chunked_groq(self, transcript: str, analysis: Dict, difficulty: str, subject: str, custom_instructions: str, user_id: Optional[int] = None) -> Dict:
         """Generate notes in chunks for very long transcripts using Groq, then combine"""
         try:
-            # Split transcript into chunks (roughly 10k words each to minimize API calls)
             words = transcript.split()
-            chunk_size = 10000  # Increased to reduce number of API calls
+            chunk_size = 10000
             chunks = []
             
             for i in range(0, len(words), chunk_size):
@@ -857,12 +826,10 @@ Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
             
             logger.info(f"Processing {len(chunks)} chunks with Groq (rate limit: 30 req/min)")
             
-            # Generate notes for each chunk with rate limit handling
             all_notes = []
             for idx, chunk in enumerate(chunks):
                 logger.info(f"Processing chunk {idx + 1}/{len(chunks)}")
                 
-                # Add delay between chunks to avoid rate limits (Groq: 30 req/min)
                 if idx > 0:
                     logger.info("Waiting 3 seconds to avoid rate limits...")
                     await asyncio.sleep(3)
@@ -891,11 +858,9 @@ Make this comprehensive - students should understand the material from your note
 
 Return ONLY HTML content (no markdown)."""
 
-                # Retry logic for rate limits
                 max_retries = 3
                 for attempt in range(max_retries):
                     try:
-                        # Check rate limit before calling
                         can_call, wait_time = rate_limiter.can_call_groq()
                         if not can_call:
                             logger.warning(f"Rate limit check: waiting {wait_time:.1f} seconds...")
@@ -914,12 +879,12 @@ Return ONLY HTML content (no markdown)."""
                         self._log_groq_usage(user_id, "media_notes_ai", response, {"task": "generate_notes_chunk", "chunk": idx + 1})
                         
                         all_notes.append(response.choices[0].message.content)
-                        break  # Success, exit retry loop
+                        break
                         
                     except Exception as e:
                         if "429" in str(e) or "rate" in str(e).lower():
                             if attempt < max_retries - 1:
-                                wait_time = (attempt + 1) * 10  # 10, 20, 30 seconds
+                                wait_time = (attempt + 1) * 10
                                 logger.warning(f"Rate limit hit, waiting {wait_time} seconds...")
                                 await asyncio.sleep(wait_time)
                             else:
@@ -927,14 +892,12 @@ Return ONLY HTML content (no markdown)."""
                         else:
                             raise
             
-            # Combine all chunks with section headers
             combined_html = f"""<div class="lecture-notes">
 <h1>{subject} - Comprehensive Lecture Notes</h1>
 <p><em>Generated from {len(words)}-word lecture transcript</em></p>
 """
             
             for idx, note_html in enumerate(all_notes):
-                # Clean up markdown if present
                 if "```html" in note_html:
                     note_html = note_html.split("```html")[1].split("```")[0]
                 elif "```" in note_html:
@@ -996,7 +959,6 @@ Return ONLY valid JSON array."""
             
             result_text = response.choices[0].message.content
             
-            # Extract JSON
             if "```json" in result_text:
                 result_text = result_text.split("```json")[1].split("```")[0]
             elif "```" in result_text:
@@ -1058,7 +1020,6 @@ Return ONLY valid JSON array."""
             
             result_text = response.choices[0].message.content
             
-            # Extract JSON
             if "```json" in result_text:
                 result_text = result_text.split("```json")[1].split("```")[0]
             elif "```" in result_text:
@@ -1089,12 +1050,10 @@ Return ONLY valid JSON array."""
                 text = segment.get('text', '').lower()
                 importance = 0
                 
-                # Check if segment contains key concepts
                 for concept in key_concepts:
                     if concept.lower() in text:
                         importance += 1
                 
-                # Check for important phrases
                 important_phrases = ['important', 'key point', 'remember', 'crucial', 'essential', 'main idea']
                 for phrase in important_phrases:
                     if phrase in text:
@@ -1107,7 +1066,6 @@ Return ONLY valid JSON array."""
                         "importance": importance
                     })
             
-            # Sort by importance and return top moments
             key_moments.sort(key=lambda x: x['importance'], reverse=True)
             return key_moments[:10]
             
@@ -1117,11 +1075,8 @@ Return ONLY valid JSON array."""
     
     def _extract_concepts(self, text: str, max_concepts: int = 10) -> List[str]:
         """Simple concept extraction fallback"""
-        # This is a simple fallback - AI analysis is preferred
         words = text.split()
-        # Get capitalized words (likely important terms)
         concepts = [w for w in words if len(w) > 3 and w[0].isupper()]
-        # Remove duplicates and limit
         concepts = list(set(concepts))[:max_concepts]
         return concepts
     
@@ -1143,8 +1098,8 @@ Return ONLY valid JSON array."""
     def estimate_processing_cost(self, duration_seconds: int, file_size_mb: float) -> Dict:
         """Estimate processing cost (all free APIs)"""
         return {
-            "transcription_cost": 0.0,  # Groq Whisper is free
-            "ai_analysis_cost": 0.0,  # Groq free tier
+            "transcription_cost": 0.0,
+            "ai_analysis_cost": 0.0,
             "total_cost": 0.0,
             "note": "Using free tier APIs"
         }
@@ -1159,6 +1114,4 @@ Return ONLY valid JSON array."""
         except:
             return language_code
 
-
-# Global instance
 ai_media_processor = AIMediaProcessor()

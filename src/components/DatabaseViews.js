@@ -47,7 +47,7 @@ const DatabaseViews = ({ notes, folders, onSelectNote }) => {
     return folder ? folder.name : 'No Folder';
   };
 
-  // Table View
+  
   const renderTableView = () => (
     <table className="table-view">
       <thead>
@@ -83,7 +83,7 @@ const DatabaseViews = ({ notes, folders, onSelectNote }) => {
     </table>
   );
 
-  // Kanban View
+  
   const renderKanbanView = () => {
     const columns = [
       { id: 'recent', title: 'Recent', filter: (n) => {
@@ -136,7 +136,7 @@ const DatabaseViews = ({ notes, folders, onSelectNote }) => {
     );
   };
 
-  // Calendar View
+  
   const renderCalendarView = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -148,7 +148,7 @@ const DatabaseViews = ({ notes, folders, onSelectNote }) => {
     const days = [];
     const prevMonthDays = new Date(year, month, 0).getDate();
     
-    // Previous month days
+    
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       days.push({
         date: prevMonthDays - i,
@@ -157,7 +157,7 @@ const DatabaseViews = ({ notes, folders, onSelectNote }) => {
       });
     }
     
-    // Current month days
+    
     for (let i = 1; i <= daysInMonth; i++) {
       days.push({
         date: i,
@@ -166,7 +166,7 @@ const DatabaseViews = ({ notes, folders, onSelectNote }) => {
       });
     }
     
-    // Next month days
+    
     const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       days.push({
@@ -248,7 +248,7 @@ const DatabaseViews = ({ notes, folders, onSelectNote }) => {
     );
   };
 
-  // Gallery View
+  
   const renderGalleryView = () => (
     <div className="gallery-view">
       {sortedNotes.map(note => (
@@ -280,7 +280,7 @@ const DatabaseViews = ({ notes, folders, onSelectNote }) => {
     </div>
   );
 
-  // Timeline View
+  
   const renderTimelineView = () => {
     const groupedByDate = sortedNotes.reduce((acc, note) => {
       const date = new Date(note.updated_at).toLocaleDateString();

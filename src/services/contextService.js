@@ -1,11 +1,4 @@
-/**
- * contextService.js — API client for Cerbyl HS Mode document management.
- *
- * Manages the user's personal document library and interaction with the
- * shared HS curriculum knowledge base via the context_store ChromaDB backend.
- *
- * All methods use Bearer token from localStorage.
- */
+
 
 import { API_URL } from '../config/api';
 
@@ -17,16 +10,7 @@ class ContextService {
     return headers;
   }
 
-  /**
-   * Upload a document (PDF, TXT, or MD) for RAG indexing.
-   *
-   * @param {File}   file       - File object from <input type="file">
-   * @param {string} subject    - e.g. "Biology", "Algebra II"
-   * @param {string} gradeLevel - e.g. "Grade 10", "AP"
-   * @param {string} scope      - "private" | "hs_shared"
-   * @param {object} options    - {sourceUrl, sourceName, license}
-   * @returns {Promise<{success, doc_id, filename, chunk_count, scope, message}>}
-   */
+  
   async uploadDocument(file, subject = '', gradeLevel = '', scope = 'private', options = {}) {
     const {
       sourceUrl = '',
@@ -55,15 +39,7 @@ class ContextService {
     return response.json();
   }
 
-  /**
-   * List user's uploaded documents and HS curriculum summary.
-   *
-   * @returns {Promise<{
-   *   user_docs: Array<{doc_id, filename, subject, grade_level, scope, chunk_count, status, source_url, source_name, license, created_at}>,
-   *   hs_summary: {total_subjects: number, total_docs: number, last_updated: string, subjects: Array},
-   *   hs_mode_available: boolean
-   * }>}
-   */
+  
   async listDocuments() {
     const response = await fetch(`${API_URL}/context/documents`, {
       headers: this._headers(),
@@ -72,13 +48,7 @@ class ContextService {
     return response.json();
   }
 
-  /**
-   * Delete a document by doc_id.
-   * Users can delete their own docs; admins can remove HS shared docs.
-   *
-   * @param {string} docId
-   * @returns {Promise<{success: true, doc_id: string}>}
-   */
+  
   async deleteDocument(docId) {
     const response = await fetch(`${API_URL}/context/documents/${docId}`, {
       method: 'DELETE',
@@ -91,14 +61,7 @@ class ContextService {
     return response.json();
   }
 
-  /**
-   * Test RAG retrieval — useful for verifying a document was indexed.
-   *
-   * @param {string}  query
-   * @param {boolean} useHs  - include shared HS curriculum in results
-   * @param {number}  topK   - number of chunks to return
-   * @returns {Promise<{query: string, results: Array, chunk_count: number}>}
-   */
+  
   async searchContext(query, useHs = true, topK = 5) {
     const params = new URLSearchParams({
       query,
@@ -112,11 +75,7 @@ class ContextService {
     return response.json();
   }
 
-  /**
-   * List available subjects in the shared HS curriculum collection.
-   *
-   * @returns {Promise<{subjects: Array<{subject, grade_level, doc_count}>, total: number}>}
-   */
+  
   async getHsSubjects() {
     const response = await fetch(`${API_URL}/context/hs/subjects`, {
       headers: this._headers(),
@@ -125,11 +84,7 @@ class ContextService {
     return response.json();
   }
 
-  /**
-   * Import a document by URL (PDF/TXT/MD).
-   *
-   * @param {object} payload - {url, subject, grade_level, scope, source_name, license}
-   */
+  
   async importFromUrl(payload) {
     const response = await fetch(`${API_URL}/context/import_url`, {
       method: 'POST',

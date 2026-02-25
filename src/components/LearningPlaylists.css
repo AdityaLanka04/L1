@@ -1,4 +1,4 @@
-/* ==================== FORCE CONSISTENT BORDER RADIUS ==================== */
+
 .learning-playlists-container *,
 .learning-playlists-container *::before,
 .learning-playlists-container *::after {
@@ -182,8 +182,6 @@
   font-weight: 700;
 }
 
-/* ==================== CREATE PLAYLIST CARD ==================== */
-
 .create-playlist-card {
   background: var(--panel);
   border: 2px dashed var(--border);
@@ -237,8 +235,6 @@
   margin: 0;
   line-height: 1.5;
 }
-
-/* ==================== PLAYLIST CARD ==================== */
 
 .playlist-card {
   background: var(--panel);
@@ -451,8 +447,6 @@
   font-size: 11px;
   font-weight: 600;
 }
-
-/* ==================== PLAYLIST DETAIL ==================== */
 
 .playlist-detail {
   background: var(--panel);
@@ -893,8 +887,6 @@
   font-size: 13px;
   color: var(--text-secondary);
 }
-
-/* ==================== CREATE MODAL ==================== */
 
 .create-playlist-modal {
   max-width: 600px;

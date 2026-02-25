@@ -15,7 +15,6 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
     """
     topics = {}
     
-    # Get topics from AI chat sessions
     chat_sessions = db.query(models.ChatSession).filter(
         models.ChatSession.user_id == user_id
     ).all()
@@ -25,7 +24,6 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
             topic = session.title.strip()
             topics[topic] = topics.get(topic, 0) + 1
     
-    # Get topics from notes
     notes = db.query(models.Note).filter(
         models.Note.user_id == user_id
     ).all()
@@ -33,9 +31,8 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
     for note in notes:
         if note.title and note.title.strip():
             topic = note.title.strip()
-            topics[topic] = topics.get(topic, 0) + 2  # Weight notes higher
+            topics[topic] = topics.get(topic, 0) + 2
     
-    # Get topics from flashcard sets
     flashcard_sets = db.query(models.FlashcardSet).filter(
         models.FlashcardSet.user_id == user_id
     ).all()
@@ -43,9 +40,8 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
     for fs in flashcard_sets:
         if fs.title and fs.title.strip():
             topic = fs.title.strip()
-            topics[topic] = topics.get(topic, 0) + 3  # Weight flashcards even higher
+            topics[topic] = topics.get(topic, 0) + 3
     
-    # Get topics from quizzes
     quiz_sessions = db.query(models.QuizSession).filter(
         models.QuizSession.user_id == user_id
     ).all()
@@ -55,7 +51,6 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
             topic = quiz.topic.strip()
             topics[topic] = topics.get(topic, 0) + 2
     
-    # Sort by frequency and return top topics
     sorted_topics = sorted(topics.items(), key=lambda x: x[1], reverse=True)[:limit]
     
     return [
@@ -71,31 +66,24 @@ def categorize_topic(topic: str) -> str:
     """Categorize topic into broad categories"""
     topic_lower = topic.lower()
     
-    # Science
     if any(word in topic_lower for word in ['physics', 'chemistry', 'biology', 'science', 'quantum', 'molecular']):
         return 'science'
     
-    # Math
     if any(word in topic_lower for word in ['math', 'calculus', 'algebra', 'geometry', 'statistics', 'equation']):
         return 'mathematics'
     
-    # Programming
     if any(word in topic_lower for word in ['programming', 'code', 'python', 'javascript', 'java', 'algorithm', 'data structure']):
         return 'programming'
     
-    # Language
     if any(word in topic_lower for word in ['language', 'english', 'spanish', 'french', 'grammar', 'vocabulary']):
         return 'language'
     
-    # History
     if any(word in topic_lower for word in ['history', 'historical', 'war', 'ancient', 'medieval']):
         return 'history'
     
-    # Business
     if any(word in topic_lower for word in ['business', 'economics', 'finance', 'marketing', 'management']):
         return 'business'
     
-    # Arts
     if any(word in topic_lower for word in ['art', 'music', 'literature', 'poetry', 'painting']):
         return 'arts'
     
@@ -105,7 +93,6 @@ def get_topic_specific_milestones(db: Session, user_id: int, topic: str) -> List
     """
     Generate topic-specific milestones based on user's activity in that topic
     """
-    # Count activities for this topic
     chat_count = db.query(func.count(models.ChatMessage.id)).join(
         models.ChatSession
     ).filter(
@@ -128,10 +115,8 @@ def get_topic_specific_milestones(db: Session, user_id: int, topic: str) -> List
         models.QuizSession.topic.ilike(f'%{topic}%')
     ).scalar() or 0
     
-    # Generate milestones
     milestones = []
     
-    # AI Chat milestones
     chat_milestones = [
         {'target': 5, 'title': f'First Steps in {topic}', 'description': 'Ask 5 questions', 'reward': '10 XP Bonus'},
         {'target': 10, 'title': f'{topic} Explorer', 'description': 'Ask 10 questions', 'reward': '20 XP Bonus'},
@@ -154,7 +139,6 @@ def get_topic_specific_milestones(db: Session, user_id: int, topic: str) -> List
             'progress': min(100, (chat_count / milestone['target']) * 100)
         })
     
-    # Note milestones
     note_milestones = [
         {'target': 3, 'title': f'{topic} Note Taker', 'description': 'Create 3 notes', 'reward': '15 XP Bonus'},
         {'target': 5, 'title': f'{topic} Documenter', 'description': 'Create 5 notes', 'reward': '30 XP Bonus'},
@@ -176,7 +160,6 @@ def get_topic_specific_milestones(db: Session, user_id: int, topic: str) -> List
             'progress': min(100, (note_count / milestone['target']) * 100)
         })
     
-    # Flashcard milestones
     flashcard_milestones = [
         {'target': 2, 'title': f'{topic} Flashcard Starter', 'description': 'Create 2 flashcard sets', 'reward': '20 XP Bonus'},
         {'target': 5, 'title': f'{topic} Memory Master', 'description': 'Create 5 flashcard sets', 'reward': '50 XP Bonus'},
@@ -197,7 +180,6 @@ def get_topic_specific_milestones(db: Session, user_id: int, topic: str) -> List
             'progress': min(100, (flashcard_count / milestone['target']) * 100)
         })
     
-    # Quiz milestones
     quiz_milestones = [
         {'target': 3, 'title': f'{topic} Quiz Taker', 'description': 'Complete 3 quizzes', 'reward': '25 XP Bonus'},
         {'target': 5, 'title': f'{topic} Test Master', 'description': 'Complete 5 quizzes', 'reward': '50 XP Bonus'},
@@ -224,10 +206,8 @@ def get_personalized_roadmap(db: Session, user_id: int) -> Dict[str, Any]:
     """
     Get complete personalized roadmap with topics and milestones
     """
-    # Get user's study topics
     topics = get_user_study_topics(db, user_id, limit=5)
     
-    # Generate milestones for each topic
     topic_milestones = {}
     for topic_data in topics:
         topic = topic_data['topic']

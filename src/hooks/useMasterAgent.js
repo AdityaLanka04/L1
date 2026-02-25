@@ -1,16 +1,8 @@
-/**
- * useMasterAgent Hook
- * React hook for accessing Master Agent learning insights
- */
+
 
 import { useState, useCallback, useEffect } from 'react';
 import masterAgentService from '../services/masterAgentService';
 
-/**
- * Hook for accessing Master Agent learning insights
- * @param {string} userId - User ID to fetch data for
- * @param {boolean} autoFetch - Whether to fetch data on mount
- */
 const useMasterAgent = (userId, autoFetch = false) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

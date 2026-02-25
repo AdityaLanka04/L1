@@ -10,7 +10,6 @@ from tutor import nodes
 
 logger = logging.getLogger(__name__)
 
-
 class TutorGraph:
 
     def __init__(self, ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None):
@@ -72,15 +71,12 @@ class TutorGraph:
             logger.error(f"Tutor graph failed: {e}")
             return {"response": "Something went wrong. Please try again.", "error": str(e)}
 
-
 _tutor: Optional[TutorGraph] = None
-
 
 def create_tutor(ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None) -> TutorGraph:
     global _tutor
     _tutor = TutorGraph(ai_client, db_session_factory, hs_ai_client=hs_ai_client)
     return _tutor
-
 
 def get_tutor() -> Optional[TutorGraph]:
     return _tutor

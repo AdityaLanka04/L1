@@ -6,7 +6,6 @@ from tutor.state import TutorState, StudentState, Neo4jInsights
 
 logger = logging.getLogger(__name__)
 
-
 def build_tutor_prompt(state: TutorState) -> str:
     student = state.get("student_state")
     insights = state.get("neo4j_insights")
@@ -27,14 +26,12 @@ def build_tutor_prompt(state: TutorState) -> str:
 
     sections.append(_concept_section(insights))
 
-    # Structured data from DB (flashcards, notes, activity) goes BEFORE memories
     if structured_context:
         sections.append(_structured_context_section(structured_context))
 
     if memories:
         sections.append(_memory_section(memories))
 
-    # HS curriculum / personal doc RAG context
     if rag_context:
         logger.info(f"[TUTOR PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) into tutor prompt ***")
         sections.append(_rag_section(rag_context))
@@ -44,7 +41,6 @@ def build_tutor_prompt(state: TutorState) -> str:
     sections.append(_task_section(task, user_input))
 
     return "\n\n".join(sections)
-
 
 def _student_section(s: StudentState | None) -> str:
     if not s:
@@ -62,7 +58,6 @@ def _student_section(s: StudentState | None) -> str:
         lines.append(f"- Current subject: {s.current_subject}")
     return "\n".join(lines)
 
-
 def _chat_history_section(history: list[dict]) -> str:
     lines = ["[CONVERSATION HISTORY (recent messages)]"]
     for msg in history[-6:]:
@@ -73,7 +68,6 @@ def _chat_history_section(history: list[dict]) -> str:
         lines.append(f"Cerbyl: {ai_resp}")
     lines.append("---")
     return "\n".join(lines)
-
 
 def _concept_section(insights: Neo4jInsights | None) -> str:
     lines = ["[CONCEPT CONTEXT]"]
@@ -96,20 +90,17 @@ def _concept_section(insights: Neo4jInsights | None) -> str:
             lines.append(f"  * {s}")
     return "\n".join(lines)
 
-
 def _structured_context_section(context_lines: list[str]) -> str:
     """Section containing real data from the database (flashcards, notes, activity)."""
     lines = ["[STRUCTURED LEARNING DATA (from database - use this for accurate answers)]"]
     lines.extend(context_lines)
     return "\n".join(lines)
 
-
 def _memory_section(memories: list[str]) -> str:
     lines = ["[RELEVANT HISTORY (from episodic memory)]"]
     for m in memories:
         lines.append(f"- {m}")
     return "\n".join(lines)
-
 
 def _rag_section(chunks: list[str]) -> str:
     """Section containing HS curriculum / personal document RAG context."""
@@ -119,7 +110,6 @@ def _rag_section(chunks: list[str]) -> str:
         lines.append(f"\n--- Source {i} ---")
         lines.append(chunk)
     return "\n".join(lines)
-
 
 def _task_section(task: str, user_input: str) -> str:
     lines = ["[TASK]"]

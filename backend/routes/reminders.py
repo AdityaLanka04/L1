@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["reminders"])
 
-
 def serialize_reminder(r):
     return {
         "id": r.id,
@@ -44,7 +43,6 @@ def serialize_reminder(r):
         "created_at": r.created_at.isoformat() + "Z",
         "subtasks": [serialize_reminder(s) for s in r.subtasks] if r.subtasks else [],
     }
-
 
 async def create_next_recurring_reminder(db: Session, original: models.Reminder):
     if not original.reminder_date or original.recurring == "none":
@@ -96,7 +94,6 @@ async def create_next_recurring_reminder(db: Session, original: models.Reminder)
     db.add(new_reminder)
     db.commit()
 
-
 @router.post("/create_reminder_list")
 async def create_reminder_list(
     user_id: str = Form(...),
@@ -141,7 +138,6 @@ async def create_reminder_list(
         logger.error(f"Error creating reminder list: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/get_reminder_lists")
 async def get_reminder_lists(
@@ -251,7 +247,6 @@ async def get_reminder_lists(
         logger.error(f"Error getting reminder lists: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.put("/update_reminder_list/{list_id}")
 async def update_reminder_list(
     list_id: int,
@@ -274,7 +269,7 @@ async def update_reminder_list(
         if icon is not None:
             reminder_list.icon = icon
 
-        reminder_list.updated_at = datetime.utcnow()
+        reminder_list.updated_at = datetime.now(timezone.utc)
         db.commit()
 
         return {"status": "success", "message": "List updated"}
@@ -282,7 +277,6 @@ async def update_reminder_list(
         logger.error(f"Error updating reminder list: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.delete("/delete_reminder_list/{list_id}")
 async def delete_reminder_list(
@@ -304,7 +298,6 @@ async def delete_reminder_list(
         logger.error(f"Error deleting reminder list: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/create_reminder")
 async def create_reminder(
@@ -404,7 +397,6 @@ async def create_reminder(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/get_reminders")
 async def get_reminders(
     user_id: str = Query(...),
@@ -478,7 +470,6 @@ async def get_reminders(
         logger.error(f"Error getting reminders: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.put("/update_reminder/{reminder_id}")
 async def update_reminder(
     reminder_id: int,
@@ -540,7 +531,7 @@ async def update_reminder(
         if is_completed is not None:
             reminder.is_completed = is_completed
             if is_completed:
-                reminder.completed_at = datetime.utcnow()
+                reminder.completed_at = datetime.now(timezone.utc)
                 if reminder.recurring != "none" and reminder.recurring:
                     await create_next_recurring_reminder(db, reminder)
             else:
@@ -567,7 +558,7 @@ async def update_reminder(
         if tags is not None:
             reminder.tags = tags
 
-        reminder.updated_at = datetime.utcnow()
+        reminder.updated_at = datetime.now(timezone.utc)
         db.commit()
 
         return {
@@ -579,7 +570,6 @@ async def update_reminder(
         logger.error(f"Error updating reminder: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.delete("/delete_reminder/{reminder_id}")
 async def delete_reminder(
@@ -601,7 +591,6 @@ async def delete_reminder(
         logger.error(f"Error deleting reminder: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/add_subtask/{reminder_id}")
 async def add_subtask(
@@ -632,7 +621,6 @@ async def add_subtask(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.put("/toggle_reminder_flag/{reminder_id}")
 async def toggle_reminder_flag(
     reminder_id: int,
@@ -646,7 +634,7 @@ async def toggle_reminder_flag(
             raise HTTPException(status_code=404, detail="Reminder not found")
 
         reminder.is_flagged = not reminder.is_flagged
-        reminder.updated_at = datetime.utcnow()
+        reminder.updated_at = datetime.now(timezone.utc)
         db.commit()
 
         return {"status": "success", "is_flagged": reminder.is_flagged}
@@ -654,7 +642,6 @@ async def toggle_reminder_flag(
         logger.error(f"Error toggling flag: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/get_upcoming_reminders")
 async def get_upcoming_reminders(
@@ -688,7 +675,6 @@ async def get_upcoming_reminders(
     except Exception as e:
         logger.error(f"Error getting upcoming reminders: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/search_reminders")
 async def search_reminders(

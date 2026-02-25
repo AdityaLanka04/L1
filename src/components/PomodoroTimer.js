@@ -6,7 +6,7 @@ const PomodoroTimer = ({ noteId, onTimeTracked }) => {
   const [minutes, setMinutes] = useState(25);
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
-  const [mode, setMode] = useState('work'); // work, shortBreak, longBreak
+  const [mode, setMode] = useState('work'); 
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const intervalRef = useRef(null);
 
@@ -42,15 +42,15 @@ const PomodoroTimer = ({ noteId, onTimeTracked }) => {
       const newSessions = sessionsCompleted + 1;
       setSessionsCompleted(newSessions);
       
-      // Track time spent on note
+      
       if (onTimeTracked && noteId) {
         onTimeTracked(noteId, WORK_TIME);
       }
       
-      // Play notification sound
+      
       playNotificationSound();
       
-      // Switch to break
+      
       if (newSessions % 4 === 0) {
         setMode('longBreak');
         setMinutes(LONG_BREAK);
@@ -60,7 +60,7 @@ const PomodoroTimer = ({ noteId, onTimeTracked }) => {
       }
       setSeconds(0);
       
-      // Show notification
+      
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('Pomodoro Complete!', {
           body: 'Time for a break!',
@@ -68,7 +68,7 @@ const PomodoroTimer = ({ noteId, onTimeTracked }) => {
         });
       }
     } else {
-      // Break complete, back to work
+      
       setMode('work');
       setMinutes(WORK_TIME);
       setSeconds(0);
@@ -92,7 +92,7 @@ const PomodoroTimer = ({ noteId, onTimeTracked }) => {
   const toggleTimer = () => {
     setIsActive(!isActive);
     
-    // Request notification permission
+    
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }

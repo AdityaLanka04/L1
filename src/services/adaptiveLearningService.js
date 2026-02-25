@@ -1,13 +1,7 @@
 import axios from 'axios';
 import { API_URL } from '../config/api';
 
-// API_URL already includes /api, so we just add /adaptive
 const ADAPTIVE_API_URL = `${ADAPTIVE_API_URL}/adaptive`;
-
-/**
- * Adaptive Learning Service
- * Handles real-time adaptive learning sessions with cognitive load monitoring
- */
 
 class AdaptiveLearningService {
   constructor() {
@@ -15,7 +9,7 @@ class AdaptiveLearningService {
     this.sessionMetrics = null;
   }
 
-  // Session Management
+  
   async startAdaptiveSession(userId, topic) {
     try {
       const response = await axios.post(`${ADAPTIVE_API_URL}/session/start`, {
@@ -107,7 +101,7 @@ class AdaptiveLearningService {
     }
   }
 
-  // Cognitive Load Monitoring
+  
   async assessCognitiveLoad(userId) {
     try {
       const response = await axios.get(`${ADAPTIVE_API_URL}/cognitive-load`, {
@@ -124,7 +118,7 @@ class AdaptiveLearningService {
     }
   }
 
-  // Difficulty & Learning Style
+  
   async getAdaptiveDifficulty(userId, topic = null) {
     try {
       const params = { user_id: userId };
@@ -158,7 +152,7 @@ class AdaptiveLearningService {
     }
   }
 
-  // Curriculum & Knowledge Gaps
+  
   async getPersonalizedCurriculum(userId, goalTopic) {
     try {
       const response = await axios.get(`${ADAPTIVE_API_URL}/curriculum`, {
@@ -191,7 +185,7 @@ class AdaptiveLearningService {
     }
   }
 
-  // Retention & Spaced Repetition
+  
   async optimizeRetention(userId) {
     try {
       const response = await axios.get(`${ADAPTIVE_API_URL}/retention`, {
@@ -224,7 +218,7 @@ class AdaptiveLearningService {
     }
   }
 
-  // Burnout & Well-being
+  
   async detectBurnoutRisk(userId) {
     try {
       const response = await axios.get(`${ADAPTIVE_API_URL}/burnout-risk`, {
@@ -273,7 +267,7 @@ class AdaptiveLearningService {
     }
   }
 
-  // Content Transformation
+  
   async transformContent(userId, content, topic, transformationType) {
     try {
       const response = await axios.post(`${ADAPTIVE_API_URL}/transform-content`, {
@@ -293,7 +287,7 @@ class AdaptiveLearningService {
     }
   }
 
-  // AI Tutor Modes
+  
   async useTutorMode(userId, topic, mode, question) {
     try {
       const response = await axios.post(`${ADAPTIVE_API_URL}/tutor-mode`, {
@@ -313,7 +307,7 @@ class AdaptiveLearningService {
     }
   }
 
-  // Collaborative Learning
+  
   async findStudyTwin(userId) {
     try {
       const response = await axios.get(`${ADAPTIVE_API_URL}/study-twin`, {
@@ -346,7 +340,7 @@ class AdaptiveLearningService {
     }
   }
 
-  // Comprehensive Recommendations
+  
   async getComprehensiveRecommendations(userId) {
     try {
       const response = await axios.get(`${ADAPTIVE_API_URL}/comprehensive-recommendations`, {
@@ -363,7 +357,7 @@ class AdaptiveLearningService {
     }
   }
 
-  // Utility Methods
+  
   getCognitiveLoadColor(loadLevel) {
     const colors = {
       'under-challenged': '#4CAF50',
@@ -396,7 +390,7 @@ class AdaptiveLearningService {
     return colors[difficulty] || '#9E9E9E';
   }
 
-  // Session State
+  
   hasActiveSession() {
     return this.activeSession !== null;
   }

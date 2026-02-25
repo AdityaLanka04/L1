@@ -8,29 +8,25 @@ from langgraph.graph import StateGraph, END
 
 logger = logging.getLogger(__name__)
 
-
 class NoteGenState(TypedDict, total=False):
     user_id: str
     topic: str
-    source_content: str      # optional raw content to base notes on
-    generation_type: str     # "topic" | "content"
-    depth: str               # brief | standard | deep
-    tone: str                # professional | academic | casual | concise
+    source_content: str
+    generation_type: str
+    depth: str
+    tone: str
     additional_specs: str
-    # Personalisation — populated by fetch_context
     student_weaknesses: list[str]
     student_strengths: list[str]
     concept_prerequisites: list[str]
     common_mistakes: list[str]
-    rag_context: list[str]       # top-k curriculum chunks from context_store
-    use_hs_context: bool         # enables RAG retrieval (default True)
-    # Output
+    rag_context: list[str]
+    use_hs_context: bool
     built_prompt: str
     note_content: str
     _ai_client: Any
-    _hs_ai_client: Any           # dedicated AI client for HS-context-enriched generation
+    _hs_ai_client: Any
     _db_factory: Any
-
 
 async def fetch_context(state: NoteGenState) -> dict:
     """Fetch personalisation data: DB mastery + Neo4j concept graph for the topic."""
@@ -43,7 +39,6 @@ async def fetch_context(state: NoteGenState) -> dict:
     prerequisites: list[str] = []
     mistakes: list[str] = []
 
-    # ── SQLite: user's weak areas and mastered topics ─────────────────────────
     if db_factory:
         try:
             from models import UserWeakArea, TopicMastery
@@ -76,11 +71,9 @@ async def fetch_context(state: NoteGenState) -> dict:
         except Exception as e:
             logger.warning(f"NoteGraph DB context fetch failed: {e}")
 
-    # ── Neo4j: student concept map + topic prerequisites + common mistakes ────
     from tutor import neo4j_store
     if neo4j_store.available():
         try:
-            # Get user's known mastered/struggling from graph
             concepts = await neo4j_store.get_student_concepts(user_id)
             for c in concepts.get("struggling", []):
                 if c not in weaknesses:
@@ -89,8 +82,6 @@ async def fetch_context(state: NoteGenState) -> dict:
                 if c not in strengths:
                     strengths.append(c)
 
-            # Get prerequisites and common mistakes for the topic being noted
-            # Split topic into meaningful words to query the concept graph
             topic_concepts = [w for w in topic.split() if len(w) > 3]
             if topic_concepts:
                 ctx = await neo4j_store.get_concept_context(topic_concepts[:4])
@@ -99,7 +90,6 @@ async def fetch_context(state: NoteGenState) -> dict:
         except Exception as e:
             logger.warning(f"NoteGraph Neo4j context fetch failed: {e}")
 
-    # RAG: fetch HS curriculum / personal doc context
     rag_chunks: list[str] = []
     use_hs = state.get("use_hs_context", True)
     logger.info(f"[NOTE RAG] topic='{topic}' use_hs_context={use_hs} user_id={user_id}")
@@ -141,7 +131,6 @@ async def fetch_context(state: NoteGenState) -> dict:
         "rag_context": rag_chunks,
     }
 
-
 DEPTH_GUIDES = {
     "brief": (
         "BRIEF — concise summary.\n"
@@ -171,7 +160,6 @@ TONE_GUIDES = {
     "concise": "Ultra-tight — no fluff, every word earns its place.",
 }
 
-
 def build_prompt(state: NoteGenState) -> dict:
     """Build a personalised note-generation prompt."""
     topic = state.get("topic", "")
@@ -192,7 +180,6 @@ def build_prompt(state: NoteGenState) -> dict:
 
     parts = []
 
-    # Source material
     if generation_type == "content" and source_content:
         parts.append(
             f"Create detailed study notes summarising this content:\n\n"
@@ -202,13 +189,10 @@ def build_prompt(state: NoteGenState) -> dict:
     else:
         parts.append(f"Create comprehensive study notes on: **{topic}**\n")
 
-    # Depth guide
     parts.append(f"DEPTH:\n{DEPTH_GUIDES[depth]}\n")
 
-    # Tone
     parts.append(f"TONE: {TONE_GUIDES[tone]}\n")
 
-    # Personalisation — weak areas to emphasise
     if weaknesses:
         relevant_weak = [w for w in weaknesses[:5] if any(
             kw.lower() in topic.lower() or topic.lower() in kw.lower()
@@ -220,32 +204,27 @@ def build_prompt(state: NoteGenState) -> dict:
                 "Emphasise and explain these areas more thoroughly in the notes.\n"
             )
 
-    # Prerequisite concepts — cover them briefly so the student has the foundation
     if prerequisites:
         parts.append(
             f"PREREQUISITE CONCEPTS (from knowledge graph): {', '.join(prerequisites[:5])}\n"
             "Briefly cover or reference these so the student has the necessary foundation.\n"
         )
 
-    # Common mistakes — explicitly include a 'Common Pitfalls' section
     if mistakes:
         parts.append(
             f"COMMON MISTAKES STUDENTS MAKE: {', '.join(mistakes[:5])}\n"
             "Include a 'Common Pitfalls' section explicitly addressing these.\n"
         )
 
-    # Strong areas — don't over-explain what they already know
     if strengths:
         parts.append(
             f"STUDENT STRONG AREAS: {', '.join(strengths[:5])}\n"
             "Don't over-explain these — a brief mention is enough.\n"
         )
 
-    # Additional user instructions
     if additional_specs:
         parts.append(f"ADDITIONAL INSTRUCTIONS:\n{additional_specs}\n")
 
-    # Curriculum RAG context
     rag_context = state.get("rag_context", [])
     if rag_context:
         logger.info(f"[NOTE PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) into prompt ***")
@@ -259,7 +238,6 @@ def build_prompt(state: NoteGenState) -> dict:
     else:
         logger.info("[NOTE PROMPT] No RAG context — generating from model knowledge only")
 
-    # Format requirements
     parts.append(
         "FORMAT REQUIREMENTS:\n"
         "- Use markdown: ## for sections, ### for subsections, **bold** for key terms\n"
@@ -270,7 +248,6 @@ def build_prompt(state: NoteGenState) -> dict:
     )
 
     return {"built_prompt": "\n".join(parts)}
-
 
 def generate_note(state: NoteGenState) -> dict:
     """Call AI and return the markdown note content."""
@@ -288,7 +265,6 @@ def generate_note(state: NoteGenState) -> dict:
     prompt = state.get("built_prompt", "")
     depth = state.get("depth", "standard")
 
-    # Token budget by depth
     max_tokens = {"brief": 800, "standard": 2000, "deep": 3500}.get(depth, 2000)
 
     try:
@@ -297,7 +273,6 @@ def generate_note(state: NoteGenState) -> dict:
     except Exception as e:
         logger.error(f"NoteGraph generation failed: {e}")
         return {"note_content": ""}
-
 
 class NoteGraph:
 
@@ -349,15 +324,12 @@ class NoteGraph:
             logger.error(f"NoteGraph failed: {e}")
             return ""
 
-
 _note_graph: Optional[NoteGraph] = None
-
 
 def create_note_graph(ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None) -> NoteGraph:
     global _note_graph
     _note_graph = NoteGraph(ai_client, db_session_factory, hs_ai_client=hs_ai_client)
     return _note_graph
-
 
 def get_note_graph() -> Optional[NoteGraph]:
     return _note_graph

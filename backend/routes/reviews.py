@@ -19,7 +19,6 @@ from deps import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["reviews"])
 
-
 @router.get("/get_learning_reviews")
 def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
@@ -77,7 +76,6 @@ def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db
     except Exception as e:
         logger.error(f"Error getting learning reviews: {str(e)}")
         return {"reviews": []}
-
 
 @router.post("/create_learning_review")
 async def create_learning_review(
@@ -190,7 +188,6 @@ async def create_learning_review(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create learning review: {str(e)}")
 
-
 @router.put("/update_learning_review")
 async def update_learning_review(
     payload: dict = Body(...),
@@ -240,7 +237,6 @@ async def update_learning_review(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/get_hints/{question_id}")
 def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
     try:
@@ -277,7 +273,6 @@ def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error getting hints: {str(e)}")
         return {"question_id": question_id, "hints": ["Think about the main concepts covered in this topic."]}
-
 
 @router.post("/submit_review_response")
 async def submit_review_response(
@@ -362,7 +357,6 @@ async def submit_review_response(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/save_archetype_profile")
 async def save_archetype_profile(
     payload: dict = Body(...),
@@ -414,7 +408,6 @@ async def save_archetype_profile(
     except Exception as e:
         logger.error(f"Error saving archetype: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save archetype: {str(e)}")
-
 
 @router.get("/get_comprehensive_profile")
 async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -469,7 +462,6 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
     except Exception as e:
         logger.error(f"Error getting profile: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/update_comprehensive_profile")
 async def update_comprehensive_profile(
@@ -544,7 +536,6 @@ async def update_comprehensive_profile(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/suggest_subjects")
 async def suggest_subjects(
     payload: dict = Body(...),
@@ -588,7 +579,6 @@ Suggestions:"""
     except Exception as e:
         logger.error(f"Error generating subject suggestions: {str(e)}")
         return {"suggestions": []}
-
 
 @router.post("/save_complete_profile")
 async def save_complete_profile(

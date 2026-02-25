@@ -17,8 +17,6 @@
   flex-direction: column;
 }
 
-/* ==================== HEADER - MATCHING WEAKNESSES PAGE ==================== */
-
 .practice-header {
   position: sticky;
   top: 0;
@@ -168,7 +166,6 @@
   color: #D7B38C;
 }
 
-/* Start Screen */
 .practice-start-screen {
   display: flex;
   justify-content: center;
@@ -252,7 +249,6 @@
   cursor: not-allowed;
 }
 
-/* Practice Main */
 .practice-main {
   display: flex;
   justify-content: center;
@@ -410,7 +406,6 @@
   color: #ef4444;
 }
 
-/* Feedback Panel */
 .feedback-panel {
   margin-top: 2rem;
   padding: 1.5rem;
@@ -479,7 +474,6 @@
   color: #D7B38C;
 }
 
-/* Question Actions */
 .question-actions {
   display: flex;
   justify-content: center;
@@ -514,7 +508,6 @@
   transform: none;
 }
 
-/* Summary Screen */
 .practice-summary-screen {
   display: flex;
   justify-content: center;
@@ -668,7 +661,6 @@
   background: rgba(215, 179, 140, 0.1);
 }
 
-/* Animations */
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -693,7 +685,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .practice-header {
     padding: 1rem 1.5rem;
@@ -716,8 +707,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

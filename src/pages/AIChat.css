@@ -1,7 +1,6 @@
-/* AI Chat Page - Matching Flashcards Layout */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Global overflow prevention */
 body:has(.ai-chat-page),
 html:has(.ai-chat-page) {
   overflow-x: hidden !important;
@@ -12,7 +11,6 @@ html:has(.ai-chat-page) {
   height: 100% !important;
 }
 
-/* CSS Variables - Matching Flashcards */
 .ai-chat-page {
   --ac-bg-primary: var(--bg);
   --ac-bg-secondary: var(--panel);
@@ -34,7 +32,6 @@ html:has(.ai-chat-page) {
   --ac-header-height: 70px;
 }
 
-/* Reset and Base */
 .ai-chat-page {
   position: fixed !important;
   top: 0 !important;
@@ -55,7 +52,6 @@ html:has(.ai-chat-page) {
   flex-direction: column;
 }
 
-/* ==================== HEADER - Matching NotesRedesign Exactly ==================== */
 .hub-header {
   height: 70px;
   min-height: 70px;
@@ -194,7 +190,6 @@ html:has(.ai-chat-page) {
   color: var(--accent);
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .hub-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -211,7 +206,6 @@ html:has(.ai-chat-page) {
   color: var(--text-primary, #1a1a2e);
 }
 
-/* Light mode - white background */
 [data-theme-mode="light"] .ai-chat-page {
   background: #ffffff !important;
 }
@@ -230,7 +224,6 @@ html:has(.ai-chat-page) {
   padding: 0;
 }
 
-/* Main Layout */
 .ac-layout {
   display: flex;
   width: 100%;
@@ -240,7 +233,6 @@ html:has(.ai-chat-page) {
   overflow-y: hidden !important;
 }
 
-/* Main Content Area */
 .ac-main {
   flex: 1;
   display: flex;
@@ -251,7 +243,6 @@ html:has(.ai-chat-page) {
   width: 100%;
 }
 
-/* Sidebar */
 .ac-sidebar {
   width: var(--ac-sidebar-width);
   height: 100%;
@@ -263,7 +254,6 @@ html:has(.ai-chat-page) {
   padding-top: 16px;
 }
 
-/* Sidebar Text Colors */
 [data-theme-mode="dark"] .ac-sidebar {
   color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
 }
@@ -308,7 +298,6 @@ html:has(.ai-chat-page) {
   border-right: none !important;
 }
 
-/* Show sidebar button in header when collapsed */
 .ac-show-sidebar-btn {
   width: 44px !important;
   height: 44px !important;
@@ -328,7 +317,6 @@ html:has(.ai-chat-page) {
   color: var(--ac-bg-primary) !important;
 }
 
-/* Sidebar header is hidden - using main header instead */
 .ac-sidebar-header {
   display: none;
 }
@@ -352,7 +340,6 @@ html:has(.ai-chat-page) {
   color: var(--ac-accent);
 }
 
-/* Sidebar Nav */
 .ac-sidebar-nav {
   flex: 1;
   padding: 16px 12px;
@@ -363,7 +350,6 @@ html:has(.ai-chat-page) {
   overflow-x: hidden;
 }
 
-/* Sidebar Footer - Match Flashcards */
 .ac-sidebar-footer {
   padding: 16px 12px;
   border-top: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
@@ -541,7 +527,6 @@ html:has(.ai-chat-page) {
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* New Chat Button */
 .ac-new-chat-btn {
   display: flex;
   align-items: center;
@@ -559,8 +544,6 @@ html:has(.ai-chat-page) {
   transition: all 0.2s;
   margin: 12px;
 }
-
-
 
 .ac-new-chat-btn:hover {
   transform: translateY(-1px);
@@ -581,7 +564,6 @@ html:has(.ai-chat-page) {
   padding: 12px;
 }
 
-/* Chat Sessions List */
 .ac-sessions-list {
   display: flex;
   flex-direction: column;
@@ -684,7 +666,6 @@ html:has(.ai-chat-page) {
   height: 14px;
 }
 
-/* Main Content Area */
 .ac-main {
   flex: 1;
   display: flex;
@@ -696,7 +677,6 @@ html:has(.ai-chat-page) {
   position: relative;
 }
 
-/* Buttons */
 .ac-btn {
   display: flex;
   align-items: center;
@@ -735,7 +715,6 @@ html:has(.ai-chat-page) {
   height: 16px;
 }
 
-/* Profile Picture */
 .ac-profile-picture {
   width: 36px;
   height: 36px;
@@ -750,7 +729,6 @@ html:has(.ai-chat-page) {
   border-color: var(--ac-accent);
 }
 
-/* Chat Content Area */
 .ac-content {
   flex: 1;
   overflow-y: hidden !important;
@@ -779,7 +757,6 @@ html:has(.ai-chat-page) {
   background: var(--ac-accent);
 }
 
-/* Messages Container */
 .ac-messages {
   flex: 1;
   display: flex;
@@ -793,7 +770,6 @@ html:has(.ai-chat-page) {
   overflow-x: visible !important;
 }
 
-/* Hide scrollbar completely */
 .ac-messages::-webkit-scrollbar {
   display: none;
 }
@@ -803,7 +779,6 @@ html:has(.ai-chat-page) {
   scrollbar-width: none;
 }
 
-/* Welcome Screen */
 .ac-welcome {
   flex: 1;
   display: flex;
@@ -844,7 +819,6 @@ html:has(.ai-chat-page) {
   max-width: 400px;
 }
 
-/* Message Bubbles */
 .ac-message {
   display: flex;
   flex-direction: column;
@@ -899,7 +873,6 @@ html:has(.ai-chat-page) {
   word-wrap: break-word;
 }
 
-/* Clickable Suggestions */
 .ac-suggestion-item {
   display: flex;
   align-items: flex-start;
@@ -971,7 +944,6 @@ html:has(.ai-chat-page) {
   color: var(--ac-text-muted);
 }
 
-/* Input Area */
 .ac-input-area {
   padding: 20px 32px;
   background: var(--ac-bg-primary);
@@ -1114,7 +1086,6 @@ html:has(.ai-chat-page) {
   height: 18px;
 }
 
-/* File Preview */
 .ac-file-preview {
   display: flex;
   flex-wrap: wrap;
@@ -1162,7 +1133,6 @@ html:has(.ai-chat-page) {
   height: 12px;
 }
 
-/* Code Blocks */
 .ac-code-block {
   margin: 12px 0;
   background: var(--ac-bg-primary);
@@ -1241,8 +1211,6 @@ html:has(.ai-chat-page) {
   border-radius: 3px;
 }
 
-/* Typing Indicator */
-/* Pulsing Squares Loader */
 .ac-pulse-loader {
   display: flex;
   align-items: center;
@@ -1285,7 +1253,6 @@ html:has(.ai-chat-page) {
   }
 }
 
-/* Legacy typing animation - keep for backwards compatibility */
 .ac-typing {
   display: flex;
   gap: 6px;
@@ -1319,7 +1286,6 @@ html:has(.ai-chat-page) {
   }
 }
 
-/* Folders Section */
 .ac-folders-section {
   margin-bottom: 8px;
 }
@@ -1421,7 +1387,6 @@ html:has(.ai-chat-page) {
   display: none !important;
 }
 
-/* Folder Creation Input */
 .ac-folder-input-group {
   display: flex;
   gap: 6px;
@@ -1482,7 +1447,6 @@ html:has(.ai-chat-page) {
   height: 14px;
 }
 
-/* Scroll Buttons */
 .ac-scroll-btn {
   position: fixed;
   right: 30px;
@@ -1525,7 +1489,6 @@ html:has(.ai-chat-page) {
   height: 20px;
 }
 
-/* Rating Section */
 .ac-rating {
   margin-top: 12px;
   padding: 12px;
@@ -1567,7 +1530,6 @@ html:has(.ai-chat-page) {
   transform: scale(1.1);
 }
 
-/* Confidence Badge */
 .ac-confidence {
   font-size: 10px;
   font-weight: 600;
@@ -1592,7 +1554,6 @@ html:has(.ai-chat-page) {
   color: var(--ac-danger);
 }
 
-/* Delete Confirmation Modal */
 .ac-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1665,7 +1626,6 @@ html:has(.ai-chat-page) {
   opacity: 0.9;
 }
 
-/* Feedback Form */
 .ac-feedback {
   margin-top: 12px;
   padding: 16px;
@@ -1702,7 +1662,6 @@ html:has(.ai-chat-page) {
   justify-content: flex-end;
 }
 
-/* Loading State */
 .ac-loading {
   display: flex;
   flex-direction: column;
@@ -1730,7 +1689,6 @@ html:has(.ai-chat-page) {
   color: var(--ac-text-muted);
 }
 
-/* Empty State */
 .ac-empty {
   display: flex;
   flex-direction: column;
@@ -1769,7 +1727,6 @@ html:has(.ai-chat-page) {
   color: var(--ac-text-muted);
 }
 
-/* Move to Folder Menu */
 .ac-move-menu {
   position: fixed;
   background: var(--ac-bg-secondary);
@@ -1806,7 +1763,6 @@ html:has(.ai-chat-page) {
   color: var(--ac-accent);
 }
 
-/* Markdown Styling */
 .ac-message-content h1,
 .ac-message-content h2,
 .ac-message-content h3,
@@ -1882,7 +1838,6 @@ html:has(.ai-chat-page) {
   font-weight: 600;
 }
 
-/* File Analysis */
 .ac-file-analysis {
   margin-top: 12px;
   padding-top: 12px;
@@ -1913,7 +1868,6 @@ html:has(.ai-chat-page) {
   color: var(--ac-accent);
 }
 
-/* Action Buttons for Navigation */
 .ac-action-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -1992,7 +1946,6 @@ html:has(.ai-chat-page) {
   border-color: #f59e0b;
 }
 
-/* Responsive */
 @media (max-width: 1024px) {
   .ac-sidebar {
     width: var(--ac-sidebar-collapsed);
@@ -2046,7 +1999,6 @@ html:has(.ai-chat-page) {
   }
 }
 
-/* Code Block Container - Enhanced */
 .code-block-container {
   margin: 12px 0;
   background: var(--ac-bg-primary);
@@ -2143,7 +2095,6 @@ html:has(.ai-chat-page) {
   border-radius: 3px;
 }
 
-/* Inline Code */
 .md-inline-code {
   background: var(--ac-bg-tertiary);
   padding: 2px 6px;
@@ -2152,7 +2103,6 @@ html:has(.ai-chat-page) {
   font-size: 13px;
 }
 
-/* Markdown Headers */
 .md-h1, .md-h2, .md-h3, .md-h4 {
   color: var(--ac-accent);
   margin: 16px 0 8px 0;
@@ -2164,14 +2114,12 @@ html:has(.ai-chat-page) {
 .md-h3 { font-size: 15px; }
 .md-h4 { font-size: 14px; }
 
-/* Bold and Italic */
 .md-bold-heading,
 .md-bold-inline {
   color: var(--ac-accent);
   font-weight: 600;
 }
 
-/* Lists */
 .md-ul, .md-ol {
   margin: 8px 0;
   padding-left: 20px;
@@ -2182,19 +2130,16 @@ html:has(.ai-chat-page) {
   line-height: 1.6;
 }
 
-/* Keywords */
 .keyword {
   color: var(--ac-accent);
   font-weight: 500;
 }
 
-/* Math Symbols */
 .math-symbol {
   font-size: 1.2em;
   color: var(--ac-accent);
 }
 
-/* Tables */
 .table-block-container {
   margin: 12px 0;
   background: var(--ac-bg-primary);
@@ -2262,7 +2207,6 @@ html:has(.ai-chat-page) {
   background: var(--ac-bg-tertiary);
 }
 
-/* Superscript and Subscript */
 sup, sub {
   font-size: 0.75em;
   line-height: 0;
@@ -2278,10 +2222,6 @@ sub {
   bottom: -0.25em;
 }
 
-
-/* ==================== ENHANCED UI IMPROVEMENTS ==================== */
-
-/* Advanced Gradient Backgrounds */
 [data-theme-mode="dark"] .ai-chat-page {
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
 }
@@ -2290,7 +2230,6 @@ sub {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
 }
 
-/* Sidebar Enhanced Styling */
 [data-theme-mode="dark"] .ac-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
@@ -2306,7 +2245,6 @@ sub {
   box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* Enhanced Navigation Items */
 .ac-nav-item {
   position: relative;
   overflow: hidden;
@@ -2342,7 +2280,6 @@ sub {
   opacity: 1;
 }
 
-/* Enhanced Session Items */
 .ac-session-item {
   position: relative;
   overflow: hidden;
@@ -2372,7 +2309,6 @@ sub {
   background: rgba(215, 179, 140, 0.15);
 }
 
-/* Enhanced Show Sidebar Button */
 .ac-show-sidebar-btn {
   position: relative;
   overflow: hidden;
@@ -2401,7 +2337,6 @@ sub {
   transform: scale(1.1);
 }
 
-/* Enhanced Profile Picture */
 .ac-profile-picture {
   position: relative;
   box-shadow: 0 0 0 2px var(--ac-border-subtle);
@@ -2413,7 +2348,6 @@ sub {
   transform: scale(1.05);
 }
 
-/* Enhanced Content Area */
 [data-theme-mode="dark"] .ac-content {
   background: transparent;
 }
@@ -2422,7 +2356,6 @@ sub {
   background: transparent;
 }
 
-/* Enhanced Welcome Screen */
 .ac-welcome {
   opacity: 1;
 }
@@ -2451,7 +2384,6 @@ sub {
   }
 }
 
-/* Enhanced Message Bubbles */
 .ac-message {
   opacity: 1;
 }
@@ -2487,7 +2419,6 @@ sub {
   box-shadow: none !important;
 }
 
-/* Enhanced Input Area */
 [data-theme-mode="dark"] .ac-input-area {
   background: linear-gradient(180deg, #0f0f0f 0%, #1a1a1a 100%) !important;
   box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.5);
@@ -2518,7 +2449,6 @@ sub {
   background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
 }
 
-/* Enhanced Input Buttons */
 .ac-input-btn {
   position: relative;
   overflow: hidden;
@@ -2548,7 +2478,6 @@ sub {
   transform: rotate(15deg) scale(1.1);
 }
 
-/* Enhanced Send Button */
 .ac-send-btn {
   position: relative;
   overflow: hidden;
@@ -2582,7 +2511,6 @@ sub {
   transform: translateX(3px);
 }
 
-/* Enhanced New Chat Button */
 .ac-new-chat-btn {
   position: relative;
   overflow: hidden;
@@ -2616,7 +2544,6 @@ sub {
   box-shadow: 0 6px 20px rgba(215, 179, 140, 0.5);
 }
 
-/* Enhanced Code Blocks */
 .ac-code-block,
 .code-block-container {
   position: relative;
@@ -2705,7 +2632,6 @@ sub {
   50% { transform: scale(1.05); }
 }
 
-/* Enhanced Scroll Buttons */
 .ac-scroll-btn {
   position: relative;
   overflow: hidden;
@@ -2739,7 +2665,6 @@ sub {
   transform: translateY(3px);
 }
 
-/* Enhanced Confidence Badges */
 .ac-confidence {
   position: relative;
   overflow: hidden;
@@ -2774,7 +2699,6 @@ sub {
   box-shadow: none;
 }
 
-/* Enhanced Rating Buttons */
 .ac-rating-btn {
   position: relative;
   overflow: hidden;
@@ -2799,7 +2723,6 @@ sub {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Enhanced File Tags */
 .ac-file-tag {
   position: relative;
   overflow: hidden;
@@ -2836,7 +2759,6 @@ sub {
   transform: rotate(90deg) scale(1.2);
 }
 
-/* Enhanced Modal */
 .ac-modal-overlay {
   backdrop-filter: blur(8px);
   animation: fadeIn 0.3s;
@@ -2904,7 +2826,6 @@ sub {
   box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
 }
 
-/* Enhanced Folder Items */
 .ac-folder-item {
   position: relative;
   overflow: hidden;
@@ -2956,7 +2877,6 @@ sub {
   transform: scale(1.05);
 }
 
-/* Enhanced Typing Indicator */
 .ac-typing {
   opacity: 1;
 }
@@ -2965,12 +2885,10 @@ sub {
   box-shadow: none;
 }
 
-/* Enhanced Loading Spinner */
 .ac-spinner {
   box-shadow: none;
 }
 
-/* Enhanced Empty State */
 .ac-empty {
   opacity: 1;
 }
@@ -2997,7 +2915,6 @@ sub {
   transform: scale(1.05);
 }
 
-/* Enhanced Move Menu */
 .ac-move-menu {
   animation: scaleIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -3033,7 +2950,6 @@ sub {
   left: 100%;
 }
 
-/* Enhanced Feedback Form */
 .ac-feedback {
   opacity: 1;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -3057,7 +2973,6 @@ sub {
   transform: translateY(-2px);
 }
 
-/* Enhanced Collapse Button */
 .ac-collapse-btn {
   position: relative;
   overflow: hidden;
@@ -3081,7 +2996,6 @@ sub {
   transform: rotate(180deg);
 }
 
-/* Enhanced Add Folder Button */
 .ac-add-folder-btn {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -3090,7 +3004,6 @@ sub {
   transform: rotate(90deg) scale(1.2);
 }
 
-/* Enhanced Folder Input */
 .ac-folder-input {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -3135,7 +3048,6 @@ sub {
   transform: rotate(90deg);
 }
 
-/* Enhanced Session Actions */
 .ac-session-btn {
   position: relative;
   overflow: hidden;
@@ -3167,7 +3079,6 @@ sub {
   transform: scale(1.2) rotate(15deg);
 }
 
-/* Enhanced Markdown Elements */
 .ac-message-content h1,
 .ac-message-content h2,
 .ac-message-content h3,
@@ -3236,7 +3147,6 @@ sub {
   transform: translateX(4px);
 }
 
-/* Enhanced Table Styling */
 .ac-message-content table,
 .table-block-container {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -3273,7 +3183,6 @@ sub {
   transform: scale(1.01);
 }
 
-/* Enhanced List Items */
 .ac-message-content li {
   position: relative;
   padding-left: 8px;
@@ -3301,7 +3210,6 @@ sub {
   color: var(--ac-accent);
 }
 
-/* Enhanced Inline Code */
 .ac-message-content code,
 .md-inline-code {
   position: relative;
@@ -3315,7 +3223,6 @@ sub {
   transform: translateY(-1px);
 }
 
-/* Enhanced Math Symbols */
 .math-symbol {
   display: inline-block;
   transition: all 0.3s;
@@ -3327,7 +3234,6 @@ sub {
   text-shadow: 0 0 10px var(--ac-accent);
 }
 
-/* Enhanced File Analysis */
 .ac-file-analysis {
   opacity: 1;
 }
@@ -3366,7 +3272,6 @@ sub {
   transform: rotate(15deg) scale(1.1);
 }
 
-/* Enhanced Scrollbar */
 .ac-content::-webkit-scrollbar-thumb,
 .ac-sidebar-nav::-webkit-scrollbar-thumb,
 .ac-code-content::-webkit-scrollbar-thumb,
@@ -3382,7 +3287,6 @@ sub {
   background: var(--ac-accent);
 }
 
-/* Particle Effect Background (Subtle) */
 [data-theme-mode="dark"] .ai-chat-page::before {
   content: '';
   position: fixed;
@@ -3412,7 +3316,6 @@ sub {
   z-index: 1;
 }
 
-/* Glow Effects for Dark Mode */
 [data-theme-mode="dark"] .ac-new-chat-btn {
   box-shadow: 0 4px 20px rgba(215, 179, 140, 0.4);
 }
@@ -3429,7 +3332,6 @@ sub {
   box-shadow: inset 3px 0 0 var(--ac-accent);
 }
 
-/* Smooth Transitions for Theme Switching */
 .ai-chat-page,
 .ac-sidebar,
 .ac-main,
@@ -3446,7 +3348,6 @@ sub {
   transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Enhanced Button Hover States */
 .ac-btn-secondary {
   position: relative;
   overflow: hidden;
@@ -3493,7 +3394,6 @@ sub {
   z-index: 1;
 }
 
-/* Enhanced Drag and Drop */
 .ac-input-wrapper.drag-active {
   animation: dragPulse 1s infinite;
 }
@@ -3507,7 +3407,6 @@ sub {
   }
 }
 
-/* Enhanced Textarea */
 .ac-textarea {
   transition: none !important;
   transform: none !important;
@@ -3517,7 +3416,6 @@ sub {
   transform: none !important;
 }
 
-/* Loading State Enhancement */
 .ac-loading {
   opacity: 1;
 }
@@ -3526,9 +3424,6 @@ sub {
   animation: ac-spin 1s linear infinite;
 }
 
-/* Removed glow animation */
-
-/* Message Time Enhancement */
 .ac-message-time {
   transition: all 0.3s;
 }
@@ -3538,12 +3433,10 @@ sub {
   transform: scale(1.05);
 }
 
-/* Enhanced Section Titles */
 .ac-nav-section-title {
   position: relative;
 }
 
-/* Enhanced Sidebar Footer */
 .ac-sidebar-footer {
   position: relative;
 }
@@ -3559,12 +3452,10 @@ sub {
   opacity: 0.3;
 }
 
-/* Accent Color Glow for Interactive Elements */
 [data-theme-mode="dark"] .ac-nav-item-accent:hover {
   box-shadow: 0 0 15px rgba(215, 179, 140, 0.3);
 }
 
-/* Enhanced Message Meta */
 .ac-message-meta {
   transition: all 0.3s;
 }
@@ -3573,7 +3464,6 @@ sub {
   transform: translateX(4px);
 }
 
-/* Code Language Badge Enhancement */
 .ac-code-lang,
 .code-language {
   position: relative;
@@ -3585,7 +3475,6 @@ sub {
   animation: pulse 2s infinite;
 }
 
-/* Enhanced Rating Section */
 .ac-rating {
   position: relative;
   overflow: hidden;
@@ -3601,12 +3490,10 @@ sub {
   background: linear-gradient(90deg, var(--ac-accent), transparent);
 }
 
-/* Staggered Animation for Lists */
 .ac-sessions-list .ac-session-item {
   opacity: 1;
 }
 
-/* Enhanced Folder Section */
 .ac-folders-section {
   opacity: 1;
 }
@@ -3626,14 +3513,12 @@ sub {
   opacity: 0.2;
 }
 
-/* Enhanced Input Focus State */
 .ac-folder-input:focus,
 .ac-feedback textarea:focus {
   border-color: var(--ac-accent);
   box-shadow: 0 0 0 3px var(--ac-accent-glow), 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Hover Effect for All Clickable Items */
 button:not(:disabled),
 .ac-nav-item,
 .ac-session-item,
@@ -3649,7 +3534,6 @@ button:not(:disabled):active,
   transform: scale(0.98);
 }
 
-/* Glass Morphism Effect for Modals */
 [data-theme-mode="dark"] .ac-modal {
   backdrop-filter: blur(10px);
   background: rgba(26, 26, 26, 0.95);
@@ -3660,7 +3544,6 @@ button:not(:disabled):active,
   background: rgba(255, 255, 255, 0.95);
 }
 
-/* Gradient Border Animation */
 @keyframes borderGlow {
   0%, 100% {
     border-color: var(--ac-accent);
@@ -3676,7 +3559,6 @@ button:not(:disabled):active,
   animation: borderGlow 2s infinite;
 }
 
-/* Enhanced Welcome Icon */
 .ac-welcome-icon {
   position: relative;
 }
@@ -3689,12 +3571,10 @@ button:not(:disabled):active,
   animation: pulse 2s infinite;
 }
 
-/* Enhanced Empty Icon */
 .ac-empty-icon {
   position: relative;
 }
 
-/* Ripple Effect on Click */
 @keyframes ripple {
   0% {
     transform: scale(0);
@@ -3725,7 +3605,6 @@ button:not(:disabled):active,
   animation: ripple 0.6s ease-out;
 }
 
-/* Text Selection Styling */
 ::selection {
   background: var(--ac-accent);
   color: var(--ac-bg-primary);
@@ -3736,18 +3615,15 @@ button:not(:disabled):active,
   color: var(--ac-bg-primary);
 }
 
-/* Enhanced Focus Visible */
 *:focus-visible {
   outline: 2px solid var(--ac-accent);
   outline-offset: 2px;
 }
 
-/* Smooth Scroll Behavior */
 .ac-content {
   scroll-behavior: smooth;
 }
 
-/* Enhanced Message Content Links */
 .ac-message-content a {
   position: relative;
   display: inline-block;
@@ -3757,13 +3633,11 @@ button:not(:disabled):active,
   transform: translateY(-1px);
 }
 
-/* Enhanced Code Block Syntax Highlighting Prep */
 [data-theme-mode="dark"] .code-block code,
 [data-theme-mode="dark"] .ac-code-content {
   text-shadow: 0 0 1px rgba(215, 179, 140, 0.1);
 }
 
-/* Gradient Text for Headers in Messages */
 [data-theme-mode="dark"] .ac-message-content h1,
 [data-theme-mode="dark"] .ac-message-content h2,
 [data-theme-mode="dark"] .md-h1,
@@ -3774,17 +3648,14 @@ button:not(:disabled):active,
   background-clip: text;
 }
 
-/* Enhanced Folder Creation Animation */
 .ac-folder-input-group {
   opacity: 1;
 }
 
-/* Enhanced Session Title Truncation with Fade */
 .ac-session-title {
   position: relative;
 }
 
-/* Enhanced Collapse Animation */
 .ac-sidebar.collapsed {
   animation: collapseSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -3800,7 +3671,6 @@ button:not(:disabled):active,
   }
 }
 
-/* Enhanced Message Bubble Tail Effect */
 .ac-message.user .ac-message-bubble::after {
   content: '';
   position: absolute;
@@ -3833,7 +3703,6 @@ button:not(:disabled):active,
   border-right-color: #ffffff;
 }
 
-/* Skeleton Loading Animation */
 @keyframes skeleton {
   0% {
     background-position: -200px 0;
@@ -3849,7 +3718,6 @@ button:not(:disabled):active,
   animation: skeleton 1.5s infinite;
 }
 
-/* Enhanced Feedback Actions */
 .ac-feedback-actions button {
   position: relative;
   overflow: hidden;
@@ -3868,7 +3736,6 @@ button:not(:disabled):active,
   opacity: 1;
 }
 
-/* Enhanced Notification Badge Style */
 .notification-badge {
   position: absolute;
   top: -4px;
@@ -3898,7 +3765,6 @@ button:not(:disabled):active,
   }
 }
 
-/* Enhanced Divider Lines */
 .divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--ac-accent), transparent);
@@ -3906,7 +3772,6 @@ button:not(:disabled):active,
   opacity: 0.3;
 }
 
-/* Enhanced Tooltip Style */
 .ai-chat-page [title] {
   position: relative;
 }
@@ -3939,7 +3804,6 @@ button:not(:disabled):active,
   }
 }
 
-/* Enhanced Status Indicators */
 .status-online,
 .status-typing,
 .status-away {
@@ -3971,7 +3835,6 @@ button:not(:disabled):active,
   }
 }
 
-/* Enhanced Progress Bar */
 .progress-bar {
   width: 100%;
   height: 4px;
@@ -4011,7 +3874,6 @@ button:not(:disabled):active,
   }
 }
 
-/* Enhanced Card Hover Effects */
 .card {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -4026,7 +3888,6 @@ button:not(:disabled):active,
   box-shadow: 0 8px 24px rgba(215, 179, 140, 0.2);
 }
 
-/* Enhanced Badge Styles */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -4067,7 +3928,6 @@ button:not(:disabled):active,
   color: #ef4444;
 }
 
-/* Enhanced Avatar Styles */
 .avatar {
   width: 40px;
   height: 40px;
@@ -4100,7 +3960,6 @@ button:not(:disabled):active,
   box-shadow: 0 4px 16px rgba(215, 179, 140, 0.4);
 }
 
-/* Enhanced Chip Styles */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -4150,7 +4009,6 @@ button:not(:disabled):active,
   transform: rotate(90deg) scale(1.2);
 }
 
-/* Enhanced Alert Styles */
 .alert {
   padding: 12px 16px;
   margin: 12px 0;
@@ -4220,7 +4078,6 @@ button:not(:disabled):active,
   box-shadow: 0 0 10px #ef4444;
 }
 
-/* Enhanced Separator */
 .separator {
   display: flex;
   align-items: center;
@@ -4249,7 +4106,6 @@ button:not(:disabled):active,
   margin-left: 12px;
 }
 
-/* Enhanced Toggle Switch */
 .toggle-switch {
   width: 48px;
   height: 24px;
@@ -4284,7 +4140,6 @@ button:not(:disabled):active,
   transform: scale(1.1);
 }
 
-/* Enhanced Checkbox */
 .checkbox {
   width: 20px;
   height: 20px;
@@ -4323,7 +4178,6 @@ button:not(:disabled):active,
   transform: scale(1.05);
 }
 
-/* Enhanced Radio Button */
 .radio {
   width: 20px;
   height: 20px;
@@ -4360,7 +4214,6 @@ button:not(:disabled):active,
   transform: scale(1.1);
 }
 
-/* Enhanced Slider */
 .slider {
   width: 100%;
   height: 6px;
@@ -4400,7 +4253,6 @@ button:not(:disabled):active,
   box-shadow: 0 4px 12px rgba(215, 179, 140, 0.4);
 }
 
-/* Enhanced Tab Navigation */
 .tabs {
   display: flex;
   gap: 4px;
@@ -4445,7 +4297,6 @@ button:not(:disabled):active,
   transform: scaleX(1);
 }
 
-/* Enhanced Accordion */
 .accordion-item {
   border: 1px solid var(--ac-border-subtle);
   margin-bottom: 8px;
@@ -4510,7 +4361,6 @@ button:not(:disabled):active,
   padding: 16px;
 }
 
-/* Enhanced Dropdown Menu */
 .dropdown {
   position: relative;
 }
@@ -4584,7 +4434,6 @@ button:not(:disabled):active,
   transform: translateX(4px);
 }
 
-/* Enhanced Context Menu */
 .context-menu {
   position: fixed;
   background: var(--ac-bg-secondary);
@@ -4620,7 +4469,6 @@ button:not(:disabled):active,
   margin: 4px 0;
 }
 
-/* Enhanced Breadcrumb */
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -4650,7 +4498,6 @@ button:not(:disabled):active,
   font-weight: 600;
 }
 
-/* Enhanced Pagination */
 .pagination {
   display: flex;
   gap: 8px;
@@ -4708,7 +4555,6 @@ button:not(:disabled):active,
   box-shadow: none;
 }
 
-/* Enhanced Search Input */
 .search-input {
   position: relative;
   width: 100%;
@@ -4743,7 +4589,6 @@ button:not(:disabled):active,
   transform: translateY(-50%) scale(1.1);
 }
 
-/* Enhanced Stepper */
 .stepper {
   display: flex;
   align-items: center;
@@ -4810,7 +4655,6 @@ button:not(:disabled):active,
   width: 100%;
 }
 
-/* Search Input in Sidebar */
 .ac-search-container {
   padding: 0 12px 12px 12px;
   margin-bottom: 8px;
@@ -4867,18 +4711,11 @@ button:not(:disabled):active,
   position: relative;
 }
 
-
-
-
-/* ==================== MODERN PRODUCTION ENHANCEMENTS ==================== */
-
-/* Glassmorphism effect for sidebar */
 .ac-sidebar {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
-/* Enhanced search bar with focus glow */
 .ac-search-bar {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -4889,7 +4726,6 @@ button:not(:disabled):active,
   transform: translateY(-1px);
 }
 
-/* Smooth hover effects for chat items */
 .ac-chat-item {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -4899,7 +4735,6 @@ button:not(:disabled):active,
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-/* Enhanced message bubbles with subtle shadows */
 .ac-message-bubble {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -4909,7 +4744,6 @@ button:not(:disabled):active,
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
-/* User message accent glow */
 .ac-message.user .ac-message-bubble {
   box-shadow: none !important;
 }
@@ -4918,7 +4752,6 @@ button:not(:disabled):active,
   box-shadow: none !important;
 }
 
-/* Input area with elevated appearance */
 .ac-input-area {
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
 }
@@ -4933,7 +4766,6 @@ button:not(:disabled):active,
   transform: translateY(-2px);
 }
 
-/* Send button with pulse effect */
 .ac-send-btn {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px var(--ac-accent-glow);
@@ -4948,7 +4780,6 @@ button:not(:disabled):active,
   transform: scale(0.95);
 }
 
-/* Folder items with smooth interactions */
 .ac-folder-item {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -4958,12 +4789,10 @@ button:not(:disabled):active,
   background: var(--ac-bg-elevated);
 }
 
-/* Code blocks with better contrast */
 .ac-code-block {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Typing indicator with smooth animation */
 .ac-typing-indicator {
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -4977,7 +4806,6 @@ button:not(:disabled):active,
   }
 }
 
-/* Smooth scrollbar styling */
 .ac-content::-webkit-scrollbar {
   width: 8px;
 }
@@ -4996,7 +4824,6 @@ button:not(:disabled):active,
   background: var(--ac-accent);
 }
 
-/* Button hover lift effect */
 button:not(.ac-send-btn):not(.ac-new-chat-btn) {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -5009,7 +4836,6 @@ button:not(.ac-send-btn):not(.ac-new-chat-btn):active {
   transform: translateY(0);
 }
 
-/* Subtle gradient overlay for depth */
 .ac-sidebar::after {
   content: '';
   position: absolute;
@@ -5025,7 +4851,6 @@ button:not(.ac-send-btn):not(.ac-new-chat-btn):active {
   pointer-events: none;
 }
 
-/* Enhanced focus states for accessibility */
 input:focus,
 textarea:focus,
 button:focus-visible {
@@ -5033,22 +4858,16 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-/* Smooth transitions for theme switching */
 .ai-chat-page,
 .ai-chat-page * {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Prevent transition on page load */
 .ai-chat-page.no-transition,
 .ai-chat-page.no-transition * {
   transition: none !important;
 }
 
-
-/* ==================== MAJOR SIDEBAR OVERHAUL - PRODUCTION DESIGN ==================== */
-
-/* Sidebar Container - Premium Glass Effect */
 .ac-sidebar {
   background: linear-gradient(180deg, 
     var(--ac-bg-secondary) 0%, 
@@ -5064,7 +4883,6 @@ button:focus-visible {
   border-right: 1px solid color-mix(in srgb, var(--ac-accent) 25%, transparent) !important;
 }
 
-/* New Chat Button - Premium Style */
 .ac-new-chat-btn {
   margin: 16px !important;
   padding: 14px 20px !important;
@@ -5082,7 +4900,6 @@ button:focus-visible {
   box-shadow: 0 6px 24px color-mix(in srgb, var(--ac-accent) 50%, transparent) !important;
 }
 
-/* Search Container - Centered & Modern */
 .ac-search-container {
   padding: 0 16px 16px 16px !important;
   margin-bottom: 0 !important;
@@ -5127,7 +4944,6 @@ button:focus-visible {
   text-transform: uppercase !important;
 }
 
-/* Folders Section - Premium Design */
 .ac-folders-section {
   margin: 0 !important;
   padding: 0 !important;
@@ -5165,7 +4981,6 @@ button:focus-visible {
   transform: scale(1.05) !important;
 }
 
-/* Folder Items - Card Style */
 .ac-folder-item {
   margin: 4px 12px !important;
   padding: 12px 14px !important;
@@ -5226,7 +5041,6 @@ button:focus-visible {
   color: var(--ac-bg-primary) !important;
 }
 
-/* Chats Section Header */
 .ac-nav-section-title {
   font-size: 10px !important;
   font-weight: 700 !important;
@@ -5237,7 +5051,6 @@ button:focus-visible {
   margin: 0 !important;
 }
 
-/* Chat Session Items - Modern Cards */
 .ac-session-item {
   margin: 4px 12px 4px 12px !important;
   padding: 12px 14px !important;
@@ -5261,7 +5074,6 @@ button:focus-visible {
   box-shadow: 0 2px 8px color-mix(in srgb, var(--ac-accent) 20%, transparent) !important;
 }
 
-/* Active indicator line */
 .ac-session-item.active::before {
   content: '' !important;
   position: absolute !important;
@@ -5287,7 +5099,6 @@ button:focus-visible {
   margin-top: 2px !important;
 }
 
-/* Session Action Buttons */
 .ac-session-actions {
   gap: 2px !important;
 }
@@ -5310,7 +5121,6 @@ button:focus-visible {
   color: var(--ac-danger) !important;
 }
 
-/* Sidebar Footer - Clean Design */
 .ac-sidebar-footer {
   padding: 16px !important;
   border-top: 1px solid color-mix(in srgb, var(--ac-accent) 15%, transparent) !important;
@@ -5377,7 +5187,6 @@ button:focus-visible {
   letter-spacing: 2px !important;
 }
 
-/* Folder Input Group - Modern Style */
 .ac-folder-input-group {
   margin: 8px 12px !important;
   padding: 4px 6px !important;
@@ -5405,7 +5214,6 @@ button:focus-visible {
   display: none !important;
 }
 
-/* Collapse Button - Refined */
 .ac-collapse-btn {
   width: 32px !important;
   height: 32px !important;
@@ -5422,7 +5230,6 @@ button:focus-visible {
   transform: scale(1.05) !important;
 }
 
-/* Scrollbar for Sidebar Nav */
 .ac-sidebar-nav::-webkit-scrollbar {
   width: 6px;
 }
@@ -5440,7 +5247,6 @@ button:focus-visible {
   background: var(--ac-accent);
 }
 
-/* Empty State for Folders/Chats */
 .ac-empty-state {
   padding: 24px 16px;
   text-align: center;
@@ -5448,7 +5254,6 @@ button:focus-visible {
   font-size: 12px;
 }
 
-/* Divider between sections */
 .ac-section-divider {
   height: 1px;
   margin: 8px 16px;
@@ -5458,8 +5263,6 @@ button:focus-visible {
     transparent 100%);
 }
 
-
-/* Search Wrapper with Icon */
 .ac-search-wrapper {
   position: relative !important;
   width: 100% !important;
@@ -5480,15 +5283,10 @@ button:focus-visible {
   color: var(--ac-accent) !important;
 }
 
-/* Ensure search input has left padding for icon */
 .ac-search-wrapper .ac-search-input {
   padding-left: 44px !important;
 }
 
-
-/* ==================== CHATGPT-STYLE CENTERED INPUT BAR ==================== */
-
-/* Input Area - Floating Centered Style */
 .ac-input-area {
   position: absolute !important;
   bottom: 0 !important;
@@ -5539,13 +5337,11 @@ button:focus-visible {
   transform: translateY(-2px) !important;
 }
 
-/* Input Field */
 .ac-input-wrapper textarea::placeholder,
 .ac-input-wrapper input[type="text"]::placeholder {
   color: var(--ac-text-muted) !important;
 }
 
-/* Attach Button */
 .ac-attach-btn {
   width: 40px !important;
   height: 40px !important;
@@ -5562,7 +5358,6 @@ button:focus-visible {
   color: var(--ac-accent) !important;
 }
 
-/* Send Button - Circular Style */
 .ac-send-btn {
   width: 40px !important;
   height: 40px !important;
@@ -5598,12 +5393,10 @@ button:focus-visible {
   height: 18px !important;
 }
 
-/* Adjust content area to account for floating input */
 .ac-content {
   padding-bottom: 120px !important;
 }
 
-/* Welcome message centered */
 .ac-welcome {
   display: flex !important;
   flex-direction: column !important;
@@ -5614,7 +5407,6 @@ button:focus-visible {
   padding-bottom: 80px !important;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .ac-input-area {
     padding: 16px !important;
@@ -5629,10 +5421,6 @@ button:focus-visible {
   }
 }
 
-
-/* ==================== FIX: HORIZONTALLY CENTERED INPUT BAR ==================== */
-
-/* Override previous styles - Input stays at bottom but horizontally centered */
 .ac-input-area {
   position: relative !important;
   bottom: auto !important;
@@ -5701,7 +5489,6 @@ button:focus-visible {
   white-space: pre-wrap !important;
 }
 
-/* Force wrapper to expand with textarea */
 .ac-input-wrapper {
   height: auto !important;
   max-height: 350px !important;
@@ -5730,12 +5517,10 @@ button:focus-visible {
   transform: none !important;
 }
 
-/* Reset content padding */
 .ac-content {
   padding-bottom: 24px !important;
 }
 
-/* Buttons use 6px border-radius like Dashboard */
 .ac-attach-btn,
 .ac-send-btn {
   border-radius: 6px !important;
@@ -5761,16 +5546,11 @@ button:focus-visible {
   height: 36px !important;
 }
 
-
-/* ==================== VERTICALLY CENTERED INPUT - CHATGPT STYLE ==================== */
-
-/* When no messages - center everything vertically */
 .ac-main {
   display: flex !important;
   flex-direction: column !important;
 }
 
-/* Content area becomes flex container for centering */
 .ac-content {
   flex: 1 !important;
   display: flex !important;
@@ -5779,7 +5559,6 @@ button:focus-visible {
   padding-bottom: 0 !important;
 }
 
-/* Welcome state - center vertically in available space */
 .ac-welcome {
   flex: 1 !important;
   display: flex !important;
@@ -5790,7 +5569,6 @@ button:focus-visible {
   padding: 40px 20px !important;
 }
 
-/* When there ARE messages - normal layout at bottom */
 .ac-main:not(.empty-state) .ac-input-area {
   position: relative !important;
   top: auto !important;
@@ -5808,15 +5586,10 @@ button:focus-visible {
   margin: 0 auto !important;
 }
 
-
-/* ==================== EMPTY STATE - CENTERED INPUT ==================== */
-
-/* Hide header in empty state */
 .ac-main.empty-state .ac-header {
   display: none !important;
 }
 
-/* Content area fills entire screen and centers content */
 .ac-main.empty-state .ac-content {
   flex: 1 !important;
   display: flex !important;
@@ -5826,7 +5599,6 @@ button:focus-visible {
   overflow: visible !important;
 }
 
-/* Center container */
 .ac-empty-center {
   width: 100% !important;
   max-width: 800px !important;
@@ -5836,7 +5608,6 @@ button:focus-visible {
   gap: 16px !important;
 }
 
-/* Welcome text - bold Inter */
 .ac-empty-center .ac-welcome {
   text-align: center !important;
 }
@@ -5849,7 +5620,6 @@ button:focus-visible {
   margin: 0 !important;
 }
 
-/* Input area */
 .ac-empty-center .ac-input-area.ac-input-centered {
   width: 100% !important;
   padding: 0 !important;
@@ -5867,10 +5637,6 @@ button:focus-visible {
   width: 100% !important;
 }
 
-
-/* ==================== ENHANCED LATEX/KATEX STYLING ==================== */
-
-/* Ensure KaTeX renders properly in chat messages */
 .ac-message-content .katex {
   font-size: 1em !important;
   color: var(--ac-accent) !important;
@@ -5897,19 +5663,16 @@ button:focus-visible {
   font-weight: 400 !important;
 }
 
-/* Inline math in messages */
 .ac-message-content p .katex {
   font-size: 1em !important;
   vertical-align: middle;
   padding: 0 0.1em;
 }
 
-/* Ensure proper line height for lines with inline math */
 .ac-message-content p:has(.katex) {
   line-height: 1.9;
 }
 
-/* Math symbols styling */
 .ac-message-content .math-symbol {
   font-size: 1.3em;
   color: var(--ac-accent);
@@ -5923,13 +5686,11 @@ button:focus-visible {
   text-shadow: 0 0 10px var(--ac-accent);
 }
 
-/* Fraction lines */
 .ac-message-content .katex .frac-line {
   border-bottom-color: var(--ac-accent) !important;
   background-color: var(--ac-accent) !important;
 }
 
-/* Square root styling */
 .ac-message-content .katex .sqrt > .root {
   color: var(--ac-accent) !important;
 }
@@ -5938,7 +5699,6 @@ button:focus-visible {
   border-color: var(--ac-accent) !important;
 }
 
-/* Integral and sum symbols */
 .ac-message-content .katex .op-symbol {
   color: var(--ac-accent) !important;
 }
@@ -5947,7 +5707,6 @@ button:focus-visible {
   color: var(--ac-accent) !important;
 }
 
-/* Parentheses and brackets */
 .ac-message-content .katex .delimsizing {
   color: var(--ac-accent) !important;
 }
@@ -5959,7 +5718,6 @@ button:focus-visible {
   color: var(--ac-accent) !important;
 }
 
-/* Ensure proper spacing around display math */
 .ac-message-content p + .katex-display {
   margin-top: 1.5em;
 }
@@ -5968,13 +5726,11 @@ button:focus-visible {
   margin-top: 1.5em;
 }
 
-/* Light mode adjustments */
 [data-theme-mode="light"] .ac-message-content .katex,
 [data-theme-mode="light"] .ac-message-content .katex * {
   color: var(--ac-accent) !important;
 }
 
-/* Scrollbar for long equations */
 .ac-message-content .katex-display::-webkit-scrollbar {
   height: 6px;
 }
@@ -5989,12 +5745,10 @@ button:focus-visible {
   border-radius: 3px;
 }
 
-/* Make display math more prominent */
 .ac-message-content .katex-display .katex {
   font-weight: 400 !important;
 }
 
-/* Ensure all math elements inherit accent color */
 .ac-message-content .katex .base {
   color: var(--ac-accent) !important;
 }
@@ -6011,8 +5765,6 @@ button:focus-visible {
   color: var(--ac-accent) !important;
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

@@ -15,7 +15,6 @@ from math_processor import process_math_in_response
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["questions"])
 
-
 def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
     profile = {
         "user_id": getattr(user, "id", "unknown"),
@@ -56,7 +55,6 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
         )
     return profile
 
-
 @router.post("/generate_practice_questions")
 async def generate_practice_questions(
     payload: dict = Body(...), db: Session = Depends(get_db)
@@ -71,7 +69,6 @@ async def generate_practice_questions(
         user_id = payload.get("user_id")
         topic = payload.get("topic") or payload.get("content", "")
         question_count = int(payload.get("question_count", 10))
-        # Support both old difficulty_mix and new single-difficulty param
         difficulty = payload.get("difficulty", "mixed")
         question_types = payload.get("question_types", ["multiple_choice"])
         title = payload.get("title", f"Practice: {topic[:50]}")
@@ -92,7 +89,6 @@ async def generate_practice_questions(
         if not topic:
             raise HTTPException(status_code=400, detail="Topic or content required")
 
-        # ── 1. Try the quiz graph (preferred) ───────────────────────────────
         questions_data = []
         try:
             from quiz_graph import get_quiz_graph
@@ -112,7 +108,6 @@ async def generate_practice_questions(
         except Exception as graph_err:
             logger.warning(f"Quiz graph invoke failed, falling back to direct: {graph_err}")
 
-        # ── 2. Fallback: direct AI call (backwards compat) ───────────────────
         if not questions_data:
             difficulty_mix = payload.get("difficulty_mix", {"easy": 3, "medium": 5, "hard": 2})
             type_instructions = []
@@ -161,7 +156,6 @@ Generate exactly {question_count} high-quality questions:"""
         if not questions_data:
             raise HTTPException(status_code=500, detail="No questions were generated")
 
-        # ── 3. Persist to database ────────────────────────────────────────────
         question_set = models.QuestionSet(
             user_id=user.id,
             title=title,
@@ -190,7 +184,6 @@ Generate exactly {question_count} high-quality questions:"""
         db.commit()
         db.refresh(question_set)
 
-        # ── 4. Log to ChromaDB ────────────────────────────────────────────────
         try:
             from tutor import chroma_store
             if chroma_store.available():
@@ -250,7 +243,6 @@ Generate exactly {question_count} high-quality questions:"""
         logger.error(f"Error generating practice questions: {str(e)}", exc_info=True)
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
-
 
 @router.post("/generate_questions")
 async def generate_questions(
@@ -422,7 +414,6 @@ Generate exactly {question_count} questions:"""
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
 
-
 @router.get("/get_question_sets")
 def get_question_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
@@ -460,7 +451,6 @@ def get_question_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error getting question sets: {str(e)}")
         return {"question_sets": []}
-
 
 @router.delete("/delete_question_set/{question_set_id}")
 def delete_question_set(
@@ -508,7 +498,6 @@ def delete_question_set(
         logger.error(f"Error deleting question set: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete question set: {str(e)}")
-
 
 @router.post("/submit_question_answers")
 async def submit_question_answers(
@@ -607,11 +596,9 @@ async def submit_question_answers(
 
         topic = (question_set.title or "").replace("Practice: ", "").strip()
 
-        # Log quiz completion to both episodic memory and quiz_history collection
         try:
             from tutor import chroma_store
             if chroma_store.available():
-                # Episodic memory — quiz_completed source (drives suggestions)
                 chroma_store.write_episode(
                     user_id=str(question_set.user_id),
                     summary=(
@@ -628,7 +615,6 @@ async def submit_question_answers(
                         "question_set_id": str(question_set_id),
                     },
                 )
-                # Dedicated quiz_history collection — for adaptive logic
                 chroma_store.write_quiz_result(
                     user_id=str(question_set.user_id),
                     topic=topic,
@@ -640,7 +626,6 @@ async def submit_question_answers(
         except Exception as chroma_err:
             logger.warning(f"Chroma write failed on quiz submit: {chroma_err}")
 
-        # Write mastery/struggle back to Neo4j knowledge graph
         try:
             from tutor import neo4j_store
             if neo4j_store.available() and topic:
@@ -669,7 +654,6 @@ async def submit_question_answers(
         logger.error(f"Error submitting answers: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/get_question_set_details/{question_set_id}")
 def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)):
@@ -714,7 +698,6 @@ def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)
     except Exception as e:
         logger.error(f"Error getting question set details: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/submit_learning_response")
 async def submit_learning_response(
@@ -850,7 +833,6 @@ async def submit_learning_response(
             detail=f"Failed to evaluate learning response: {str(e)}",
         )
 
-
 @router.get("/get_generated_questions")
 def get_generated_questions(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
@@ -883,7 +865,6 @@ def get_generated_questions(user_id: str = Query(...), db: Session = Depends(get
     except Exception as e:
         logger.error(f"Error getting generated questions: {str(e)}")
         return {"question_sets": []}
-
 
 @router.get("/get_question_set/{question_set_id}")
 def get_question_set_with_questions(question_set_id: int, db: Session = Depends(get_db)):
@@ -925,7 +906,6 @@ def get_question_set_with_questions(question_set_id: int, db: Session = Depends(
     except Exception as e:
         logger.error(f"Error getting question set: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/submit_answers")
 async def submit_answers(payload: dict = Body(...), db: Session = Depends(get_db)):
@@ -1016,7 +996,6 @@ async def submit_answers(payload: dict = Body(...), db: Session = Depends(get_db
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/get_hints/{question_id}")
 def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
     try:
@@ -1053,7 +1032,6 @@ def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
             "question_id": question_id,
             "hints": ["Think about the main concepts covered in this topic."],
         }
-
 
 @router.get("/get_quiz_history")
 def get_quiz_history(user_id: str = Query(...), db: Session = Depends(get_db)):

@@ -16,7 +16,6 @@ from deps import call_ai, get_current_user, get_user_by_username, get_user_by_em
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["search"])
 
-
 async def get_expanded_search_terms(query: str) -> list:
     try:
         original_terms = [query]
@@ -80,7 +79,6 @@ Return ONLY the JSON array:"""
     fallback_terms = [query] + [w.strip() for w in query.split() if len(w.strip()) > 2]
     return list(set(fallback_terms))
 
-
 async def get_spelling_suggestion(query: str, db, user_id: int) -> Optional[str]:
     try:
         all_titles = []
@@ -141,7 +139,6 @@ Query: "xyz123", Titles: ["Math", "Science"]
         logger.error(f"Error getting spelling suggestion: {str(e)}")
         return None
 
-
 async def get_related_searches(query: str, results: list) -> list:
     try:
         result_topics = [r.get("title", "") for r in results[:10]]
@@ -186,7 +183,6 @@ Return ONLY the JSON array:"""
         logger.error(f"Error getting related searches: {str(e)}")
         return []
 
-
 def get_smart_actions(result: dict) -> list:
     actions = []
     result_type = result.get("type", "")
@@ -221,7 +217,6 @@ def get_smart_actions(result: dict) -> list:
 
     return actions
 
-
 def generate_filter_description(filters: dict) -> str:
     parts = []
 
@@ -253,21 +248,16 @@ def generate_filter_description(filters: dict) -> str:
         return "Showing " + ", ".join(parts)
     return "Showing all results"
 
-
 def _clean_prompt_topic(text: str) -> str:
     cleaned = re.sub(r'^(AI Generated:|Cerbyl:|Flashcards?:|Notes?:|Practice:\s*)', '', text, flags=re.IGNORECASE)
-    # Remove markdown bold/italic symbols
     cleaned = re.sub(r'\*+', '', cleaned)
     return cleaned.strip()
 
-
-# Words that indicate a chat title is NOT a real study topic
 _JUNK_TOPIC_WORDS = frozenset({
     "hi", "hello", "hey", "yo", "yoooo", "yoo", "yooo", "sup", "what", "ok", "okay",
     "test", "testing", "lol", "hmm", "hm", "uh", "um", "new chat", "untitled",
     "chat", "session", "help", "bye", "thanks", "thank", "haha", "cool",
 })
-
 
 def _is_valid_topic(text: str) -> bool:
     """Return True only if text looks like a genuine study topic."""
@@ -276,18 +266,14 @@ def _is_valid_topic(text: str) -> bool:
     cleaned = text.strip()
     if len(cleaned) < 4:
         return False
-    # Single-word topics that are obviously not subjects
     words = cleaned.lower().split()
     if len(words) == 1 and words[0] in _JUNK_TOPIC_WORDS:
         return False
-    # All-digit or mostly special characters
     if re.match(r'^[\d\s\W]+$', cleaned):
         return False
-    # Title starts with a junk word and is short (e.g. "yo math" length 2 words but "yo" is junk)
     if len(words) <= 2 and words[0] in _JUNK_TOPIC_WORDS:
         return False
     return True
-
 
 def _extract_topic_from_episode(entry: dict) -> Optional[str]:
     meta = entry.get("metadata") or {}
@@ -309,7 +295,6 @@ def _extract_topic_from_episode(entry: dict) -> Optional[str]:
         if _is_valid_topic(topic):
             return topic
     return None
-
 
 def _build_chroma_prompts(user_id: str) -> list:
     try:
@@ -399,7 +384,6 @@ def _build_chroma_prompts(user_id: str) -> list:
                     "priority": "medium"
                 })
         elif source == "chat":
-            # Chat topics: suggest flashcards or notes, never raw "explain X step-by-step"
             if not topic:
                 continue
             prompts.append({
@@ -413,7 +397,6 @@ def _build_chroma_prompts(user_id: str) -> list:
                 "priority": "medium"
             })
 
-    # Add weak quiz topics as high-priority prompts
     try:
         weak_topics = chroma_store.get_weak_quiz_topics(user_id, top_k=3)
         for wt in weak_topics:
@@ -431,7 +414,6 @@ def _build_chroma_prompts(user_id: str) -> list:
     except Exception:
         pass
 
-    # Add pinned/important topics as steady reminders
     try:
         important_entries = chroma_store.retrieve_important(user_id, top_k=3)
         for entry in important_entries:
@@ -447,7 +429,6 @@ def _build_chroma_prompts(user_id: str) -> list:
         pass
 
     return prompts
-
 
 @router.post("/search_content")
 async def search_content(
@@ -763,7 +744,6 @@ async def search_content(
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
-
 @router.post("/autocomplete")
 async def autocomplete(
     user_id: str = Form(...),
@@ -925,7 +905,6 @@ async def autocomplete(
     except Exception as e:
         logger.error(f"Autocomplete error: {str(e)}")
         return {"suggestions": []}
-
 
 @router.post("/natural_language_search")
 async def natural_language_search(
@@ -1142,7 +1121,6 @@ NOW PARSE: "{query}"
         import traceback
         logger.error(traceback.format_exc())
         return {"results": [], "total_results": 0, "error": str(e)}
-
 
 @router.post("/detect_search_intent")
 async def detect_search_intent(
@@ -1673,7 +1651,6 @@ NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
             "error": str(e)
         }
 
-
 @router.post("/generate_topic_description")
 async def generate_topic_description(
     user_id: str = Form(...),
@@ -1740,7 +1717,6 @@ Return ONLY the description text, no labels or extra formatting."""
             "fallback": True,
             "timestamp": datetime.now().isoformat()
         }
-
 
 @router.post("/get_personalized_prompts")
 async def get_personalized_prompts(
@@ -1868,7 +1844,6 @@ async def get_personalized_prompts(
     except Exception as e:
         logger.error(f"Error getting personalized prompts: {str(e)}")
         return {"prompts": []}
-
 
 @router.post("/get_weak_areas")
 async def get_weak_areas(
@@ -2047,7 +2022,6 @@ async def get_weak_areas(
             ]
         }
 
-
 @router.post("/suggest_study_next")
 async def suggest_study_next(
     user_id: str = Form(...),
@@ -2080,7 +2054,6 @@ async def suggest_study_next(
         logger.error(f"Error suggesting study next: {str(e)}")
         return {"suggestions": []}
 
-
 @router.post("/summarize_notes")
 async def summarize_notes(
     user_id: str = Form(...),
@@ -2111,7 +2084,6 @@ async def summarize_notes(
         logger.error(f"Error summarizing notes: {str(e)}")
         return {"summary": f"Error: {str(e)}"}
 
-
 @router.post("/create_study_plan")
 async def create_study_plan(
     user_id: str = Form(...),
@@ -2125,7 +2097,6 @@ async def create_study_plan(
         return {"plan": plan.strip()}
     except Exception as e:
         return {"plan": f"Error: {str(e)}"}
-
 
 @router.post("/search_recent_content")
 async def search_recent_content(
@@ -2153,7 +2124,6 @@ async def search_recent_content(
         return {"results": results}
     except Exception as e:
         return {"results": []}
-
 
 @router.post("/get_search_suggestion")
 async def get_search_suggestion(
@@ -2192,7 +2162,6 @@ Keep it brief, friendly, and actionable. 2-3 sentences max."""
                 "Ask AI"
             ]
         }
-
 
 @router.get("/get_trending_topics")
 async def get_trending_topics(

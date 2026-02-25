@@ -8,25 +8,23 @@ from sqlalchemy.orm import Session
 import models
 from models import PointTransaction
 
-# ==================== POINT VALUES ====================
 POINT_VALUES = {
-    "ai_chat": 1,           # AI chat message
-    "note_created": 20,     # Create note (AI chat, audio, or own)
-    "flashcard_set": 10,    # Flashcard set created
-    "flashcard_created": 10, # Flashcard set created (alias)
-    "quiz_high_score": 30,  # Quiz with 80%+ score
-    "quiz_completed": 15,   # Complete quiz (any score)
-    "study_hour": 50,       # Study 1 hour on app
-    "question_answered": 2, # Answer question
-    "battle_win": 10,       # Battle win
-    "battle_draw": 5,       # Battle draw
-    "battle_loss": 2,       # Battle loss (participation)
-    "flashcard_reviewed": 1, # Review a flashcard
-    "flashcard_mastered": 5, # Master a flashcard
-    "learning_path_node": 0, # Learning path node (XP from node reward)
+    "ai_chat": 1,
+    "note_created": 20,
+    "flashcard_set": 10,
+    "flashcard_created": 10,
+    "quiz_high_score": 30,
+    "quiz_completed": 15,
+    "study_hour": 50,
+    "question_answered": 2,
+    "battle_win": 10,
+    "battle_draw": 5,
+    "battle_loss": 2,
+    "flashcard_reviewed": 1,
+    "flashcard_mastered": 5,
+    "learning_path_node": 0,
 }
 
-# ==================== NOTIFICATION MILESTONES ====================
 MILESTONE_COUNTS = {
     "ai_chat": [10, 50, 100, 250, 500],
     "note_created": [1, 5, 10, 25, 50, 100],
@@ -40,7 +38,6 @@ MILESTONE_COUNTS = {
 
 STUDY_TIME_MILESTONES_MINUTES = [30, 60, 120, 300, 600, 1200]
 
-
 def _add_notification(db: Session, user_id: int, title: str, message: str, notification_type: str):
     notification = models.Notification(
         user_id=user_id,
@@ -50,7 +47,6 @@ def _add_notification(db: Session, user_id: int, title: str, message: str, notif
     )
     db.add(notification)
 
-
 def _format_minutes(total_minutes: int) -> str:
     if total_minutes < 60:
         return f"{total_minutes} minutes"
@@ -59,10 +55,6 @@ def _format_minutes(total_minutes: int) -> str:
     if minutes == 0:
         return f"{hours} hour{'s' if hours != 1 else ''}"
     return f"{hours}h {minutes}m"
-
-# ==================== SOLO QUIZ POINT FORMULA ====================
-# Max points: 40 (hard difficulty, max questions)
-# Formula: base_points * difficulty_multiplier * question_multiplier * score_multiplier
 
 DIFFICULTY_MULTIPLIERS = {
     "easy": 0.5,
@@ -92,38 +84,30 @@ def calculate_solo_quiz_points(difficulty: str, question_count: int, score_perce
     Returns:
         dict with points_earned, breakdown, bonus info
     """
-    base_points = 40  # Maximum possible points
+    base_points = 40
     
-    # Get multipliers
     diff_mult = DIFFICULTY_MULTIPLIERS.get(difficulty.lower(), 0.75)
     
-    # Find closest question count multiplier
     q_mult = 0.5
     for q_count, mult in sorted(QUESTION_COUNT_MULTIPLIERS.items()):
         if question_count >= q_count:
             q_mult = mult
     
-    # Score multiplier (0-1 based on percentage)
     score_mult = score_percentage / 100.0
     
-    # Calculate base points
     points = int(base_points * diff_mult * q_mult * score_mult)
     
-    # Bonus points
     bonus = 0
     bonus_reasons = []
     
-    # Perfect score bonus
     if score_percentage == 100:
         bonus += 5
         bonus_reasons.append("Perfect Score (+5)")
     
-    # High score bonus (90%+)
     elif score_percentage >= 90:
         bonus += 3
         bonus_reasons.append("Excellent Score (+3)")
     
-    # Hard difficulty bonus
     if difficulty.lower() == "hard" and score_percentage >= 70:
         bonus += 2
         bonus_reasons.append("Hard Mode Bonus (+2)")
@@ -145,7 +129,6 @@ def calculate_solo_quiz_points(difficulty: str, question_count: int, score_perce
         }
     }
 
-# ==================== LEVEL THRESHOLDS ====================
 LEVEL_THRESHOLDS = [0, 100, 282, 500, 800, 1200, 1700, 2300, 3000]
 
 def get_week_start():
@@ -158,7 +141,6 @@ def calculate_level_from_xp(xp: int) -> int:
     for level, threshold in enumerate(LEVEL_THRESHOLDS):
         if xp < threshold:
             return max(1, level)
-    # For levels beyond threshold list
     return len(LEVEL_THRESHOLDS) + int((xp - LEVEL_THRESHOLDS[-1]) / 1000)
 
 def get_xp_for_level(level: int) -> int:
@@ -187,7 +169,6 @@ def get_or_create_stats(db: Session, user_id: int):
 def check_and_reset_weekly_stats(stats):
     """Check if weekly stats need to be reset"""
     week_start = get_week_start()
-    # Handle both datetime and date objects
     if stats.week_start_date is None:
         needs_reset = True
     elif hasattr(stats.week_start_date, 'date'):
@@ -208,7 +189,6 @@ def check_and_reset_weekly_stats(stats):
         stats.weekly_flashcards_created = 0
         stats.weekly_study_minutes = 0
         stats.weekly_battles_won = 0
-        # Reset new weekly stats
         if hasattr(stats, 'weekly_solo_quizzes'):
             stats.weekly_solo_quizzes = 0
         if hasattr(stats, 'weekly_flashcards_reviewed'):
@@ -236,11 +216,9 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     if metadata is None:
         metadata = {}
     
-    # Get or create stats
     stats = get_or_create_stats(db, user_id)
     check_and_reset_weekly_stats(stats)
     
-    # Prevent duplicate tracking within 2 seconds
     from datetime import datetime, timedelta, timezone
     duplicate_types = [activity_type]
     if activity_type in ("flashcard_set", "flashcard_created"):
@@ -261,7 +239,6 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
             "description": f"Duplicate {activity_type} (skipped)"
         }
     
-    # Calculate points
     points_earned = 0
     description = ""
     
@@ -376,7 +353,7 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     elif activity_type == "study_time":
         minutes = metadata.get("minutes", 0)
         hours = minutes / 60
-        points_earned = int(hours * POINT_VALUES["study_hour"])  # 50 pts per hour
+        points_earned = int(hours * POINT_VALUES["study_hour"])
         prev_minutes = stats.total_study_minutes
         stats.total_study_minutes += minutes
         stats.weekly_study_minutes += minutes
@@ -411,14 +388,12 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         description = "Participated in Battle"
     
     elif activity_type == "learning_path_node":
-        # Learning path node completion - XP from node reward
         xp = metadata.get("xp", 50)
         points_earned = xp
         node_id = metadata.get("node_id", "unknown")
         description = f"Completed Learning Path Node (+{xp} XP)"
     
     elif activity_type == "solo_quiz":
-        # Use the new formula for solo quiz points
         difficulty = metadata.get("difficulty", "intermediate")
         question_count = metadata.get("question_count", 10)
         try:
@@ -429,13 +404,11 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         quiz_result = calculate_solo_quiz_points(difficulty, question_count, score_percentage)
         points_earned = quiz_result["points_earned"]
         
-        # Update solo quiz stats
         if hasattr(stats, 'total_solo_quizzes'):
             stats.total_solo_quizzes += 1
         if hasattr(stats, 'weekly_solo_quizzes'):
             stats.weekly_solo_quizzes += 1
         
-        # Also count as quiz completed
         stats.total_quizzes_completed += 1
         stats.weekly_quizzes_completed += 1
         
@@ -492,7 +465,6 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
                 "flashcard_mastered"
             )
     
-    # Update points and level
     old_level = stats.level
     stats.total_points += points_earned
     stats.weekly_points += points_earned
@@ -505,7 +477,6 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     print(f"   Weekly Points: {stats.weekly_points}")
     print(f"   Level: {stats.level}")
     
-    # Check for level up
     if stats.level > old_level:
         notification = models.Notification(
             user_id=user_id,
@@ -515,31 +486,25 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         )
         db.add(notification)
     
-    # Update streak
     today = datetime.now(timezone.utc).date()
     streak_milestone_reached = False
     old_streak = stats.current_streak
     
     if stats.last_activity_date:
-        # Handle both datetime and date objects
         if hasattr(stats.last_activity_date, 'date'):
             last_date = stats.last_activity_date.date()
         else:
             last_date = stats.last_activity_date
         if last_date == today:
-            pass  # Same day, no change
+            pass
         elif last_date == today - timedelta(days=1):
-            # Consecutive day - increment streak
             stats.current_streak += 1
             if stats.current_streak > stats.longest_streak:
                 stats.longest_streak = stats.current_streak
-            # Check for streak milestones
             if stats.current_streak in [7, 14, 30, 60, 100]:
                 streak_milestone_reached = True
         else:
-            # Streak broken - more than 1 day gap
             if old_streak >= 7:
-                # Notify about broken streak
                 notification = models.Notification(
                     user_id=user_id,
                     title="Streak Broken",
@@ -547,14 +512,12 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
                     notification_type="streak_broken"
                 )
                 db.add(notification)
-            stats.current_streak = 1  # Start new streak
+            stats.current_streak = 1
     else:
-        # First activity ever
         stats.current_streak = 1
     
     stats.last_activity_date = datetime.now(timezone.utc)
     
-    # Create streak milestone notification
     if streak_milestone_reached:
         notification = models.Notification(
             user_id=user_id,
@@ -564,7 +527,6 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         )
         db.add(notification)
     
-    # Create transaction record
     transaction = models.PointTransaction(
         user_id=user_id,
         activity_type=activity_type,
@@ -587,39 +549,32 @@ def get_user_stats(db: Session, user_id: int):
     stats = get_or_create_stats(db, user_id)
     check_and_reset_weekly_stats(stats)
     
-    # Check if streak should be reset (day was skipped)
     today = datetime.now(timezone.utc).date()
     if stats.last_activity_date:
-        # Handle both datetime and date objects
         if hasattr(stats.last_activity_date, 'date'):
             last_date = stats.last_activity_date.date()
         else:
             last_date = stats.last_activity_date
         
-        # If last activity was more than 1 day ago, reset streak
         if last_date < today - timedelta(days=1):
             stats.current_streak = 0
     
-    db.commit()  # Commit any resets
+    db.commit()
     
-    # Calculate XP to next level
     next_level_xp = get_xp_for_level(stats.level + 1)
     xp_to_next_level = next_level_xp - stats.experience
     
-    # Get rank
     all_stats = db.query(models.UserGamificationStats).order_by(
         models.UserGamificationStats.total_points.desc()
     ).all()
     rank = next((i + 1 for i, s in enumerate(all_stats) if s.user_id == user_id), None)
     
-    # Get actual chat session count (only sessions with messages)
     total_chat_sessions = db.query(func.count(func.distinct(models.ChatSession.id))).join(
         models.ChatMessage, models.ChatMessage.chat_session_id == models.ChatSession.id
     ).filter(
         models.ChatSession.user_id == user_id
     ).scalar() or 0
     
-    # Get current message count (existing messages in database)
     current_messages = db.query(func.count(models.ChatMessage.id)).join(
         models.ChatSession, models.ChatMessage.chat_session_id == models.ChatSession.id
     ).filter(
@@ -637,7 +592,6 @@ def get_user_stats(db: Session, user_id: int):
         "global_rank": rank,
         "current_streak": stats.current_streak,
         "longest_streak": stats.longest_streak,
-        # Weekly stats
         "weekly_ai_chats": stats.weekly_ai_chats,
         "weekly_notes_created": stats.weekly_notes_created,
         "weekly_questions_answered": stats.weekly_questions_answered,
@@ -648,10 +602,9 @@ def get_user_stats(db: Session, user_id: int):
         "weekly_solo_quizzes": getattr(stats, 'weekly_solo_quizzes', 0),
         "weekly_flashcards_reviewed": getattr(stats, 'weekly_flashcards_reviewed', 0),
         "weekly_flashcards_mastered": getattr(stats, 'weekly_flashcards_mastered', 0),
-        # Total stats
-        "total_ai_chats": stats.total_ai_chats,  # Message count (for points - cumulative)
-        "total_chat_sessions": total_chat_sessions,  # Actual session count (current)
-        "current_messages": current_messages,  # Current existing messages in database
+        "total_ai_chats": stats.total_ai_chats,
+        "total_chat_sessions": total_chat_sessions,
+        "current_messages": current_messages,
         "total_notes_created": stats.total_notes_created,
         "total_questions_answered": stats.total_questions_answered,
         "total_quizzes_completed": stats.total_quizzes_completed,
@@ -671,7 +624,6 @@ def recalculate_all_stats(db: Session):
     for user in users:
         stats = get_or_create_stats(db, user.id)
         
-        # Reset everything
         stats.total_points = 0
         stats.weekly_points = 0
         stats.total_ai_chats = 0
@@ -689,7 +641,6 @@ def recalculate_all_stats(db: Session):
         stats.total_battles_won = 0
         stats.weekly_battles_won = 0
         
-        # Count AI chats
         total_chats = db.query(func.count(models.ChatMessage.id)).filter(
             models.ChatMessage.user_id == user.id
         ).scalar() or 0
@@ -703,7 +654,6 @@ def recalculate_all_stats(db: Session):
         stats.total_points += total_chats * POINT_VALUES["ai_chat"]
         stats.weekly_points += weekly_chats * POINT_VALUES["ai_chat"]
         
-        # Count notes
         total_notes = db.query(func.count(models.Note.id)).filter(
             models.Note.user_id == user.id
         ).scalar() or 0
@@ -717,7 +667,6 @@ def recalculate_all_stats(db: Session):
         stats.total_points += total_notes * POINT_VALUES["note_created"]
         stats.weekly_points += weekly_notes * POINT_VALUES["note_created"]
         
-        # Count flashcards
         total_flashcards = db.query(func.count(models.FlashcardSet.id)).filter(
             models.FlashcardSet.user_id == user.id
         ).scalar() or 0
@@ -731,7 +680,6 @@ def recalculate_all_stats(db: Session):
         stats.total_points += total_flashcards * POINT_VALUES["flashcard_set"]
         stats.weekly_points += weekly_flashcards * POINT_VALUES["flashcard_set"]
         
-        # Update level
         stats.experience = stats.total_points
         stats.level = calculate_level_from_xp(stats.experience)
         stats.week_start_date = week_start_datetime

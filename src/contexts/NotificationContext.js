@@ -104,7 +104,7 @@ export const NotificationProvider = ({ children }) => {
         newNotifs.forEach(n => lastNotificationIdsRef.current.add(n.id));
       }
     } catch (error) {
-      // Silent fail - notifications are non-critical UI
+      
     }
   }, []);
 
@@ -163,7 +163,7 @@ export const NotificationProvider = ({ children }) => {
         setSlideQueue(prev => prev.filter(n => n.id !== notifId));
       }
     } catch (error) {
-      // Non-blocking
+      
     }
   }, []);
 
@@ -192,7 +192,7 @@ export const NotificationProvider = ({ children }) => {
         setSlideQueue(prev => prev.filter(n => n.id !== notifId));
       }
     } catch (error) {
-      // Non-blocking
+      
     }
   }, []);
 

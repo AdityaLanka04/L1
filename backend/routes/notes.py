@@ -12,18 +12,15 @@ from deps import call_ai, get_current_user, get_db, get_user_by_email, get_user_
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["notes"])
 
-
 class NoteCreate(BaseModel):
     user_id: str
     title: str = "New Note"
     content: str = ""
 
-
 class NoteUpdate(BaseModel):
     note_id: int
     title: str
     content: str
-
 
 class FolderCreate(BaseModel):
     user_id: str
@@ -31,23 +28,19 @@ class FolderCreate(BaseModel):
     color: Optional[str] = "#D7B38C"
     parent_id: Optional[int] = None
 
-
 class NoteUpdateFolder(BaseModel):
     note_id: int
     folder_id: Optional[int] = None
 
-
 class NoteFavorite(BaseModel):
     note_id: int
     is_favorite: bool
-
 
 class AIWritingAssistRequest(BaseModel):
     user_id: str
     content: str
     action: str
     tone: Optional[str] = "professional"
-
 
 @router.get("/get_notes")
 def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -78,7 +71,6 @@ def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
         if not n.is_deleted
     ]
 
-
 @router.post("/create_note")
 def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
     user = get_user_by_username(db, note_data.user_id) or get_user_by_email(db, note_data.user_id)
@@ -97,7 +89,6 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
     except Exception:
         pass
 
-    # Write to ChromaDB so the AI agent knows about this note
     try:
         from tutor import chroma_store
         if chroma_store.available():
@@ -134,7 +125,6 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         "status": "success",
     }
 
-
 @router.put("/update_note")
 def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
     note = db.query(models.Note).filter(models.Note.id == note_data.note_id).first()
@@ -149,7 +139,6 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(note)
 
-    # Write to ChromaDB so the AI agent knows about note updates
     try:
         from tutor import chroma_store
         if chroma_store.available():
@@ -184,7 +173,6 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
         "status": "success",
     }
 
-
 @router.delete("/delete_note/{note_id}")
 def delete_note(note_id: int, db: Session = Depends(get_db)):
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
@@ -193,7 +181,6 @@ def delete_note(note_id: int, db: Session = Depends(get_db)):
     db.delete(note)
     db.commit()
     return {"message": "Note deleted successfully"}
-
 
 @router.get("/get_note/{note_id}")
 def get_single_note(note_id: int, db: Session = Depends(get_db)):
@@ -211,7 +198,6 @@ def get_single_note(note_id: int, db: Session = Depends(get_db)):
         "custom_font": getattr(note, "custom_font", "Inter"),
     }
 
-
 @router.put("/soft_delete_note/{note_id}")
 def soft_delete_note(note_id: int, db: Session = Depends(get_db)):
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
@@ -223,7 +209,6 @@ def soft_delete_note(note_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Note moved to trash", "note_id": note.id, "status": "success"}
-
 
 @router.put("/restore_note/{note_id}")
 def restore_note(note_id: int, db: Session = Depends(get_db)):
@@ -237,7 +222,6 @@ def restore_note(note_id: int, db: Session = Depends(get_db)):
 
     return {"message": "Note restored", "note_id": note.id, "status": "success"}
 
-
 @router.delete("/permanent_delete_note/{note_id}")
 def permanent_delete_note(note_id: int, db: Session = Depends(get_db)):
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
@@ -246,7 +230,6 @@ def permanent_delete_note(note_id: int, db: Session = Depends(get_db)):
     db.delete(note)
     db.commit()
     return {"message": "Note permanently deleted", "status": "success"}
-
 
 @router.get("/get_trash")
 def get_trash(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -284,7 +267,6 @@ def get_trash(user_id: str = Query(...), db: Session = Depends(get_db)):
 
     return {"trash": result, "total": len(result)}
 
-
 @router.get("/get_folders")
 def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -314,7 +296,6 @@ def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
         ]
     }
 
-
 @router.post("/create_folder")
 def create_folder(folder_data: FolderCreate, db: Session = Depends(get_db)):
     user = get_user_by_username(db, folder_data.user_id) or get_user_by_email(db, folder_data.user_id)
@@ -333,7 +314,6 @@ def create_folder(folder_data: FolderCreate, db: Session = Depends(get_db)):
 
     return {"id": folder.id, "name": folder.name, "color": folder.color, "status": "success"}
 
-
 @router.delete("/delete_folder/{folder_id}")
 def delete_folder(folder_id: int, db: Session = Depends(get_db)):
     folder = db.query(models.Folder).filter(models.Folder.id == folder_id).first()
@@ -346,7 +326,6 @@ def delete_folder(folder_id: int, db: Session = Depends(get_db)):
 
     return {"status": "success"}
 
-
 @router.put("/move_note_to_folder")
 def move_note_to_folder(data: NoteUpdateFolder, db: Session = Depends(get_db)):
     note = db.query(models.Note).filter(models.Note.id == data.note_id).first()
@@ -358,7 +337,6 @@ def move_note_to_folder(data: NoteUpdateFolder, db: Session = Depends(get_db)):
 
     return {"status": "success"}
 
-
 @router.put("/toggle_favorite")
 def toggle_favorite(data: NoteFavorite, db: Session = Depends(get_db)):
     note = db.query(models.Note).filter(models.Note.id == data.note_id).first()
@@ -369,7 +347,6 @@ def toggle_favorite(data: NoteFavorite, db: Session = Depends(get_db)):
     db.commit()
 
     return {"status": "success", "is_favorite": note.is_favorite}
-
 
 @router.get("/get_favorite_notes")
 def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -401,7 +378,6 @@ def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db))
         for n in notes
     ]
 
-
 @router.post("/generate_note_content/")
 async def generate_note_content(
     user_id: str = Form(...),
@@ -418,7 +394,6 @@ async def generate_note_content(
         return {"content": content.strip(), "status": "success"}
     except Exception as e:
         return {"content": "", "status": "error", "error": str(e)}
-
 
 @router.post("/generate_note_summary/")
 async def generate_note_summary(
@@ -447,7 +422,6 @@ async def generate_note_summary(
     except Exception as e:
         return {"content": conversation_data[:500], "title": session_titles, "status": "fallback"}
 
-
 @router.post("/expand_note_content/")
 async def expand_note_content(
     user_id: str = Form(...),
@@ -463,7 +437,6 @@ async def expand_note_content(
         return {"content": expanded.strip(), "status": "success"}
     except Exception as e:
         return {"content": content, "status": "error"}
-
 
 @router.post("/ai_writing_assistant/")
 async def ai_writing_assistant(
@@ -485,7 +458,6 @@ async def ai_writing_assistant(
         return {"content": result.strip(), "status": "success", "action": request.action}
     except Exception as e:
         return {"content": "", "status": "error", "error": str(e)}
-
 
 @router.put("/update_shared_note/{note_id}")
 def update_shared_note(note_id: int, data: dict, db: Session = Depends(get_db)):

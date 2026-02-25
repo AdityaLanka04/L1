@@ -1,7 +1,6 @@
-/* AI Media Notes Page - Premium Design with Accent Colors */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* CSS Variables */
 .ai-media-notes-page {
   --mn-bg-primary: var(--bg-primary);
   --mn-bg-secondary: var(--bg-secondary);
@@ -19,7 +18,6 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Reset and Base */
 .ai-media-notes-page {
   position: fixed !important;
   top: 0 !important;
@@ -42,7 +40,6 @@
   box-sizing: border-box;
 }
 
-/* ==================== HEADER - Matching NotesRedesign Exactly ==================== */
 .hub-header {
   height: 70px;
   min-height: 70px;
@@ -179,7 +176,6 @@
   color: var(--accent);
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .hub-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -248,7 +244,6 @@
   margin: 0;
 }
 
-/* ==================== LAYOUT ==================== */
 .mn-layout {
   flex: 1;
   display: flex;
@@ -257,7 +252,6 @@
   overflow: hidden;
 }
 
-/* ==================== SIDEBAR ==================== */
 .mn-sidebar {
   width: var(--mn-sidebar-width);
   height: 100%;
@@ -295,7 +289,6 @@
   border-bottom: 1px solid color-mix(in srgb, var(--mn-accent) 15%, transparent);
 }
 
-/* NEW UPLOAD BUTTON */
 .mn-new-upload-btn {
   display: flex;
   align-items: center;
@@ -325,7 +318,6 @@
   transform: translateY(0);
 }
 
-/* SIDEBAR NAVIGATION */
 .mn-sidebar-nav {
   flex: 1;
   padding: 12px 0;
@@ -436,7 +428,6 @@
   font-weight: 500;
 }
 
-/* SIDEBAR FOOTER */
 .mn-sidebar-footer {
   padding: 16px 12px;
   border-top: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
@@ -483,7 +474,6 @@
   height: 20px;
 }
 
-/* ==================== MAIN CONTENT ==================== */
 .mn-main {
   flex: 1;
   display: flex;
@@ -507,7 +497,6 @@
   padding: 40px;
 }
 
-/* ==================== UPLOAD SECTION ==================== */
 .mn-upload-section {
   max-width: 800px;
   margin: 0 auto;
@@ -668,7 +657,6 @@
   color: var(--mn-text-secondary);
 }
 
-/* ==================== SETTINGS PANEL ==================== */
 .mn-settings-panel {
   margin-top: 32px;
   border: 1px solid color-mix(in srgb, var(--mn-accent) 20%, transparent);
@@ -786,7 +774,6 @@
   accent-color: var(--mn-accent);
 }
 
-/* ==================== PROCESS BUTTON ==================== */
 .mn-process-btn {
   display: flex;
   align-items: center;
@@ -831,7 +818,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* ==================== PROCESSING OVERLAY ==================== */
 .mn-processing-overlay {
   position: fixed;
   top: 0;
@@ -894,7 +880,6 @@
   border-radius: 3px;
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
   .mn-sidebar {
     position: fixed;
@@ -918,8 +903,6 @@
   }
 }
 
-
-/* ==================== RESULTS VIEW ==================== */
 .mn-results {
   max-width: 1200px;
   margin: 0 auto;
@@ -970,7 +953,6 @@
   height: 14px;
 }
 
-/* TABS */
 .mn-tabs {
   display: flex;
   gap: 8px;
@@ -1012,7 +994,6 @@
   height: 16px;
 }
 
-/* TAB CONTENT */
 .mn-tab-content {
   animation: fadeIn 0.3s ease;
 }
@@ -1088,7 +1069,6 @@
   border-color: var(--mn-accent);
 }
 
-/* NOTES PANEL */
 .mn-notes-panel {
   background: var(--mn-bg-card);
   border: 1px solid color-mix(in srgb, var(--mn-accent) 15%, transparent);
@@ -1190,7 +1170,6 @@
   padding: 0;
 }
 
-/* ANALYSIS SECTION */
 .mn-analysis-section {
   margin-bottom: 32px;
   padding-bottom: 32px;
@@ -1274,7 +1253,6 @@
   height: 20px;
 }
 
-/* FLASHCARDS GRID */
 .mn-flashcards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1318,7 +1296,6 @@
   line-height: 1.7;
 }
 
-/* EMPTY STATE */
 .mn-empty-state {
   text-align: center;
   padding: 60px 40px;
@@ -1344,7 +1321,6 @@
   opacity: 0.7;
 }
 
-/* PROGRESS */
 .mn-progress {
   margin-top: 24px;
 }
@@ -1359,7 +1335,6 @@
   letter-spacing: 2px;
 }
 
-/* ==================== CORNELL NOTES STYLES ==================== */
 .cornell-notes {
   width: 100%;
   max-width: 100%;
@@ -1481,7 +1456,6 @@
   margin: 0 0 12px 0;
 }
 
-/* ==================== MIND MAP STYLES ==================== */
 .mind-map {
   width: 100%;
   padding: 20px;
@@ -1576,7 +1550,6 @@
   margin: 0 8px;
 }
 
-/* ==================== OUTLINE STYLES ==================== */
 .outline-notes {
   width: 100%;
 }
@@ -1640,7 +1613,6 @@
   font-weight: 700;
 }
 
-/* ==================== Q&A STYLES ==================== */
 .qa-notes {
   width: 100%;
 }
@@ -1758,7 +1730,6 @@
   margin: 6px 0;
 }
 
-/* ==================== RESPONSIVE ADJUSTMENTS FOR NEW FORMATS ==================== */
 @media (max-width: 768px) {
   .cornell-row {
     grid-template-columns: 1fr;
@@ -1785,8 +1756,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

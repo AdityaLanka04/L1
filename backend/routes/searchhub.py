@@ -14,14 +14,12 @@ router = APIRouter(prefix="/api/agents/searchhub", tags=["searchhub"])
 
 SESSION_CONTEXT: Dict[str, List[dict]] = {}
 
-
 class SearchHubRequest(BaseModel):
     user_id: str
     query: str
     session_id: Optional[str] = None
     context: Optional[dict] = None
     use_hs_context: bool = True
-
 
 class CreateNoteRequest(BaseModel):
     user_id: str
@@ -31,14 +29,12 @@ class CreateNoteRequest(BaseModel):
     tone: str = "professional"
     use_hs_context: bool = True
 
-
 class CreateFlashcardsRequest(BaseModel):
     user_id: str
     topic: str
     count: int = 10
     difficulty: str = "medium"
     content: Optional[str] = None
-
 
 class CreateQuestionsRequest(BaseModel):
     user_id: str
@@ -48,23 +44,19 @@ class CreateQuestionsRequest(BaseModel):
     content: Optional[str] = None
     use_hs_context: bool = True
 
-
 class ExplainRequest(BaseModel):
     user_id: str
     topic: str
     depth: str = "standard"
 
-
 class ClearContextRequest(BaseModel):
     user_id: str
     session_id: str
-
 
 def _resolve_user(db: Session, user_id: str):
     if not user_id or user_id.lower() == "guest":
         return None
     return get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-
 
 def _dedupe_preserve(items: List[str]) -> List[str]:
     seen = set()
@@ -79,11 +71,9 @@ def _dedupe_preserve(items: List[str]) -> List[str]:
         output.append(item)
     return output
 
-
 def _clean_topic(text: str) -> str:
     cleaned = re.sub(r"^(ai generated:|cerbyl:|flashcards?:|notes?:)\s*", "", text, flags=re.IGNORECASE)
     return cleaned.strip()
-
 
 def _extract_topic(query: str, patterns: List[str]) -> Optional[str]:
     for pattern in patterns:
@@ -94,7 +84,6 @@ def _extract_topic(query: str, patterns: List[str]) -> Optional[str]:
                 return topic
     return None
 
-
 def _extract_count(query: str) -> Optional[int]:
     match = re.search(r"\b(\d{1,3})\b", query)
     if match:
@@ -104,13 +93,11 @@ def _extract_count(query: str) -> Optional[int]:
             return None
     return None
 
-
 def _extract_difficulty(query: str) -> Optional[str]:
     for level in ("easy", "medium", "hard"):
         if re.search(rf"\b{level}\b", query, flags=re.IGNORECASE):
             return level
     return None
-
 
 _COMMAND_PREFIXES = ("/", ":", ">", "!")
 _PATH_DIFFICULTY_LEVELS = ("beginner", "intermediate", "advanced")
@@ -309,10 +296,8 @@ _ACTION_REQUIRES_TOPIC = {
     "explain",
 }
 
-
 def _get_command_catalog() -> List[Dict[str, Any]]:
     return [dict(cmd) for cmd in _COMMAND_CATALOG]
-
 
 def _get_action_command_examples(action: str, limit: int = 3) -> List[str]:
     for cmd in _COMMAND_CATALOG:
@@ -323,10 +308,8 @@ def _get_action_command_examples(action: str, limit: int = 3) -> List[str]:
             return examples[:limit]
     return _build_default_command_suggestions()[:limit]
 
-
 def _normalize_command_token(token: str) -> str:
     return re.sub(r"[^a-z0-9_-]", "", token.lower())
-
 
 def _parse_command_flags(tokens: List[str]) -> Tuple[Dict[str, str], List[str]]:
     flags: Dict[str, str] = {}
@@ -356,7 +339,6 @@ def _parse_command_flags(tokens: List[str]) -> Tuple[Dict[str, str], List[str]]:
             remaining.append(token)
         i += 1
     return flags, remaining
-
 
 def _parse_command(query: str) -> Optional[Dict[str, Any]]:
     raw = (query or "").strip()
@@ -439,7 +421,6 @@ def _parse_command(query: str) -> Optional[Dict[str, Any]]:
         "command": cmd_def["command"],
         "confidence": 0.93 if explicit else 0.82,
     }
-
 
 def _infer_action(query: str) -> Dict[str, Any]:
     query_clean = (query or "").strip()
@@ -526,13 +507,11 @@ def _infer_action(query: str) -> Dict[str, Any]:
 
     return {"action": "search", "confidence": 0.6}
 
-
 _JUNK_TOPICS = frozenset({
     "hi", "hello", "hey", "yo", "yoooo", "yoo", "yooo", "sup", "what", "ok", "okay",
     "test", "testing", "lol", "hmm", "hm", "uh", "um", "new chat", "untitled",
     "chat", "session", "help", "bye", "thanks", "thank", "haha", "cool",
 })
-
 
 def _is_valid_topic(text: str) -> bool:
     if not text or len(text.strip()) < 4:
@@ -546,7 +525,6 @@ def _is_valid_topic(text: str) -> bool:
         return False
     return True
 
-
 def _build_topic_suggestions(topic: str) -> List[str]:
     return [
         f"/flashcards {topic}",
@@ -558,7 +536,6 @@ def _build_topic_suggestions(topic: str) -> List[str]:
         f"/chat {topic}",
     ]
 
-
 def _build_default_command_suggestions() -> List[str]:
     return [
         "/help",
@@ -568,7 +545,6 @@ def _build_default_command_suggestions() -> List[str]:
         "/learning-paths",
         "/chat",
     ]
-
 
 def _extract_topic_from_episode(entry: dict) -> Optional[str]:
     meta = entry.get("metadata") or {}
@@ -591,7 +567,6 @@ def _extract_topic_from_episode(entry: dict) -> Optional[str]:
             return topic
     return None
 
-
 def _get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) -> List[str]:
     try:
         from tutor import chroma_store
@@ -601,7 +576,6 @@ def _get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) 
     if not chroma_store.available():
         return []
 
-    # Collect recent episodes across all tracked sources
     episodes: List[dict] = []
     if query:
         episodes = chroma_store.retrieve_episodes_filtered(user_id, query, top_k=limit)
@@ -610,7 +584,6 @@ def _get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) 
                        "quiz_created", "quiz_completed"):
             episodes.extend(chroma_store.retrieve_recent_by_source(user_id, source, top_k=4))
 
-    # Build smart, source-aware suggestions
     suggestions: List[str] = []
     seen_topics: set = set()
 
@@ -654,7 +627,6 @@ def _get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) 
         if len(suggestions) >= limit:
             break
 
-    # Pull weak quiz topics and prepend high-priority suggestions
     try:
         weak_topics = chroma_store.get_weak_quiz_topics(user_id, top_k=2)
         for wt in weak_topics:
@@ -664,7 +636,6 @@ def _get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) 
     except Exception:
         pass
 
-    # Include pinned/important topics if available
     try:
         important_entries = chroma_store.retrieve_important(user_id, top_k=3)
         for entry in important_entries:
@@ -681,7 +652,6 @@ def _get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) 
 
     return _dedupe_preserve(suggestions)[:limit]
 
-
 async def _create_note_with_ai(
     db: Session,
     user: models.User,
@@ -697,7 +667,6 @@ async def _create_note_with_ai(
         f"HS_MODE={'ON  <-- curriculum RAG will run' if use_hs_context else 'OFF <-- no RAG, model-only'}"
     )
     if not content:
-        # Preferred: personalised NoteGraph (uses Neo4j + DB context)
         try:
             from note_graph import get_note_graph
             note_graph_instance = get_note_graph()
@@ -713,7 +682,6 @@ async def _create_note_with_ai(
         except Exception as e:
             logger.warning(f"Note graph invoke failed: {e}")
 
-        # Fallback: plain AI call
         if not content:
             depth_lower = (depth or "standard").lower()
             depth_guidance = {
@@ -771,7 +739,6 @@ async def _create_note_with_ai(
         "title": new_note.title,
         "content": new_note.content,
     }
-
 
 @router.post("")
 async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_db)):
@@ -1134,7 +1101,6 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
         },
     }
 
-
 @router.post("/create-note")
 async def create_note_endpoint(request: CreateNoteRequest, db: Session = Depends(get_db)):
     user = _resolve_user(db, request.user_id)
@@ -1157,7 +1123,6 @@ async def create_note_endpoint(request: CreateNoteRequest, db: Session = Depends
         "content_title": note_data["title"],
         "navigate_to": f"/notes/editor/{note_data['id']}",
     }
-
 
 @router.post("/create-flashcards")
 async def create_flashcards_endpoint(request: CreateFlashcardsRequest, db: Session = Depends(get_db)):
@@ -1189,7 +1154,6 @@ async def create_flashcards_endpoint(request: CreateFlashcardsRequest, db: Sessi
         "flashcards": response.get("flashcards", []),
     }
 
-
 @router.post("/create-questions")
 async def create_questions_endpoint(request: CreateQuestionsRequest, db: Session = Depends(get_db)):
     user = _resolve_user(db, request.user_id)
@@ -1218,7 +1182,6 @@ async def create_questions_endpoint(request: CreateQuestionsRequest, db: Session
         "questions": response.get("questions", []),
     }
 
-
 @router.post("/explain")
 async def explain_endpoint(request: ExplainRequest, db: Session = Depends(get_db)):
     topic = request.topic.strip()
@@ -1236,7 +1199,6 @@ async def explain_endpoint(request: ExplainRequest, db: Session = Depends(get_db
         "topic": topic,
         "explanation": explanation,
     }
-
 
 @router.get("/suggestions")
 async def suggestions_endpoint(
@@ -1258,7 +1220,6 @@ async def suggestions_endpoint(
 
     return {"success": True, "suggestions": _dedupe_preserve(suggestions)[:8]}
 
-
 @router.get("/actions")
 async def actions_endpoint():
     return {
@@ -1277,14 +1238,12 @@ async def actions_endpoint():
         "commands": _get_command_catalog(),
     }
 
-
 @router.get("/commands")
 async def commands_endpoint():
     return {
         "success": True,
         "commands": _get_command_catalog(),
     }
-
 
 @router.post("/clear-context")
 async def clear_context_endpoint(request: ClearContextRequest):

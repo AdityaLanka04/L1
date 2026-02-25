@@ -1,4 +1,4 @@
-/* Global Auto-hiding Scrollbar Styles */
+
 * {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -11,7 +11,6 @@
   scrollbar-color: var(--accent, #6366f1) transparent;
 }
 
-/* Webkit browsers (Chrome, Safari, Edge) */
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -37,7 +36,6 @@
   background: color-mix(in srgb, var(--accent, #6366f1) 120%, white);
 }
 
-/* Ensure body and html have proper scrolling */
 html,
 body {
   margin: 0;

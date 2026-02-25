@@ -26,7 +26,7 @@ import QuestionBank from './pages/Questionbankdashboard';
 import SlideExplorer from './pages/SlideExplorer';
 import Statistics from './pages/Statistics';
 import Flashcards from './pages/Flashcards';
-import Notes from './pages/NotesRedesign';
+import NotesRedesign from './pages/NotesRedesign';
 import NotesHub from './pages/NotesHub';
 import AudioVideoNotes from './pages/AudioVideoNotes';
 import AIMediaNotes from './pages/AIMediaNotes';
@@ -44,7 +44,6 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import SharedItemViewer from './pages/SharedItemViewer';
-import NotesRedesign from './pages/NotesRedesign';
 import NotesDashboard from './pages/NotesDashboard';
 import ActivityTimeline from './pages/ActivityTimeline';
 import CustomizeDashboard from './pages/CustomizeDashboard';
@@ -66,7 +65,6 @@ function App() {
   const [notification, setNotification] = useState(null);
   const { isOpen, openNav, closeNav } = useGlobalNav();
 
-  // Make openNav available globally via window object
   React.useEffect(() => {
     window.openGlobalNav = openNav;
     return () => {
@@ -79,13 +77,8 @@ function App() {
       <NotificationProvider>
         <ToastProvider>
           <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
-            {/* Global Navigation Sidebar */}
             <GlobalNavSidebar isOpen={isOpen} onClose={closeNav} />
-
-            {/* Global Slide Notifications */}
             <GlobalNotifications />
-            
-            {/* Notification Popup */}
             {notification && (
               <ProactiveNotification
                 message={notification.message}
@@ -94,15 +87,11 @@ function App() {
                 onClose={() => setNotification(null)}
               />
             )}
-            
             <Routes>
-              {/* Public Routes */}
               <Route path="/" element={<SafetyLogin />} />
               <Route path="/search-hub" element={<SafetyProtectedRoute><SearchHub /></SafetyProtectedRoute>} />
               <Route path="/login" element={<SafetyProtectedRoute><Login /></SafetyProtectedRoute>} />
               <Route path="/register" element={<SafetyProtectedRoute><Register /></SafetyProtectedRoute>} />
-              
-              {/* Protected Routes */}
               <Route path="/homepage" element={<ProtectedRoute><Homepage /></ProtectedRoute>} />
               <Route path="/profile-quiz" element={<ProtectedRoute><ProfileQuiz /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -116,6 +105,9 @@ function App() {
               <Route path="/learning-review" element={<ProtectedRoute><LearningReviewHub /></ProtectedRoute>} />
               <Route path="/social" element={<ProtectedRoute><Social /></ProtectedRoute>} />
               <Route path="/shared" element={<ProtectedRoute><SharedPage /></ProtectedRoute>} />
+              <Route path="/shared/:contentType/:contentId" element={<SharedItemViewer />} />
+              <Route path="/shared/chat/:chatId" element={<AIChat sharedMode={true} />} />
+              <Route path="/shared/note/:noteId" element={<NotesRedesign sharedMode={true} />} />
               <Route path="/playlists" element={<ProtectedRoute><PlaylistsPage /></ProtectedRoute>} />
               <Route path="/playlists/:playlistId" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
               <Route path="/friends" element={<ProtectedRoute><FriendsDashboard /></ProtectedRoute>} />
@@ -134,8 +126,6 @@ function App() {
               <Route path="/xp-roadmap" element={<ProtectedRoute><XPRoadmap /></ProtectedRoute>} />
               <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
               <Route path="/challenge/:challengeId" element={<ProtectedRoute><ChallengeSession /></ProtectedRoute>} />
-              <Route path="/shared" element={<SharedContent />} />
-              <Route path="/shared/:contentType/:contentId" element={<SharedContent />} />
               <Route path="/knowledge-roadmap" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
               <Route path="/knowledge-roadmap/:roadmapId" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
               <Route path="/concept-web" element={<ProtectedRoute><ConceptWeb /></ProtectedRoute>} />
@@ -150,16 +140,13 @@ function App() {
               <Route path="/notes/audio-video" element={<ProtectedRoute><AudioVideoNotes /></ProtectedRoute>} />
               <Route path="/notes/ai-media" element={<ProtectedRoute><AIMediaNotes /></ProtectedRoute>} />
               <Route path="/notes/my-notes" element={<ProtectedRoute><MyNotes /></ProtectedRoute>} />
-              <Route path="/notes/editor/:noteId" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+              <Route path="/notes/editor/:noteId" element={<ProtectedRoute><NotesRedesign /></ProtectedRoute>} />
               <Route path="/activity-timeline" element={<ProtectedRoute><ActivityTimeline /></ProtectedRoute>} />
               <Route path="/customize-dashboard" element={<ProtectedRoute><CustomizeDashboard /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
               <Route path="/home" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
-              <Route path="/shared/:contentType/:contentId" element={<SharedItemViewer />} />
-              <Route path="/shared/chat/:chatId" element={<AIChat sharedMode={true} />} />
-              <Route path="/shared/note/:noteId" element={<NotesRedesign sharedMode={true} />} />
             </Routes>
           </div>
         </ToastProvider>

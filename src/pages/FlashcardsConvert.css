@@ -1,4 +1,4 @@
-/* Flashcards Convert Modal Styles */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 .flashcards-page .iem-overlay *,
@@ -433,7 +433,6 @@
   background: var(--iem-accent);
 }
 
-/* Enhanced UI for Flashcards Convert Modal */
 .flashcards-page .iem-modal {
   border-radius: 16px !important;
   border: 1px solid var(--iem-border) !important;

@@ -8,10 +8,10 @@ const SharedContent = () => {
   const token = localStorage.getItem('token');
   const [sharedItems, setSharedItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState('all'); // 'all', 'chat', 'note'
-  const [filterPermission, setFilterPermission] = useState('all'); // 'all', 'view', 'edit'
+  const [filterType, setFilterType] = useState('all'); 
+  const [filterPermission, setFilterPermission] = useState('all'); 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('recent'); // 'recent', 'oldest', 'title'
+  const [sortBy, setSortBy] = useState('recent'); 
 
   useEffect(() => {
     fetchSharedContent();
@@ -63,17 +63,17 @@ const SharedContent = () => {
   const getFilteredAndSortedItems = () => {
     let filtered = sharedItems;
 
-    // Filter by type
+    
     if (filterType !== 'all') {
       filtered = filtered.filter(item => item.content_type === filterType);
     }
 
-    // Filter by permission
+    
     if (filterPermission !== 'all') {
       filtered = filtered.filter(item => item.permission === filterPermission);
     }
 
-    // Filter by search query
+    
     if (searchQuery) {
       filtered = filtered.filter(item => 
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -82,7 +82,7 @@ const SharedContent = () => {
       );
     }
 
-    // Sort
+    
     switch (sortBy) {
       case 'recent':
         filtered.sort((a, b) => new Date(b.shared_at) - new Date(a.shared_at));

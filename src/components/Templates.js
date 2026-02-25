@@ -1215,7 +1215,7 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
   const [newTemplate, setNewTemplate] = useState({ name: '', description: '', content: '' });
 
   useEffect(() => {
-    // Load custom templates from localStorage
+    
     const saved = JSON.parse(localStorage.getItem('customTemplates') || '[]');
     setCustomTemplates(saved);
   }, []);
@@ -1251,14 +1251,14 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
   const applyTemplate = (template) => {
     let content = template.content;
     
-    // Replace variables
+    
     const now = new Date();
     content = content.replace(/\{\{date\}\}/g, now.toLocaleDateString());
     content = content.replace(/\{\{time\}\}/g, now.toLocaleTimeString());
     content = content.replace(/\{\{user\}\}/g, userName || 'User');
     content = content.replace(/\{\{title\}\}/g, template.name);
     
-    // Convert markdown to blocks
+    
     const blocks = parseMarkdownToBlocks(content);
     
     onSelectTemplate({
@@ -1290,27 +1290,27 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
       }
     };
 
-    // Helper function to clean markdown formatting from text
+    
     const cleanMarkdown = (text) => {
       return text
-        .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold **text**
-        .replace(/\*(.*?)\*/g, '$1')      // Remove italic *text*
-        .replace(/__(.*?)__/g, '$1')      // Remove bold __text__
-        .replace(/_(.*?)_/g, '$1')        // Remove italic _text_
-        .replace(/`(.*?)`/g, '$1')        // Remove inline code `text`
+        .replace(/\*\*(.*?)\*\*/g, '$1')  
+        .replace(/\*(.*?)\*/g, '$1')      
+        .replace(/__(.*?)__/g, '$1')      
+        .replace(/_(.*?)_/g, '$1')        
+        .replace(/`(.*?)`/g, '$1')        
         .trim();
     };
 
     lines.forEach((line, index) => {
       const trimmed = line.trim();
       
-      // Skip empty lines
+      
       if (!trimmed) {
         flushList();
         return;
       }
 
-      // Heading 1
+      
       if (trimmed.startsWith('# ') && !trimmed.startsWith('## ')) {
         flushList();
         blocks.push({
@@ -1320,7 +1320,7 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
           properties: {}
         });
       }
-      // Heading 2
+      
       else if (trimmed.startsWith('## ') && !trimmed.startsWith('### ')) {
         flushList();
         blocks.push({
@@ -1330,7 +1330,7 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
           properties: {}
         });
       }
-      // Heading 3
+      
       else if (trimmed.startsWith('### ')) {
         flushList();
         blocks.push({
@@ -1340,7 +1340,7 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
           properties: {}
         });
       }
-      // Todo list
+      
       else if (trimmed.startsWith('- [ ]') || trimmed.startsWith('- [x]')) {
         if (currentListType !== 'todo') {
           flushList();
@@ -1351,7 +1351,7 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
           checked: trimmed.includes('[x]')
         });
       }
-      // Bullet list
+      
       else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
         if (currentListType !== 'bullet') {
           flushList();
@@ -1361,7 +1361,7 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
           content: trimmed.substring(2).trim()
         });
       }
-      // Numbered list
+      
       else if (/^\d+\.\s/.test(trimmed)) {
         if (currentListType !== 'numbered') {
           flushList();
@@ -1371,13 +1371,13 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
           content: trimmed.replace(/^\d+\.\s/, '').trim()
         });
       }
-      // Code block
+      
       else if (trimmed.startsWith('```')) {
         flushList();
-        // Skip code block markers for now
+        
         return;
       }
-      // Divider
+      
       else if (trimmed === '---' || trimmed === '***') {
         flushList();
         blocks.push({
@@ -1387,7 +1387,7 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
           properties: {}
         });
       }
-      // Quote
+      
       else if (trimmed.startsWith('> ')) {
         flushList();
         blocks.push({
@@ -1397,7 +1397,7 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
           properties: {}
         });
       }
-      // Regular paragraph (clean all markdown formatting)
+      
       else {
         flushList();
         blocks.push({
@@ -1409,10 +1409,10 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
       }
     });
 
-    // Flush any remaining list items
+    
     flushList();
 
-    // If no blocks were created, add a default paragraph
+    
     if (blocks.length === 0) {
       blocks.push({
         id: Date.now(),

@@ -1,4 +1,4 @@
-// Agent Services
+
 export { default as agentSystemService, AgentSystemService } from './agentSystemService';
 export { default as analyticsService } from './analyticsService';
 export { default as chatAgentService, ChatAgentService } from './chatAgentService';
@@ -15,5 +15,4 @@ export { default as ragService, RAGService } from './ragService';
 export { default as searchHubAgentService, SearchHubAgentService } from './searchHubAgentService';
 export { default as slideExplorerAgentService, SlideExplorerAgentService } from './slideExplorerAgentService';
 
-// Other Services
 export { default as gamificationService } from './gamificationService';

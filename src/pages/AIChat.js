@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
 import MathRenderer from '../components/MathRenderer';
-//import { processMathInContent } from '../utils/mathUtils';
+
 import './AIChat.css';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
@@ -38,7 +38,7 @@ const AIChat = ({ sharedMode = false }) => {
   
   const [selectedFiles, setSelectedFiles] = useState([]);
   
-  // AI Agent Integration States
+  
   const [agentInsights, setAgentInsights] = useState(null);
   const [showWeaknesses, setShowWeaknesses] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
@@ -117,7 +117,7 @@ const AIChat = ({ sharedMode = false }) => {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const isLoadingRef = useRef(false);
-  const justSentMessageRef = useRef(false);  // Flag to prevent reload after sending
+  const justSentMessageRef = useRef(false);  
 
   const [showFolderCreation, setShowFolderCreation] = useState(false);
   const [folderName, setFolderName] = useState('');
@@ -130,20 +130,20 @@ const AIChat = ({ sharedMode = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [chatMessageCounts, setChatMessageCounts] = useState({});
 
-  // Helper to check if a chat session should be displayed
+  
   const shouldDisplayChat = (session) => {
-    // Always show chats that are not "New Chat"
+    
     if (session.title !== 'New Chat') return true;
     
-    // For "New Chat", only show if it's the active chat OR if it has messages
+    
     if (session.id === activeChatId) return true;
     
-    // Check if we have message count cached
+    
     if (chatMessageCounts[session.id] !== undefined) {
       return chatMessageCounts[session.id] > 0;
     }
     
-    // Default to hiding if we don't know yet
+    
     return false;
   };
 
@@ -183,9 +183,9 @@ const AIChat = ({ sharedMode = false }) => {
         setSharedChatData(data);
         setIsSharedContent(true);
         
-        // Set up the chat UI with shared data
+        
         setMessages(data.messages || []);
-        // You might want to set a special title or indicator for shared chats
+        
       } else {
         throw new Error('Failed to load shared chat');
       }
@@ -199,23 +199,23 @@ const AIChat = ({ sharedMode = false }) => {
     return randomGreeting.replace(/{name}/g, name);
   };
 
-  // Scroll to bottom to show latest message
+  
   const scrollToLatestMessage = () => {
     if (messagesContainerRef.current) {
       const container = messagesContainerRef.current;
-      // Force scroll to bottom immediately
+      
       container.scrollTop = container.scrollHeight;
     }
   };
 
-  // Enhanced scroll to bottom
+  
   const scrollToBottom = () => {
     scrollToLatestMessage();
   };
 
-  // Auto-scroll whenever messages change
+  
   useEffect(() => {
-    // Small delay to ensure DOM is updated
+    
     const timer = setTimeout(() => {
       scrollToLatestMessage();
     }, 50);
@@ -233,22 +233,22 @@ const AIChat = ({ sharedMode = false }) => {
     localStorage.setItem('hs_mode_enabled', String(val));
   };
 
-  // Enhanced scroll handling from Knowledge Roadmap
+  
   const handleScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
       
-      // Show scroll to top button when scrolled down significantly
+      
       setShowScrollToTop(scrollTop > 200);
       
-      // Show scroll to bottom button when not at bottom
+      
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 30;
       setShowScrollToBottom(!isAtBottom && messages.length > 3);
     }
   };
 
-  // Enhanced scroll to top from Knowledge Roadmap
-  // Scrolls to show OLDEST messages (user scrolls up to see history)
+  
+  
   const scrollToTop = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -256,7 +256,7 @@ const AIChat = ({ sharedMode = false }) => {
         left: 0,
         behavior: 'smooth'
       });
-      // Force scroll to absolute top after smooth scroll completes
+      
       setTimeout(() => {
         if (messagesContainerRef.current) {
           messagesContainerRef.current.scrollTop = 0;
@@ -379,7 +379,7 @@ const AIChat = ({ sharedMode = false }) => {
       if (response.ok) {
         const messagesArray = await response.json();
                 setMessages(messagesArray);
-        // Scroll to show latest message at top of viewport
+        
         setTimeout(() => {
           scrollToLatestMessage();
         }, 100);
@@ -442,13 +442,13 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const cleanupEmptyNewChats = async () => {
-    // Only cleanup chats that are truly empty (no messages)
-    // Don't cleanup the active chat or any chat the user might be working on
+    
+    
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
       
-      // Only look at chats with title "New Chat" that are NOT the active chat
+      
       const potentialEmptyChats = chatSessions.filter(
         chat => chat.title === 'New Chat' && chat.id !== activeChatId
       );
@@ -465,7 +465,7 @@ const AIChat = ({ sharedMode = false }) => {
 
           if (response.ok) {
             const msgs = await response.json();
-            // Only delete if truly empty (no messages at all)
+            
             if (!msgs || msgs.length === 0) {
               const deleteResponse = await fetch(`${API_URL}/delete_chat_session/${chat.id}`, {
                 method: 'DELETE',
@@ -478,7 +478,7 @@ const AIChat = ({ sharedMode = false }) => {
             }
           }
         } catch (innerError) {
-          // Don't let one failed cleanup stop the others
+          
                   }
       }
     } catch (error) {
@@ -486,7 +486,7 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const handleNewChat = () => {
-    // Scroll sidebar to top
+    
     if (sidebarNavRef.current) {
       sidebarNavRef.current.scrollTo({
         top: 0,
@@ -494,18 +494,18 @@ const AIChat = ({ sharedMode = false }) => {
       });
     }
     
-    // Scroll messages to top
+    
     scrollToTop();
     
-    // Find any existing "New Chat" session
+    
     const existingNewChat = chatSessions.find(chat => chat.title === 'New Chat');
     
     if (existingNewChat) {
-      // Navigate to existing "New Chat"
+      
       isLoadingRef.current = false;
       navigate(`/ai-chat/${existingNewChat.id}`);
     } else {
-      // Create new chat only if no "New Chat" exists
+      
       createNewChat().then(newChatId => {
         if (newChatId) {
           isLoadingRef.current = false;
@@ -516,12 +516,12 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const selectChat = (chatSessionId) => {
-    // Don't cleanup when selecting a chat - only cleanup on explicit actions
+    
     isLoadingRef.current = false;
     navigate(`/ai-chat/${chatSessionId}`);
   };
 
-  // AI Agent Integration Functions
+  
   const sendMessageWithAgent = async (message, chatId) => {
     try {
       const token = localStorage.getItem('token');
@@ -548,7 +548,7 @@ const AIChat = ({ sharedMode = false }) => {
       if (result.success) {
         setAgentAnalysis(result.data.analysis);
         
-        // Show insights if confusion detected
+        
         if (result.data.analysis.confusion_detected) {
           setAgentInsights({
             type: 'confusion',
@@ -556,7 +556,7 @@ const AIChat = ({ sharedMode = false }) => {
           });
         }
         
-        // Store weaknesses and recommendations
+        
         if (result.data.weaknesses && result.data.weaknesses.length > 0) {
           setAgentInsights(prev => ({
             ...prev,
@@ -629,14 +629,14 @@ const AIChat = ({ sharedMode = false }) => {
     console.log('   activeChatId (state):', activeChatId);
     console.log('   currentChatId (local):', currentChatId);
     
-    // Store message text and files before clearing
+    
     const messageText = inputMessage;
     const messagedFiles = [...selectedFiles];
     
-    // Clear input immediately for better UX
+    
     setInputMessage('');
     
-    // Reset textarea height to single line
+    
     if (textareaRef.current) {
       textareaRef.current.style.height = '24px';
     }
@@ -649,21 +649,21 @@ const AIChat = ({ sharedMode = false }) => {
       if (!currentChatId) {
         console.error('❌ Failed to create new chat');
         alert('Error: Failed to create new chat. Please try again.');
-        setInputMessage(messageText); // Restore input on error
+        setInputMessage(messageText); 
         return;
       }
       isNewChat = true;
-      // Set flag BEFORE changing activeChatId to prevent useEffect from reloading
+      
       justSentMessageRef.current = true;
-      // Set activeChatId immediately to prevent useEffect from clearing messages
+      
       setActiveChatId(currentChatId);
       console.log('📍 Updated activeChatId state to:', currentChatId);
-      // Navigate with replace to update URL without triggering full reload
+      
       navigate(`/ai-chat/${currentChatId}`, { replace: true });
       console.log('🔗 Navigated to /ai-chat/' + currentChatId);
     } else {
       console.log('📝 Using existing chat ID:', currentChatId);
-      // Also set flag for existing chats
+      
       justSentMessageRef.current = true;
     }
 
@@ -679,10 +679,10 @@ const AIChat = ({ sharedMode = false }) => {
       }))
     };
 
-    // Add user message to UI immediately
+    
     setMessages(prev => [...prev, userMessage]);
     
-    // Set loading state
+    
     setLoading(true);
 
     try {
@@ -706,7 +706,7 @@ const AIChat = ({ sharedMode = false }) => {
         formData.append('files', file);
       });
 
-      // Use ask_simple for proper LaTeX formatting, files endpoint for attachments
+      
       const endpoint = messagedFiles.length > 0 ? 
         `${API_URL}/ask_with_files/` : 
         `${API_URL}/ask_simple/`;
@@ -739,7 +739,7 @@ const AIChat = ({ sharedMode = false }) => {
         throw new Error('No answer received from AI');
       }
       
-      // Get agent analysis AFTER receiving the real AI response (don't replace the response)
+      
       if (messageText && !messagedFiles.length) {
         sendMessageWithAgent(messageText, currentChatId).catch(err => {
           console.log('Agent analysis failed (non-critical):', err);
@@ -749,7 +749,7 @@ const AIChat = ({ sharedMode = false }) => {
       const aiMessage = {
         id: `ai_${Date.now()}`,
         type: 'ai',
-        content: data.answer,  // Use the real AI response, not agent response
+        content: data.answer,  
         timestamp: new Date().toISOString(),
         ...(data.ai_confidence !== null && data.ai_confidence !== undefined && {
           aiConfidence: data.ai_confidence,
@@ -763,7 +763,7 @@ const AIChat = ({ sharedMode = false }) => {
         agentAnalysis: agentAnalysis,
         actionButtons: data.action_buttons || [],
         contentFound: data.content_found || null,
-        // NEW: RAG metadata
+        
         ragUsed: data.rag_used || false,
         ragResultsCount: data.rag_results_count || 0,
         weakConcepts: data.weak_concepts || [],
@@ -781,7 +781,7 @@ const AIChat = ({ sharedMode = false }) => {
       setMessages(prev => [...prev, aiMessage]);
       clearAllFiles();
       
-      // Check if the backend used a different chat_id (in case of validation issues)
+      
       const actualChatId = data.chat_id;
       if (actualChatId && actualChatId !== currentChatId) {
         console.warn(`⚠️ Chat ID mismatch detected!`);
@@ -795,7 +795,7 @@ const AIChat = ({ sharedMode = false }) => {
         console.log('✅ Chat ID consistent:', currentChatId);
       }
       
-      // Auto-rename chat if it's the first message or title is still "New Chat"
+      
       if (isNewChat || messageText.trim()) {
         const currentChat = chatSessions.find(chat => chat.id === currentChatId);
         if (!currentChat || currentChat.title === 'New Chat') {
@@ -803,10 +803,10 @@ const AIChat = ({ sharedMode = false }) => {
         }
       }
       
-      // Reload chat sessions to ensure the list is up to date
+      
       await loadChatSessions();
       
-      // Points are now awarded by backend when saving message
+      
 
     } catch (error) {
       console.error('Error in sendMessage:', error);
@@ -833,21 +833,21 @@ const AIChat = ({ sharedMode = false }) => {
     try {
       const token = localStorage.getItem('token');
       
-      // Generate a title from the first message (take first 50 chars or first sentence)
+      
       let title = userMessage.trim();
       
-      // Take first sentence or first 50 characters
+      
       const firstSentence = title.match(/^[^.!?]+[.!?]/);
       if (firstSentence) {
         title = firstSentence[0];
       }
       
-      // Limit to 50 characters
+      
       if (title.length > 50) {
         title = title.substring(0, 47) + '...';
       }
       
-      // Update the chat title
+      
       const response = await fetch(`${API_URL}/rename_chat_session`, {
         method: 'PUT',
         headers: {
@@ -861,7 +861,7 @@ const AIChat = ({ sharedMode = false }) => {
       });
 
       if (response.ok) {
-        // Update local state
+        
         setChatSessions(prev => prev.map(chat => 
           chat.id === chatId ? { ...chat, title } : chat
         ));
@@ -897,15 +897,15 @@ const AIChat = ({ sharedMode = false }) => {
       }
 
       if (response.ok) {
-        // Remove from local state first
+        
         const wasActivChat = activeChatId === chatToDelete.id;
         setChatSessions(prev => prev.filter(chat => chat.id !== chatToDelete.id));
         
-        // Close modal
+        
         setShowDeleteConfirmation(false);
         setChatToDelete(null);
         
-        // Navigate if we deleted the active chat
+        
         if (wasActivChat) {
           const remainingChats = chatSessions.filter(chat => chat.id !== chatToDelete.id);
           if (remainingChats.length > 0) {
@@ -1009,22 +1009,22 @@ const AIChat = ({ sharedMode = false }) => {
   const handleInputChange = (e) => {
     setInputMessage(e.target.value);
     
-    // Auto-expand textarea vertically
+    
     if (textareaRef.current) {
-      // Reset to minimum height first
+      
       textareaRef.current.style.height = '24px';
       
-      // Get the scroll height (actual content height)
+      
       const scrollHeight = textareaRef.current.scrollHeight;
       
-      // Set max height to 300px (about 12 lines)
+      
       const maxHeight = 300;
       
-      // Apply the new height (content height or max, whichever is smaller)
+      
       const newHeight = Math.min(scrollHeight, maxHeight);
       textareaRef.current.style.height = newHeight + 'px';
       
-      // Show scrollbar if content exceeds max height
+      
       if (scrollHeight > maxHeight) {
         textareaRef.current.style.overflowY = 'auto';
       } else {
@@ -1062,10 +1062,10 @@ const AIChat = ({ sharedMode = false }) => {
           });
   };
 
-  // Convert text symbols to Unicode symbols
+  
   const convertSymbolsToUnicode = (text) => {
     const symbolMap = {
-      // Greek letters
+      
       '*alpha*': 'α', '*Alpha*': 'Α',
       '*beta*': 'β', '*Beta*': 'Β',
       '*gamma*': 'γ', '*Gamma*': 'Γ',
@@ -1091,7 +1091,7 @@ const AIChat = ({ sharedMode = false }) => {
       '*psi*': 'ψ', '*Psi*': 'Ψ',
       '*omega*': 'ω', '*Omega*': 'Ω',
       
-      // Math symbols
+      
       '*infinity*': '∞',
       '*sum*': '∑',
       '*Sum*': '∑',
@@ -1131,21 +1131,21 @@ const AIChat = ({ sharedMode = false }) => {
       '*uparrow*': '↑',
       '*downarrow*': '↓',
       
-      // Additional statistical symbols
+      
       '*mean*': 'x̄',
       '*variance*': 'σ²',
       '*stddev*': 'σ',
       '*correlation*': 'ρ',
       '*proportion*': 'p̂',
       
-      // Set theory
+      
       '*emptyset*': '∅',
       '*element*': '∈',
       '*notelement*': '∉',
       '*contains*': '∋',
       '*notcontains*': '∌',
       
-      // Logic symbols
+      
       '*and*': '∧',
       '*or*': '∨',
       '*not*': '¬',
@@ -1153,48 +1153,48 @@ const AIChat = ({ sharedMode = false }) => {
       '*iff*': '⇔',
       '*equivalent*': '≡',
       
-      // Calculus
+      
       '*limit*': 'lim',
       '*derivative*': 'd/dx',
       '*del*': '∂',
       
-      // Inequalities
+      
       '*much_less*': '≪',
       '*much_greater*': '≫',
       '*less_equal*': '≤',
       '*greater_equal*': '≥',
       '*not_equal*': '≠',
       
-      // Arrows
+      
       '*implies_arrow*': '⇒',
       '*iff_arrow*': '⇔',
       '*maps_to*': '↦',
       '*left_right_arrow*': '↔',
       
-      // Fractions and numbers
+      
       '*half*': '½',
       '*third*': '⅓',
       '*quarter*': '¼',
       '*two_thirds*': '⅔',
       '*three_quarters*': '¾',
       
-      // Superscripts (common)
+      
       '*squared*': '²',
       '*cubed*': '³',
       
-      // Physics symbols
+      
       '*planck*': 'ℏ',
       '*angstrom*': 'Å',
       '*ohm*': 'Ω',
       '*micro*': 'μ',
       
-      // Currency
+      
       '*euro*': '€',
       '*pound*': '£',
       '*yen*': '¥',
       '*cent*': '¢',
       
-      // Miscellaneous
+      
       '*check*': '✓',
       '*cross*': '✗',
       '*star*': '★',
@@ -1208,7 +1208,7 @@ const AIChat = ({ sharedMode = false }) => {
       '*registered*': '®',
       '*trademark*': '™',
       
-      // Geometric shapes
+      
       '*circle*': '○',
       '*filled_circle*': '●',
       '*square*': '□',
@@ -1216,23 +1216,23 @@ const AIChat = ({ sharedMode = false }) => {
       '*triangle*': '△',
       '*filled_triangle*': '▲',
       
-      // Chemistry
+      
       '*equilibrium*': '⇌',
       '*reversible*': '⇄',
       
-      // Complex numbers
+      
       '*real*': 'ℝ',
       '*complex*': 'ℂ',
       '*natural*': 'ℕ',
       '*integer*': 'ℤ',
       '*rational*': 'ℚ',
       
-      // Probability
+      
       '*expected*': 'E',
       '*probability*': 'P',
       '*given*': '|',
       
-      // Dots
+      
       '*cdot*': '·',
       '*ldots*': '…',
       '*cdots*': '⋯',
@@ -1250,14 +1250,14 @@ const AIChat = ({ sharedMode = false }) => {
   const renderMarkdown = (text) => {
     if (!text) return '';
     
-    // Wrap large mathematical symbols in special class
+    
     const mathSymbols = ['∑', 'Σ', '∫', '∏', 'Π', '∮', '∯', '∰', '⨌'];
     mathSymbols.forEach(symbol => {
       const regex = new RegExp(symbol, 'g');
       text = text.replace(regex, `<span class="math-symbol">${symbol}</span>`);
     });
     
-    // Process line by line to handle headers and lists
+    
     const lines = text.split('\n');
     const processedLines = [];
     let inBulletList = false;
@@ -1268,28 +1268,28 @@ const AIChat = ({ sharedMode = false }) => {
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i].trim();
       
-      // Handle table detection
+      
       if (line.includes('|') && !inTable) {
-        // Start of table
+        
         inTable = true;
         tableRows = [line];
         continue;
       } else if (inTable && line.includes('|')) {
-        // Continue table
+        
         tableRows.push(line);
         continue;
       } else if (inTable && !line.includes('|')) {
-        // End of table
+        
         inTable = false;
         processedLines.push(renderTable(tableRows));
         tableRows = [];
-        // Process current line normally
+        
       }
       
-      // Skip empty lines in tables
+      
       if (inTable) continue;
       
-      // Check for headers FIRST
+      
       if (/^#### (.+)$/.test(line)) {
         if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
         if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
@@ -1319,20 +1319,20 @@ const AIChat = ({ sharedMode = false }) => {
         continue;
       }
       
-      // Bold and italic - Enhanced detection
-      // Use different classes for bold at start of line (heading-like) vs inline
+      
+      
       if (/^\*\*(.+?)\*\*/.test(line)) {
-        // Bold at start of line = main heading bold
+        
         line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-heading">$1</strong>');
       } else {
-        // Bold elsewhere = side/inline bold
+        
         line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-inline">$1</strong>');
       }
       line = line.replace(/__(.+?)__/g, '<strong class="md-bold-inline">$1</strong>');
       line = line.replace(/(?<!\w)\*([^*]+?)\*(?!\w)/g, '<em>$1</em>');
       line = line.replace(/(?<!\w)_([^_]+?)_(?!\w)/g, '<em>$1</em>');
       
-      // Inline code
+      
       line = line.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
       
       // Keywords highlighting (words in ALL CAPS or specific patterns)

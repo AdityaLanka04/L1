@@ -155,8 +155,6 @@
 @media(max-width:480px){.si-logo{font-size:20px}.si-stat-value{font-size:32px}.si-quiz-score{font-size:40px}.si-quiz-count{font-size:32px}.si-fc-value,.si-qb-value{font-size:28px}}
 @media(prefers-reduced-motion:reduce){.si-page *,.si-page *::before,.si-page *::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}.si-bento{animation:none}}
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

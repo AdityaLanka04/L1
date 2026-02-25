@@ -14,13 +14,11 @@ from deps import call_ai, get_db, get_user_by_email, get_user_by_username, unifi
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["flashcards"])
 
-
 class FlashcardReviewRequest(BaseModel):
     user_id: str
     card_id: str
     was_correct: bool
     mode: str = "preview"
-
 
 @router.get("/get_flashcards")
 def get_flashcards(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -46,7 +44,6 @@ def get_flashcards(user_id: str = Query(...), db: Session = Depends(get_db)):
                 "created_at": (card.created_at or fs.created_at).isoformat() + "Z",
             })
     return result
-
 
 @router.get("/get_flashcards_in_set")
 def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db)):
@@ -75,7 +72,6 @@ def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db
             for c in cards
         ],
     }
-
 
 @router.get("/get_flashcard_history")
 def get_flashcard_history(
@@ -132,7 +128,6 @@ def get_flashcard_history(
         "limit": limit,
     }
 
-
 @router.get("/get_flashcard_statistics")
 def get_flashcard_statistics(user_id: str = Query(...), db: Session = Depends(get_db)):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -174,7 +169,6 @@ def get_flashcard_statistics(user_id: str = Query(...), db: Session = Depends(ge
         "average_accuracy": round(avg, 1),
     }
 
-
 @router.get("/get_flashcards_for_review")
 @router.post("/get_flashcards_for_review")
 def get_flashcards_for_review(user_id: str = Query(None), db: Session = Depends(get_db)):
@@ -212,7 +206,6 @@ def get_flashcards_for_review(user_id: str = Query(None), db: Session = Depends(
 
     return {"total_cards": len(cards), "sets": list(sets_dict.values())}
 
-
 def _unwrap_form_value(value):
     if value is None:
         return None
@@ -220,14 +213,12 @@ def _unwrap_form_value(value):
         return value.default
     return value
 
-
 def _coerce_bool(value, default=False):
     if isinstance(value, bool):
         return value
     if isinstance(value, str):
         return value.strip().lower() in ("true", "1", "yes", "y", "on")
     return default
-
 
 @router.post("/generate_flashcards")
 async def generate_flashcards_endpoint(
@@ -273,7 +264,6 @@ async def generate_flashcards_endpoint(
         f"HS_MODE={'ON  <-- curriculum RAG will run' if hs_flag else 'OFF <-- no RAG, model-only'}"
     )
 
-    # Resolve content for chat_history mode
     chat_content = ""
     if generation_type == "chat_history":
         if content:
@@ -291,7 +281,6 @@ async def generate_flashcards_endpoint(
     elif generation_type == "topic" and not topic:
         raise HTTPException(status_code=400, detail="Provide topic")
 
-    # Use the LangGraph-based flashcard generator
     from flashcard_graph import get_flashcard_graph
 
     graph = get_flashcard_graph()
@@ -308,7 +297,6 @@ async def generate_flashcards_endpoint(
             use_hs_context=bool(use_hs_context),
         )
     else:
-        # Fallback: direct AI call if graph not initialized
         prompt = (
             f"Generate {card_count} flashcards about: {topic or chat_content[:500]}\n"
             f"Difficulty: {difficulty}\n\n"
@@ -330,7 +318,6 @@ async def generate_flashcards_endpoint(
     if not flashcards_data:
         raise HTTPException(status_code=500, detail="Failed to generate flashcards")
 
-    # Normalize LaTeX delimiters so KaTeX renders correctly on the frontend
     try:
         from math_processor import process_math_in_response
         for card_data in flashcards_data:
@@ -377,7 +364,6 @@ async def generate_flashcards_endpoint(
 
     db.commit()
 
-    # Write to ChromaDB so the AI agent knows about flashcard creation
     try:
         from tutor import chroma_store
         if chroma_store.available():
@@ -413,7 +399,6 @@ async def generate_flashcards_endpoint(
         "total_generated": len(saved_cards),
     }
 
-
 @router.post("/mark_flashcard_for_review")
 async def mark_flashcard_for_review(
     card_id: int = Form(...),
@@ -427,7 +412,6 @@ async def mark_flashcard_for_review(
     card.marked_for_review = marked
     db.commit()
 
-    # Write struggle to Neo4j and ChromaDB when marking as "I don't know"
     if marked:
         flashcard_set = db.query(models.FlashcardSet).filter(
             models.FlashcardSet.id == card.set_id
@@ -444,7 +428,6 @@ async def mark_flashcard_for_review(
                 except Exception as e:
                     logger.warning(f"Neo4j struggle write on mark_for_review failed: {e}")
 
-            # Also track in ChromaDB
             from tutor import chroma_store
             if chroma_store.available():
                 try:
@@ -469,7 +452,6 @@ async def mark_flashcard_for_review(
 
     return {"status": "success", "card_id": card_id, "marked_for_review": marked}
 
-
 @router.post("/flashcards/review")
 async def update_flashcard_review(request: FlashcardReviewRequest, db: Session = Depends(get_db)):
     card = db.query(models.Flashcard).filter(models.Flashcard.id == int(request.card_id)).first()
@@ -482,14 +464,12 @@ async def update_flashcard_review(request: FlashcardReviewRequest, db: Session =
     card.last_reviewed = datetime.now(timezone.utc)
     db.commit()
 
-    # Get set info for context
     flashcard_set = db.query(models.FlashcardSet).filter(
         models.FlashcardSet.id == card.set_id
     ).first()
     set_title = flashcard_set.title if flashcard_set else ""
     owner_id = str(flashcard_set.user_id) if flashcard_set else ""
 
-    # Write to Chroma episodic memory (shared with AI chat)
     from tutor import chroma_store
     if chroma_store.available() and owner_id:
         try:
@@ -514,7 +494,6 @@ async def update_flashcard_review(request: FlashcardReviewRequest, db: Session =
         except Exception as e:
             logger.warning(f"Chroma write failed on flashcard review: {e}")
 
-    # Write struggle to Neo4j on incorrect answers
     if not request.was_correct and owner_id:
         from tutor import neo4j_store
         if neo4j_store.available():
@@ -532,15 +511,10 @@ async def update_flashcard_review(request: FlashcardReviewRequest, db: Session =
         "correct_count": card.correct_count,
     }
 
-
-# ==================== SPACED REPETITION ENDPOINTS ====================
-
-
 class SRReviewRequest(BaseModel):
     user_id: str
     card_id: int
-    grade: str  # "again", "hard", "good", "easy"
-
+    grade: str
 
 @router.get("/flashcards/due")
 def get_due_flashcards(
@@ -571,7 +545,6 @@ def get_due_flashcards(
                         models.Flashcard.sr_state == None,
                     ),
                 ),
-                # Also include learning/relearning cards that are due
                 and_(
                     models.Flashcard.sr_state.in_(["learning", "relearning"]),
                     models.Flashcard.next_review_date <= now,
@@ -583,7 +556,6 @@ def get_due_flashcards(
         .all()
     )
 
-    # Count by state
     new_count = sum(1 for c in due_cards if (c.sr_state or "new") == "new")
     review_count = sum(1 for c in due_cards if c.sr_state == "review")
     learning_count = sum(1 for c in due_cards if c.sr_state == "learning")
@@ -629,7 +601,6 @@ def get_due_flashcards(
         "cards": cards_data,
     }
 
-
 @router.post("/flashcards/sr_review")
 async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
     """Submit a spaced repetition review with SM-2 grade."""
@@ -650,7 +621,6 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
     grade = GRADE_MAP[grade_str]
     old_state = card.sr_state or "new"
 
-    # Calculate next review using SM-2
     result = calculate_next_review(
         sr_state=old_state,
         ease_factor=card.ease_factor or 2.5,
@@ -661,7 +631,6 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
         learning_step=card.learning_step or 0,
     )
 
-    # Update SR fields
     card.sr_state = result["new_state"]
     card.ease_factor = result["new_ease"]
     card.interval = result["new_interval"]
@@ -670,35 +639,29 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
     card.learning_step = result["new_learning_step"]
     card.next_review_date = result["next_review_date"]
 
-    # Also update legacy fields for backward compatibility
     card.times_reviewed = (card.times_reviewed or 0) + 1
-    if grade >= 2:  # Good or Easy
+    if grade >= 2:
         card.correct_count = (card.correct_count or 0) + 1
     card.last_reviewed = datetime.now(timezone.utc)
 
-    # Clear marked_for_review if card is now in review state with good ease
     if result["new_state"] == "review" and grade >= 2:
         card.marked_for_review = False
 
     db.commit()
 
-    # Get set info
     flashcard_set = db.query(models.FlashcardSet).filter(
         models.FlashcardSet.id == card.set_id
     ).first()
     set_title = flashcard_set.title if flashcard_set else ""
 
-    # Award gamification points
     try:
         from gamification_system import award_points
         award_points(db, user.id, "flashcard_reviewed")
-        # Award mastery bonus if card graduated to review for the first time
         if old_state in ("new", "learning") and result["new_state"] == "review":
             award_points(db, user.id, "flashcard_mastered")
     except Exception:
         pass
 
-    # Write to ChromaDB
     from tutor import chroma_store
     if chroma_store.available():
         try:
@@ -725,7 +688,6 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
         except Exception as e:
             logger.warning(f"Chroma write failed on SR review: {e}")
 
-    # Write struggle to Neo4j on Again
     if grade == 0:
         from tutor import neo4j_store
         if neo4j_store.available():
@@ -736,7 +698,6 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
             except Exception as e:
                 logger.warning(f"Neo4j struggle write failed: {e}")
 
-    # Get interval preview for the updated card
     new_preview = preview_intervals(
         result["new_state"], result["new_ease"], result["new_interval"],
         result["new_repetitions"], result["new_lapses"], result["new_learning_step"],
@@ -751,7 +712,6 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
         "next_review_date": result["next_review_date"].isoformat() + "Z",
         "interval_preview": new_preview,
     }
-
 
 @router.get("/flashcards/sr_stats")
 def get_sr_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -779,19 +739,16 @@ def get_sr_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
             "lapse_stats": {"total_lapses": 0, "most_lapsed": []},
         }
 
-    # State distribution
     state_dist = {"new": 0, "learning": 0, "review": 0, "relearning": 0}
     for c in all_cards:
         state = c.sr_state or "new"
         if state in state_dist:
             state_dist[state] += 1
 
-    # Retention rate
     total_reviews = sum(c.times_reviewed or 0 for c in all_cards)
     total_correct = sum(c.correct_count or 0 for c in all_cards)
     retention = round((total_correct / total_reviews * 100), 1) if total_reviews > 0 else 0
 
-    # Ease distribution (histogram)
     ease_buckets = [
         {"range": "1.3-1.7", "label": "Hard", "count": 0},
         {"range": "1.7-2.1", "label": "Difficult", "count": 0},
@@ -812,7 +769,6 @@ def get_sr_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
         else:
             ease_buckets[4]["count"] += 1
 
-    # Review forecast (next 14 days)
     now = datetime.now(timezone.utc)
     forecast = []
     for day_offset in range(14):
@@ -826,21 +782,19 @@ def get_sr_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
                 if review_date == target_date:
                     count += 1
             elif (c.sr_state or "new") == "new" and day_offset == 0:
-                count += 1  # New cards are due today
+                count += 1
         forecast.append({
             "date": target_date.isoformat(),
             "day_label": "Today" if day_offset == 0 else target_date.strftime("%b %d"),
             "count": count,
         })
 
-    # Maturity stats (only review cards)
     review_cards = [c for c in all_cards if c.sr_state == "review"]
     intervals = [c.interval or 0 for c in review_cards]
     avg_interval = round(sum(intervals) / len(intervals), 1) if intervals else 0
     longest = max(intervals) if intervals else 0
     mature_count = sum(1 for i in intervals if i >= 21)
 
-    # Lapse stats
     total_lapses = sum(c.lapses or 0 for c in all_cards)
     most_lapsed = sorted(
         [c for c in all_cards if (c.lapses or 0) > 0],
@@ -870,7 +824,6 @@ def get_sr_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
         },
     }
 
-
 @router.get("/flashcards/ai_suggestions")
 async def get_ai_suggestions(user_id: str = Query(...), db: Session = Depends(get_db)):
     """Get AI-powered study suggestions based on SR data."""
@@ -878,7 +831,6 @@ async def get_ai_suggestions(user_id: str = Query(...), db: Session = Depends(ge
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Gather stats
     all_cards = (
         db.query(models.Flashcard)
         .join(models.FlashcardSet)
@@ -898,7 +850,6 @@ async def get_ai_suggestions(user_id: str = Query(...), db: Session = Depends(ge
 
     now = datetime.now(timezone.utc)
 
-    # Calculate stats for the prompt
     state_counts = {"new": 0, "learning": 0, "review": 0, "relearning": 0}
     for c in all_cards:
         s = c.sr_state or "new"
@@ -917,18 +868,15 @@ async def get_ai_suggestions(user_id: str = Query(...), db: Session = Depends(ge
 
     avg_ease = round(sum((c.ease_factor or 2.5) for c in all_cards) / total, 2)
 
-    # Problem cards
     low_ease_cards = [c for c in all_cards if (c.ease_factor or 2.5) < 1.8]
     high_lapse_cards = [c for c in all_cards if (c.lapses or 0) >= 3]
 
-    # Get set titles for problem cards
     problem_topics = set()
     for c in low_ease_cards + high_lapse_cards:
         fs = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == c.set_id).first()
         if fs:
             problem_topics.add(fs.title)
 
-    # Recent study frequency
     reviewed_last_week = sum(
         1 for c in all_cards
         if c.last_reviewed and (now - c.last_reviewed).days <= 7
@@ -967,7 +915,6 @@ Return ONLY valid JSON (no markdown, no code blocks):
         return suggestions
     except Exception as e:
         logger.warning(f"AI suggestions failed: {e}")
-        # Fallback with basic heuristic suggestions
         tips = []
         if retention < 80:
             tips.append("Your retention rate is below 80%. Consider reviewing more frequently to strengthen memory.")

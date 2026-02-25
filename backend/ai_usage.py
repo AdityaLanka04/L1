@@ -3,7 +3,6 @@ Helpers to extract token usage from AI responses.
 """
 from typing import Any, Dict, Optional
 
-
 def _get_attr(obj: Any, *names) -> Optional[Any]:
     for name in names:
         if isinstance(obj, dict) and name in obj:
@@ -11,7 +10,6 @@ def _get_attr(obj: Any, *names) -> Optional[Any]:
         if hasattr(obj, name):
             return getattr(obj, name)
     return None
-
 
 def extract_usage_from_openai_like(response: Any) -> Optional[Dict[str, int]]:
     if response is None:
@@ -32,7 +30,6 @@ def extract_usage_from_openai_like(response: Any) -> Optional[Dict[str, int]]:
         "completion_tokens": int(completion_tokens or 0),
         "total_tokens": int(total_tokens or (prompt_tokens or 0) + (completion_tokens or 0)),
     }
-
 
 def extract_usage_from_gemini_payload(payload: Any) -> Optional[Dict[str, int]]:
     if payload is None:

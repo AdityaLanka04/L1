@@ -1,22 +1,16 @@
-/**
- * Advanced Conversion Agent Service
- * Frontend service for specialized content conversion endpoints
- * Provides comprehensive conversion between educational formats
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
 class ConversionAgentService {
   constructor() {
-    // API_URL already includes /api
+    
     this.baseUrl = `${API_URL}/import_export`;
     this.chatConvertUrl = `${API_URL}/convert_chat_to_note_content/`;
     this.createNoteUrl = `${API_URL}/create_note`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -25,14 +19,12 @@ class ConversionAgentService {
     };
   }
 
-  /**
-   * Get headers for file/form upload
-   */
+  
   getFileHeaders() {
     const token = getAuthToken();
     return {
       ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      // Don't set Content-Type for FormData - browser will set it with boundary
+      
     };
   }
 
@@ -85,10 +77,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Generic convert function for backward compatibility
-   * Routes to appropriate conversion method based on sourceType and targetType
-   */
+  
   async convert(params) {
     const {
       sourceType,
@@ -263,9 +252,7 @@ class ConversionAgentService {
     throw new Error(`Unsupported conversion: ${sourceType} to ${target}`);
   }
 
-  /**
-   * Convert notes to flashcards
-   */
+  
   async convertNotesToFlashcards(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/notes_to_flashcards`, {
@@ -285,9 +272,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Convert notes to questions
-   */
+  
   async convertNotesToQuestions(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/notes_to_questions`, {
@@ -307,9 +292,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Convert flashcards to notes
-   */
+  
   async convertFlashcardsToNotes(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/flashcards_to_notes`, {
@@ -328,9 +311,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Convert flashcards to questions
-   */
+  
   async convertFlashcardsToQuestions(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/flashcards_to_questions`, {
@@ -349,9 +330,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Convert questions to flashcards
-   */
+  
   async convertQuestionsToFlashcards(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/questions_to_flashcards`, {
@@ -370,9 +349,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Convert questions to notes
-   */
+  
   async convertQuestionsToNotes(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/questions_to_notes`, {
@@ -391,9 +368,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Convert media to questions (video, audio, images)
-   */
+  
   async convertMediaToQuestions(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/media_to_questions`, {
@@ -412,9 +387,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Convert playlist to notes (YouTube playlists, etc.)
-   */
+  
   async convertPlaylistToNotes(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/playlist_to_notes`, {
@@ -432,9 +405,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Convert playlist to flashcards
-   */
+  
   async convertPlaylistToFlashcards(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/playlist_to_flashcards`, {
@@ -453,9 +424,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Convert chat conversation to notes
-   */
+  
   async convertChatToNotes(params) {
     try {
       const sessionIds = params.sessionIds || params.session_ids || (params.chatId ? [params.chatId] : null);
@@ -495,12 +464,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Helper method: Convert chat sessions to notes (backward compatibility)
-   * @param {string} userId - User ID
-   * @param {Array} sessionIds - Array of chat session IDs
-   * @param {Object} options - Conversion options
-   */
+  
   async chatToNotes(userId, sessionIds, options = {}) {
     try {
       const sessions = Array.isArray(sessionIds) ? sessionIds : [sessionIds];
@@ -575,9 +539,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Export flashcards to CSV format
-   */
+  
   async exportFlashcardsToCSV(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/export_flashcards_csv`, {
@@ -595,9 +557,7 @@ class ConversionAgentService {
     }
   }
 
-  /**
-   * Export questions to PDF format
-   */
+  
   async exportQuestionsToPDF(params) {
     try {
       const data = await this.fetchJson(`${this.baseUrl}/export_questions_pdf`, {

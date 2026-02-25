@@ -18,78 +18,63 @@ from learningpath_graph import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/learning-paths", tags=["learning-paths"])
 
-
 class GeneratePathRequest(BaseModel):
     topicPrompt: str
     difficulty: Optional[str] = "intermediate"
     length: Optional[str] = "medium"
     goals: Optional[list] = []
 
-
 class StartNodeRequest(BaseModel):
     pass
 
-
 class CompleteNodeRequest(BaseModel):
     evidence: Optional[Dict[str, Any]] = {}
-
 
 class UpdateProgressRequest(BaseModel):
     activity_type: str
     completed: bool
     metadata: Optional[Dict[str, Any]] = {}
 
-
 class GenerateContentRequest(BaseModel):
-    activity_type: str  # notes, flashcards, quiz, chat
-    count: Optional[int] = None  # For flashcards/quiz question count
-
+    activity_type: str
+    count: Optional[int] = None
 
 class SaveNodeNoteRequest(BaseModel):
     content: str
 
-
 class UpdateDifficultyViewRequest(BaseModel):
-    difficulty_view: str  # beginner/intermediate/advanced
-
+    difficulty_view: str
 
 class RateResourceRequest(BaseModel):
     resource_id: str
-    rating: int  # 1-5 stars
-
+    rating: int
 
 class MarkResourceCompletedRequest(BaseModel):
     resource_id: str
     time_spent_minutes: int
 
-
 class UpdateTimeSpentRequest(BaseModel):
     minutes: int
-
 
 class ExportToNotesRequest(BaseModel):
     node_id: str
     include_resources: bool = True
     include_summary: bool = True
 
-
 class ExportToFlashcardsRequest(BaseModel):
     node_id: str
     concept_focus: Optional[List[str]] = None
-
 
 class ExportToCalendarRequest(BaseModel):
     node_id: str
     scheduled_date: str
     duration_minutes: int
 
-
 def _ensure_graph():
     graph = get_learningpath_graph()
     if not graph:
         graph = create_learningpath_graph(unified_ai, SessionLocal)
     return graph
-
 
 def _generate_outline(user_id: int, topic: str, difficulty: str, length: str, goals: list[str]) -> dict:
     graph = _ensure_graph()
@@ -102,7 +87,6 @@ def _generate_outline(user_id: int, topic: str, difficulty: str, length: str, go
             goals=goals,
         )
     return _default_outline(topic, difficulty, length, goals)
-
 
 def _serialize_path(path, db: Session, user_id: int, include_nodes: bool) -> dict:
     progress = (
@@ -145,7 +129,6 @@ def _serialize_path(path, db: Session, user_id: int, include_nodes: bool) -> dic
         payload["nodes"] = [_serialize_node(node, db, user_id) for node in nodes]
 
     return payload
-
 
 def _serialize_node(node, db: Session, user_id: int) -> dict:
     node_progress = (
@@ -210,7 +193,6 @@ def _serialize_node(node, db: Session, user_id: int) -> dict:
         "progress": progress_payload,
     }
 
-
 def _build_notes(node, topic: str) -> str:
     sections = node.core_sections or []
     if not isinstance(sections, list):
@@ -245,7 +227,6 @@ def _build_notes(node, topic: str) -> str:
 
     return "\n".join(lines).strip()
 
-
 def _build_flashcards(node, topic: str, count: int, difficulty: str) -> list[dict]:
     summary_items = node.summary or []
     if not isinstance(summary_items, list):
@@ -268,7 +249,6 @@ def _build_flashcards(node, topic: str, count: int, difficulty: str) -> list[dic
             }
         )
     return cards
-
 
 def _build_completion_quiz(node, topic: str, count: int, difficulty: str) -> list[dict]:
     summary_items = node.summary or []
@@ -295,7 +275,6 @@ def _build_completion_quiz(node, topic: str, count: int, difficulty: str) -> lis
             }
         )
     return questions
-
 
 def _build_question_bank_quiz(node, topic: str, count: int, difficulty: str) -> list[dict]:
     summary_items = node.summary or []
@@ -327,13 +306,11 @@ def _build_question_bank_quiz(node, topic: str, count: int, difficulty: str) -> 
         )
     return questions
 
-
 def _build_chat_prompt(node, topic: str) -> str:
     return (
         f"Let's explore {node.title} within {topic}.\n"
         "Please explain the key ideas, walk through a practical example, and highlight common pitfalls."
     )
-
 
 def _write_chroma_path(user_id: int, path, nodes: list):
     try:
@@ -361,7 +338,6 @@ def _write_chroma_path(user_id: int, path, nodes: list):
     except Exception as e:
         logger.warning(f"Chroma write failed on learning path create: {e}")
 
-
 def _write_chroma_node_complete(user_id: int, path, node, completion_pct: float):
     try:
         from tutor import chroma_store
@@ -387,7 +363,6 @@ def _write_chroma_node_complete(user_id: int, path, node, completion_pct: float)
         )
     except Exception as e:
         logger.warning(f"Chroma write failed on learning path node complete: {e}")
-
 
 @router.post("/generate")
 async def generate_learning_path(
@@ -520,7 +495,6 @@ async def generate_learning_path(
         logger.error(f"Error generating learning path: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("")
 async def get_learning_paths(
     user: models.User = Depends(get_current_user),
@@ -533,7 +507,6 @@ async def get_learning_paths(
         .all()
     )
     return {"paths": [_serialize_path(path, db, user.id, include_nodes=False) for path in paths]}
-
 
 @router.get("/{path_id}")
 async def get_learning_path(
@@ -553,7 +526,6 @@ async def get_learning_path(
     db.commit()
 
     return {"path": _serialize_path(path, db, user.id, include_nodes=True)}
-
 
 @router.get("/{path_id}/nodes")
 async def get_path_nodes(
@@ -603,7 +575,6 @@ async def get_path_nodes(
 
     return {"nodes": nodes_data}
 
-
 @router.post("/{path_id}/nodes/{node_id}/start")
 async def start_node(
     path_id: str,
@@ -633,7 +604,6 @@ async def start_node(
 
     return {"success": True, "status": node_progress.status}
 
-
 @router.post("/{path_id}/nodes/{node_id}/completion-quiz")
 async def get_completion_quiz(
     path_id: str,
@@ -659,7 +629,6 @@ async def get_completion_quiz(
 
     questions = _build_completion_quiz(node, path.topic_prompt, 10, path.difficulty)
     return {"questions": questions}
-
 
 @router.post("/{path_id}/nodes/{node_id}/complete")
 async def complete_node(
@@ -774,7 +743,6 @@ async def complete_node(
         "completion_percentage": path_progress.completion_percentage,
     }
 
-
 @router.post("/{path_id}/nodes/{node_id}/evaluate")
 async def evaluate_node(
     path_id: str,
@@ -806,7 +774,6 @@ async def evaluate_node(
                 missing.append(activity_type)
 
     return {"ready": len(missing) == 0, "missing": missing}
-
 
 @router.post("/{path_id}/nodes/{node_id}/progress")
 async def update_node_progress(
@@ -854,7 +821,6 @@ async def update_node_progress(
         "evidence": evidence,
     }
 
-
 @router.get("/{path_id}/progress")
 async def get_path_progress(
     path_id: str,
@@ -880,7 +846,6 @@ async def get_path_progress(
         "updated_at": progress.updated_at.isoformat() if progress.updated_at else None,
     }
 
-
 @router.delete("/{path_id}")
 async def delete_learning_path(
     path_id: str,
@@ -899,7 +864,6 @@ async def delete_learning_path(
     db.commit()
 
     return {"success": True, "message": "Path deleted"}
-
 
 @router.post("/{path_id}/nodes/{node_id}/generate-content")
 async def generate_node_content(
@@ -943,7 +907,6 @@ async def generate_node_content(
 
     raise HTTPException(status_code=400, detail="Unsupported activity type")
 
-
 @router.get("/{path_id}/nodes/{node_id}/note")
 async def get_node_note(
     path_id: str,
@@ -966,7 +929,6 @@ async def get_node_note(
         "created_at": note.created_at.isoformat() if note.created_at else None,
         "updated_at": note.updated_at.isoformat() if note.updated_at else None,
     }
-
 
 @router.post("/{path_id}/nodes/{node_id}/note")
 async def save_node_note(
@@ -1017,7 +979,6 @@ async def save_node_note(
         "updated_at": note.updated_at.isoformat() if note.updated_at else None,
     }
 
-
 @router.post("/{path_id}/nodes/{node_id}/difficulty-view")
 async def update_difficulty_view(
     path_id: str,
@@ -1041,7 +1002,6 @@ async def update_difficulty_view(
     db.commit()
 
     return {"success": True, "difficulty_view": request.difficulty_view}
-
 
 @router.post("/{path_id}/nodes/{node_id}/resources/{resource_id}/rate")
 async def rate_resource(
@@ -1070,7 +1030,6 @@ async def rate_resource(
     db.commit()
 
     return {"success": True, "resource_id": resource_id, "rating": request.rating}
-
 
 @router.post("/{path_id}/nodes/{node_id}/resources/{resource_id}/complete")
 async def mark_resource_completed(
@@ -1106,7 +1065,6 @@ async def mark_resource_completed(
         "total_time_spent": node_progress.time_spent_minutes,
     }
 
-
 @router.post("/{path_id}/nodes/{node_id}/time-spent")
 async def update_time_spent(
     path_id: str,
@@ -1131,7 +1089,6 @@ async def update_time_spent(
     db.commit()
 
     return {"success": True, "total_time_spent": node_progress.time_spent_minutes}
-
 
 @router.post("/{path_id}/nodes/{node_id}/export-to-notes")
 async def export_to_notes(
@@ -1223,7 +1180,6 @@ async def export_to_notes(
         "tags": node.tags or [],
     }
 
-
 @router.post("/{path_id}/nodes/{node_id}/export-to-flashcards")
 async def export_to_flashcards(
     path_id: str,
@@ -1256,7 +1212,6 @@ async def export_to_flashcards(
         "flashcards": flashcards,
         "tags": node.tags or [],
     }
-
 
 @router.post("/{path_id}/nodes/{node_id}/export-to-calendar")
 async def export_to_calendar(

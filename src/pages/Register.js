@@ -64,10 +64,9 @@ function Register() {
       sessionStorage.setItem('justLoggedIn', 'true');
       navigate('/profile-quiz');
     } catch (error) {
-            if (error.code === 'auth/popup-blocked') {
+      if (error.code === 'auth/popup-blocked') {
         alert('Popup was blocked. Please allow popups for this site and try again.');
-      } else if (error.code === 'auth/popup-closed-by-user') {
-              } else {
+      } else if (error.code !== 'auth/popup-closed-by-user') {
         alert('Google sign-in failed: ' + (error.message || 'Unknown error'));
       }
     }

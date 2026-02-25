@@ -26,9 +26,6 @@ logger = logging.getLogger(__name__)
 _client = None
 _embed_model = None
 
-
-# ── Initialisation ────────────────────────────────────────────────────────────
-
 def initialize(persist_dir: Optional[str] = None):
     global _client, _embed_model
     import chromadb
@@ -48,38 +45,27 @@ def initialize(persist_dir: Optional[str] = None):
         logger.warning("sentence-transformers not installed — Chroma disabled")
         _client = None
 
-
 def available() -> bool:
     return _client is not None and _embed_model is not None
-
-
-# ── Collection name helpers ───────────────────────────────────────────────────
 
 def _hash(user_id: str) -> str:
     import hashlib
     return hashlib.sha256(str(user_id).encode()).hexdigest()[:16]
 
-
 def _episodic_name(user_id: str) -> str:
     return f"episodic_{_hash(user_id)}"
-
 
 def _important_name(user_id: str) -> str:
     return f"important_{_hash(user_id)}"
 
-
 def _quiz_history_name(user_id: str) -> str:
     return f"quiz_history_{_hash(user_id)}"
-
 
 def _get_collection(name: str):
     return _client.get_or_create_collection(
         name=name,
         metadata={"hnsw:space": "cosine"},
     )
-
-
-# ── Episodic memory (main activity log) ──────────────────────────────────────
 
 def write_episode(user_id: str, summary: str, metadata: Optional[dict] = None):
     """Write an episodic memory entry with automatic timestamping."""
@@ -99,7 +85,6 @@ def write_episode(user_id: str, summary: str, metadata: Optional[dict] = None):
         metadatas=[meta],
     )
 
-
 def retrieve_episodes(user_id: str, query: str, top_k: int = 3) -> list[str]:
     """Retrieve episodes by semantic similarity. Returns plain document strings."""
     if not available():
@@ -113,7 +98,6 @@ def retrieve_episodes(user_id: str, query: str, top_k: int = 3) -> list[str]:
         n_results=min(top_k, col.count()),
     )
     return results.get("documents", [[]])[0]
-
 
 def retrieve_episodes_filtered(
     user_id: str,
@@ -151,7 +135,6 @@ def retrieve_episodes_filtered(
     combined.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""), reverse=True)
     return combined
 
-
 def retrieve_recent_by_source(
     user_id: str,
     source: str,
@@ -181,9 +164,6 @@ def retrieve_recent_by_source(
     combined.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""), reverse=True)
     return combined
 
-
-# ── Important content collection ─────────────────────────────────────────────
-
 def write_important(user_id: str, summary: str, metadata: Optional[dict] = None):
     """Pin an important piece of content to the user's important collection."""
     if not available():
@@ -201,7 +181,6 @@ def write_important(user_id: str, summary: str, metadata: Optional[dict] = None)
         documents=[summary],
         metadatas=[meta],
     )
-
 
 def retrieve_important(user_id: str, query: str = "", top_k: int = 10) -> list[dict]:
     """Retrieve important entries semantically (or all recents if no query given)."""
@@ -227,9 +206,6 @@ def retrieve_important(user_id: str, query: str = "", top_k: int = 10) -> list[d
     combined = [{"document": d, "metadata": m} for d, m in zip(docs, metas)]
     combined.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""), reverse=True)
     return combined
-
-
-# ── Quiz history collection ───────────────────────────────────────────────────
 
 def write_quiz_result(
     user_id: str,
@@ -267,7 +243,6 @@ def write_quiz_result(
         metadatas=[meta],
     )
 
-
 def retrieve_quiz_history(user_id: str, query: str = "", top_k: int = 10) -> list[dict]:
     """Retrieve past quiz results for a user, optionally filtered by topic similarity."""
     if not available():
@@ -292,7 +267,6 @@ def retrieve_quiz_history(user_id: str, query: str = "", top_k: int = 10) -> lis
     combined = [{"document": d, "metadata": m} for d, m in zip(docs, metas)]
     combined.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""), reverse=True)
     return combined
-
 
 def get_weak_quiz_topics(user_id: str, score_threshold: float = 65.0, top_k: int = 5) -> list[str]:
     """Return topics where the user consistently scores below the threshold."""

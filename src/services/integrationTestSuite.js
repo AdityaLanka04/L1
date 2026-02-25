@@ -1,7 +1,4 @@
-/**
- * Integration Test Suite for BrainwaveAI Services
- * Tests all newly integrated services to ensure proper backend connectivity
- */
+
 
 import {
   agentSystemService,
@@ -32,9 +29,7 @@ class IntegrationTestSuite {
     };
   }
 
-  /**
-   * Run all integration tests
-   */
+  
   async runAllTests() {
     console.log('🚀 Starting BrainwaveAI Integration Tests...\n');
     
@@ -52,14 +47,12 @@ class IntegrationTestSuite {
     return this.results;
   }
 
-  /**
-   * Test Agent System Services
-   */
+  
   async testAgentSystemServices() {
     console.log('🧪 Testing Agent System Services...');
     
     try {
-      // Test status endpoint
+      
       const status = await agentSystemService.getStatus();
       console.log('✅ Agent System Status:', status.status);
       this.results.passed++;
@@ -70,7 +63,7 @@ class IntegrationTestSuite {
     }
 
     try {
-      // Test intent classification
+      
       const intent = await agentSystemService.classifyIntent('What is photosynthesis?');
       console.log('✅ Intent Classification:', intent.intent);
       this.results.passed++;
@@ -81,9 +74,7 @@ class IntegrationTestSuite {
     }
   }
 
-  /**
-   * Test Analytics Services
-   */
+  
   async testAnalyticsServices() {
     console.log('📊 Testing Analytics Services...');
     
@@ -118,9 +109,7 @@ class IntegrationTestSuite {
     }
   }
 
-  /**
-   * Test Collaboration Services
-   */
+  
   async testCollaborationServices() {
     console.log('🤝 Testing Collaboration Services...');
     
@@ -145,9 +134,7 @@ class IntegrationTestSuite {
     }
   }
 
-  /**
-   * Test Conversion Services
-   */
+  
   async testConversionServices() {
     console.log('🔄 Testing Conversion Services...');
     
@@ -181,9 +168,7 @@ class IntegrationTestSuite {
     }
   }
 
-  /**
-   * Test Knowledge Graph Services
-   */
+  
   async testKnowledgeGraphServices() {
     console.log('🧠 Testing Knowledge Graph Services...');
     
@@ -218,9 +203,7 @@ class IntegrationTestSuite {
     }
   }
 
-  /**
-   * Test Memory Services
-   */
+  
   async testMemoryServices() {
     console.log('💭 Testing Memory Services...');
     
@@ -255,9 +238,7 @@ class IntegrationTestSuite {
     }
   }
 
-  /**
-   * Test Question Bank Services
-   */
+  
   async testQuestionBankServices() {
     console.log('📝 Testing Question Bank Services...');
     
@@ -307,9 +288,7 @@ class IntegrationTestSuite {
     }
   }
 
-  /**
-   * Test Quiz Services
-   */
+  
   async testQuizServices() {
     console.log('🎯 Testing Quiz Services...');
     
@@ -353,9 +332,7 @@ class IntegrationTestSuite {
     }
   }
 
-  /**
-   * Test RAG Services
-   */
+  
   async testRAGServices() {
     console.log('🔍 Testing RAG Services...');
     
@@ -384,9 +361,7 @@ class IntegrationTestSuite {
     }
   }
 
-  /**
-   * Print test results
-   */
+  
   printResults() {
     console.log('\n📋 Integration Test Results:');
     console.log('=====================================');
@@ -414,10 +389,8 @@ class IntegrationTestSuite {
   }
 }
 
-// Export for use in other modules
 export default IntegrationTestSuite;
 
-// Run tests if this file is executed directly
 if (typeof window !== 'undefined' && window.location && window.location.pathname.includes('test')) {
   const tester = new IntegrationTestSuite();
   tester.runAllTests().catch(console.error);

@@ -1,7 +1,7 @@
 import io
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
@@ -20,7 +20,6 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["imports"])
-
 
 @router.post("/import_document")
 async def import_document(
@@ -106,7 +105,6 @@ async def import_document(
         logger.error(f"Error importing document: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to import document: {str(e)}")
 
-
 @router.post("/upload-attachment")
 async def upload_attachment(
     file: UploadFile = File(...),
@@ -153,7 +151,6 @@ async def upload_attachment(
         logger.error(f"Error uploading attachment: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to upload attachment: {str(e)}")
 
-
 @router.get("/attachments/{filename}")
 async def get_attachment(filename: str):
     try:
@@ -181,7 +178,6 @@ async def get_attachment(filename: str):
     except Exception as e:
         logger.error(f"Error serving attachment: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to serve attachment: {str(e)}")
-
 
 @router.post("/import_export/notes_to_flashcards")
 async def convert_notes_to_flashcards(
@@ -212,7 +208,7 @@ async def convert_notes_to_flashcards(
                 destination_ids=json.dumps([result["set_id"]]),
                 item_count=result["card_count"],
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -221,7 +217,6 @@ async def convert_notes_to_flashcards(
     except Exception as e:
         logger.error(f"Error in notes_to_flashcards: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/notes_to_questions")
 async def convert_notes_to_questions(
@@ -252,7 +247,7 @@ async def convert_notes_to_questions(
                 destination_ids=json.dumps([result["set_id"]]),
                 item_count=result["question_count"],
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -261,7 +256,6 @@ async def convert_notes_to_questions(
     except Exception as e:
         logger.error(f"Error in notes_to_questions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/flashcards_to_notes")
 async def convert_flashcards_to_notes(
@@ -290,7 +284,7 @@ async def convert_flashcards_to_notes(
                 destination_ids=json.dumps([result["note_id"]]),
                 item_count=result["card_count"],
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -299,7 +293,6 @@ async def convert_flashcards_to_notes(
     except Exception as e:
         logger.error(f"Error in flashcards_to_notes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/flashcards_to_questions")
 async def convert_flashcards_to_questions(
@@ -326,7 +319,7 @@ async def convert_flashcards_to_questions(
                 destination_ids=json.dumps([result["set_id"]]),
                 item_count=result["question_count"],
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -335,7 +328,6 @@ async def convert_flashcards_to_questions(
     except Exception as e:
         logger.error(f"Error in flashcards_to_questions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/questions_to_flashcards")
 async def convert_questions_to_flashcards(
@@ -362,7 +354,7 @@ async def convert_questions_to_flashcards(
                 destination_ids=json.dumps([result["set_id"]]),
                 item_count=result["card_count"],
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -371,7 +363,6 @@ async def convert_questions_to_flashcards(
     except Exception as e:
         logger.error(f"Error in questions_to_flashcards: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/questions_to_notes")
 async def convert_questions_to_notes(
@@ -398,7 +389,7 @@ async def convert_questions_to_notes(
                 destination_ids=json.dumps([result["note_id"]]),
                 item_count=1,
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -407,7 +398,6 @@ async def convert_questions_to_notes(
     except Exception as e:
         logger.error(f"Error in questions_to_notes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/media_to_questions")
 async def convert_media_to_questions(
@@ -436,7 +426,7 @@ async def convert_media_to_questions(
                 destination_ids=json.dumps([result["set_id"]]),
                 item_count=result["question_count"],
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -445,7 +435,6 @@ async def convert_media_to_questions(
     except Exception as e:
         logger.error(f"Error in media_to_questions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/playlist_to_notes")
 async def convert_playlist_to_notes(
@@ -472,7 +461,7 @@ async def convert_playlist_to_notes(
                 destination_ids=json.dumps([result["note_id"]]),
                 item_count=result["items_count"],
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -481,7 +470,6 @@ async def convert_playlist_to_notes(
     except Exception as e:
         logger.error(f"Error in playlist_to_notes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/playlist_to_flashcards")
 async def convert_playlist_to_flashcards(
@@ -510,7 +498,7 @@ async def convert_playlist_to_flashcards(
                 destination_ids=json.dumps([result["set_id"]]),
                 item_count=result["card_count"],
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -519,7 +507,6 @@ async def convert_playlist_to_flashcards(
     except Exception as e:
         logger.error(f"Error in playlist_to_flashcards: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/merge_notes")
 async def merge_multiple_notes(
@@ -548,7 +535,7 @@ async def merge_multiple_notes(
                 result_type="note",
                 status="completed",
                 progress=100,
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -557,7 +544,6 @@ async def merge_multiple_notes(
     except Exception as e:
         logger.error(f"Error in merge_notes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/export_flashcards_csv")
 async def export_flashcards_csv(
@@ -582,7 +568,7 @@ async def export_flashcards_csv(
                 destination_type="csv",
                 source_ids=json.dumps(set_ids),
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -591,7 +577,6 @@ async def export_flashcards_csv(
     except Exception as e:
         logger.error(f"Error exporting flashcards to CSV: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/export_questions_pdf")
 async def export_questions_pdf(
@@ -616,7 +601,7 @@ async def export_questions_pdf(
                 destination_type="pdf",
                 source_ids=json.dumps(set_ids),
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -625,7 +610,6 @@ async def export_questions_pdf(
     except Exception as e:
         logger.error(f"Error exporting questions to PDF: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import_export/export_notes_markdown")
 async def export_notes_markdown(
@@ -650,7 +634,7 @@ async def export_notes_markdown(
                 destination_type="markdown",
                 source_ids=json.dumps(note_ids),
                 status="completed",
-                completed_at=datetime.utcnow()
+                completed_at=datetime.now(timezone.utc)
             )
             db.add(history)
             db.commit()
@@ -659,7 +643,6 @@ async def export_notes_markdown(
     except Exception as e:
         logger.error(f"Error exporting notes to markdown: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/import_export/history")
 async def get_import_export_history(

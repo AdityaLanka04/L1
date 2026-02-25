@@ -7,7 +7,7 @@ const useKeyboardShortcuts = (handlers) => {
       const modKey = isMac ? e.metaKey : e.ctrlKey;
       const { key, altKey, shiftKey } = e;
 
-      // Helper to check if a specific shortcut matches
+      
       const matches = (targetKey, needsMod = false, needsAlt = false, needsShift = false) => {
         return (
           key.toLowerCase() === targetKey.toLowerCase() &&
@@ -17,7 +17,7 @@ const useKeyboardShortcuts = (handlers) => {
         );
       };
 
-      // General shortcuts
+      
       if (matches('s', true) && handlers.onSave) {
         e.preventDefault();
         handlers.onSave();
@@ -58,7 +58,7 @@ const useKeyboardShortcuts = (handlers) => {
         handlers.onEscape();
       }
 
-      // Navigation shortcuts
+      
       else if (matches('ArrowLeft', true) && handlers.onPreviousNote) {
         e.preventDefault();
         handlers.onPreviousNote();
@@ -96,7 +96,7 @@ const useKeyboardShortcuts = (handlers) => {
         handlers.onGoToNotes();
       }
 
-      // Heading shortcuts
+      
       else if (matches('1', true, true) && handlers.onHeading1) {
         e.preventDefault();
         handlers.onHeading1();
@@ -114,7 +114,7 @@ const useKeyboardShortcuts = (handlers) => {
         handlers.onNormalText();
       }
 
-      // View shortcuts
+      
       else if (matches('f', true, false, true) && handlers.onFullscreen) {
         e.preventDefault();
         handlers.onFullscreen();
@@ -148,7 +148,7 @@ const useKeyboardShortcuts = (handlers) => {
         handlers.onResetZoom();
       }
 
-      // Organization shortcuts
+      
       else if (matches('t', true, false, true) && handlers.onAddTag) {
         e.preventDefault();
         handlers.onAddTag();

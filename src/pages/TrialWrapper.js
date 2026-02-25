@@ -1,4 +1,4 @@
-// src/pages/TrialWrapper.js (Fixed Navigation)
+
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -17,14 +17,14 @@ const TrialWrapper = ({ children }) => {
   const checkIntervalRef = useRef(null);
   const location = useLocation();
 
-  // Routes that should be accessible during trial
+  
   const trialAccessibleRoutes = ['/dashboard', '/ai-chat', '/flashcards', '/notes', '/learning-review'];
   const isTrialAccessibleRoute = trialAccessibleRoutes.includes(location.pathname);
 
   const initializeTrial = useCallback(async () => {
      });
     
-    // Skip trial for logged-in users
+    
     if (trialManager.isUserLoggedIn()) {
             setIsLoading(false);
       setAllowTrialAccess(true);
@@ -32,7 +32,7 @@ const TrialWrapper = ({ children }) => {
       return;
     }
 
-    // If user is on a protected route but not logged in, start trial
+    
     if (isTrialAccessibleRoute) {
       try {
         const status = await trialManager.initializeTrial();
@@ -57,7 +57,7 @@ const TrialWrapper = ({ children }) => {
         setTrialInitialized(true);
       }
     } else {
-      // For non-protected routes (homepage, login, register), allow access without trial
+      
             setIsLoading(false);
       setAllowTrialAccess(true);
       setTrialInitialized(true);
@@ -66,7 +66,7 @@ const TrialWrapper = ({ children }) => {
 
   const startTrialTimer = useCallback(() => {
         
-    // Update timer every second
+    
     timerRef.current = setInterval(() => {
       const currentStatus = trialManager.getCurrentStatus();
       
@@ -80,13 +80,13 @@ const TrialWrapper = ({ children }) => {
 
       setTimeRemaining(currentStatus.timeRemaining);
 
-      // Show warning modal when 1 minute remains
+      
       if (currentStatus.showWarning && !showWarningModal && !showExpiredModal) {
                 setShowWarningModal(true);
       }
     }, 1000);
 
-    // Check server status every 30 seconds
+    
     checkIntervalRef.current = setInterval(async () => {
       try {
         const fingerprint = trialManager.generateFingerprint();
@@ -110,7 +110,7 @@ const TrialWrapper = ({ children }) => {
     };
   }, [initializeTrial]);
 
-  // Re-initialize when route changes
+  
   useEffect(() => {
         setTrialInitialized(false);
     initializeTrial();
@@ -121,7 +121,7 @@ const TrialWrapper = ({ children }) => {
   };
 
   const handleExpiredClose = () => {
-    // Don't allow closing expired modal - user must register or login
+    
   };
 
   const handleLogin = () => {
@@ -134,7 +134,7 @@ const TrialWrapper = ({ children }) => {
     setShowExpiredModal(false);
   };
 
-  // Show loading state
+  
   if (isLoading || !trialInitialized) {
     return (
       <div style={{ 
@@ -150,16 +150,15 @@ const TrialWrapper = ({ children }) => {
     );
   }
 
-  // If user is logged in, always allow access
+  
   if (trialManager.isUserLoggedIn()) {
     return React.cloneElement(children, { trialMode: false, trialInitialized: true });
   }
 
-  // For trial users on protected routes, check if trial access is allowed
+  
   if (isTrialAccessibleRoute && !allowTrialAccess && showExpiredModal) {
     return (
       <div>
-        {/* Block interface when trial is expired */}
         <div style={{
           position: 'fixed',
           top: 0,
@@ -171,7 +170,6 @@ const TrialWrapper = ({ children }) => {
           pointerEvents: 'all'
         }} />
 
-        {/* Expired Modal */}
         <TrialModal
           isOpen={showExpiredModal}
           onClose={handleExpiredClose}
@@ -184,18 +182,17 @@ const TrialWrapper = ({ children }) => {
     );
   }
 
-  // Pass trial status to children
+  
   const childrenWithProps = React.cloneElement(children, { 
     trialMode: !trialManager.isUserLoggedIn() && isTrialAccessibleRoute,
     trialInitialized: true
   });
 
-  // Render with trial restrictions for trial users
+  
   return (
     <div>
       {childrenWithProps}
       
-      {/* Trial Timer Display (only show for trial users on protected routes) */}
       {!trialManager.isUserLoggedIn() && isTrialAccessibleRoute && timeRemaining > 0 && !showExpiredModal && (
         <div style={{
           position: 'fixed',
@@ -216,7 +213,6 @@ const TrialWrapper = ({ children }) => {
         </div>
       )}
 
-      {/* Warning Modal */}
       <TrialModal
         isOpen={showWarningModal}
         onClose={handleWarningClose}
@@ -226,7 +222,6 @@ const TrialWrapper = ({ children }) => {
         onRegister={handleRegister}
       />
 
-      {/* Expired Modal */}
       <TrialModal
         isOpen={showExpiredModal}
         onClose={handleExpiredClose}

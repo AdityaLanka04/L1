@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["notifications"])
 
-
 def _parse_hours_list(raw: str) -> List[float]:
     hours = []
     for part in (raw or "").split(","):
@@ -27,14 +26,12 @@ def _parse_hours_list(raw: str) -> List[float]:
             continue
     return sorted(set(hours))
 
-
 def _normalize_dt(dt: Optional[datetime]) -> Optional[datetime]:
     if not dt:
         return None
     if dt.tzinfo is not None:
         return dt.astimezone(timezone.utc).replace(tzinfo=None)
     return dt
-
 
 def _safe_notify_before_minutes(reminder: models.Reminder, default: int = 15) -> int:
     try:
@@ -45,7 +42,6 @@ def _safe_notify_before_minutes(reminder: models.Reminder, default: int = 15) ->
     except Exception:
         return default
 
-
 def _format_offline_duration(hours: float) -> str:
     if hours < 24:
         rounded = max(1, int(hours))
@@ -53,12 +49,10 @@ def _format_offline_duration(hours: float) -> str:
     days = int(hours // 24)
     return f"{days} day{'s' if days != 1 else ''}"
 
-
 def _get_reminder_notif_meta(reminder: models.Reminder) -> tuple[str, str]:
     notif_type = "calendar_event" if reminder.reminder_type in ("event", "calendar_event") else "reminder"
     title_prefix = "Event" if notif_type == "calendar_event" else "Reminder"
     return notif_type, title_prefix
-
 
 @router.get("/get_notifications")
 async def get_notifications(
@@ -115,11 +109,9 @@ async def get_notifications(
         except Exception as e:
             logger.error(f"Error generating reminder notifications: {str(e)}", exc_info=True)
 
-        # Inactivity reminder (offline for configured thresholds)
         try:
             inactivity_hours = _parse_hours_list(os.getenv("INACTIVITY_NOTIFICATION_HOURS", "72,168"))
             if inactivity_hours:
-                # Determine most recent activity timestamp
                 activity_candidates = []
 
                 user_stats = db.query(models.UserStats).filter(
@@ -199,7 +191,6 @@ async def get_notifications(
         logger.error(f"Error getting notifications: {str(e)}", exc_info=True)
         return {"notifications": []}
 
-
 @router.put("/mark_notification_read/{notification_id}")
 async def mark_notification_read(
     notification_id: int,
@@ -220,7 +211,6 @@ async def mark_notification_read(
     except Exception as e:
         logger.error(f"Error marking notification as read: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.put("/mark_all_notifications_read")
 async def mark_all_notifications_read(
@@ -243,7 +233,6 @@ async def mark_all_notifications_read(
     except Exception as e:
         logger.error(f"Error marking all notifications as read: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/create_notification")
 async def create_notification(
@@ -280,7 +269,6 @@ async def create_notification(
         logger.error(f"Error creating notification: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/debug_notifications")
 async def debug_notifications(
     user_id: str = Query(...),
@@ -314,7 +302,6 @@ async def debug_notifications(
     except Exception as e:
         return {"error": str(e)}
 
-
 @router.delete("/delete_notification/{notification_id}")
 async def delete_notification(
     notification_id: int,
@@ -335,7 +322,6 @@ async def delete_notification(
     except Exception as e:
         logger.error(f"Error deleting notification: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/clear_old_notifications")
 async def clear_old_notifications(
@@ -362,7 +348,6 @@ async def clear_old_notifications(
         logger.error(f"Error clearing notifications: {str(e)}")
         return {"status": "error", "cleared": 0, "message": str(e)}
 
-
 @router.delete("/clear_all_notifications")
 async def clear_all_notifications(
     user_id: str = Query(...),
@@ -388,7 +373,6 @@ async def clear_all_notifications(
         logger.error(f"Error clearing all notifications: {str(e)}")
         db.rollback()
         return {"status": "error", "cleared": 0, "message": str(e)}
-
 
 @router.get("/check_reminder_notifications")
 async def check_reminder_notifications(

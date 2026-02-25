@@ -56,7 +56,6 @@ const ImportExportModal = ({
     ]
   };
 
-
   const resolvedSourceType = sourceType === 'quiz' ? 'questions' : sourceType;
 
   useEffect(() => {
@@ -184,7 +183,7 @@ const ImportExportModal = ({
         return;
       }
       
-      // Use the conversion agent service for all conversions
+      
       const conversionResult = await conversionAgentService.convert({
         userId: userName,
         sourceType: resolvedSourceType,
@@ -200,7 +199,7 @@ const ImportExportModal = ({
       const conversionDetails = conversionResult.result || conversionResult;
 
       if (conversionResult.success) {
-        // Handle export types (CSV/PDF)
+        
         if (destinationType === 'csv' || destinationType === 'pdf') {
           const exportResult = conversionDetails;
           if (exportResult && exportResult.content) {
@@ -212,7 +211,7 @@ const ImportExportModal = ({
             type: 'export'
           });
         } else {
-          // Handle conversion types
+          
           setResult({
             success: true,
             message: `Successfully converted to ${destinationType}!`,
@@ -271,7 +270,6 @@ const ImportExportModal = ({
     if (resolvedSourceType === 'playlist') return `${item.item_count || 0} items`;
     return '';
   };
-
 
   return (
     <div className="iem-overlay" onClick={handleClose}>
@@ -533,7 +531,7 @@ const ImportExportModal = ({
                       className="iem-btn iem-btn-primary" 
                       onClick={() => {
                         handleClose();
-                        // Navigate to the appropriate page based on destination type
+                        
                         if (onSuccess) {
                           onSuccess({
                             ...result.details,

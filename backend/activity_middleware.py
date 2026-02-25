@@ -8,7 +8,6 @@ from jose import jwt, JWTError
 from activity_logger import log_activity, resolve_user_id
 from activity_context import set_activity_context, clear_activity_context
 
-# Map endpoints to tool names
 ENDPOINT_TOOL_MAP = {
     '/api/chat': 'ai_chat',
     '/api/save_chat_message': 'ai_chat',
@@ -70,7 +69,6 @@ def get_action(method: str, path: str) -> str:
         return 'view'
     return 'action'
 
-
 def is_ai_tool(tool_name: str) -> bool:
     if not tool_name:
         return False
@@ -80,15 +78,12 @@ async def log_request_activity(request: Request, call_next):
     """Middleware to log all API requests"""
     start_time = time.time()
     
-    # Get user_id from multiple sources
     user_id = request.headers.get('X-User-Id')
     
-    # If not in headers, try to get from query params
     if not user_id or user_id == 'null':
         query_params = dict(request.query_params)
         user_id = query_params.get('user_id') or query_params.get('username')
     
-    # If still not found, try to get from path params (for routes like /api/user/{user_id})
     if not user_id or user_id == 'null':
         path = request.url.path
         if 'user_id=' in str(request.url):
@@ -97,7 +92,6 @@ async def log_request_activity(request: Request, call_next):
             if match:
                 user_id = match.group(1)
 
-    # If still not found, decode from Authorization token
     if not user_id or user_id == 'null':
         auth_header = request.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
@@ -108,7 +102,6 @@ async def log_request_activity(request: Request, call_next):
             except JWTError:
                 user_id = None
     
-    # Prepare context for AI usage logging
     context_token = None
     resolved_user_id = None
     if user_id and user_id != 'null' and user_id.strip() and request.url.path.startswith('/api/') and not request.url.path.startswith('/api/admin/'):
@@ -124,18 +117,14 @@ async def log_request_activity(request: Request, call_next):
                 'method': request.method
             })
 
-    # Process request
     try:
         response = await call_next(request)
     finally:
         if context_token is not None:
             clear_activity_context(context_token)
     
-    # Calculate duration
     duration = time.time() - start_time
     
-    # Only log if user is authenticated and it's an API call
-    # Skip if user_id is None, 'null', or empty
     if user_id and user_id != 'null' and user_id.strip() and request.url.path.startswith('/api/') and not request.url.path.startswith('/api/admin/'):
         tool_name = get_tool_name(request.url.path)
         action = get_action(request.method, request.url.path)
@@ -149,7 +138,6 @@ async def log_request_activity(request: Request, call_next):
             'event_type': 'request'
         }
 
-        # Do not estimate tokens here; AI token usage is logged at the model call.
         tokens_used = 0
         if is_ai_tool(tool_name):
             metadata['token_source'] = 'none'

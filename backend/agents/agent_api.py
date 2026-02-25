@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 _user_kg_instance = None
 
-
 class UserKnowledgeGraph:
     """User knowledge graph for tracking concept interactions"""
     
@@ -35,7 +34,6 @@ class UserKnowledgeGraph:
             return
         
         try:
-            # Record interaction in Neo4j
             if self.neo4j:
                 await self.neo4j.record_interaction(
                     user_id=str(user_id),
@@ -46,7 +44,6 @@ class UserKnowledgeGraph:
                 )
         except Exception as e:
             logger.warning(f"Failed to record concept interaction: {e}")
-
 
 def get_user_kg() -> Optional[UserKnowledgeGraph]:
     """Get or create the user knowledge graph instance"""

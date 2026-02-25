@@ -16,14 +16,9 @@ function Login() {
 
   useEffect(() => {
     const safetyAccepted = sessionStorage.getItem('safetyAccepted');
-    
     if (!safetyAccepted) {
       navigate('/', { replace: true });
-      return;
     }
-    
-    // Don't auto-redirect if already logged in - let user stay on login page
-    // They can manually go to dashboard if needed
   }, [navigate]);
 
   const checkAndRedirect = async (username) => {
@@ -63,8 +58,7 @@ function Login() {
           
           localStorage.setItem('userProfile', JSON.stringify(mergedProfile));
         }
-      } catch (profileError) {
-              }
+      } catch (_) {}
       
       const response = await axios.get(`${API_URL}/check_profile_quiz?user_id=${username}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -117,8 +111,7 @@ function Login() {
             
       if (error.code === 'auth/popup-blocked') {
         alert('Popup was blocked. Please allow popups for this site and try again.');
-      } else if (error.code === 'auth/popup-closed-by-user') {
-              } else {
+      } else if (error.code !== 'auth/popup-closed-by-user') {
         alert('Google sign-in failed: ' + (error.message || 'Unknown error'));
       }
     }

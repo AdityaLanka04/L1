@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 _driver = None
 
-
 async def connect(
     uri: str | None = None,
     user: str | None = None,
@@ -34,17 +33,14 @@ async def connect(
         logger.warning(f"Neo4j unavailable: {e}")
         _driver = None
 
-
 async def disconnect():
     global _driver
     if _driver:
         await _driver.close()
         _driver = None
 
-
 def available() -> bool:
     return _driver is not None
-
 
 async def _run(query: str, params: dict | None = None) -> list[dict]:
     if not _driver:
@@ -52,7 +48,6 @@ async def _run(query: str, params: dict | None = None) -> list[dict]:
     async with _driver.session() as session:
         result = await session.run(query, params or {})
         return [dict(record) for record in await result.data()]
-
 
 async def get_student_concepts(user_id: str) -> dict:
     mastered = await _run(
@@ -70,7 +65,6 @@ async def get_student_concepts(user_id: str) -> dict:
         "struggling": [r["concept"] for r in struggling],
         "mastery_levels": {r["concept"]: r["confidence"] for r in mastered},
     }
-
 
 async def get_concept_context(concepts: list[str]) -> dict:
     if not concepts:
@@ -93,7 +87,6 @@ async def get_concept_context(concepts: list[str]) -> dict:
         "strategies": [],
     }
 
-
 async def get_effective_strategies(user_id: str, concept: str) -> list[str]:
     rows = await _run(
         "MATCH (u:User {user_id: $uid})-[r:HELPED_BY]->(s:Strategy) "
@@ -102,7 +95,6 @@ async def get_effective_strategies(user_id: str, concept: str) -> list[str]:
         {"uid": user_id},
     )
     return [r["strategy"] for r in rows]
-
 
 async def update_mastery(user_id: str, concept: str, confidence: float = 0.8):
     await _run(
@@ -115,7 +107,6 @@ async def update_mastery(user_id: str, concept: str, confidence: float = 0.8):
         {"uid": user_id, "concept": concept, "conf": confidence},
     )
 
-
 async def update_struggle(user_id: str, concept: str):
     await _run(
         "MERGE (u:User {user_id: $uid}) "
@@ -126,7 +117,6 @@ async def update_struggle(user_id: str, concept: str):
         {"uid": user_id, "concept": concept},
     )
 
-
 async def record_strategy_success(user_id: str, strategy_desc: str):
     await _run(
         "MERGE (u:User {user_id: $uid}) "
@@ -136,7 +126,6 @@ async def record_strategy_success(user_id: str, strategy_desc: str):
         "ON MATCH SET r.times_used = r.times_used + 1, r.last_used = datetime()",
         {"uid": user_id, "desc": strategy_desc},
     )
-
 
 async def seed_concept(
     name: str,

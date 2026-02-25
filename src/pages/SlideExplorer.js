@@ -10,8 +10,8 @@ const SlideExplorer = () => {
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
 
-  // State
-  const [activeTab, setActiveTab] = useState('viewer'); // 'viewer' or 'myslides'
+  
+  const [activeTab, setActiveTab] = useState('viewer'); 
   const [uploadedSlides, setUploadedSlides] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSlide, setSelectedSlide] = useState(null);
@@ -21,7 +21,7 @@ const SlideExplorer = () => {
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
-  const [showUpload, setShowUpload] = useState(true); // Show upload by default
+  const [showUpload, setShowUpload] = useState(true); 
 
   const fetchUploadedSlides = useCallback(async () => {
     try {
@@ -123,7 +123,7 @@ const SlideExplorer = () => {
       setShowUpload(false);
       setActiveTab('viewer');
 
-      // First try the agent for enhanced analysis
+      
       console.log('Calling Slide Explorer Agent with:', { userId, slideContent: slide.extracted_text || slide.title });
       try {
         const agentResponse = await slideExplorerAgentService.analyzeSlide({
@@ -139,10 +139,10 @@ const SlideExplorer = () => {
         }
       } catch (agentError) {
         console.error('Agent analysis error:', agentError);
-        // Continue with standard analysis even if agent fails
+        
       }
 
-      // Then get the standard analysis from the API
+      
       const response = await fetch(`${API_URL}/analyze_slide/${slideId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -208,7 +208,6 @@ const SlideExplorer = () => {
 
   return (
     <div className="se-page">
-      {/* Header - Full Width */}
       <header className="se-header">
         <div className="se-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -223,9 +222,7 @@ const SlideExplorer = () => {
         </div>
       </header>
 
-      {/* Main Layout with Sidebar */}
       <div className="se-main-layout">
-        {/* Sidebar */}
         <aside className="se-sidebar">
           <nav className="se-sidebar-nav">
             <button 
@@ -256,13 +253,11 @@ const SlideExplorer = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="se-main-content">
-          {/* View/Upload Tab */}
           {activeTab === 'viewer' && (
             <div className="se-viewer-tab">
               {showUpload && !selectedSlide ? (
-                // Upload Area
+                
                 <div className="se-upload-container">
                   <h2 className="se-content-title">Upload Presentation</h2>
                   <p className="se-content-subtitle">Upload PDF or PowerPoint files to explore and analyze with AI</p>
@@ -294,7 +289,7 @@ const SlideExplorer = () => {
                   </div>
                 </div>
               ) : selectedSlide && analyzedSlides.length > 0 ? (
-                // Slide Viewer
+                
                 <div className="se-viewer-container">
                   <div className="se-viewer-header">
                     <div>
@@ -309,7 +304,6 @@ const SlideExplorer = () => {
                     </button>
                   </div>
 
-                  {/* Slide Navigation */}
                   <div className="se-slide-nav">
                     <button 
                       className="se-nav-arrow"
@@ -340,10 +334,8 @@ const SlideExplorer = () => {
                     </button>
                   </div>
 
-                  {/* AI Analysis Section */}
                   {currentSlide && (
                     <div className="se-slide-display-vertical">
-                      {/* Slide Content Preview - Shows extracted text rendered as image */}
                       <div className="se-slide-preview-full">
                         <div className="se-slide-preview-header">
                           <h3 className="se-current-slide-label">Slide {currentSlide.slide_number} Content</h3>
@@ -366,7 +358,6 @@ const SlideExplorer = () => {
                         </div>
                       </div>
 
-                      {/* Comprehensive Analysis - Scrollable Below */}
                       <div className="se-comprehensive-analysis">
                         <div className="se-analysis-header-main">
                           <h2 className="se-slide-title-main">{currentSlide.title || `Slide ${currentSlide.slide_number}`}</h2>
@@ -384,7 +375,6 @@ const SlideExplorer = () => {
 
                         {currentSlide.detailed_explanation ? (
                           <>
-                            {/* Detailed Explanation */}
                             <div className="se-analysis-section-main">
                               <div className="se-section-header">
                                 <BookOpen size={20} />
@@ -397,7 +387,6 @@ const SlideExplorer = () => {
                               </div>
                             </div>
 
-                            {/* Key Concepts */}
                             {currentSlide.key_concepts && currentSlide.key_concepts.length > 0 && (
                               <div className="se-analysis-section-main">
                                 <div className="se-section-header">
@@ -412,7 +401,6 @@ const SlideExplorer = () => {
                               </div>
                             )}
 
-                            {/* Definitions */}
                             {currentSlide.definitions && Object.keys(currentSlide.definitions).length > 0 && (
                               <div className="se-analysis-section-main">
                                 <div className="se-section-header">
@@ -430,7 +418,6 @@ const SlideExplorer = () => {
                               </div>
                             )}
 
-                            {/* Exam Questions */}
                             {currentSlide.exam_questions && currentSlide.exam_questions.length > 0 && (
                               <div className="se-analysis-section-main se-exam-section">
                                 <div className="se-section-header">
@@ -457,7 +444,6 @@ const SlideExplorer = () => {
                               </div>
                             )}
 
-                            {/* Practical Applications */}
                             {currentSlide.practical_applications && currentSlide.practical_applications.length > 0 && (
                               <div className="se-analysis-section-main">
                                 <div className="se-section-header">
@@ -472,7 +458,6 @@ const SlideExplorer = () => {
                               </div>
                             )}
 
-                            {/* Common Misconceptions */}
                             {currentSlide.common_misconceptions && currentSlide.common_misconceptions.length > 0 && (
                               <div className="se-analysis-section-main se-misconceptions-section">
                                 <div className="se-section-header">
@@ -487,7 +472,6 @@ const SlideExplorer = () => {
                               </div>
                             )}
 
-                            {/* Study Tips */}
                             {currentSlide.study_tips && currentSlide.study_tips.length > 0 && (
                               <div className="se-analysis-section-main se-study-tips-section">
                                 <div className="se-section-header">
@@ -502,7 +486,6 @@ const SlideExplorer = () => {
                               </div>
                             )}
 
-                            {/* Cross References */}
                             {currentSlide.cross_references && currentSlide.cross_references.length > 0 && (
                               <div className="se-analysis-section-main">
                                 <div className="se-section-header">
@@ -531,7 +514,6 @@ const SlideExplorer = () => {
             </div>
           )}
 
-          {/* My Slides Tab */}
           {activeTab === 'myslides' && (
             <div className="se-myslides-tab">
               <h2 className="se-content-title">My Presentations</h2>
@@ -613,7 +595,6 @@ const SlideExplorer = () => {
         </main>
       </div>
 
-      {/* Analyzing Overlay */}
       {analyzing && (
         <div className="se-analyzing-overlay">
           <div className="se-analyzing-content">

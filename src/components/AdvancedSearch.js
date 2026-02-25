@@ -13,7 +13,7 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
   const [searchHistory, setSearchHistory] = useState([]);
 
   useEffect(() => {
-    // Load search history from localStorage
+    
     const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
     setSearchHistory(history);
   }, []);
@@ -41,7 +41,7 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
 
     let filtered = [...notes];
 
-    // Filter by folder
+    
     if (selectedFolder !== 'all') {
       if (selectedFolder === 'none') {
         filtered = filtered.filter(n => !n.folder_id);
@@ -50,7 +50,7 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
       }
     }
 
-    // Filter by date range (last modified)
+    
     if (dateFrom) {
       filtered = filtered.filter(n => new Date(n.updated_at) >= new Date(dateFrom));
     }
@@ -58,13 +58,13 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
       filtered = filtered.filter(n => new Date(n.updated_at) <= new Date(dateTo));
     }
 
-    // Search in both title and content
+    
     const searchPattern = useRegex 
       ? new RegExp(searchQuery, caseSensitive ? 'g' : 'gi')
       : null;
 
     filtered = filtered.filter(note => {
-      // Search in title
+      
       let titleMatch = false;
       if (useRegex) {
         titleMatch = searchPattern.test(note.title);
@@ -74,7 +74,7 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
           : note.title.toLowerCase().includes(searchQuery.toLowerCase());
       }
 
-      // Search in content
+      
       const content = note.content.replace(/<[^>]+>/g, '');
       let contentMatch = false;
       if (useRegex) {

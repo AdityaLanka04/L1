@@ -1,7 +1,6 @@
-/* NotesRedesign Chat Import Modal Styles */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Force all elements to be boxy */
 .notes-redesign .chat-import-overlay,
 .notes-redesign .chat-import-modal-new,
 .notes-redesign .chat-import-modal-new *,
@@ -11,7 +10,6 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Overlay */
 .notes-redesign .chat-import-overlay {
   position: fixed !important;
   top: 0 !important;
@@ -23,7 +21,6 @@
   z-index: 9998 !important;
 }
 
-/* Modal */
 .notes-redesign .chat-import-modal-new {
   position: fixed !important;
   top: 50% !important;
@@ -41,7 +38,6 @@
   flex-direction: column !important;
 }
 
-/* Modal Header */
 .notes-redesign .chat-import-modal-new .modal-header-new {
   display: flex !important;
   align-items: center !important;
@@ -79,7 +75,6 @@
   color: var(--bg-secondary) !important;
 }
 
-/* Modal Content */
 .notes-redesign .chat-import-modal-new .modal-content-new {
   padding: 24px !important;
   overflow-y: auto !important;
@@ -87,7 +82,6 @@
   background: var(--bg-secondary) !important;
 }
 
-/* Import Mode Section */
 .notes-redesign .chat-import-modal-new .import-mode-section-new {
   margin-bottom: 28px !important;
 }
@@ -154,7 +148,6 @@
   line-height: 1.4 !important;
 }
 
-/* Sessions Section */
 .notes-redesign .chat-import-modal-new .sessions-section-new {
   margin-bottom: 20px !important;
 }
@@ -199,7 +192,6 @@
   color: #EAECEF !important;
 }
 
-/* Sessions List */
 .notes-redesign .chat-import-modal-new .sessions-list-new {
   max-height: 280px !important;
   overflow-y: auto !important;
@@ -274,7 +266,6 @@
   font-size: 14px !important;
 }
 
-/* Modal Footer */
 .notes-redesign .chat-import-modal-new .modal-footer-new {
   display: flex !important;
   justify-content: flex-end !important;
@@ -325,7 +316,6 @@
   transform: none !important;
 }
 
-/* Spinner */
 .notes-redesign .chat-import-modal-new .spinner {
   width: 16px !important;
   height: 16px !important;

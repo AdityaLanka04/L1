@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { Copy, Check, Download } from 'lucide-react';
 import './CodeBlock.css';
 
-// Syntax highlighting for common languages
 const LANGUAGES = [
   'javascript', 'python', 'java', 'cpp', 'c', 'csharp', 'php', 'ruby', 'go',
   'rust', 'swift', 'kotlin', 'typescript', 'html', 'css', 'sql', 'bash', 'shell',

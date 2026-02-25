@@ -26,7 +26,6 @@ import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
 
-// Enhanced Notes Features
 import SimpleBlockEditor from '../components/SimpleBlockEditor';
 import AdvancedSearch from '../components/AdvancedSearch';
 import Templates from '../components/Templates';
@@ -38,7 +37,6 @@ import SmartFolders from '../components/SmartFolders';
 import KeyboardShortcuts from '../components/KeyboardShortcuts';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 
-// Utility functions
 const encodeBlockPayload = (value) => {
   if (!value) return '';
   try {
@@ -71,7 +69,7 @@ const htmlToBlocks = (html) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
   
-  // Process each element in the body
+  
   const processNode = (node) => {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent.trim();
@@ -134,7 +132,7 @@ const htmlToBlocks = (html) => {
           });
           break;
         case 'ul':
-          // Process each list item as a separate bullet block
+          
           Array.from(node.querySelectorAll('li')).forEach(li => {
             blocks.push({
               id: Date.now() + Math.random(),
@@ -145,7 +143,7 @@ const htmlToBlocks = (html) => {
           });
           break;
         case 'ol':
-          // Process each list item as a separate numbered block
+          
           Array.from(node.querySelectorAll('li')).forEach(li => {
             blocks.push({
               id: Date.now() + Math.random(),
@@ -193,11 +191,11 @@ const htmlToBlocks = (html) => {
         case 'div':
         case 'section':
         case 'article':
-          // Process children
+          
           Array.from(node.childNodes).forEach(processNode);
           break;
         default:
-          // For other elements, create a paragraph with the content
+          
           if (textContent && !['ul', 'ol', 'li'].includes(tagName)) {
             blocks.push({
               id: Date.now() + Math.random(),
@@ -210,10 +208,10 @@ const htmlToBlocks = (html) => {
     }
   };
   
-  // Process all body children
+  
   Array.from(doc.body.childNodes).forEach(processNode);
   
-  // If no blocks were created, create a default paragraph
+  
   if (blocks.length === 0) {
     blocks.push({
       id: Date.now(),
@@ -265,13 +263,11 @@ const blocksToHtml = (blocks) => {
   }).join('\n');
 };
 
-// Stub components
 const QuickSwitcher = null;
 const FormattingToolbar = ({ onAIAssist, showAI, onInsertBlock }) => null;
 const SlashMenu = ({ isOpen, position, onSelect, onClose }) => null;
 const BacklinksPanel = ({ backlinks, onNoteClick }) => null;
 
-// Stub hooks
 const useQuickSwitcher = (notes, folders, selectNote) => ({ QuickSwitcherComponent: null });
 const useBacklinks = (selectedNote, notes) => [];
 const useSlashCommands = (quillRef) => ({ 
@@ -281,10 +277,8 @@ const useSlashCommands = (quillRef) => ({
   insertBlock: () => {} 
 });
 
-// Utility functions
 const parsePageLinks = (content) => [];
 
-// Remove problematic imports and register them conditionally
 let QuillTableUI;
 try {
   QuillTableUI = require('quill-table-ui');
@@ -307,12 +301,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const { noteId } = useParams();
   const navigate = useNavigate();
   
-  // Shared content state
+  
   const [sharedNoteData, setSharedNoteData] = useState(null);
   const [isSharedContent, setIsSharedContent] = useState(sharedMode);
   const [canEdit, setCanEdit] = useState(false);
 
-  // User state
+  
   const [userName, setUserName] = useState("");
   const [userProfile, setUserProfile] = useState(null);
 
@@ -320,7 +314,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
   const [userDocCount, setUserDocCount] = useState(0);
   
-  // Notes state
+  
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
   const [noteTitle, setNoteTitle] = useState("");
@@ -331,7 +325,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const savedSelectionRef = useRef(null);
   
-  // UI state
+  
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
@@ -340,7 +334,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const titleSectionCollapsed = false;
   const [viewMode, setViewMode] = useState("edit");
   
-  // AI state
+  
   const [showAIDropdown, setShowAIDropdown] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiDropdownPosition, setAiDropdownPosition] = useState({ top: 0, left: 0 });
@@ -353,39 +347,39 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [aiAssistTone, setAiAssistTone] = useState("professional");
   const [selectedText, setSelectedText] = useState("");
 
-  // AI Suggestion state (for approve/reject workflow)
-  const [aiSuggestion, setAiSuggestion] = useState(null); // { original, suggested, range, action }
+  
+  const [aiSuggestion, setAiSuggestion] = useState(null); 
   const [showAISuggestionModal, setShowAISuggestionModal] = useState(false);
 
-  // Folder state
+  
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderColor, setNewFolderColor] = useState("#D7B38C");
   
-  // Trash state
+  
   const [showTrash, setShowTrash] = useState(false);
   const [trashedNotes, setTrashedNotes] = useState([]);
   
-  // Other state
+  
   const [showFavorites, setShowFavorites] = useState(false);
   const [customFont, setCustomFont] = useState("Inter");
   const [draggedNote, setDraggedNote] = useState(null);
   const [dragOverFolder, setDragOverFolder] = useState(null);
 
-  // Font options
+  
   const FONTS = [
     'Inter', 'Arial', 'Georgia', 'Times New Roman', 'Courier New', 
     'Monaco', 'Roboto', 'Open Sans', 'Lato', 'Montserrat'
   ];
   
-  // Enhanced features state
+  
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState(null);
   
-  // Block editor state
+  
   const [noteBlocks, setNoteBlocks] = useState([{
     id: Date.now(),
     type: 'paragraph',
@@ -397,7 +391,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [selectedTextContent, setSelectedTextContent] = useState('');
   const [selectedBlockId, setSelectedBlockId] = useState(null);
   
-  // New features state
+  
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [showRecentlyViewed, setShowRecentlyViewed] = useState(false);
   const [pageProperties, setPageProperties] = useState([
@@ -407,13 +401,13 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [showPageProperties, setShowPageProperties] = useState(false);
   const [editorDarkMode, setEditorDarkMode] = useState(false);
   
-  // New features state
+  
   const [showCanvasMode, setShowCanvasMode] = useState(false);
   const [showSmartFolders, setShowSmartFolders] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
-  // Chat import state
+  
   const [showChatImport, setShowChatImport] = useState(false);
   const [chatSessions, setChatSessions] = useState([]);
   const [selectedSessions, setSelectedSessions] = useState([]);
@@ -423,33 +417,33 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [importMode, setImportMode] = useState("summary");
   const [importing, setImporting] = useState(false);
   
-  // Import/Export state
+  
   const [showImportExport, setShowImportExport] = useState(false);
   
-  // Debug: Log when showChatImport changes
+  
   useEffect(() => {
           }, [showChatImport, chatSessions]);
 
-  // Voice state
+  
   const [isRecording, setIsRecording] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [processingVoice, setProcessingVoice] = useState(false);
   
-  // Refs
+  
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const quillRef = useRef(null);
   const saveTimeout = useRef(null);
   const aiInputRef = useRef(null);
 
-  // Popup state
+  
   const [popup, setPopup] = useState({ isOpen: false, title: "", message: "" });
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
   const closePopup = () => setPopup({ isOpen: false, title: "", message: "" });
   
   const { selectedTheme } = useTheme();
   
-  // Theme effects
+  
   useEffect(() => {
           }, [selectedTheme]);
 
@@ -481,7 +475,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     localStorage.setItem('hs_mode_enabled', String(val));
   };
 
-  // Font registration
+  
   useEffect(() => {
     if (typeof Quill !== 'undefined') {
       try {
@@ -516,7 +510,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   }, []);
 
-  // Load shared note function
+  
   const loadSharedNote = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -536,7 +530,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setIsSharedContent(true);
         setCanEdit(data.permission === 'edit' || data.is_owner);
         
-        // Set up the note with shared data
+        
         setSelectedNote({
           id: data.content_id,
           title: data.title,
@@ -554,7 +548,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
-  // Initial load effect
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
@@ -583,14 +577,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   }, [navigate, sharedMode, noteId]);
 
-  // Load notes and folders effect
+  
   useEffect(() => {
     if (userName && !isSharedContent) {
       loadNotes();
       loadFolders();
       loadChatSessions();
       
-      // Load recently viewed from localStorage
+      
       const stored = localStorage.getItem(`recentlyViewed_${userName}`);
       if (stored) {
         try {
@@ -612,7 +606,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const activeNotes = data.filter(n => !n.is_deleted);
         setNotes(activeNotes);
         
-        // If noteId is provided in URL, select that note
+        
         if (noteId && !sharedMode) {
           const specificNote = activeNotes.find(n => n.id === parseInt(noteId));
           if (specificNote) {
@@ -732,7 +726,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setGeneratingAI(true);
 
     try {
-      // Use the note agent service
+      
       const result = await noteAgentService.invoke(action, {
         userId: userName,
         content: selectedText,
@@ -744,7 +738,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       const resultContent = result.content || result.response;
 
-      // Show suggestion modal instead of directly applying
+      
       setAiSuggestion({
         original: selectedText,
         suggested: resultContent,
@@ -762,18 +756,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
-  // Apply AI suggestion
+  
   const applyAISuggestion = () => {
     if (!aiSuggestion) return;
 
-    // Handle block editor case
+    
     if (aiSuggestion.isBlockEditor) {
       let updatedBlocks;
       const blockIndex = noteBlocks.findIndex(b => String(b.id) === String(aiSuggestion.blockId));
       
       if (blockIndex !== -1 && aiSuggestion.blockId) {
         if (aiSuggestion.action === 'continue') {
-          // Continue: append the result to the existing content
+          
           updatedBlocks = noteBlocks.map((block, idx) => {
             if (idx === blockIndex) {
               return {
@@ -784,7 +778,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             return block;
           });
         } else if (aiSuggestion.action === 'generate') {
-          // Generate: add new block at the end
+          
           const newBlock = {
             id: Date.now() + Math.random(),
             type: 'paragraph',
@@ -793,7 +787,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
           };
           updatedBlocks = [...noteBlocks, newBlock];
         } else {
-          // Improve, simplify, expand, summarize, fix_grammar, translate: replace the block content
+          
           updatedBlocks = noteBlocks.map((block, idx) => {
             if (idx === blockIndex) {
               return {
@@ -805,7 +799,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
           });
         }
       } else {
-        // No selected block - add new block at the end
+        
         const newBlock = {
           id: Date.now() + Math.random(),
           type: 'paragraph',
@@ -815,15 +809,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
         updatedBlocks = [...noteBlocks, newBlock];
       }
       
-      // Update state
+      
       setNoteBlocks(updatedBlocks);
       
-      // Trigger save
+      
       setTimeout(() => {
         handleBlocksChange(updatedBlocks);
       }, 100);
     } else {
-      // Handle Quill editor case
+      
       const quill = quillRef.current?.getEditor();
       if (quill && aiSuggestion.range) {
         quill.deleteText(aiSuggestion.range.index, aiSuggestion.range.length);
@@ -841,7 +835,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setSelectedBlockId(null);
   };
 
-  // Reject AI suggestion
+  
   const rejectAISuggestion = () => {
     setAiSuggestion(null);
     setShowAISuggestionModal(false);
@@ -850,7 +844,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setSelectedBlockId(null);
   };
 
-  // Explain text without modifying (new feature)
+  
   const explainTextOnly = async () => {
     if (!selectedText || !selectedText.trim()) {
       showPopup("No Text Selected", "Please select text first");
@@ -870,11 +864,11 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       const explanation = result.content || result.response;
       
-      // Show explanation in a popup without modifying the note
+      
       setAiSuggestion({
         original: selectedText,
         suggested: explanation,
-        range: null, // null range means explanation only, no replacement
+        range: null, 
         action: 'explain'
       });
       setShowAISuggestionModal(true);
@@ -894,7 +888,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setGeneratingAI(true);
 
     try {
-      // Map old action types to new agent actions
+      
       const actionMap = {
         'explain': 'explain',
         'key_points': 'key_points',
@@ -905,7 +899,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
       const agentAction = actionMap[actionType] || 'generate';
       
-      // Use the note agent service
+      
       const result = await noteAgentService.invoke(agentAction, {
         userId: userName,
         content: selectedText,
@@ -1266,7 +1260,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
-  // Word count effect
+  
   useEffect(() => {
     if (noteContent) {
       const text = noteContent.replace(/<[^>]+>/g, "").trim();
@@ -1318,7 +1312,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const folderName = folders.find(f => f.id === folderId)?.name;
         showPopup("Created", folderName ? `New note created in ${folderName}` : "New note created");
         
-        // Track gamification activity
+        
         gamificationService.trackNoteCreated(userName);
       } else {
         throw new Error(`Failed to create note: ${res.status}`);
@@ -1390,10 +1384,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setCanvasBlockId(null);
     setPendingFocusBlockId(null);
     
-    // Convert HTML content to blocks
+    
     let blocks = htmlToBlocks(normalizedContent);
     
-    // Ensure we always have at least one block
+    
     if (!blocks || blocks.length === 0) {
       blocks = [{
         id: Date.now(),
@@ -1406,10 +1400,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setNoteBlocks(blocks);
     setViewMode("edit");
     
-    // Track recently viewed
+    
     trackRecentlyViewed(n);
     
-    // Load note properties if they exist
+    
     if (n.properties) {
       try {
         const props = typeof n.properties === 'string' ? JSON.parse(n.properties) : n.properties;
@@ -1421,7 +1415,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
   
-  // Track recently viewed notes
+  
   const trackRecentlyViewed = (note) => {
     const viewedItem = {
       id: note.id,
@@ -1429,7 +1423,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       viewedAt: new Date().toISOString()
     };
     
-    // Add to beginning, remove duplicates, keep last 10
+    
     const updated = [
       viewedItem,
       ...recentlyViewed.filter(item => item.id !== note.id)
@@ -1439,8 +1433,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
     localStorage.setItem(`recentlyViewed_${userName}`, JSON.stringify(updated));
   };
   
-  // Enhanced features handlers
-  // Keyboard shortcuts handlers
+  
+  
   const keyboardHandlers = {
     onSave: () => selectedNote && autoSave(),
     onPrint: () => exportAsPDF(),
@@ -1489,13 +1483,13 @@ const NotesRedesign = ({ sharedMode = false }) => {
     onDelete: () => selectedNote && moveToTrash(selectedNote.id),
   };
 
-  // Use keyboard shortcuts hook
+  
   useKeyboardShortcuts(keyboardHandlers);
 
-  // Block editor handlers
+  
   const handleBlocksChange = (newBlocks) => {
     setNoteBlocks(newBlocks);
-    // Convert blocks to HTML for saving
+    
     const html = blocksToHtml(newBlocks);
     setNoteContent(html);
   };
@@ -1552,7 +1546,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const handleInsertBlock = (blockType) => {
-    // Add a new block of the specified type at the end
+    
     const newBlock = {
       id: Date.now() + Math.random(),
       type: blockType,
@@ -1565,7 +1559,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const handleTemplateSelect = (template) => {
-    // Check if there's existing content that would be overwritten
+    
     const hasExistingContent = noteContent && noteContent.trim().length > 0;
     
     if (hasExistingContent) {
@@ -1582,21 +1576,21 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     setNoteTitle(template.title);
     
-    // If template already has blocks, use them
+    
     if (template.blocks && template.blocks.length > 0) {
       setNoteBlocks(template.blocks);
-      // Convert blocks to HTML for saving
+      
       const html = blocksToHtml(template.blocks);
       setNoteContent(html);
     } else {
-      // Fallback to HTML conversion
+      
       const blocks = htmlToBlocks(template.content);
       setNoteBlocks(blocks);
       setNoteContent(template.content);
     }
   };
 
-  // Enhanced features hooks (must be after selectNote is defined)
+  
   const { QuickSwitcherComponent } = useQuickSwitcher(notes, folders, selectNote);
   const backlinks = useBacklinks(selectedNote, notes);
   const { 
@@ -1609,7 +1603,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const autoSave = useCallback(async () => {
     if (!selectedNote) return;
     
-    // For shared notes, use the update_shared_note endpoint
+    
     if (isSharedContent) {
       if (!canEdit) return;
       
@@ -1641,7 +1635,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 showPopup("Error", "Failed to save changes");
       }
     } else {
-      // Normal save logic for own notes
+      
       const noteStillExists = notes.find(n => n.id === selectedNote.id);
       if (!noteStillExists) return;
       
@@ -1694,7 +1688,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   }, [selectedNote, noteTitle, noteContent, notes, isSharedContent, canEdit]);
 
-  // Auto-save effect
+  
   useEffect(() => {
     if (saveTimeout.current) {
       clearTimeout(saveTimeout.current);
@@ -1717,7 +1711,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     };
   }, [noteContent, noteTitle, canvasData, selectedNote, autoSave, isSharedContent, canEdit]);
 
-  // Keyboard shortcut for save
+  
   useEffect(() => {
     const handleKey = (e) => {
       if (e.ctrlKey && e.key === "s") {
@@ -1729,7 +1723,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     return () => window.removeEventListener("keydown", handleKey);
   }, [autoSave]);
 
-  // Keyboard shortcut for fullscreen
+  
   useEffect(() => {
     const handleFullscreenKey = (e) => {
       if (e.key === "F11") {
@@ -1743,7 +1737,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     return () => window.removeEventListener("keydown", handleFullscreenKey);
   }, [isFullscreen]);
 
-  // Handle page link clicks
+  
   useEffect(() => {
     const handlePageLinkClick = (e) => {
       if (e.target.classList.contains('page-link')) {
@@ -1760,7 +1754,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   }, [notes, quillRef]);
 
-  // Handle text selection for AI assistant in block editor
+  
   useEffect(() => {
     if (isSharedContent && !canEdit) return;
 
@@ -1772,11 +1766,11 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
 
-        // Find the block that contains the selection
+        
         let blockId = null;
         let node = range.startContainer;
         while (node && node !== document.body) {
-          if (node.nodeType === 1) { // Element node
+          if (node.nodeType === 1) { 
             const blockWrapper = node.closest('[data-block-id]');
             if (blockWrapper) {
               blockId = blockWrapper.getAttribute('data-block-id');
@@ -1846,7 +1840,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     setGeneratingAI(true);
     try {
-      // Determine action type from prompt
+      
       let actionType = "generate";
       if (aiPrompt.toLowerCase().includes("explain")) {
         actionType = "explain";
@@ -1858,7 +1852,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         actionType = "summarize";
       }
 
-      // Use the note agent service
+      
       const result = await noteAgentService.invoke(actionType, {
         userId: userName,
         topic: aiPrompt,
@@ -1895,7 +1889,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     setGeneratingAI(true);
     try {
-      // Map old action types to new agent actions
+      
       const actionMap = {
         'explain': 'explain',
         'key_points': 'key_points',
@@ -1906,7 +1900,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
       const agentAction = actionMap[actionType] || 'generate';
       
-      // Use the note agent service
+      
       const result = await noteAgentService.invoke(agentAction, {
         userId: userName,
         topic: aiPrompt || "Generate content",
@@ -3136,7 +3130,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </div>
               )}
             </div>
-
 
           </div>
         ) : (

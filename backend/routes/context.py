@@ -37,8 +37,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/context", tags=["context"])
 
-MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
-
+MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
 
 def _is_safe_url(url: str) -> bool:
     try:
@@ -58,13 +57,11 @@ def _is_safe_url(url: str) -> bool:
     except Exception:
         return False
 
-
 _DEFAULT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
     "Accept": "application/pdf,application/octet-stream,text/plain,*/*",
     "Accept-Language": "en-US,en;q=0.9",
 }
-
 
 def _filename_from_disposition(value: str) -> str:
     if not value:
@@ -76,7 +73,6 @@ def _filename_from_disposition(value: str) -> str:
     if match:
         return match.group(1).strip()
     return ""
-
 
 def _download_url(url: str) -> tuple[bytes, str, str]:
     try:
@@ -117,7 +113,6 @@ def _download_url(url: str) -> tuple[bytes, str, str]:
     filename_hint = _filename_from_disposition(resp.headers.get("content-disposition", ""))
     return bytes(content), content_type, filename_hint
 
-
 class ImportUrlRequest(BaseModel):
     url: str
     subject: str = ""
@@ -125,9 +120,6 @@ class ImportUrlRequest(BaseModel):
     scope: str = "private"
     source_name: str = ""
     license: str = ""
-
-
-# ── Upload ────────────────────────────────────────────────────────────────────
 
 @router.post("/upload")
 async def upload_document(
@@ -156,11 +148,9 @@ async def upload_document(
     Returns:
       { success, doc_id, filename, chunk_count, scope, message }
     """
-    # Validate scope
     if scope not in ("private", "hs_shared"):
         raise HTTPException(status_code=400, detail="scope must be 'private' or 'hs_shared'")
 
-    # Validate file extension
     lower_name = (file.filename or "").lower()
     if not lower_name.endswith((".pdf", ".txt", ".md")):
         raise HTTPException(
@@ -168,7 +158,6 @@ async def upload_document(
             detail="Only .pdf, .txt, and .md files are supported",
         )
 
-    # Read file and check size
     file_bytes = await file.read()
     if len(file_bytes) > MAX_FILE_SIZE_BYTES:
         raise HTTPException(status_code=413, detail="File too large. Maximum size is 50 MB.")
@@ -185,7 +174,6 @@ async def upload_document(
     clean_chunk_overlap = CHUNK_OVERLAP
     clean_toc_aware = True
 
-    # Create DB record (status="processing")
     doc_record = models.ContextDocument(
         user_id=current_user.id,
         doc_id=doc_id,
@@ -203,7 +191,6 @@ async def upload_document(
     db.add(doc_record)
     db.commit()
 
-    # Process document
     try:
         result = process_upload(
             file_bytes=file_bytes,
@@ -230,7 +217,6 @@ async def upload_document(
                 detail="No text could be extracted from the file.",
             )
 
-        # Store in ChromaDB
         if not context_store.available():
             doc_record.status = "failed"
             db.commit()
@@ -290,9 +276,6 @@ async def upload_document(
         except Exception:
             pass
         raise HTTPException(status_code=500, detail=f"Document processing failed: {e}")
-
-
-# ── Import by URL ─────────────────────────────────────────────────────────────
 
 @router.post("/import_url")
 def import_document_url(
@@ -427,9 +410,6 @@ def import_document_url(
             pass
         raise HTTPException(status_code=500, detail=f"URL import failed: {e}")
 
-
-# ── List documents ────────────────────────────────────────────────────────────
-
 @router.get("/documents")
 def list_documents(
     db: Session = Depends(get_db),
@@ -453,7 +433,6 @@ def list_documents(
         "hs_mode_available": bool
     }
     """
-    # User documents from SQLite (authoritative source for status/chunk_count)
     user_docs_db = (
         db.query(models.ContextDocument)
         .filter(models.ContextDocument.user_id == current_user.id)
@@ -478,7 +457,6 @@ def list_documents(
         for d in user_docs_db
     ]
 
-    # HS curriculum summary from ChromaDB
     hs_subjects = []
     try:
         hs_subjects = context_store.list_hs_subjects()
@@ -511,9 +489,6 @@ def list_documents(
         "hs_mode_available": context_store.available(),
     }
 
-
-# ── Delete ────────────────────────────────────────────────────────────────────
-
 @router.delete("/documents/{doc_id}")
 def delete_document(
     doc_id: str,
@@ -544,7 +519,6 @@ def delete_document(
     if doc.user_id != current_user.id and not is_admin:
         raise HTTPException(status_code=403, detail="You can only delete your own documents")
 
-    # Delete from ChromaDB
     try:
         context_store.delete_document(
             user_id=str(doc.user_id),
@@ -554,14 +528,10 @@ def delete_document(
     except Exception as e:
         logger.warning(f"ChromaDB delete failed for doc {doc_id}: {e}")
 
-    # Delete from SQLite
     db.delete(doc)
     db.commit()
 
     return {"success": True, "doc_id": doc_id}
-
-
-# ── Search (test RAG retrieval) ───────────────────────────────────────────────
 
 @router.get("/search")
 def search_context_endpoint(
@@ -592,7 +562,6 @@ def search_context_endpoint(
             subject=subject or None,
             grade_level=grade_level or None,
         )
-        # Strip internal distance metric from response
         cleaned = [
             {"text": r["text"], "metadata": r["metadata"], "source": r["source"]}
             for r in results
@@ -601,9 +570,6 @@ def search_context_endpoint(
     except Exception as e:
         logger.error(f"context search endpoint failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# ── HS Subjects ───────────────────────────────────────────────────────────────
 
 @router.get("/hs/subjects")
 def get_hs_subjects(

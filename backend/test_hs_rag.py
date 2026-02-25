@@ -12,7 +12,6 @@ Usage:
 import argparse
 from pathlib import Path
 
-
 def _load_chroma_and_embed():
     import chromadb
     from sentence_transformers import SentenceTransformer
@@ -28,7 +27,6 @@ def _load_chroma_and_embed():
     context_store.initialize(client, model)
     return context_store
 
-
 def _print_subjects(context_store):
     subjects = context_store.list_hs_subjects()
     if not subjects:
@@ -38,7 +36,6 @@ def _print_subjects(context_store):
     print("-" * 52)
     for s in subjects:
         print(f"{s['subject']:<30} {s['grade_level']:<12} {s['doc_count']}")
-
 
 def _print_results(results):
     if not results:
@@ -56,7 +53,6 @@ def _print_results(results):
             f" file={meta.get('filename','')}"
         )
         print(f"    {snippet}")
-
 
 def main():
     parser = argparse.ArgumentParser(description="Test HS curriculum retrieval")
@@ -106,7 +102,6 @@ def main():
     use_hs = not args.private_only
     user_id = args.user_id
     if args.hs_only:
-        # Use a sentinel user with no docs so results come from hs_curriculum
         user_id = "__hs_only__"
 
     results = context_store.search_context(
@@ -119,7 +114,6 @@ def main():
         **kwargs,
     )
     _print_results(results)
-
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -12,7 +12,6 @@ from deps import get_current_user, get_db, get_user_by_email, get_user_by_userna
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["playlists"])
-
 
 class PlaylistCreateRequest(BaseModel):
     model_config = {"extra": "ignore"}
@@ -35,7 +34,6 @@ class PlaylistCreateRequest(BaseModel):
             return None
         return v
 
-
 class PlaylistItemRequest(BaseModel):
     model_config = {"extra": "ignore"}
 
@@ -49,11 +47,9 @@ class PlaylistItemRequest(BaseModel):
     is_required: bool = True
     notes: Optional[str] = None
 
-
 @router.get("/playlists/test")
 async def test_playlist_endpoint():
     return {"message": "Playlist API is working!"}
-
 
 @router.get("/playlists")
 async def get_playlists(
@@ -153,7 +149,6 @@ async def get_playlists(
         logger.error(f"Error getting playlists: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/playlists")
 async def create_playlist(
     request: Request,
@@ -203,7 +198,6 @@ async def create_playlist(
         db.rollback()
         logger.error(f"Error creating playlist: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/playlists/{playlist_id}")
 async def get_playlist_detail(
@@ -288,7 +282,6 @@ async def get_playlist_detail(
         logger.error(f"Error getting playlist: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/playlists/{playlist_id}/items")
 async def add_playlist_item(
     playlist_id: int,
@@ -337,7 +330,6 @@ async def add_playlist_item(
         logger.error(f"Error adding item: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.delete("/playlists/{playlist_id}/items/{item_id}")
 async def delete_playlist_item(
     playlist_id: int,
@@ -376,7 +368,6 @@ async def delete_playlist_item(
         db.rollback()
         logger.error(f"Error deleting item: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/playlists/{playlist_id}/follow")
 async def follow_playlist(
@@ -420,7 +411,6 @@ async def follow_playlist(
         logger.error(f"Error following playlist: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.delete("/playlists/{playlist_id}/follow")
 async def unfollow_playlist(
     playlist_id: int,
@@ -456,7 +446,6 @@ async def unfollow_playlist(
         db.rollback()
         logger.error(f"Error unfollowing playlist: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/playlists/{playlist_id}/fork")
 async def fork_playlist(
@@ -525,7 +514,6 @@ async def fork_playlist(
         db.rollback()
         logger.error(f"Error forking playlist: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/playlists/{playlist_id}/items/{item_id}/view")
 async def view_playlist_item(
@@ -612,7 +600,6 @@ async def view_playlist_item(
         logger.error(f"Error viewing playlist item: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/playlists/{playlist_id}/progress")
 async def update_playlist_progress(
     playlist_id: int,
@@ -640,7 +627,7 @@ async def update_playlist_progress(
             completed_items.remove(item_id)
 
         follower.completed_items = completed_items
-        follower.last_accessed = datetime.utcnow()
+        follower.last_accessed = datetime.now(timezone.utc)
 
         total_items = db.query(func.count(models.PlaylistItem.id)).filter(
             models.PlaylistItem.playlist_id == playlist_id
@@ -651,7 +638,7 @@ async def update_playlist_progress(
 
             if follower.progress_percentage >= 100 and not follower.is_completed:
                 follower.is_completed = True
-                follower.completed_at = datetime.utcnow()
+                follower.completed_at = datetime.now(timezone.utc)
 
                 playlist = db.query(models.LearningPlaylist).filter(
                     models.LearningPlaylist.id == playlist_id

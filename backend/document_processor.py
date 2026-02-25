@@ -31,9 +31,6 @@ CHUNK_OVERLAP = 80
 MIN_CHUNK_LEN = 80
 MAX_HEADING_LEN = 90
 
-
-# ── Text extraction ───────────────────────────────────────────────────────────
-
 def extract_text_from_pdf(file_bytes: bytes) -> str:
     """
     Extract all text from a PDF file.
@@ -43,7 +40,6 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
     """
     text = ""
 
-    # Attempt 1: PyPDF2
     try:
         import PyPDF2
         reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
@@ -55,7 +51,6 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
     except Exception as e:
         logger.warning(f"PyPDF2 extraction failed: {e}")
 
-    # Attempt 2: pdfplumber fallback
     if not text:
         try:
             import pdfplumber
@@ -70,7 +65,6 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
 
     return text
 
-
 def extract_text_from_txt(file_bytes: bytes) -> str:
     """
     Decode plain text from uploaded .txt or .md files.
@@ -81,16 +75,12 @@ def extract_text_from_txt(file_bytes: bytes) -> str:
     except UnicodeDecodeError:
         return file_bytes.decode("latin-1", errors="replace").strip()
 
-
-# ── Chunking ──────────────────────────────────────────────────────────────────
-
 _BULLET_RE = re.compile("^\\s*(?:[-*]|\\u2022|\\d+[\\.\\)])\\s+")
 _HEADING_RE = re.compile(
     r"^(chapter|unit|module|lesson|section|part)\s+([0-9ivxlcdm]+)([:\-\.\s].*)?$",
     re.IGNORECASE,
 )
 _ALLCAPS_RE = re.compile(r"^[A-Z0-9][A-Z0-9\s\-:]{6,}$")
-
 
 def _normalize_text(text: str) -> str:
     """
@@ -105,7 +95,6 @@ def _normalize_text(text: str) -> str:
         return ""
 
     text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\x00", "")
-    # Join hyphenated line breaks: "exam-\nple" -> "example"
     text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
 
     lines = [ln.strip() for ln in text.split("\n")]
@@ -131,10 +120,8 @@ def _normalize_text(text: str) -> str:
 
     _flush_current()
 
-    # Collapse whitespace inside paragraphs
     cleaned = [re.sub(r"\s+", " ", p).strip() for p in paragraphs if p.strip()]
     return "\n\n".join(cleaned)
-
 
 def _is_heading(line: str) -> bool:
     if not line:
@@ -149,7 +136,6 @@ def _is_heading(line: str) -> bool:
     if _ALLCAPS_RE.match(compact) and len(compact.split()) <= 8:
         return True
     return False
-
 
 def extract_chapter_headings(text: str, limit: int = 16) -> list[str]:
     """
@@ -172,7 +158,6 @@ def extract_chapter_headings(text: str, limit: int = 16) -> list[str]:
             break
     return headings
 
-
 _GRADE_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("AP", re.compile(r"\bAP\b|\bAdvanced Placement\b", re.IGNORECASE)),
     ("Honors", re.compile(r"\bHonors?\b", re.IGNORECASE)),
@@ -182,7 +167,6 @@ _GRADE_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("Grade 9", re.compile(r"\b(9th|grade\s*9|grade\s*nine|freshman)\b", re.IGNORECASE)),
 ]
 
-
 def infer_grade_level(text: str) -> str:
     if not text:
         return ""
@@ -191,19 +175,16 @@ def infer_grade_level(text: str) -> str:
             return label
     return ""
 
-
 def _tail_overlap(text: str, overlap: int) -> str:
     if overlap <= 0 or not text:
         return ""
     if len(text) <= overlap:
         return text.strip()
     snippet = text[-overlap:]
-    # Drop partial word at the start of the snippet
     idx = snippet.find(" ")
     if idx != -1 and idx + 1 < len(snippet):
         snippet = snippet[idx + 1 :]
     return snippet.strip()
-
 
 def _sliding_window_chunks(
     text: str,
@@ -226,7 +207,6 @@ def _sliding_window_chunks(
 
     return chunks
 
-
 def _chunk_normalized_text(
     normalized: str,
     chunk_size: int,
@@ -248,7 +228,6 @@ def _chunk_normalized_text(
         if not para:
             continue
 
-        # If a paragraph is too long, split it directly
         if len(para) > chunk_size:
             if len(current) >= min_length:
                 chunks.append(current.strip())
@@ -278,7 +257,6 @@ def _chunk_normalized_text(
 
     return chunks
 
-
 def _split_sections(text: str) -> list[tuple[str, str]]:
     if not text:
         return []
@@ -300,7 +278,6 @@ def _split_sections(text: str) -> list[tuple[str, str]]:
 
     _flush()
     return sections
-
 
 def chunk_text(
     text: str,
@@ -363,9 +340,6 @@ def chunk_text(
         chunks.extend(section_chunks)
 
     return chunks
-
-
-# ── Main pipeline ─────────────────────────────────────────────────────────────
 
 def process_upload(
     file_bytes: bytes,

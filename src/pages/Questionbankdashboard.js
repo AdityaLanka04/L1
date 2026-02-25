@@ -31,7 +31,7 @@ const QuestionBankDashboard = () => {
   const [exportSetId, setExportSetId] = useState(null);
   const [includeAnswers, setIncludeAnswers] = useState(false);
 
-  // Weak Areas State
+  
   const [weakAreas, setWeakAreas] = useState([]);
   const [wrongAnswers, setWrongAnswers] = useState([]);
   const [practiceRecommendations, setPracticeRecommendations] = useState(null);
@@ -45,35 +45,35 @@ const QuestionBankDashboard = () => {
   const [showImportExport, setShowImportExport] = useState(false);
 
   const [selectedDocument, setSelectedDocument] = useState(null);
-  const [selectedPDFs, setSelectedPDFs] = useState([]);  // For multi-PDF selection
+  const [selectedPDFs, setSelectedPDFs] = useState([]);  
   const [selectedSources, setSelectedSources] = useState([]);
   const [customContent, setCustomContent] = useState('');
   const [customTitle, setCustomTitle] = useState('');
   const [questionCount, setQuestionCount] = useState(10);
-  const [difficultyMix, setDifficultyMix] = useState({ easy: 30, medium: 50, hard: 20 }); // Percentages
+  const [difficultyMix, setDifficultyMix] = useState({ easy: 30, medium: 50, hard: 20 }); 
   const [questionTypes, setQuestionTypes] = useState(['multiple_choice', 'true_false', 'short_answer']);
   const autoStartRef = useRef(null);
 
-  // Calculate actual difficulty counts from percentages, ensuring they sum to questionCount
+  
   const getDifficultyCounts = () => {
     const total = difficultyMix.easy + difficultyMix.medium + difficultyMix.hard;
     if (total === 0) return { easy: 0, medium: 0, hard: 0 };
     
-    // Normalize percentages to ensure they sum to 100%
+    
     const normalizedEasy = difficultyMix.easy / total;
     const normalizedMedium = difficultyMix.medium / total;
     const normalizedHard = difficultyMix.hard / total;
     
-    // Calculate counts
+    
     const count = typeof questionCount === 'number' ? questionCount : 10;
     let easyCount = Math.round(normalizedEasy * count);
     let mediumCount = Math.round(normalizedMedium * count);
     let hardCount = Math.round(normalizedHard * count);
     
-    // Adjust for rounding errors to ensure total matches questionCount
+    
     const diff = count - (easyCount + mediumCount + hardCount);
     if (diff !== 0) {
-      // Add/subtract from the largest category
+      
       if (mediumCount >= easyCount && mediumCount >= hardCount) {
         mediumCount += diff;
       } else if (easyCount >= hardCount) {
@@ -88,7 +88,7 @@ const QuestionBankDashboard = () => {
   
   const difficultyCount = getDifficultyCounts();
   
-  // Handle difficulty slider change - adjust others to maintain 100% total
+  
   const handleDifficultyChange = (level, newValue) => {
     const value = parseInt(newValue);
     const others = ['easy', 'medium', 'hard'].filter(l => l !== level);
@@ -96,7 +96,7 @@ const QuestionBankDashboard = () => {
     const remaining = 100 - value;
     
     if (currentOthersTotal === 0) {
-      // If others are 0, split remaining equally
+      
       setDifficultyMix({
         ...difficultyMix,
         [level]: value,
@@ -104,14 +104,14 @@ const QuestionBankDashboard = () => {
         [others[1]]: Math.ceil(remaining / 2)
       });
     } else {
-      // Scale others proportionally
+      
       const scale = remaining / currentOthersTotal;
       const newMix = { [level]: value };
       let allocated = value;
       
       others.forEach((l, idx) => {
         if (idx === others.length - 1) {
-          // Last one gets the remainder to ensure exactly 100
+          
           newMix[l] = 100 - allocated;
         } else {
           newMix[l] = Math.round(difficultyMix[l] * scale);
@@ -123,10 +123,10 @@ const QuestionBankDashboard = () => {
     }
   };
 
-  // Handle question count change with better UX
+  
   const handleQuestionCountChange = (e) => {
     const value = e.target.value;
-    // Allow empty string while typing
+    
     if (value === '') {
       setQuestionCount('');
       return;
@@ -138,7 +138,7 @@ const QuestionBankDashboard = () => {
   };
 
   const handleQuestionCountBlur = () => {
-    // Reset to default if empty or invalid on blur
+    
     if (questionCount === '' || questionCount < 1) {
       setQuestionCount(10);
     }
@@ -151,7 +151,7 @@ const QuestionBankDashboard = () => {
   const [results, setResults] = useState(null);
   const [sessionStartTime, setSessionStartTime] = useState(null);
 
-  // AI Features State
+  
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewQuestions, setPreviewQuestions] = useState([]);
   const [previewStats, setPreviewStats] = useState(null);
@@ -165,14 +165,14 @@ const QuestionBankDashboard = () => {
   const [weaknessAnalysis, setWeaknessAnalysis] = useState(null);
   const [showWeaknessPanel, setShowWeaknessPanel] = useState(false);
   
-  // Batch operations state
+  
   const [selectedSets, setSelectedSets] = useState([]);
   const [showBatchActions, setShowBatchActions] = useState(false);
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [mergeTitle, setMergeTitle] = useState('');
   const [deleteOriginals, setDeleteOriginals] = useState(false);
 
-  // Smart generation state
+  
   const [customPrompt, setCustomPrompt] = useState('');
   const [referenceDocId, setReferenceDocId] = useState(null);
   const [showSmartOptions, setShowSmartOptions] = useState(false);
@@ -189,10 +189,10 @@ const QuestionBankDashboard = () => {
       fetchWeakAreas();
       fetchPracticeRecommendations();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [activeView]);
 
-  // Handle generated questions from Learning Path
+  
   useEffect(() => {
     const generatedQuestions = location.state?.generatedQuestions;
     
@@ -218,10 +218,10 @@ const QuestionBankDashboard = () => {
           if (response.ok) {
             const data = await response.json();
             
-            // Refresh question sets
+            
             await fetchQuestionSets();
             
-            // Navigate to the new set in study mode
+            
             const newSet = {
               id: data.set_id,
               title: generatedQuestions.title,
@@ -235,7 +235,7 @@ const QuestionBankDashboard = () => {
             setShowResults(false);
             setSessionStartTime(Date.now());
             
-            // Clear the state
+            
             navigate('/question-bank', { replace: true, state: {} });
           }
         } catch (error) {
@@ -327,7 +327,7 @@ const QuestionBankDashboard = () => {
     }
   };
 
-  // ==================== WEAK AREAS FUNCTIONS ====================
+  
 
   const fetchWeakAreas = async () => {
     try {
@@ -382,7 +382,7 @@ const QuestionBankDashboard = () => {
   const handleMarkReviewed = async (wrongAnswerId, understood = true) => {
     try {
       await questionBankAgentService.markWrongAnswerReviewed(wrongAnswerId, understood);
-      // Refresh wrong answers
+      
       await fetchWrongAnswers(selectedWeakTopic);
     } catch (error) {
       console.error('Error marking reviewed:', error);
@@ -398,7 +398,7 @@ const QuestionBankDashboard = () => {
     }
   };
 
-  // ==================== END WEAK AREAS FUNCTIONS ====================
+  
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -431,7 +431,7 @@ const QuestionBankDashboard = () => {
   };
 
   const handleGenerateFromPDF = async () => {
-    // Check if we have multiple PDFs selected
+    
     if (selectedPDFs.length > 0) {
       await handleGenerateFromMultiplePDFs();
       return;
@@ -484,7 +484,7 @@ const QuestionBankDashboard = () => {
     try {
       setLoading(true);
       
-      // Check if using smart generation (custom prompt or reference doc)
+      
       const useSmartGeneration = customPrompt.trim() || referenceDocId;
 
       const isSingleQuestionDoc = !useSmartGeneration
@@ -593,12 +593,12 @@ const QuestionBankDashboard = () => {
     } else {
       setSelectedPDFs([...selectedPDFs, doc]);
     }
-    // Clear single selection when using multi-select
+    
     setSelectedDocument(null);
   };
 
   const handleDeleteDocument = async (docId, e) => {
-    e.stopPropagation(); // Prevent card selection
+    e.stopPropagation(); 
     
     if (!window.confirm('Are you sure you want to delete this PDF? This cannot be undone.')) {
       return;
@@ -608,7 +608,7 @@ const QuestionBankDashboard = () => {
       setLoading(true);
       await questionBankAgentService.deleteDocument(userId, docId);
       
-      // Remove from selected PDFs if it was selected
+      
       setSelectedPDFs(selectedPDFs.filter(p => p.id !== docId));
       if (selectedDocument === docId) {
         setSelectedDocument(null);
@@ -838,15 +838,15 @@ const QuestionBankDashboard = () => {
         throw new Error('Failed to generate PDF');
       }
       
-      // Get the blob from response
+      
       const blob = await response.blob();
       
-      // Create download link
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       
-      // Get filename from Content-Disposition header or use default
+      
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = 'Question_Set.pdf';
       if (contentDisposition) {

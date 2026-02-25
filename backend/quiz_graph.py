@@ -8,29 +8,27 @@ from langgraph.graph import StateGraph, END
 
 logger = logging.getLogger(__name__)
 
-
 class QuizGenState(TypedDict, total=False):
     user_id: str
     topic: str
     content: str
-    generation_type: str        # "topic" | "chat_history" | "weak_areas"
+    generation_type: str
     question_count: int
-    difficulty: str             # easy | medium | hard | mixed
-    question_types: list[str]   # multiple_choice, true_false, short_answer
+    difficulty: str
+    question_types: list[str]
     additional_specs: str
     student_weaknesses: list[str]
     student_strengths: list[str]
-    quiz_history: list[dict]    # recent quiz topics + scores
+    quiz_history: list[dict]
     concept_prerequisites: list[str]
     common_mistakes: list[str]
-    rag_context: list[str]       # top-k curriculum chunks from context_store
-    use_hs_context: bool         # enables RAG retrieval (default True)
+    rag_context: list[str]
+    use_hs_context: bool
     built_prompt: str
     questions_json: list[dict]
     _ai_client: Any
-    _hs_ai_client: Any           # dedicated AI client for HS-context-enriched generation
+    _hs_ai_client: Any
     _db_factory: Any
-
 
 async def fetch_context(state: QuizGenState) -> dict:
     """Fetch student context: strengths, weaknesses, and recent quiz history."""
@@ -47,7 +45,6 @@ async def fetch_context(state: QuizGenState) -> dict:
             try:
                 uid = int(user_id)
 
-                # Weaknesses
                 weak_areas = (
                     db.query(UserWeakArea)
                     .filter(UserWeakArea.user_id == uid)
@@ -59,7 +56,6 @@ async def fetch_context(state: QuizGenState) -> dict:
                     if wa.topic and wa.topic not in weaknesses:
                         weaknesses.append(wa.topic)
 
-                # Strengths (topics with mastery >= 70%)
                 mastery = (
                     db.query(TopicMastery)
                     .filter(TopicMastery.user_id == uid, TopicMastery.mastery_level >= 0.7)
@@ -70,7 +66,6 @@ async def fetch_context(state: QuizGenState) -> dict:
                     if tm.topic_name and tm.topic_name not in strengths:
                         strengths.append(tm.topic_name)
 
-                # Recent quiz performance — last 5 attempts with their question sets
                 recent_attempts = (
                     db.query(QuestionAttempt, QuestionSet)
                     .join(QuestionSet, QuestionAttempt.question_set_id == QuestionSet.id)
@@ -97,7 +92,6 @@ async def fetch_context(state: QuizGenState) -> dict:
     concept_prerequisites: list[str] = []
     common_mistakes: list[str] = []
 
-    # Augment with Neo4j knowledge graph
     from tutor import neo4j_store
     if neo4j_store.available():
         try:
@@ -109,7 +103,6 @@ async def fetch_context(state: QuizGenState) -> dict:
                 if c not in strengths:
                     strengths.append(c)
 
-            # Get prerequisites and common mistakes for the topic
             topic = state.get("topic", "")
             topic_concepts = [w for w in topic.split() if len(w) > 3]
             if topic_concepts:
@@ -119,7 +112,6 @@ async def fetch_context(state: QuizGenState) -> dict:
         except Exception as e:
             logger.warning(f"Neo4j context fetch failed in quiz graph: {e}")
 
-    # RAG: fetch HS curriculum / personal doc context
     rag_chunks: list[str] = []
     topic = state.get("topic", "")
     use_hs = state.get("use_hs_context", True)
@@ -163,7 +155,6 @@ async def fetch_context(state: QuizGenState) -> dict:
         "rag_context": rag_chunks,
     }
 
-
 DIFFICULTY_GUIDES = {
     "easy": (
         "EASY level — basic recall and recognition.\n"
@@ -191,7 +182,6 @@ DIFFICULTY_GUIDES = {
     ),
 }
 
-
 def build_prompt(state: QuizGenState) -> dict:
     """Build a context-aware, personalized quiz generation prompt."""
     topic = state.get("topic", "")
@@ -207,13 +197,11 @@ def build_prompt(state: QuizGenState) -> dict:
     prerequisites = state.get("concept_prerequisites", [])
     mistakes = state.get("common_mistakes", [])
 
-    # Normalize difficulty
     if difficulty not in DIFFICULTY_GUIDES:
         difficulty = "mixed"
 
     parts = []
 
-    # Source material
     if generation_type == "chat_history" and content:
         parts.append(
             f"Generate {question_count} quiz questions from this content:\n\n"
@@ -229,11 +217,9 @@ def build_prompt(state: QuizGenState) -> dict:
     else:
         parts.append(f"Generate {question_count} quiz questions about: {topic}\n")
 
-    # Difficulty guide
     diff_guide = DIFFICULTY_GUIDES[difficulty]
     parts.append(f"DIFFICULTY:\n{diff_guide}\n")
 
-    # Question type instructions
     type_instructions = []
     if "multiple_choice" in question_types:
         type_instructions.append("multiple choice with 4 options (exactly one correct)")
@@ -244,7 +230,6 @@ def build_prompt(state: QuizGenState) -> dict:
     if type_instructions:
         parts.append(f"QUESTION TYPES: {', '.join(type_instructions)}\n")
 
-    # Student personalisation
     if weaknesses:
         parts.append(
             f"STUDENT WEAK AREAS: {', '.join(weaknesses[:5])}\n"
@@ -256,7 +241,6 @@ def build_prompt(state: QuizGenState) -> dict:
             "Avoid trivially simple questions on these — challenge the student appropriately.\n"
         )
 
-    # Quiz history context — help the AI adapt
     if quiz_history:
         history_lines = []
         for h in quiz_history[:3]:
@@ -267,25 +251,21 @@ def build_prompt(state: QuizGenState) -> dict:
             "Use this to calibrate question difficulty and focus.\n"
         )
 
-    # Concept prerequisites — include a foundational question or two
     if prerequisites:
         parts.append(
             f"PREREQUISITE CONCEPTS (from knowledge graph): {', '.join(prerequisites[:5])}\n"
             "Include 1-2 questions testing these foundational concepts before the main topic.\n"
         )
 
-    # Common mistakes — design questions to expose and correct them
     if mistakes:
         parts.append(
             f"COMMON MISTAKES STUDENTS MAKE: {', '.join(mistakes[:5])}\n"
             "Include questions specifically designed to surface and correct these pitfalls.\n"
         )
 
-    # Additional user specs
     if additional_specs:
         parts.append(f"ADDITIONAL INSTRUCTIONS FROM STUDENT:\n{additional_specs}\n")
 
-    # Curriculum RAG context
     rag_context = state.get("rag_context", [])
     if rag_context:
         logger.info(f"[QUIZ PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) into prompt ***")
@@ -299,7 +279,6 @@ def build_prompt(state: QuizGenState) -> dict:
     else:
         logger.info("[QUIZ PROMPT] No RAG context — generating from model knowledge only")
 
-    # Output format — strict JSON schema
     parts.append(
         "FORMAT: Return ONLY a valid JSON array. Each object must have:\n"
         '{"question_text": "Clear, specific question?", '
@@ -319,7 +298,6 @@ def build_prompt(state: QuizGenState) -> dict:
     )
 
     return {"built_prompt": "\n".join(parts)}
-
 
 def generate_questions_node(state: QuizGenState) -> dict:
     """Call AI and parse the quiz questions JSON."""
@@ -343,13 +321,11 @@ def generate_questions_node(state: QuizGenState) -> dict:
         response = ai_client.generate(prompt, max_tokens=4000, temperature=0.7)
         cleaned = response.strip()
 
-        # Strip markdown code fences if present
         if cleaned.startswith("```"):
             cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
         data = json.loads(cleaned)
 
-        # Handle both array and {"questions": [...]} wrapper formats
         if isinstance(data, dict):
             data = data.get("questions", [])
 
@@ -368,11 +344,9 @@ def generate_questions_node(state: QuizGenState) -> dict:
                 options = [str(o)[:300] for o in options[:4]]
             explanation = (q.get("explanation") or "")[:500]
 
-            # Validate multiple_choice has usable options
             if q_type == "multiple_choice" and len(options) < 2:
                 continue
 
-            # Determine difficulty label
             q_difficulty = q.get("difficulty", "")
             if q_difficulty not in ("easy", "medium", "hard"):
                 q_difficulty = difficulty if difficulty != "mixed" else "medium"
@@ -392,7 +366,6 @@ def generate_questions_node(state: QuizGenState) -> dict:
     except Exception as e:
         logger.error(f"Quiz generation failed: {e}")
         return {"questions_json": []}
-
 
 class QuizGraph:
 
@@ -446,15 +419,12 @@ class QuizGraph:
             logger.error(f"Quiz graph failed: {e}")
             return []
 
-
 _quiz_graph: Optional[QuizGraph] = None
-
 
 def create_quiz_graph(ai_client: Any, db_session_factory: Any = None, hs_ai_client: Any = None) -> QuizGraph:
     global _quiz_graph
     _quiz_graph = QuizGraph(ai_client, db_session_factory, hs_ai_client=hs_ai_client)
     return _quiz_graph
-
 
 def get_quiz_graph() -> Optional[QuizGraph]:
     return _quiz_graph

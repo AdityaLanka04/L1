@@ -22,22 +22,18 @@ from deps import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
 
-
 class ChatSessionCreate(BaseModel):
     user_id: str
     title: str = "New Chat"
-
 
 class ChatMessageSave(BaseModel):
     chat_id: int
     user_message: str
     ai_response: str
 
-
 class GenerateChatTitleRequest(BaseModel):
     chat_id: int
     user_id: str
-
 
 class ChatFolderCreate(BaseModel):
     user_id: str
@@ -45,11 +41,9 @@ class ChatFolderCreate(BaseModel):
     color: Optional[str] = "#D7B38C"
     parent_id: Optional[int] = None
 
-
 class ChatUpdateFolder(BaseModel):
     chat_id: int
     folder_id: Optional[int] = None
-
 
 @router.post("/ask/")
 async def ask_ai(
@@ -103,7 +97,6 @@ async def ask_ai(
             if not chat_session:
                 raise HTTPException(status_code=404, detail="Chat session not found")
 
-        # Fetch chat history for context in the full /ask/ endpoint too
         chat_history_for_tutor = []
         if chat_id_int:
             recent_msgs_for_ctx = (
@@ -182,7 +175,6 @@ async def ask_ai(
             "query_type": "error",
         }
 
-
 @router.post("/ask_simple/")
 async def ask_simple(
     user_id: str = Form(...),
@@ -203,7 +195,6 @@ async def ask_simple(
 
         chat_id_int = int(chat_id) if chat_id else None
 
-        # Fetch recent chat history for context
         chat_history = []
         if chat_id_int:
             recent_msgs = (
@@ -278,7 +269,6 @@ async def ask_simple(
             "query_type": "error",
         }
 
-
 @router.post("/test_ai_simple")
 async def test_ai_simple(question: str = Form(...)):
     try:
@@ -286,7 +276,6 @@ async def test_ai_simple(question: str = Form(...)):
         return {"answer": response, "status": "success"}
     except Exception as e:
         return {"answer": f"Error: {str(e)}", "status": "error"}
-
 
 @router.post("/create_chat_session")
 def create_chat_session(session_data: ChatSessionCreate, db: Session = Depends(get_db)):
@@ -308,7 +297,6 @@ def create_chat_session(session_data: ChatSessionCreate, db: Session = Depends(g
         "status": "success",
     }
 
-
 @router.put("/rename_chat_session")
 def rename_chat_session(data: dict, db: Session = Depends(get_db)):
     chat_id = data.get("chat_id")
@@ -325,7 +313,6 @@ def rename_chat_session(data: dict, db: Session = Depends(get_db)):
     db.commit()
 
     return {"status": "success", "chat_id": chat_id, "new_title": new_title}
-
 
 @router.get("/get_chat_sessions")
 def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -353,7 +340,6 @@ def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
         ]
     }
 
-
 @router.get("/get_chat_messages")
 def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
     messages = (
@@ -380,7 +366,6 @@ def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
         })
     return result
 
-
 @router.get("/get_chat_history/{session_id}")
 async def get_chat_history(session_id: str, db: Session = Depends(get_db)):
     try:
@@ -406,7 +391,6 @@ async def get_chat_history(session_id: str, db: Session = Depends(get_db)):
             for msg in messages
         ],
     }
-
 
 @router.post("/save_chat_message")
 def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_db)):
@@ -465,7 +449,6 @@ def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_d
     db.commit()
     return {"status": "success", "message": "Message saved successfully"}
 
-
 @router.delete("/delete_chat_session/{session_id}")
 def delete_chat_session(
     session_id: int,
@@ -486,7 +469,6 @@ def delete_chat_session(
     db.commit()
 
     return {"status": "success"}
-
 
 @router.post("/submit_response_feedback")
 async def submit_response_feedback(
@@ -510,7 +492,6 @@ async def submit_response_feedback(
     db.commit()
 
     return {"status": "success", "message": "Feedback recorded"}
-
 
 @router.post("/submit_advanced_feedback")
 async def submit_advanced_feedback(
@@ -537,7 +518,6 @@ async def submit_advanced_feedback(
     db.commit()
 
     return {"status": "success", "message": "Feedback recorded"}
-
 
 @router.post("/generate_chat_title")
 async def generate_chat_title(request: GenerateChatTitleRequest, db: Session = Depends(get_db)):
@@ -582,7 +562,6 @@ async def generate_chat_title(request: GenerateChatTitleRequest, db: Session = D
         logger.error(f"Error generating title: {e}")
         return {"title": "Chat Session", "status": "error"}
 
-
 @router.post("/generate_chat_summary")
 async def generate_chat_summary(
     chat_id: int = Form(...),
@@ -613,14 +592,12 @@ async def generate_chat_summary(
     except Exception as e:
         return {"summary": f"Could not generate summary: {e}", "status": "error"}
 
-
 @router.get("/check_proactive_message")
 async def check_proactive_message(
     user_id: str = Query(...),
     db: Session = Depends(get_db),
 ):
     return {"has_message": False, "message": None}
-
 
 @router.post("/generate_welcome_message")
 async def generate_welcome_message(
@@ -633,7 +610,6 @@ async def generate_welcome_message(
         "message": f"Hey {name}! What would you like to learn today?",
         "status": "success",
     }
-
 
 @router.get("/conversation_starters")
 async def get_conversation_starters(
@@ -648,7 +624,6 @@ async def get_conversation_starters(
             "Summarize my recent notes",
         ]
     }
-
 
 @router.post("/create_chat_folder")
 def create_chat_folder(folder_data: ChatFolderCreate, db: Session = Depends(get_db)):
@@ -673,7 +648,6 @@ def create_chat_folder(folder_data: ChatFolderCreate, db: Session = Depends(get_
         "status": "success",
     }
 
-
 @router.get("/get_chat_folders")
 def get_chat_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -694,7 +668,6 @@ def get_chat_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
             for f in folders
         ]
     }
-
 
 @router.delete("/delete_chat_folder/{folder_id}")
 def delete_chat_folder(
@@ -717,7 +690,6 @@ def delete_chat_folder(
 
     return {"status": "success"}
 
-
 @router.put("/move_chat_to_folder")
 def move_chat_to_folder(data: ChatUpdateFolder, db: Session = Depends(get_db)):
     chat = db.query(models.ChatSession).filter(models.ChatSession.id == data.chat_id).first()
@@ -728,7 +700,6 @@ def move_chat_to_folder(data: ChatUpdateFolder, db: Session = Depends(get_db)):
     db.commit()
 
     return {"status": "success"}
-
 
 @router.post("/convert_chat_to_note_content/")
 async def convert_chat_to_note_content(
@@ -760,7 +731,6 @@ async def convert_chat_to_note_content(
         return {"content": notes_content.strip(), "status": "success"}
     except Exception as e:
         return {"content": conversation, "status": "fallback"}
-
 
 @router.post("/ai_group_notes")
 async def ai_group_notes(

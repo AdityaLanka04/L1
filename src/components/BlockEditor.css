@@ -1,7 +1,5 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
-/* Removed for NotesRedesign rounded controls */
 
-/* Block Editor Styles */
+
 .block-editor {
   width: 100%;
   min-height: 100%;
@@ -27,7 +25,6 @@
   background: transparent !important;
 }
 
-/* Light mode block wrapper */
 .block-editor:not(.dark-mode) .block-wrapper {
   background: transparent !important;
 }
@@ -80,7 +77,6 @@
   opacity: 0.6;
 }
 
-/* Canvas block */
 .block-canvas-wrapper {
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 12px;
@@ -187,7 +183,6 @@
   background: #f8fafc;
 }
 
-/* Drop Indicator Lines with Magnetic Effect */
 .drop-indicator {
   position: absolute;
   left: 0;
@@ -257,7 +252,6 @@
   bottom: -2px;
 }
 
-/* Magnetic Snap Animation */
 .block-wrapper.magnetic-snap {
   animation: magneticSnap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -277,7 +271,6 @@
   }
 }
 
-/* Snap Zone Visual Feedback */
 .block-wrapper.in-snap-zone {
   background: rgba(0, 0, 0, 0.05) !important;
   transform: scale(1.01);
@@ -345,7 +338,6 @@
   visibility: visible !important;
 }
 
-/* Use native browser tooltips for block controls to avoid clipping */
 .block-controls [title]::after,
 .block-controls [title]:hover::after {
   content: none !important;
@@ -397,7 +389,6 @@
   user-select: none;
 }
 
-/* Dark mode block controls */
 .block-editor.dark-mode .block-controls {
   background: transparent;
   border-color: rgba(255, 255, 255, 0.1);
@@ -452,14 +443,12 @@
   caret-color: #ffffff !important;
 }
 
-/* Light mode selection - dark highlight */
 .block-content::selection,
 .block-content *::selection {
   background: rgba(0, 0, 0, 0.2) !important;
   color: inherit !important;
 }
 
-/* Dark mode selection - white highlight with black text */
 .block-editor.dark-mode .block-content::selection,
 .block-editor.dark-mode .block-content *::selection,
 .block-wrapper.dark-mode .block-content::selection,
@@ -508,7 +497,6 @@ div.block-menu-dropdown {
   -webkit-backdrop-filter: none !important;
 }
 
-/* Light mode scrollbar - black */
 .block-menu-dropdown::-webkit-scrollbar {
   width: 8px;
 }
@@ -685,7 +673,6 @@ div.block-menu-dropdown button {
   flex: 1;
 }
 
-/* Callout Variants */
 .block-info {
   background: color-mix(in srgb, #3b82f6 10%, transparent);
   border-left-color: #3b82f6;
@@ -722,7 +709,6 @@ div.block-menu-dropdown button {
   color: #8b5cf6;
 }
 
-/* Special Block Types */
 .block-image-wrapper,
 .block-link-wrapper,
 .block-table-wrapper,
@@ -826,7 +812,6 @@ div.block-menu-dropdown button {
   flex: 1;
 }
 
-/* Slash Menu */
 .slash-menu {
   position: absolute !important;
   background: #ffffff !important;
@@ -903,7 +888,6 @@ div.block-menu-dropdown button {
   color: rgba(255, 255, 255, 0.5) !important;
 }
 
-/* Page Links */
 .page-link {
   color: #000000;
   text-decoration: none;
@@ -919,7 +903,6 @@ div.block-menu-dropdown button {
   text-decoration: underline;
 }
 
-/* Tags */
 .tag {
   display: inline-flex;
   align-items: center;
@@ -940,7 +923,7 @@ div.block-menu-dropdown button {
   background: rgba(0, 0, 0, 0.12);
   transform: translateY(-1px);
 }
-/* File Attachment Block */
+
 .block-file-inner {
   width: 100%;
 }
@@ -1043,8 +1026,6 @@ div.block-menu-dropdown button {
   color: var(--error, #f44);
 }
 
-
-/* ==================== STYLE MENU ==================== */
 .style-menu {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -1173,7 +1154,6 @@ div.block-menu-dropdown button {
   color: #000000;
 }
 
-/* ==================== NESTED BLOCKS (INDENTATION) ==================== */
 .block-wrapper[data-indent="1"] {
   margin-left: 32px;
 }
@@ -1190,7 +1170,6 @@ div.block-menu-dropdown button {
   margin-left: 128px;
 }
 
-/* ==================== YOUTUBE EMBED ==================== */
 .block-youtube-wrapper {
   border: 2px solid var(--border);
   border-radius: 12px;
@@ -1217,7 +1196,7 @@ div.block-menu-dropdown button {
 
 .youtube-player {
   position: relative;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  padding-bottom: 56.25%; 
   height: 0;
   overflow: hidden;
 }
@@ -1267,7 +1246,6 @@ div.block-menu-dropdown button {
   color: var(--danger, #f44);
 }
 
-/* ==================== GENERIC EMBED ==================== */
 .block-generic-embed-wrapper {
   border: 2px solid var(--border);
   border-radius: 12px;
@@ -1319,7 +1297,6 @@ div.block-menu-dropdown button {
   opacity: 0.6;
 }
 
-/* ==================== MERMAID DIAGRAMS ==================== */
 .block-mermaid-wrapper {
   border: 2px solid var(--border);
   border-radius: 12px;
@@ -1446,15 +1423,12 @@ div.block-menu-dropdown button {
   font-size: 14px;
 }
 
-/* ==================== COLUMN BLOCK (NOTION-STYLE) ==================== */
-/* Make the wrapper inline-block for column blocks */
 .block-wrapper:has(.block-column-container) {
   display: inline-block !important;
   vertical-align: top;
   margin: 2px 4px;
 }
 
-/* Set width based on data attribute */
 .block-wrapper:has(.block-column-container[data-column-width="25%"]) {
   width: calc(25% - 8px);
 }
@@ -1481,7 +1455,6 @@ div.block-menu-dropdown button {
   width: calc(100% - 8px);
 }
 
-/* Column container - Clean design */
 .block-column-container {
   width: 100%;
   padding: 20px;
@@ -1494,15 +1467,11 @@ div.block-menu-dropdown button {
   overflow: visible;
 }
 
-/* No accent line - removed */
-
-/* Column content area */
 .column-content-area {
   min-height: 80px;
   position: relative;
 }
 
-/* Add first block button */
 .column-add-first-block {
   width: 100%;
   padding: 16px;
@@ -1524,7 +1493,6 @@ div.block-menu-dropdown button {
   border-color: #000000;
 }
 
-/* Locked column badge */
 .column-locked-badge {
   display: flex;
   align-items: center;
@@ -1539,7 +1507,6 @@ div.block-menu-dropdown button {
   margin-bottom: 12px;
 }
 
-/* Locked column styling */
 .block-column-container[data-locked="true"] {
   opacity: 0.8;
   pointer-events: none;
@@ -1549,7 +1516,6 @@ div.block-menu-dropdown button {
   pointer-events: all;
 }
 
-/* Background color support */
 .block-column-single[data-bg-color] {
   border-radius: 12px;
   padding: 28px;
@@ -1583,9 +1549,6 @@ div.block-menu-dropdown button {
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.02));
 }
 
-/* No badge - removed completely */
-
-/* Single settings button - top right corner */
 .column-settings-btn {
   position: absolute;
   top: 8px;
@@ -1613,7 +1576,6 @@ div.block-menu-dropdown button {
   border-color: #000000;
 }
 
-/* Row block */
 .block-row-container {
   width: 100%;
   padding: 12px 0;
@@ -1635,9 +1597,6 @@ div.block-menu-dropdown button {
   opacity: 0.6;
 }
 
-/* Old width and color controls removed - using dialog now */
-
-/* Column content styling */
 .block-column-single .block-content {
   min-height: 80px;
   outline: none;
@@ -1651,7 +1610,6 @@ div.block-menu-dropdown button {
   font-style: italic;
 }
 
-/* Column resize handle (optional) */
 .block-column-single::after {
   content: '';
   position: absolute;
@@ -1669,7 +1627,6 @@ div.block-menu-dropdown button {
   background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.2), transparent);
 }
 
-/* ==================== LIGHT MODE SUPPORT (DEFAULT) ==================== */
 .block-editor:not(.dark-mode) {
   background: #ffffff !important;
   color: #000000 !important;
@@ -1730,7 +1687,6 @@ div.block-menu-dropdown button {
   color: #333333 !important;
 }
 
-/* Light mode scrollbar - black */
 .block-editor:not(.dark-mode) .block-menu-dropdown::-webkit-scrollbar {
   width: 8px;
 }
@@ -1761,7 +1717,6 @@ div.block-menu-dropdown button {
   color: #666666 !important;
 }
 
-/* ==================== DARK MODE SUPPORT ==================== */
 .block-editor.dark-mode {
   background: #1a1a1a !important;
   color: #ffffff !important;
@@ -1860,7 +1815,6 @@ div.block-menu-dropdown button {
   background-color: #1a1a1a !important;
 }
 
-/* Dark mode scrollbar - white */
 .block-editor.dark-mode .block-menu-dropdown::-webkit-scrollbar {
   width: 8px;
 }
@@ -1908,7 +1862,6 @@ div.block-menu-dropdown button {
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
 }
 
-/* ==================== BOOKMARK RICH PREVIEW ==================== */
 .block-bookmark-wrapper {
   display: flex;
   gap: 16px;
@@ -1972,7 +1925,6 @@ div.block-menu-dropdown button {
   white-space: nowrap;
 }
 
-/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
 @media (max-width: 768px) {
   .style-menu {
     min-width: 280px;
@@ -1983,7 +1935,7 @@ div.block-menu-dropdown button {
     grid-template-columns: repeat(4, 1fr);
   }
   
-  /* Column blocks stack on mobile */
+  
   .block-wrapper:has(.block-column-single) {
     display: block !important;
     width: 100% !important;
@@ -2017,9 +1969,6 @@ div.block-menu-dropdown button {
   }
 }
 
-
-/* ==================== DARK MODE TEXT COLOR FIXES ==================== */
-/* YouTube dark mode */
 .block-editor.dark-mode .block-youtube-wrapper {
   background: rgba(255, 255, 255, 0.05);
   border-color: #444;
@@ -2043,7 +1992,6 @@ div.block-menu-dropdown button {
   color: rgba(255, 255, 255, 0.5) !important;
 }
 
-/* Generic embed input text */
 .block-editor.dark-mode .embed-input {
   color: #ffffff !important;
 }
@@ -2056,7 +2004,6 @@ div.block-menu-dropdown button {
   color: rgba(255, 255, 255, 0.5) !important;
 }
 
-/* Mermaid dark mode */
 .block-editor.dark-mode .block-mermaid-wrapper {
   background: rgba(255, 255, 255, 0.05);
   border-color: #444;
@@ -2109,7 +2056,6 @@ div.block-menu-dropdown button {
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* Column block dark mode */
 .block-editor.dark-mode .block-column-single {
   background: transparent;
 }
@@ -2137,7 +2083,6 @@ div.block-menu-dropdown button {
   color: rgba(255, 255, 255, 0.4) !important;
 }
 
-/* All contenteditable inputs in dark mode */
 .block-editor.dark-mode [contenteditable="true"] {
   color: #ffffff !important;
 }
@@ -2146,16 +2091,11 @@ div.block-menu-dropdown button {
   color: rgba(255, 255, 255, 0.5) !important;
 }
 
-
-/* ==================== COLUMN UNIQUE FEATURES ==================== */
-
-/* Hover glow effect for colored columns */
 .block-column-single[data-bg-color]:hover {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
 }
 
-/* Icon support for columns */
 .column-icon {
   position: absolute;
   top: 8px;
@@ -2171,7 +2111,6 @@ div.block-menu-dropdown button {
   transform: scale(1.1) rotate(5deg);
 }
 
-/* Quick action buttons */
 .column-quick-actions {
   position: absolute;
   bottom: 8px;
@@ -2209,7 +2148,6 @@ div.block-menu-dropdown button {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Column templates indicator */
 .column-template-badge {
   position: absolute;
   bottom: 8px;
@@ -2232,7 +2170,6 @@ div.block-menu-dropdown button {
   opacity: 1;
 }
 
-/* Animated background patterns */
 .block-column-single[data-pattern="dots"]::before {
   content: '';
   position: absolute;
@@ -2270,7 +2207,6 @@ div.block-menu-dropdown button {
   opacity: 1;
 }
 
-/* Sparkle effect on focus */
 @keyframes sparkle {
   0%, 100% {
     opacity: 0;
@@ -2286,7 +2222,6 @@ div.block-menu-dropdown button {
   animation: sparkle 1.5s ease-in-out infinite;
 }
 
-/* Smooth content fade-in */
 .block-column-single .block-content {
   animation: contentFadeIn 0.4s ease;
 }
@@ -2302,7 +2237,6 @@ div.block-menu-dropdown button {
   }
 }
 
-/* Column divider line between columns */
 .block-wrapper:has(.block-column-single) + .block-wrapper:has(.block-column-single)::before {
   content: '';
   position: absolute;
@@ -2325,7 +2259,6 @@ div.block-menu-dropdown button {
   opacity: 1;
 }
 
-/* Gradient overlay on hover */
 .block-column-single .gradient-overlay {
   position: absolute;
   inset: 0;
@@ -2342,7 +2275,6 @@ div.block-menu-dropdown button {
   opacity: 1;
 }
 
-/* Column type indicators */
 .block-column-single[data-column-type="main"] {
   padding-left: 32px;
 }
@@ -2362,12 +2294,6 @@ div.block-menu-dropdown button {
   opacity: 1;
 }
 
-
-/* ==================== NEW UNIQUE COLUMN FEATURES ==================== */
-
-/* Old toolbar CSS removed - using single button now */
-
-/* Settings dialog - clean and proper */
 .column-settings-dialog {
   position: absolute;
   top: 40px;
@@ -2557,9 +2483,6 @@ div.block-menu-dropdown button {
   color: #000000;
 }
 
-/* Old feature controls removed - using dialog now */
-
-/* Collapsed state */
 .block-column-single.collapsed {
   min-height: 60px;
   padding: 12px 24px;
@@ -2589,7 +2512,6 @@ div.block-menu-dropdown button {
   transform: scale(1.05);
 }
 
-/* Sticky column */
 .block-column-single.sticky {
   position: sticky;
   top: 80px;
@@ -2606,11 +2528,8 @@ div.block-menu-dropdown button {
   opacity: 0.6;
 }
 
-/* NO ANIMATIONS - Removed all animation styles */
-
-/* Responsive - Professional mobile behavior */
 @media (max-width: 768px) {
-  /* Stack columns vertically on mobile */
+  
   .block-wrapper:has(.block-column-single) {
     display: block !important;
     width: 100% !important;
@@ -2622,7 +2541,7 @@ div.block-menu-dropdown button {
     padding: 16px !important;
   }
   
-  /* Always use compact menu on mobile */
+  
   .column-controls-panel {
     display: none !important;
   }
@@ -2638,22 +2557,18 @@ div.block-menu-dropdown button {
     max-width: calc(100vw - 32px);
   }
   
-  /* Hide dividers on mobile */
+  
   .block-wrapper:has(.block-column-single) + .block-wrapper:has(.block-column-single)::before {
     display: none;
   }
   
-  /* Show badge on mobile */
+  
   .block-column-single::before {
     display: block !important;
     opacity: 0.6 !important;
   }
 }
 
-
-/* ==================== COLUMN NESTED BLOCKS SUPPORT ==================== */
-
-/* Blocks inside columns */
 .block-in-column {
   margin: 6px 0 !important;
   display: block !important;
@@ -2668,31 +2583,24 @@ div.block-menu-dropdown button {
   margin-bottom: 0 !important;
 }
 
-/* Block controls inside columns - positioned correctly */
 .block-in-column .block-controls {
   left: -50px !important;
 }
 
-/* Ensure blocks inside columns are editable */
 .block-in-column .block-content {
   min-height: 1.5em;
   outline: none;
   cursor: text;
 }
 
-/* Slash menu inside columns */
 .column-content-area .slash-menu {
   z-index: 1001 !important;
 }
 
-/* Block menu inside columns */
 .block-in-column .block-menu-dropdown {
   z-index: 1001 !important;
 }
 
-/* Add block button removed - use / command instead */
-
-/* Column divider between adjacent columns */
 .block-wrapper:has(.block-column-single) + .block-wrapper:has(.block-column-single) {
   position: relative;
 }
@@ -2719,7 +2627,6 @@ div.block-menu-dropdown button {
   opacity: 1;
 }
 
-/* Professional spacing and alignment */
 .block-wrapper:has(.block-column-single) {
   transition: all 0.2s ease;
 }
@@ -2728,18 +2635,15 @@ div.block-menu-dropdown button {
   z-index: 1;
 }
 
-/* Clean up any overflow issues */
 .block-column-single * {
   box-sizing: border-box;
 }
 
-/* Ensure proper text rendering */
 .block-column-single .block-content {
   line-height: 1.6;
   color: var(--editor-text, #000000);
 }
 
-/* Fix any layout bugs */
 .block-wrapper:has(.block-column-single) .block-controls {
   left: -60px !important;
 }

@@ -9,7 +9,6 @@ class RateLimiter:
     """Track API calls to avoid hitting rate limits"""
     
     def __init__(self):
-        # Track timestamps of API calls
         self.groq_calls = deque(maxlen=100)
         self.gemini_calls = deque(maxlen=100)
     
@@ -22,15 +21,12 @@ class RateLimiter:
         now = time.time()
         minute_ago = now - 60
         
-        # Remove calls older than 1 minute
         while self.groq_calls and self.groq_calls[0] < minute_ago:
             self.groq_calls.popleft()
         
-        # Check if under limit
-        if len(self.groq_calls) < 28:  # Leave buffer of 2
+        if len(self.groq_calls) < 28:
             return True, 0
         
-        # Calculate wait time
         oldest_call = self.groq_calls[0]
         wait_seconds = 60 - (now - oldest_call)
         return False, max(0, wait_seconds)
@@ -44,15 +40,12 @@ class RateLimiter:
         now = time.time()
         minute_ago = now - 60
         
-        # Remove calls older than 1 minute
         while self.gemini_calls and self.gemini_calls[0] < minute_ago:
             self.gemini_calls.popleft()
         
-        # Check if under limit
-        if len(self.gemini_calls) < 13:  # Leave buffer of 2
+        if len(self.gemini_calls) < 13:
             return True, 0
         
-        # Calculate wait time
         oldest_call = self.gemini_calls[0]
         wait_seconds = 60 - (now - oldest_call)
         return False, max(0, wait_seconds)
@@ -86,5 +79,4 @@ class RateLimiter:
             }
         }
 
-# Global rate limiter instance
 rate_limiter = RateLimiter()
