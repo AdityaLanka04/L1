@@ -351,7 +351,6 @@ const SearchHub = () => {
         }
       }
     } catch (error) {
-      console.log('Error loading command catalog:', error);
     }
   };
 
@@ -595,14 +594,9 @@ const SearchHub = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('SearchHub NLP response:', data);
-        console.log('navigate_to value:', data.navigate_to);
-        console.log('search_results:', data.search_results);
-        console.log('ai_response:', data.ai_response);
         
         
         if (data.metadata) {
-          console.log('NLP Understanding:', {
             action: data.metadata.action,
             confidence: data.metadata.confidence,
             topic: data.metadata.topic,
@@ -1224,7 +1218,6 @@ const SearchHub = () => {
           setShowAutocomplete(false);
         }
       } catch (error) {
-        console.log('Autocomplete error:', error);
         setShowAutocomplete(false);
       }
     }, 200);
@@ -1388,7 +1381,6 @@ const SearchHub = () => {
         }
       }
     } catch (error) {
-      console.log('Personalized recommendations error:', error);
     }
     
     

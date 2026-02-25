@@ -253,14 +253,11 @@ const QuestionBankDashboard = () => {
   const fetchQuestionSets = async () => {
     try {
       setLoading(true);
-      console.log('📡 Fetching question sets for user:', userId);
       const response = await fetch(`${API_URL}/qb/get_question_sets?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      console.log('📡 Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log('📡 Question sets data:', data);
         setQuestionSets(data.question_sets || []);
       } else {
         console.error('📡 Failed to fetch question sets:', response.statusText);
@@ -444,7 +441,6 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('🚀 Calling Question Bank Agent - Generate from PDF:', { userId, selectedDocument, questionCount, difficultyCount });
       
       const response = await questionBankAgentService.generateFromPDF({
         userId,
@@ -456,7 +452,6 @@ const QuestionBankDashboard = () => {
         title: null
       });
 
-      console.log('✅ Agent response:', response);
       
       if (response.status === 'success') {
         alert(`Successfully generated ${response.question_count || questionCount} questions!`);
@@ -511,7 +506,6 @@ const QuestionBankDashboard = () => {
       }
       
       if (useSmartGeneration) {
-        console.log('🧠 Smart generation:', { userId, selectedPDFs, customPrompt, referenceDocId, difficultyCount });
         
         const response = await questionBankAgentService.smartGenerate({
           userId,
@@ -527,7 +521,6 @@ const QuestionBankDashboard = () => {
           contentDocumentIds: selectedPDFs.filter(p => p.id !== referenceDocId).map(p => p.id)
         });
 
-        console.log('✅ Smart Response:', response);
         
         if (response.status === 'success') {
           alert(`Successfully generated ${response.question_count} questions using smart generation!`);
@@ -538,7 +531,6 @@ const QuestionBankDashboard = () => {
           alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
         }
       } else {
-        console.log('🚀 Standard generation:', { userId, selectedPDFs, questionCount, difficultyCount });
         
         const response = await questionBankAgentService.generateFromMultiplePDFs({
           userId,
@@ -551,7 +543,6 @@ const QuestionBankDashboard = () => {
           questionTypes
         });
 
-        console.log('✅ Response:', response);
         
         if (response.status === 'success') {
           alert(`Successfully generated ${response.question_count} questions from ${selectedPDFs.length} document(s)!`);
@@ -640,7 +631,6 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('🚀 Calling Question Bank Agent - Generate from sources:', { userId, selectedSources, questionCount, difficultyCount });
       
       const response = await questionBankAgentService.generateFromSources({
         userId,
@@ -650,7 +640,6 @@ const QuestionBankDashboard = () => {
         sessionId: `qb_sources_${userId}_${Date.now()}`
       });
 
-      console.log('✅ Agent response:', response);
       
       if (response.success) {
         alert(`Successfully generated questions from ${selectedSources.length} sources!`);
@@ -677,7 +666,6 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('🚀 Calling Question Bank Agent - Generate from custom content:', { userId, contentLength: customContent.length, difficultyCount });
       
       const response = await questionBankAgentService.generateFromCustom({
         userId,
@@ -688,10 +676,6 @@ const QuestionBankDashboard = () => {
         sessionId: `qb_custom_${userId}_${Date.now()}`
       });
 
-      console.log('✅ Agent response:', response);
-      console.log('✅ Response success:', response.success);
-      console.log('✅ Questions count:', response.questions?.length);
-      console.log('✅ Full response:', JSON.stringify(response, null, 2));
       
       if (response.success) {
         alert(`Successfully generated ${response.questions?.length || response.question_count || questionCount} questions!`);
@@ -714,24 +698,14 @@ const QuestionBankDashboard = () => {
   const startStudySession = async (setId) => {
     try {
       setLoading(true);
-      console.log('📚 Starting study session for set:', setId);
       const response = await fetch(`${API_URL}/qb/get_question_set/${setId}?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      console.log('📚 Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log('📚 Question set data:', data);
-        console.log('📚 Questions array:', data.questions);
-        console.log('📚 Questions count:', data.questions?.length);
         if (data.questions && data.questions.length > 0) {
-          console.log('📚 First question:', JSON.stringify(data.questions[0], null, 2));
-          console.log('📚 First question options:', data.questions[0].options);
-          console.log('📚 First question options type:', typeof data.questions[0].options);
-          console.log('📚 First question options isArray:', Array.isArray(data.questions[0].options));
         } else {
-          console.log('📚 No questions in response!');
         }
         setSelectedQuestionSet(data);
         setCurrentQuestion(0);
@@ -1988,7 +1962,6 @@ const QuestionBankDashboard = () => {
   );
 
   const renderQuestionSets = () => {
-    console.log('🎨 Rendering question sets view, questionSets:', questionSets, 'loading:', loading);
     return (
     <div className="qbd-view">
       {/* Batch Selection Header */}
@@ -2555,8 +2528,6 @@ const QuestionBankDashboard = () => {
 
     // Guard against missing or empty questions
     const questions = selectedQuestionSet.questions || [];
-    console.log('📚 renderStudyModal - questions:', questions);
-    console.log('📚 renderStudyModal - questions length:', questions.length);
 
     if (questions.length === 0) {
       return (

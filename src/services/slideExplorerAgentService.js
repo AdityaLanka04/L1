@@ -19,7 +19,6 @@ class SlideExplorerAgentService {
     };
 
     try {
-      console.log('Slide Explorer Request:', url);
       const response = await fetch(url, { 
         ...defaultOptions, 
         ...options,

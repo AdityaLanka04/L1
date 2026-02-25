@@ -1139,17 +1139,13 @@ User question: ${messageText}`);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Roadmap data received:', data);
         setCurrentRoadmap(data.roadmap);
         
         
         const allNodes = data.nodes_flat || [];
-        console.log('📦 Total nodes from backend:', allNodes.length);
-        console.log('🌳 All nodes:', allNodes);
         
         
         const savedExpandedNodes = savedState ? new Set(savedState.expandedNodes) : new Set();
-        console.log('💾 Saved expanded nodes:', Array.from(savedExpandedNodes));
         
         
         if (savedState && savedState.exploredNodesCache) {
@@ -1174,7 +1170,6 @@ User question: ${messageText}`);
         
         
         const rootNodes = allNodes.filter(node => !node.parent_id);
-        console.log('🌱 Root nodes found:', rootNodes.length, rootNodes);
         
         
         
@@ -1194,14 +1189,12 @@ User question: ${messageText}`);
           }
         }
         
-        console.log('👁️ Visible node IDs:', Array.from(visibleNodeIds));
         
         
         setExpandedNodes(savedExpandedNodes);
         
         
         const visibleNodes = allNodes.filter(node => visibleNodeIds.has(node.id));
-        console.log('✅ Visible nodes:', visibleNodes.length, visibleNodes);
                 
         
         const nodesByDepth = new Map();
@@ -1275,8 +1268,6 @@ User question: ${messageText}`);
                 setNodes(flowNodes);
         setEdges(flowEdges);
         
-        console.log('🎨 Flow nodes created:', flowNodes.length, flowNodes);
-        console.log('🔗 Flow edges created:', flowEdges.length, flowEdges);
       }
     } catch (error) {
       console.error('❌ Error loading roadmap:', error);

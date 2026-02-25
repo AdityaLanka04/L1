@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+if not os.getenv("SECRET_KEY"):
+    raise RuntimeError("SECRET_KEY environment variable is not set")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

@@ -374,7 +374,6 @@ class CollaborationService {
       this.wsConnection = new WebSocket(wsUrl);
 
       this.wsConnection.onopen = () => {
-        console.log('WebSocket connected');
         this.reconnectAttempts = 0;
         if (onConnect) onConnect();
       };
@@ -391,7 +390,6 @@ class CollaborationService {
       };
 
       this.wsConnection.onclose = () => {
-        console.log('WebSocket disconnected');
         if (onDisconnect) onDisconnect();
         this.attemptReconnection(sessionId, userId, onMessage, onConnect, onDisconnect);
       };
@@ -414,7 +412,6 @@ class CollaborationService {
       const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
       
       setTimeout(() => {
-        console.log(`Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
         this.connectWebSocket(sessionId, userId, onMessage, onConnect, onDisconnect);
       }, delay);
     } else {

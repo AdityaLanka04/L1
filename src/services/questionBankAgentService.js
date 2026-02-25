@@ -19,7 +19,6 @@ class QuestionBankAgentService {
     };
 
     try {
-      console.log('📡 Question Bank Request:', url);
       const response = await fetch(url, { 
         ...defaultOptions, 
         ...options,

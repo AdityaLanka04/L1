@@ -341,7 +341,6 @@ const AIMediaNotes = () => {
       }
 
       const note = await response.json();
-      console.log('Loaded note:', note);
       
       
       const safeParseJSON = (jsonString, fallback = null) => {
@@ -360,7 +359,6 @@ const AIMediaNotes = () => {
       const quiz_questions = safeParseJSON(note.quiz_questions, []);
       const key_moments = safeParseJSON(note.key_moments, []);
       
-      console.log('Parsed data:', { analysis, flashcards, quiz_questions, key_moments });
       
       setResults({
         filename: note.title || 'Untitled Note',

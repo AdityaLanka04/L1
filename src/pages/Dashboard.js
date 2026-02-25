@@ -284,7 +284,6 @@ const Dashboard = () => {
       
       if (createResponse.ok) {
         const createData = await createResponse.json();
-        console.log('✅ Welcome notification created in DB:', createData);
         
         
         const insightsResponse = await fetch(`${API_URL}/study_insights/welcome_notification?user_id=${userName}`, {
@@ -343,7 +342,6 @@ const Dashboard = () => {
       });
       
       if (response.ok) {
-        console.log('✅ Welcome notification created');
         
         setTimeout(() => {
           refreshNotifications();

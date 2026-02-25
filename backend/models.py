@@ -7,6 +7,9 @@ from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel
 
+import logging
+
+logger = logging.getLogger(__name__)
 import os
 
 from question_bank_models import create_question_bank_models
@@ -1954,7 +1957,7 @@ def get_db():
 
 if __name__ == "__main__":
     create_tables()
-    print(" Database tables created successfully!")
+    logger.info(" Database tables created successfully!")
 
 class PracticeSession(Base):
     """Practice session for weakness improvement"""

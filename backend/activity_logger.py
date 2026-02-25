@@ -1,6 +1,9 @@
 """
 Activity Logger - Middleware to log user activities and token usage
 """
+import logging
+
+logger = logging.getLogger(__name__)
 import sqlite3
 import json
 from datetime import datetime
@@ -59,7 +62,7 @@ def log_activity(user_id, tool_name, action, tokens_used=0, metadata=None):
         conn.close()
         return True
     except Exception as e:
-        print(f"Error logging activity: {e}")
+        logger.error(f"Error logging activity: {e}")
         return False
 
 def log_ai_tokens(
@@ -113,5 +116,5 @@ def get_user_token_usage(user_id, days=30):
         
         return result[0] if result[0] else 0
     except Exception as e:
-        print(f"Error getting token usage: {e}")
+        logger.error(f"Error getting token usage: {e}")
         return 0

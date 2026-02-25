@@ -2221,7 +2221,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         { formatStyle: importMode === 'summary' ? 'summary' : 'structured' }
       );
       
-      console.log('Full result:', JSON.stringify(result, null, 2));
       
       if (result.success) {
         // Refresh notes list
@@ -2233,21 +2232,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
         // Get note data from result
         const noteData = result.result || result;
         
-        console.log('Note data:', JSON.stringify(noteData, null, 2));
         
         // Check for note_id in various possible locations
         const noteId = noteData.note_id || result.note_id || noteData.id || result.id;
         const noteTitle = noteData.note_title || result.note_title || noteData.title || result.title || 'New Note';
         
-        console.log('Extracted - Note ID:', noteId, 'Note Title:', noteTitle);
         
         if (noteId) {
           setNewNoteId(noteId);
           setNewNoteTitle(noteTitle);
           setShowNavigateDialog(true);
-          console.log('Dialog set to show with note ID:', noteId);
         } else {
-          console.log('No note ID found, showing popup instead');
           showPopup("Conversion Successful", `"${noteTitle}" created successfully via AI Agent.`);
         }
       } else {
@@ -2261,7 +2256,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const handleNavigateToNewNote = () => {
-    console.log('Navigating to note ID:', newNoteId);
     if (newNoteId) {
       // Close dialog first
       setShowNavigateDialog(false);

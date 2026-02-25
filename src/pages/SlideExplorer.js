@@ -124,7 +124,6 @@ const SlideExplorer = () => {
       setActiveTab('viewer');
 
       
-      console.log('Calling Slide Explorer Agent with:', { userId, slideContent: slide.extracted_text || slide.title });
       try {
         const agentResponse = await slideExplorerAgentService.analyzeSlide({
           userId,
@@ -133,9 +132,7 @@ const SlideExplorer = () => {
           sessionId: `slide_analysis_${userId}_${Date.now()}`
         });
         
-        console.log('Agent response:', agentResponse);
         if (agentResponse.success) {
-          console.log('Slide Explorer Agent analysis:', agentResponse.analysis);
         }
       } catch (agentError) {
         console.error('Agent analysis error:', agentError);

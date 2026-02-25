@@ -1,12 +1,14 @@
-"""
-Activity Logging Middleware - Automatically track all API requests
-"""
-from fastapi import Request
 import time
+import logging
 import os
+import re
+from fastapi import Request
 from jose import jwt, JWTError
 from activity_logger import log_activity, resolve_user_id
 from activity_context import set_activity_context, clear_activity_context
+from deps import SECRET_KEY, ALGORITHM
+
+logger = logging.getLogger(__name__)
 
 ENDPOINT_TOOL_MAP = {
     '/api/chat': 'ai_chat',
@@ -38,11 +40,8 @@ ENDPOINT_TOOL_MAP = {
     '/api/update_profile': 'profile',
 }
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-change-this-in-production")
-ALGORITHM = "HS256"
 
 def get_tool_name(path: str) -> str:
-    """Extract tool name from endpoint path"""
     for endpoint, tool in ENDPOINT_TOOL_MAP.items():
         if endpoint in path:
             return tool
@@ -57,11 +56,11 @@ def get_tool_name(path: str) -> str:
         return f"{segment}_ai"
     return segment
 
+
 def get_action(method: str, path: str) -> str:
-    """Determine action from method and path"""
     if method == 'POST':
         return 'create'
-    if method == 'PUT' or method == 'PATCH':
+    if method in ('PUT', 'PATCH'):
         return 'update'
     if method == 'DELETE':
         return 'delete'
@@ -69,25 +68,24 @@ def get_action(method: str, path: str) -> str:
         return 'view'
     return 'action'
 
+
 def is_ai_tool(tool_name: str) -> bool:
     if not tool_name:
         return False
     return tool_name.startswith('ai_') or tool_name.endswith('_ai') or 'ai' in tool_name
 
+
 async def log_request_activity(request: Request, call_next):
-    """Middleware to log all API requests"""
     start_time = time.time()
-    
+
     user_id = request.headers.get('X-User-Id')
-    
+
     if not user_id or user_id == 'null':
         query_params = dict(request.query_params)
         user_id = query_params.get('user_id') or query_params.get('username')
-    
+
     if not user_id or user_id == 'null':
-        path = request.url.path
         if 'user_id=' in str(request.url):
-            import re
             match = re.search(r'user_id=([^&]+)', str(request.url))
             if match:
                 user_id = match.group(1)
@@ -101,7 +99,7 @@ async def log_request_activity(request: Request, call_next):
                 user_id = payload.get("sub")
             except JWTError:
                 user_id = None
-    
+
     context_token = None
     resolved_user_id = None
     if user_id and user_id != 'null' and user_id.strip() and request.url.path.startswith('/api/') and not request.url.path.startswith('/api/admin/'):
@@ -122,9 +120,9 @@ async def log_request_activity(request: Request, call_next):
     finally:
         if context_token is not None:
             clear_activity_context(context_token)
-    
+
     duration = time.time() - start_time
-    
+
     if user_id and user_id != 'null' and user_id.strip() and request.url.path.startswith('/api/') and not request.url.path.startswith('/api/admin/'):
         tool_name = get_tool_name(request.url.path)
         action = get_action(request.method, request.url.path)
@@ -138,7 +136,6 @@ async def log_request_activity(request: Request, call_next):
             'event_type': 'request'
         }
 
-        tokens_used = 0
         if is_ai_tool(tool_name):
             metadata['token_source'] = 'none'
 
@@ -147,10 +144,10 @@ async def log_request_activity(request: Request, call_next):
                 user_id=resolved_user_id or user_id,
                 tool_name=tool_name,
                 action=action,
-                tokens_used=tokens_used,
+                tokens_used=0,
                 metadata=metadata
             )
         except Exception as e:
-            print(f"Failed to log activity: {e}")
+            logger.error(f"Failed to log activity: {e}")
 
     return response

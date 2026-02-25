@@ -495,7 +495,6 @@ const Flashcards = () => {
           
           
           if (feedback.current_difficulty && mode === 'study') {
-            console.log(`Adaptive difficulty adjusted to: ${feedback.current_difficulty}`);
           }
         }
       }
