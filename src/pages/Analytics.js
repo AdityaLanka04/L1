@@ -56,7 +56,8 @@ const Analytics = () => {
         loadHistoricalData()
       ]);
     } catch (error) {
-    } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -73,7 +74,8 @@ const Analytics = () => {
         setWeeklyStats(data.weekly_stats || {});
       }
     } catch (error) {
-    }
+    // silenced
+  }
   };
 
   const loadGamificationStats = async () => {
@@ -86,7 +88,8 @@ const Analytics = () => {
         setGamificationStats(data);
       }
     } catch (error) {
-    }
+    // silenced
+  }
   };
 
   const loadHistoricalData = async () => {
@@ -104,7 +107,8 @@ const Analytics = () => {
         });
       }
     } catch (error) {
-    }
+    // silenced
+  }
   };
 
   const toggleMetric = (metric) => {

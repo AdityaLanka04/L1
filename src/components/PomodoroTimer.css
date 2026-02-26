@@ -1,8 +1,7 @@
-
 .pomodoro-timer *,
 .pomodoro-timer *::before,
 .pomodoro-timer *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .pomodoro-timer {

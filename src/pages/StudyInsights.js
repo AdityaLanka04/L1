@@ -30,7 +30,9 @@ const StudyInsights = () => {
           navigate('/dashboard', { replace: true });
           return;
         }
-      } catch (e) {}
+      } catch (e) {
+    // silenced
+  }
     }
     
     loadComprehensiveInsights();
@@ -66,7 +68,9 @@ const StudyInsights = () => {
         const parsed = JSON.parse(profile);
         if (parsed.firstName) return parsed.firstName;
         if (parsed.first_name) return parsed.first_name;
-      } catch (e) {}
+      } catch (e) {
+    // silenced
+  }
     }
     if (userName && userName.includes('@')) {
       return userName.split('@')[0];

@@ -1,6 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
-
 .search-hub-page {
   height: 100vh;
   width: 100%;
@@ -15,9 +12,6 @@
   flex-direction: column;
   position: relative;
   scroll-behavior: smooth;
-}
-
-.search-hub-page {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
@@ -69,22 +63,6 @@
   z-index: 0;
 }
 
-.search-hub-page * {
-  box-sizing: border-box;
-}
-
-.search-hub-page input,
-.search-hub-page select,
-.search-hub-page button,
-.search-hub-page div,
-.search-hub-page datalist {
-  border-radius: 0;
-}
-
-.search-hub-page *::before,
-.search-hub-page *::after {
-  border-radius: 0;
-}
 
 .search-hub-page .search-hub-header {
   position: absolute;
@@ -204,7 +182,7 @@
 .search-hub-page .brain-circle {
   position: absolute;
   border: 2px solid var(--accent);
-  border-radius: 50% !important;
+  border-radius: 50%;
   animation: brainPulse 8s ease-in-out infinite;
 }
 
@@ -377,7 +355,7 @@
   border: 3px solid var(--accent);
   background: var(--bg-primary);
   overflow: visible;
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 .search-hub-page .search-box-cutout.dropdown-open {
@@ -398,7 +376,7 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  border-radius: 5px 0 0 5px !important;
+  border-radius: 5px 0 0 5px;
 }
 
 .search-hub-page .hero-search-input::placeholder {
@@ -423,7 +401,7 @@
   transition: all 0.3s ease;
   color: var(--accent);
   flex-shrink: 0;
-  border-radius: 0 5px 5px 0 !important;
+  border-radius: 0 5px 5px 0;
   margin: 0;
   padding: 0;
 }
@@ -628,7 +606,7 @@
 .search-hub-page .keyboard-hint kbd {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid var(--text-tertiary);
-  border-radius: 4px !important;
+  border-radius: 4px;
   padding: 0.25rem 0.5rem;
   font-family: 'Courier New', monospace;
   font-size: 0.85rem;
@@ -649,7 +627,7 @@
   overflow-x: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   z-index: 10000;
-  border-radius: 0 0 8px 8px !important;
+  border-radius: 0 0 8px 8px;
 }
 
 .search-hub-page .autocomplete-dropdown::-webkit-scrollbar {
@@ -662,7 +640,7 @@
 
 .search-hub-page .autocomplete-dropdown::-webkit-scrollbar-thumb {
   background: var(--accent);
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 .search-hub-page .autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
@@ -716,7 +694,7 @@
   right: 0;
   background: var(--bg-secondary);
   border: 3px solid var(--accent);
-  border-radius: 12px !important;
+  border-radius: 12px;
   max-height: 300px;
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -975,7 +953,7 @@
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px !important;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1014,7 +992,7 @@
   background: var(--accent);
   animation: pulseGrow 1.5s ease-in-out infinite;
   box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 50%, transparent);
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 .search-hub-page .pulse-square.pulse-1 {
@@ -1105,7 +1083,7 @@
   background: transparent;
   color: var(--accent);
   border: 2px solid var(--accent);
-  border-radius: 8px !important;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 11px;
   font-weight: 800;
@@ -1155,7 +1133,7 @@
   background: transparent;
   color: var(--accent);
   border: 2px solid var(--accent);
-  border-radius: 8px !important;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 11px;
   font-weight: 800;
@@ -1227,7 +1205,7 @@
 .search-hub-page .filters-panel {
   background: var(--bg-secondary);
   border: 3px solid var(--accent);
-  border-radius: 12px !important;
+  border-radius: 12px;
   padding: 24px;
   margin-bottom: 32px;
   display: grid;
@@ -1256,7 +1234,7 @@
   background: var(--bg-primary);
   color: var(--text-primary);
   border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px !important;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -1275,7 +1253,7 @@
   background: var(--accent);
   color: var(--bg-primary);
   border: 3px solid var(--accent);
-  border-radius: 8px !important;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
@@ -1298,7 +1276,7 @@
 .search-hub-page .ai-description-section {
   background: var(--bg-secondary);
   border: 2px solid var(--accent);
-  border-radius: 12px !important;
+  border-radius: 12px;
   padding: 48px;
   margin-bottom: 48px;
   animation: fadeInUp 0.5s ease-out;
@@ -1365,7 +1343,7 @@
   background: var(--accent);
   color: var(--bg-primary);
   border: 3px solid var(--accent);
-  border-radius: 8px !important;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 900;
@@ -1426,7 +1404,7 @@
 .search-hub-page .login-modal-content {
   background: var(--bg-secondary);
   border: 3px solid var(--accent);
-  border-radius: 12px !important;
+  border-radius: 12px;
   padding: 48px;
   max-width: 500px;
   width: 90%;
@@ -1475,7 +1453,7 @@
   background: var(--accent);
   color: var(--bg-primary);
   border: none;
-  border-radius: 8px !important;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
@@ -1494,7 +1472,7 @@
   background: transparent;
   color: var(--accent);
   border: 2px solid var(--accent);
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 .search-hub-page .login-modal-btn.secondary:hover {
@@ -1602,7 +1580,7 @@
     var(--bg-secondary) 100%);
   border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-left: 5px solid var(--accent);
-  border-radius: 12px !important;
+  border-radius: 12px;
   padding: 28px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1865,7 +1843,7 @@
   padding: 6px 12px;
   background: transparent;
   border: 1px solid var(--accent);
-  border-radius: 8px !important;
+  border-radius: 8px;
   color: var(--accent);
   cursor: pointer;
   font-size: 11px;
@@ -1924,7 +1902,7 @@
   padding: 10px 16px;
   background: transparent;
   border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px !important;
+  border-radius: 8px;
   color: var(--text-primary);
   cursor: pointer;
   font-size: 13px;
@@ -1963,7 +1941,7 @@
     color-mix(in srgb, var(--accent) 10%, var(--bg-secondary)) 0%,
     var(--bg-secondary) 100%);
   border: 5px solid var(--accent);
-  border-radius: 16px !important;
+  border-radius: 16px;
   color: var(--accent);
   animation: iconFloat 3s ease-in-out infinite;
   box-shadow: 
@@ -2058,7 +2036,7 @@
 .search-hub-page .create-option-card {
   background: var(--bg-secondary);
   border: 2px solid var(--accent);
-  border-radius: 12px !important;
+  border-radius: 12px;
   padding: 40px 28px;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);

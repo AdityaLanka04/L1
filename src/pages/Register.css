@@ -1,10 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 .rg-page,
 .rg-page * {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
 .rg-page {
@@ -589,7 +586,7 @@
   padding: 13px 20px;
   background-color: var(--accent);
   border: 2px solid var(--accent);
-  border-radius: 8px !important;
+  border-radius: 8px;
   color: var(--bg-primary);
   font-size: 11px;
   font-weight: 600;
@@ -612,13 +609,13 @@
 .rg-button:hover {
   background-color: var(--accent);
   border: 2px solid var(--accent);
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 .rg-button:active {
   background-color: var(--accent);
   border: 2px solid var(--accent);
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 .rg-button:disabled {

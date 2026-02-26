@@ -29,7 +29,8 @@ const SharedContent = () => {
         setSharedItems(data.shared_items);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -57,7 +58,8 @@ const SharedContent = () => {
         setSharedItems(prev => prev.filter(item => item.id !== shareId));
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const getFilteredAndSortedItems = () => {

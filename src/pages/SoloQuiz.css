@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 .sq-page {
   --sq-bg-primary: var(--bg);
   --sq-bg-secondary: var(--panel);
@@ -16,30 +14,25 @@
   --sq-warning: #f59e0b;
   --sq-danger: #ef4444;
   --sq-gradient-accent: linear-gradient(135deg, var(--sq-accent), var(--sq-accent-dark));
-}
 
-.sq-page {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background: var(--sq-bg-primary) !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--sq-bg-primary);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--sq-text-primary);
-  overflow: hidden !important;
-  z-index: 9999 !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  overflow: hidden;
+  z-index: 9999;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
 }
 
-.sq-page * {
-  box-sizing: border-box;
-}
 
 .sq-page::before {
   display: none;
@@ -65,15 +58,15 @@
 }
 
 [data-theme-mode="dark"] .sq-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .sq-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid var(--border);
 }
 
 .sq-header-left {
@@ -698,7 +691,7 @@
 [data-theme-mode="dark"] .sq-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
-    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -706,7 +699,7 @@
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #ffffff) 0%, 
     color-mix(in srgb, var(--accent) 25%, #ffffff) 50%, 
-    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%) !important;
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%);
   box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 

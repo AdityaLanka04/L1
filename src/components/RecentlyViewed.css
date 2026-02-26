@@ -1,8 +1,7 @@
-
 .recently-viewed *,
 .recently-viewed *::before,
 .recently-viewed *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .recently-viewed {

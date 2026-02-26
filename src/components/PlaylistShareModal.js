@@ -104,7 +104,8 @@ const PlaylistShareModal = ({ playlist, isOpen, onClose }) => {
         url: shareUrl
       });
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   return (

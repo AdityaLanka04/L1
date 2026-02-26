@@ -1,6 +1,3 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .playlists-container {
   --lp-bg-primary: var(--bg-primary);
   --lp-bg-secondary: var(--bg-secondary);
@@ -78,9 +75,6 @@
   flex-direction: column;
 }
 
-.playlists-container * {
-  box-sizing: border-box;
-}
 
 .playlists-container .hub-header {
   position: sticky;
@@ -101,15 +95,15 @@
 }
 
 [data-theme-mode="dark"] .playlists-container .hub-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .playlists-container .hub-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .playlists-container .hub-header-left {
@@ -229,11 +223,11 @@
 }
 
 [data-theme-mode="light"] .playlists-container .hub-nav-btn.create-playlist-btn {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 [data-theme-mode="dark"] .playlists-container .hub-nav-btn.create-playlist-btn {
-  color: var(--bg-primary) !important;
+  color: var(--bg-primary);
 }
 
 .playlists-body {
@@ -270,7 +264,7 @@
 [data-theme-mode="dark"] .playlists-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--lp-accent) 15%, #000000) 0%, 
-    color-mix(in srgb, var(--lp-accent) 8%, #000000) 100%) !important;
+    color-mix(in srgb, var(--lp-accent) 8%, #000000) 100%);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -295,11 +289,11 @@
 }
 
 [data-theme-mode="light"] .playlists-container .hub-nav-btn.create-playlist-btn {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 [data-theme-mode="dark"] .playlists-container .hub-nav-btn.create-playlist-btn {
-  color: var(--bg-primary) !important;
+  color: var(--bg-primary);
 }
 
 .playlists-container .hub-nav-btn-ghost {
@@ -334,7 +328,7 @@
 [data-theme-mode="dark"] .playlists-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--lp-accent) 15%, #000000) 0%, 
-    color-mix(in srgb, var(--lp-accent) 8%, #000000) 100%) !important;
+    color-mix(in srgb, var(--lp-accent) 8%, #000000) 100%);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -342,16 +336,16 @@
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--lp-accent) 15%, #ffffff) 0%, 
     color-mix(in srgb, var(--lp-accent) 25%, #ffffff) 50%, 
-    color-mix(in srgb, var(--lp-accent) 18%, #ffffff) 100%) !important;
+    color-mix(in srgb, var(--lp-accent) 18%, #ffffff) 100%);
   box-shadow: 4px 0 20px color-mix(in srgb, var(--lp-accent) 20%, transparent);
 }
 
 [data-theme-mode="dark"] .playlists-sidebar {
-  color: color-mix(in srgb, var(--lp-accent) 60%, #ffffff) !important;
+  color: color-mix(in srgb, var(--lp-accent) 60%, #ffffff);
 }
 
 [data-theme-mode="light"] .playlists-sidebar {
-  color: color-mix(in srgb, var(--lp-accent) 80%, var(--lp-text-primary)) !important;
+  color: color-mix(in srgb, var(--lp-accent) 80%, var(--lp-text-primary));
 }
 
 .playlists-sidebar::-webkit-scrollbar {
@@ -514,7 +508,7 @@
     color-mix(in srgb, var(--lp-accent) 12%, var(--lp-bg-tertiary)) 0%, 
     color-mix(in srgb, var(--lp-accent) 8%, var(--lp-bg-tertiary)) 100%) !important;
   border: 2px solid color-mix(in srgb, var(--lp-accent) 30%, transparent) !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   color: var(--lp-accent) !important;
   font-size: 11px !important;
   font-weight: 700 !important;
@@ -555,7 +549,7 @@
   right: 0 !important;
   background: var(--lp-bg-secondary) !important;
   border: 2px solid color-mix(in srgb, var(--lp-accent) 30%, transparent) !important;
-  border-radius: 12px !important;
+  border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
   z-index: 10000 !important;
   max-height: 300px !important;

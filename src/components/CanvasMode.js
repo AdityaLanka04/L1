@@ -446,7 +446,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           parsedElements = parsed.canvasElements;
         }
       } catch (e) {
-              }
+    // silenced
+  }
     }
     setElements(parsedElements);
     elementsRef.current = parsedElements;
@@ -1316,7 +1317,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           setLastSaved(new Date());
         }
       } catch (error) {
-              } finally {
+    // silenced
+  } finally {
         setAutoSaving(false);
       }
     }

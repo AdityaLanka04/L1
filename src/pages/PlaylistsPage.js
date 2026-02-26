@@ -81,7 +81,8 @@ const PlaylistsPage = () => {
         setPlaylists(data.playlists || []);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -102,7 +103,8 @@ const PlaylistsPage = () => {
         fetchPlaylists();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handlePlaylistClick = (playlistId) => {
@@ -128,7 +130,8 @@ const PlaylistsPage = () => {
         }));
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleAiConvert = async (playlist, action) => {

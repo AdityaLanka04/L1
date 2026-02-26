@@ -1,12 +1,9 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .my-notes-page-full .nt-modal-overlay,
 .my-notes-page-full .nt-modal,
 .my-notes-page-full .nt-modal *,
 .my-notes-page-full .nt-modal *::before,
 .my-notes-page-full .nt-modal *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -52,7 +49,7 @@
 
 .my-notes-page-full .nt-modal-subtitle {
   font-size: 13px !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
   margin: 0 !important;
   padding: 16px 24px !important;
   background: var(--bg-secondary) !important;
@@ -114,13 +111,13 @@
 
 .my-notes-page-full .nt-chat-title {
   font-size: 14px !important;
-  color: #EAECEF !important;
+  color: var(--text-primary) !important;
   font-weight: 600 !important;
 }
 
 .my-notes-page-full .nt-chat-date {
   font-size: 12px !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
 }
 
 .my-notes-page-full .nt-modal-actions {
@@ -143,7 +140,7 @@
 .my-notes-page-full .nt-modal-btn.cancel {
   background: var(--bg-secondary) !important;
   border: 2px solid var(--border) !important;
-  color: #EAECEF !important;
+  color: var(--text-primary) !important;
 }
 
 .my-notes-page-full .nt-modal-btn.cancel:hover {
@@ -184,7 +181,7 @@
   border: none !important;
   border-bottom: 1px solid var(--border) !important;
   background: transparent !important;
-  color: #EAECEF !important;
+  color: var(--text-primary) !important;
   font-size: 14px !important;
   font-weight: 500 !important;
   cursor: pointer !important;
@@ -198,7 +195,7 @@
 }
 
 .my-notes-page-full .nt-folder-select-item:hover {
-  background: rgba(215, 179, 140, 0.1) !important;
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
   color: #D7B38C !important;
 }
 

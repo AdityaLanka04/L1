@@ -1,8 +1,7 @@
-
 .proactive-notif *,
 .proactive-notif *::before,
 .proactive-notif *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .proactive-notif {

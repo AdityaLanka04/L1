@@ -53,7 +53,8 @@ const useWebSocket = (token, onMessage) => {
             onMessage(data);
           }
         } catch (error) {
-                  }
+    // silenced
+  }
       };
 
       ws.current.onerror = (error) => {
@@ -81,7 +82,8 @@ const useWebSocket = (token, onMessage) => {
                   }
       };
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   useEffect(() => {

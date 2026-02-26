@@ -1,8 +1,7 @@
-
 .shortcuts-overlay *,
 .shortcuts-overlay *::before,
 .shortcuts-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .shortcuts-overlay {

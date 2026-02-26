@@ -37,7 +37,8 @@ const Challenges = () => {
         setChallenges(data.challenges);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -73,7 +74,8 @@ const Challenges = () => {
         fetchChallenges();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleJoinChallenge = async (challengeId) => {
@@ -91,7 +93,8 @@ const Challenges = () => {
         fetchChallenges();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const resetForm = () => {

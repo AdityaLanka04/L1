@@ -1,12 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 .ds-page,
 .ds-page *,
 .ds-page *::before,
 .ds-page *::after {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
 .ds-page {
@@ -465,6 +462,12 @@
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
+.ds-notif-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .ds-notif-panel-header h3 {
   font-size: 14px;
   font-weight: 700;
@@ -670,7 +673,7 @@
 }
 
 [data-theme-mode="light"] .ds-notif-panel {
-  background: linear-gradient(145deg, #ffffff, #fafafa);
+  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
@@ -728,7 +731,7 @@
 
 .ds-card {
   background: var(--bg-secondary);
-  border-radius: 0.8rem !important;
+  border-radius: 0.8rem;
   border: 1px solid var(--border);
   position: relative;
   overflow: hidden;

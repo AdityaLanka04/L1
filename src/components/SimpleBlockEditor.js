@@ -134,7 +134,8 @@ const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
     try {
       await navigator.clipboard.writeText(block.content || '');
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleCopySvg = async () => {
@@ -142,7 +143,8 @@ const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
     try {
       await navigator.clipboard.writeText(renderedSvg);
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleDownloadSvg = () => {
@@ -892,8 +894,8 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           newSelection.removeAllRanges();
           newSelection.addRange(newRange);
         } catch (err) {
-          
-        }
+    // silenced
+  }
       });
     };
     

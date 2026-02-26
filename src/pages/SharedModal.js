@@ -32,7 +32,8 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
         setFriends(data.friends);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const generateShareLink = () => {

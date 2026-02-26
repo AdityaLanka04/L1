@@ -1,4 +1,3 @@
-
 .global-nav-overlay {
   position: fixed;
   top: 0;
@@ -32,13 +31,6 @@
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
   pointer-events: auto;
-}
-
-.global-nav-sidebar,
-.global-nav-sidebar *,
-.global-nav-sidebar *::before,
-.global-nav-sidebar *::after {
-  box-sizing: border-box;
 }
 
 .global-nav-sidebar.open {

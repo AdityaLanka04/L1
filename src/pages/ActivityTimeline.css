@@ -1,5 +1,3 @@
-
-
 :root {
   
   --accent-primary: var(--accent);
@@ -86,9 +84,6 @@
   overflow-x: hidden;
 }
 
-.at-activity-timeline-page * {
-  box-sizing: border-box;
-}
 
 .at-profile-header {
   position: sticky;
@@ -108,15 +103,15 @@
 }
 
 [data-theme-mode="dark"] .at-profile-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .at-profile-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .at-profile-header-left {
@@ -599,6 +594,11 @@
   flex-shrink: 0;
   box-shadow: 0 0 4px currentColor;
 }
+
+.at-filter-bullet--note { background-color: #86efac; }
+.at-filter-bullet--flashcard { background-color: #fcd34d; }
+.at-filter-bullet--quiz { background-color: #f9a8d4; }
+.at-filter-bullet--chat { background-color: #93c5fd; }
 
 .at-calendar-view-toggle {
   display: flex;

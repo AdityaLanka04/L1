@@ -1,6 +1,3 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 .fd-container {
   --fd-bg-primary: var(--bg);
   --fd-bg-secondary: var(--panel);
@@ -185,15 +182,15 @@
 }
 
 [data-theme-mode="dark"] .gm-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .gm-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 [data-theme-mode="light"] .gm-nav-btn-ghost {
@@ -239,7 +236,7 @@
 [data-theme-mode="dark"] .fd-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
-    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -247,16 +244,16 @@
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #ffffff) 0%, 
     color-mix(in srgb, var(--accent) 25%, #ffffff) 50%, 
-    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%) !important;
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%);
   box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="dark"] .fd-sidebar {
-  color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
+  color: color-mix(in srgb, var(--accent) 60%, #ffffff);
 }
 
 [data-theme-mode="light"] .fd-sidebar {
-  color: color-mix(in srgb, var(--accent) 80%, var(--text-primary)) !important;
+  color: color-mix(in srgb, var(--accent) 80%, var(--text-primary));
 }
 
 .fd-sidebar-nav {
@@ -1175,7 +1172,7 @@
 [data-theme-mode="light"] .fd-container {
   background: 
     radial-gradient(circle at 2px 2px, rgba(0, 0, 0, 0.06) 1.5px, transparent 0),
-    linear-gradient(135deg, var(--fd-bg-tertiary) 0%, color-mix(in srgb, var(--fd-bg-primary) 55%, var(--accent)) 50%, var(--fd-bg-primary) 100%) !important;
+    linear-gradient(135deg, var(--fd-bg-tertiary) 0%, color-mix(in srgb, var(--fd-bg-primary) 55%, var(--accent)) 50%, var(--fd-bg-primary) 100%);
   background-size: 30px 30px, 100% 100%;
   background-position: 5px 5px, 0 0;
 }

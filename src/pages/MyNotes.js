@@ -106,7 +106,8 @@ const MyNotes = () => {
         setNotes(data.filter(n => !n.is_deleted));
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -122,7 +123,8 @@ const MyNotes = () => {
         setFolders(data.folders || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadChatSessions = async () => {
@@ -136,7 +138,8 @@ const MyNotes = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadTrash = async () => {
@@ -150,7 +153,8 @@ const MyNotes = () => {
         setTrashedNotes(data.trash || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const createNewNote = async () => {
@@ -175,7 +179,8 @@ const MyNotes = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const createFolder = async () => {
@@ -202,7 +207,8 @@ const MyNotes = () => {
         setShowFolderModal(false);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const importFromChat = async () => {
@@ -265,7 +271,8 @@ const MyNotes = () => {
         setNoteToMove(null);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const deleteNote = async (noteId) => {
@@ -282,7 +289,8 @@ const MyNotes = () => {
         await loadNotes();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const restoreNote = async (noteId) => {
@@ -329,7 +337,8 @@ const MyNotes = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const blocksToHtml = (blocks) => {

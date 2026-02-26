@@ -1,10 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
-
 .safety-login *,
 .safety-login *::before,
 .safety-login *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 .safety-login {
   width: 100vw;

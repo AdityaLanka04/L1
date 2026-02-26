@@ -2079,10 +2079,10 @@ const ActivityTimeline = () => {
                 <span className="at-filter-checkbox">
                   {selectedFilters.includes('note') && <span className="at-checkbox-dot"></span>}
                 </span>
-                <span className="at-filter-bullet" style={{ backgroundColor: '#86efac' }}></span>
+                <span className="at-filter-bullet at-filter-bullet--note"></span>
                 <span>Notes</span>
               </button>
-              <button 
+              <button
                 className={`at-sidebar-filter-btn ${selectedFilters.includes('flashcard') ? 'active' : ''}`}
                 onClick={() => toggleFilter('flashcard')}
                 data-color="#fcd34d"
@@ -2090,10 +2090,10 @@ const ActivityTimeline = () => {
                 <span className="at-filter-checkbox">
                   {selectedFilters.includes('flashcard') && <span className="at-checkbox-dot"></span>}
                 </span>
-                <span className="at-filter-bullet" style={{ backgroundColor: '#fcd34d' }}></span>
+                <span className="at-filter-bullet at-filter-bullet--flashcard"></span>
                 <span>Flashcards</span>
               </button>
-              <button 
+              <button
                 className={`at-sidebar-filter-btn ${selectedFilters.includes('quiz') ? 'active' : ''}`}
                 onClick={() => toggleFilter('quiz')}
                 data-color="#f9a8d4"
@@ -2101,10 +2101,10 @@ const ActivityTimeline = () => {
                 <span className="at-filter-checkbox">
                   {selectedFilters.includes('quiz') && <span className="at-checkbox-dot"></span>}
                 </span>
-                <span className="at-filter-bullet" style={{ backgroundColor: '#f9a8d4' }}></span>
+                <span className="at-filter-bullet at-filter-bullet--quiz"></span>
                 <span>Quizzes</span>
               </button>
-              <button 
+              <button
                 className={`at-sidebar-filter-btn ${selectedFilters.includes('chat') ? 'active' : ''}`}
                 onClick={() => toggleFilter('chat')}
                 data-color="#93c5fd"
@@ -2112,7 +2112,7 @@ const ActivityTimeline = () => {
                 <span className="at-filter-checkbox">
                   {selectedFilters.includes('chat') && <span className="at-checkbox-dot"></span>}
                 </span>
-                <span className="at-filter-bullet" style={{ backgroundColor: '#93c5fd' }}></span>
+                <span className="at-filter-bullet at-filter-bullet--chat"></span>
                 <span>AI Chats</span>
               </button>
             </div>

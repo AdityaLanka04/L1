@@ -1,9 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .share-modal-overlay *,
 .share-modal-overlay *::before,
 .share-modal-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 :root {
@@ -11,8 +9,8 @@
   --bg-bottom: var(--bg-secondary);
   --panel: var(--bg-secondary);
   --border: var(--border);
-  --text-primary: #EAECEF;
-  --text-secondary: #B8C0CC;
+  --text-primary: var(--text-primary);
+  --text-secondary: var(--text-secondary);
   --accent: #D7B38C;
   --success: #10B981;
   --warning: #F59E0B;
@@ -473,7 +471,7 @@
 .copy-link-btn:hover {
   background: color-mix(in srgb, var(--accent) 85%, transparent);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .share-link-hint {
@@ -567,7 +565,7 @@
 .share-btn-primary:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent) 85%, transparent);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.4);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .share-btn-primary:disabled {

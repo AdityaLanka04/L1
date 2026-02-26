@@ -1,8 +1,7 @@
-
 .breadcrumbs *,
 .breadcrumbs *::before,
 .breadcrumbs *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .breadcrumbs {

@@ -34,7 +34,8 @@ const SlideExplorer = () => {
         setUploadedSlides(data.slides || []);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   }, [userId, token]);

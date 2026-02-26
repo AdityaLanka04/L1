@@ -59,7 +59,8 @@ const LearningPlaylists = ({ currentUserId, token }) => {
         setPlaylists(data.playlists || []);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -80,7 +81,8 @@ const LearningPlaylists = ({ currentUserId, token }) => {
         fetchPlaylists();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchPlaylistDetails = async (playlistId) => {

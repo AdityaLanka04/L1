@@ -1,8 +1,7 @@
-
 .help-tour-overlay *,
 .help-tour-overlay *::before,
 .help-tour-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .help-tour-overlay {
@@ -69,7 +68,7 @@
 .help-tour-close {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #B8C0CC);
+  color: var(--text-secondary, var(--text-secondary));
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -97,7 +96,7 @@
 .help-tour-description {
   font-size: 14px;
   line-height: 1.6;
-  color: var(--text-secondary, #B8C0CC);
+  color: var(--text-secondary, var(--text-secondary));
   margin: 0;
 }
 
@@ -122,7 +121,7 @@
 .help-tour-skip {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #B8C0CC);
+  color: var(--text-secondary, var(--text-secondary));
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -131,7 +130,7 @@
 }
 
 .help-tour-skip:hover {
-  color: var(--text-primary, #EAECEF);
+  color: var(--text-primary, var(--text-primary));
 }
 
 .help-tour-nav {
@@ -156,7 +155,7 @@
 .help-tour-prev {
   background: transparent;
   border: 1px solid var(--border, var(--border));
-  color: var(--text-secondary, #B8C0CC);
+  color: var(--text-secondary, var(--text-secondary));
 }
 
 .help-tour-prev:hover:not(:disabled) {

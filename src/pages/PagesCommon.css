@@ -1,11 +1,7 @@
-
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .hub-page *,
 .hub-page *::before,
 .hub-page *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .hub-page {

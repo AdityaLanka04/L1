@@ -66,7 +66,9 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
         last_updated: data.hs_summary?.last_updated || '',
       });
       setHsModeAvail(data.hs_mode_available || false);
-    } catch (_) {}
+    } catch (_) {
+    // silenced
+  }
     finally { setLoading(false); }
   }, []);
 

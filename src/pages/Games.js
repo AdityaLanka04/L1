@@ -81,7 +81,8 @@ const Games = () => {
         loadDailyChallenge(username)
       ]);
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -108,7 +109,8 @@ const Games = () => {
         }
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadBingoStats = async (username) => {
@@ -129,7 +131,8 @@ const Games = () => {
       } else {
               }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadWeeklyProgress = async (username) => {
@@ -144,7 +147,8 @@ const Games = () => {
                 setWeeklyProgress(data);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadRecentActivities = async (username) => {
@@ -159,7 +163,8 @@ const Games = () => {
         setRecentActivities(data.activities || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadDailyChallenge = async (username) => {

@@ -1,8 +1,7 @@
-
 .database-views-container *,
 .database-views-container *::before,
 .database-views-container *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .database-views-container {

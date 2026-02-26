@@ -1,6 +1,3 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .my-notes-page-full *,
 .my-notes-page-full *::before,
 .my-notes-page-full *::after {
@@ -13,8 +10,8 @@
   --bg: var(--bg-primary);
   --panel: var(--bg-secondary);
   --border: var(--border);
-  --text-primary: #EAECEF;
-  --text-secondary: #B8C0CC;
+  --text-primary: var(--text-primary);
+  --text-secondary: var(--text-secondary);
   --hover-bg: rgba(255, 255, 255, 0.05);
   --danger: #ef4444;
   --success: #22c55e;
@@ -146,19 +143,19 @@
 }
 
 [data-theme-mode="dark"] .mn-header-title {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="light"] .mn-header-title {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="dark"] .mn-header-subtitle {
-  color: color-mix(in srgb, var(--accent) 70%, var(--nt-text-primary)) !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--nt-text-primary));
 }
 
 [data-theme-mode="light"] .mn-header-subtitle {
-  color: color-mix(in srgb, var(--accent) 70%, var(--nt-text-primary)) !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--nt-text-primary));
 }
 
 .mn-header-right {
@@ -229,29 +226,29 @@
 }
 
 [data-theme-mode="dark"] .nt-sidebar {
-  background: var(--bg-secondary) !important;
-  color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
+  background: var(--bg-secondary);
+  color: color-mix(in srgb, var(--accent) 60%, #ffffff);
 }
 
 [data-theme-mode="dark"] .nt-nav-section-title {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="dark"] .nt-nav-text {
-  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary)) !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
 [data-theme-mode="light"] .nt-sidebar {
-  background: var(--bg-secondary) !important;
-  color: color-mix(in srgb, var(--accent) 80%, #000000) !important;
+  background: var(--bg-secondary);
+  color: color-mix(in srgb, var(--accent) 80%, #000000);
 }
 
 [data-theme-mode="light"] .nt-nav-section-title {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="light"] .nt-nav-text {
-  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary)) !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
 .nt-sidebar.collapsed {
@@ -383,34 +380,34 @@
 }
 
 [data-theme-mode="dark"] .nt-new-note-btn {
-  color: #000000 !important;
+  color: #000000;
 }
 
 [data-theme-mode="dark"] .nt-new-note-btn svg {
-  color: #000000 !important;
+  color: #000000;
   flex-shrink: 0;
 }
 
 [data-theme-mode="dark"] .nt-new-note-btn .nt-nav-text {
-  color: #000000 !important;
+  color: #000000;
 }
 
 [data-theme-mode="light"] .nt-new-note-btn {
-  color: #ffffff !important;
+  color: var(--bg-secondary);
 }
 
 [data-theme-mode="light"] .nt-new-note-btn svg {
-  color: #ffffff !important;
+  color: #ffffff;
   flex-shrink: 0;
 }
 
 [data-theme-mode="light"] .nt-new-note-btn .nt-nav-text {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 .nt-new-note-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .nt-new-note-btn svg {
@@ -597,7 +594,7 @@
 }
 
 [data-theme-mode="dark"] .nt-header-title {
-  color: var(--nt-accent) !important;
+  color: var(--nt-accent);
 }
 
 .nt-header-subtitle {
@@ -718,7 +715,7 @@
 
 .nt-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .nt-btn svg {
@@ -1287,53 +1284,53 @@
 }
 
 [data-theme-mode="dark"] .my-notes-page-full {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
+  background: linear-gradient(135deg, #0a0a0a 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
 }
 
 [data-theme-mode="light"] .my-notes-page-full {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%);
 }
 
 [data-theme-mode="dark"] .nt-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
-    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%);
 }
 
 [data-theme-mode="light"] .nt-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #ffffff) 0%, 
     color-mix(in srgb, var(--accent) 25%, #ffffff) 50%, 
-    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%) !important;
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%);
 }
 
 [data-theme-mode="dark"] .mn-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .mn-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, #ffffff 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
 }
 
 [data-theme-mode="dark"] .nt-main {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
+  background: linear-gradient(135deg, #0a0a0a 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
 }
 
 [data-theme-mode="light"] .nt-main {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, #f8f9fa 50%, #ffffff 100%);
 }
 
 [data-theme-mode="dark"] .nt-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.15);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="light"] .nt-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, #ffffff 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.03);
 }
 
@@ -1341,14 +1338,14 @@
   background: linear-gradient(145deg, 
     color-mix(in srgb, var(--nt-accent) 5%, var(--nt-bg-secondary)) 0%, 
     var(--nt-bg-tertiary) 100%);
-  border: 1px solid rgba(215, 179, 140, 0.1);
+  border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme-mode="light"] .nt-note-card {
   background: linear-gradient(145deg, 
-    #ffffff 0%, 
-    color-mix(in srgb, var(--nt-accent) 3%, #fafafa) 100%);
+    var(--bg-secondary) 0%, 
+    color-mix(in srgb, var(--nt-accent) 3%, var(--bg-primary)) 100%);
   border: 1px solid rgba(0, 0, 0, 0.05);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
@@ -1366,35 +1363,35 @@
 }
 
 [data-theme-mode="dark"] .nt-search {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-  border: 1px solid rgba(215, 179, 140, 0.15);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="light"] .nt-search {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
 [data-theme-mode="dark"] .nt-view-controls {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-  border: 1px solid rgba(215, 179, 140, 0.15);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="light"] .nt-view-controls {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
 [data-theme-mode="dark"] .nt-empty-icon {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-  border: 1px solid rgba(215, 179, 140, 0.15);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="dark"] .nt-modal {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .nt-modal {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
 .nt-nav-item {
@@ -1556,19 +1553,19 @@
 }
 
 [data-theme-mode="dark"] .nt-nav-item.convert-btn {
-  color: #000000 !important;
+  color: #000000;
 }
 
 [data-theme-mode="dark"] .nt-nav-item.convert-btn .nt-nav-text {
-  color: #000000 !important;
+  color: #000000;
 }
 
 [data-theme-mode="light"] .nt-nav-item.convert-btn {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 [data-theme-mode="light"] .nt-nav-item.convert-btn .nt-nav-text {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 .nt-nav-item.convert-btn:hover {
@@ -1597,233 +1594,233 @@
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-modal {
-  background: var(--bg-secondary) !important;
-  border-color: var(--border) !important;
+  background: var(--bg-secondary);
+  border-color: var(--border);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-header {
-  background: var(--bg-secondary) !important;
-  border-bottom-color: var(--border) !important;
+  background: var(--bg-secondary);
+  border-bottom-color: var(--border);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-header h2 {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-close-btn {
-  background: var(--hover-bg) !important;
-  border-color: var(--border) !important;
-  color: var(--text-secondary) !important;
+  background: var(--hover-bg);
+  border-color: var(--border);
+  color: var(--text-secondary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-close-btn:hover {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: var(--bg-primary) !important;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-tabs {
-  background: var(--hover-bg) !important;
-  border-bottom-color: var(--border) !important;
+  background: var(--hover-bg);
+  border-bottom-color: var(--border);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-tab {
-  background: transparent !important;
-  border-color: var(--border) !important;
-  color: var(--text-secondary) !important;
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-secondary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-tab:hover {
-  background: var(--bg-secondary) !important;
-  color: var(--text-primary) !important;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-tab.active {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: #000000 !important;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000000;
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-content {
-  background: var(--bg-secondary) !important;
+  background: var(--bg-secondary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-card {
-  background: var(--hover-bg) !important;
-  border-color: var(--border) !important;
+  background: var(--hover-bg);
+  border-color: var(--border);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-card:hover {
-  border-color: var(--accent) !important;
+  border-color: var(--accent);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-card h3 {
-  color: var(--text-primary) !important;
+  color: var(--text-primary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-card p {
-  color: var(--text-secondary) !important;
+  color: var(--text-secondary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-card-icon {
-  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
-  color: var(--bg-primary) !important;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
+  color: var(--bg-primary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-form {
-  background: var(--hover-bg) !important;
-  border-color: var(--border) !important;
+  background: var(--hover-bg);
+  border-color: var(--border);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-form h3 {
-  color: var(--text-primary) !important;
+  color: var(--text-primary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-form-group label {
-  color: var(--text-secondary) !important;
+  color: var(--text-secondary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-input,
 [data-theme-mode="dark"] .my-notes-page-full .tpl-textarea {
-  background: var(--bg-secondary) !important;
-  border-color: var(--border) !important;
-  color: var(--text-primary) !important;
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  color: var(--text-primary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-input:focus,
 [data-theme-mode="dark"] .my-notes-page-full .tpl-textarea:focus {
-  border-color: var(--accent) !important;
+  border-color: var(--accent);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-btn-secondary {
-  background: var(--bg-secondary) !important;
-  border-color: var(--border) !important;
-  color: var(--text-primary) !important;
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  color: var(--text-primary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-btn-secondary:hover {
-  background: var(--hover-bg) !important;
+  background: var(--hover-bg);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-btn-primary {
-  background: var(--accent) !important;
-  color: #000000 !important;
+  background: var(--accent);
+  color: #000000;
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-saved-item {
-  background: var(--hover-bg) !important;
-  border-color: var(--border) !important;
+  background: var(--hover-bg);
+  border-color: var(--border);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-saved-item:hover {
-  border-color: var(--accent) !important;
+  border-color: var(--accent);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-saved-info h4 {
-  color: var(--text-primary) !important;
+  color: var(--text-primary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-saved-info p {
-  color: var(--text-secondary) !important;
+  color: var(--text-secondary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-action-btn {
-  background: transparent !important;
-  border-color: var(--border) !important;
-  color: var(--text-secondary) !important;
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-secondary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-action-btn:hover {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: #000000 !important;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000000;
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-hint {
-  background: var(--bg-secondary) !important;
-  border-color: var(--border) !important;
-  color: var(--text-secondary) !important;
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  color: var(--text-secondary);
 }
 
 [data-theme-mode="dark"] .my-notes-page-full .tpl-hint strong {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-modal {
-  background: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-header {
-  background: #ffffff !important;
-  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+  background: #ffffff;
+  border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-header h2 {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-close-btn {
-  background: rgba(0, 0, 0, 0.05) !important;
-  border-color: rgba(0, 0, 0, 0.1) !important;
-  color: rgba(0, 0, 0, 0.6) !important;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.6);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-close-btn:hover {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: #ffffff !important;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-tabs {
-  background: rgba(0, 0, 0, 0.03) !important;
-  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-tab {
-  background: transparent !important;
-  border-color: rgba(0, 0, 0, 0.1) !important;
-  color: rgba(0, 0, 0, 0.6) !important;
+  background: transparent;
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.6);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-tab:hover {
-  background: #ffffff !important;
-  color: rgba(0, 0, 0, 0.9) !important;
+  background: #ffffff;
+  color: rgba(0, 0, 0, 0.9);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-tab.active {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: #ffffff !important;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-content {
-  background: #ffffff !important;
+  background: #ffffff;
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-card {
-  background: rgba(0, 0, 0, 0.03) !important;
-  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-card:hover {
-  border-color: var(--accent) !important;
+  border-color: var(--accent);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-card h3 {
-  color: rgba(0, 0, 0, 0.9) !important;
+  color: rgba(0, 0, 0, 0.9);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-card p {
-  color: rgba(0, 0, 0, 0.6) !important;
+  color: rgba(0, 0, 0, 0.6);
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-card-icon {
-  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
-  color: #ffffff !important;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
+  color: #ffffff;
 }
 
 [data-theme-mode="light"] .my-notes-page-full .tpl-btn-primary {
-  background: var(--accent) !important;
-  color: #ffffff !important;
+  background: var(--accent);
+  color: #ffffff;
 }

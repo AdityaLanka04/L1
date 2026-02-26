@@ -57,7 +57,8 @@ const Social = () => {
         setUserId(data.email || data.username);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchFriendRequests = async () => {
@@ -70,7 +71,8 @@ const Social = () => {
         setFriendRequests(data);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchFriends = async () => {
@@ -83,7 +85,8 @@ const Social = () => {
         setFriends(data.friends);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchSharedContent = async () => {
@@ -100,7 +103,8 @@ const Social = () => {
         setSharedItems(data.shared_items || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchMyContent = async () => {
@@ -121,7 +125,8 @@ const Social = () => {
         setMyChats(chatsData.sessions || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleSearch = async (query) => {
@@ -141,7 +146,8 @@ const Social = () => {
         setSearchResults(data.users);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setIsSearching(false);
     }
   };
@@ -164,7 +170,8 @@ const Social = () => {
         fetchFriendRequests();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const respondToFriendRequest = async (requestId, action) => {
@@ -183,7 +190,8 @@ const Social = () => {
         fetchFriends();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const removeFriend = async (friendId) => {
@@ -203,7 +211,8 @@ const Social = () => {
         fetchFriends();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleOpenSharedItem = (item) => {
@@ -229,7 +238,8 @@ const Social = () => {
         setSharedItems(prev => prev.filter(item => item.id !== shareId));
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleShareNewContent = async () => {

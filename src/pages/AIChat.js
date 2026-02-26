@@ -75,7 +75,8 @@ const AIChat = ({ sharedMode = false }) => {
         loadChatFolders();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleMoveToFolder = async (chatId, folderId) => {
@@ -98,7 +99,8 @@ const AIChat = ({ sharedMode = false }) => {
         setShowMoveMenu(null);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleContextMenu = (e, chatId) => {
@@ -333,7 +335,8 @@ const AIChat = ({ sharedMode = false }) => {
         setFolders(foldersData.folders || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadChatSessions = async () => {
@@ -351,7 +354,8 @@ const AIChat = ({ sharedMode = false }) => {
         setChatSessions(sessions);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadChatMessages = async (sessionId) => {
@@ -470,11 +474,12 @@ const AIChat = ({ sharedMode = false }) => {
             }
           }
         } catch (innerError) {
-          
-                  }
+    // silenced
+  }
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleNewChat = () => {
@@ -585,7 +590,8 @@ const AIChat = ({ sharedMode = false }) => {
         return result.data;
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const switchConversationMode = async (newMode) => {
@@ -608,7 +614,8 @@ const AIChat = ({ sharedMode = false }) => {
         setConversationMode(newMode);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const sendMessage = async () => {
@@ -827,7 +834,8 @@ const AIChat = ({ sharedMode = false }) => {
         ));
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const confirmDeleteChat = async () => {
@@ -913,7 +921,8 @@ const AIChat = ({ sharedMode = false }) => {
         }
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const submitFeedback = async (messageId) => {
@@ -950,7 +959,8 @@ const AIChat = ({ sharedMode = false }) => {
         ));
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const getConfidenceClass = (confidence) => {

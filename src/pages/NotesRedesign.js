@@ -286,6 +286,7 @@ try {
     Quill.register('modules/tableUI', QuillTableUI.default);
   }
 } catch (error) {
+    // silenced
   }
 
 let katex;
@@ -295,6 +296,7 @@ try {
     window.katex = katex;
   }
 } catch (error) {
+    // silenced
   }
 
 const NotesRedesign = ({ sharedMode = false }) => {
@@ -506,7 +508,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         ];
         Quill.register(Font, true);
       } catch (error) {
-              }
+    // silenced
+  }
     }
   }, []);
 
@@ -572,7 +575,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         try {
           setUserProfile(JSON.parse(profile));
         } catch (error) {
-                  }
+    // silenced
+  }
       }
     }
   }, [navigate, sharedMode, noteId]);
@@ -590,7 +594,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         try {
           setRecentlyViewed(JSON.parse(stored));
         } catch (e) {
-                  }
+    // silenced
+  }
       }
     }
   }, [userName, isSharedContent]);
@@ -941,7 +946,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setFolders(data.folders || []);
       }
     } catch (e) {
-          }
+    // silenced
+  }
   };
 
   const loadTrash = async () => {
@@ -955,7 +961,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setTrashedNotes(data.trash || []);
       }
     } catch (e) {
-          }
+    // silenced
+  }
   };
 
   const loadChatSessions = async () => {
@@ -969,7 +976,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setChatSessions(data.sessions || []);
       }
     } catch (e) {
-          }
+    // silenced
+  }
   };
 
   const createFolder = async () => {
@@ -1175,7 +1183,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         showPopup("Success", newFavoriteStatus ? "Added to favorites" : "Removed from favorites");
       }
     } catch (e) {
-          }
+    // silenced
+  }
   };
 
   const moveToTrash = async (noteId) => {
@@ -1411,7 +1420,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
           setPageProperties(props);
         }
       } catch (e) {
-              }
+    // silenced
+  }
     }
   };
   
@@ -2262,13 +2272,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       setNewNoteId(null);
       setNewNoteTitle('');
       
-      // Navigate to the new note
       navigate(`/notes/editor/${newNoteId}`);
-      
-      // Force page reload if we're already on a notes editor page
-      setTimeout(() => {
-        window.location.href = `/notes/editor/${newNoteId}`;
-      }, 100);
     } else {
       console.error('No note ID to navigate to');
       setShowNavigateDialog(false);

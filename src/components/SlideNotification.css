@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .slide-notif {
   position: fixed;
   top: 80px;
@@ -285,8 +283,8 @@
 
 [data-theme-mode="light"] .slide-notif-card {
   background: linear-gradient(145deg, 
-    #ffffff 0%, 
-    color-mix(in srgb, var(--accent) 3%, #fafafa) 100%);
+    var(--bg-secondary) 0%, 
+    color-mix(in srgb, var(--accent) 3%, var(--bg-primary)) 100%);
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.15),
     0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent),

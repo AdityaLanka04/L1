@@ -1,13 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 .activity-feed-page {
   --af-bg-primary: var(--bg-bottom, var(--bg-primary));
   --af-bg-secondary: var(--panel, var(--bg-secondary));
   --af-bg-tertiary: var(--bg-top, #1a1a1f);
   --af-bg-card: var(--panel, var(--bg-secondary));
   --af-border-subtle: var(--border, var(--border));
-  --af-text-primary: var(--text-primary, #EAECEF);
-  --af-text-secondary: var(--text-secondary, #B8C0CC);
+  --af-text-primary: var(--text-primary, var(--text-primary));
+  --af-text-secondary: var(--text-secondary, var(--text-secondary));
   --af-accent: var(--accent, #D7B38C);
   --af-accent-2: var(--accent-2, #B88F63);
   --af-accent-glow: color-mix(in srgb, var(--accent) 20%, transparent);
@@ -19,9 +17,7 @@
   --af-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
   --af-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.2);
   --af-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.3);
-}
 
-.activity-feed-page {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -40,6 +36,7 @@
   display: flex;
   flex-direction: column;
 }
+
 
 .activity-feed-page::before {
   content: '';
@@ -75,15 +72,15 @@
 }
 
 [data-theme-mode="dark"] .af-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .af-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .af-header-left {
@@ -353,6 +350,22 @@
   position: relative;
   z-index: 1;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.af-stat-icon--accent {
+  background: linear-gradient(135deg, #D7B38C 0%, #B88F63 100%);
+}
+
+.af-stat-icon--success {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.af-stat-icon--danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.af-stat-icon--warning {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
 }
 
 .af-stat-content {

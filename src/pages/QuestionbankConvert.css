@@ -1,10 +1,7 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .qbd-container .iem-overlay *,
 .qbd-container .iem-overlay *::before,
 .qbd-container .iem-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .qbd-container .iem-overlay {

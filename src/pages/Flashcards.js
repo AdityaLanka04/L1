@@ -180,7 +180,8 @@ const Flashcards = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   }, [userName]);
 
   const loadFlashcardHistory = useCallback(async (reset = false) => {
@@ -233,7 +234,8 @@ const Flashcards = () => {
         setFlashcardStats(data);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   }, [userName]);
 
   const loadReviewCards = useCallback(async () => {
@@ -415,7 +417,8 @@ const Flashcards = () => {
         return result;
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const reviewCardWithAgent = async (cardId, quality, responseTime) => {
@@ -458,7 +461,8 @@ const Flashcards = () => {
         return data;
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   
@@ -549,7 +553,8 @@ const Flashcards = () => {
         return result.analysis || result;
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   
@@ -568,7 +573,8 @@ const Flashcards = () => {
         return result.recommendations;
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   
@@ -594,7 +600,8 @@ const Flashcards = () => {
         return result.explanation;
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   
@@ -919,7 +926,8 @@ const Flashcards = () => {
       try {
         setUserProfile(JSON.parse(profile));
       } catch (error) {
-              }
+    // silenced
+  }
     }
   }, [navigate]);
 
@@ -1465,7 +1473,8 @@ const Flashcards = () => {
         showPopup('Renamed Successfully', 'The flashcard set has been renamed.');
       }
     } catch (error) {
-          }
+    // silenced
+  }
     setEditingSetId(null);
     setEditingTitle('');
   };
@@ -1684,8 +1693,8 @@ const Flashcards = () => {
         loadFlashcardHistory(true); 
         loadFlashcardStats();
       } catch (error) {
-        
-      }
+    // silenced
+  }
     };
     
     

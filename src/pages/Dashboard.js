@@ -117,6 +117,8 @@ const Dashboard = () => {
   const timeIntervalRef = useRef(null);
   const sessionUpdateRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
+  const notifPanelRef = useRef(null);
+  const notifButtonRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -124,7 +126,7 @@ const Dashboard = () => {
     const profile = localStorage.getItem('userProfile');
 
     if (!token) {
-      window.location.href = '/login';
+      navigate('/login');
       return;
     }
     
@@ -137,7 +139,9 @@ const Dashboard = () => {
     if (profile) {
       try {
         setUserProfile(JSON.parse(profile));
-      } catch (error) {}
+      } catch (error) {
+    // silenced
+  }
     }
 
     
@@ -207,7 +211,9 @@ const Dashboard = () => {
         try {
           const parsed = JSON.parse(profile);
           showStudyInsights = parsed.showStudyInsights !== false;
-        } catch (e) {}
+        } catch (e) {
+    // silenced
+  }
       }
       
       if (justLoggedIn && isFirstLoginToday) {
@@ -244,11 +250,8 @@ const Dashboard = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showNotifications) {
-        const notifPanel = document.querySelector('.ds-notif-panel');
-        const notifButton = document.querySelector('.ds-notif-bell-btn');
-        
-        if (notifPanel && !notifPanel.contains(event.target) && 
-            notifButton && !notifButton.contains(event.target)) {
+        if (notifPanelRef.current && !notifPanelRef.current.contains(event.target) &&
+            notifButtonRef.current && !notifButtonRef.current.contains(event.target)) {
           setShowNotifications(false);
         }
       }
@@ -386,7 +389,9 @@ const Dashboard = () => {
           setTotalTimeToday(data.total_time_today || 0);
         }
       }
-    } catch (error) {}
+    } catch (error) {
+    // silenced
+  }
   };
 
   const loadDashboardData = async () => {
@@ -450,7 +455,9 @@ const Dashboard = () => {
         setConversationStarters(data.conversation_starters || []);
         setLearningReviews(data.learning_reviews || []);
       }
-    } catch (error) {}
+    } catch (error) {
+    // silenced
+  }
   };
 
   const loadHeatmapData = async () => {
@@ -466,7 +473,8 @@ const Dashboard = () => {
         setTotalQuestions(data.total_count || 0);
       }
     } catch (error) {
-    } finally {
+    // silenced
+  } finally {
       setHeatmapLoading(false);
     }
   };
@@ -491,7 +499,9 @@ const Dashboard = () => {
         startTimeTracking();
         startSessionTimeUpdater();
       }
-    } catch (error) {}
+    } catch (error) {
+    // silenced
+  }
   };
 
   const startTimeTracking = () => {
@@ -552,7 +562,8 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-    } finally {
+    // silenced
+  } finally {
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
       if (window.dashboardTimeTrackingCleanup) window.dashboardTimeTrackingCleanup();
@@ -737,7 +748,7 @@ const Dashboard = () => {
     await endDashboardSession();
     localStorage.clear();
     sessionStorage.clear();
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   const startTour = () => setShowTour(true);
@@ -786,21 +797,21 @@ const Dashboard = () => {
             </div>
             
             <div className="ds-notifications-wrapper">
-              <button className="ds-notif-bell-btn" onClick={() => setShowNotifications(!showNotifications)}>
+              <button ref={notifButtonRef} className="ds-notif-bell-btn" onClick={() => setShowNotifications(!showNotifications)}>
                 <Bell size={20} />
                 {unreadCount > 0 && <span className="ds-notif-badge">{unreadCount}</span>}
               </button>
-              
+
               {showNotifications && (
                 <>
-                  <div 
-                    className="ds-notif-backdrop" 
+                  <div
+                    className="ds-notif-backdrop"
                     onClick={() => setShowNotifications(false)}
                   />
-                  
-                  <div className="ds-notif-panel" onClick={(e) => e.stopPropagation()}>
+
+                  <div ref={notifPanelRef} className="ds-notif-panel" onClick={(e) => e.stopPropagation()}>
                     <div className="ds-notif-panel-header">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div className="ds-notif-panel-title">
                         <Bell size={18} />
                         <h3>Notifications</h3>
                       </div>

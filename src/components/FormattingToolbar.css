@@ -1,8 +1,7 @@
-
 .formatting-toolbar *,
 .formatting-toolbar *::before,
 .formatting-toolbar *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .formatting-toolbar {

@@ -1,8 +1,7 @@
-
 .page-properties *,
 .page-properties *::before,
 .page-properties *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .page-properties {

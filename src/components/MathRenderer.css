@@ -242,7 +242,7 @@
 
 [data-theme-mode="light"] .math-content .katex,
 [data-theme-mode="light"] .math-content .katex * {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 .math-content p + .katex-display {

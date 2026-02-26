@@ -56,7 +56,8 @@ const PlaylistDetailPage = () => {
         setIsFollowing(data.is_following || false);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -80,7 +81,8 @@ const PlaylistDetailPage = () => {
         }));
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setFollowLoading(false);
     }
   };
@@ -98,7 +100,8 @@ const PlaylistDetailPage = () => {
         navigate(`/playlists/${data.id}`);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setForkLoading(false);
     }
   };
@@ -213,7 +216,8 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
         }));
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setUpdatingItem(null);
     }
   };
@@ -234,7 +238,8 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
         fetchPlaylistDetails();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleDeleteItem = async (itemId) => {
@@ -250,7 +255,8 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
         fetchPlaylistDetails();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const toggleItem = (itemId) => {
@@ -276,7 +282,8 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
             setShowViewModal(true);
           }
         } catch (error) {
-                  }
+    // silenced
+  }
       }
     } else if (item.url) {
       window.open(item.url, '_blank', 'noopener,noreferrer');
@@ -854,7 +861,8 @@ const AddItemModal = ({ onClose, onAdd }) => {
         }
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoadingResources(false);
     }
   };
@@ -892,7 +900,8 @@ const AddItemModal = ({ onClose, onAdd }) => {
       await onAdd(newItem);
       onClose();
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setIsSubmitting(false);
     }
   };
@@ -912,7 +921,8 @@ const AddItemModal = ({ onClose, onAdd }) => {
       }
       onClose();
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setIsSubmitting(false);
     }
   };

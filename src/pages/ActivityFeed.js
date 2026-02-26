@@ -286,7 +286,7 @@ const ActivityFeed = () => {
 
         <div className="af-stats-grid">
           <div className="af-stat-card">
-            <div className="af-stat-icon" style={{ background: 'linear-gradient(135deg, #D7B38C 0%, #B88F63 100%)' }}>
+            <div className="af-stat-icon af-stat-icon--accent">
               <ActivityIcon size={20} />
             </div>
             <div className="af-stat-content">
@@ -295,7 +295,7 @@ const ActivityFeed = () => {
             </div>
           </div>
           <div className="af-stat-card">
-            <div className="af-stat-icon" style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' }}>
+            <div className="af-stat-icon af-stat-icon--success">
               <Clock size={20} />
             </div>
             <div className="af-stat-content">
@@ -304,7 +304,7 @@ const ActivityFeed = () => {
             </div>
           </div>
           <div className="af-stat-card">
-            <div className="af-stat-icon" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}>
+            <div className="af-stat-icon af-stat-icon--danger">
               <Heart size={20} />
             </div>
             <div className="af-stat-content">
@@ -313,7 +313,7 @@ const ActivityFeed = () => {
             </div>
           </div>
           <div className="af-stat-card">
-            <div className="af-stat-icon" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' }}>
+            <div className="af-stat-icon af-stat-icon--warning">
               <Flame size={20} />
             </div>
             <div className="af-stat-content">

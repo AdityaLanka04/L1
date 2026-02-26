@@ -1,6 +1,3 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .sqr-page {
   --sqr-accent: var(--accent);
   --sqr-success: #22c55e;
@@ -11,9 +8,7 @@
   --sqr-border: var(--border);
   --sqr-text: var(--text-primary);
   --sqr-text-secondary: var(--text-secondary);
-}
 
-.sqr-page {
   position: fixed;
   top: 0;
   left: 0;
@@ -30,9 +25,7 @@
   padding: 0;
 }
 
-.sqr-page * {
-  box-sizing: border-box;
-}
+
 
 .sqr-header {
   height: 70px;

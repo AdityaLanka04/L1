@@ -29,7 +29,8 @@ const Statistics = () => {
         setUserName(data.first_name || 'User');
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchStatistics = async () => {
@@ -47,7 +48,8 @@ const Statistics = () => {
         setStats(calculatedStats);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };

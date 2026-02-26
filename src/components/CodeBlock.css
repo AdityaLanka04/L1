@@ -1,8 +1,7 @@
-
 .code-block-container *,
 .code-block-container *::before,
 .code-block-container *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .code-block-container {

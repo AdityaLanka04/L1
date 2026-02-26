@@ -32,7 +32,9 @@ const FriendsDashboard = () => {
         const enhancedFriends = await enhanceFriendsWithStats(friendsList);
         setFriends(enhancedFriends);
       }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
     finally { setLoading(false); }
   };
 
@@ -62,7 +64,9 @@ const FriendsDashboard = () => {
     try {
       const response = await fetch(`${API_URL}/friend_requests`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (response.ok) { const data = await response.json(); setFriendRequests(data); }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const fetchAllUsers = async () => {
@@ -75,7 +79,9 @@ const FriendsDashboard = () => {
         const enhancedUsers = await enhanceFriendsWithStats(sortedUsers);
         setAllUsers(enhancedUsers);
       }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
     finally { setLoading(false); }
   };
 
@@ -90,7 +96,9 @@ const FriendsDashboard = () => {
         const enhancedResults = await enhanceFriendsWithStats(sortedResults);
         setSearchResults(enhancedResults);
       }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
     finally { setIsSearching(false); }
   };
 
@@ -105,7 +113,9 @@ const FriendsDashboard = () => {
         setAllUsers(prev => prev.map(user => user.id === receiverId ? { ...user, request_sent: true } : user));
         fetchFriendRequests();
       }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const respondToFriendRequest = async (requestId, action) => {
@@ -115,7 +125,9 @@ const FriendsDashboard = () => {
         body: JSON.stringify({ request_id: requestId, action })
       });
       if (response.ok) { fetchFriendRequests(); fetchFriends(); }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const removeFriend = async (friendId) => {
@@ -126,7 +138,9 @@ const FriendsDashboard = () => {
         body: JSON.stringify({ friend_id: friendId })
       });
       if (response.ok) fetchFriends();
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const cancelFriendRequest = async (requestId) => {
@@ -136,7 +150,9 @@ const FriendsDashboard = () => {
         body: JSON.stringify({ request_id: requestId, action: 'reject' })
       });
       if (response.ok) fetchFriendRequests();
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const renderAvatar = (user, className = "fd-friend-avatar") => {

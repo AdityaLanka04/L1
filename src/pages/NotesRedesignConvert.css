@@ -1,6 +1,3 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .notes-redesign .iem-overlay,
 .notes-redesign .iem-modal,
 .notes-redesign .iem-modal *,
@@ -27,7 +24,7 @@
   transform: translate(-50%, -50%) !important;
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 16px !important;
+  border-radius: 16px;
   width: 90% !important;
   max-width: 600px !important;
   max-height: 85vh !important;
@@ -71,7 +68,7 @@
 .notes-redesign .iem-header-subtitle {
   margin: 4px 0 0 0 !important;
   font-size: 12px !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
   font-weight: 500 !important;
 }
 
@@ -80,7 +77,7 @@
   height: 36px !important;
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   color: #D7B38C !important;
   cursor: pointer !important;
   display: flex !important;
@@ -105,7 +102,7 @@
 .notes-redesign .iem-step-content h3 {
   font-size: 12px !important;
   font-weight: 700 !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
   margin-bottom: 14px !important;
   text-transform: uppercase !important;
   letter-spacing: 2px !important;
@@ -118,7 +115,7 @@
   padding: 12px 16px !important;
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   margin-bottom: 16px !important;
 }
 
@@ -126,8 +123,8 @@
   padding: 8px 14px !important;
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 6px !important;
-  color: #B8C0CC !important;
+  border-radius: 6px;
+  color: var(--text-secondary) !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
@@ -136,14 +133,14 @@
 }
 
 .notes-redesign .iem-select-all-btn:hover {
-  background: rgba(215, 179, 140, 0.1) !important;
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
   border-color: #D7B38C !important;
-  color: #EAECEF !important;
+  color: var(--text-primary) !important;
 }
 
 .notes-redesign .iem-selection-count {
   font-size: 12px !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
   font-weight: 600 !important;
 }
 
@@ -151,7 +148,7 @@
   max-height: 350px !important;
   overflow-y: auto !important;
   border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   background: var(--bg-secondary) !important;
   margin-bottom: 20px !important;
 }
@@ -187,7 +184,7 @@
 }
 
 .notes-redesign .iem-item-card.selected {
-  background: rgba(215, 179, 140, 0.1) !important;
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
 }
 
 .notes-redesign .iem-item-checkbox {
@@ -203,14 +200,14 @@
 
 .notes-redesign .iem-item-info h4 {
   font-size: 14px !important;
-  color: #EAECEF !important;
+  color: var(--text-primary) !important;
   margin: 0 0 4px 0 !important;
   font-weight: 600 !important;
 }
 
 .notes-redesign .iem-item-meta {
   font-size: 12px !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
   margin: 0 !important;
 }
 
@@ -225,7 +222,7 @@
   padding: 20px !important;
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   cursor: pointer !important;
   text-align: center !important;
   transition: all 0.2s !important;
@@ -233,11 +230,11 @@
 
 .notes-redesign .iem-conversion-card:hover {
   background: rgba(215, 179, 140, 0.05) !important;
-  border-color: rgba(215, 179, 140, 0.3) !important;
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
 }
 
 .notes-redesign .iem-conversion-card.selected {
-  background: rgba(215, 179, 140, 0.1) !important;
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
   border-color: #D7B38C !important;
 }
 
@@ -253,13 +250,13 @@
   margin: 0 0 8px 0 !important;
   font-size: 14px !important;
   font-weight: 600 !important;
-  color: #EAECEF !important;
+  color: var(--text-primary) !important;
 }
 
 .notes-redesign .iem-conversion-card p {
   margin: 0 !important;
   font-size: 12px !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
   line-height: 1.4 !important;
 }
 
@@ -267,7 +264,7 @@
   padding: 20px !important;
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   margin-bottom: 20px !important;
 }
 
@@ -275,7 +272,7 @@
   margin: 0 0 16px 0 !important;
   font-size: 12px !important;
   font-weight: 700 !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
   text-transform: uppercase !important;
   letter-spacing: 2px !important;
 }
@@ -292,7 +289,7 @@
   display: block !important;
   margin-bottom: 8px !important;
   font-size: 12px !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
   font-weight: 600 !important;
 }
 
@@ -302,8 +299,8 @@
   padding: 10px 12px !important;
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 6px !important;
-  color: #EAECEF !important;
+  border-radius: 6px;
+  color: var(--text-primary) !important;
   font-size: 14px !important;
   outline: none !important;
   transition: all 0.2s !important;
@@ -343,25 +340,25 @@
   padding: 20px !important;
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   text-align: left !important;
 }
 
 .notes-redesign .iem-result-details p {
   margin: 8px 0 !important;
   font-size: 14px !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
 }
 
 .notes-redesign .iem-result-details strong {
-  color: #EAECEF !important;
+  color: var(--text-primary) !important;
 }
 
 .notes-redesign .iem-loading,
 .notes-redesign .iem-empty {
   padding: 60px 20px !important;
   text-align: center !important;
-  color: #B8C0CC !important;
+  color: var(--text-secondary) !important;
 }
 
 .notes-redesign .iem-spinner {
@@ -369,7 +366,7 @@
   height: 40px !important;
   border: 3px solid transparent !important;
   border-top-color: #D7B38C !important;
-  border-radius: 50% !important;
+  border-radius: 50%;
   animation: nr-iem-spin 0.8s linear infinite !important;
   margin: 0 auto 16px !important;
 }
@@ -402,7 +399,7 @@
 .notes-redesign .iem-btn-primary {
   background: #D7B38C !important;
   border: none !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   color: var(--bg-secondary) !important;
   font-weight: 700 !important;
 }
@@ -421,8 +418,8 @@
 .notes-redesign .iem-btn-secondary {
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
-  color: #EAECEF !important;
+  border-radius: 8px;
+  color: var(--text-primary) !important;
 }
 
 .notes-redesign .iem-btn-secondary:hover {
@@ -455,11 +452,11 @@
 
 .notes-redesign .iem-select-all-btn:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.2) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent) !important;
 }
 
 .notes-redesign .iem-item-card {
-  border-radius: 6px !important;
+  border-radius: 6px;
   margin: 8px !important;
   border: 1px solid transparent !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -468,16 +465,16 @@
 .notes-redesign .iem-item-card:hover {
   transform: translateX(4px) !important;
   border-color: #D7B38C !important;
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.15) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent) !important;
 }
 
 .notes-redesign .iem-item-card.selected {
-  background: linear-gradient(135deg, rgba(215, 179, 140, 0.15), rgba(215, 179, 140, 0.05)) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), rgba(215, 179, 140, 0.05)) !important;
   border-color: #D7B38C !important;
 }
 
 .notes-redesign .iem-conversion-card {
-  border-radius: 12px !important;
+  border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative !important;
   overflow: hidden !important;
@@ -487,7 +484,7 @@
   content: '' !important;
   position: absolute !important;
   inset: 0 !important;
-  background: linear-gradient(135deg, transparent, rgba(215, 179, 140, 0.1)) !important;
+  background: linear-gradient(135deg, transparent, color-mix(in srgb, var(--accent) 10%, transparent)) !important;
   opacity: 0 !important;
   transition: opacity 0.3s !important;
 }
@@ -498,22 +495,22 @@
 
 .notes-redesign .iem-conversion-card:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.2) !important;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 20%, transparent) !important;
 }
 
 .notes-redesign .iem-conversion-card.selected {
   border-color: #D7B38C !important;
-  box-shadow: 0 0 0 2px rgba(215, 179, 140, 0.3) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent) !important;
 }
 
 .notes-redesign .iem-settings {
-  border-radius: 12px !important;
+  border-radius: 12px;
   background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
 }
 
 .notes-redesign .iem-input:focus,
 .notes-redesign .iem-select:focus {
-  box-shadow: 0 0 0 3px rgba(215, 179, 140, 0.1) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent) !important;
 }
 
 .notes-redesign .iem-btn-primary {
@@ -539,7 +536,7 @@
 
 .notes-redesign .iem-btn-primary:hover:not(:disabled) {
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.4) !important;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent) !important;
 }
 
 .notes-redesign .iem-btn-secondary:hover {
@@ -548,7 +545,7 @@
 }
 
 .notes-redesign .iem-result-details {
-  border-radius: 12px !important;
+  border-radius: 12px;
   background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
 }
 

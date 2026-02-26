@@ -326,7 +326,8 @@ const AIMediaNotes = () => {
         setHistory(data.history || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadHistoryItem = async (item) => {

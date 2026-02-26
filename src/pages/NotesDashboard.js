@@ -62,7 +62,8 @@ const NotesDashboard = () => {
         setNotes(data.filter(n => !n.is_deleted));
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadFolders = async (username) => {
@@ -76,7 +77,8 @@ const NotesDashboard = () => {
         setFolders(data.folders || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleSelectNote = (note) => {
@@ -104,7 +106,8 @@ const NotesDashboard = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleTemplateSelect = async (template) => {
@@ -135,7 +138,8 @@ const NotesDashboard = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   

@@ -67,7 +67,8 @@ const SearchHub = () => {
       try {
         setRecentSearches(JSON.parse(saved));
       } catch (error) {
-              }
+    // silenced
+  }
     }
   };
 
@@ -93,7 +94,8 @@ const SearchHub = () => {
         return new Set(parsed.map(key => String(key)));
       }
     } catch (error) {
-    }
+    // silenced
+  }
     return new Set();
   };
 
@@ -1086,7 +1088,8 @@ const SearchHub = () => {
         }
       }
     } catch (error) {
-    }
+    // silenced
+  }
   };
 
   const saveRecentSearch = (query) => {
@@ -2104,7 +2107,8 @@ const SearchHub = () => {
         }
       }
     } catch (error) {
-    }
+    // silenced
+  }
     
     
     const recentItems = recentSearches
@@ -2177,6 +2181,18 @@ const SearchHub = () => {
       { syntax: '/progress', label: 'Your progress' },
       { syntax: '/weak', label: 'Weak areas' }
     ];
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    setUserName('');
+    window.location.reload();
+  };
+
+  const handleShowLoginMessage = () => {
+    setShowLoginMessage(true);
+    setTimeout(() => setShowLoginMessage(false), 3000);
   };
 
   const handleInputChange = (e) => {
@@ -2434,10 +2450,10 @@ const SearchHub = () => {
             {userName ? (
               <>
                 <button className="header-text-btn login-signup-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
-                <button className="header-text-btn login-signup-btn" onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('username'); setUserName(''); window.location.reload(); }}>Logout</button>
+                <button className="header-text-btn login-signup-btn" onClick={handleLogout}>Logout</button>
               </>
             ) : (
-              <button className="header-text-btn login-signup-btn" onClick={() => { setShowLoginMessage(true); setTimeout(() => setShowLoginMessage(false), 3000); }}>Dashboard</button>
+              <button className="header-text-btn login-signup-btn" onClick={handleShowLoginMessage}>Dashboard</button>
             )}
             <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
           </div>

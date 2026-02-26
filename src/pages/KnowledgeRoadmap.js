@@ -158,7 +158,8 @@ const fetchChatSessions = async () => {
       setChatSessions(data.sessions || []);
     }
   } catch (error) {
-      }
+    // silenced
+  }
 };
 
 const createRoadmapFromChat = async () => {
@@ -229,7 +230,8 @@ const createRoadmapFromChat = async () => {
         const state = JSON.parse(savedState);
                 return state;
       } catch (error) {
-              }
+    // silenced
+  }
     }
     return null;
   }, []);
@@ -281,7 +283,8 @@ const createRoadmapFromChat = async () => {
       } else {
               }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };

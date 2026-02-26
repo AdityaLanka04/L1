@@ -279,7 +279,8 @@ const QuestionBankDashboard = () => {
         setUploadedDocuments(data.documents || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchChatSessions = async () => {
@@ -292,7 +293,8 @@ const QuestionBankDashboard = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchUploadedSlides = async () => {
@@ -305,7 +307,8 @@ const QuestionBankDashboard = () => {
         setUploadedSlides(data.slides || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchAnalytics = async () => {
@@ -319,7 +322,8 @@ const QuestionBankDashboard = () => {
         setAnalytics(data);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };

@@ -24,7 +24,8 @@ const LearningReviewHub = () => {
         setUserName(data.first_name || 'User');
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const tools = [

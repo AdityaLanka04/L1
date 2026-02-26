@@ -148,7 +148,8 @@ const Profile = () => {
         
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setAutoSaving(false);
     }
   }, [API_URL, token, userName, profileData, autoSaving, lastSavedProfile, setLastSaved, setAutoSaving]);
@@ -237,7 +238,8 @@ const Profile = () => {
               : data.archetypeScores;
           }
         } catch (e) {
-                  }
+    // silenced
+  }
 
         setProfileData(newProfileData);
         lastSavedProfile.current = JSON.stringify(newProfileData);
@@ -249,7 +251,8 @@ const Profile = () => {
               : data.quizResponses;
             setQuizAnswers(parsedQuiz);
           } catch (e) {
-                      }
+    // silenced
+  }
         }
 
         localStorage.setItem('userProfile', JSON.stringify(newProfileData));
@@ -280,12 +283,15 @@ const Profile = () => {
             parsed[field] = value;
             localStorage.setItem('userProfile', JSON.stringify(parsed));
                       } catch (e) {
-                      }
+    // silenced
+  }
         }
 
         try {
           window.dispatchEvent(new Event('notification-settings-changed'));
-        } catch (e) {}
+        } catch (e) {
+    // silenced
+  }
         
         
         const saveData = {

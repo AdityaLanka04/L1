@@ -65,7 +65,8 @@ class WebSocketManager {
           
           this.notifyListeners(data);
         } catch (error) {
-                  }
+    // silenced
+  }
       };
 
       this.ws.onerror = (error) => {
@@ -93,7 +94,8 @@ class WebSocketManager {
         }
       };
     } catch (error) {
-          }
+    // silenced
+  }
   }
 
   disconnect() {
@@ -130,7 +132,8 @@ class WebSocketManager {
       try {
         callback(message);
       } catch (error) {
-              }
+    // silenced
+  }
     });
   }
 

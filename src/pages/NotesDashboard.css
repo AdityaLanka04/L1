@@ -1,8 +1,7 @@
-
 .notes-dashboard *,
 .notes-dashboard *::before,
 .notes-dashboard *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .notes-dashboard {

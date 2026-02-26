@@ -1,9 +1,7 @@
-
-
 .trial-modal-overlay *,
 .trial-modal-overlay *::before,
 .trial-modal-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .trial-modal-overlay {

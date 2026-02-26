@@ -1,8 +1,7 @@
-
 .toast-container *,
 .toast-container *::before,
 .toast-container *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .toast-container {

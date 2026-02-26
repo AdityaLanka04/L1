@@ -1,8 +1,7 @@
-
 .tags-panel *,
 .tags-panel *::before,
 .tags-panel *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .tags-panel {

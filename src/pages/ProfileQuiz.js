@@ -192,7 +192,8 @@ const ProfileQuiz = () => {
         }
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const generateMainSubjectSuggestions = (input) => {

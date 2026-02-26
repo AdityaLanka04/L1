@@ -1,8 +1,7 @@
-
 .database-block *,
 .database-block *::before,
 .database-block *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .database-block {

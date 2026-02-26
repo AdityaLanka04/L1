@@ -1,9 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .audio-video-notes-page *,
 .audio-video-notes-page *::before,
 .audio-video-notes-page *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 :root {
@@ -11,8 +9,8 @@
   --bg-bottom: var(--bg-secondary);
   --panel: var(--bg-secondary);
   --border: var(--border);
-  --text-primary: #EAECEF;
-  --text-secondary: #B8C0CC;
+  --text-primary: var(--text-primary);
+  --text-secondary: var(--text-secondary);
   --accent: #D7B38C;
   --glow: rgba(215, 179, 140, 0.35);
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);

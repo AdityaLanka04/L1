@@ -24,7 +24,8 @@ class GamificationService {
                 return data;
       }
     } catch (error) {
-          }
+    // silenced
+  }
   }
 
   async trackAIChat(userName) {

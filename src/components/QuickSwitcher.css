@@ -1,8 +1,7 @@
-
 .quick-switcher-overlay *,
 .quick-switcher-overlay *::before,
 .quick-switcher-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .quick-switcher-overlay {

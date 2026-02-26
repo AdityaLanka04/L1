@@ -1,8 +1,7 @@
-
 .learning-playlists-container *,
 .learning-playlists-container *::before,
 .learning-playlists-container *::after {
-  border-radius: inherit !important;
+  border-radius: inherit;
 }
 
 .learning-playlists-container {

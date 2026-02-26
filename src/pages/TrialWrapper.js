@@ -98,7 +98,8 @@ const TrialWrapper = ({ children }) => {
           if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
         }
       } catch (error) {
-              }
+    // silenced
+  }
     }, 30000);
   }, [showWarningModal, showExpiredModal]);
 
