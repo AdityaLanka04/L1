@@ -126,10 +126,12 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
     }
 
 @router.put("/update_note")
-def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
+def update_note(note_data: NoteUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     note = db.query(models.Note).filter(models.Note.id == note_data.note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    if note.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
     if note.is_deleted:
         raise HTTPException(status_code=400, detail="Cannot update a deleted note")
 
@@ -174,19 +176,23 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
     }
 
 @router.delete("/delete_note/{note_id}")
-def delete_note(note_id: int, db: Session = Depends(get_db)):
+def delete_note(note_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    if note.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
     db.delete(note)
     db.commit()
     return {"message": "Note deleted successfully"}
 
 @router.get("/get_note/{note_id}")
-def get_single_note(note_id: int, db: Session = Depends(get_db)):
+def get_single_note(note_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    if note.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
     return {
         "id": note.id,
         "title": note.title,
@@ -199,10 +205,12 @@ def get_single_note(note_id: int, db: Session = Depends(get_db)):
     }
 
 @router.put("/soft_delete_note/{note_id}")
-def soft_delete_note(note_id: int, db: Session = Depends(get_db)):
+def soft_delete_note(note_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    if note.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     note.is_deleted = True
     note.deleted_at = datetime.now(timezone.utc)
@@ -211,10 +219,12 @@ def soft_delete_note(note_id: int, db: Session = Depends(get_db)):
     return {"message": "Note moved to trash", "note_id": note.id, "status": "success"}
 
 @router.put("/restore_note/{note_id}")
-def restore_note(note_id: int, db: Session = Depends(get_db)):
+def restore_note(note_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    if note.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     note.is_deleted = False
     note.deleted_at = None
@@ -223,10 +233,12 @@ def restore_note(note_id: int, db: Session = Depends(get_db)):
     return {"message": "Note restored", "note_id": note.id, "status": "success"}
 
 @router.delete("/permanent_delete_note/{note_id}")
-def permanent_delete_note(note_id: int, db: Session = Depends(get_db)):
+def permanent_delete_note(note_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    if note.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
     db.delete(note)
     db.commit()
     return {"message": "Note permanently deleted", "status": "success"}
@@ -315,10 +327,12 @@ def create_folder(folder_data: FolderCreate, db: Session = Depends(get_db)):
     return {"id": folder.id, "name": folder.name, "color": folder.color, "status": "success"}
 
 @router.delete("/delete_folder/{folder_id}")
-def delete_folder(folder_id: int, db: Session = Depends(get_db)):
+def delete_folder(folder_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     folder = db.query(models.Folder).filter(models.Folder.id == folder_id).first()
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
+    if folder.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     db.query(models.Note).filter(models.Note.folder_id == folder_id).update({"folder_id": None})
     db.delete(folder)
@@ -327,10 +341,12 @@ def delete_folder(folder_id: int, db: Session = Depends(get_db)):
     return {"status": "success"}
 
 @router.put("/move_note_to_folder")
-def move_note_to_folder(data: NoteUpdateFolder, db: Session = Depends(get_db)):
+def move_note_to_folder(data: NoteUpdateFolder, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     note = db.query(models.Note).filter(models.Note.id == data.note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    if note.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     note.folder_id = data.folder_id
     db.commit()
@@ -338,10 +354,12 @@ def move_note_to_folder(data: NoteUpdateFolder, db: Session = Depends(get_db)):
     return {"status": "success"}
 
 @router.put("/toggle_favorite")
-def toggle_favorite(data: NoteFavorite, db: Session = Depends(get_db)):
+def toggle_favorite(data: NoteFavorite, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     note = db.query(models.Note).filter(models.Note.id == data.note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    if note.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     note.is_favorite = data.is_favorite
     db.commit()

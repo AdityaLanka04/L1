@@ -2,6 +2,7 @@
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
+import { safeInternalPath } from '../utils/sanitize';
 import gamificationService from '../services/gamificationService';
 import MathRenderer from '../components/MathRenderer';
 
@@ -1212,19 +1213,30 @@ const AIChat = ({ sharedMode = false }) => {
     
     let result = text;
     for (const [symbol, unicode] of Object.entries(symbolMap)) {
-      result = result.replace(new RegExp(symbol.replace(/[*]/g, '\\*'), 'gi'), unicode);
+      try {
+        // Escape ALL regex metacharacters, not just *
+        const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        result = result.replace(new RegExp(escaped, 'gi'), unicode);
+      } catch {
+        result = result.split(symbol).join(unicode);
+      }
     }
     return result;
   };
 
   const renderMarkdown = (text) => {
     if (!text) return '';
-    
-    
+
+
     const mathSymbols = ['∑', 'Σ', '∫', '∏', 'Π', '∮', '∯', '∰', '⨌'];
     mathSymbols.forEach(symbol => {
-      const regex = new RegExp(symbol, 'g');
-      text = text.replace(regex, `<span class="math-symbol">${symbol}</span>`);
+      try {
+        const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(escaped, 'g');
+        text = text.replace(regex, `<span class="math-symbol">${symbol}</span>`);
+      } catch {
+        text = text.split(symbol).join(`<span class="math-symbol">${symbol}</span>`);
+      }
     });
     
     
@@ -2152,10 +2164,11 @@ const AIChat = ({ sharedMode = false }) => {
                                     });
                                     if (response.ok) {
                                       const result = await response.json();
-                                      if (result.navigate_to) {
-                                        navigate(result.navigate_to);
+                                      const safePath = safeInternalPath(result.navigate_to);
+                                      if (safePath) {
+                                        navigate(safePath);
                                       } else if (result.content_id) {
-                                        navigate(`/notes/editor/${result.content_id}`);
+                                        navigate(`/notes/editor/${encodeURIComponent(result.content_id)}`);
                                       } else {
                                         navigate('/notes/my-notes');
                                       }
@@ -2181,10 +2194,11 @@ const AIChat = ({ sharedMode = false }) => {
                                     });
                                     if (response.ok) {
                                       const result = await response.json();
-                                      if (result.navigate_to) {
-                                        navigate(result.navigate_to);
+                                      const safePath = safeInternalPath(result.navigate_to);
+                                      if (safePath) {
+                                        navigate(safePath);
                                       } else if (result.content_id) {
-                                        navigate(`/flashcards?set_id=${result.content_id}`);
+                                        navigate(`/flashcards?set_id=${encodeURIComponent(result.content_id)}`);
                                       } else {
                                         navigate('/flashcards');
                                       }
@@ -2197,19 +2211,22 @@ const AIChat = ({ sharedMode = false }) => {
                                   // Navigate to quiz with auto-start params
                                   navigate(`/solo-quiz?autoStart=true&topic=${encodeURIComponent(topic)}&questionCount=10`);
                                 } else if (btn.navigate_to) {
-                                  // Handle regular navigation
-                                  if (btn.navigate_params && Object.keys(btn.navigate_params).length > 0) {
-                                    const params = new URLSearchParams();
-                                    Object.entries(btn.navigate_params).forEach(([key, value]) => {
-                                      if (Array.isArray(value)) {
-                                        params.set(key, JSON.stringify(value));
-                                      } else {
-                                        params.set(key, String(value));
-                                      }
-                                    });
-                                    navigate(`${btn.navigate_to}?${params.toString()}`);
-                                  } else {
-                                    navigate(btn.navigate_to);
+                                  // Validate AI-provided path before navigating
+                                  const safeDest = safeInternalPath(btn.navigate_to);
+                                  if (safeDest) {
+                                    if (btn.navigate_params && Object.keys(btn.navigate_params).length > 0) {
+                                      const params = new URLSearchParams();
+                                      Object.entries(btn.navigate_params).forEach(([key, value]) => {
+                                        if (Array.isArray(value)) {
+                                          params.set(key, JSON.stringify(value));
+                                        } else {
+                                          params.set(key, String(value));
+                                        }
+                                      });
+                                      navigate(`${safeDest}?${params.toString()}`);
+                                    } else {
+                                      navigate(safeDest);
+                                    }
                                   }
                                 }
                               }}

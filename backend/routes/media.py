@@ -103,7 +103,6 @@ def test_transcribe_endpoint():
         "status": "endpoint exists",
         "message": "Transcribe audio endpoint is registered",
         "groq_available": groq_api_key is not None,
-        "groq_key_prefix": groq_api_key[:10] if groq_api_key else "None",
     }
 
 @router.post("/transcribe_audio_test/")
@@ -175,9 +174,10 @@ async def process_media(
             upload_dir = "backend/uploads/media"
             os.makedirs(upload_dir, exist_ok=True)
 
+            safe_name = "".join(c for c in (file.filename or "upload") if c.isalnum() or c in (".", "_", "-"))
             file_path = os.path.join(
                 upload_dir,
-                f"{user.id}_{int(datetime.now().timestamp())}_{file.filename}",
+                f"{user.id}_{int(datetime.now().timestamp())}_{safe_name}",
             )
 
             with open(file_path, "wb") as f:
@@ -581,7 +581,8 @@ async def upload_slides(
             file_size = len(file_content)
 
             timestamp = int(datetime.now(timezone.utc).timestamp())
-            safe_filename = f"{user.id}_{timestamp}_{file.filename}"
+            clean_name = "".join(c for c in (file.filename or "upload") if c.isalnum() or c in (".", "_", "-"))
+            safe_filename = f"{user.id}_{timestamp}_{clean_name}"
             file_path = UPLOAD_DIR / safe_filename
 
             with open(file_path, "wb") as f:

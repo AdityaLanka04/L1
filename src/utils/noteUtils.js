@@ -120,8 +120,11 @@ export const formatDate = (dateString) => {
 };
 
 export const extractPlainText = (html) => {
+  if (!html) return '';
   const div = document.createElement('div');
-  div.innerHTML = html;
+  div.innerHTML = String(html)
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
   return div.textContent || div.innerText || '';
 };
 

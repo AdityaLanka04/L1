@@ -58,10 +58,15 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
       filtered = filtered.filter(n => new Date(n.updated_at) <= new Date(dateTo));
     }
 
-    
-    const searchPattern = useRegex 
-      ? new RegExp(searchQuery, caseSensitive ? 'g' : 'gi')
-      : null;
+    let searchPattern = null;
+    if (useRegex) {
+      try {
+        searchPattern = new RegExp(searchQuery, caseSensitive ? 'g' : 'gi');
+      } catch {
+        setResults([]);
+        return;
+      }
+    }
 
     filtered = filtered.filter(note => {
       

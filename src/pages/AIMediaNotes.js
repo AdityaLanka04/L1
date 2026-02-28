@@ -8,6 +8,7 @@ import {
 import './AIMediaNotes.css';
 import './AIMediaNotesConvert.css';
 import { API_URL } from '../config';
+import { sanitizeHtml } from '../utils/sanitize';
 import ImportExportModal from '../components/ImportExportModal';
 
 const AIMediaNotes = () => {
@@ -733,7 +734,7 @@ const AIMediaNotes = () => {
                       <div className="mn-notes-panel">
                         <div
                           className="mn-notes-output"
-                          dangerouslySetInnerHTML={{ __html: results.notes.content }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(results.notes.content) }}
                         />
                       </div>
                     </div>

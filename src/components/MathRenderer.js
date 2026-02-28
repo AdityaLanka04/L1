@@ -67,7 +67,11 @@ const MathRenderer = memo(({ content, className = '' }) => {
     if (!containerRef.current || !content) return;
 
     renderedRef.current = false;
-    containerRef.current.innerHTML = content;
+    // Strip script tags and on* event handlers before injecting HTML
+    const sanitized = content
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
+    containerRef.current.innerHTML = sanitized;
 
     loadKaTeX()
       .then(() => {
@@ -85,7 +89,7 @@ const MathRenderer = memo(({ content, className = '' }) => {
             throwOnError: false,
             errorColor: '#f59e0b',
             strict: false,
-            trust: true,
+            trust: false,
             macros: {
               "\\R": "\\mathbb{R}",
               "\\N": "\\mathbb{N}",

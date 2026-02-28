@@ -5,6 +5,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import './SharedItemViewer.css';
 import { API_URL } from '../config';
+import { sanitizeHtml } from '../utils/sanitize';
 const SharedItemViewer = () => {
   const navigate = useNavigate();
   const { contentType, contentId } = useParams();
@@ -223,7 +224,7 @@ const SharedItemViewer = () => {
                     </div>
                     <div 
                       className="message-content"
-                      dangerouslySetInnerHTML={{ __html: msg.ai_response }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.ai_response) }}
                     />
                   </div>
                 </div>
@@ -271,7 +272,7 @@ const SharedItemViewer = () => {
                   <>
                     <div 
                       className="note-display"
-                      dangerouslySetInnerHTML={{ __html: content.content }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.content) }}
                     />
                     <button 
                       className="edit-btn"

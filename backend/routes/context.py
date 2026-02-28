@@ -110,17 +110,35 @@ def _parse_ai_topics(raw: str) -> list[str]:
             topics = [line for line in lines if line]
     return [str(t).strip() for t in topics if str(t).strip()]
 
+_BLOCKED_HOSTS = {
+    "localhost", "127.0.0.1", "::1", "[::1]",
+    "metadata.google.internal", "metadata.goog",
+    "169.254.169.254",   # AWS/GCP/Azure instance metadata
+    "100.100.100.200",   # Alibaba Cloud metadata
+    "fd00:ec2::254",     # AWS IPv6 metadata
+}
+
 def _is_safe_url(url: str) -> bool:
+    if not url or len(url) > 2048:
+        return False
     try:
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
             return False
         host = parsed.hostname or ""
-        if host in {"localhost", "127.0.0.1", "::1"}:
+        if not host:
+            return False
+        host_lower = host.lower()
+        if host_lower in _BLOCKED_HOSTS:
+            return False
+        if host_lower == "localhost" or host_lower.endswith(".localhost"):
+            return False
+        if host_lower.endswith(".internal") or host_lower.endswith(".local"):
             return False
         try:
             ip = ipaddress.ip_address(host)
-            if ip.is_private or ip.is_loopback or ip.is_reserved or ip.is_link_local:
+            if (ip.is_private or ip.is_loopback or ip.is_reserved
+                    or ip.is_link_local or ip.is_multicast):
                 return False
         except ValueError:
             pass
@@ -151,7 +169,8 @@ def _download_url(url: str) -> tuple[bytes, str, str]:
         if resp.status_code in (401, 403, 406):
             resp = requests.get(url, stream=True, timeout=30, headers={**_DEFAULT_HEADERS, "Referer": url})
     except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {e}")
+        logger.warning(f"URL fetch failed: {e}")
+        raise HTTPException(status_code=400, detail="Failed to fetch the URL. The resource may be unavailable or blocked.")
 
     if resp.status_code >= 400:
         if resp.status_code == 403:

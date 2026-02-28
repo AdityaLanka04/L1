@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { sanitizeHtml } from '../utils/sanitize';
 import { createPortal } from 'react-dom';
 import {
   Type, Heading1, Heading2, Heading3, List, ListOrdered,
@@ -109,11 +110,12 @@ const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
         setIsRendering(true);
         mermaidRef.current.innerHTML = '';
         const timestamp = Date.now();
-        const randomNum = Math.floor(Math.random() * 10000);
-        const id = `mermaid_${timestamp}_${randomNum}`;
+        const randomArr = new Uint32Array(1);
+        crypto.getRandomValues(randomArr);
+        const id = `mermaid_${timestamp}_${randomArr[0]}`;
         const { svg } = await mermaid.render(id, block.content);
         if (cancelled) return;
-        mermaidRef.current.innerHTML = svg;
+        mermaidRef.current.innerHTML = sanitizeHtml(svg);
         setRenderedSvg(svg);
       } catch (error) {
         if (cancelled) return;
@@ -916,7 +918,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         blockRefs.current[block.id] = el;
         
         if (el && el.innerHTML !== block.content) {
-          el.innerHTML = block.content;
+          el.innerHTML = sanitizeHtml(block.content);
         }
       },
       contentEditable: !readOnly && block.type !== 'divider',

@@ -11,10 +11,15 @@ backend/.chroma_data/
 # Node
 node_modules/
 
-# Env
+# Env files - never commit real secrets
 venv/
 .venv/
 .env
+.env.local
+.env.*.local
+backend/.env
+backend/.env.local
+backend/.env.production.local
 
 # Admin pages with sensitive data
 src/pages/AdminAnalytics.js
@@ -23,5 +28,4 @@ src/pages/AdminAnalytics.js
 .DS_Store
 start.log
 .env.aws
-.env
 backend/Miniforge3-*.sh

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { X, Copy, Check, Link as LinkIcon, Code, FileText, Share2 } from 'lucide-react';
 import './PlaylistShareModal.css';
+import { sanitizeUrl } from '../utils/sanitize';
 
 const buildShareContent = (playlist, format, shareUrl) => {
   const items = playlist.items || [];
@@ -28,7 +29,7 @@ const buildShareContent = (playlist, format, shareUrl) => {
           const type = item.item_type ? item.item_type.replace('_', ' ') : 'item';
           const duration = item.duration_minutes ? ` • ${item.duration_minutes} min` : '';
           const platform = item.platform ? ` • ${item.platform}` : '';
-          const link = item.url ? ` <a href=\"${item.url}\">link</a>` : '';
+          const link = item.url ? ` <a href="${sanitizeUrl(item.url)}">link</a>` : '';
           return `<li><strong>${item.title || 'Untitled'}</strong> (${type}${platform}${duration})${link}</li>`;
         }).join('')
       : '<li>No items yet.</li>';

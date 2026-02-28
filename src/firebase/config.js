@@ -4,13 +4,13 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCsAiyiy-O83HiPKEr_p49GcLcoYAXuP5M",
-  authDomain: "brainwave-a65dc.firebaseapp.com",
-  projectId: "brainwave-a65dc",
-  storageBucket: "brainwave-a65dc.firebasestorage.app",
-  messagingSenderId: "110579847566",
-  appId: "1:110579847566:web:0079cdf4287fc0599454df",
-  measurementId: "G-E8BGS4D425"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);

@@ -228,10 +228,10 @@ allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://ce
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"https://(l1-.*\.vercel\.app|.*cerbyl\.com)$",
+    allow_origin_regex=r"https://l1-[a-zA-Z0-9-]+\.vercel\.app$",
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-User-Id", "X-Requested-With"],
 )
 
 try:

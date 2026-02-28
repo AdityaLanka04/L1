@@ -9,7 +9,7 @@ from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 import models
-from deps import call_ai, get_db, get_user_by_email, get_user_by_username, unified_ai
+from deps import call_ai, get_current_user, get_db, get_user_by_email, get_user_by_username, unified_ai
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["flashcards"])
@@ -46,10 +46,12 @@ def get_flashcards(user_id: str = Query(...), db: Session = Depends(get_db)):
     return result
 
 @router.get("/get_flashcards_in_set")
-def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db)):
+def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     fs = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == set_id).first()
     if not fs:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
+    if fs.user_id != current_user.id and not getattr(fs, "is_public", False):
+        raise HTTPException(status_code=403, detail="Access denied")
 
     cards = db.query(models.Flashcard).filter(models.Flashcard.set_id == set_id).all()
 

@@ -19,6 +19,7 @@ import {
   ArrowLeft, Layout, Filter, Palette, Command, Zap
 } from 'lucide-react';
 import { API_URL } from '../config';
+import { sanitizeHtml, escapeHtml } from '../utils/sanitize';
 import gamificationService from '../services/gamificationService';
 import noteAgentService from '../services/noteAgentService';
 import ImportExportModal from '../components/ImportExportModal';
@@ -2438,17 +2439,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
       <html>
         <head>
           <meta charset="UTF-8">
-          <title>${noteTitle || 'Note'}</title>
+          <title>${escapeHtml(noteTitle || 'Note')}</title>
           ${styles}
         </head>
         <body>
-          <h1>${noteTitle || 'Untitled Note'}</h1>
+          <h1>${escapeHtml(noteTitle || 'Untitled Note')}</h1>
           <div class="metadata">
-            Last edited: ${new Date(selectedNote.updated_at).toLocaleString()}<br>
+            Last edited: ${escapeHtml(new Date(selectedNote.updated_at).toLocaleString())}<br>
             ${wordCount} words - ${charCount} characters
           </div>
           <div class="content">
-            ${noteContent}
+            ${sanitizeHtml(noteContent)}
           </div>
         </body>
       </html>
@@ -3510,8 +3511,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </label>
                 <div 
                   className={`ai-suggestion-text suggested ${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? 'explanation-only' : ''}`}
-                  dangerouslySetInnerHTML={{ 
-                    __html: `<div class="${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? '' : 'diff-added-content'}">${aiSuggestion.suggested}</div>` 
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHtml(`<div class="${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? '' : 'diff-added-content'}">${aiSuggestion.suggested}</div>`)
                   }}
                 />
               </div>

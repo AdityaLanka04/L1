@@ -1,6 +1,8 @@
 import json
 import logging
 import re
+import threading
+from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
@@ -36,6 +38,24 @@ from deps import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["auth"])
+
+# ── In-memory brute-force protection ──────────────────────────────────────────
+_auth_attempts: dict = defaultdict(list)
+_auth_lock = threading.Lock()
+
+def _check_auth_rate_limit(request: Request, max_attempts: int = 10, window_seconds: int = 60) -> None:
+    ip = (request.client.host if request.client else None) or "unknown"
+    now = datetime.now(timezone.utc).timestamp()
+    cutoff = now - window_seconds
+    with _auth_lock:
+        _auth_attempts[ip] = [t for t in _auth_attempts[ip] if t > cutoff]
+        if len(_auth_attempts[ip]) >= max_attempts:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many requests. Please wait before trying again.",
+                headers={"Retry-After": str(window_seconds)},
+            )
+        _auth_attempts[ip].append(now)
 
 class Token(BaseModel):
     access_token: str
@@ -131,7 +151,8 @@ def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get
         return {"questions_today": 0, "daily_goal": 20, "percentage": 0, "streak": 0}
 
 @router.post("/register")
-async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
+async def register(request: Request, payload: RegisterPayload, db: Session = Depends(get_db)):
+    _check_auth_rate_limit(request)
     logger.info(f"Registering user: {payload.username}")
 
     if len(payload.password) < 6:
@@ -198,7 +219,8 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
     raise HTTPException(status_code=500, detail="Registration failed after retries")
 
 @router.post("/token", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    _check_auth_rate_limit(request)
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
@@ -210,7 +232,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/token_form")
-async def login_form(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+async def login_form(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+    _check_auth_rate_limit(request)
     user = authenticate_user(db, username, password)
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
@@ -222,7 +245,8 @@ async def login_form(username: str = Form(...), password: str = Form(...), db: S
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/google-auth")
-async def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
+async def google_auth(request: Request, auth_data: GoogleAuth, db: Session = Depends(get_db)):
+    _check_auth_rate_limit(request)
     try:
         try:
             url = f"https://oauth2.googleapis.com/tokeninfo?id_token={auth_data.token}"
@@ -273,10 +297,11 @@ async def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
         }
     except Exception as e:
         logger.error(f"Google auth error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Authentication failed. Please try again.")
 
 @router.post("/firebase-auth")
 async def firebase_authentication(request: Request, db: Session = Depends(get_db)):
+    _check_auth_rate_limit(request)
     from database import DATABASE_URL as db_url
     max_retries = 2
     for attempt in range(max_retries):
@@ -364,7 +389,7 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                     logger.error(f"Failed to fix sequence: {str(fix_error)}")
 
             logger.error(f"Firebase auth error: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")
+            raise HTTPException(status_code=500, detail="Authentication failed. Please try again.")
 
     raise HTTPException(status_code=500, detail="Authentication failed after retries")
 
@@ -617,7 +642,7 @@ async def save_archetype_profile(
 
     except Exception as e:
         logger.error(f"Error saving archetype: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to save archetype: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to save profile. Please try again.")
 
 @router.get("/get_comprehensive_profile")
 async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -673,7 +698,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
 
     except Exception as e:
         logger.error(f"Error getting profile: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to load profile. Please try again.")
 
 @router.post("/update_comprehensive_profile")
 async def update_comprehensive_profile(
@@ -744,7 +769,7 @@ async def update_comprehensive_profile(
     except Exception as e:
         logger.error(f"Error updating profile: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to update profile. Please try again.")
 
 @router.post("/suggest_subjects")
 async def suggest_subjects(
@@ -921,4 +946,4 @@ Keep it brief and friendly."""
     except Exception as e:
         logger.error(f"Error saving complete profile: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to save profile. Please try again.")
