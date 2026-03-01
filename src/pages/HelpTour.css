@@ -1,11 +1,9 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .help-tour-overlay *,
 .help-tour-overlay *::before,
 .help-tour-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
-/* Help Tour Overlay */
 .help-tour-overlay {
   position: fixed;
   top: 0;
@@ -26,7 +24,6 @@
   pointer-events: auto;
 }
 
-/* Spotlight around target element */
 .help-tour-spotlight {
   position: fixed;
   border: 3px solid var(--accent, #E7B768);
@@ -39,7 +36,6 @@
   z-index: 10001;
 }
 
-/* Tooltip */
 .help-tour-tooltip {
   position: fixed;
   background: var(--panel, var(--bg-secondary));
@@ -66,13 +62,13 @@
   font-weight: 600;
   color: var(--accent, #E7B768);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .help-tour-close {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #B8C0CC);
+  color: var(--text-secondary, var(--text-secondary));
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -100,7 +96,7 @@
 .help-tour-description {
   font-size: 14px;
   line-height: 1.6;
-  color: var(--text-secondary, #B8C0CC);
+  color: var(--text-secondary, var(--text-secondary));
   margin: 0;
 }
 
@@ -125,7 +121,7 @@
 .help-tour-skip {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #B8C0CC);
+  color: var(--text-secondary, var(--text-secondary));
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -134,7 +130,7 @@
 }
 
 .help-tour-skip:hover {
-  color: var(--text-primary, #EAECEF);
+  color: var(--text-primary, var(--text-primary));
 }
 
 .help-tour-nav {
@@ -153,13 +149,13 @@
   cursor: pointer;
   transition: all 0.2s;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .help-tour-prev {
   background: transparent;
   border: 1px solid var(--border, var(--border));
-  color: var(--text-secondary, #B8C0CC);
+  color: var(--text-secondary, var(--text-secondary));
 }
 
 .help-tour-prev:hover:not(:disabled) {
@@ -206,7 +202,6 @@
   background: color-mix(in srgb, var(--accent, #E7B768) 50%, transparent);
 }
 
-/* Help Button */
 .help-button {
   position: fixed !important;
   bottom: 24px !important;
@@ -235,7 +230,6 @@
     0 0 20px rgba(231, 183, 104, 0.3);
 }
 
-/* Responsive */
 @media (max-width: 480px) {
   .help-tour-tooltip {
     width: calc(100vw - 32px);

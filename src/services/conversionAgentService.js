@@ -1,62 +1,100 @@
-/**
- * Advanced Conversion Agent Service
- * Frontend service for specialized content conversion endpoints
- * Provides comprehensive conversion between educational formats
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
 class ConversionAgentService {
   constructor() {
-    // API_URL already includes /api, so just add the agents/convert path
-    this.baseUrl = `${API_URL}/agents/convert`;
+    
+    this.baseUrl = `${API_URL}/import_export`;
+    this.chatConvertUrl = `${API_URL}/convert_chat_to_note_content/`;
+    this.createNoteUrl = `${API_URL}/create_note`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
     };
   }
 
-  /**
-   * Get headers for file upload
-   */
+  
   getFileHeaders() {
     const token = getAuthToken();
     return {
-      'Authorization': `Bearer ${token}`
-      // Don't set Content-Type for FormData - browser will set it with boundary
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      
     };
   }
 
-  /**
-   * Generic convert function for backward compatibility
-   * Routes to appropriate conversion method based on sourceType and targetType
-   */
+  normalizeResult(data) {
+    const hasSuccessFlag = typeof data?.success === 'boolean';
+    const hasStatusFlag = typeof data?.status === 'string';
+    const success = hasSuccessFlag
+      ? data.success
+      : hasStatusFlag
+        ? data.status === 'success' || data.status === 'fallback'
+        : true;
+
+    const result = data?.result !== undefined ? data.result : data;
+
+    return {
+      ...(data || {}),
+      success,
+      result
+    };
+  }
+
+  async fetchJson(url, options) {
+    const response = await fetch(url, options);
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const message = data.error || data.detail || `Request failed: ${response.status}`;
+      const error = new Error(message);
+      error.status = response.status;
+      error.data = data;
+      throw error;
+    }
+
+    return data;
+  }
+
+  downloadFile(content, filename, mimeType = 'text/plain') {
+    try {
+      const blob = new Blob([content], { type: mimeType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename || 'download';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  }
+
+  
   async convert(params) {
-    const { 
-      sourceType, 
-      targetType, 
-      destinationType, // Alternative name for targetType
-      userId, 
-      content, 
+    const {
+      sourceType,
+      targetType,
+      destinationType,
+      userId,
+      content,
       sourceIds,
-      options = {} 
+      options = {}
     } = params;
 
-    // Use targetType or destinationType (for backward compatibility)
     const target = targetType || destinationType;
 
     if (!target) {
       throw new Error('targetType or destinationType is required');
     }
 
-    // Merge options with top-level params
     const mergedOptions = {
       ...options,
       cardCount: params.cardCount || options.cardCount,
@@ -65,11 +103,12 @@ class ConversionAgentService {
       noteIds: sourceIds || options.noteIds || [],
       flashcardIds: sourceIds || options.flashcardIds || [],
       questionIds: sourceIds || options.questionIds || [],
+      mediaIds: sourceIds || options.mediaIds || [],
+      playlistIds: sourceIds || options.playlistIds || [],
       formatStyle: params.formatStyle || options.formatStyle,
       depthLevel: params.depthLevel || options.depthLevel
     };
 
-    // Route to appropriate conversion method
     if (sourceType === 'notes' && target === 'flashcards') {
       return this.convertNotesToFlashcards({
         userId,
@@ -98,8 +137,8 @@ class ConversionAgentService {
     if (sourceType === 'flashcards' && target === 'notes') {
       return this.convertFlashcardsToNotes({
         userId,
-        flashcardIds: mergedOptions.flashcardIds,
-        noteFormat: mergedOptions.noteFormat || 'structured',
+        setIds: mergedOptions.flashcardIds,
+        noteFormat: mergedOptions.noteFormat || mergedOptions.formatStyle || 'structured',
         includeExamples: mergedOptions.includeExamples,
         sessionId: mergedOptions.sessionId
       });
@@ -108,7 +147,7 @@ class ConversionAgentService {
     if (sourceType === 'flashcards' && target === 'questions') {
       return this.convertFlashcardsToQuestions({
         userId,
-        flashcardIds: mergedOptions.flashcardIds,
+        setIds: mergedOptions.flashcardIds,
         questionCount: mergedOptions.questionCount || 5,
         questionTypes: mergedOptions.questionTypes || ['multiple_choice'],
         difficulty: mergedOptions.difficulty || 'medium',
@@ -119,7 +158,7 @@ class ConversionAgentService {
     if (sourceType === 'questions' && target === 'flashcards') {
       return this.convertQuestionsToFlashcards({
         userId,
-        questionIds: mergedOptions.questionIds,
+        setIds: mergedOptions.questionIds,
         cardCount: mergedOptions.cardCount || 10,
         includeAnswers: mergedOptions.includeAnswers,
         includeExplanations: mergedOptions.includeExplanations,
@@ -130,8 +169,8 @@ class ConversionAgentService {
     if (sourceType === 'questions' && target === 'notes') {
       return this.convertQuestionsToNotes({
         userId,
-        questionIds: mergedOptions.questionIds,
-        noteFormat: mergedOptions.noteFormat || 'study_guide',
+        setIds: mergedOptions.questionIds,
+        noteFormat: mergedOptions.noteFormat || mergedOptions.formatStyle || 'study_guide',
         includeAnswers: mergedOptions.includeAnswers,
         includeExplanations: mergedOptions.includeExplanations,
         sessionId: mergedOptions.sessionId
@@ -143,15 +182,29 @@ class ConversionAgentService {
         userId,
         chatHistory: content,
         chatId: mergedOptions.chatId,
-        noteFormat: mergedOptions.noteFormat || 'summary',
+        sessionIds: mergedOptions.sessionIds || mergedOptions.chatIds || mergedOptions.noteIds || sourceIds,
+        noteFormat: mergedOptions.noteFormat || mergedOptions.formatStyle || 'summary',
         includeQuestions: mergedOptions.includeQuestions,
         sessionId: mergedOptions.sessionId
       });
     }
 
+    if (sourceType === 'media' && target === 'questions') {
+      return this.convertMediaToQuestions({
+        userId,
+        mediaIds: mergedOptions.mediaIds,
+        questionCount: mergedOptions.questionCount || 5,
+        questionTypes: mergedOptions.questionTypes || ['multiple_choice'],
+        difficulty: mergedOptions.difficulty || 'medium',
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
     if (sourceType === 'playlist' && target === 'notes') {
+      const playlistId = Array.isArray(mergedOptions.playlistIds) ? mergedOptions.playlistIds[0] : mergedOptions.playlistIds;
       return this.convertPlaylistToNotes({
         userId,
+        playlistId: playlistId || mergedOptions.playlistId,
         playlistUrl: content,
         playlistItems: mergedOptions.playlistItems || [],
         noteFormat: mergedOptions.noteFormat || 'structured',
@@ -161,8 +214,10 @@ class ConversionAgentService {
     }
 
     if (sourceType === 'playlist' && target === 'flashcards') {
+      const playlistId = Array.isArray(mergedOptions.playlistIds) ? mergedOptions.playlistIds[0] : mergedOptions.playlistIds;
       return this.convertPlaylistToFlashcards({
         userId,
+        playlistId: playlistId || mergedOptions.playlistId,
         playlistUrl: content,
         playlistItems: mergedOptions.playlistItems || [],
         cardCount: mergedOptions.cardCount || 10,
@@ -172,11 +227,10 @@ class ConversionAgentService {
       });
     }
 
-    // Handle export formats
     if (target === 'csv' && sourceType === 'flashcards') {
       return this.exportFlashcardsToCSV({
         userId,
-        flashcardIds: mergedOptions.flashcardIds,
+        setIds: mergedOptions.flashcardIds,
         includeMetadata: mergedOptions.includeMetadata,
         delimiter: mergedOptions.delimiter,
         sessionId: mergedOptions.sessionId
@@ -186,7 +240,7 @@ class ConversionAgentService {
     if (target === 'pdf' && sourceType === 'questions') {
       return this.exportQuestionsToPDF({
         userId,
-        questionIds: mergedOptions.questionIds,
+        setIds: mergedOptions.questionIds,
         includeAnswers: mergedOptions.includeAnswers,
         includeExplanations: mergedOptions.includeExplanations,
         title: mergedOptions.title,
@@ -198,393 +252,323 @@ class ConversionAgentService {
     throw new Error(`Unsupported conversion: ${sourceType} to ${target}`);
   }
 
-  /**
-   * Convert notes to flashcards
-   */
+  
   async convertNotesToFlashcards(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/notes-to-flashcards`, {
+      const data = await this.fetchJson(`${this.baseUrl}/notes_to_flashcards`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          user_id: params.userId,
-          notes_content: params.notesContent,
-          note_ids: params.noteIds || [],
-          card_count: params.cardCount || 10,
-          difficulty: params.difficulty || 'medium',
-          include_definitions: params.includeDefinitions !== false,
-          include_examples: params.includeExamples !== false,
-          session_id: params.sessionId || null
+          note_ids: params.noteIds || params.note_ids || [],
+          card_count: params.cardCount || params.card_count || 10,
+          difficulty: params.difficulty || 'medium'
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to convert notes to flashcards: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Convert notes to flashcards error:', error);
       throw error;
     }
   }
 
-  /**
-   * Convert notes to questions
-   */
+  
   async convertNotesToQuestions(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/notes-to-questions`, {
+      const data = await this.fetchJson(`${this.baseUrl}/notes_to_questions`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          user_id: params.userId,
-          notes_content: params.notesContent,
-          note_ids: params.noteIds || [],
-          question_count: params.questionCount || 5,
-          question_types: params.questionTypes || ['multiple_choice', 'short_answer'],
-          difficulty: params.difficulty || 'medium',
-          session_id: params.sessionId || null
+          note_ids: params.noteIds || params.note_ids || [],
+          question_count: params.questionCount || params.question_count || 5,
+          difficulty: params.difficulty || 'medium'
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to convert notes to questions: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Convert notes to questions error:', error);
       throw error;
     }
   }
 
-  /**
-   * Convert flashcards to notes
-   */
+  
   async convertFlashcardsToNotes(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/flashcards-to-notes`, {
+      const data = await this.fetchJson(`${this.baseUrl}/flashcards_to_notes`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          user_id: params.userId,
-          flashcard_ids: params.flashcardIds || [],
-          note_format: params.noteFormat || 'structured', // 'structured', 'summary', 'detailed'
-          include_examples: params.includeExamples !== false,
-          session_id: params.sessionId || null
+          set_ids: params.setIds || params.flashcardIds || params.set_ids || [],
+          format_style: params.noteFormat || params.formatStyle || params.format_style || 'structured'
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to convert flashcards to notes: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Convert flashcards to notes error:', error);
       throw error;
     }
   }
 
-  /**
-   * Convert flashcards to questions
-   */
+  
   async convertFlashcardsToQuestions(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/flashcards-to-questions`, {
+      const data = await this.fetchJson(`${this.baseUrl}/flashcards_to_questions`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          user_id: params.userId,
-          flashcard_ids: params.flashcardIds || [],
-          question_count: params.questionCount || 5,
-          question_types: params.questionTypes || ['multiple_choice'],
-          difficulty: params.difficulty || 'medium',
-          session_id: params.sessionId || null
+          set_ids: params.setIds || params.flashcardIds || params.set_ids || [],
+          question_count: params.questionCount || params.question_count
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to convert flashcards to questions: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Convert flashcards to questions error:', error);
       throw error;
     }
   }
 
-  /**
-   * Convert questions to flashcards
-   */
+  
   async convertQuestionsToFlashcards(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/questions-to-flashcards`, {
+      const data = await this.fetchJson(`${this.baseUrl}/questions_to_flashcards`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          user_id: params.userId,
-          question_ids: params.questionIds || [],
-          card_count: params.cardCount || 10,
-          include_answers: params.includeAnswers !== false,
-          include_explanations: params.includeExplanations !== false,
-          session_id: params.sessionId || null
+          set_ids: params.setIds || params.questionIds || params.set_ids || [],
+          card_count: params.cardCount || params.card_count
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to convert questions to flashcards: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Convert questions to flashcards error:', error);
       throw error;
     }
   }
 
-  /**
-   * Convert questions to notes
-   */
+  
   async convertQuestionsToNotes(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/questions-to-notes`, {
+      const data = await this.fetchJson(`${this.baseUrl}/questions_to_notes`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          user_id: params.userId,
-          question_ids: params.questionIds || [],
-          note_format: params.noteFormat || 'study_guide', // 'study_guide', 'summary', 'detailed'
-          include_answers: params.includeAnswers !== false,
-          include_explanations: params.includeExplanations !== false,
-          session_id: params.sessionId || null
+          set_ids: params.setIds || params.questionIds || params.set_ids || [],
+          format_style: params.noteFormat || params.formatStyle || params.format_style
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to convert questions to notes: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Convert questions to notes error:', error);
       throw error;
     }
   }
 
-  /**
-   * Convert media to questions (video, audio, images)
-   */
+  
   async convertMediaToQuestions(params) {
     try {
-      const formData = new FormData();
-      formData.append('user_id', params.userId);
-      formData.append('media_type', params.mediaType); // 'video', 'audio', 'image'
-      formData.append('question_count', params.questionCount || 5);
-      formData.append('question_types', JSON.stringify(params.questionTypes || ['multiple_choice']));
-      formData.append('difficulty', params.difficulty || 'medium');
-      
-      if (params.mediaFile) {
-        formData.append('media_file', params.mediaFile);
-      }
-      if (params.mediaUrl) {
-        formData.append('media_url', params.mediaUrl);
-      }
-      if (params.sessionId) {
-        formData.append('session_id', params.sessionId);
-      }
-
-      const response = await fetch(`${this.baseUrl}/media-to-questions`, {
+      const data = await this.fetchJson(`${this.baseUrl}/media_to_questions`, {
         method: 'POST',
-        headers: this.getFileHeaders(),
-        body: formData
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          media_ids: params.mediaIds || params.media_ids || [],
+          question_count: params.questionCount || params.question_count || 5
+        })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to convert media to questions: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Convert media to questions error:', error);
       throw error;
     }
   }
 
-  /**
-   * Convert playlist to notes (YouTube playlists, etc.)
-   */
+  
   async convertPlaylistToNotes(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/playlist-to-notes`, {
+      const data = await this.fetchJson(`${this.baseUrl}/playlist_to_notes`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          user_id: params.userId,
-          playlist_url: params.playlistUrl,
-          playlist_items: params.playlistItems || [],
-          note_format: params.noteFormat || 'structured', // 'structured', 'summary', 'detailed'
-          include_timestamps: params.includeTimestamps !== false,
-          session_id: params.sessionId || null
+          playlist_id: params.playlistId || params.playlist_id
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to convert playlist to notes: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Convert playlist to notes error:', error);
       throw error;
     }
   }
 
-  /**
-   * Convert playlist to flashcards
-   */
+  
   async convertPlaylistToFlashcards(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/playlist-to-flashcards`, {
+      const data = await this.fetchJson(`${this.baseUrl}/playlist_to_flashcards`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          user_id: params.userId,
-          playlist_url: params.playlistUrl,
-          playlist_items: params.playlistItems || [],
-          card_count: params.cardCount || 10,
-          difficulty: params.difficulty || 'medium',
-          include_definitions: params.includeDefinitions !== false,
-          session_id: params.sessionId || null
+          playlist_id: params.playlistId || params.playlist_id,
+          card_count: params.cardCount || params.card_count || 15
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to convert playlist to flashcards: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Convert playlist to flashcards error:', error);
       throw error;
     }
   }
 
-  /**
-   * Convert chat conversation to notes
-   */
+  
   async convertChatToNotes(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/chat-to-notes`, {
+      const sessionIds = params.sessionIds || params.session_ids || (params.chatId ? [params.chatId] : null);
+      if (sessionIds && sessionIds.length > 0) {
+        return await this.chatToNotes(params.userId, sessionIds, {
+          formatStyle: params.noteFormat || params.formatStyle,
+          title: params.title
+        });
+      }
+
+      if (!params.chatHistory) {
+        throw new Error('chatHistory or sessionIds is required');
+      }
+
+      const title = params.title || 'Chat Notes';
+      const data = await this.fetchJson(this.createNoteUrl, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
           user_id: params.userId,
-          chat_history: params.chatHistory,
-          chat_id: params.chatId || null,
-          note_format: params.noteFormat || 'summary', // 'summary', 'detailed', 'key_points'
-          include_questions: params.includeQuestions !== false,
-          session_id: params.sessionId || null
+          title,
+          content: params.chatHistory
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to convert chat to notes: ${response.status}`);
-      }
+      const resultPayload = {
+        note_id: data.id,
+        note_title: data.title,
+        content: data.content,
+        status: data.status || 'success'
+      };
 
-      return await response.json();
+      return this.normalizeResult(resultPayload);
     } catch (error) {
       console.error('Convert chat to notes error:', error);
       throw error;
     }
   }
 
-  /**
-   * Helper method: Convert chat sessions to notes (backward compatibility)
-   * @param {string} userId - User ID
-   * @param {Array} sessionIds - Array of chat session IDs
-   * @param {Object} options - Conversion options
-   */
+  
   async chatToNotes(userId, sessionIds, options = {}) {
     try {
-      // Call the backend endpoint directly with session IDs
-      const response = await fetch(`${this.baseUrl}/chat-to-notes`, {
+      const sessions = Array.isArray(sessionIds) ? sessionIds : [sessionIds];
+
+      if (!sessions.length) {
+        throw new Error('sessionIds is required');
+      }
+
+      const sections = [];
+      for (const sessionId of sessions) {
+        const formData = new FormData();
+        formData.append('chat_id', sessionId);
+        formData.append('user_id', userId);
+
+        const response = await fetch(this.chatConvertUrl, {
+          method: 'POST',
+          headers: this.getFileHeaders(),
+          body: formData
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          const message = data.error || data.detail || `Failed to convert chat session ${sessionId}`;
+          throw new Error(message);
+        }
+
+        if (data.content) {
+          sections.push({ sessionId, content: data.content, status: data.status });
+        }
+      }
+
+      if (!sections.length) {
+        return this.normalizeResult({
+          success: false,
+          error: 'No chat content returned'
+        });
+      }
+
+      const title = options.title || (sessions.length > 1 ? `Chat Notes (${sessions.length} Sessions)` : 'Chat Notes');
+      const combinedContent = sections
+        .map((section, index) => {
+          if (sessions.length === 1) {
+            return section.content;
+          }
+          return `<h2>Chat Session ${index + 1}</h2>\n${section.content}`;
+        })
+        .join('\n\n');
+
+      const noteData = await this.fetchJson(this.createNoteUrl, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
           user_id: userId,
-          session_ids: sessionIds,
-          format_style: options.formatStyle || 'structured',
-          session_id: options.sessionId || null
+          title,
+          content: combinedContent
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to convert chat to notes: ${response.status}`);
-      }
+      const resultPayload = {
+        note_id: noteData.id,
+        note_title: noteData.title,
+        content: noteData.content,
+        session_ids: sessions,
+        status: noteData.status || 'success'
+      };
 
-      return await response.json();
+      return this.normalizeResult(resultPayload);
     } catch (error) {
       console.error('Chat to notes helper error:', error);
       throw error;
     }
   }
 
-  /**
-   * Export flashcards to CSV format
-   */
+  
   async exportFlashcardsToCSV(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/export-flashcards-csv`, {
+      const data = await this.fetchJson(`${this.baseUrl}/export_flashcards_csv`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          user_id: params.userId,
-          flashcard_ids: params.flashcardIds || [],
-          include_metadata: params.includeMetadata !== false,
-          delimiter: params.delimiter || ',',
-          session_id: params.sessionId || null
+          set_ids: params.setIds || params.flashcardIds || params.set_ids || []
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to export flashcards to CSV: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Export flashcards to CSV error:', error);
       throw error;
     }
   }
 
-  /**
-   * Export questions to PDF format
-   */
+  
   async exportQuestionsToPDF(params) {
     try {
-      const response = await fetch(`${this.baseUrl}/export-questions-pdf`, {
+      const data = await this.fetchJson(`${this.baseUrl}/export_questions_pdf`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          user_id: params.userId,
-          question_ids: params.questionIds || [],
-          include_answers: params.includeAnswers !== false,
-          include_explanations: params.includeExplanations !== false,
-          title: params.title || 'Question Bank Export',
-          format: params.format || 'standard', // 'standard', 'compact', 'detailed'
-          session_id: params.sessionId || null
+          set_ids: params.setIds || params.questionIds || params.set_ids || []
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to export questions to PDF: ${response.status}`);
-      }
-
-      return await response.json();
+      return this.normalizeResult(data);
     } catch (error) {
       console.error('Export questions to PDF error:', error);
       throw error;
@@ -592,4 +576,7 @@ class ConversionAgentService {
   }
 }
 
-export default new ConversionAgentService();
+const conversionAgentService = new ConversionAgentService();
+
+export { ConversionAgentService };
+export default conversionAgentService;

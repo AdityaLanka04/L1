@@ -1,11 +1,9 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .shortcuts-overlay *,
 .shortcuts-overlay *::before,
 .shortcuts-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
-/* Keyboard Shortcuts Modal */
 .shortcuts-overlay {
   position: fixed;
   top: 0;
@@ -231,7 +229,6 @@
   font-size: 11px;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .shortcuts-modal {
     width: 95%;

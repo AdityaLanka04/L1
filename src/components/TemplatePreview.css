@@ -1,11 +1,9 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .template-preview-overlay *,
 .template-preview-overlay *::before,
 .template-preview-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
-/* Template Preview Modal */
 .template-preview-overlay {
   position: fixed;
   top: 0;
@@ -184,10 +182,9 @@
 .use-template-btn:hover {
   background: color-mix(in srgb, var(--accent) 85%, white);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* Scrollbar */
 .template-preview-content::-webkit-scrollbar {
   width: 8px;
 }

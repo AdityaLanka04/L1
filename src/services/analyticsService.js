@@ -1,8 +1,4 @@
-/**
- * Advanced Analytics Service
- * Frontend service for comprehensive learning analytics and insights
- * Provides detailed analytics, progress tracking, and performance metrics
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
@@ -11,9 +7,7 @@ class AnalyticsService {
     this.baseUrl = `${API_URL}/agents/analytics`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -22,9 +16,7 @@ class AnalyticsService {
     };
   }
 
-  /**
-   * Get comprehensive user learning analytics
-   */
+  
   async getUserAnalytics(userId, timeRange = '30d') {
     try {
       const response = await fetch(`${this.baseUrl}/user/${userId}?time_range=${timeRange}`, {
@@ -43,9 +35,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get learning performance metrics
-   */
+  
   async getPerformanceMetrics(userId, metricType = 'all') {
     try {
       const response = await fetch(`${this.baseUrl}/performance/${userId}?type=${metricType}`, {
@@ -64,9 +54,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get study session analytics
-   */
+  
   async getStudySessionAnalytics(userId, sessionId = null) {
     try {
       const url = sessionId 
@@ -89,9 +77,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get content engagement analytics
-   */
+  
   async getContentAnalytics(userId, contentType = 'all') {
     try {
       const response = await fetch(`${this.baseUrl}/content/${userId}?type=${contentType}`, {
@@ -110,9 +96,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get learning progress trends
-   */
+  
   async getProgressTrends(userId, timeRange = '90d', granularity = 'daily') {
     try {
       const response = await fetch(
@@ -134,9 +118,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get topic mastery analytics
-   */
+  
   async getTopicMastery(userId, topic = null) {
     try {
       const url = topic 
@@ -159,9 +141,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get learning efficiency insights
-   */
+  
   async getEfficiencyInsights(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/efficiency/${userId}`, {
@@ -180,9 +160,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Generate custom analytics report
-   */
+  
   async generateReport(userId, reportConfig) {
     try {
       const response = await fetch(`${this.baseUrl}/reports/${userId}`, {
@@ -209,9 +187,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get predictive analytics
-   */
+  
   async getPredictiveAnalytics(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/predictions/${userId}`, {
@@ -230,9 +206,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get comparative analytics (class/group)
-   */
+  
   async getComparativeAnalytics(userId, groupId = null) {
     try {
       const url = groupId 
@@ -255,9 +229,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get real-time analytics dashboard data
-   */
+  
   async getDashboardData(userId, dashboardType = 'personal') {
     try {
       const response = await fetch(`${this.baseUrl}/dashboard/${userId}?type=${dashboardType}`, {
@@ -276,9 +248,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Export analytics data
-   */
+  
   async exportAnalytics(userId, exportConfig) {
     try {
       const response = await fetch(`${this.baseUrl}/export/${userId}`, {
@@ -304,9 +274,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get analytics health check
-   */
+  
   async healthCheck() {
     try {
       const response = await fetch(`${this.baseUrl}/health`, {

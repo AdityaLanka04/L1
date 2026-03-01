@@ -24,7 +24,8 @@ const LearningReviewHub = () => {
         setUserName(data.first_name || 'User');
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const tools = [
@@ -69,14 +70,12 @@ const LearningReviewHub = () => {
 
   return (
     <div className="lrh">
-      {/* Ambient Background */}
       <div className="lrh-ambient">
         <div className="lrh-ambient-orb lrh-ambient-orb-1"></div>
         <div className="lrh-ambient-orb lrh-ambient-orb-2"></div>
         <div className="lrh-ambient-grid"></div>
       </div>
 
-      {/* Header */}
       <header className="lrh-header">
         <div className="lrh-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -97,9 +96,7 @@ const LearningReviewHub = () => {
         </nav>
       </header>
 
-      {/* Main Content */}
       <main className="lrh-main">
-        {/* Hero Section - Compact */}
         <section className="lrh-hero">
           <h2 className="lrh-hero-title">
             Welcome back, <span className="lrh-hero-name">{userName}</span>
@@ -109,7 +106,6 @@ const LearningReviewHub = () => {
           </p>
         </section>
 
-        {/* Tools Grid */}
         <section className="lrh-grid">
           {tools.map((tool, index) => {
             const IconComponent = tool.icon;
@@ -123,15 +119,11 @@ const LearningReviewHub = () => {
                 onMouseLeave={() => setHoveredCard(null)}
                 style={{ '--card-index': index }}
               >
-                {/* Card Glow Effect */}
                 <div className="lrh-card-glow"></div>
                 
-                {/* Card Border Gradient */}
                 <div className="lrh-card-border"></div>
 
-                {/* Card Content */}
                 <div className="lrh-card-inner">
-                  {/* Top Section */}
                   <div className="lrh-card-top">
                     <div className="lrh-card-icon-wrapper">
                       <div className="lrh-card-icon">
@@ -145,13 +137,11 @@ const LearningReviewHub = () => {
                     </div>
                   </div>
 
-                  {/* Middle Section */}
                   <div className="lrh-card-body">
                     <h3 className="lrh-card-title">{tool.title}</h3>
                     <p className="lrh-card-desc">{tool.description}</p>
                   </div>
 
-                  {/* Bottom Section */}
                   <div className="lrh-card-footer">
                     <button className="lrh-card-cta">
                       <span>{tool.cta}</span>
@@ -160,7 +150,6 @@ const LearningReviewHub = () => {
                   </div>
                 </div>
 
-                {/* Hover Line */}
                 <div className="lrh-card-line"></div>
               </article>
             );

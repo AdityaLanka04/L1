@@ -4,7 +4,6 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 
-// Suppress React DevTools download message
 if (typeof window !== 'undefined') {
   window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = window.__REACT_DEVTOOLS_GLOBAL_HOOK__ || {};
   window.__REACT_DEVTOOLS_GLOBAL_HOOK__.inject = function() {};

@@ -20,7 +20,6 @@ from groq import Groq
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], models):
     """
     Update weak areas based on quiz results.
@@ -32,7 +31,6 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
             is_correct = result.get("is_correct", False)
             question_id = result.get("question_id")
             
-            # Get or create weak area record for this topic
             weak_area = db.query(models.UserWeakArea).filter(
                 models.UserWeakArea.user_id == user_id,
                 models.UserWeakArea.topic == topic
@@ -50,7 +48,6 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
                 db.add(weak_area)
                 db.flush()
             
-            # Update counts
             weak_area.total_questions += 1
             
             if is_correct:
@@ -61,7 +58,6 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
                 weak_area.consecutive_wrong += 1
                 weak_area.last_wrong_streak = max(weak_area.last_wrong_streak, weak_area.consecutive_wrong)
                 
-                # Log the wrong answer
                 wrong_log = models.WrongAnswerLog(
                     user_id=user_id,
                     question_id=question_id,
@@ -75,19 +71,15 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
                 )
                 db.add(wrong_log)
             
-            # Calculate accuracy
             if weak_area.total_questions > 0:
                 weak_area.accuracy = (weak_area.correct_count / weak_area.total_questions) * 100
             
-            # Calculate weakness score (0-100, higher = weaker)
-            # Factors: accuracy (inverted), consecutive wrong, total wrong
             accuracy_factor = 100 - weak_area.accuracy
-            streak_factor = min(weak_area.consecutive_wrong * 10, 30)  # Max 30 points from streak
-            volume_factor = min(weak_area.incorrect_count * 2, 20)  # Max 20 points from volume
+            streak_factor = min(weak_area.consecutive_wrong * 10, 30)
+            volume_factor = min(weak_area.incorrect_count * 2, 20)
             
             weak_area.weakness_score = min(100, accuracy_factor * 0.5 + streak_factor + volume_factor)
             
-            # Calculate priority (1-10)
             if weak_area.accuracy < 30:
                 weak_area.priority = 10
             elif weak_area.accuracy < 50:
@@ -99,11 +91,9 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
             else:
                 weak_area.priority = 2
             
-            # Boost priority for consecutive wrong answers
             if weak_area.consecutive_wrong >= 3:
                 weak_area.priority = min(10, weak_area.priority + 2)
             
-            # Update status
             if weak_area.accuracy >= 90 and weak_area.total_questions >= 5:
                 weak_area.status = "mastered"
             elif weak_area.accuracy >= 70:
@@ -118,8 +108,109 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
         
     except Exception as e:
         logger.error(f"Error updating weak areas: {e}")
-        # Don't raise - this is a non-critical operation
 
+def _compute_topic_performance_from_sessions(sessions) -> List[Dict[str, Any]]:
+    """Aggregate topic accuracy stats from question sessions."""
+    topic_stats: Dict[str, Dict[str, int]] = {}
+
+    for session in sessions:
+        if not session or not session.results:
+            continue
+        try:
+            results = json.loads(session.results) if session.results else []
+        except Exception:
+            continue
+
+        for result in results:
+            topic = result.get("topic") or "General"
+            is_correct = result.get("is_correct", False)
+
+            if topic not in topic_stats:
+                topic_stats[topic] = {"total": 0, "correct": 0}
+
+            topic_stats[topic]["total"] += 1
+            if is_correct:
+                topic_stats[topic]["correct"] += 1
+
+    topic_performance = []
+    for topic, stats in topic_stats.items():
+        total = stats.get("total", 0)
+        correct = stats.get("correct", 0)
+        accuracy = (correct / total) * 100 if total > 0 else 0
+        topic_performance.append({
+            "topic": topic,
+            "accuracy": round(accuracy, 1),
+            "total_questions": total,
+            "correct_answers": correct
+        })
+
+    return topic_performance
+
+def _merge_topics(*topic_lists: List[str], limit: int = 8) -> List[str]:
+    """Merge topic lists, de-duping case-insensitively while preserving order."""
+    merged: List[str] = []
+    seen = set()
+    for topics in topic_lists:
+        if not topics:
+            continue
+        for topic in topics:
+            if not topic:
+                continue
+            clean = str(topic).strip()
+            if not clean:
+                continue
+            key = clean.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(clean)
+            if limit and len(merged) >= limit:
+                return merged
+    return merged
+
+def _topic_in_text(topic: str, text: str) -> bool:
+    if not topic or not text:
+        return False
+    t = str(topic).lower().strip()
+    if not t:
+        return False
+    return t in str(text).lower()
+
+def _filter_analysis_by_topics(analysis: Dict[str, Any], topics: List[str]) -> Dict[str, Any]:
+    """Filter analysis items to those that mention any of the focus topics."""
+    if not topics:
+        return analysis
+
+    def _matches(item: Any) -> bool:
+        if not item:
+            return False
+        if isinstance(item, str):
+            return any(_topic_in_text(t, item) for t in topics)
+        if isinstance(item, dict):
+            for v in item.values():
+                if _matches(v):
+                    return True
+        if isinstance(item, list):
+            return any(_matches(v) for v in item)
+        return False
+
+    filtered = dict(analysis)
+    for key in [
+        "key_facts",
+        "definitions",
+        "relationships",
+        "processes",
+        "comparisons",
+        "cause_effects",
+        "numerical_data",
+        "examples"
+    ]:
+        items = analysis.get(key, [])
+        if isinstance(items, list):
+            filtered[key] = [item for item in items if _matches(item)]
+
+    filtered["subtopics"] = [t for t in analysis.get("subtopics", []) if _matches(t)] if isinstance(analysis.get("subtopics", []), list) else analysis.get("subtopics", [])
+    return filtered
 
 def generate_question_set_pdf(question_set, questions, include_answers: bool = False, user_name: str = "Student"):
     """
@@ -138,7 +229,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
     
     buffer = io.BytesIO()
     
-    # Create document
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
@@ -148,10 +238,8 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         bottomMargin=0.75*inch
     )
     
-    # Custom styles
     styles = getSampleStyleSheet()
     
-    # Title style
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
@@ -162,7 +250,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         fontName='Helvetica-Bold'
     )
     
-    # Subtitle style
     subtitle_style = ParagraphStyle(
         'CustomSubtitle',
         parent=styles['Normal'],
@@ -173,7 +260,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         fontName='Helvetica'
     )
     
-    # Section header style
     section_style = ParagraphStyle(
         'SectionHeader',
         parent=styles['Heading2'],
@@ -185,7 +271,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         borderPadding=(0, 0, 5, 0)
     )
     
-    # Question number style
     question_num_style = ParagraphStyle(
         'QuestionNumber',
         parent=styles['Normal'],
@@ -196,7 +281,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         spaceAfter=5
     )
     
-    # Question text style
     question_style = ParagraphStyle(
         'QuestionText',
         parent=styles['Normal'],
@@ -208,7 +292,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         alignment=TA_JUSTIFY
     )
     
-    # Option style
     option_style = ParagraphStyle(
         'OptionText',
         parent=styles['Normal'],
@@ -220,7 +303,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         leading=13
     )
     
-    # Difficulty badge style
     difficulty_style = ParagraphStyle(
         'DifficultyBadge',
         parent=styles['Normal'],
@@ -230,7 +312,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         alignment=TA_CENTER
     )
     
-    # Answer style
     answer_style = ParagraphStyle(
         'AnswerText',
         parent=styles['Normal'],
@@ -242,7 +323,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         spaceAfter=10
     )
     
-    # Explanation style
     explanation_style = ParagraphStyle(
         'ExplanationText',
         parent=styles['Normal'],
@@ -255,22 +335,17 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         borderPadding=(5, 5, 5, 5)
     )
     
-    # Build content
     story = []
     
-    # Header section
     story.append(Paragraph("QUESTION SET", title_style))
     story.append(Paragraph(question_set.title, subtitle_style))
     
-    # Metadata line
     created_date = question_set.created_at.strftime("%B %d, %Y") if question_set.created_at else "N/A"
     meta_text = f"Generated for: {user_name} | Total Questions: {len(questions)} | Created: {created_date}"
     story.append(Paragraph(meta_text, subtitle_style))
     
-    # Horizontal line
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#d4a574'), spaceBefore=10, spaceAfter=20))
     
-    # Instructions
     instructions_style = ParagraphStyle(
         'Instructions',
         parent=styles['Normal'],
@@ -293,7 +368,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
     story.append(Paragraph(instructions, instructions_style))
     story.append(Spacer(1, 20))
     
-    # Group questions by difficulty
     difficulty_order = {'easy': 1, 'medium': 2, 'hard': 3}
     difficulty_colors = {
         'easy': colors.HexColor('#27ae60'),
@@ -301,20 +375,16 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         'hard': colors.HexColor('#e74c3c')
     }
     
-    # Questions section
     for idx, question in enumerate(questions, 1):
-        # Question header with number and difficulty
         difficulty = question.difficulty or 'medium'
         diff_color = difficulty_colors.get(difficulty.lower(), colors.HexColor('#666666'))
         
-        # Question number and difficulty badge
         q_header = f"<b>Question {idx}</b>"
         if question.topic:
             q_header += f" <font color='#888888'>| {question.topic}</font>"
         
         story.append(Paragraph(q_header, question_num_style))
         
-        # Difficulty indicator
         diff_text = f"<font color='{diff_color.hexval()}'>[{difficulty.upper()}]</font>"
         diff_para = ParagraphStyle(
             'DiffIndicator',
@@ -325,28 +395,24 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         )
         story.append(Paragraph(diff_text, diff_para))
         
-        # Process question text for LaTeX
         q_text = process_latex_for_pdf(question.question_text)
         story.append(Paragraph(q_text, question_style))
         
-        # Options for multiple choice
         if question.question_type == 'multiple_choice' and question.options:
             try:
                 options = json.loads(question.options) if isinstance(question.options, str) else question.options
                 if isinstance(options, list):
                     for i, opt in enumerate(options):
-                        opt_letter = chr(65 + i)  # A, B, C, D...
+                        opt_letter = chr(65 + i)
                         opt_text = process_latex_for_pdf(opt)
                         story.append(Paragraph(f"<b>{opt_letter}.</b> {opt_text}", option_style))
             except:
                 pass
         
-        # True/False options
         elif question.question_type == 'true_false':
             story.append(Paragraph("<b>A.</b> True", option_style))
             story.append(Paragraph("<b>B.</b> False", option_style))
         
-        # Short answer space
         elif question.question_type == 'short_answer':
             answer_box_style = ParagraphStyle(
                 'AnswerBox',
@@ -360,7 +426,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
             )
             story.append(Paragraph("<i>Answer:</i> _" + "_" * 60, answer_box_style))
         
-        # Add answer if requested
         if include_answers and question.correct_answer:
             answer_text = process_latex_for_pdf(question.correct_answer)
             story.append(Paragraph(f"<b>Answer:</b> {answer_text}", answer_style))
@@ -371,17 +436,14 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         
         story.append(Spacer(1, 10))
         
-        # Add page break every 5 questions for readability
         if idx % 5 == 0 and idx < len(questions):
             story.append(PageBreak())
     
-    # Answer key section (if answers included)
     if include_answers:
         story.append(PageBreak())
         story.append(Paragraph("ANSWER KEY", title_style))
         story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#d4a574'), spaceBefore=10, spaceAfter=20))
         
-        # Create answer key table
         answer_data = [["Q#", "Answer", "Difficulty", "Topic"]]
         for idx, q in enumerate(questions, 1):
             answer_data.append([
@@ -409,7 +471,6 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
         ]))
         story.append(answer_table)
     
-    # Footer
     story.append(Spacer(1, 30))
     footer_style = ParagraphStyle(
         'Footer',
@@ -422,12 +483,10 @@ def generate_question_set_pdf(question_set, questions, include_answers: bool = F
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#dddddd'), spaceBefore=20, spaceAfter=10))
     story.append(Paragraph(f"Generated by Cerbyl Learning Platform | {datetime.now().strftime('%Y-%m-%d %H:%M')}", footer_style))
     
-    # Build PDF
     doc.build(story)
     
     buffer.seek(0)
     return buffer.getvalue()
-
 
 def process_latex_for_pdf(text: str) -> str:
     """
@@ -437,13 +496,10 @@ def process_latex_for_pdf(text: str) -> str:
     if not text:
         return ""
     
-    # Handle inline math $...$
     text = re.sub(r'\$([^$]+)\$', r'<i>\1</i>', text)
     
-    # Handle display math $$...$$
     text = re.sub(r'\$\$([^$]+)\$\$', r'<br/><i>\1</i><br/>', text)
     
-    # Handle common LaTeX commands
     latex_replacements = {
         r'\\frac\{([^}]+)\}\{([^}]+)\}': r'(\1)/(\2)',
         r'\\sqrt\{([^}]+)\}': r'√(\1)',
@@ -489,28 +545,21 @@ def process_latex_for_pdf(text: str) -> str:
     for pattern, replacement in latex_replacements.items():
         text = re.sub(pattern, replacement, text)
     
-    # Handle superscripts x^{n}
     text = re.sub(r'\^\{([^}]+)\}', r'<super>\1</super>', text)
     text = re.sub(r'\^(\d)', r'<super>\1</super>', text)
     
-    # Handle subscripts x_{n}
     text = re.sub(r'_\{([^}]+)\}', r'<sub>\1</sub>', text)
     text = re.sub(r'_(\d)', r'<sub>\1</sub>', text)
     
-    # Clean up remaining backslashes
     text = text.replace('\\\\', '<br/>')
     text = re.sub(r'\\([a-zA-Z]+)', r'\1', text)
     
-    # Escape special XML characters that aren't already part of tags
-    # Be careful not to escape our HTML tags
     text = text.replace('&', '&amp;')
     
     return text
 
-
 class PDFUploadRequest(BaseModel):
     user_id: str
-
 
 class QuestionGenerationRequest(BaseModel):
     user_id: str
@@ -523,7 +572,6 @@ class QuestionGenerationRequest(BaseModel):
     topics: Optional[List[str]] = None
     title: Optional[str] = None
 
-
 class CustomQuestionGenRequest(BaseModel):
     user_id: str
     content: str
@@ -533,33 +581,38 @@ class CustomQuestionGenRequest(BaseModel):
     question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
     topics: Optional[List[str]] = None
 
-
 class AnswerSubmission(BaseModel):
     user_id: str
     question_set_id: int
     answers: Dict[str, str]
     time_taken_seconds: Optional[int] = None
 
-
 class SimilarQuestionRequest(BaseModel):
     user_id: str
     question_id: int
     difficulty: Optional[str] = None
 
-
 class MultiPDFGenerationRequest(BaseModel):
     """Request model for generating questions from multiple PDF sources"""
     user_id: str
-    source_ids: List[int]  # List of document IDs
+    source_ids: List[int]
     question_count: int = 10
     difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
     question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
     topics: Optional[List[str]] = None
     title: Optional[str] = None
-    custom_prompt: Optional[str] = None  # Custom instructions for question generation
-    reference_document_id: Optional[int] = None  # ID of document to use as reference (e.g., sample questions)
-    content_document_ids: Optional[List[int]] = None  # IDs of documents to generate questions FROM (e.g., textbook)
+    custom_prompt: Optional[str] = None
+    reference_document_id: Optional[int] = None
+    content_document_ids: Optional[List[int]] = None
 
+class RelatedPDFGenerationRequest(BaseModel):
+    """Request model for generating related questions from PDFs using strengths/weaknesses."""
+    user_id: str
+    source_ids: List[int]
+    question_count: int = 10
+    difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
+    question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
+    title: Optional[str] = None
 
 class DifficultyClassifierAgent:
     def __init__(self, unified_ai):
@@ -592,20 +645,17 @@ Return ONLY valid JSON, no markdown formatting."""
             content = self.unified_ai.generate(prompt, max_tokens=500, temperature=0.3)
             logger.info(f"Raw classify_difficulty response: {content[:200]}")
             
-            # Remove markdown code blocks if present
             if content.startswith('```'):
                 content = re.sub(r'^```(?:json)?\n?', '', content, flags=re.DOTALL)
                 content = re.sub(r'\n?```$', '', content, flags=re.DOTALL)
                 content = content.strip()
             
-            # Try to extract JSON object - non-greedy match
             json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
             if json_match:
                 json_str = json_match.group()
                 logger.info(f"Extracted JSON: {json_str[:100]}")
                 result = json.loads(json_str)
             else:
-                # Fallback: try to parse entire content as JSON
                 logger.info("No JSON match found, attempting to parse entire content")
                 result = json.loads(content)
             
@@ -628,7 +678,6 @@ Return ONLY valid JSON, no markdown formatting."""
                 "estimated_time_seconds": 120
             }
 
-
 class PDFProcessorAgent:
     def __init__(self, unified_ai):
         self.unified_ai = unified_ai
@@ -638,9 +687,36 @@ class PDFProcessorAgent:
             text = ""
             pdf_bytes = io.BytesIO(pdf_content)
             
-            # Method 1: Try PyMuPDF (fitz) first - handles more PDF types
             try:
-                import fitz  # PyMuPDF
+                import pymupdf4llm
+                logger.info("Attempting PyMuPDF4LLM extraction...")
+                
+                try:
+                    import pymupdf.layout
+                    logger.info("PyMuPDF layout mode enabled for extraction")
+                except Exception:
+                    pass
+                
+                import fitz
+                doc = fitz.open(stream=pdf_content, filetype="pdf")
+                try:
+                    llm_text = pymupdf4llm.to_text(doc)
+                finally:
+                    doc.close()
+                
+                if llm_text and llm_text.strip():
+                    logger.info(f"PyMuPDF4LLM extracted {len(llm_text)} characters from PDF")
+                    return llm_text.strip()
+                else:
+                    logger.warning("PyMuPDF4LLM returned empty text, trying other methods...")
+                    
+            except ImportError:
+                logger.info("PyMuPDF4LLM not available, trying PyMuPDF...")
+            except Exception as llm_error:
+                logger.warning(f"PyMuPDF4LLM extraction failed: {llm_error}")
+
+            try:
+                import fitz
                 logger.info("Attempting PyMuPDF (fitz) extraction...")
                 
                 doc = fitz.open(stream=pdf_content, filetype="pdf")
@@ -662,10 +738,9 @@ class PDFProcessorAgent:
             except Exception as fitz_error:
                 logger.warning(f"PyMuPDF extraction failed: {fitz_error}")
             
-            # Method 2: Try PyPDF2
             try:
                 logger.info("Attempting PyPDF2 extraction...")
-                pdf_bytes.seek(0)  # Reset stream position
+                pdf_bytes.seek(0)
                 pdf_reader = PyPDF2.PdfReader(pdf_bytes)
                 
                 for page_num in range(len(pdf_reader.pages)):
@@ -685,7 +760,6 @@ class PDFProcessorAgent:
             except Exception as pypdf_error:
                 logger.warning(f"PyPDF2 extraction failed: {pypdf_error}")
             
-            # Method 3: Try pdfplumber as fallback
             try:
                 import pdfplumber
                 logger.info("Attempting pdfplumber extraction...")
@@ -705,11 +779,9 @@ class PDFProcessorAgent:
             except Exception as plumber_error:
                 logger.warning(f"pdfplumber extraction failed: {plumber_error}")
             
-            # If all methods fail but we have some text, return it
             if text.strip():
                 return text.strip()
             
-            # All methods failed
             raise ValueError(
                 "Unable to extract text from PDF. This may be a scanned/image PDF. "
                 "Try using a PDF with selectable text, or use OCR to convert the PDF first."
@@ -745,20 +817,17 @@ Return ONLY valid JSON, no markdown formatting."""
             content = self.unified_ai.generate(prompt, max_tokens=800, temperature=0.3)
             logger.info(f"Raw analyze_document response: {content[:200]}")
             
-            # Remove markdown code blocks if present
             if content.startswith('```'):
                 content = re.sub(r'^```(?:json)?\n?', '', content, flags=re.DOTALL)
                 content = re.sub(r'\n?```$', '', content, flags=re.DOTALL)
                 content = content.strip()
             
-            # Try to extract JSON object - non-greedy match
             json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
             if json_match:
                 json_str = json_match.group()
                 logger.info(f"Extracted JSON: {json_str[:100]}")
                 result = json.loads(json_str)
             else:
-                # Fallback: try to parse entire content as JSON
                 logger.info("No JSON match found, attempting to parse entire content")
                 result = json.loads(content)
             
@@ -782,9 +851,6 @@ Return ONLY valid JSON, no markdown formatting."""
                 "difficulty_level": "intermediate",
                 "subject_area": "Unknown"
             }
-
-
-# ==================== AI ENHANCEMENT FEATURES ====================
 
 class PromptEnhancerAgent:
     """Enhances user prompts to generate better questions"""
@@ -842,7 +908,6 @@ Return ONLY valid JSON."""
                 "prompt_improvements": []
             }
 
-
 class TopicExtractorAgent:
     """Extracts and organizes topics from content"""
     def __init__(self, unified_ai):
@@ -898,7 +963,6 @@ Return ONLY valid JSON."""
         except Exception as e:
             logger.error(f"Topic extraction error: {e}")
             return {"subject": "Unknown", "chapters": [], "total_topics": 0}
-
 
 class QuestionQualityAgent:
     """Scores and improves question quality"""
@@ -962,7 +1026,6 @@ Return ONLY valid JSON."""
             q['quality_feedback'] = score_result.get('improvements', [])
             scored.append(q)
         return scored
-
 
 class BloomTaxonomyAgent:
     """Tags questions with Bloom's Taxonomy levels"""
@@ -1028,7 +1091,6 @@ Return ONLY valid JSON."""
             await self.tag_question(q)
         return questions
 
-
 class DuplicateDetectorAgent:
     """Detects semantically similar questions"""
     def __init__(self, unified_ai):
@@ -1039,7 +1101,6 @@ class DuplicateDetectorAgent:
         if not existing_questions:
             return {"is_duplicate": False, "similar_questions": []}
         
-        # Limit to most recent 50 questions for efficiency
         recent_questions = existing_questions[-50:]
         
         prompt = f"""Check if this NEW question is too similar to any EXISTING questions.
@@ -1080,7 +1141,6 @@ Return ONLY valid JSON."""
         except Exception as e:
             logger.error(f"Duplicate detection error: {e}")
             return {"is_duplicate": False, "similarity_score": 0}
-
 
 class AdaptiveGeneratorAgent:
     """Generates questions based on user's weak areas"""
@@ -1156,6 +1216,36 @@ Generate questions from this content that specifically help with these weak area
         
         return prompt
 
+class RelatedQuestionAgent:
+    """Builds prompts for related questions using strengths/weaknesses."""
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
+
+    def build_prompt(self, weak_topics: List[str], strong_topics: List[str]) -> str:
+        weak_list = ", ".join(weak_topics) if weak_topics else "None"
+        strong_list = ", ".join(strong_topics) if strong_topics else "None"
+
+        if not weak_topics and not strong_topics:
+            return (
+                "Generate questions that are closely related to the document's most important concepts. "
+                "Prioritize core ideas, definitions, and applications supported by the content."
+            )
+
+        guidance = [
+            "- Aim for roughly 60-70% of questions to target weak topics when available.",
+            "- Include a smaller set of challenge questions on strong topics (applied or higher-difficulty).",
+            "- Use remaining questions to cover other key concepts from the document.",
+            "- Only use topics supported by the document; if a listed topic is missing, choose the closest related concept."
+        ]
+
+        return (
+            "Personalize question generation based on student performance.\n\n"
+            f"STUDENT WEAK TOPICS (prioritize): {weak_list}\n"
+            f"STUDENT STRONG TOPICS (challenge lightly): {strong_list}\n\n"
+            "GUIDELINES:\n"
+            + "\n".join(guidance)
+            + "\n\nWhen focusing on weak topics, address common misconceptions and provide clear explanations."
+        )
 
 class ExplanationEnhancerAgent:
     """Enhances question explanations with detailed steps"""
@@ -1209,7 +1299,6 @@ Return ONLY valid JSON."""
         except Exception as e:
             logger.error(f"Explanation enhancement error: {e}")
             return {}
-
 
 class QuestionPreviewAgent:
     """Handles question preview and editing before saving"""
@@ -1268,10 +1357,6 @@ Return ONLY valid JSON."""
             logger.error(f"Question regeneration error: {e}")
             return original_question
 
-
-# ==================== END AI ENHANCEMENT FEATURES ====================
-
-
 class QuestionGeneratorAgent:
     def __init__(self, unified_ai):
         self.unified_ai = unified_ai
@@ -1294,23 +1379,19 @@ class QuestionGeneratorAgent:
         types_str = ", ".join(question_types)
         topics_str = ", ".join(topics) if topics else "all topics in the content"
         
-        # Truncate reference content if needed (style guide doesn't need to be huge)
         max_ref_chars = 5000
         if reference_content and len(reference_content) > max_ref_chars:
             reference_content = reference_content[:max_ref_chars]
         
-        # Check if content is large enough to need chunking
-        chunk_size = 12000  # Characters per chunk
+        chunk_size = 12000
         
         if len(content) > chunk_size:
-            # Use chunking strategy for large content
             logger.info(f"Large content detected ({len(content)} chars). Using chunking strategy.")
             return await self._generate_questions_chunked(
                 content, question_count, question_types, difficulty_distribution,
                 topics, custom_prompt, reference_content, chunk_size
             )
         
-        # For smaller content, use single-pass generation
         return await self._generate_questions_single(
             content, question_count, question_types, difficulty_distribution,
             topics, custom_prompt, reference_content
@@ -1329,19 +1410,16 @@ class QuestionGeneratorAgent:
     ) -> List[Dict[str, Any]]:
         """Generate questions from large content by processing in chunks"""
         
-        # Split content into chunks, preferring document boundaries
         chunks = self._split_content_into_chunks(content, chunk_size)
         logger.info(f"Split content into {len(chunks)} chunks")
         
-        # Calculate questions per chunk (distribute evenly, with remainder to last chunk)
         base_questions_per_chunk = question_count // len(chunks)
         remainder = question_count % len(chunks)
         
         all_questions = []
-        seen_questions = set()  # Track to avoid duplicates
+        seen_questions = set()
         
         for i, chunk in enumerate(chunks):
-            # Last chunk gets the remainder
             chunk_question_count = base_questions_per_chunk + (remainder if i == len(chunks) - 1 else 0)
             
             if chunk_question_count == 0:
@@ -1349,13 +1427,11 @@ class QuestionGeneratorAgent:
             
             logger.info(f"Processing chunk {i+1}/{len(chunks)} ({len(chunk)} chars, {chunk_question_count} questions)")
             
-            # Generate questions for this chunk
             chunk_questions = await self._generate_questions_single(
                 chunk, chunk_question_count, question_types, difficulty_distribution,
                 topics, custom_prompt, reference_content
             )
             
-            # Add unique questions
             for q in chunk_questions:
                 q_text = q.get('question_text', '').strip().lower()
                 if q_text and q_text not in seen_questions:
@@ -1364,12 +1440,10 @@ class QuestionGeneratorAgent:
         
         logger.info(f"Generated {len(all_questions)} total questions from {len(chunks)} chunks")
         
-        # If we didn't get enough questions, try to generate more from a summary
-        if len(all_questions) < question_count * 0.7:  # Less than 70% of requested
+        if len(all_questions) < question_count * 0.7:
             logger.warning(f"Only got {len(all_questions)} questions, attempting supplementary generation")
             additional_needed = question_count - len(all_questions)
             
-            # Create a summary of all content for additional questions
             summary_content = self._create_content_summary(content, 8000)
             additional_questions = await self._generate_questions_single(
                 summary_content, additional_needed, question_types, difficulty_distribution,
@@ -1382,12 +1456,11 @@ class QuestionGeneratorAgent:
                     seen_questions.add(q_text)
                     all_questions.append(q)
         
-        return all_questions[:question_count]  # Return exactly the requested count
+        return all_questions[:question_count]
     
     def _split_content_into_chunks(self, content: str, chunk_size: int) -> List[str]:
         """Split content into chunks, preferring document boundaries"""
         
-        # First, try to split by document markers
         doc_marker = "=== "
         if doc_marker in content:
             sections = content.split(doc_marker)
@@ -1400,12 +1473,10 @@ class QuestionGeneratorAgent:
                     
                 section_with_marker = doc_marker + section
                 
-                # If adding this section would exceed chunk size
                 if len(current_chunk) + len(section_with_marker) > chunk_size:
                     if current_chunk:
                         chunks.append(current_chunk)
                     
-                    # If single section is larger than chunk size, split it
                     if len(section_with_marker) > chunk_size:
                         section_chunks = self._split_text_by_paragraphs(section_with_marker, chunk_size)
                         chunks.extend(section_chunks)
@@ -1420,7 +1491,6 @@ class QuestionGeneratorAgent:
             
             return chunks if chunks else [content]
         
-        # No document markers, split by paragraphs
         return self._split_text_by_paragraphs(content, chunk_size)
     
     def _split_text_by_paragraphs(self, text: str, chunk_size: int) -> List[str]:
@@ -1440,7 +1510,6 @@ class QuestionGeneratorAgent:
         if current_chunk:
             chunks.append(current_chunk)
         
-        # If still no chunks or chunks are too large, force split
         if not chunks:
             chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
         
@@ -1456,7 +1525,6 @@ class QuestionGeneratorAgent:
             summary_parts = []
             for section in sections:
                 if section.strip():
-                    # Take beginning and end of each section
                     if len(section) > chars_per_section:
                         half = chars_per_section // 2
                         summary_parts.append(doc_marker + section[:half] + "\n...\n" + section[-half:])
@@ -1465,7 +1533,6 @@ class QuestionGeneratorAgent:
             
             return "\n".join(summary_parts)
         
-        # No sections, just truncate
         return content[:max_chars]
     
     async def _generate_questions_single(
@@ -1492,20 +1559,16 @@ class QuestionGeneratorAgent:
         types_str = ", ".join(question_types)
         topics_str = ", ".join(topics) if topics else "all major topics from the content"
         
-        # Calculate exact counts per difficulty
         total_diff = sum(difficulty_distribution.values())
         if total_diff > 0 and question_count >= 3:
-            # Only use distribution if we have enough questions
             easy_count = max(1, round(question_count * difficulty_distribution.get('easy', 30) / total_diff))
             medium_count = max(1, round(question_count * difficulty_distribution.get('medium', 50) / total_diff))
             hard_count = max(0, question_count - easy_count - medium_count)
         elif question_count == 2:
-            # For 2 questions, do 1 easy and 1 medium
             easy_count = 1
             medium_count = 1
             hard_count = 0
         elif question_count == 1:
-            # For 1 question, pick based on highest distribution weight
             if difficulty_distribution.get('hard', 20) >= difficulty_distribution.get('medium', 50):
                 easy_count, medium_count, hard_count = 0, 0, 1
             elif difficulty_distribution.get('easy', 30) >= difficulty_distribution.get('medium', 50):
@@ -1519,21 +1582,17 @@ class QuestionGeneratorAgent:
         
         logger.info(f"Agentic generation: {easy_count} easy, {medium_count} medium, {hard_count} hard")
         
-        # STEP 1: ANALYZE - Extract testable content
         analysis = await self._agent_analyze_content(content)
         
-        # STEP 2: PLAN - Create question blueprint
         blueprint = await self._agent_create_blueprint(
             analysis, easy_count, medium_count, hard_count, 
             question_types, topics, custom_prompt, reference_content
         )
         
-        # STEP 3: GENERATE - Create questions from blueprint
         questions = await self._agent_generate_from_blueprint(
-            content, blueprint, question_types, custom_prompt, reference_content
+            content, blueprint, question_types, custom_prompt, reference_content, topics
         )
         
-        # STEP 4: VALIDATE & REFINE
         questions = await self._agent_validate_questions(questions, content, question_count)
         
         return questions
@@ -1581,7 +1640,6 @@ Return ONLY valid JSON."""
         try:
             response = self.unified_ai.generate(analysis_prompt, max_tokens=3000, temperature=0.3)
             
-            # Parse the analysis
             if response.startswith('```'):
                 response = re.sub(r'^```(?:json)?\n?', '', response)
                 response = re.sub(r'\n?```$', '', response).strip()
@@ -1591,7 +1649,6 @@ Return ONLY valid JSON."""
                 logger.info(f"Content analysis extracted: {len(analysis.get('key_facts', []))} facts, {len(analysis.get('definitions', []))} definitions")
                 return analysis
             except:
-                # Return basic structure if parsing fails
                 return {
                     "main_topic": "Content Analysis",
                     "subtopics": [],
@@ -1613,55 +1670,62 @@ Return ONLY valid JSON."""
     ) -> List[Dict]:
         """AGENT STEP 2: Create a detailed blueprint for each question"""
         
-        # Build question targets based on analysis
+        analysis_for_topics = analysis
+        if topics:
+            filtered = _filter_analysis_by_topics(analysis, topics)
+            has_items = any(
+                len(filtered.get(k, []) or []) > 0
+                for k in ["key_facts", "definitions", "relationships", "processes", "comparisons", "cause_effects", "numerical_data"]
+            )
+            if has_items:
+                analysis_for_topics = filtered
+                logger.info("Blueprint topic filter applied")
+            else:
+                logger.info("Blueprint topic filter produced no matches; using full analysis")
+
         blueprint = []
         
-        # EASY questions: Direct facts, definitions, simple recall
         easy_sources = []
-        for fact in analysis.get('key_facts', []):
+        for fact in analysis_for_topics.get('key_facts', []):
             if fact.get('complexity') == 'simple':
                 easy_sources.append({"type": "fact", "data": fact})
-        for defn in analysis.get('definitions', []):
+        for defn in analysis_for_topics.get('definitions', []):
             easy_sources.append({"type": "definition", "data": defn})
-        for num in analysis.get('numerical_data', []):
+        for num in analysis_for_topics.get('numerical_data', []):
             easy_sources.append({"type": "numerical", "data": num})
         
-        # MEDIUM questions: Relationships, cause-effect, moderate complexity
         medium_sources = []
-        for fact in analysis.get('key_facts', []):
+        for fact in analysis_for_topics.get('key_facts', []):
             if fact.get('complexity') == 'moderate':
                 medium_sources.append({"type": "fact", "data": fact})
-        for rel in analysis.get('relationships', []):
+        for rel in analysis_for_topics.get('relationships', []):
             if rel.get('complexity') in ['simple', 'moderate']:
                 medium_sources.append({"type": "relationship", "data": rel})
-        for ce in analysis.get('cause_effects', []):
+        for ce in analysis_for_topics.get('cause_effects', []):
             if ce.get('complexity') in ['simple', 'moderate']:
                 medium_sources.append({"type": "cause_effect", "data": ce})
-        for proc in analysis.get('processes', []):
+        for proc in analysis_for_topics.get('processes', []):
             if proc.get('complexity') in ['simple', 'moderate']:
                 medium_sources.append({"type": "process", "data": proc})
         
-        # HARD questions: Complex relationships, comparisons, analysis
         hard_sources = []
-        for fact in analysis.get('key_facts', []):
+        for fact in analysis_for_topics.get('key_facts', []):
             if fact.get('complexity') == 'complex':
                 hard_sources.append({"type": "fact", "data": fact})
-        for rel in analysis.get('relationships', []):
+        for rel in analysis_for_topics.get('relationships', []):
             if rel.get('complexity') == 'complex':
                 hard_sources.append({"type": "relationship", "data": rel})
-        for comp in analysis.get('comparisons', []):
+        for comp in analysis_for_topics.get('comparisons', []):
             hard_sources.append({"type": "comparison", "data": comp})
-        for ce in analysis.get('cause_effects', []):
+        for ce in analysis_for_topics.get('cause_effects', []):
             if ce.get('complexity') == 'complex':
                 hard_sources.append({"type": "cause_effect", "data": ce})
-        for proc in analysis.get('processes', []):
+        for proc in analysis_for_topics.get('processes', []):
             if proc.get('complexity') == 'complex':
                 hard_sources.append({"type": "process", "data": proc})
         
-        # Create blueprint entries
         import random
         
-        # Assign easy questions
         for i in range(easy_count):
             if easy_sources:
                 source = easy_sources[i % len(easy_sources)]
@@ -1676,7 +1740,6 @@ Return ONLY valid JSON."""
                 "instruction": "Ask for direct recall of a specific fact or definition"
             })
         
-        # Assign medium questions
         for i in range(medium_count):
             if medium_sources:
                 source = medium_sources[i % len(medium_sources)]
@@ -1691,7 +1754,6 @@ Return ONLY valid JSON."""
                 "instruction": "Ask about relationships, causes, effects, or application of concepts"
             })
         
-        # Assign hard questions
         for i in range(hard_count):
             if hard_sources:
                 source = hard_sources[i % len(hard_sources)]
@@ -1711,11 +1773,11 @@ Return ONLY valid JSON."""
     
     async def _agent_generate_from_blueprint(
         self, content: str, blueprint: List[Dict], 
-        question_types: List[str], custom_prompt: str, reference_content: str
+        question_types: List[str], custom_prompt: str, reference_content: str,
+        topics: List[str]
     ) -> List[Dict]:
         """AGENT STEP 3: Generate questions following the blueprint"""
         
-        # Build detailed generation prompt with blueprint
         blueprint_text = ""
         for i, bp in enumerate(blueprint, 1):
             source_info = bp.get('source', {})
@@ -1747,7 +1809,6 @@ Question {i}:
 - Instruction: {bp['instruction']}
 """
         
-        # Custom instructions section
         custom_section = ""
         if custom_prompt:
             custom_section = f"\nUSER'S CUSTOM INSTRUCTIONS:\n{custom_prompt}\n"
@@ -1756,11 +1817,19 @@ Question {i}:
         if reference_content:
             reference_section = f"\nREFERENCE QUESTIONS (match this style):\n{reference_content[:2000]}\n"
         
+        topics_section = ""
+        if topics:
+            topics_section = (
+                "\nFOCUS TOPICS (prioritize): "
+                + ", ".join(topics)
+                + "\n- Each question's 'topic' field MUST be one of these topics if provided.\n"
+            )
+
         generation_prompt = f"""You are an expert exam question writer. Generate questions following the EXACT blueprint below.
 
 SOURCE CONTENT (all questions MUST be answerable from this):
 {content[:10000]}
-{custom_section}{reference_section}
+{custom_section}{reference_section}{topics_section}
 QUESTION BLUEPRINT (follow EXACTLY):
 {blueprint_text}
 
@@ -1838,7 +1907,6 @@ CRITICAL RULES:
         try:
             response = self.unified_ai.generate(generation_prompt, max_tokens=6000, temperature=0.4)
             
-            # Clean response
             if response.startswith('```'):
                 response = re.sub(r'^```(?:json)?\n?', '', response)
                 response = re.sub(r'\n?```$', '', response).strip()
@@ -1867,11 +1935,9 @@ CRITICAL RULES:
         validated = []
         
         for q in questions:
-            # Basic validation
             if not q.get('question_text'):
                 continue
             
-            # Ensure required fields
             q.setdefault('question_type', 'multiple_choice')
             q.setdefault('difficulty', 'medium')
             q.setdefault('topic', 'General')
@@ -1880,22 +1946,17 @@ CRITICAL RULES:
             q.setdefault('explanation', '')
             q.setdefault('points', 1)
             
-            # Validate difficulty
             if q['difficulty'] not in ['easy', 'medium', 'hard']:
                 q['difficulty'] = 'medium'
             
-            # Ensure options is a list
             if not isinstance(q['options'], list):
                 q['options'] = []
             
-            # Fix options that are just letter labels (A, B, C, D)
             letter_only_options = {'a', 'b', 'c', 'd', 'A', 'B', 'C', 'D'}
             if q['options']:
                 fixed_options = []
                 has_letter_only = any(opt.strip() in letter_only_options for opt in q['options'])
                 if has_letter_only:
-                    # Options are just letters - this is a generation error
-                    # Try to use correct_answer as the first option if it's meaningful
                     if q['correct_answer'] and q['correct_answer'].strip() not in letter_only_options:
                         fixed_options = [q['correct_answer']]
                         for i in range(3):
@@ -1903,10 +1964,8 @@ CRITICAL RULES:
                         q['options'] = fixed_options
                         logger.warning(f"Fixed letter-only options for question: {q['question_text'][:50]}...")
             
-            # For multiple choice, ensure correct answer is in options
             if q['question_type'] == 'multiple_choice':
                 if q['options'] and q['correct_answer'] not in q['options']:
-                    # Try to find correct answer in options (case-insensitive)
                     found = False
                     for i, opt in enumerate(q['options']):
                         if opt.lower().strip() == q['correct_answer'].lower().strip():
@@ -1916,11 +1975,9 @@ CRITICAL RULES:
                     if not found:
                         q['options'][0] = q['correct_answer']
                 
-                # Ensure 4 options
                 while len(q['options']) < 4:
                     q['options'].append(f"Option {len(q['options']) + 1}")
             
-            # For true/false, ensure proper options
             if q['question_type'] == 'true_false':
                 q['options'] = ['True', 'False']
                 if q['correct_answer'].lower() not in ['true', 'false']:
@@ -1930,13 +1987,11 @@ CRITICAL RULES:
             
             validated.append(q)
         
-        # Ensure we have the right count
         validated = validated[:target_count]
         
         logger.info(f"Validated {len(validated)} questions")
         return validated
     
-    # Keep the old method signature for backward compatibility but use new pipeline
     async def _generate_questions_single_legacy(
         self,
         content: str,
@@ -1994,11 +2049,9 @@ Return ONLY valid JSON."""
                 response_content = re.sub(r'^```(?:json)?\n?', '', response_content)
                 response_content = re.sub(r'\n?```$', '', response_content).strip()
             
-            # Try to extract and parse JSON
             questions = self._parse_questions_json(response_content)
             
             if questions:
-                # Post-process to ensure quality
                 questions = self._post_process_questions(questions, question_count, difficulty_distribution)
                 logger.info(f"Generated {len(questions)} questions successfully")
                 return questions
@@ -2012,13 +2065,11 @@ Return ONLY valid JSON."""
     def _parse_questions_json(self, content: str) -> List[Dict[str, Any]]:
         """Robust JSON parsing with multiple fallback strategies"""
         
-        # Strategy 1: Direct parse
         try:
             return json.loads(content)
         except:
             pass
         
-        # Strategy 2: Extract JSON array
         try:
             json_match = re.search(r'\[.*\]', content, re.DOTALL)
             if json_match:
@@ -2026,14 +2077,10 @@ Return ONLY valid JSON."""
         except:
             pass
         
-        # Strategy 3: Fix common JSON issues
         try:
             fixed = content
-            # Remove trailing commas before ] or }
             fixed = re.sub(r',(\s*[\]\}])', r'\1', fixed)
-            # Fix unescaped quotes in strings (common AI mistake)
             fixed = re.sub(r'(?<!\\)"(?=[^"]*"[^"]*":)', r'\\"', fixed)
-            # Remove control characters
             fixed = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', fixed)
             
             json_match = re.search(r'\[.*\]', fixed, re.DOTALL)
@@ -2042,16 +2089,13 @@ Return ONLY valid JSON."""
         except:
             pass
         
-        # Strategy 4: Parse individual question objects
         try:
             questions = []
-            # Find all JSON objects that look like questions
             pattern = r'\{[^{}]*"question_text"[^{}]*\}'
             matches = re.findall(pattern, content, re.DOTALL)
             
             for match in matches:
                 try:
-                    # Clean up the match
                     cleaned = re.sub(r',(\s*\})', r'\1', match)
                     q = json.loads(cleaned)
                     if 'question_text' in q:
@@ -2065,21 +2109,17 @@ Return ONLY valid JSON."""
         except:
             pass
         
-        # Strategy 5: More aggressive extraction
         try:
             questions = []
-            # Split by question boundaries
             parts = re.split(r'\},\s*\{', content)
             
             for i, part in enumerate(parts):
                 try:
-                    # Add back braces
                     if not part.strip().startswith('{'):
                         part = '{' + part
                     if not part.strip().endswith('}'):
                         part = part + '}'
                     
-                    # Clean
                     part = re.sub(r',(\s*\})', r'\1', part)
                     part = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', part)
                     
@@ -2124,7 +2164,6 @@ Return a JSON object with the same structure as the original."""
         try:
             content = self.unified_ai.generate(prompt, max_tokens=800, temperature=0.8)
             
-            # Remove markdown code blocks if present
             if content.startswith('```'):
                 content = re.sub(r'^```(?:json)?\n?', '', content)
                 content = re.sub(r'\n?```$', '', content).strip()
@@ -2167,20 +2206,17 @@ Return a JSON array of questions. If no questions found, return empty array []."
             content = self.unified_ai.generate(prompt, max_tokens=4000, temperature=0.3)
             logger.info(f"Raw extract_questions response: {content[:200]}")
             
-            # Remove markdown code blocks if present
             if content.startswith('```'):
                 content = re.sub(r'^```(?:json)?\n?', '', content, flags=re.DOTALL)
                 content = re.sub(r'\n?```$', '', content, flags=re.DOTALL)
                 content = content.strip()
             
-            # Try to extract JSON array - looking for [ ... ]
             json_match = re.search(r'\[[\s\S]*\]', content)
             if json_match:
                 json_str = json_match.group()
                 logger.info(f"Extracted JSON array: {json_str[:100]}")
                 questions = json.loads(json_str)
             else:
-                # Fallback: try to parse entire content as JSON
                 logger.info("No JSON array found, attempting to parse entire content")
                 questions = json.loads(content)
             
@@ -2196,7 +2232,6 @@ Return a JSON array of questions. If no questions found, return empty array []."
         except Exception as e:
             logger.error(f"Question extraction error: {e}", exc_info=True)
             return []
-
 
 class AdaptiveDifficultyAgent:
     def __init__(self):
@@ -2250,7 +2285,6 @@ class AdaptiveDifficultyAgent:
             "recent_average": round(avg_score, 1)
         }
 
-
 class MLPredictorAgent:
     def __init__(self):
         pass
@@ -2273,7 +2307,6 @@ class MLPredictorAgent:
         
         return recommendations[:5]
 
-
 class ChatSlideProcessorAgent:
     def __init__(self, unified_ai):
         self.unified_ai = unified_ai
@@ -2288,7 +2321,6 @@ class ChatSlideProcessorAgent:
     async def extract_content_from_slides(self, slide_content: str) -> str:
         return slide_content
 
-
 def register_question_bank_api(app, unified_ai, get_db_func):
     
     agents = {
@@ -2298,13 +2330,13 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         "adaptive_difficulty": AdaptiveDifficultyAgent(),
         "ml_predictor": MLPredictorAgent(),
         "chat_slide_processor": ChatSlideProcessorAgent(unified_ai),
-        # AI Enhancement Agents
         "prompt_enhancer": PromptEnhancerAgent(unified_ai),
         "topic_extractor": TopicExtractorAgent(unified_ai),
         "quality_scorer": QuestionQualityAgent(unified_ai),
         "bloom_tagger": BloomTaxonomyAgent(unified_ai),
         "duplicate_detector": DuplicateDetectorAgent(unified_ai),
         "adaptive_generator": AdaptiveGeneratorAgent(unified_ai),
+        "related_question_agent": RelatedQuestionAgent(unified_ai),
         "explanation_enhancer": ExplanationEnhancerAgent(unified_ai),
         "question_preview": QuestionPreviewAgent(unified_ai)
     }
@@ -2323,7 +2355,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not file.filename.lower().endswith('.pdf'):
                 raise HTTPException(status_code=400, detail="File must be a PDF")
             
-            # Debug: Check if user exists
             all_users = db.query(models.User).all()
             logger.info(f"Total users in DB: {len(all_users)}")
             for u in all_users:
@@ -2601,7 +2632,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not request.source_ids or len(request.source_ids) == 0:
                 raise HTTPException(status_code=400, detail="At least one PDF source is required")
             
-            # Fetch all selected documents
             documents = db.query(models.UploadedDocument).filter(
                 models.UploadedDocument.id.in_(request.source_ids),
                 models.UploadedDocument.user_id == user.id
@@ -2613,7 +2643,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if len(documents) != len(request.source_ids):
                 logger.warning(f"Some documents not found. Requested: {len(request.source_ids)}, Found: {len(documents)}")
             
-            # Combine content from all PDFs
             combined_content_parts = []
             document_names = []
             
@@ -2624,7 +2653,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             combined_content = "\n\n".join(combined_content_parts)
             logger.info(f"Combined content from {len(documents)} documents: {len(combined_content)} chars")
             
-            # Generate title from document names
             if request.title:
                 title = request.title
             elif len(document_names) == 1:
@@ -2634,13 +2662,10 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             else:
                 title = f"Questions from {len(document_names)} documents"
             
-            # Handle reference document (sample questions) vs content documents
             reference_content = None
             main_content = combined_content
             
-            # If user specified which documents are reference vs content
             if request.reference_document_id and request.content_document_ids:
-                # Separate reference document from content documents
                 reference_doc = next((d for d in documents if d.id == request.reference_document_id), None)
                 content_docs = [d for d in documents if d.id in request.content_document_ids]
                 
@@ -2654,11 +2679,9 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     ])
                     logger.info(f"Using {len(content_docs)} documents as main content")
             
-            # Log custom prompt if provided
             if request.custom_prompt:
                 logger.info(f"Custom prompt provided: {request.custom_prompt[:100]}...")
             
-            # Generate questions from combined content with custom prompt support
             questions = await agents["question_generator"].generate_questions(
                 main_content,
                 request.question_count,
@@ -2672,7 +2695,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not questions:
                 raise HTTPException(status_code=500, detail="Failed to generate questions from the provided documents")
             
-            # Create description based on what was used
             description_parts = [f"Generated from {len(documents)} PDF documents"]
             if request.custom_prompt:
                 description_parts.append("with custom instructions")
@@ -2680,20 +2702,18 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 description_parts.append("using reference style")
             description = f"{'. '.join(description_parts)}: {', '.join(document_names[:3])}{'...' if len(document_names) > 3 else ''}"
             
-            # Create question set
             question_set = models.QuestionSet(
                 user_id=user.id,
                 title=title,
                 description=description,
                 source_type="multi_pdf",
-                source_id=None,  # Multiple sources, so no single ID
+                source_id=None,
                 total_questions=len(questions)
             )
             
             db.add(question_set)
             db.flush()
             
-            # Add questions
             for idx, q in enumerate(questions):
                 question = models.Question(
                     question_set_id=question_set.id,
@@ -2727,6 +2747,123 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         except Exception as e:
             logger.error(f"Error generating questions from multiple PDFs: {e}", exc_info=True)
             db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/api/qb/generate_related_from_pdf")
+    async def generate_related_from_pdf(
+        request: RelatedPDFGenerationRequest,
+        db: Session = Depends(get_db_func)
+    ):
+        """Generate related questions from PDFs using the user's strengths/weaknesses."""
+        try:
+            import models
+
+            logger.info(
+                f"Generating related questions from {len(request.source_ids)} PDFs for user {request.user_id}"
+            )
+
+            user = db.query(models.User).filter(
+                (models.User.username == request.user_id) | (models.User.email == request.user_id)
+            ).first()
+
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            if not request.source_ids:
+                raise HTTPException(status_code=400, detail="At least one PDF source is required")
+
+            documents = db.query(models.UploadedDocument).filter(
+                models.UploadedDocument.id.in_(request.source_ids),
+                models.UploadedDocument.user_id == user.id
+            ).all()
+
+            if not documents:
+                raise HTTPException(status_code=404, detail="No documents found")
+
+            combined_content_parts = []
+            document_names = []
+            for doc in documents:
+                document_names.append(doc.filename)
+                combined_content_parts.append(f"=== Document: {doc.filename} ===\n{doc.content}")
+
+            combined_content = "\n\n".join(combined_content_parts)
+            logger.info(f"Combined content length: {len(combined_content)} chars")
+
+            weak_areas = db.query(models.UserWeakArea).filter(
+                models.UserWeakArea.user_id == user.id,
+                models.UserWeakArea.status != "mastered"
+            ).order_by(
+                models.UserWeakArea.priority.desc(),
+                models.UserWeakArea.weakness_score.desc()
+            ).limit(5).all()
+            weak_topics = [wa.topic for wa in weak_areas if wa.topic]
+
+            chroma_weak_topics = []
+            try:
+                from tutor import chroma_store
+                if chroma_store.available():
+                    chroma_weak_topics = chroma_store.get_weak_quiz_topics(str(user.id), top_k=5)
+            except Exception as e:
+                logger.warning(f"Chroma weak topic retrieval failed: {e}")
+
+            sessions = db.query(models.QuestionSession).filter(
+                models.QuestionSession.user_id == user.id
+            ).order_by(models.QuestionSession.completed_at.desc()).limit(50).all()
+
+            topic_performance = _compute_topic_performance_from_sessions(sessions)
+
+            analytics_weak_topics = []
+            if topic_performance:
+                analytics_weak_topics = [t["topic"] for t in topic_performance if t["accuracy"] < 60][:5]
+
+            weak_topics = _merge_topics(weak_topics, chroma_weak_topics, analytics_weak_topics, limit=8)
+
+            strong_topics = [
+                t["topic"]
+                for t in sorted(topic_performance, key=lambda x: -x["accuracy"])
+                if t["accuracy"] >= 80
+                and t["total_questions"] >= 3
+                and t["topic"] not in weak_topics
+            ][:5]
+
+            strong_topics = _merge_topics(strong_topics, limit=5)
+
+            personalized_prompt = agents["related_question_agent"].build_prompt(
+                weak_topics, strong_topics
+            )
+
+            questions = await agents["question_generator"].generate_questions(
+                combined_content,
+                request.question_count,
+                request.question_types,
+                request.difficulty_mix,
+                weak_topics or None,
+                custom_prompt=personalized_prompt
+            )
+
+            if not questions:
+                raise HTTPException(status_code=500, detail="Failed to generate related questions")
+
+            title = request.title or (
+                f"Related Questions from {document_names[0]}"
+                if len(document_names) == 1
+                else f"Related Questions from {len(document_names)} documents"
+            )
+
+            return {
+                "status": "success",
+                "questions": questions,
+                "title": title,
+                "personalization": {
+                    "weak_topics": weak_topics,
+                    "strong_topics": strong_topics
+                }
+            }
+
+        except HTTPException as http_e:
+            raise http_e
+        except Exception as e:
+            logger.error(f"Error generating related questions from PDFs: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
     
     @app.post("/api/qb/smart_generate")
@@ -2762,7 +2899,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Fetch all documents
             documents = db.query(models.UploadedDocument).filter(
                 models.UploadedDocument.id.in_(request.source_ids),
                 models.UploadedDocument.user_id == user.id
@@ -2774,7 +2910,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             doc_map = {d.id: d for d in documents}
             document_names = [d.filename for d in documents]
             
-            # Separate reference and content documents
             reference_content = None
             main_content_parts = []
             
@@ -2783,7 +2918,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 reference_content = f"=== REFERENCE DOCUMENT: {ref_doc.filename} ===\n{ref_doc.content}"
                 logger.info(f"Reference document: {ref_doc.filename}")
             
-            # Get content documents
             content_ids = request.content_document_ids or [
                 d.id for d in documents if d.id != request.reference_document_id
             ]
@@ -2794,7 +2928,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     main_content_parts.append(f"=== CONTENT: {doc.filename} ===\n{doc.content}")
             
             if not main_content_parts:
-                # If no content docs specified, use all non-reference docs
                 for doc in documents:
                     if doc.id != request.reference_document_id:
                         main_content_parts.append(f"=== CONTENT: {doc.filename} ===\n{doc.content}")
@@ -2806,10 +2939,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             logger.info(f"Main content: {len(main_content)} chars from {len(main_content_parts)} docs")
             
-            # Generate title
             title = request.title or f"Smart Questions from {len(documents)} documents"
             
-            # Generate questions with all the context
             questions = await agents["question_generator"].generate_questions(
                 main_content,
                 request.question_count,
@@ -2826,7 +2957,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     detail="Failed to generate questions. The AI response could not be parsed. Please try again with a simpler prompt or fewer documents."
                 )
             
-            # Build description
             desc_parts = []
             if request.custom_prompt:
                 desc_parts.append(f"Custom: {request.custom_prompt[:50]}...")
@@ -3065,7 +3195,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             logger.info(f"📚 Found {len(questions)} questions for set {set_id}")
             
-            # Also check with raw SQL to debug
             from sqlalchemy import text
             raw_count = db.execute(text("SELECT COUNT(*) FROM questions WHERE question_set_id = :set_id"), {"set_id": set_id}).scalar()
             logger.info(f"📚 Raw SQL count: {raw_count} questions for set {set_id}")
@@ -3175,25 +3304,19 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 correct_answer = str(question.correct_answer).strip().lower()
                 user_answer_normalized = str(user_answer).strip().lower()
                 
-                # Improved answer validation with fuzzy matching
                 if question.question_type in ['short_answer', 'fill_blank']:
-                    # Remove extra spaces, punctuation, and check similarity
                     import re
                     correct_clean = re.sub(r'[^\w\s]', '', correct_answer).strip()
                     user_clean = re.sub(r'[^\w\s]', '', user_answer_normalized).strip()
                     
-                    # Check exact match first
                     is_correct = user_clean == correct_clean
                     
-                    # If not exact, check if answer contains the key terms
                     if not is_correct and correct_clean:
                         correct_words = set(correct_clean.split())
                         user_words = set(user_clean.split())
-                        # Accept if user answer contains at least 80% of correct words
                         if correct_words and len(correct_words & user_words) / len(correct_words) >= 0.8:
                             is_correct = True
                 else:
-                    # For MCQ and True/False, use exact matching
                     is_correct = user_answer_normalized == correct_answer
                 
                 if is_correct:
@@ -3217,7 +3340,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             score = int((earned_points / total_points) * 100) if total_points > 0 else 0
             
-            # ADAPTIVE LEARNING: Process each answer with adaptive engine
             from adaptive_learning_integration import get_adaptive_integration
             adaptive_integration = get_adaptive_integration()
             
@@ -3227,7 +3349,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     is_correct = user_answer.strip().lower() == question.correct_answer.strip().lower()
                     response_time = request.time_taken_seconds / len(questions) if request.time_taken_seconds else 30
                     
-                    # Process with adaptive engine
                     adaptive_integration.process_question_bank_answer(
                         db, user.id, question.id, is_correct, response_time
                     )
@@ -3266,10 +3387,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             adaptation = agents["adaptive_difficulty"].analyze_performance(history_data)
             
-            # ADAPTIVE LEARNING: Get real-time recommendations
             adaptive_recommendations = adaptive_integration.get_session_recommendations(user.id)
             
-            # Track weak areas from wrong answers
             await _update_weak_areas(db, user.id, results, models)
             
             return {
@@ -3282,7 +3401,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 "total_points": total_points,
                 "details": results,
                 "adaptation": adaptation,
-                # ADAPTIVE LEARNING: Include adaptive feedback
                 "adaptive_feedback": {
                     "cognitive_load": adaptive_recommendations.get('cognitive_load'),
                     "recommendations": adaptive_recommendations.get('recommendations', []),
@@ -3499,7 +3617,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         try:
             import models
             
-            # Get user
             user = db.query(models.User).filter(
                 (models.User.username == user_id) | (models.User.email == user_id)
             ).first()
@@ -3507,7 +3624,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Get question set
             question_set = db.query(models.QuestionSet).filter(
                 models.QuestionSet.id == set_id,
                 models.QuestionSet.user_id == user.id
@@ -3516,7 +3632,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not question_set:
                 raise HTTPException(status_code=404, detail="Question set not found")
             
-            # Get questions
             questions = db.query(models.Question).filter(
                 models.Question.question_set_id == set_id
             ).order_by(models.Question.order_index).all()
@@ -3524,7 +3639,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not questions:
                 raise HTTPException(status_code=404, detail="No questions found in this set")
             
-            # Generate PDF
             pdf_buffer = generate_question_set_pdf(
                 question_set=question_set,
                 questions=questions,
@@ -3532,7 +3646,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 user_name=user.first_name or user.username
             )
             
-            # Create filename
             safe_title = "".join(c for c in question_set.title if c.isalnum() or c in (' ', '-', '_')).strip()
             safe_title = safe_title.replace(' ', '_')[:50]
             filename = f"Question_Set_{safe_title}.pdf"
@@ -3552,7 +3665,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             logger.error(f"Error exporting question set PDF: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
-    # ==================== AI ENHANCEMENT ENDPOINTS ====================
     
     @app.post("/api/qb/enhance_prompt")
     async def enhance_prompt(
@@ -3591,7 +3703,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             document_id = payload.get("document_id")
             content = payload.get("content", "")
             
-            # If document_id provided, get content from document
             if document_id and user_id:
                 user = db.query(models.User).filter(
                     (models.User.username == user_id) | (models.User.email == user_id)
@@ -3633,7 +3744,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             scored_questions = await agents["quality_scorer"].batch_score_questions(questions)
             
-            # Calculate average score
             avg_score = sum(q.get('quality_score', 7) for q in scored_questions) / len(scored_questions)
             
             return {
@@ -3660,7 +3770,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             tagged_questions = await agents["bloom_tagger"].batch_tag_questions(questions)
             
-            # Count by level
             level_counts = {}
             for q in tagged_questions:
                 level = q.get('bloom_level', 'understand')
@@ -3692,7 +3801,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not new_question:
                 raise HTTPException(status_code=400, detail="Question is required")
             
-            # Get existing questions
             existing_questions = []
             
             if user_id:
@@ -3742,7 +3850,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Get user's answer history from solo quizzes
             quizzes = db.query(models.SoloQuiz).filter(
                 models.SoloQuiz.user_id == user.id,
                 models.SoloQuiz.completed == True
@@ -3755,7 +3862,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 ).all()
                 
                 for question in questions:
-                    # Skip if no user answer recorded
                     if question.user_answer is None:
                         continue
                     
@@ -3808,7 +3914,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Get weakness analysis from solo quizzes
             quizzes = db.query(models.SoloQuiz).filter(
                 models.SoloQuiz.user_id == user.id,
                 models.SoloQuiz.completed == True
@@ -3821,7 +3926,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 ).all()
                 
                 for question in questions:
-                    # Skip if no user answer recorded
                     if question.user_answer is None:
                         continue
                     
@@ -3833,8 +3937,46 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     })
             
             weakness_analysis = await agents["adaptive_generator"].analyze_weaknesses(performance_data) if performance_data else {}
+
+            chroma_weak_topics = []
+            try:
+                from tutor import chroma_store
+                if chroma_store.available():
+                    chroma_weak_topics = chroma_store.get_weak_quiz_topics(str(user.id), top_k=5)
+            except Exception as e:
+                logger.warning(f"Chroma weak topic retrieval failed: {e}")
+
+            if chroma_weak_topics:
+                existing_weak = weakness_analysis.get("weak_topics", []) if isinstance(weakness_analysis, dict) else []
+                existing_focus = []
+                if isinstance(weakness_analysis, dict):
+                    existing_focus = weakness_analysis.get("recommendations", {}).get("focus_topics", []) or []
+
+                weak_topic_names = [t.get("topic") for t in existing_weak if isinstance(t, dict)]
+                merged_focus = _merge_topics(weak_topic_names, existing_focus, chroma_weak_topics, limit=8)
+
+                if not isinstance(weakness_analysis, dict):
+                    weakness_analysis = {}
+                if "recommendations" not in weakness_analysis or not isinstance(weakness_analysis.get("recommendations"), dict):
+                    weakness_analysis["recommendations"] = {}
+
+                existing_lower = {str(t).lower() for t in weak_topic_names if t}
+                for topic in chroma_weak_topics:
+                    if not topic:
+                        continue
+                    if topic.lower() in existing_lower:
+                        continue
+                    existing_weak.append({
+                        "topic": topic,
+                        "accuracy": 0.0,
+                        "attempts": 0,
+                        "source": "chroma"
+                    })
+                    existing_lower.add(topic.lower())
+
+                weakness_analysis["weak_topics"] = existing_weak
+                weakness_analysis["recommendations"]["focus_topics"] = merged_focus
             
-            # Get content from documents
             content_parts = []
             if document_ids:
                 documents = db.query(models.UploadedDocument).filter(
@@ -3850,10 +3992,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not content:
                 raise HTTPException(status_code=400, detail="No content available for question generation")
             
-            # Generate adaptive prompt
             adaptive_prompt = await agents["adaptive_generator"].generate_adaptive_prompt(weakness_analysis, content)
             
-            # Generate questions with adaptive prompt
             questions = await agents["question_generator"].generate_questions(
                 content,
                 question_count,
@@ -3915,7 +4055,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not original_question:
                 raise HTTPException(status_code=400, detail="Question is required")
             
-            # Get content if document_id provided
             content = ""
             if document_id and user_id:
                 user = db.query(models.User).filter(
@@ -3961,7 +4100,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Get documents
             documents = db.query(models.UploadedDocument).filter(
                 models.UploadedDocument.id.in_(request.source_ids),
                 models.UploadedDocument.user_id == user.id
@@ -3970,14 +4108,12 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not documents:
                 raise HTTPException(status_code=404, detail="No documents found")
             
-            # Combine content
             content_parts = []
             for doc in documents:
                 content_parts.append(f"=== {doc.filename} ===\n{doc.content}")
             
             content = "\n\n".join(content_parts)
             
-            # Enhance prompt if provided
             enhanced_prompt = request.custom_prompt
             if request.custom_prompt:
                 enhancement = await agents["prompt_enhancer"].enhance_prompt(
@@ -3986,7 +4122,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 )
                 enhanced_prompt = enhancement.get('enhanced_prompt', request.custom_prompt)
             
-            # Generate questions
             questions = await agents["question_generator"].generate_questions(
                 content,
                 request.question_count,
@@ -3999,13 +4134,10 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not questions:
                 raise HTTPException(status_code=500, detail="Failed to generate questions")
             
-            # Score quality
             scored_questions = await agents["quality_scorer"].batch_score_questions(questions)
             
-            # Tag with Bloom's taxonomy
             tagged_questions = await agents["bloom_tagger"].batch_tag_questions(scored_questions)
             
-            # Check for duplicates
             existing_questions = []
             user_questions = db.query(models.Question).join(models.QuestionSet).filter(
                 models.QuestionSet.user_id == user.id
@@ -4020,7 +4152,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 q['is_potential_duplicate'] = dup_check.get('is_duplicate', False)
                 q['duplicate_similarity'] = dup_check.get('similarity_score', 0)
             
-            # Calculate stats
             avg_quality = sum(q.get('quality_score', 7) for q in tagged_questions) / len(tagged_questions)
             bloom_dist = {}
             for q in tagged_questions:
@@ -4070,7 +4201,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Create question set
             question_set = models.QuestionSet(
                 user_id=user.id,
                 title=title,
@@ -4082,7 +4212,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.add(question_set)
             db.flush()
             
-            # Add questions
             for idx, q in enumerate(questions):
                 question = models.Question(
                     question_set_id=question_set.id,
@@ -4138,7 +4267,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Create question set
             question_set = models.QuestionSet(
                 user_id=user.id,
                 title=title,
@@ -4150,17 +4278,13 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.add(question_set)
             db.flush()
             
-            # Add questions - handle both formats (learning path and standard)
             for idx, q in enumerate(questions):
-                # Learning path format uses 'question' and 'options' array
                 question_text = q.get("question") or q.get("question_text")
                 options = q.get("options", [])
                 correct_answer = q.get("correct_answer", 0)
                 explanation = q.get("explanation", "")
                 
-                # Convert options array to the format expected by the database
                 if isinstance(options, list) and len(options) > 0:
-                    # If correct_answer is an index, get the actual answer text
                     if isinstance(correct_answer, int) and correct_answer < len(options):
                         correct_answer_text = options[correct_answer]
                     else:
@@ -4228,12 +4352,10 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 ).first()
                 
                 if question_set:
-                    # Delete questions first
                     db.query(models.Question).filter(
                         models.Question.question_set_id == set_id
                     ).delete()
                     
-                    # Delete the set
                     db.delete(question_set)
                     deleted_count += 1
             
@@ -4275,7 +4397,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Get all questions from the sets
             all_questions = []
             source_titles = []
             
@@ -4306,7 +4427,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not all_questions:
                 raise HTTPException(status_code=400, detail="No questions found in the selected sets")
             
-            # Create new merged set
             merged_set = models.QuestionSet(
                 user_id=user.id,
                 title=new_title,
@@ -4318,7 +4438,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.add(merged_set)
             db.flush()
             
-            # Add questions to merged set
             for idx, q in enumerate(all_questions):
                 question = models.Question(
                     question_set_id=merged_set.id,
@@ -4334,7 +4453,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 )
                 db.add(question)
             
-            # Delete originals if requested
             if delete_originals:
                 for set_id in set_ids:
                     db.query(models.Question).filter(
@@ -4361,7 +4479,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     
-    # ==================== WEAK AREAS TRACKING ENDPOINTS ====================
     
     @app.get("/api/qb/weak_areas")
     async def get_weak_areas(
@@ -4517,9 +4634,9 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             import models
             
             user_id = payload.get("user_id")
-            topic = payload.get("topic")  # Optional: specific topic to practice
+            topic = payload.get("topic")
             question_count = payload.get("question_count", 10)
-            include_review = payload.get("include_review", True)  # Include previously wrong questions
+            include_review = payload.get("include_review", True)
             
             user = db.query(models.User).filter(
                 (models.User.username == user_id) | (models.User.email == user_id)
@@ -4528,7 +4645,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Get weak areas
             weak_area_query = db.query(models.UserWeakArea).filter(
                 models.UserWeakArea.user_id == user.id,
                 models.UserWeakArea.status != "mastered"
@@ -4549,10 +4665,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     "practice_set_id": None
                 }
             
-            # Collect topics to focus on
             focus_topics = [wa.topic for wa in weak_areas]
             
-            # Get previously wrong questions for review
             review_questions = []
             if include_review:
                 wrong_logs = db.query(models.WrongAnswerLog).filter(
@@ -4581,12 +4695,10 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                             "original_wrong_answer": wl.user_answer
                         })
             
-            # Generate new questions for remaining count
             new_question_count = question_count - len(review_questions)
             new_questions = []
             
             if new_question_count > 0:
-                # Get content from documents related to weak topics
                 docs = db.query(models.UploadedDocument).filter(
                     models.UploadedDocument.user_id == user.id
                 ).limit(3).all()
@@ -4594,7 +4706,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 if docs:
                     content = "\n\n".join([d.content for d in docs if d.content])[:15000]
                     
-                    # Generate questions focused on weak areas
                     generated = await agents["question_generator"].generate_questions(
                         content,
                         new_question_count,
@@ -4618,7 +4729,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     "practice_set_id": None
                 }
             
-            # Create a practice question set
             practice_set = models.QuestionSet(
                 user_id=user.id,
                 title=f"Practice: {', '.join(focus_topics[:3])}",
@@ -4630,7 +4740,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.add(practice_set)
             db.flush()
             
-            # Add questions
             for idx, q in enumerate(all_questions):
                 question = models.Question(
                     question_set_id=practice_set.id,
@@ -4646,7 +4755,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 )
                 db.add(question)
             
-            # Update weak area practice count
             for wa in weak_areas:
                 wa.practice_sessions += 1
                 wa.last_practiced = datetime.now(timezone.utc)
@@ -4686,20 +4794,17 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Get weak areas
             weak_areas = db.query(models.UserWeakArea).filter(
                 models.UserWeakArea.user_id == user.id,
                 models.UserWeakArea.status != "mastered"
             ).order_by(models.UserWeakArea.priority.desc()).limit(10).all()
             
-            # Get recent performance
             recent_sessions = db.query(models.QuestionSession).filter(
                 models.QuestionSession.user_id == user.id
             ).order_by(models.QuestionSession.completed_at.desc()).limit(10).all()
             
             recommendations = []
             
-            # Critical weak areas (priority >= 8)
             critical = [wa for wa in weak_areas if wa.priority >= 8]
             if critical:
                 recommendations.append({
@@ -4711,7 +4816,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     "priority": 10
                 })
             
-            # Topics with declining performance
             declining = [wa for wa in weak_areas if wa.improvement_rate < -0.1]
             if declining:
                 recommendations.append({
@@ -4723,7 +4827,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     "priority": 8
                 })
             
-            # Topics not practiced recently
             from datetime import timedelta
             stale_threshold = datetime.now(timezone.utc) - timedelta(days=7)
             stale = [wa for wa in weak_areas if wa.last_practiced and wa.last_practiced < stale_threshold]
@@ -4737,7 +4840,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     "priority": 6
                 })
             
-            # Unreviewed wrong answers
             unreviewed_count = db.query(models.WrongAnswerLog).filter(
                 models.WrongAnswerLog.user_id == user.id,
                 models.WrongAnswerLog.reviewed == False
@@ -4752,7 +4854,6 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     "priority": 7
                 })
             
-            # Overall stats
             total_questions_answered = sum(s.total_questions for s in recent_sessions) if recent_sessions else 0
             avg_score = sum(s.score for s in recent_sessions) / len(recent_sessions) if recent_sessions else 0
             
@@ -4784,7 +4885,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             import models
             
             weak_area_id = payload.get("weak_area_id")
-            action = payload.get("action", "mastered")  # mastered or delete
+            action = payload.get("action", "mastered")
             
             weak_area = db.query(models.UserWeakArea).filter(
                 models.UserWeakArea.id == weak_area_id

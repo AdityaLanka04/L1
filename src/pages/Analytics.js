@@ -56,7 +56,8 @@ const Analytics = () => {
         loadHistoricalData()
       ]);
     } catch (error) {
-    } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -73,7 +74,8 @@ const Analytics = () => {
         setWeeklyStats(data.weekly_stats || {});
       }
     } catch (error) {
-    }
+    // silenced
+  }
   };
 
   const loadGamificationStats = async () => {
@@ -86,7 +88,8 @@ const Analytics = () => {
         setGamificationStats(data);
       }
     } catch (error) {
-    }
+    // silenced
+  }
   };
 
   const loadHistoricalData = async () => {
@@ -104,7 +107,8 @@ const Analytics = () => {
         });
       }
     } catch (error) {
-    }
+    // silenced
+  }
   };
 
   const toggleMetric = (metric) => {
@@ -177,7 +181,6 @@ const Analytics = () => {
 
   return (
     <div className="analytics-page">
-      {/* Standardized Header - Exact copy from Profile */}
       <header className="analytics-header">
         <div className="analytics-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -207,7 +210,6 @@ const Analytics = () => {
       </header>
 
       <div className="analytics-container">
-        {/* Summary Cards */}
         <div className="analytics-summary-cards">
           <div className="analytics-card analytics-card-accent">
             <div className="analytics-card-icon">
@@ -247,7 +249,6 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Filters */}
         <div className="analytics-filters">
           <div className="analytics-filter-group">
             <label>Time Range</label>
@@ -280,7 +281,6 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Metrics Toggles */}
         <div className="analytics-metrics">
           <label>Show Metrics:</label>
           <div className="analytics-metric-chips">
@@ -297,7 +297,6 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Main Chart */}
         <div className="analytics-chart-section">
           <div className="analytics-chart-header">
             <div>
@@ -399,7 +398,6 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="analytics-stats-grid">
           <div className="analytics-stat-card">
             <div className="analytics-stat-header">
@@ -504,7 +502,6 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Points Reference */}
         <div className="analytics-points-reference">
           <h3>Point System</h3>
           <div className="analytics-points-grid">

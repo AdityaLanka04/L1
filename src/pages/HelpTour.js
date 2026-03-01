@@ -81,7 +81,7 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
     if (!tooltip) return;
 
     if (!target) {
-      // Center tooltip if target not found
+      
       tooltip.style.top = '50%';
       tooltip.style.left = '50%';
       tooltip.style.transform = 'translate(-50%, -50%)';
@@ -116,7 +116,7 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
         left = rect.left + (rect.width - tooltipRect.width) / 2;
     }
 
-    // Keep tooltip in viewport
+    
     top = Math.max(20, Math.min(top, window.innerHeight - tooltipRect.height - 20));
     left = Math.max(20, Math.min(left, window.innerWidth - tooltipRect.width - 20));
 
@@ -124,7 +124,7 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
     tooltip.style.left = `${left}px`;
     tooltip.style.transform = 'none';
 
-    // Scroll target into view if needed
+    
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
@@ -150,7 +150,7 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
 
   const skipTour = () => {
     setIsVisible(false);
-    onComplete?.(); // Mark tour as completed even when skipped
+    onComplete?.(); 
     onClose?.();
   };
 

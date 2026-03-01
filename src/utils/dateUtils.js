@@ -1,9 +1,4 @@
-/**
- * Format a date/time string to the user's local timezone
- * @param {string} dateString - ISO date string from backend (UTC)
- * @param {boolean} includeTime - Whether to include time in output
- * @returns {string} Formatted date string in user's local timezone
- */
+
 export const formatToLocalTime = (dateString, includeTime = true) => {
   if (!dateString) return '';
   
@@ -27,11 +22,6 @@ export const formatToLocalTime = (dateString, includeTime = true) => {
   }
 };
 
-/**
- * Get relative time (e.g., "2 hours ago", "just now")
- * @param {string} dateString - ISO date string from backend (UTC)
- * @returns {string} Relative time string
- */
 export const getRelativeTime = (dateString) => {
   if (!dateString) return '';
   
@@ -51,11 +41,6 @@ export const getRelativeTime = (dateString) => {
   return formatToLocalTime(dateString, false);
 };
 
-/**
- * Format time only (e.g., "2:30 PM")
- * @param {string} dateString - ISO date string from backend (UTC)
- * @returns {string} Formatted time string
- */
 export const formatTimeOnly = (dateString) => {
   if (!dateString) return '';
   

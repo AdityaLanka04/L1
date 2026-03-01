@@ -18,13 +18,13 @@ from pathlib import Path
 import PyPDF2
 from groq import Groq
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
+from activity_logger import log_ai_tokens
+from ai_usage import extract_usage_from_openai_like
 
 logger = logging.getLogger(__name__)
 
-# Initialize Groq client
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
 
 class ComprehensiveSlideAnalyzer:
     """Analyzes slides and generates comprehensive educational content"""
@@ -32,6 +32,7 @@ class ComprehensiveSlideAnalyzer:
     def __init__(self, db: Session):
         self.db = db
         self.model = "llama-3.3-70b-versatile"
+        self.current_user_id = None
     
     def call_ai(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.4, retries: int = 2) -> str:
         """Call Groq AI with error handling and retries"""
@@ -45,14 +46,34 @@ class ComprehensiveSlideAnalyzer:
                     max_tokens=max_tokens,
                     temperature=temperature
                 )
+                self._log_usage(response)
                 return response.choices[0].message.content
             except Exception as e:
                 logger.error(f"AI call error (attempt {attempt + 1}/{retries}): {e}")
                 if attempt < retries - 1:
-                    time.sleep(1)  # Wait before retry
+                    time.sleep(1)
                 else:
                     return ""
         return ""
+
+    def _log_usage(self, response):
+        if not self.current_user_id:
+            return
+        usage = extract_usage_from_openai_like(response)
+        if not usage:
+            return
+        try:
+            log_ai_tokens(
+                user_id=self.current_user_id,
+                tool_name="slide_explorer_ai",
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0),
+                model=self.model,
+                metadata={"provider": "groq", "source": "slide_analysis"}
+            )
+        except Exception:
+            pass
     
     def extract_slide_content(self, file_path: Path, file_type: str) -> List[Dict[str, Any]]:
         """Extract content from PDF or PowerPoint files"""
@@ -124,7 +145,6 @@ class ComprehensiveSlideAnalyzer:
         title = slide_data["title"]
         slide_number = slide_data["slide_number"]
         
-        # Build context from surrounding slides
         context_slides = []
         for i in range(max(0, slide_index - 2), min(len(all_slides_context), slide_index + 3)):
             if i != slide_index:
@@ -132,7 +152,6 @@ class ComprehensiveSlideAnalyzer:
         
         context_text = "\n".join(context_slides) if context_slides else "No surrounding context available"
         
-        # Check if slide has substantial content
         if not content or len(content.strip()) < 20:
             return {
                 "slide_number": slide_number,
@@ -150,7 +169,6 @@ class ComprehensiveSlideAnalyzer:
                 "estimated_study_time": "2 minutes"
             }
         
-        # Generate comprehensive analysis using AI
         prompt = f"""You are an expert educational content analyzer. Analyze this presentation slide in extreme detail and provide comprehensive educational content.
 
 SLIDE INFORMATION:
@@ -219,18 +237,13 @@ IMPORTANT:
         try:
             ai_response = self.call_ai(prompt, max_tokens=3000, temperature=0.4)
             
-            # Clean and parse JSON from response
             import re
             
-            # Try to find JSON in the response
             json_match = re.search(r'\{[\s\S]*\}', ai_response)
             if json_match:
                 json_str = json_match.group()
                 
-                # Clean up common JSON issues
-                # Remove control characters
                 json_str = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', json_str)
-                # Fix escaped quotes
                 json_str = json_str.replace('\\"', '"').replace('\\n', ' ')
                 
                 try:
@@ -238,7 +251,6 @@ IMPORTANT:
                     analysis["slide_number"] = slide_number
                     analysis["title"] = title
                     
-                    # Validate required fields
                     if "detailed_explanation" not in analysis:
                         logger.warning(f"Missing detailed_explanation for slide {slide_number}")
                         return self._get_fallback_analysis(slide_number, title, content)
@@ -246,7 +258,6 @@ IMPORTANT:
                     return analysis
                 except json.JSONDecodeError as e:
                     logger.error(f"JSON decode error after cleaning: {e}")
-                    # Try one more time with a simpler prompt
                     return self._generate_simple_analysis(slide_number, title, content)
             else:
                 logger.error("No JSON found in AI response")
@@ -269,14 +280,12 @@ Return ONLY this JSON structure with no extra text:
 
             response = self.call_ai(simple_prompt, max_tokens=1500, temperature=0.3)
             
-            # Extract and clean JSON
             import re
             json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response)
             if json_match:
                 json_str = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', json_match.group())
                 analysis = json.loads(json_str)
                 
-                # Fill in missing fields with defaults
                 return {
                     "slide_number": slide_number,
                     "title": title,
@@ -299,7 +308,6 @@ Return ONLY this JSON structure with no extra text:
     
     def _get_fallback_analysis(self, slide_number: int, title: str, content: str) -> Dict[str, Any]:
         """Provide fallback analysis if AI fails"""
-        # Extract some basic info from content
         words = content.split()[:100]
         content_preview = ' '.join(words)
         
@@ -343,9 +351,15 @@ Return ONLY this JSON structure with no extra text:
         Analyze entire presentation and return comprehensive analysis
         Checks for existing analysis first unless force_reanalyze is True
         """
-        from models import SlideAnalysis
+        from models import SlideAnalysis, UploadedSlide
+
+        try:
+            slide = self.db.query(UploadedSlide).filter(UploadedSlide.id == slide_id).first()
+            if slide:
+                self.current_user_id = slide.user_id
+        except Exception:
+            self.current_user_id = None
         
-        # Check if analysis already exists
         if not force_reanalyze:
             existing_analysis = self.db.query(SlideAnalysis).filter(
                 SlideAnalysis.slide_id == slide_id
@@ -355,11 +369,9 @@ Return ONLY this JSON structure with no extra text:
                 logger.info(f"Returning cached analysis for slide_id {slide_id}")
                 return json.loads(existing_analysis.analysis_data)
         
-        # Extract slide content
         logger.info(f"Extracting content from {file_path}")
         slides_data = self.extract_slide_content(file_path, file_type)
         
-        # Generate comprehensive analysis for each slide
         analyzed_slides = []
         total_slides = len(slides_data)
         
@@ -374,18 +386,16 @@ Return ONLY this JSON structure with no extra text:
             )
             analyzed_slides.append(analysis)
         
-        # Create presentation summary
         presentation_summary = self._generate_presentation_summary(analyzed_slides)
         
         result = {
             "slide_id": slide_id,
             "total_slides": total_slides,
-            "analyzed_at": datetime.utcnow().isoformat(),
+            "analyzed_at": datetime.now(timezone.utc).isoformat(),
             "presentation_summary": presentation_summary,
             "slides": analyzed_slides
         }
         
-        # Store analysis in database
         self._store_analysis(slide_id, result)
         
         return result
@@ -404,7 +414,6 @@ Return ONLY this JSON structure with no extra text:
             difficulty = slide.get("difficulty_level", "intermediate")
             difficulty_counts[difficulty] = difficulty_counts.get(difficulty, 0) + 1
             
-            # Parse study time
             time_str = slide.get("estimated_study_time", "5 minutes")
             try:
                 minutes = int(''.join(filter(str.isdigit, time_str)))
@@ -425,19 +434,18 @@ Return ONLY this JSON structure with no extra text:
         from models import SlideAnalysis
         
         try:
-            # Check if analysis exists
             existing = self.db.query(SlideAnalysis).filter(
                 SlideAnalysis.slide_id == slide_id
             ).first()
             
             if existing:
                 existing.analysis_data = json.dumps(analysis_data)
-                existing.analyzed_at = datetime.utcnow()
+                existing.analyzed_at = datetime.now(timezone.utc)
             else:
                 new_analysis = SlideAnalysis(
                     slide_id=slide_id,
                     analysis_data=json.dumps(analysis_data),
-                    analyzed_at=datetime.utcnow()
+                    analyzed_at=datetime.now(timezone.utc)
                 )
                 self.db.add(new_analysis)
             
@@ -447,7 +455,6 @@ Return ONLY this JSON structure with no extra text:
         except Exception as e:
             logger.error(f"Error storing analysis: {e}")
             self.db.rollback()
-
 
 def get_or_create_analysis(
     slide_id: int,

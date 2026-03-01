@@ -10,7 +10,6 @@ import shutil
 
 logger = logging.getLogger(__name__)
 
-
 class StorageService:
     """Factory for storage services"""
     
@@ -20,7 +19,6 @@ class StorageService:
         storage_type = os.getenv("STORAGE_TYPE", "r2").lower()
         
         if storage_type == "r2":
-            # Try R2 first (best for production)
             try:
                 return R2Storage()
             except Exception as e:
@@ -34,7 +32,6 @@ class StorageService:
             logger.warning(f"Unknown storage type: {storage_type}, using local")
             return LocalStorage()
 
-
 class LocalStorage:
     """Local file storage"""
     
@@ -45,21 +42,17 @@ class LocalStorage:
     
     def upload_file(self, file_obj, user_id, file_type):
         """Upload file to local storage"""
-        # Create user directory
         user_dir = self.base_path / str(user_id) / file_type
         user_dir.mkdir(parents=True, exist_ok=True)
         
-        # Generate unique filename
         file_ext = file_obj.filename.split('.')[-1]
         unique_filename = f"{uuid.uuid4()}.{file_ext}"
         file_path = user_dir / unique_filename
         
-        # Save file
         file_obj.file.seek(0)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file_obj.file, buffer)
         
-        # Return relative path
         relative_path = str(file_path.relative_to(self.base_path))
         
         return {
@@ -83,7 +76,6 @@ class LocalStorage:
         """Check if file exists"""
         return (self.base_path / storage_path).exists()
 
-
 class SupabaseStorage:
     """Supabase cloud storage"""
     
@@ -106,11 +98,9 @@ class SupabaseStorage:
     
     def upload_file(self, file_obj, user_id, file_type):
         """Upload file to Supabase Storage"""
-        # Generate file path
         file_ext = file_obj.filename.split('.')[-1]
         file_path = f"{user_id}/{file_type}/{uuid.uuid4()}.{file_ext}"
         
-        # Upload
         file_obj.file.seek(0)
         response = self.supabase.storage.from_(self.bucket_name).upload(
             file_path,
@@ -118,7 +108,6 @@ class SupabaseStorage:
             file_options={"content-type": file_obj.content_type}
         )
         
-        # Get public URL
         url = self.supabase.storage.from_(self.bucket_name).get_public_url(file_path)
         
         return {
@@ -143,7 +132,6 @@ class SupabaseStorage:
             return True
         except:
             return False
-
 
 class R2Storage:
     """Cloudflare R2 storage"""
@@ -187,7 +175,6 @@ class R2Storage:
             ExtraArgs={'ContentType': file_obj.content_type}
         )
         
-        # Generate URL
         if self.public_url:
             url = f"{self.public_url}/{file_key}"
         else:

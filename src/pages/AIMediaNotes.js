@@ -8,6 +8,7 @@ import {
 import './AIMediaNotes.css';
 import './AIMediaNotesConvert.css';
 import { API_URL } from '../config';
+import { sanitizeHtml } from '../utils/sanitize';
 import ImportExportModal from '../components/ImportExportModal';
 
 const AIMediaNotes = () => {
@@ -16,19 +17,17 @@ const AIMediaNotes = () => {
   const fileInputRef = useRef(null);
   const contentRef = useRef(null);
 
-
-
-  // Upload state
+  
   const [uploadedFile, setUploadedFile] = useState(null);
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
-  // Processing state
+  
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStage, setProcessingStage] = useState('');
   const [progress, setProgress] = useState(0);
 
-  // Settings
+  
   const [noteStyle, setNoteStyle] = useState('detailed');
   const [difficulty, setDifficulty] = useState('intermediate');
   const [subject, setSubject] = useState('');
@@ -38,14 +37,14 @@ const AIMediaNotes = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
 
-  // Results
+  
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState('notes');
   const [history, setHistory] = useState([]);
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768); // Start collapsed on mobile
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768); 
   const [activeNoteId, setActiveNoteId] = useState(null);
 
-  // Icons
+  
   const Icons = {
     media: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
     home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
@@ -89,7 +88,7 @@ const AIMediaNotes = () => {
     setIsProcessing(true);
     setProgress(0);
     setResults(null);
-    setActiveNoteId(null); // Clear active note when processing new media
+    setActiveNoteId(null); 
 
     try {
       const formData = new FormData();
@@ -140,7 +139,7 @@ const AIMediaNotes = () => {
       setActiveTab('notes');
 
     } catch (error) {
-      // Provide helpful error messages
+      
       let errorMessage = error.message;
       if (errorMessage.includes('quota') || errorMessage.includes('credits') || errorMessage.includes('429') || errorMessage.includes('V1')) {
         errorMessage = '⏱️ AI service rate limit reached. Please wait 1-2 minutes and try again.\n\nFree tier limits:\n• Groq: 30 requests/minute\n• Gemini: 15 requests/minute';
@@ -220,7 +219,7 @@ const AIMediaNotes = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Generate a smart title
+      
       const titleResponse = await fetch(`${API_URL}/media/generate-title`, {
         method: 'POST',
         headers: {
@@ -240,7 +239,7 @@ const AIMediaNotes = () => {
         smartTitle = `${titleData.title} - Flashcards`;
       }
       
-      // Create flashcard set
+      
       const setResponse = await fetch(`${API_URL}/create_flashcard_set`, {
         method: 'POST',
         headers: {
@@ -264,7 +263,7 @@ const AIMediaNotes = () => {
       const setData = await setResponse.json();
       const setId = setData.set_id;
 
-      // Add all flashcards to the set
+      
       for (const card of results.flashcards) {
         const cardResponse = await fetch(`${API_URL}/add_flashcard_to_set`, {
           method: 'POST',
@@ -328,7 +327,8 @@ const AIMediaNotes = () => {
         setHistory(data.history || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadHistoryItem = async (item) => {
@@ -343,12 +343,11 @@ const AIMediaNotes = () => {
       }
 
       const note = await response.json();
-      console.log('Loaded note:', note);
       
-      // Safe JSON parsing with fallbacks
+      
       const safeParseJSON = (jsonString, fallback = null) => {
         if (!jsonString) return fallback;
-        if (typeof jsonString === 'object') return jsonString; // Already parsed
+        if (typeof jsonString === 'object') return jsonString; 
         try {
           return JSON.parse(jsonString);
         } catch (e) {
@@ -362,7 +361,6 @@ const AIMediaNotes = () => {
       const quiz_questions = safeParseJSON(note.quiz_questions, []);
       const key_moments = safeParseJSON(note.key_moments, []);
       
-      console.log('Parsed data:', { analysis, flashcards, quiz_questions, key_moments });
       
       setResults({
         filename: note.title || 'Untitled Note',
@@ -416,7 +414,6 @@ const AIMediaNotes = () => {
 
   return (
     <div className="ai-media-notes-page">
-      {/* Standardized Header */}
       <header className="hub-header">
         <div className="hub-header-left">
           <button 
@@ -436,7 +433,6 @@ const AIMediaNotes = () => {
       </header>
 
       <div className="mn-layout">
-        {/* Sidebar */}
         <aside className={`mn-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
           <div className="mn-sidebar-header">
             <div className="mn-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
@@ -501,9 +497,6 @@ const AIMediaNotes = () => {
           </div>
         </aside>
 
-
-
-        {/* Main Content */}
         <main className="mn-main">
           <div className="mn-content" ref={contentRef}>
             {!results ? (
@@ -557,7 +550,6 @@ const AIMediaNotes = () => {
                   />
                 </div>
 
-                {/* Settings Panel */}
                 <div className="mn-settings-panel">
                   <div className="mn-settings-header" onClick={() => setShowSettings(!showSettings)}>
                     <h3><Settings size={16} /> AI Settings</h3>
@@ -698,7 +690,6 @@ const AIMediaNotes = () => {
                   </div>
                 </div>
 
-                {/* Tabs */}
                 <div className="mn-tabs">
                   <button
                     className={`mn-tab ${activeTab === 'notes' ? 'active' : ''}`}
@@ -723,7 +714,6 @@ const AIMediaNotes = () => {
                   </button>
                 </div>
 
-                {/* Tab Content */}
                 <div className="mn-tab-content">
                   {activeTab === 'notes' && results.notes && (
                     <div>
@@ -744,7 +734,7 @@ const AIMediaNotes = () => {
                       <div className="mn-notes-panel">
                         <div
                           className="mn-notes-output"
-                          dangerouslySetInnerHTML={{ __html: results.notes.content }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(results.notes.content) }}
                         />
                       </div>
                     </div>
@@ -912,7 +902,19 @@ const AIMediaNotes = () => {
         onClose={() => setShowImportExport(false)}
         mode="import"
         sourceType="media"
-        onSuccess={() => alert("Successfully converted media!")}
+        onSuccess={(result) => {
+          if (result?.shouldNavigate) {
+            if (result.destinationType === 'questions') {
+              if (result.set_id) {
+                navigate(`/question-bank?set_id=${result.set_id}`);
+              } else {
+                navigate('/question-bank');
+              }
+            }
+          } else {
+            alert("Successfully converted media!");
+          }
+        }}
       />
     </div>
   );

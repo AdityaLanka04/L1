@@ -1,10 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-/* ==================== FORCE BOXY DESIGN ==================== */
 .roadmap-container *,
 .roadmap-container *::before,
 .roadmap-container *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .roadmap-container {
@@ -230,7 +227,7 @@
   font-weight: 600;
   color: var(--accent);
   margin-bottom: 24px;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .empty-state h3 {
@@ -324,7 +321,7 @@
   font-size: 12px;
   color: color-mix(in srgb, var(--accent) 50%, transparent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 500;
 }
 
@@ -431,7 +428,7 @@
   color: var(--bg-top);
   margin-bottom: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .node-title {
@@ -599,7 +596,7 @@
 
 .panel-section li {
   font-size: 14px;
-  color: rgba(215, 179, 140, 0.8);
+  color: color-mix(in srgb, var(--accent) 80%, transparent);
   line-height: 1.7;
   padding: 8px 0;
   padding-left: 20px;
@@ -630,7 +627,7 @@
 
 .modal-content {
   background: rgba(26, 26, 26, 0.98);
-  border: 1px solid rgba(215, 179, 140, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   border-radius: 12px;
   padding: 32px;
   max-width: 540px;
@@ -679,7 +676,7 @@
 .modal-body label {
   display: block;
   font-size: 14px;
-  color: rgba(215, 179, 140, 0.8);
+  color: color-mix(in srgb, var(--accent) 80%, transparent);
   margin-bottom: 12px;
   font-weight: 500;
 }
@@ -688,7 +685,7 @@
   width: 100%;
   padding: 12px 16px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(215, 179, 140, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   border-radius: 8px;
   color: #D7B38C;
   font-size: 14px;
@@ -697,14 +694,14 @@
 }
 
 .modal-input::placeholder {
-  color: rgba(215, 179, 140, 0.4);
+  color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .modal-input:focus {
   outline: none;
-  border-color: rgba(215, 179, 140, 0.6);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
   background: rgba(0, 0, 0, 0.5);
-  box-shadow: 0 0 0 3px rgba(215, 179, 140, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .modal-footer {
@@ -724,25 +721,25 @@
 }
 
 .cancel-btn {
-  background: rgba(215, 179, 140, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: #D7B38C;
-  border: 1px solid rgba(215, 179, 140, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .cancel-btn:hover {
-  background: rgba(215, 179, 140, 0.2);
-  border-color: rgba(215, 179, 140, 0.5);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .submit-btn {
   background: linear-gradient(135deg, #D7B38C 0%, #c9a57a 100%);
   color: #0a0a0a;
-  box-shadow: 0 4px 15px rgba(215, 179, 140, 0.2);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .submit-btn:disabled {
@@ -752,7 +749,7 @@
 
 .session-selection {
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 24px;
@@ -761,7 +758,7 @@
 .selection-header {
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(215, 179, 140, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .selection-header h3 {
@@ -777,7 +774,7 @@
 
 .session-card {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 8px;
   padding: 16px;
   cursor: pointer;
@@ -789,13 +786,13 @@
 
 .session-card:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(215, 179, 140, 0.4);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   transform: translateX(4px);
 }
 
 .session-card.selected {
-  background: rgba(215, 179, 140, 0.15);
-  border-color: rgba(215, 179, 140, 0.5);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .session-info {
@@ -811,7 +808,7 @@
 
 .session-date {
   font-size: 12px;
-  color: rgba(215, 179, 140, 0.6);
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 .selection-indicator {
@@ -829,7 +826,7 @@
   margin-top: 32px;
   padding: 24px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
 }
 
@@ -851,12 +848,12 @@
 .create-btn.primary {
   background: linear-gradient(135deg, #D7B38C 0%, #c9a57a 100%);
   color: #0a0a0a;
-  box-shadow: 0 4px 15px rgba(215, 179, 140, 0.2);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .create-btn.primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .create-btn.secondary {
@@ -876,7 +873,7 @@
 
 .upload-progress {
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 24px;
@@ -910,7 +907,7 @@
 
 .slide-card {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 8px;
   padding: 16px;
   transition: all 0.3s ease;
@@ -918,7 +915,7 @@
 
 .slide-card:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(215, 179, 140, 0.4);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   transform: translateY(-2px);
 }
 
@@ -960,7 +957,7 @@
 
 .slide-date {
   font-size: 12px;
-  color: rgba(215, 179, 140, 0.6);
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 .reviews-grid {
@@ -971,7 +968,7 @@
 
 .review-card {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
   padding: 20px;
   transition: all 0.3s ease;
@@ -979,7 +976,7 @@
 
 .review-card:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(215, 179, 140, 0.4);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   transform: translateY(-2px);
 }
 
@@ -996,13 +993,13 @@
 
 .review-date {
   font-size: 12px;
-  color: rgba(215, 179, 140, 0.6);
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
   margin-bottom: 16px;
 }
 
 .continue-btn {
-  background: rgba(215, 179, 140, 0.1);
-  border: 1px solid rgba(215, 179, 140, 0.3);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   color: #D7B38C;
   padding: 10px 18px;
   border-radius: 8px;
@@ -1014,8 +1011,8 @@
 }
 
 .continue-btn:hover {
-  background: rgba(215, 179, 140, 0.2);
-  border-color: rgba(215, 179, 140, 0.5);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .questions-grid {
@@ -1026,7 +1023,7 @@
 
 .question-set-card {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
   padding: 20px;
   transition: all 0.3s ease;
@@ -1034,7 +1031,7 @@
 
 .question-set-card:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(215, 179, 140, 0.4);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   transform: translateY(-2px);
 }
 
@@ -1078,7 +1075,7 @@
   gap: 20px;
   padding: 12px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(215, 179, 140, 0.15);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 8px;
   margin-bottom: 16px;
 }
@@ -1098,10 +1095,9 @@
 
 .question-set-date {
   font-size: 12px;
-  color: rgba(215, 179, 140, 0.6);
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
   flex: 1;
 }
-
 
 .node-details-panel {
   position: absolute;
@@ -1125,7 +1121,7 @@
   align-items: flex-start;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(215, 179, 140, 0.3);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .panel-header h3 {
@@ -1186,12 +1182,12 @@
 }
 
 .node-details-panel::-webkit-scrollbar-thumb {
-  background: rgba(215, 179, 140, 0.4);
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: 4px;
 }
 
 .node-details-panel::-webkit-scrollbar-thumb:hover {
-  background: rgba(215, 179, 140, 0.6);
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 @media (max-width: 768px) {
@@ -1321,7 +1317,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * {
+  .roadmap-container * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -1334,7 +1330,6 @@
   z-index: 10;
 }
 
-/* ReactFlow safe click for interactive elements */
 .nodrag,
 .nopan {
   pointer-events: all !important;
@@ -1347,7 +1342,6 @@
   pointer-events: all !important;
 }
 
-/* Additional panel content styling for better text display */
 .panel-content p {
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -1389,7 +1383,7 @@
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .node-panel-header h3 {

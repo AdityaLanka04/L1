@@ -1,11 +1,9 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .loading-spinner-overlay *,
 .loading-spinner-overlay *::before,
 .loading-spinner-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
-/* Loading Spinner - Scoped to avoid conflicts */
 .loading-spinner-overlay {
   position: fixed !important;
   top: 0 !important;
@@ -25,20 +23,20 @@
 
 .loading-spinner-container {
   display: flex !important;
-  gap: 16px !important;
+  gap: 10px !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
 .loading-spinner-cube {
-  width: 20px !important;
-  height: 20px !important;
+  width: 12px !important;
+  height: 12px !important;
   background: var(--accent, #D7B38C) !important;
-  border-radius: 4px !important;
+  border-radius: 2px;
   animation: typingBounce 1.4s infinite ease-in-out both !important;
   animation-fill-mode: both !important;
   will-change: transform, opacity !important;
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent) !important;
 }
 
 .loading-spinner-container .loading-spinner-cube:nth-child(1) {
@@ -59,7 +57,7 @@
     opacity: 0.6;
   }
   20% {
-    transform: scale(1) translateY(-15px);
+    transform: scale(1) translateY(-10px);
     opacity: 1;
   }
   40% {

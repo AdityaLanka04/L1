@@ -1,13 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
-
 :root {
   --qb-transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --qb-transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --qb-transition-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --qb-transition-elastic: cubic-bezier(0.68, -0.6, 0.32, 1.6);
 }
-
-/* Rounded corners for all elements */
 
 .qb-page {
   --qb-bg-primary: var(--bg);
@@ -49,9 +45,7 @@
   --qb-shadow-2xl: 0 20px 64px rgba(0, 0, 0, 0.24);
   --qb-shadow-accent: 0 8px 32px var(--qb-accent-glow);
   --qb-shadow-accent-lg: 0 12px 48px var(--qb-accent-glow);
-}
 
-.qb-page {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -70,9 +64,7 @@
   flex-direction: column;
 }
 
-.qb-page * {
-  box-sizing: border-box;
-}
+
 
 .qb-page::before {
   content: '';
@@ -116,17 +108,16 @@
   flex-shrink: 0;
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .qb-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .qb-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .qb-header-left {
@@ -173,6 +164,7 @@
   height: 20px;
   background: color-mix(in srgb, var(--qb-accent) 30%, transparent);
   margin-left: 10px;
+  margin-right: 10px;
 }
 
 .qb-subtitle {
@@ -181,6 +173,7 @@
   color: color-mix(in srgb, var(--qb-accent) 70%, var(--qb-text-primary));
   letter-spacing: 2px;
   text-transform: uppercase;
+  margin-left: 6px;
 }
 
 .qb-ws-status {
@@ -245,7 +238,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   background: transparent;
   border: none;
   color: var(--qb-text-primary);
@@ -457,7 +450,7 @@
   transition: all 0.3s var(--qb-transition-smooth);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   position: relative;
 }
 
@@ -592,7 +585,7 @@
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   padding: 7px 14px;
   background: var(--qb-bg-tertiary);
   border: 1px solid currentColor;
@@ -622,7 +615,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
   padding: 7px 14px;
   border: 1px solid currentColor;
   border-radius: 8px;
@@ -802,7 +795,7 @@
   font-weight: 700;
   color: var(--qb-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
 }
 
 .qb-detail-value {
@@ -849,7 +842,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: 2px;
   color: var(--qb-text-muted);
   margin-bottom: 12px;
 }
@@ -945,7 +938,7 @@
   position: relative;
   overflow: hidden;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   box-shadow: var(--qb-shadow-accent);
 }
 
@@ -1097,9 +1090,9 @@
 .qb-modal {
   background: var(--qb-bg-secondary);
   border: 1px solid var(--qb-border);
-  border-radius: 20px;
-  padding: 48px;
-  max-width: 640px;
+  border-radius: 24px;
+  padding: 56px;
+  max-width: 680px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -1114,10 +1107,10 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 5px;
+  height: 6px;
   background: var(--qb-gradient-primary);
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 0 24px var(--qb-accent-glow);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 0 28px var(--qb-accent-glow);
 }
 
 @keyframes battle-modal-slide-up {
@@ -1165,15 +1158,16 @@
 }
 
 .qb-modal-title {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 900;
   color: var(--qb-text-primary);
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 14px;
-  letter-spacing: -0.5px;
-  font-family: 'Orbitron', 'Inter', sans-serif;
+  gap: 16px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: 'Inter', sans-serif;
 }
 
 .qb-modal-title svg {
@@ -1224,24 +1218,25 @@
 .qb-form {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 32px;
 }
 
 .qb-form-group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .qb-form-label {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   color: var(--qb-text-primary);
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: 2px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  font-family: 'Inter', sans-serif;
 }
 
 .qb-form-label-icon {
@@ -1250,10 +1245,10 @@
 
 .qb-form-input,
 .qb-form-select {
-  padding: 16px 20px;
+  padding: 18px 24px;
   background: var(--qb-bg-tertiary);
   border: 2px solid var(--qb-border);
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--qb-text-primary);
   font-size: 15px;
   font-family: 'Inter', sans-serif;
@@ -1279,19 +1274,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 18px 32px;
+  gap: 14px;
+  padding: 20px 36px;
   background: var(--qb-gradient-primary);
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   color: white;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   cursor: pointer;
   transition: all 0.4s var(--qb-transition-smooth);
   text-transform: uppercase;
-  letter-spacing: 1.2px;
-  margin-top: 16px;
+  letter-spacing: 2px;
+  margin-top: 20px;
   font-family: 'Inter', sans-serif;
   position: relative;
   overflow: hidden;
@@ -1371,7 +1366,7 @@
   .qb-badge {
     font-size: 9px;
     padding: 6px 12px;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
   }
 
   .qb-content {
@@ -1528,7 +1523,6 @@
   }
 }
 
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

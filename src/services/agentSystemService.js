@@ -1,8 +1,4 @@
-/**
- * Agent System Service
- * Frontend service for interacting with the Agent System API
- * Provides orchestration and status information for all agents
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
@@ -11,9 +7,7 @@ class AgentSystemService {
     this.baseUrl = `${API_URL}/agents`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -22,9 +16,7 @@ class AgentSystemService {
     };
   }
 
-  /**
-   * Get agent system status
-   */
+  
   async getStatus() {
     try {
       const response = await fetch(`${this.baseUrl}/status`, {
@@ -43,9 +35,7 @@ class AgentSystemService {
     }
   }
 
-  /**
-   * Invoke the orchestrator with a user request
-   */
+  
   async invoke(userId, userInput, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/invoke`, {
@@ -71,9 +61,7 @@ class AgentSystemService {
     }
   }
 
-  /**
-   * Classify user intent
-   */
+  
   async classifyIntent(userInput, context = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/classify`, {
@@ -96,9 +84,7 @@ class AgentSystemService {
     }
   }
 
-  /**
-   * Get list of available intents
-   */
+  
   async getIntents() {
     try {
       const response = await fetch(`${this.baseUrl}/intents`, {
@@ -117,9 +103,7 @@ class AgentSystemService {
     }
   }
 
-  /**
-   * Get list of available tools
-   */
+  
   async getTools() {
     try {
       const response = await fetch(`${this.baseUrl}/tools`, {
@@ -138,9 +122,7 @@ class AgentSystemService {
     }
   }
 
-  /**
-   * Check if agent system is healthy
-   */
+  
   async healthCheck() {
     try {
       const status = await this.getStatus();

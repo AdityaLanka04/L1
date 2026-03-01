@@ -3,65 +3,82 @@ import { useNavigate } from 'react-router-dom';
 import { User, Users, Swords, ChevronRight, Zap , Menu} from 'lucide-react';
 import './QuizHub.css';
 import ImportExportModal from '../components/ImportExportModal';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 const QuizHub = () => {
   const navigate = useNavigate();
   const [showImportExport, setShowImportExport] = useState(false);
   const [hoveredSection, setHoveredSection] = useState(null);
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-    
+
     return () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
   }, []);
 
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
+  };
+
   return (
     <div className="qh">
-      {/* Ambient Background */}
       <div className="qh-ambient">
         <div className="qh-ambient-orb qh-ambient-orb-1"></div>
         <div className="qh-ambient-orb qh-ambient-orb-2"></div>
         <div className="qh-ambient-grid"></div>
       </div>
 
-      {/* Header */}
-      <header className="qh-header">
-        <div className="qh-header-left">
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="qh-logo" onClick={() => navigate('/search-hub')}>
-            <div className="qh-logo-img" />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <div className="qh-header-divider"></div>
-          <span className="qh-subtitle">QUIZ HUB</span>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">QUIZ HUB</span>
         </div>
-        <nav className="qh-header-right">
-          <button 
+        <nav className="gm-header-right">
+          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+          <button
             onClick={(e) => {
               e.stopPropagation();
               setShowImportExport(true);
-            }} 
-            className="qh-nav-btn qh-nav-btn-accent"
+            }}
+            className="gm-nav-btn gm-nav-btn-accent"
           >
             <Zap size={16} />
             <span>Convert</span>
           </button>
-          <button className="qh-nav-btn qh-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
+          </button>
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            Dashboard
           </button>
         </nav>
       </header>
 
-      {/* Main Content - Split View */}
       <main className="qh-main">
-        {/* Left Section - Solo Practice */}
         <section 
           className={`qh-section qh-section-solo ${hoveredSection === 'solo' ? 'qh-section-hovered' : ''}`}
           onClick={() => navigate('/solo-quiz')}
@@ -101,12 +118,10 @@ const QuizHub = () => {
           <div className="qh-section-line"></div>
         </section>
 
-        {/* Divider */}
         <div className="qh-divider">
           <span className="qh-divider-text">or</span>
         </div>
 
-        {/* Right Section - 1v1 Battles */}
         <section 
           className={`qh-section qh-section-battle ${hoveredSection === 'battle' ? 'qh-section-hovered' : ''}`}
           onClick={() => navigate('/quiz-battles')}
@@ -147,15 +162,38 @@ const QuizHub = () => {
         </section>
       </main>
 
-      {/* Import/Export Modal */}
       <ImportExportModal
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
         mode="import"
-        sourceType="quiz"
+        sourceType="questions"
         onSuccess={(result) => {
-          alert("Successfully converted to quiz!");
+          if (result?.shouldNavigate) {
+            if (result.destinationType === 'flashcards') {
+              if (result.set_id) {
+                navigate(`/flashcards?set_id=${result.set_id}&mode=preview`);
+              } else {
+                navigate('/flashcards');
+              }
+            } else if (result.destinationType === 'notes') {
+              if (result.note_id) {
+                navigate(`/notes/editor/${result.note_id}`);
+              } else {
+                navigate('/notes');
+              }
+            }
+          } else {
+            alert("Successfully converted questions!");
+          }
         }}
+      />
+
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
       />
     </div>
   );

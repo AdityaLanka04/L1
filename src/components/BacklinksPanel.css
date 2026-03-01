@@ -1,8 +1,7 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .backlinks-panel *,
 .backlinks-panel *::before,
 .backlinks-panel *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .backlinks-panel {

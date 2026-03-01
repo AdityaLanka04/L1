@@ -1,19 +1,14 @@
-/**
- * Memory Management Service
- * Frontend service for interacting with the Memory API
- * Provides user memory context, summaries, and statistics
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
 class MemoryService {
   constructor() {
-    this.baseUrl = `${API_URL}/api/agents/memory`;
+    
+    this.baseUrl = `${API_URL}/agents/memory`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -22,9 +17,7 @@ class MemoryService {
     };
   }
 
-  /**
-   * Get user memory context
-   */
+  
   async getUserContext(userId, limit = 10) {
     try {
       const response = await fetch(`${this.baseUrl}/context/${userId}?limit=${limit}`, {
@@ -43,9 +36,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Get user memory summary
-   */
+  
   async getUserSummary(userId, days = 30) {
     try {
       const response = await fetch(`${this.baseUrl}/summary/${userId}?days=${days}`, {
@@ -64,9 +55,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Get user memory statistics
-   */
+  
   async getUserStats(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/stats/${userId}`, {
@@ -85,9 +74,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Store something to remember
-   */
+  
   async remember(userId, content, type = 'note', metadata = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/remember`, {
@@ -113,9 +100,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Search user memories
-   */
+  
   async searchMemories(userId, query, limit = 10) {
     try {
       const response = await fetch(`${this.baseUrl}/search`, {
@@ -139,9 +124,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Update memory importance
-   */
+  
   async updateMemoryImportance(memoryId, importance) {
     try {
       const response = await fetch(`${this.baseUrl}/importance/${memoryId}`, {
@@ -161,9 +144,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Get memory insights
-   */
+  
   async getMemoryInsights(userId, days = 7) {
     try {
       const response = await fetch(`${this.baseUrl}/insights/${userId}?days=${days}`, {
@@ -182,9 +163,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Consolidate user memories
-   */
+  
   async consolidateMemories(userId, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/consolidate/${userId}`, {
@@ -204,9 +183,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Get memory timeline
-   */
+  
   async getMemoryTimeline(userId, startDate = null, endDate = null) {
     try {
       const params = new URLSearchParams();
@@ -229,9 +206,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Delete a memory
-   */
+  
   async deleteMemory(memoryId) {
     try {
       const response = await fetch(`${this.baseUrl}/memory/${memoryId}`, {
@@ -250,9 +225,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Get memory patterns
-   */
+  
   async getMemoryPatterns(userId, patternType = 'study') {
     try {
       const response = await fetch(`${this.baseUrl}/patterns/${userId}?type=${patternType}`, {
@@ -271,9 +244,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Health check
-   */
+  
   async healthCheck() {
     try {
       const response = await fetch(`${this.baseUrl}/health`, {

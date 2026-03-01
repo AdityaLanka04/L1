@@ -30,7 +30,9 @@ const StudyInsights = () => {
           navigate('/dashboard', { replace: true });
           return;
         }
-      } catch (e) {}
+      } catch (e) {
+    // silenced
+  }
     }
     
     loadComprehensiveInsights();
@@ -66,7 +68,9 @@ const StudyInsights = () => {
         const parsed = JSON.parse(profile);
         if (parsed.firstName) return parsed.firstName;
         if (parsed.first_name) return parsed.first_name;
-      } catch (e) {}
+      } catch (e) {
+    // silenced
+  }
     }
     if (userName && userName.includes('@')) {
       return userName.split('@')[0];
@@ -102,7 +106,7 @@ const StudyInsights = () => {
     );
   }
 
-  // Check if there's any data to display
+  
   const hasData = insights && (
     (insights.time_stats && (insights.time_stats.weekly_study_minutes > 0 || insights.time_stats.day_streak > 0)) ||
     (insights.flashcards && insights.flashcards.total_cards > 0) ||
@@ -134,13 +138,11 @@ const StudyInsights = () => {
 
       <main className="si-main">
         <div className="si-bento-grid">
-          {/* AI Summary */}
           <div className="si-bento si-summary">
             <h2 className="si-bento-title">AI SUMMARY</h2>
             <p className="si-summary-text">{insights.ai_summary}</p>
           </div>
 
-          {/* Time Stats */}
           <div className="si-bento si-time-stats">
             <h2 className="si-bento-title">STUDY TIME</h2>
             <div className="si-stats-grid">
@@ -159,7 +161,6 @@ const StudyInsights = () => {
             </div>
           </div>
 
-          {/* Activity */}
           <div className="si-bento si-activity">
             <h2 className="si-bento-title">WEEKLY ACTIVITY</h2>
             <div className="si-activity-list">
@@ -186,7 +187,6 @@ const StudyInsights = () => {
             </div>
           </div>
 
-          {/* Quiz Performance */}
           <div className="si-bento si-quiz">
             <h2 className="si-bento-title">QUIZ PERFORMANCE</h2>
             {insights.quizzes?.total_quizzes > 0 ? (
@@ -224,7 +224,6 @@ const StudyInsights = () => {
             )}
           </div>
 
-          {/* Flashcard Mastery */}
           <div className="si-bento si-flashcards">
             <h2 className="si-bento-title">FLASHCARD MASTERY</h2>
             {insights.flashcards?.total > 0 ? (
@@ -263,7 +262,6 @@ const StudyInsights = () => {
             )}
           </div>
 
-          {/* Weak Areas */}
           <div className="si-bento si-weak">
             <h2 className="si-bento-title">WEAK AREAS TO IMPROVE</h2>
             {insights.weak_areas && insights.weak_areas.length > 0 ? (
@@ -293,7 +291,6 @@ const StudyInsights = () => {
             )}
           </div>
 
-          {/* Recent Quizzes */}
           {insights.quizzes?.recent_quizzes && insights.quizzes.recent_quizzes.length > 0 && (
             <div className="si-bento si-recent-quizzes">
               <h2 className="si-bento-title">RECENT QUIZ RESULTS</h2>
@@ -315,7 +312,6 @@ const StudyInsights = () => {
             </div>
           )}
 
-          {/* Question Bank */}
           <div className="si-bento si-qb">
             <h2 className="si-bento-title">QUESTION BANK</h2>
             {insights.question_bank?.total_questions > 0 ? (
@@ -341,7 +337,6 @@ const StudyInsights = () => {
             )}
           </div>
 
-          {/* Topics Studied */}
           {insights.session_data?.specific_topics && insights.session_data.specific_topics.length > 0 && (
             <div className="si-bento si-topics">
               <h2 className="si-bento-title">TOPICS STUDIED</h2>
@@ -358,7 +353,6 @@ const StudyInsights = () => {
             </div>
           )}
 
-          {/* Recent Notes */}
           {insights.notes?.recent_notes && insights.notes.recent_notes.length > 0 && (
             <div className="si-bento si-notes">
               <h2 className="si-bento-title">RECENT NOTES</h2>
@@ -372,7 +366,6 @@ const StudyInsights = () => {
             </div>
           )}
 
-          {/* Empty State */}
           {!hasData && (
             <div className="si-bento si-empty-state">
               <h2 className="si-bento-title">GET STARTED</h2>

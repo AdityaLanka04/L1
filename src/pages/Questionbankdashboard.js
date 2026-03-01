@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, MessageSquare, Sparkles, FileText, BarChart3, 
@@ -12,6 +12,7 @@ import './QuestionbankConvert.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 import questionBankAgentService from '../services/questionBankAgentService';
+import MathRenderer from '../components/MathRenderer';
 const QuestionBankDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,7 +31,7 @@ const QuestionBankDashboard = () => {
   const [exportSetId, setExportSetId] = useState(null);
   const [includeAnswers, setIncludeAnswers] = useState(false);
 
-  // Weak Areas State
+  
   const [weakAreas, setWeakAreas] = useState([]);
   const [wrongAnswers, setWrongAnswers] = useState([]);
   const [practiceRecommendations, setPracticeRecommendations] = useState(null);
@@ -44,34 +45,35 @@ const QuestionBankDashboard = () => {
   const [showImportExport, setShowImportExport] = useState(false);
 
   const [selectedDocument, setSelectedDocument] = useState(null);
-  const [selectedPDFs, setSelectedPDFs] = useState([]);  // For multi-PDF selection
+  const [selectedPDFs, setSelectedPDFs] = useState([]);  
   const [selectedSources, setSelectedSources] = useState([]);
   const [customContent, setCustomContent] = useState('');
   const [customTitle, setCustomTitle] = useState('');
   const [questionCount, setQuestionCount] = useState(10);
-  const [difficultyMix, setDifficultyMix] = useState({ easy: 30, medium: 50, hard: 20 }); // Percentages
+  const [difficultyMix, setDifficultyMix] = useState({ easy: 30, medium: 50, hard: 20 }); 
   const [questionTypes, setQuestionTypes] = useState(['multiple_choice', 'true_false', 'short_answer']);
+  const autoStartRef = useRef(null);
 
-  // Calculate actual difficulty counts from percentages, ensuring they sum to questionCount
+  
   const getDifficultyCounts = () => {
     const total = difficultyMix.easy + difficultyMix.medium + difficultyMix.hard;
     if (total === 0) return { easy: 0, medium: 0, hard: 0 };
     
-    // Normalize percentages to ensure they sum to 100%
+    
     const normalizedEasy = difficultyMix.easy / total;
     const normalizedMedium = difficultyMix.medium / total;
     const normalizedHard = difficultyMix.hard / total;
     
-    // Calculate counts
+    
     const count = typeof questionCount === 'number' ? questionCount : 10;
     let easyCount = Math.round(normalizedEasy * count);
     let mediumCount = Math.round(normalizedMedium * count);
     let hardCount = Math.round(normalizedHard * count);
     
-    // Adjust for rounding errors to ensure total matches questionCount
+    
     const diff = count - (easyCount + mediumCount + hardCount);
     if (diff !== 0) {
-      // Add/subtract from the largest category
+      
       if (mediumCount >= easyCount && mediumCount >= hardCount) {
         mediumCount += diff;
       } else if (easyCount >= hardCount) {
@@ -86,7 +88,7 @@ const QuestionBankDashboard = () => {
   
   const difficultyCount = getDifficultyCounts();
   
-  // Handle difficulty slider change - adjust others to maintain 100% total
+  
   const handleDifficultyChange = (level, newValue) => {
     const value = parseInt(newValue);
     const others = ['easy', 'medium', 'hard'].filter(l => l !== level);
@@ -94,7 +96,7 @@ const QuestionBankDashboard = () => {
     const remaining = 100 - value;
     
     if (currentOthersTotal === 0) {
-      // If others are 0, split remaining equally
+      
       setDifficultyMix({
         ...difficultyMix,
         [level]: value,
@@ -102,14 +104,14 @@ const QuestionBankDashboard = () => {
         [others[1]]: Math.ceil(remaining / 2)
       });
     } else {
-      // Scale others proportionally
+      
       const scale = remaining / currentOthersTotal;
       const newMix = { [level]: value };
       let allocated = value;
       
       others.forEach((l, idx) => {
         if (idx === others.length - 1) {
-          // Last one gets the remainder to ensure exactly 100
+          
           newMix[l] = 100 - allocated;
         } else {
           newMix[l] = Math.round(difficultyMix[l] * scale);
@@ -121,10 +123,10 @@ const QuestionBankDashboard = () => {
     }
   };
 
-  // Handle question count change with better UX
+  
   const handleQuestionCountChange = (e) => {
     const value = e.target.value;
-    // Allow empty string while typing
+    
     if (value === '') {
       setQuestionCount('');
       return;
@@ -136,7 +138,7 @@ const QuestionBankDashboard = () => {
   };
 
   const handleQuestionCountBlur = () => {
-    // Reset to default if empty or invalid on blur
+    
     if (questionCount === '' || questionCount < 1) {
       setQuestionCount(10);
     }
@@ -149,7 +151,7 @@ const QuestionBankDashboard = () => {
   const [results, setResults] = useState(null);
   const [sessionStartTime, setSessionStartTime] = useState(null);
 
-  // AI Features State
+  
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewQuestions, setPreviewQuestions] = useState([]);
   const [previewStats, setPreviewStats] = useState(null);
@@ -163,14 +165,14 @@ const QuestionBankDashboard = () => {
   const [weaknessAnalysis, setWeaknessAnalysis] = useState(null);
   const [showWeaknessPanel, setShowWeaknessPanel] = useState(false);
   
-  // Batch operations state
+  
   const [selectedSets, setSelectedSets] = useState([]);
   const [showBatchActions, setShowBatchActions] = useState(false);
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [mergeTitle, setMergeTitle] = useState('');
   const [deleteOriginals, setDeleteOriginals] = useState(false);
 
-  // Smart generation state
+  
   const [customPrompt, setCustomPrompt] = useState('');
   const [referenceDocId, setReferenceDocId] = useState(null);
   const [showSmartOptions, setShowSmartOptions] = useState(false);
@@ -187,10 +189,10 @@ const QuestionBankDashboard = () => {
       fetchWeakAreas();
       fetchPracticeRecommendations();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [activeView]);
 
-  // Handle generated questions from Learning Path
+  
   useEffect(() => {
     const generatedQuestions = location.state?.generatedQuestions;
     
@@ -216,10 +218,10 @@ const QuestionBankDashboard = () => {
           if (response.ok) {
             const data = await response.json();
             
-            // Refresh question sets
+            
             await fetchQuestionSets();
             
-            // Navigate to the new set in study mode
+            
             const newSet = {
               id: data.set_id,
               title: generatedQuestions.title,
@@ -233,7 +235,7 @@ const QuestionBankDashboard = () => {
             setShowResults(false);
             setSessionStartTime(Date.now());
             
-            // Clear the state
+            
             navigate('/question-bank', { replace: true, state: {} });
           }
         } catch (error) {
@@ -251,14 +253,11 @@ const QuestionBankDashboard = () => {
   const fetchQuestionSets = async () => {
     try {
       setLoading(true);
-      console.log('📡 Fetching question sets for user:', userId);
       const response = await fetch(`${API_URL}/qb/get_question_sets?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      console.log('📡 Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log('📡 Question sets data:', data);
         setQuestionSets(data.question_sets || []);
       } else {
         console.error('📡 Failed to fetch question sets:', response.statusText);
@@ -280,7 +279,8 @@ const QuestionBankDashboard = () => {
         setUploadedDocuments(data.documents || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchChatSessions = async () => {
@@ -293,7 +293,8 @@ const QuestionBankDashboard = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchUploadedSlides = async () => {
@@ -306,7 +307,8 @@ const QuestionBankDashboard = () => {
         setUploadedSlides(data.slides || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchAnalytics = async () => {
@@ -320,12 +322,13 @@ const QuestionBankDashboard = () => {
         setAnalytics(data);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
 
-  // ==================== WEAK AREAS FUNCTIONS ====================
+  
 
   const fetchWeakAreas = async () => {
     try {
@@ -380,7 +383,7 @@ const QuestionBankDashboard = () => {
   const handleMarkReviewed = async (wrongAnswerId, understood = true) => {
     try {
       await questionBankAgentService.markWrongAnswerReviewed(wrongAnswerId, understood);
-      // Refresh wrong answers
+      
       await fetchWrongAnswers(selectedWeakTopic);
     } catch (error) {
       console.error('Error marking reviewed:', error);
@@ -396,7 +399,7 @@ const QuestionBankDashboard = () => {
     }
   };
 
-  // ==================== END WEAK AREAS FUNCTIONS ====================
+  
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -429,7 +432,7 @@ const QuestionBankDashboard = () => {
   };
 
   const handleGenerateFromPDF = async () => {
-    // Check if we have multiple PDFs selected
+    
     if (selectedPDFs.length > 0) {
       await handleGenerateFromMultiplePDFs();
       return;
@@ -442,20 +445,20 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('🚀 Calling Question Bank Agent - Generate from PDF:', { userId, selectedDocument, questionCount, difficultyCount });
       
       const response = await questionBankAgentService.generateFromPDF({
         userId,
         sourceId: selectedDocument,
         questionCount: questionCount || 10,
         difficultyMix: difficultyCount,
-        sessionId: `qb_pdf_${userId}_${Date.now()}`
+        questionTypes,
+        topics: selectedTopics.length > 0 ? selectedTopics : null,
+        title: null
       });
 
-      console.log('✅ Agent response:', response);
       
-      if (response.success) {
-        alert(`Successfully generated ${response.questions?.length || questionCount} questions!`);
+      if (response.status === 'success') {
+        alert(`Successfully generated ${response.question_count || questionCount} questions!`);
         setShowUploadModal(false);
         setSelectedDocument(null);
         await fetchQuestionSets();
@@ -480,11 +483,33 @@ const QuestionBankDashboard = () => {
     try {
       setLoading(true);
       
-      // Check if using smart generation (custom prompt or reference doc)
+      
       const useSmartGeneration = customPrompt.trim() || referenceDocId;
+
+      const isSingleQuestionDoc = !useSmartGeneration
+        && selectedPDFs.length === 1
+        && ((selectedPDFs[0].document_type || '').toLowerCase() === 'questions');
+
+      if (isSingleQuestionDoc) {
+        const response = await questionBankAgentService.generateFromPDF({
+          userId,
+          sourceId: selectedPDFs[0].id,
+          questionCount: questionCount || 10,
+          difficultyMix: difficultyCount,
+          questionTypes,
+          topics: selectedTopics.length > 0 ? selectedTopics : null
+        });
+
+        if (response.status === 'success') {
+          alert(`Generated ${response.question_count} similar questions from ${selectedPDFs[0].filename}!`);
+          resetSelections();
+          await fetchQuestionSets();
+          setActiveView('question-sets');
+          return;
+        }
+      }
       
       if (useSmartGeneration) {
-        console.log('🧠 Smart generation:', { userId, selectedPDFs, customPrompt, referenceDocId, difficultyCount });
         
         const response = await questionBankAgentService.smartGenerate({
           userId,
@@ -500,7 +525,6 @@ const QuestionBankDashboard = () => {
           contentDocumentIds: selectedPDFs.filter(p => p.id !== referenceDocId).map(p => p.id)
         });
 
-        console.log('✅ Smart Response:', response);
         
         if (response.status === 'success') {
           alert(`Successfully generated ${response.question_count} questions using smart generation!`);
@@ -511,7 +535,6 @@ const QuestionBankDashboard = () => {
           alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
         }
       } else {
-        console.log('🚀 Standard generation:', { userId, selectedPDFs, questionCount, difficultyCount });
         
         const response = await questionBankAgentService.generateFromMultiplePDFs({
           userId,
@@ -524,7 +547,6 @@ const QuestionBankDashboard = () => {
           questionTypes
         });
 
-        console.log('✅ Response:', response);
         
         if (response.status === 'success') {
           alert(`Successfully generated ${response.question_count} questions from ${selectedPDFs.length} document(s)!`);
@@ -566,12 +588,12 @@ const QuestionBankDashboard = () => {
     } else {
       setSelectedPDFs([...selectedPDFs, doc]);
     }
-    // Clear single selection when using multi-select
+    
     setSelectedDocument(null);
   };
 
   const handleDeleteDocument = async (docId, e) => {
-    e.stopPropagation(); // Prevent card selection
+    e.stopPropagation(); 
     
     if (!window.confirm('Are you sure you want to delete this PDF? This cannot be undone.')) {
       return;
@@ -581,7 +603,7 @@ const QuestionBankDashboard = () => {
       setLoading(true);
       await questionBankAgentService.deleteDocument(userId, docId);
       
-      // Remove from selected PDFs if it was selected
+      
       setSelectedPDFs(selectedPDFs.filter(p => p.id !== docId));
       if (selectedDocument === docId) {
         setSelectedDocument(null);
@@ -613,7 +635,6 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('🚀 Calling Question Bank Agent - Generate from sources:', { userId, selectedSources, questionCount, difficultyCount });
       
       const response = await questionBankAgentService.generateFromSources({
         userId,
@@ -623,7 +644,6 @@ const QuestionBankDashboard = () => {
         sessionId: `qb_sources_${userId}_${Date.now()}`
       });
 
-      console.log('✅ Agent response:', response);
       
       if (response.success) {
         alert(`Successfully generated questions from ${selectedSources.length} sources!`);
@@ -650,7 +670,6 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('🚀 Calling Question Bank Agent - Generate from custom content:', { userId, contentLength: customContent.length, difficultyCount });
       
       const response = await questionBankAgentService.generateFromCustom({
         userId,
@@ -661,10 +680,6 @@ const QuestionBankDashboard = () => {
         sessionId: `qb_custom_${userId}_${Date.now()}`
       });
 
-      console.log('✅ Agent response:', response);
-      console.log('✅ Response success:', response.success);
-      console.log('✅ Questions count:', response.questions?.length);
-      console.log('✅ Full response:', JSON.stringify(response, null, 2));
       
       if (response.success) {
         alert(`Successfully generated ${response.questions?.length || response.question_count || questionCount} questions!`);
@@ -687,24 +702,14 @@ const QuestionBankDashboard = () => {
   const startStudySession = async (setId) => {
     try {
       setLoading(true);
-      console.log('📚 Starting study session for set:', setId);
       const response = await fetch(`${API_URL}/qb/get_question_set/${setId}?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      console.log('📚 Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log('📚 Question set data:', data);
-        console.log('📚 Questions array:', data.questions);
-        console.log('📚 Questions count:', data.questions?.length);
         if (data.questions && data.questions.length > 0) {
-          console.log('📚 First question:', JSON.stringify(data.questions[0], null, 2));
-          console.log('📚 First question options:', data.questions[0].options);
-          console.log('📚 First question options type:', typeof data.questions[0].options);
-          console.log('📚 First question options isArray:', Array.isArray(data.questions[0].options));
         } else {
-          console.log('📚 No questions in response!');
         }
         setSelectedQuestionSet(data);
         setCurrentQuestion(0);
@@ -725,6 +730,17 @@ const QuestionBankDashboard = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const setIdParam = params.get('set_id');
+    if (!setIdParam) return;
+    const parsedId = parseInt(setIdParam, 10);
+    if (Number.isNaN(parsedId)) return;
+    if (autoStartRef.current === parsedId) return;
+    autoStartRef.current = parsedId;
+    startStudySession(parsedId);
+  }, [location.search]);
 
   const handleAnswerChange = (questionId, answer) => {
     setUserAnswers(prev => ({ ...prev, [questionId]: answer }));
@@ -800,15 +816,15 @@ const QuestionBankDashboard = () => {
         throw new Error('Failed to generate PDF');
       }
       
-      // Get the blob from response
+      
       const blob = await response.blob();
       
-      // Create download link
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       
-      // Get filename from Content-Disposition header or use default
+      
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = 'Question_Set.pdf';
       if (contentDisposition) {
@@ -1071,18 +1087,62 @@ const QuestionBankDashboard = () => {
       );
 
       if (result.status === 'success') {
+        const focusTopics = result.weakness_analysis?.recommendations?.focus_topics
+          || (result.weakness_analysis?.weak_topics || []).map(t => t.topic).filter(Boolean);
+
         setPreviewQuestions(result.questions);
         setWeaknessAnalysis(result.weakness_analysis);
         setPreviewStats({
           total: result.questions.length,
           average_quality_score: 7,
-          adaptive: true
+          adaptive: true,
+          weak_topics: focusTopics || []
         });
         setShowPreviewModal(true);
       }
     } catch (error) {
       console.error('Adaptive generation error:', error);
       alert('Failed to generate adaptive questions: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate related questions using strengths/weaknesses
+  const handleGenerateRelatedFromPDF = async () => {
+    if (selectedPDFs.length === 0) {
+      alert('Please select at least one PDF');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const result = await questionBankAgentService.generateRelatedFromPDF({
+        userId,
+        sourceIds: selectedPDFs.map(p => p.id),
+        questionCount: questionCount || 10,
+        difficultyMix: difficultyCount,
+        questionTypes,
+        title: selectedPDFs.length === 1
+          ? `Related Questions from ${selectedPDFs[0].filename}`
+          : `Related Questions from ${selectedPDFs.length} documents`
+      });
+
+      if (result.status === 'success') {
+        setPreviewQuestions(result.questions || []);
+        setPreviewStats({
+          total: result.questions?.length || 0,
+          average_quality_score: 7,
+          personalized: true,
+          weak_topics: result.personalization?.weak_topics || [],
+          strong_topics: result.personalization?.strong_topics || []
+        });
+        setShowPreviewModal(true);
+      }
+    } catch (error) {
+      console.error('Related generation error:', error);
+      alert('Failed to generate related questions: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -1519,6 +1579,16 @@ const QuestionBankDashboard = () => {
                     <Target size={16} />
                     <span>Adaptive</span>
                   </button>
+
+                  <button
+                    className="qbd-btn-secondary qbd-ai-btn qbd-personalized-btn"
+                    onClick={handleGenerateRelatedFromPDF}
+                    disabled={loading || selectedPDFs.length === 0}
+                    title="Generate related questions using strengths and weaknesses"
+                  >
+                    <TrendingUp size={16} />
+                    <span>Personalized</span>
+                  </button>
                 </div>
 
                 {/* Topics Panel */}
@@ -1896,7 +1966,6 @@ const QuestionBankDashboard = () => {
   );
 
   const renderQuestionSets = () => {
-    console.log('🎨 Rendering question sets view, questionSets:', questionSets, 'loading:', loading);
     return (
     <div className="qbd-view">
       {/* Batch Selection Header */}
@@ -2414,7 +2483,7 @@ const QuestionBankDashboard = () => {
                     <div key={wa.id} className={`qbd-wrong-answer-card ${wa.reviewed ? 'reviewed' : ''}`}>
                       <div className="qbd-wrong-answer-question">
                         <span className="qbd-difficulty-badge">{wa.difficulty}</span>
-                        <p>{wa.question_text}</p>
+                        <MathRenderer content={wa.question_text || ''} className="qbd-wrong-question-text" />
                       </div>
                       <div className="qbd-wrong-answer-comparison">
                         <div className="qbd-answer-box wrong">
@@ -2463,8 +2532,6 @@ const QuestionBankDashboard = () => {
 
     // Guard against missing or empty questions
     const questions = selectedQuestionSet.questions || [];
-    console.log('📚 renderStudyModal - questions:', questions);
-    console.log('📚 renderStudyModal - questions length:', questions.length);
 
     if (questions.length === 0) {
       return (
@@ -2515,7 +2582,7 @@ const QuestionBankDashboard = () => {
                       <span className="qbd-topic-badge">{q.topic}</span>
                     </div>
 
-                    <p className="qbd-question-text">{q.question_text}</p>
+                    <MathRenderer content={q.question_text || ''} className="qbd-question-text" />
 
                     {q.question_type === 'multiple_choice' && (
                       <div className="qbd-options">
@@ -2528,7 +2595,7 @@ const QuestionBankDashboard = () => {
                               checked={userAnswers[q.id] === option}
                               onChange={() => handleAnswerChange(q.id, option)}
                             />
-                            <span>{option}</span>
+                            <MathRenderer content={option || ''} className="qbd-option-text" />
                           </label>
                         ))}
                       </div>
@@ -2638,7 +2705,7 @@ const QuestionBankDashboard = () => {
                         {detail.is_correct ? <CheckCircle size={20} /> : <XCircle size={20} />}
                       </div>
                       <div className="qbd-result-content">
-                        <p className="qbd-result-question"><strong>Q{idx + 1}:</strong> {detail.question_text}</p>
+                        <div className="qbd-result-question"><strong>Q{idx + 1}:</strong> <MathRenderer content={detail.question_text || ''} className="qbd-result-question-math" /></div>
                         <p className="qbd-result-answer">
                           <strong>Your answer:</strong> {detail.user_answer || 'No answer'}
                         </p>
@@ -2861,6 +2928,26 @@ const QuestionBankDashboard = () => {
                   <Star size={14} />
                   <span>Quality: {previewStats.average_quality_score}/10</span>
                 </div>
+                {previewStats.weak_topics && previewStats.weak_topics.length > 0 && (
+                  <div className="qbd-topic-badges">
+                    <span className="qbd-topic-badge-label">Weak focus:</span>
+                    {previewStats.weak_topics.map((topic, idx) => (
+                      <span key={`${topic}-${idx}`} className="qbd-topic-badge weak">
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {previewStats.strong_topics && previewStats.strong_topics.length > 0 && (
+                  <div className="qbd-topic-badges">
+                    <span className="qbd-topic-badge-label">Strong challenge:</span>
+                    {previewStats.strong_topics.map((topic, idx) => (
+                      <span key={`${topic}-${idx}`} className="qbd-topic-badge strong">
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {previewStats.potential_duplicates > 0 && (
                   <div className="qbd-stat-chip warning">
                     <AlertTriangle size={14} />

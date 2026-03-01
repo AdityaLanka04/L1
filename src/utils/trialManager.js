@@ -1,14 +1,14 @@
-// src/utils/trialManager.js
+
 
 class TrialManager {
   constructor() {
-    this.TRIAL_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+    this.TRIAL_DURATION = 5 * 60 * 1000; 
     this.STORAGE_KEY = 'brainwave_trial';
     this.FINGERPRINT_KEY = 'brainwave_fp';
-    this.WARNING_TIME = 60 * 1000; // Show warning at 1 minute remaining
+    this.WARNING_TIME = 60 * 1000; 
   }
 
-  // Generate privacy-safe browser fingerprint
+  
   generateFingerprint() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -29,7 +29,7 @@ class TrialManager {
       pixelRatio: window.devicePixelRatio
     };
     
-    // Simple hash function
+    
     const hashCode = (str) => {
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
@@ -43,18 +43,18 @@ class TrialManager {
     return hashCode(JSON.stringify(fingerprint));
   }
 
-  // Initialize trial tracking
+  
   async initializeTrial() {
     const fingerprint = this.generateFingerprint();
     const now = Date.now();
     
-    // Check IndexedDB for more persistent storage
+    
     const indexedDBTrial = await this.checkIndexedDBTrial(fingerprint);
     if (indexedDBTrial && indexedDBTrial.blocked) {
       return { expired: true, timeUsed: this.TRIAL_DURATION, reason: 'previous_session' };
     }
     
-    // Check local storage
+    
     const localTrial = localStorage.getItem(this.STORAGE_KEY);
     const storedFingerprint = localStorage.getItem(this.FINGERPRINT_KEY);
     
@@ -71,16 +71,17 @@ class TrialManager {
       };
     }
     
-    // Check with server
+    
     try {
       const serverCheck = await this.checkServerTrial(fingerprint);
       if (serverCheck.blocked) {
         return { expired: true, timeUsed: this.TRIAL_DURATION, reason: 'server_blocked' };
       }
     } catch (error) {
-          }
+    // silenced
+  }
     
-    // Start new trial
+    
     const trialData = {
       startTime: now,
       fingerprint: fingerprint,
@@ -91,11 +92,12 @@ class TrialManager {
     localStorage.setItem(this.FINGERPRINT_KEY, fingerprint);
     sessionStorage.setItem('trial_active', 'true');
     
-    // Notify server
+    
     try {
       await this.notifyServerTrialStart(fingerprint);
     } catch (error) {
-          }
+    // silenced
+  }
     
     return { 
       expired: false, 
@@ -104,7 +106,7 @@ class TrialManager {
     };
   }
 
-  // IndexedDB operations for persistent storage
+  
   async checkIndexedDBTrial(fingerprint) {
     return new Promise((resolve) => {
       try {
@@ -168,12 +170,12 @@ class TrialManager {
     });
   }
 
-  // Check if trial is expired
+  
   isTrialExpired(startTime) {
     return (Date.now() - startTime) >= this.TRIAL_DURATION;
   }
 
-  // Get current trial status
+  
   getCurrentStatus() {
     const localTrial = localStorage.getItem(this.STORAGE_KEY);
     if (!localTrial) {
@@ -194,7 +196,7 @@ class TrialManager {
     };
   }
 
-  // Server communication methods
+  
   async checkServerTrial(fingerprint) {
     try {
       const response = await fetch(`${API_URL}/check_trial`, {
@@ -204,7 +206,7 @@ class TrialManager {
       });
       return await response.json();
     } catch (error) {
-      return { blocked: false }; // Fail open for better UX
+      return { blocked: false }; 
     }
   }
 
@@ -217,19 +219,20 @@ class TrialManager {
           fingerprint,
           timestamp: Date.now(),
           userAgent: navigator.userAgent.substring(0, 100),
-          ip: 'client_side' // Server will capture real IP
+          ip: 'client_side' 
         })
       });
     } catch (error) {
-          }
+    // silenced
+  }
   }
 
-  // Utility methods
+  
   generateSessionId() {
     return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
   }
 
-  // Format time remaining for display
+  
   formatTimeRemaining(milliseconds) {
     const totalSeconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -242,19 +245,19 @@ class TrialManager {
     }
   }
 
-  // Clear trial data (for testing)
+  
   clearTrial() {
     localStorage.removeItem(this.STORAGE_KEY);
     localStorage.removeItem(this.FINGERPRINT_KEY);
     sessionStorage.removeItem('trial_active');
   }
 
-  // Check if user is logged in
+  
   isUserLoggedIn() {
     return !!localStorage.getItem('token');
   }
 
-  // Get IP address (fallback method)
+  
   async getClientIP() {
     try {
       const response = await fetch('https://api.ipify.org?format=json');

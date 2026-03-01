@@ -1,10 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-/* ==================== FORCE BOXY DESIGN ==================== */
 .battle-notification-overlay *,
 .battle-notification-overlay *::before,
 .battle-notification-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 :root {
@@ -12,8 +9,8 @@
   --bg-bottom: var(--bg-secondary);
   --panel: var(--bg-secondary);
   --border: var(--border);
-  --text-primary: #EAECEF;
-  --text-secondary: #B8C0CC;
+  --text-primary: var(--text-primary);
+  --text-secondary: var(--text-secondary);
   --accent: #D7B38C;
   --success: #10B981;
   --warning: #F59E0B;
@@ -179,7 +176,7 @@
   font-size: 11px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
   font-weight: 600;
 }
 
@@ -238,7 +235,7 @@
   border: 1px solid var(--accent);
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 700;
   width: fit-content;
 }
@@ -256,7 +253,7 @@
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s;
   border: none;

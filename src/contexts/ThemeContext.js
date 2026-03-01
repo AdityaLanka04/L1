@@ -24,12 +24,12 @@ export const ThemeProvider = ({ children }) => {
   const [selectedThemeId, setSelectedThemeId] = useState(getStoredTheme);
   const [customTheme, setCustomThemeState] = useState(getCustomTheme);
   
-  // Get the selected theme with full tokens
+  
   const selectedTheme = selectedThemeId === 'custom' && customTheme 
     ? customTheme 
     : getCurrentTheme(selectedThemeId);
 
-  // Apply theme immediately when it changes (before paint)
+  
   useLayoutEffect(() => {
     if (selectedThemeId === 'custom' && customTheme) {
       applyCustomTheme(customTheme);
@@ -44,7 +44,7 @@ export const ThemeProvider = ({ children }) => {
   }, []);
 
   const applyCustomColors = useCallback((primaryColor, accentColor, mode = 'dark') => {
-    // This returns the full theme object with tokens
+    
     const newCustomTheme = setCustomThemeStorage(primaryColor, accentColor, mode);
     setCustomThemeState(newCustomTheme);
     setSelectedThemeId('custom');

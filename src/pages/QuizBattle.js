@@ -550,7 +550,6 @@ const QuizBattle = () => {
               <button type="submit" className="qb-submit-btn">
                 <Swords size={20} />
                 <span>Challenge Friend</span>
-                <ArrowRight size={18} />
               </button>
             </form>
           </div>

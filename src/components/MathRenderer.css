@@ -1,6 +1,6 @@
 .math-content {
   line-height: 1.9;
-  color: #e0e0e0;
+  color: inherit;
   font-size: 15px;
   word-wrap: break-word;
 }
@@ -21,7 +21,7 @@
 .math-content h2,
 .math-content h3,
 .math-content h4 {
-  color: #ffffff;
+  color: inherit;
   margin: 1.4em 0 0.7em 0;
   font-weight: 600;
 }
@@ -39,7 +39,7 @@
 
 .math-content strong {
   font-weight: 700;
-  color: #ffffff;
+  color: inherit;
 }
 
 .math-content em {
@@ -159,14 +159,14 @@
 }
 
 [data-theme-mode="light"] .math-content {
-  color: #1a1a1a;
+  color: inherit;
 }
 
 [data-theme-mode="light"] .math-content h1,
 [data-theme-mode="light"] .math-content h2,
 [data-theme-mode="light"] .math-content h3,
 [data-theme-mode="light"] .math-content strong {
-  color: #1a1a1a;
+  color: inherit;
 }
 
 [data-theme-mode="light"] .math-content code {
@@ -187,8 +187,6 @@
   }
 }
 
-
-/* Enhanced LaTeX Styling for Better Visual Appearance */
 .math-content .katex .base {
   color: var(--accent) !important;
 }
@@ -201,13 +199,11 @@
   color: var(--accent) !important;
 }
 
-/* Fraction lines */
 .math-content .katex .frac-line {
   border-bottom-color: var(--accent) !important;
   background-color: var(--accent) !important;
 }
 
-/* Square root styling */
 .math-content .katex .sqrt > .root {
   color: var(--accent) !important;
 }
@@ -216,7 +212,6 @@
   border-color: var(--accent) !important;
 }
 
-/* Integral and sum symbols */
 .math-content .katex .op-symbol {
   color: var(--accent) !important;
 }
@@ -225,7 +220,6 @@
   color: var(--accent) !important;
 }
 
-/* Parentheses and brackets */
 .math-content .katex .delimsizing {
   color: var(--accent) !important;
 }
@@ -237,24 +231,20 @@
   color: var(--accent) !important;
 }
 
-/* Ensure all math elements inherit accent color */
 .math-content .katex * {
   color: var(--accent) !important;
 }
 
-/* Display math gets extra emphasis */
 .math-content .katex-display .katex {
   color: var(--accent) !important;
   font-weight: 400;
 }
 
-/* Light mode adjustments */
 [data-theme-mode="light"] .math-content .katex,
 [data-theme-mode="light"] .math-content .katex * {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
-/* Ensure proper spacing around display math */
 .math-content p + .katex-display {
   margin-top: 1.5em;
 }
@@ -263,14 +253,94 @@
   margin-top: 1.5em;
 }
 
-/* Make inline math slightly larger and more prominent */
 .math-content p .katex {
   font-size: 0.91em !important;
   vertical-align: middle;
   padding: 0 0.1em;
 }
 
-/* Ensure proper line height for lines with inline math */
 .math-content p:has(.katex) {
   line-height: 1.9;
+}
+
+.math-content.option-text {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  line-height: 1.5;
+  font-size: inherit;
+  flex: 1;
+  min-width: 0;
+}
+
+.math-content.question-text {
+  display: block;
+  font-size: 1.15em;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.math-content.question-text-full {
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.math-content.qbd-question-text {
+  display: block;
+  font-size: inherit;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.math-content.qbd-wrong-question-text {
+  display: block;
+  font-size: inherit;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.math-content.qbd-option-text {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  font-size: inherit;
+  line-height: 1.4;
+}
+
+.math-content.qbd-result-question-math {
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.math-content.fc-study-card-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: inherit;
+  line-height: 1.6;
+  width: 100%;
+  min-height: 40px;
+}
+
+.math-content.fc-sr-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 1.15em;
+  line-height: 1.7;
+  width: 100%;
+  min-height: 40px;
+}
+
+.math-content.option-text .katex-display,
+.math-content.qbd-option-text .katex-display {
+  display: inline-block;
+  margin: 0;
+  text-align: left;
 }

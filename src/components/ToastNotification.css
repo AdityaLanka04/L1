@@ -1,11 +1,9 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .toast-container *,
 .toast-container *::before,
 .toast-container *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
-/* Toast Container - handles stacking */
 .toast-container {
   position: fixed;
   top: 80px;

@@ -1,8 +1,7 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .note-stats-bar *,
 .note-stats-bar *::before,
 .note-stats-bar *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .note-stats-bar {

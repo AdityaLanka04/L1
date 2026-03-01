@@ -1,10 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
-/* ==================== FORCE BOXY DESIGN ==================== */
 .safety-login *,
 .safety-login *::before,
 .safety-login *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 .safety-login {
   width: 100vw;
@@ -97,14 +94,14 @@
   font-family: 'Quicksand', sans-serif;
   font-size: 15px;
   font-weight: 500;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.3s ease;
   outline: none;
 }
 .form-group input::placeholder {
   color: color-mix(in srgb, var(--accent, #D7B38C) 50%, transparent);
   font-size: 14px;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 400;
 }
 .form-group input:focus {
@@ -123,7 +120,7 @@
 .error-message {
   color: #ff6b6b;
   font-size: 13px;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   text-align: center;
   padding: 12px;
   background: rgba(255, 107, 107, 0.1);
@@ -164,7 +161,7 @@
 .login-button:active {
   transform: translateY(0);
 }
-/* Responsive Design */
+
 @media (max-width: 768px) {
   .login-box {
     max-width: 400px;
@@ -213,7 +210,7 @@
   .login-button {
     padding: 13px;
     font-size: 12px;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
   }
   .error-message {
     font-size: 12px;

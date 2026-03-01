@@ -8,6 +8,7 @@ import {
 import './MyNotes.css';
 import './MyNotesSmartFolders.css';
 import './MyNotesChatImport.css';
+import './MyNotesConvert.css';
 import { API_URL } from '../config';
 import Templates from '../components/Templates';
 import ImportExportModal from '../components/ImportExportModal';
@@ -17,7 +18,7 @@ const MyNotes = () => {
   const location = useLocation();
   const userName = localStorage.getItem('username');
 
-  // Sidebar state
+  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [notes, setNotes] = useState([]);
@@ -30,7 +31,7 @@ const MyNotes = () => {
   const [showTrash, setShowTrash] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Modals
+  
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [showChatImport, setShowChatImport] = useState(false);
@@ -42,7 +43,7 @@ const MyNotes = () => {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
 
-  // Icons
+  
   const Icons = {
     notes: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
     home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
@@ -55,12 +56,12 @@ const MyNotes = () => {
     loadChatSessions();
   }, []);
 
-  // Handle generated note from Learning Path
+  
   useEffect(() => {
     const generatedNote = location.state?.generatedNote;
     
     if (generatedNote && userName) {
-      // Auto-create note with generated content
+      
       const createGeneratedNote = async () => {
         try {
           const token = localStorage.getItem('token');
@@ -80,7 +81,7 @@ const MyNotes = () => {
 
           if (response.ok) {
             const newNote = await response.json();
-            // Clear the state and navigate to the editor
+            
             navigate(`/notes/editor/${newNote.id}`, { replace: true });
           }
         } catch (error) {
@@ -105,7 +106,8 @@ const MyNotes = () => {
         setNotes(data.filter(n => !n.is_deleted));
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -121,7 +123,8 @@ const MyNotes = () => {
         setFolders(data.folders || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadChatSessions = async () => {
@@ -135,7 +138,8 @@ const MyNotes = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadTrash = async () => {
@@ -149,7 +153,8 @@ const MyNotes = () => {
         setTrashedNotes(data.trash || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const createNewNote = async () => {
@@ -174,7 +179,8 @@ const MyNotes = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const createFolder = async () => {
@@ -201,7 +207,8 @@ const MyNotes = () => {
         setShowFolderModal(false);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const importFromChat = async () => {
@@ -209,7 +216,7 @@ const MyNotes = () => {
     
     setImporting(true);
     try {
-      // Use the conversion agent service for chat-to-notes conversion
+      
       const conversionAgentService = (await import('../services/conversionAgentService')).default;
       
       const result = await conversionAgentService.chatToNotes(
@@ -221,13 +228,13 @@ const MyNotes = () => {
       if (result.success && result.result) {
         const noteResult = result.result;
         
-        // Refresh notes list
+        
         await loadNotes();
         
         setShowChatImport(false);
         setSelectedSessions([]);
         
-        // Navigate to the newly created note in the editor
+        
         if (noteResult.note_id) {
           navigate(`/notes/editor/${noteResult.note_id}`);
         }
@@ -264,7 +271,8 @@ const MyNotes = () => {
         setNoteToMove(null);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const deleteNote = async (noteId) => {
@@ -281,7 +289,8 @@ const MyNotes = () => {
         await loadNotes();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const restoreNote = async (noteId) => {
@@ -328,7 +337,8 @@ const MyNotes = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const blocksToHtml = (blocks) => {
@@ -357,7 +367,7 @@ const MyNotes = () => {
     );
     if (showFavorites) filtered = filtered.filter(n => n.is_favorite);
     if (selectedFolder && !showTrash && !showFavorites) {
-      // Handle source-based filtering
+      
       if (selectedFolder === 'source-flashcards') {
         filtered = filtered.filter(n => 
           n.source_type === 'flashcards' || 
@@ -374,7 +384,7 @@ const MyNotes = () => {
           n.title?.toLowerCase().includes('roadmap')
         );
       } else {
-        // Regular folder filtering
+        
         filtered = filtered.filter(n => n.folder_id === selectedFolder);
       }
     }
@@ -411,7 +421,6 @@ const MyNotes = () => {
 
   return (
     <div className="my-notes-page-full">
-      {/* Header - Full Width */}
       <header className="mn-header">
         <div className="mn-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -432,9 +441,7 @@ const MyNotes = () => {
         </nav>
       </header>
 
-      {/* Body - Sidebar + Content */}
       <div className="mn-body">
-        {/* Sidebar */}
         <aside className={`nt-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
           <button className="nt-new-note-btn" onClick={createNewNote}>
             <Plus size={18} />
@@ -442,7 +449,6 @@ const MyNotes = () => {
           </button>
 
           <nav className="nt-sidebar-nav">
-            {/* Quick Actions */}
             <div className="nt-nav-section">
               <div className="nt-nav-section-title">QUICK ACTIONS</div>
               <button className="nt-nav-item" onClick={() => setShowTemplates(true)}>
@@ -453,7 +459,7 @@ const MyNotes = () => {
                 <span className="nt-nav-icon"><Upload size={18} /></span>
                 <span className="nt-nav-text">From Chat</span>
               </button>
-              <button className="nt-nav-item" onClick={() => setShowConvertModal(true)}>
+              <button className="nt-nav-item convert-btn" onClick={() => setShowConvertModal(true)}>
                 <span className="nt-nav-icon"><Sparkles size={18} /></span>
                 <span className="nt-nav-text">Convert</span>
               </button>
@@ -463,7 +469,6 @@ const MyNotes = () => {
               </button>
             </div>
 
-            {/* Filters */}
             <div className="nt-nav-section">
               <div className="nt-nav-section-title">LIBRARY</div>
               <button 
@@ -491,7 +496,6 @@ const MyNotes = () => {
               </button>
             </div>
 
-            {/* Folders */}
             <div className="nt-nav-section">
               <div className="nt-nav-section-title">
                 FOLDERS
@@ -512,7 +516,6 @@ const MyNotes = () => {
               ))}
             </div>
 
-            {/* Generated Notes - By Source */}
             <div className="nt-nav-section">
               <div className="nt-nav-section-title">BY SOURCE</div>
               <button 
@@ -546,7 +549,6 @@ const MyNotes = () => {
           </div>
         </aside>
 
-        {/* Show Sidebar Button - appears when sidebar is collapsed */}
         {sidebarCollapsed && (
           <button 
             className="nt-show-sidebar-btn" 
@@ -557,10 +559,8 @@ const MyNotes = () => {
           </button>
         )}
 
-        {/* Main Content */}
         <main className="nt-main">
           <div className="nt-content">
-            {/* Search and View Controls */}
             <div className="nt-content-controls">
               <div className="nt-search">
                 <Search size={16} />
@@ -606,7 +606,7 @@ const MyNotes = () => {
                       <div className="nt-favorite-badge"><Star size={14} /></div>
                     )}
                     <div className="nt-note-card-cover">
-                      <FileText className="nt-note-cover-icon" size={48} />
+                      <div className="nt-note-cover-preview" dangerouslySetInnerHTML={{ __html: note.content || '<p>Empty note</p>' }} />
                     </div>
                     <div className="nt-note-card-content">
                       <div className="nt-note-card-header">
@@ -640,7 +640,6 @@ const MyNotes = () => {
                           )}
                         </div>
                       </div>
-                      <div className="nt-note-preview">{extractPreview(note.content)}</div>
                       <div className="nt-note-footer">
                         <span className="nt-note-date">
                           <Clock size={12} />
@@ -654,9 +653,8 @@ const MyNotes = () => {
             )}
           </div>
         </main>
-      </div> {/* Close mn-body */}
+      </div> {}
 
-      {/* Create Folder Modal */}
       {showFolderModal && (
         <div className="nt-modal-overlay" onClick={() => setShowFolderModal(false)}>
           <div className="nt-modal" onClick={(e) => e.stopPropagation()}>
@@ -677,7 +675,6 @@ const MyNotes = () => {
         </div>
       )}
 
-      {/* Import from Chat Modal */}
       {showChatImport && (
         <div className="nt-modal-overlay" onClick={() => setShowChatImport(false)}>
           <div className="nt-modal" onClick={(e) => e.stopPropagation()}>
@@ -724,7 +721,6 @@ const MyNotes = () => {
         </div>
       )}
 
-      {/* Move to Folder Modal */}
       {showMoveModal && noteToMove && (
         <div className="nt-modal-overlay" onClick={() => setShowMoveModal(false)}>
           <div className="nt-modal" onClick={(e) => e.stopPropagation()}>
@@ -753,7 +749,6 @@ const MyNotes = () => {
         </div>
       )}
 
-      {/* Templates Modal */}
       {showTemplates && (
         <>
           <div className="nt-modal-overlay" onClick={() => setShowTemplates(false)} />
@@ -765,14 +760,29 @@ const MyNotes = () => {
         </>
       )}
 
-      {/* Convert Modal */}
       <ImportExportModal
         isOpen={showConvertModal}
         onClose={() => setShowConvertModal(false)}
         mode="import"
         sourceType="notes"
         onSuccess={(result) => {
-          loadNotes();
+          if (result?.shouldNavigate) {
+            if (result.destinationType === 'flashcards') {
+              if (result.set_id) {
+                navigate(`/flashcards?set_id=${result.set_id}&mode=preview`);
+              } else {
+                navigate('/flashcards');
+              }
+            } else if (result.destinationType === 'questions') {
+              navigate('/question-bank');
+            } else if (result.destinationType === 'notes') {
+              if (result.note_id) {
+                navigate(`/notes/editor/${result.note_id}`);
+              }
+            }
+          } else {
+            loadNotes();
+          }
           setShowConvertModal(false);
         }}
       />

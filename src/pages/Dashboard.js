@@ -11,13 +11,12 @@ import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import LoadingSpinner from '../components/LoadingSpinner';
-import SlideNotification from '../components/SlideNotification';
 import ImportExportModal from '../components/ImportExportModal';
+import { useNotifications } from '../contexts/NotificationContext';
 import './Dashboard.css';
 import { API_URL } from '../config';
 import logo from '../assets/logo.svg';
 
-// Default layout configuration (same as CustomizeDashboard)
 const DEFAULT_LAYOUT_WIDGETS = [
   { id: 'ai-tutor', col: 1, row: 1, cols: 1, rows: 3, color: null, size: 'M' },
   { id: 'learning-hub-grid', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'L' },
@@ -30,7 +29,6 @@ const DEFAULT_LAYOUT_WIDGETS = [
   { id: 'heatmap', col: 1, row: 6, cols: 4, rows: 2, color: null, size: 'L' }
 ];
 
-// Random greeting messages
 const GREETING_MESSAGES = [
   "Ready to Learn?",
   "Let's Get Started",
@@ -73,7 +71,7 @@ const Dashboard = () => {
     totalChatSessions: 0
   });
 
-  // Layout state - load from localStorage
+  
   const [dashboardLayout, setDashboardLayout] = useState(DEFAULT_LAYOUT_WIDGETS);
 
   const [heatmapData, setHeatmapData] = useState([]);
@@ -101,25 +99,26 @@ const Dashboard = () => {
   const [dailyBreakdown, setDailyBreakdown] = useState([]);
   const [weeklyStats, setWeeklyStats] = useState({});
   const [motivationalQuote, setMotivationalQuote] = useState('');
-  const [randomQuote, setRandomQuote] = useState('');
   const [achievements, setAchievements] = useState([]);
   const [learningAnalytics, setLearningAnalytics] = useState(null);
   const [conversationStarters, setConversationStarters] = useState([]);
   
-  const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  
-  const [slideNotifQueue, setSlideNotifQueue] = useState([]);
-  const [lastNotificationIds, setLastNotificationIds] = useState(new Set());
-  const notificationPollRef = useRef(null);
-  const lastNotificationCheckRef = useRef(0);
+  const {
+    notifications,
+    unreadCount,
+    refreshNotifications,
+    markNotificationAsRead,
+    deleteNotification
+  } = useNotifications();
 
   const [isLoaded, setIsLoaded] = useState(false);
 
   const timeIntervalRef = useRef(null);
   const sessionUpdateRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
+  const notifPanelRef = useRef(null);
+  const notifButtonRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -127,7 +126,7 @@ const Dashboard = () => {
     const profile = localStorage.getItem('userProfile');
 
     if (!token) {
-      window.location.href = '/login';
+      navigate('/login');
       return;
     }
     
@@ -140,22 +139,24 @@ const Dashboard = () => {
     if (profile) {
       try {
         setUserProfile(JSON.parse(profile));
-      } catch (error) {}
+      } catch (error) {
+    // silenced
+  }
     }
 
-    // Load saved dashboard layout from localStorage
+    
     try {
-      const LAYOUT_VERSION = '2.1'; // Increment this to force layout reset
+      const LAYOUT_VERSION = '2.1'; 
       const savedVersion = localStorage.getItem('dashboardLayoutVersion');
       const layoutName = localStorage.getItem('currentLayoutName') || 'Default';
       
-      // Force reset to new layout if version changed
+      
       if (savedVersion !== LAYOUT_VERSION) {
         localStorage.setItem('dashboardLayoutVersion', LAYOUT_VERSION);
         localStorage.setItem('currentLayoutName', 'Default');
         setDashboardLayout(DEFAULT_LAYOUT_WIDGETS);
       }
-      // For Default layout, always use the hardcoded DEFAULT_LAYOUT_WIDGETS
+      
       else if (layoutName === 'Default') {
         setDashboardLayout(DEFAULT_LAYOUT_WIDGETS);
       } else {
@@ -197,63 +198,60 @@ const Dashboard = () => {
       loadHeatmapData();
       loadDashboardData();
       startDashboardSession();
-      startNotificationPolling();
       
       const justLoggedIn = sessionStorage.getItem('justLoggedIn');
       const today = new Date().toDateString();
       const lastLoginDate = localStorage.getItem(`lastLoginDate_${userName}`);
       const isFirstLoginToday = lastLoginDate !== today;
       
-      // Check if study insights is enabled in user profile
+      
       const profile = localStorage.getItem('userProfile');
       let showStudyInsights = true;
       if (profile) {
         try {
           const parsed = JSON.parse(profile);
           showStudyInsights = parsed.showStudyInsights !== false;
-        } catch (e) {}
+        } catch (e) {
+    // silenced
+  }
       }
       
       if (justLoggedIn && isFirstLoginToday) {
         localStorage.setItem(`lastLoginDate_${userName}`, today);
         sessionStorage.removeItem('justLoggedIn');
         
-        // Check if user just completed onboarding
+        
         const isFirstTimeUser = sessionStorage.getItem('isFirstTimeUser') === 'true';
         sessionStorage.removeItem('isFirstTimeUser');
         
-        // Get display name
+        
         const welcomeName = userProfile?.firstName || userProfile?.first_name || userName.split('@')[0];
         
-        // For returning users, fetch personalized welcome notification
+        
         if (!isFirstTimeUser && showStudyInsights) {
           fetchPersonalizedWelcome(welcomeName);
         } else if (!isFirstTimeUser && !showStudyInsights) {
-          // Show simple welcome without study insights - create in database
+          
           createWelcomeNotification(welcomeName, 'Welcome Back!', `Ready to continue learning, ${welcomeName}?`);
         } else {
-          // For first-time users, show simple welcome - create in database
+          
           createWelcomeNotification(welcomeName, 'Welcome!', `Let's get started with your learning journey, ${welcomeName}!`);
         }
       }
     }
     
     return () => {
-      if (notificationPollRef.current) clearInterval(notificationPollRef.current);
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
     };
   }, [userName]);
 
-  // Click outside handler for notifications
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showNotifications) {
-        const notifPanel = document.querySelector('.ds-notif-panel');
-        const notifButton = document.querySelector('.ds-notif-bell-btn');
-        
-        if (notifPanel && !notifPanel.contains(event.target) && 
-            notifButton && !notifButton.contains(event.target)) {
+        if (notifPanelRef.current && !notifPanelRef.current.contains(event.target) &&
+            notifButtonRef.current && !notifButtonRef.current.contains(event.target)) {
           setShowNotifications(false);
         }
       }
@@ -272,7 +270,7 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // First, create the notification in the database
+      
       const createResponse = await fetch(`${API_URL}/create_notification`, {
         method: 'POST',
         headers: { 
@@ -289,9 +287,8 @@ const Dashboard = () => {
       
       if (createResponse.ok) {
         const createData = await createResponse.json();
-        console.log('✅ Welcome notification created in DB:', createData);
         
-        // Now fetch study insights if available
+        
         const insightsResponse = await fetch(`${API_URL}/study_insights/welcome_notification?user_id=${userName}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -301,7 +298,7 @@ const Dashboard = () => {
           const notifData = insightsData.notification;
           
           if (notifData.has_insights) {
-            // Update the notification with insights
+            
             await fetch(`${API_URL}/create_notification`, {
               method: 'POST',
               headers: { 
@@ -318,17 +315,14 @@ const Dashboard = () => {
           }
         }
         
-        // Trigger a notification poll to show the new notification
+        
         setTimeout(() => {
-          if (notificationPollRef.current) {
-            clearInterval(notificationPollRef.current);
-          }
-          startNotificationPolling();
+          refreshNotifications();
         }, 1000);
       }
     } catch (error) {
       console.error('❌ Error creating welcome notification:', error);
-      // Fallback: create simple notification
+      
       createWelcomeNotification(displayName, 'Welcome Back!', `Ready to continue learning, ${displayName}?`);
     }
   };
@@ -351,13 +345,9 @@ const Dashboard = () => {
       });
       
       if (response.ok) {
-        console.log('✅ Welcome notification created');
-        // Trigger notification poll
+        
         setTimeout(() => {
-          if (notificationPollRef.current) {
-            clearInterval(notificationPollRef.current);
-          }
-          startNotificationPolling();
+          refreshNotifications();
         }, 1000);
       }
     } catch (error) {
@@ -399,7 +389,9 @@ const Dashboard = () => {
           setTotalTimeToday(data.total_time_today || 0);
         }
       }
-    } catch (error) {}
+    } catch (error) {
+    // silenced
+  }
   };
 
   const loadDashboardData = async () => {
@@ -429,7 +421,7 @@ const Dashboard = () => {
           weeklyStudyMinutes
         }));
         
-        // Extract weekly progress for graph
+        
         const progressData = history.map(day => day.ai_chats + day.flashcards + day.notes);
         setWeeklyProgress(progressData.length === 7 ? progressData : [0, 0, 0, 0, 0, 0, 0]);
       }
@@ -458,13 +450,14 @@ const Dashboard = () => {
         
         setRecentActivities(data.recent_activities || []);
         setMotivationalQuote(data.motivational_quote || 'Keep learning every day!');
-        setRandomQuote(data.random_quote || 'Every expert was once a beginner.');
         setAchievements(data.achievements || []);
         setLearningAnalytics(data.learning_analytics || null);
         setConversationStarters(data.conversation_starters || []);
         setLearningReviews(data.learning_reviews || []);
       }
-    } catch (error) {}
+    } catch (error) {
+    // silenced
+  }
   };
 
   const loadHeatmapData = async () => {
@@ -480,129 +473,10 @@ const Dashboard = () => {
         setTotalQuestions(data.total_count || 0);
       }
     } catch (error) {
-    } finally {
+    // silenced
+  } finally {
       setHeatmapLoading(false);
     }
-  };
-
-  const startNotificationPolling = () => {
-    if (notificationPollRef.current) {
-      clearInterval(notificationPollRef.current);
-    }
-
-    const pollNotifications = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const now = Date.now();
-        
-        // Throttle to prevent too frequent requests (5 seconds minimum)
-        if (now - lastNotificationCheckRef.current < 5000) {
-          return;
-        }
-        lastNotificationCheckRef.current = now;
-
-        const response = await fetch(`${API_URL}/get_notifications?user_id=${userName}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const notifs = data.notifications || [];
-          
-          console.log('📬 Fetched notifications:', notifs.length, notifs);
-          
-          setNotifications(notifs);
-          setUnreadCount(notifs.filter(n => !n.is_read).length);
-
-          // Find new unread notifications that haven't been shown yet
-          const newNotifs = notifs.filter(notif => 
-            !lastNotificationIds.has(notif.id) && !notif.is_read
-          );
-
-          console.log('🆕 New notifications to show:', newNotifs.length, newNotifs);
-
-          if (newNotifs.length > 0) {
-            const newSlideNotifs = newNotifs.map(notif => ({
-              id: notif.id,
-              title: notif.title,
-              message: notif.message,
-              notification_type: notif.notification_type || 'general',
-              created_at: notif.created_at
-            }));
-            
-            console.log('🎯 Adding to slide queue:', newSlideNotifs);
-            
-            setSlideNotifQueue(prev => [...prev, ...newSlideNotifs]);
-            setLastNotificationIds(prev => {
-              const updated = new Set(prev);
-              newNotifs.forEach(n => updated.add(n.id));
-              return updated;
-            });
-          }
-        } else {
-          console.error('❌ Failed to fetch notifications:', response.status, response.statusText);
-        }
-      } catch (error) {
-        console.error('❌ Error polling notifications:', error);
-      }
-    };
-
-    // Poll immediately on start
-    pollNotifications();
-    
-    // Then poll every 30 seconds (more frequent for better UX)
-    notificationPollRef.current = setInterval(pollNotifications, 30000);
-    
-    console.log('✅ Notification polling started');
-  };
-
-  const removeSlideNotification = (notifId) => {
-    console.log('🗑️ Removing slide notification:', notifId);
-    setSlideNotifQueue(prev => prev.filter(n => n.id !== notifId));
-    markNotificationAsRead(notifId);
-  };
-
-  const markNotificationAsRead = async (notifId) => {
-    try {
-      const token = localStorage.getItem('token');
-      console.log('✅ Marking notification as read:', notifId);
-      const response = await fetch(`${API_URL}/mark_notification_read/${notifId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        setNotifications(prev => prev.map(n => 
-          n.id === notifId ? { ...n, is_read: true } : n
-        ));
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-    } catch (error) {}
-  };
-
-  const deleteNotification = async (notifId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/delete_notification/${notifId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const wasUnread = notifications.find(n => n.id === notifId)?.is_read === false;
-        setNotifications(prev => prev.filter(n => n.id !== notifId));
-        setLastNotificationIds(prev => {
-          const updated = new Set(prev);
-          updated.add(notifId);
-          return updated;
-        });
-        if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-    } catch (error) {}
   };
 
   const startDashboardSession = async () => {
@@ -625,7 +499,9 @@ const Dashboard = () => {
         startTimeTracking();
         startSessionTimeUpdater();
       }
-    } catch (error) {}
+    } catch (error) {
+    // silenced
+  }
   };
 
   const startTimeTracking = () => {
@@ -686,7 +562,8 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-    } finally {
+    // silenced
+  } finally {
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
       if (window.dashboardTimeTrackingCleanup) window.dashboardTimeTrackingCleanup();
@@ -737,7 +614,7 @@ const Dashboard = () => {
     return num.toString();
   };
 
-  // Heatmap helper functions
+  
   const getActivityColor = (level, customColor = null) => {
     const colorToUse = customColor || selectedTheme?.tokens?.['--accent'] || '#D7B38C';
     switch (level) {
@@ -840,12 +717,12 @@ const Dashboard = () => {
   const openProfile = () => navigate('/profile');
   const navigateToCustomize = () => navigate('/customize-dashboard');
 
-  // Helper to get widget config from layout
+  
   const getWidgetConfig = (widgetId) => {
     return dashboardLayout.find(w => w.id === widgetId) || null;
   };
 
-  // Helper to get widget style
+  
   const getWidgetStyle = (widgetId) => {
     const config = getWidgetConfig(widgetId);
     if (!config) return {};
@@ -855,13 +732,13 @@ const Dashboard = () => {
     };
   };
 
-  // Helper to get widget color
+  
   const getWidgetColor = (widgetId) => {
     const config = getWidgetConfig(widgetId);
     return config?.color || accent;
   };
 
-  // Helper to check if widget is small (1 row)
+  
   const isWidgetSmall = (widgetId) => {
     const config = getWidgetConfig(widgetId);
     return config?.rows === 1;
@@ -871,7 +748,7 @@ const Dashboard = () => {
     await endDashboardSession();
     localStorage.clear();
     sessionStorage.clear();
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   const startTour = () => setShowTour(true);
@@ -896,16 +773,6 @@ const Dashboard = () => {
 
   return (
     <div className={`ds-page ${isLoaded ? 'ds-loaded' : ''}`} data-theme-mode={themeMode}>
-      {slideNotifQueue.length > 0 && slideNotifQueue.map((notif, index) => (
-        <SlideNotification
-          key={notif.id}
-          notification={notif}
-          onClose={() => removeSlideNotification(notif.id)}
-          onMarkRead={markNotificationAsRead}
-          style={{ top: `${80 + (index * 120)}px` }}
-        />
-      ))}
-      
       {showTour && (
         <HelpTour onClose={closeTour} onComplete={completeTour} />
       )}
@@ -930,22 +797,21 @@ const Dashboard = () => {
             </div>
             
             <div className="ds-notifications-wrapper">
-              <button className="ds-notif-bell-btn" onClick={() => setShowNotifications(!showNotifications)}>
+              <button ref={notifButtonRef} className="ds-notif-bell-btn" onClick={() => setShowNotifications(!showNotifications)}>
                 <Bell size={20} />
                 {unreadCount > 0 && <span className="ds-notif-badge">{unreadCount}</span>}
               </button>
-              
+
               {showNotifications && (
                 <>
-                  {/* Backdrop blur overlay */}
-                  <div 
-                    className="ds-notif-backdrop" 
+                  <div
+                    className="ds-notif-backdrop"
                     onClick={() => setShowNotifications(false)}
                   />
-                  
-                  <div className="ds-notif-panel" onClick={(e) => e.stopPropagation()}>
+
+                  <div ref={notifPanelRef} className="ds-notif-panel" onClick={(e) => e.stopPropagation()}>
                     <div className="ds-notif-panel-header">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div className="ds-notif-panel-title">
                         <Bell size={18} />
                         <h3>Notifications</h3>
                       </div>
@@ -1155,7 +1021,7 @@ const Dashboard = () => {
                   const maxRounded = Math.ceil(maxValue / 10) * 10;
                   const streakColor = getWidgetColor('streak');
                   
-                  // Generate day labels based on current timezone
+                  
                   const getDayLabels = () => {
                     const today = new Date();
                     const dayLabels = [];
@@ -1163,7 +1029,7 @@ const Dashboard = () => {
                       const date = new Date(today);
                       date.setDate(today.getDate() - i);
                       const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-                      // Use 'Th' for Thursday, first letter for others
+                      
                       if (dayName === 'Thu') {
                         dayLabels.push('Th');
                       } else {
@@ -1175,7 +1041,7 @@ const Dashboard = () => {
                   
                   const dayLabels = getDayLabels();
                   
-                  // Center the graph by adjusting starting position
+                  
                   const startX = 30;
                   const spacing = 37;
                   

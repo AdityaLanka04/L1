@@ -1,6 +1,3 @@
-/* NotesRedesign Smart Folders - Auto-grouping Styles */
-
-/* Override to use centered modal */
 .notes-redesign .smart-folders-panel {
   position: fixed !important;
   top: 50% !important;
@@ -13,14 +10,13 @@
   height: auto !important;
   background: #1a1a1a !important;
   border: 1px solid #333 !important;
-  border-radius: 12px !important;
+  border-radius: 12px;
   display: flex !important;
   flex-direction: column !important;
   z-index: 10002 !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
 }
 
-/* Loading State */
 .notes-redesign .smart-folders-panel .sf-loading {
   display: flex !important;
   flex-direction: column !important;
@@ -41,7 +37,6 @@
   color: #D7B38C !important;
 }
 
-/* Header */
 .notes-redesign .smart-folders-panel .sf-header {
   display: flex !important;
   justify-content: space-between !important;
@@ -49,7 +44,7 @@
   padding: 16px 20px !important;
   border-bottom: 1px solid #333 !important;
   background: #222 !important;
-  border-radius: 12px 12px 0 0 !important;
+  border-radius: 12px 12px 0 0;
 }
 
 .notes-redesign .smart-folders-panel .sf-header h3 {
@@ -68,7 +63,7 @@
 .notes-redesign .smart-folders-panel .sf-close-btn {
   background: transparent !important;
   border: 1px solid #444 !important;
-  border-radius: 6px !important;
+  border-radius: 6px;
   width: 32px !important;
   height: 32px !important;
   display: flex !important;
@@ -86,14 +81,12 @@
   color: #D7B38C !important;
 }
 
-/* Content */
 .notes-redesign .smart-folders-panel .sf-content {
   flex: 1 !important;
   overflow-y: auto !important;
   padding: 16px !important;
 }
 
-/* Empty State */
 .notes-redesign .smart-folders-panel .sf-empty {
   display: flex !important;
   flex-direction: column !important;
@@ -113,7 +106,6 @@
   font-size: 13px !important;
 }
 
-/* Folders List */
 .notes-redesign .smart-folders-panel .sf-folders-list {
   display: flex !important;
   flex-direction: column !important;
@@ -127,18 +119,18 @@
   padding: 12px 14px !important;
   background: #222 !important;
   border: 1px solid #333 !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   cursor: pointer !important;
   transition: all 0.2s !important;
 }
 
 .notes-redesign .smart-folders-panel .sf-folder-item:hover {
   background: #2a2a2a !important;
-  border-color: rgba(215, 179, 140, 0.4) !important;
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important;
 }
 
 .notes-redesign .smart-folders-panel .sf-folder-item.selected {
-  background: rgba(215, 179, 140, 0.15) !important;
+  background: color-mix(in srgb, var(--accent) 15%, transparent) !important;
   border-color: #D7B38C !important;
 }
 
@@ -166,10 +158,9 @@
   color: #888 !important;
   background: #333 !important;
   padding: 3px 8px !important;
-  border-radius: 10px !important;
+  border-radius: 10px;
 }
 
-/* Notes Preview */
 .notes-redesign .smart-folders-panel .sf-notes-preview {
   margin-top: 16px !important;
   padding-top: 16px !important;
@@ -182,7 +173,7 @@
   font-weight: 600 !important;
   color: #D7B38C !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
 }
 
 .notes-redesign .smart-folders-panel .sf-notes-list {
@@ -199,7 +190,7 @@
   align-items: center !important;
   padding: 10px 12px !important;
   background: #222 !important;
-  border-radius: 6px !important;
+  border-radius: 6px;
   font-size: 12px !important;
 }
 
@@ -218,34 +209,33 @@
   flex-shrink: 0 !important;
 }
 
-/* Light Mode */
 [data-theme-mode="light"] .notes-redesign .smart-folders-panel {
-  background: #fff !important;
-  border-color: #e0e0e0 !important;
+  background: #fff;
+  border-color: #e0e0e0;
 }
 
 [data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-header {
-  background: #f5f5f5 !important;
-  border-color: #e0e0e0 !important;
+  background: #f5f5f5;
+  border-color: #e0e0e0;
 }
 
 [data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-header h3 {
-  color: #333 !important;
+  color: #333;
 }
 
 [data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-folder-item {
-  background: #f5f5f5 !important;
-  border-color: #e0e0e0 !important;
+  background: #f5f5f5;
+  border-color: #e0e0e0;
 }
 
 [data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-folder-name {
-  color: #333 !important;
+  color: #333;
 }
 
 [data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-note-item {
-  background: #f5f5f5 !important;
+  background: #f5f5f5;
 }
 
 [data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-note-title {
-  color: #333 !important;
+  color: #333;
 }

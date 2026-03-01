@@ -1,281 +1,210 @@
-﻿"""
-Unified AI utilities for Gemini (primary) and Groq (fallback)
-With integrated caching system
-"""
 import logging
 import json
+import time
 from typing import Optional
+
+import requests
+from activity_context import get_activity_context
+from activity_logger import log_ai_tokens
+from ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
 
 logger = logging.getLogger(__name__)
 
-# Import cache manager
-try:
-    from caching.cache_manager import get_cache_manager
-    CACHE_AVAILABLE = True
-except ImportError:
-    try:
-        from caching import get_cache_manager
-        CACHE_AVAILABLE = True
-    except ImportError:
-        CACHE_AVAILABLE = False
-        logger.warning("Cache manager not available")
-
 class UnifiedAIClient:
-    """Unified client that uses Gemini as primary, Groq as fallback"""
-    
-    def __init__(self, gemini_client=None, groq_client=None, gemini_model: str = "gemini-2.0-flash", groq_model: str = "llama-3.3-70b-versatile", gemini_api_key: str = None):
-        self.gemini_module = gemini_client  # This is the genai module
+
+    def __init__(
+        self,
+        gemini_client=None,
+        groq_client=None,
+        gemini_model: str = "gemini-2.0-flash",
+        groq_model: str = "llama-3.3-70b-versatile",
+        gemini_api_key: str = None,
+        openai_compat_api_key: str = None,
+        openai_compat_base_url: str = "https://api.openai.com/v1",
+        openai_compat_model: str = "gpt-4o-mini",
+    ):
+        self.gemini_module = gemini_client
         self.groq_client = groq_client
         self.gemini_model = gemini_model
         self.groq_model = groq_model
         self.gemini_api_key = gemini_api_key
-        
-        # Initialize cache manager
-        self.cache_manager = get_cache_manager() if CACHE_AVAILABLE else None
-        if self.cache_manager:
-            logger.info("✅ AI client using cache manager")
-        
-        # Create the actual Gemini model instance
-        if gemini_client:
+        self.openai_compat_api_key = openai_compat_api_key
+        self.openai_compat_base_url = openai_compat_base_url.rstrip("/")
+        self.openai_compat_model = openai_compat_model
+
+        if openai_compat_api_key and not gemini_client and not groq_client:
+            self.gemini_client = None
+            self.primary_ai = "openai_compat"
+        elif gemini_client:
             try:
-                logger.info(f"Creating Gemini model with: {type(gemini_client)}")
                 self.gemini_client = gemini_client.GenerativeModel(gemini_model)
-                logger.info(f"Gemini model created: {type(self.gemini_client)}")
                 self.primary_ai = "gemini"
-                logger.info(f" UnifiedAIClient using GEMINI as primary (model: {gemini_model})")
-            except Exception as e:
-                logger.error(f" Failed to create Gemini model: {e}")
-                import traceback
-                traceback.print_exc()
+            except Exception:
                 self.gemini_client = None
                 if groq_client:
                     self.primary_ai = "groq"
-                    logger.info("UnifiedAIClient using GROQ as primary (Gemini failed)")
                 else:
                     raise ValueError("Both AI clients failed to initialize")
         elif groq_client:
             self.gemini_client = None
             self.primary_ai = "groq"
-            logger.info("UnifiedAIClient using GROQ as primary")
         else:
-            raise ValueError("At least one AI client (Gemini or Groq) must be provided")
-    
-    def generate(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7, 
-                 use_cache: bool = True, conversation_id: str = None) -> str:
-        """
-        Generate AI response with Gemini as primary, Groq as fallback
-        Includes intelligent caching to reduce token usage
-        
-        Args:
-            prompt: The prompt to send
-            max_tokens: Maximum tokens in response
-            temperature: Temperature for generation
-            use_cache: Set to False for conversational contexts where history matters
-            conversation_id: Unique conversation ID to include in cache key
-        
-        Returns:
-            AI response text
-        """
-        # Check cache first (but only if caching is enabled)
-        # For conversations, we include conversation_id in the cache key
-        # This prevents returning cached responses from different conversation contexts
-        if self.cache_manager and use_cache:
-            # Build cache key with conversation context
-            cache_prompt = f"{conversation_id}_{prompt}" if conversation_id else prompt
-            cached_response = self.cache_manager.get_ai_response(cache_prompt, temperature, max_tokens)
-            if cached_response:
-                logger.info(f"✅ AI cache hit - saved tokens!")
-                return cached_response
-        
+            raise ValueError("At least one AI client (Gemini, Groq, or OpenAI-compat) must be provided")
+
+    def generate(
+        self,
+        prompt: str,
+        max_tokens: int = 2000,
+        temperature: float = 0.7,
+        use_cache: bool = False,
+        conversation_id: str = None,
+    ) -> str:
         try:
-            if self.primary_ai == "gemini" and self.gemini_api_key:
-                logger.info(f" Calling Gemini REST API directly...")
-                try:
-                    # Use REST API directly to avoid SDK hanging issues
-                    import requests
-                    import json
-                    import time
-                    
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_api_key}"
-                    
-                    payload = {
-                        "contents": [{
-                            "parts": [{"text": prompt}]
-                        }],
-                        "generationConfig": {
-                            "temperature": temperature,
-                            "maxOutputTokens": max_tokens,
-                        }
-                    }
-                    
-                    # Retry logic for Gemini
-                    max_retries = 3
-                    for attempt in range(max_retries):
-                        try:
-                            logger.info(f" Sending REST request to Gemini (attempt {attempt + 1}/{max_retries})...")
-                            response = requests.post(url, json=payload, timeout=60)
-                            
-                            if response.status_code == 200:
-                                data = response.json()
-                                if 'candidates' in data and len(data['candidates']) > 0:
-                                    text = data['candidates'][0]['content']['parts'][0]['text']
-                                    logger.info(f" Gemini REST response received: {len(text)} chars")
-                                    
-                                    # Cache the response (with conversation context if provided)
-                                    if self.cache_manager and use_cache:
-                                        cache_prompt = f"{conversation_id}_{prompt}" if conversation_id else prompt
-                                        self.cache_manager.set_ai_response(cache_prompt, temperature, max_tokens, text)
-                                    
-                                    return text
-                                else:
-                                    logger.error(f" Gemini response has no candidates: {data}")
-                                    raise Exception("Gemini response has no candidates")
-                            elif response.status_code == 429:
-                                # Rate limit - immediately fall back to Groq instead of retrying
-                                logger.warning(f" Gemini rate limited (429), falling back to Groq immediately...")
-                                raise Exception(f"Gemini API quota exceeded. Please wait for quota reset or use Groq API instead.")
-                            elif response.status_code == 400 and "quota" in response.text.lower():
-                                logger.warning(f" Gemini quota exceeded, falling back to Groq...")
-                                raise Exception(f"Gemini API quota exceeded. Falling back to Groq API.")
-                            else:
-                                logger.error(f" Gemini REST API error: {response.status_code} - {response.text}")
-                                if attempt == max_retries - 1:
-                                    raise Exception(f"Gemini API error: {response.status_code}")
-                                time.sleep(1)
-                                continue
-                                
-                        except requests.exceptions.Timeout:
-                            logger.warning(f" Gemini timeout on attempt {attempt + 1}")
-                            if attempt == max_retries - 1:
-                                raise
-                            time.sleep(2)
-                            continue
-                        except requests.exceptions.ConnectionError:
-                            logger.warning(f" Gemini connection error on attempt {attempt + 1}")
-                            if attempt == max_retries - 1:
-                                raise
-                            time.sleep(2)
-                            continue
-                        
-                except Exception as gemini_error:
-                    logger.error(f" Gemini error: {type(gemini_error).__name__}: {gemini_error}")
-                    raise
+            if self.primary_ai == "openai_compat" and self.openai_compat_api_key:
+                return self._call_openai_compat(prompt, max_tokens, temperature)
+            elif self.primary_ai == "gemini" and self.gemini_api_key:
+                return self._call_gemini(prompt, max_tokens, temperature)
             elif self.groq_client:
-                logger.info(" Calling Groq API...")
-                response = self.groq_client.chat.completions.create(
-                    model=self.groq_model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
-                logger.info(f" Groq response received")
-                result = response.choices[0].message.content.strip()
-                
-                # Cache the response (with conversation context if provided)
-                if self.cache_manager and use_cache:
-                    cache_prompt = f"{conversation_id}_{prompt}" if conversation_id else prompt
-                    self.cache_manager.set_ai_response(cache_prompt, temperature, max_tokens, result)
-                
-                return result
+                return self._call_groq(prompt, max_tokens, temperature)
             else:
-                logger.error(" No AI client available!")
                 raise Exception("No AI client available")
         except Exception as e:
-            logger.error(f" Primary AI ({self.primary_ai}) failed: {type(e).__name__}: {e}")
-            # Fallback
-            if self.primary_ai == "gemini" and self.groq_client:
-                logger.warning(" Falling back to Groq...")
-                try:
-                    response = self.groq_client.chat.completions.create(
-                        model=self.groq_model,
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=temperature,
-                        max_tokens=max_tokens
-                    )
-                    logger.info(" Groq fallback successful")
-                    result = response.choices[0].message.content.strip()
-                    
-                    # Cache the fallback response (with conversation context if provided)
-                    if self.cache_manager and use_cache:
-                        cache_prompt = f"{conversation_id}_{prompt}" if conversation_id else prompt
-                        self.cache_manager.set_ai_response(cache_prompt, temperature, max_tokens, result)
-                    
-                    return result
-                except Exception as groq_error:
-                    logger.error(f" Groq fallback also failed: {groq_error}")
+            logger.error(f"Primary AI ({self.primary_ai}) failed: {e}")
+            return self._fallback(prompt, max_tokens, temperature)
+
+    def _call_gemini(self, prompt: str, max_tokens: int, temperature: float) -> str:
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.gemini_model}:generateContent?key={self.gemini_api_key}"
+        )
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens,
+            },
+        }
+        for attempt in range(3):
+            try:
+                resp = requests.post(url, json=payload, timeout=60)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    usage = extract_usage_from_gemini_payload(data)
+                    self._log_usage(usage, model=self.gemini_model, provider="gemini")
+                    if "candidates" in data and data["candidates"]:
+                        return data["candidates"][0]["content"]["parts"][0]["text"]
+                    raise Exception("Gemini response has no candidates")
+                if resp.status_code in (429, 400) and "quota" in resp.text.lower():
+                    raise Exception("Gemini quota exceeded")
+                if attempt == 2:
+                    raise Exception(f"Gemini API error: {resp.status_code}")
+                time.sleep(1)
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                if attempt == 2:
                     raise
-            elif self.primary_ai == "groq" and self.gemini_client:
-                logger.warning(" Falling back to Gemini...")
-                try:
-                    response = self.gemini_client.generate_content(prompt)
-                    logger.info(" Gemini fallback successful")
-                    return response.text
-                except Exception as gemini_error:
-                    logger.error(f" Gemini fallback also failed: {gemini_error}")
+                time.sleep(2)
+        raise Exception("Gemini request failed after retries")
+
+    def _call_groq(self, prompt: str, max_tokens: int, temperature: float) -> str:
+        resp = self.groq_client.chat.completions.create(
+            model=self.groq_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        usage = extract_usage_from_openai_like(resp)
+        self._log_usage(usage, model=self.groq_model, provider="groq")
+        return resp.choices[0].message.content.strip()
+
+    def _call_openai_compat(self, prompt: str, max_tokens: int, temperature: float) -> str:
+        """Call any OpenAI-compatible REST API (sk-* key format)."""
+        url = f"{self.openai_compat_base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.openai_compat_api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.openai_compat_model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        for attempt in range(3):
+            try:
+                resp = requests.post(url, json=payload, headers=headers, timeout=90)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    usage = extract_usage_from_openai_like(data)
+                    self._log_usage(usage, model=self.openai_compat_model, provider="hs_context")
+                    return data["choices"][0]["message"]["content"].strip()
+                if resp.status_code == 429:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise Exception(f"HS context AI error {resp.status_code}: {resp.text[:200]}")
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                if attempt == 2:
                     raise
-            else:
-                logger.error(f" No fallback available. Both clients failed.")
-                raise Exception(f"Both AI clients failed: {e}")
-    
+                time.sleep(2)
+        raise Exception("HS context AI request failed after retries")
+
+    def _fallback(self, prompt: str, max_tokens: int, temperature: float) -> str:
+        if self.primary_ai == "openai_compat":
+            if self.gemini_api_key:
+                return self._call_gemini(prompt, max_tokens, temperature)
+            if self.groq_client:
+                return self._call_groq(prompt, max_tokens, temperature)
+        if self.primary_ai == "gemini" and self.groq_client:
+            return self._call_groq(prompt, max_tokens, temperature)
+        if self.primary_ai == "groq" and self.gemini_api_key:
+            return self._call_gemini(prompt, max_tokens, temperature)
+        raise Exception("No fallback AI client available")
+
     def generate_stream(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7):
-        """
-        Generate AI response with streaming (token-by-token)
-        
-        Args:
-            prompt: The prompt to send
-            max_tokens: Maximum tokens in response
-            temperature: Temperature for generation
-        
-        Yields:
-            Chunks of text as they arrive
-        """
-        # For streaming, prefer Groq as it has better streaming support
         if self.groq_client:
-            logger.info(" Calling Groq API with streaming...")
             try:
                 stream = self.groq_client.chat.completions.create(
                     model=self.groq_model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=temperature,
                     max_tokens=max_tokens,
-                    stream=True
+                    stream=True,
                 )
-                
                 for chunk in stream:
                     if chunk.choices and chunk.choices[0].delta.content:
                         yield chunk.choices[0].delta.content
-                
-                logger.info(" Groq streaming completed")
                 return
-                        
-            except Exception as groq_error:
-                logger.error(f" Groq streaming error: {groq_error}")
-                # Don't raise, try Gemini fallback
-        
-        # Fallback to Gemini (non-streaming, but split into chunks)
-        if self.primary_ai == "gemini" and self.gemini_api_key:
-            logger.warning(" Using Gemini with simulated streaming (Groq unavailable)")
-            try:
-                # Get full response from Gemini
-                full_response = self.generate(prompt, max_tokens, temperature)
-                
-                # Split into word-by-word chunks for streaming effect
-                words = full_response.split(' ')
-                for i, word in enumerate(words):
-                    if i < len(words) - 1:
-                        yield word + ' '
-                    else:
-                        yield word
-                
-                logger.info(" Gemini simulated streaming completed")
-                return
-                        
-            except Exception as gemini_error:
-                logger.error(f" Gemini fallback error: {gemini_error}")
-                raise
-        
-        # No AI available
-        logger.error(" No AI client available for streaming!")
+            except Exception:
+                pass
+
+        if self.gemini_api_key:
+            full = self.generate(prompt, max_tokens, temperature)
+            words = full.split(" ")
+            for i, word in enumerate(words):
+                yield word + (" " if i < len(words) - 1 else "")
+            return
+
         raise Exception("No AI client available for streaming")
 
-
+    def _log_usage(self, usage, model: str, provider: str):
+        if not usage:
+            return
+        try:
+            ctx = get_activity_context()
+            if not ctx:
+                return
+            log_ai_tokens(
+                user_id=ctx.get("user_id"),
+                tool_name=ctx.get("tool_name", "ai_unknown"),
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0),
+                model=model,
+                metadata={
+                    "provider": provider,
+                    "endpoint": ctx.get("endpoint"),
+                    "method": ctx.get("method"),
+                    "source_action": ctx.get("action"),
+                },
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log AI usage: {e}")

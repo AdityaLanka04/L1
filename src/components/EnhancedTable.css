@@ -1,8 +1,7 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .enhanced-table-wrapper *,
 .enhanced-table-wrapper *::before,
 .enhanced-table-wrapper *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .enhanced-table-wrapper {

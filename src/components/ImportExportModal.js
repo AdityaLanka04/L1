@@ -56,6 +56,7 @@ const ImportExportModal = ({
     ]
   };
 
+  const resolvedSourceType = sourceType === 'quiz' ? 'questions' : sourceType;
 
   useEffect(() => {
     if (isOpen && step === 1) {
@@ -68,7 +69,7 @@ const ImportExportModal = ({
     try {
       let endpoint = '';
       
-      switch (sourceType) {
+      switch (resolvedSourceType) {
         case 'notes':
           endpoint = `${API_URL}/get_notes?user_id=${userName}`;
           break;
@@ -96,15 +97,15 @@ const ImportExportModal = ({
         const data = await response.json();
         
         let items = [];
-        if (sourceType === 'notes') {
+        if (resolvedSourceType === 'notes') {
           items = data.filter(n => !n.is_deleted);
-        } else if (sourceType === 'flashcards') {
+        } else if (resolvedSourceType === 'flashcards') {
           items = data.flashcard_history || [];
-        } else if (sourceType === 'questions') {
+        } else if (resolvedSourceType === 'questions') {
           items = data.question_sets || [];
-        } else if (sourceType === 'media') {
+        } else if (resolvedSourceType === 'media') {
           items = data.history || [];
-        } else if (sourceType === 'playlist') {
+        } else if (resolvedSourceType === 'playlist') {
           items = data.playlists || [];
         }
         
@@ -138,11 +139,54 @@ const ImportExportModal = ({
     setProcessing(true);
     try {
       let result;
+
+      if (sourceType === 'playlist' && (destinationType === 'notes' || destinationType === 'flashcards')) {
+        const results = [];
+        for (const playlistId of selectedItems) {
+          const endpoint = destinationType === 'notes'
+            ? `${API_URL}/import_export/playlist_to_notes`
+            : `${API_URL}/import_export/playlist_to_flashcards`;
+
+          const payload = destinationType === 'notes'
+            ? { playlist_id: playlistId }
+            : { playlist_id: playlistId, card_count: options.cardCount || 15 };
+
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || data.success === false) {
+            throw new Error(data.error || data.detail || 'Conversion failed');
+          }
+          results.push(data);
+        }
+
+        const detailsPayload = results.length === 1 ? results[0] : { items: results };
+        setResult({
+          success: true,
+          message: `Successfully converted ${results.length} playlist${results.length > 1 ? 's' : ''} to ${destinationType}!`,
+          details: detailsPayload,
+          type: 'import'
+        });
+        setStep(3);
+
+        if (onSuccess) {
+          onSuccess(detailsPayload);
+        }
+        setProcessing(false);
+        return;
+      }
       
-      // Use the conversion agent service for all conversions
+      
       const conversionResult = await conversionAgentService.convert({
         userId: userName,
-        sourceType: sourceType,
+        sourceType: resolvedSourceType,
         sourceIds: selectedItems,
         destinationType: destinationType,
         cardCount: options.cardCount,
@@ -152,10 +196,12 @@ const ImportExportModal = ({
         depthLevel: options.depthLevel
       });
 
+      const conversionDetails = conversionResult.result || conversionResult;
+
       if (conversionResult.success) {
-        // Handle export types (CSV/PDF)
+        
         if (destinationType === 'csv' || destinationType === 'pdf') {
-          const exportResult = conversionResult.result;
+          const exportResult = conversionDetails;
           if (exportResult && exportResult.content) {
             conversionAgentService.downloadFile(exportResult.content, exportResult.filename);
           }
@@ -165,21 +211,21 @@ const ImportExportModal = ({
             type: 'export'
           });
         } else {
-          // Handle conversion types
+          
           setResult({
             success: true,
             message: `Successfully converted to ${destinationType}!`,
-            details: conversionResult.result,
+            details: conversionDetails,
             type: 'import'
           });
         }
         setStep(3);
         
         if (onSuccess) {
-          onSuccess(conversionResult.result);
+          onSuccess(conversionDetails);
         }
       } else {
-        throw new Error(conversionResult.response || 'Conversion failed');
+        throw new Error(conversionResult.response || conversionResult.error || 'Conversion failed');
       }
     } catch (error) {
       console.error('Conversion error:', error);
@@ -219,12 +265,11 @@ const ImportExportModal = ({
   };
 
   const getItemCount = (item) => {
-    if (sourceType === 'flashcards') return `${item.card_count || 0} cards`;
-    if (sourceType === 'questions') return `${item.total_questions || 0} questions`;
-    if (sourceType === 'playlist') return `${item.item_count || 0} items`;
+    if (resolvedSourceType === 'flashcards') return `${item.card_count || 0} cards`;
+    if (resolvedSourceType === 'questions') return `${item.total_questions || item.question_count || 0} questions`;
+    if (resolvedSourceType === 'playlist') return `${item.item_count || 0} items`;
     return '';
   };
-
 
   return (
     <div className="iem-overlay" onClick={handleClose}>
@@ -313,7 +358,7 @@ const ImportExportModal = ({
               <h3>Convert to...</h3>
               
               <div className="iem-conversion-grid">
-                {conversionOptions[sourceType]?.map(option => (
+                {conversionOptions[resolvedSourceType]?.map(option => (
                   <div
                     key={option.value}
                     className={`iem-conversion-card ${destinationType === option.value ? 'selected' : ''}`}
@@ -486,7 +531,7 @@ const ImportExportModal = ({
                       className="iem-btn iem-btn-primary" 
                       onClick={() => {
                         handleClose();
-                        // Navigate to the appropriate page based on destination type
+                        
                         if (onSuccess) {
                           onSuccess({
                             ...result.details,

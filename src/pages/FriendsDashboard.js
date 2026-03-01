@@ -32,7 +32,9 @@ const FriendsDashboard = () => {
         const enhancedFriends = await enhanceFriendsWithStats(friendsList);
         setFriends(enhancedFriends);
       }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
     finally { setLoading(false); }
   };
 
@@ -58,12 +60,13 @@ const FriendsDashboard = () => {
     } catch (error) { return friendsList; }
   };
 
-
   const fetchFriendRequests = async () => {
     try {
       const response = await fetch(`${API_URL}/friend_requests`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (response.ok) { const data = await response.json(); setFriendRequests(data); }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const fetchAllUsers = async () => {
@@ -76,7 +79,9 @@ const FriendsDashboard = () => {
         const enhancedUsers = await enhanceFriendsWithStats(sortedUsers);
         setAllUsers(enhancedUsers);
       }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
     finally { setLoading(false); }
   };
 
@@ -91,7 +96,9 @@ const FriendsDashboard = () => {
         const enhancedResults = await enhanceFriendsWithStats(sortedResults);
         setSearchResults(enhancedResults);
       }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
     finally { setIsSearching(false); }
   };
 
@@ -106,7 +113,9 @@ const FriendsDashboard = () => {
         setAllUsers(prev => prev.map(user => user.id === receiverId ? { ...user, request_sent: true } : user));
         fetchFriendRequests();
       }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const respondToFriendRequest = async (requestId, action) => {
@@ -116,7 +125,9 @@ const FriendsDashboard = () => {
         body: JSON.stringify({ request_id: requestId, action })
       });
       if (response.ok) { fetchFriendRequests(); fetchFriends(); }
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const removeFriend = async (friendId) => {
@@ -127,7 +138,9 @@ const FriendsDashboard = () => {
         body: JSON.stringify({ friend_id: friendId })
       });
       if (response.ok) fetchFriends();
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const cancelFriendRequest = async (requestId) => {
@@ -137,7 +150,9 @@ const FriendsDashboard = () => {
         body: JSON.stringify({ request_id: requestId, action: 'reject' })
       });
       if (response.ok) fetchFriendRequests();
-    } catch (error) {  }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const renderAvatar = (user, className = "fd-friend-avatar") => {
@@ -154,7 +169,6 @@ const FriendsDashboard = () => {
     }
     return <div className={className}>{initial}</div>;
   };
-
 
   const renderFriendCard = (friend) => (
     <div key={friend.id} className="fd-friend-card">
@@ -211,29 +225,30 @@ const FriendsDashboard = () => {
 
   return (
     <div className="fd-container">
-      {/* Standardized Header */}
-      <header className="hub-header">
-        <div className="hub-header-left">
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>
-            <div className="hub-logo-img" />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <div className="hub-header-divider"></div>
-          <p className="hub-header-subtitle">FRIENDS</p>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">FRIENDS</span>
         </div>
-        <div className="hub-header-right">
-          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
+        <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
           </button>
-        </div>
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            Dashboard
+          </button>
+        </nav>
       </header>
 
       <div className="fd-layout">
-        {/* Sidebar */}
         <div className="fd-sidebar">
           <nav className="fd-sidebar-nav">
             <button className={`fd-sidebar-item ${activeView === 'my-friends' ? 'active' : ''}`} onClick={() => setActiveView('my-friends')}>
@@ -252,13 +267,8 @@ const FriendsDashboard = () => {
                 <span className="fd-badge">{friendRequests.received.length + friendRequests.sent.length}</span>}
             </button>
           </nav>
-          <button className="fd-sidebar-back" onClick={() => navigate('/social')}>
-            <ArrowLeft size={18} /><span>Back to Social</span>
-          </button>
         </div>
 
-
-        {/* Main Content */}
         <div className="fd-main">
           {activeView === 'find-friends' && (
             <div className="fd-header-actions">
@@ -271,7 +281,6 @@ const FriendsDashboard = () => {
           )}
 
           <div className="fd-content">
-            {/* My Friends View */}
             {activeView === 'my-friends' && (
               loading ? <div className="fd-loading"><div className="fd-spinner"></div><p>Loading friends...</p></div>
               : friends.length > 0 ? <div className="fd-friends-grid">{friends.map(friend => renderFriendCard(friend))}</div>
@@ -283,27 +292,33 @@ const FriendsDashboard = () => {
                 </div>
             )}
 
-            {/* Find Friends View */}
             {activeView === 'find-friends' && (
               <>
-                {isSearching && <div className="fd-loading"><div className="fd-spinner"></div><p>Searching...</p></div>}
                 <div className="fd-users-list">
                   {searchQuery.length >= 2 ? (
-                    searchResults.length > 0 ? searchResults.map(user => renderUserCard(user))
-                    : !isSearching && <div className="fd-empty-state"><p>No users found matching "{searchQuery}"</p></div>
+                    isSearching ? (
+                      <div className="fd-loading"><div className="fd-spinner"></div><p>Searching...</p></div>
+                    ) : searchResults.length > 0 ? (
+                      searchResults.map(user => renderUserCard(user))
+                    ) : (
+                      <div className="fd-empty-state"><p>No users found matching "{searchQuery}"</p></div>
+                    )
                   ) : (
                     <>
                       <h3 className="fd-section-title">All Users</h3>
-                      {allUsers.length > 0 ? allUsers.map(user => renderUserCard(user))
-                       : loading ? <div className="fd-loading"><div className="fd-spinner"></div></div>
-                       : <div className="fd-empty-state"><p>No users available</p></div>}
+                      {loading ? (
+                        <div className="fd-loading"><div className="fd-spinner"></div><p>Loading users...</p></div>
+                      ) : allUsers.length > 0 ? (
+                        allUsers.map(user => renderUserCard(user))
+                      ) : (
+                        <div className="fd-empty-state"><p>No users available</p></div>
+                      )}
                     </>
                   )}
                 </div>
               </>
             )}
 
-            {/* Requests View */}
             {activeView === 'requests' && (
               <>
                 {friendRequests.received.length > 0 && (

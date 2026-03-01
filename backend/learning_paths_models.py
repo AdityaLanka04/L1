@@ -34,24 +34,20 @@ def create_learning_paths_models(Base):
         id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
         user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
         
-        # Path metadata
         title = Column(String(255), nullable=False)
-        topic_prompt = Column(Text, nullable=False)  # Original user prompt
+        topic_prompt = Column(Text, nullable=False)
         description = Column(Text, nullable=True)
-        difficulty = Column(String(20), default="intermediate")  # beginner/intermediate/advanced
-        status = Column(String(20), default="active")  # active/completed/archived
+        difficulty = Column(String(20), default="intermediate")
+        status = Column(String(20), default="active")
         
-        # Progress tracking
         total_nodes = Column(Integer, default=0)
         completed_nodes = Column(Integer, default=0)
         estimated_hours = Column(Float, default=0.0)
         
-        # Timestamps
         created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
         updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
         last_accessed = Column(DateTime, nullable=True)
         
-        # Relationships
         nodes = relationship("LearningPathNode", back_populates="path", cascade="all, delete-orphan", order_by="LearningPathNode.order_index")
         progress = relationship("LearningPathProgress", back_populates="path", uselist=False, cascade="all, delete-orphan")
     
@@ -62,69 +58,57 @@ def create_learning_paths_models(Base):
         id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
         path_id = Column(String(36), ForeignKey("learning_paths.id"), nullable=False, index=True)
         
-        # Node metadata
-        order_index = Column(Integer, nullable=False)  # Position in path (0-based)
+        order_index = Column(Integer, nullable=False)
         title = Column(String(255), nullable=False)
         description = Column(Text, nullable=True)
         
-        # Enhanced metadata
-        tags = Column(JSON, nullable=True)  # ["python", "data-structures", "algorithms"]
-        keywords = Column(JSON, nullable=True)  # Search keywords
-        bloom_level = Column(String(50), nullable=True)  # remember/understand/apply/analyze/evaluate/create
-        cognitive_load = Column(String(20), nullable=True)  # low/medium/high
-        industry_relevance = Column(JSON, nullable=True)  # ["software-engineering", "data-science"]
+        tags = Column(JSON, nullable=True)
+        keywords = Column(JSON, nullable=True)
+        bloom_level = Column(String(50), nullable=True)
+        cognitive_load = Column(String(20), nullable=True)
+        industry_relevance = Column(JSON, nullable=True)
         
-        # Multi-layer content structure
-        introduction = Column(Text, nullable=True)  # Why this node matters (2-3 sentences)
-        core_sections = Column(JSON, nullable=True)  # Array of content sections with explanations, examples, diagrams
-        summary = Column(JSON, nullable=True)  # Key takeaways in bullet points
-        connection_map = Column(JSON, nullable=True)  # How this relates to other nodes
-        real_world_applications = Column(JSON, nullable=True)  # Concrete examples of usage
+        introduction = Column(Text, nullable=True)
+        core_sections = Column(JSON, nullable=True)
+        summary = Column(JSON, nullable=True)
+        connection_map = Column(JSON, nullable=True)
+        real_world_applications = Column(JSON, nullable=True)
         
-        # Progressive disclosure content
-        beginner_content = Column(JSON, nullable=True)  # Simplified explanations
-        intermediate_content = Column(JSON, nullable=True)  # Standard content
-        advanced_content = Column(JSON, nullable=True)  # Deep dives and edge cases
+        beginner_content = Column(JSON, nullable=True)
+        intermediate_content = Column(JSON, nullable=True)
+        advanced_content = Column(JSON, nullable=True)
         
-        # Content formats
-        video_resources = Column(JSON, nullable=True)  # Video lectures with timestamps
-        interactive_diagrams = Column(JSON, nullable=True)  # Diagram data for rendering
-        audio_narration = Column(JSON, nullable=True)  # Audio file URLs or TTS config
-        infographics = Column(JSON, nullable=True)  # Visual summaries
-        code_playgrounds = Column(JSON, nullable=True)  # Code examples with sandboxes
+        video_resources = Column(JSON, nullable=True)
+        interactive_diagrams = Column(JSON, nullable=True)
+        audio_narration = Column(JSON, nullable=True)
+        infographics = Column(JSON, nullable=True)
+        code_playgrounds = Column(JSON, nullable=True)
         
-        # Learning content
-        objectives = Column(JSON, nullable=True)  # List of learning objectives
-        learning_outcomes = Column(JSON, nullable=True)  # Measurable skills gained
-        prerequisites = Column(JSON, nullable=True)  # List of prerequisite concepts
-        prerequisite_nodes = Column(JSON, nullable=True)  # IDs of prerequisite nodes
+        objectives = Column(JSON, nullable=True)
+        learning_outcomes = Column(JSON, nullable=True)
+        prerequisites = Column(JSON, nullable=True)
+        prerequisite_nodes = Column(JSON, nullable=True)
         
-        # Enhanced resources with metadata
-        resources = Column(JSON, nullable=True)  # External resources (articles, videos, docs)
-        primary_resources = Column(JSON, nullable=True)  # Required resources
-        supplementary_resources = Column(JSON, nullable=True)  # Optional resources
-        practice_resources = Column(JSON, nullable=True)  # Exercises and challenges
+        resources = Column(JSON, nullable=True)
+        primary_resources = Column(JSON, nullable=True)
+        supplementary_resources = Column(JSON, nullable=True)
+        practice_resources = Column(JSON, nullable=True)
         
         estimated_minutes = Column(Integer, default=30)
-        content_plan = Column(JSON, nullable=True)  # Activities: notes, flashcards, quiz, chat
+        content_plan = Column(JSON, nullable=True)
         
-        # Interactive activities
-        concept_mapping = Column(JSON, nullable=True)  # Concept map exercises
-        scenarios = Column(JSON, nullable=True)  # Scenario-based learning
-        hands_on_projects = Column(JSON, nullable=True)  # Mini-projects
+        concept_mapping = Column(JSON, nullable=True)
+        scenarios = Column(JSON, nullable=True)
+        hands_on_projects = Column(JSON, nullable=True)
         
-        # Prerequisite validation
-        prerequisite_quiz = Column(JSON, nullable=True)  # Quick diagnostic questions
+        prerequisite_quiz = Column(JSON, nullable=True)
         
-        # Unlock and completion rules
-        unlock_rule = Column(JSON, nullable=True)  # Conditions to unlock this node
-        reward = Column(JSON, nullable=True)  # XP and other rewards
+        unlock_rule = Column(JSON, nullable=True)
+        reward = Column(JSON, nullable=True)
         
-        # Timestamps
         created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
         updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
         
-        # Relationships
         path = relationship("LearningPath", back_populates="nodes")
         progress_records = relationship("LearningNodeProgress", back_populates="node", cascade="all, delete-orphan")
     
@@ -136,16 +120,13 @@ def create_learning_paths_models(Base):
         path_id = Column(String(36), ForeignKey("learning_paths.id"), nullable=False, unique=True, index=True)
         user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
         
-        # Progress metrics
-        current_node_index = Column(Integer, default=0)  # Index of current/next node
+        current_node_index = Column(Integer, default=0)
         total_xp_earned = Column(Integer, default=0)
         completion_percentage = Column(Float, default=0.0)
         
-        # Timestamps
         created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
         updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
         
-        # Relationships
         path = relationship("LearningPath", back_populates="progress")
     
     class LearningNodeProgress(Base):
@@ -156,38 +137,30 @@ def create_learning_paths_models(Base):
         node_id = Column(String(36), ForeignKey("learning_path_nodes.id"), nullable=False, index=True)
         user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
         
-        # Status and progress
-        status = Column(String(20), default="locked")  # locked/unlocked/in_progress/completed
-        progress_pct = Column(Integer, default=0)  # 0-100
+        status = Column(String(20), default="locked")
+        progress_pct = Column(Integer, default=0)
         xp_earned = Column(Integer, default=0)
         
-        # Difficulty preference
-        difficulty_view = Column(String(20), default="intermediate")  # beginner/intermediate/advanced
+        difficulty_view = Column(String(20), default="intermediate")
         
-        # Completion evidence
-        evidence = Column(JSON, nullable=True)  # Stores completion proofs
+        evidence = Column(JSON, nullable=True)
         
-        # Performance tracking
-        time_spent_minutes = Column(Integer, default=0)  # Actual time spent
-        quiz_attempts = Column(JSON, nullable=True)  # History of quiz attempts
-        concept_mastery = Column(JSON, nullable=True)  # Mastery level per concept (0-100)
-        struggle_points = Column(JSON, nullable=True)  # Areas where user struggled
+        time_spent_minutes = Column(Integer, default=0)
+        quiz_attempts = Column(JSON, nullable=True)
+        concept_mastery = Column(JSON, nullable=True)
+        struggle_points = Column(JSON, nullable=True)
         
-        # Resource tracking
-        resources_completed = Column(JSON, nullable=True)  # Which resources were consumed
-        resource_ratings = Column(JSON, nullable=True)  # User ratings of resources
+        resources_completed = Column(JSON, nullable=True)
+        resource_ratings = Column(JSON, nullable=True)
         
-        # Activity completion
-        activities_completed = Column(JSON, nullable=True)  # Detailed activity completion
+        activities_completed = Column(JSON, nullable=True)
         
-        # Timestamps
         started_at = Column(DateTime, nullable=True)
         completed_at = Column(DateTime, nullable=True)
         last_accessed = Column(DateTime, nullable=True)
         created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
         updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
         
-        # Relationships
         node = relationship("LearningPathNode", back_populates="progress_records")
     
     class LearningNodeNote(Base):
@@ -198,10 +171,8 @@ def create_learning_paths_models(Base):
         node_id = Column(String(36), ForeignKey("learning_path_nodes.id"), nullable=False, index=True)
         user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
         
-        # Note content
         content = Column(Text, nullable=True)
         
-        # Timestamps
         created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
         updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     

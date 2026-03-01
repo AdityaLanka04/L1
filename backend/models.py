@@ -1,30 +1,28 @@
 from sqlalchemy import (
     create_engine, Column, Integer, String, Text, DateTime, ForeignKey,
-    Boolean, Float, JSON, Date, func  #  ADD func here
+    Boolean, Float, JSON, Date, func
 )
 from sqlalchemy.orm import relationship, sessionmaker, backref
 from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel
 
+import logging
+
+logger = logging.getLogger(__name__)
 import os
 
 from question_bank_models import create_question_bank_models
 from learning_paths_models import create_learning_paths_models
 
-# ==================== DATABASE CONFIG ====================
-# Import Base, engine, and SessionLocal from database.py to ensure consistency
 from database import Base, engine, SessionLocal
-
-# NOTE: Factory functions will be called AFTER User class is defined to avoid circular dependencies
-
 
 class DailyGoal(Base):
     __tablename__ = "daily_goals"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, index=True)
-    date = Column(Date, default=lambda: datetime.utcnow().date())
+    date = Column(Date, default=lambda: datetime.now(timezone.utc).date())
     target = Column(Integer, default=20)
     progress = Column(Integer, default=0)
 
@@ -43,10 +41,9 @@ class User(Base):
     school_university = Column(String(100), nullable=True)
     picture_url = Column(String(255), nullable=True)
     google_user = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_login = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_login = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Relationships
     chat_sessions = relationship("ChatSession", back_populates="user")
     user_stats = relationship("UserStats", back_populates="user", uselist=False)
     notes = relationship("Note", back_populates="user")
@@ -75,12 +72,8 @@ class User(Base):
     learning_path_progress = relationship("LearningPathProgress", backref="user")
     learning_node_progress = relationship("LearningNodeProgress", backref="user")
 
-
-# ==================== CREATE FACTORY MODELS ====================
-# Now that User is defined, we can safely create models that reference it
 UploadedDocument, QuestionSet, Question, QuestionSession, UserPerformanceMetrics = create_question_bank_models(Base)
 LearningPath, LearningPathNode, LearningPathProgress, LearningNodeProgress, LearningNodeNote = create_learning_paths_models(Base)
-
 
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
@@ -89,14 +82,12 @@ class ChatSession(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String(255), default="New Chat")
     folder_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
-    # Relationships
     user = relationship("User", back_populates="chat_sessions")
     messages = relationship("ChatMessage", back_populates="chat_session", cascade="all, delete-orphan")
     folder = relationship("ChatFolder", back_populates="chat_sessions")
-
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
@@ -107,9 +98,8 @@ class ChatMessage(Base):
     user_message = Column(Text, nullable=False)
     ai_response = Column(Text, nullable=False)
     is_user = Column(Boolean, default=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
-    # Relationships
     chat_session = relationship("ChatSession", back_populates="messages")
 
 class KnowledgeNode(Base):
@@ -121,37 +111,31 @@ class KnowledgeNode(Base):
     parent_node_id = Column(Integer, ForeignKey("knowledge_nodes.id"), nullable=True)
     roadmap_id = Column(Integer, ForeignKey("knowledge_roadmaps.id"), nullable=True)
     
-    # Node content
     topic_name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
-    depth_level = Column(Integer, default=0)  # Root = 0, increases with depth
+    depth_level = Column(Integer, default=0)
     
-    # AI-generated content
     ai_explanation = Column(Text, nullable=True)
-    key_concepts = Column(Text, nullable=True)  # JSON array
+    key_concepts = Column(Text, nullable=True)
     why_important = Column(Text, nullable=True)
-    real_world_examples = Column(Text, nullable=True)  # JSON array
+    real_world_examples = Column(Text, nullable=True)
     learning_tips = Column(Text, nullable=True)
-    generated_subtopics = Column(Text, nullable=True)  # JSON array
+    generated_subtopics = Column(Text, nullable=True)
     
-    # User interaction
     is_explored = Column(Boolean, default=False)
     exploration_count = Column(Integer, default=0)
     time_spent_seconds = Column(Integer, default=0)
     user_notes = Column(Text, nullable=True)
-    is_manual = Column(Boolean, default=False)  # True if user-created node
+    is_manual = Column(Boolean, default=False)
     
-    # Visual positioning (for frontend)
     position_x = Column(Float, nullable=True)
     position_y = Column(Float, nullable=True)
     
-    # Status
-    expansion_status = Column(String(20), default="unexpanded")  # unexpanded, expanding, expanded
+    expansion_status = Column(String(20), default="unexpanded")
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_explored = Column(DateTime, nullable=True)
     
-    # Relationships
     user = relationship("User")
     parent = relationship("KnowledgeNode", remote_side=[id], backref="children")
 
@@ -166,17 +150,15 @@ class KnowledgeRoadmap(Base):
     root_topic = Column(String(200), nullable=False)
     root_node_id = Column(Integer, ForeignKey("knowledge_nodes.id"), nullable=True)
     
-    # Analytics
     total_nodes = Column(Integer, default=1)
     max_depth_reached = Column(Integer, default=0)
     total_exploration_time = Column(Integer, default=0)
     completion_percentage = Column(Float, default=0.0)
     
-    # Status
-    status = Column(String(20), default="active")  # active, paused, completed
+    status = Column(String(20), default="active")
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_accessed = Column(DateTime, nullable=True)
     
     user = relationship("User")
@@ -190,12 +172,11 @@ class NodeExplorationHistory(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     roadmap_id = Column(Integer, ForeignKey("knowledge_roadmaps.id"))
     
-    # Interaction details
-    exploration_duration = Column(Integer, default=0)  # seconds
-    questions_asked = Column(Text, nullable=True)  # JSON array
-    user_understanding_rating = Column(Integer, nullable=True)  # 1-5
+    exploration_duration = Column(Integer, default=0)
+    questions_asked = Column(Text, nullable=True)
+    user_understanding_rating = Column(Integer, nullable=True)
     
-    explored_at = Column(DateTime, default=datetime.utcnow)
+    explored_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
 class UserStats(Base):
     __tablename__ = "user_stats"
@@ -203,19 +184,15 @@ class UserStats(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
     
-    # Stats fields
     total_lessons = Column(Integer, default=0)
     total_hours = Column(Float, default=0.0)
     day_streak = Column(Integer, default=0)
     accuracy_percentage = Column(Float, default=0.0)
     last_activity = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
-    # Relationships
     user = relationship("User", back_populates="user_stats")
-
-# ... (ChatSession, ChatMessage, UserStats remain the same)
 
 class MediaFile(Base):
     __tablename__ = "media_files"
@@ -223,29 +200,23 @@ class MediaFile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    # File info
-    file_type = Column(String(20))  # 'pdf', 'audio', 'video', 'youtube'
+    file_type = Column(String(20))
     original_filename = Column(String(255))
     file_size = Column(Integer, nullable=True)
     
-    # Storage info (optional - only if storing original files)
     storage_path = Column(String(500), nullable=True)
-    storage_type = Column(String(20), nullable=True)  # 'local', 'supabase', 'r2'
+    storage_type = Column(String(20), nullable=True)
     
-    # Extracted content (always stored)
     extracted_text = Column(Text)
     
-    # Metadata
     language = Column(String(10), nullable=True)
-    duration = Column(Integer, nullable=True)  # For audio/video in seconds
-    page_count = Column(Integer, nullable=True)  # For PDFs
+    duration = Column(Integer, nullable=True)
+    page_count = Column(Integer, nullable=True)
     word_count = Column(Integer)
     
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    processed_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    processed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
-    # Relationships
     user = relationship("User", back_populates="media_files")
     notes = relationship("Note", back_populates="media_file")
 
@@ -261,16 +232,15 @@ class Note(Base):
     is_favorite = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
     deleted_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     custom_font = Column(String(50), default="Inter")
     
-    # Media note fields (stored as JSON)
     transcript = Column(Text, nullable=True)
-    analysis = Column(Text, nullable=True)  # JSON string
-    flashcards = Column(Text, nullable=True)  # JSON string
-    quiz_questions = Column(Text, nullable=True)  # JSON string
-    key_moments = Column(Text, nullable=True)  # JSON string
+    analysis = Column(Text, nullable=True)
+    flashcards = Column(Text, nullable=True)
+    quiz_questions = Column(Text, nullable=True)
+    key_moments = Column(Text, nullable=True)
     
     user = relationship("User", back_populates="notes")
     folder = relationship("Folder", back_populates="notes")
@@ -284,8 +254,8 @@ class Folder(Base):
     name = Column(String(255), nullable=False)
     color = Column(String(50), default="#D7B38C")
     parent_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="folders")
     notes = relationship("Note", back_populates="folder")
@@ -298,8 +268,8 @@ class ChatFolder(Base):
     name = Column(String(255), nullable=False)
     color = Column(String(50), default="#D7B38C")
     parent_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="chat_folders")
     chat_sessions = relationship("ChatSession", back_populates="folder")
@@ -312,7 +282,7 @@ class Activity(Base):
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     topic = Column(String(200), default="General")
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     question_type = Column(String(50), nullable=True)
     difficulty_level = Column(String(50), nullable=True)
@@ -322,28 +292,19 @@ class Activity(Base):
 
     user = relationship("User", back_populates="activities")
 
-# (⚡ Keep your other ORM classes here: FlashcardSet, Flashcard, FlashcardStudySession, 
-# UserPersonalityProfile, LearningPattern, UserPreferences, TopicMastery, 
-# ComprehensiveUserProfile, EnhancedUserStats, DailyLearningMetrics, 
-# Achievement, UserAchievement, GlobalKnowledgeBase, AIResponseImprovement, 
-# CommonMisconceptions, UserFeedback, AILearningMetrics, ConversationMemory, 
-# TopicKnowledgeBase, LearningReview, LearningReviewAttempt, LearningReviewHint, LearningReviewStats)
-
-# ==================== PYDANTIC MODELS ====================
-
 class FlashcardSet(Base):
     __tablename__ = "flashcard_sets"
     
     id = Column(Integer, primary_key=True, index=True)
-    share_code = Column(String(6), unique=True, index=True, nullable=True)  # Random 6-char code for URLs
+    share_code = Column(String(6), unique=True, index=True, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     title = Column(String(200), default="New Flashcard Set")
     description = Column(Text, default="")
     source_type = Column(String(50), default="manual")
     source_id = Column(Integer, nullable=True)
     is_public = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="flashcard_sets")
     flashcards = relationship("Flashcard", back_populates="flashcard_set", cascade="all, delete-orphan")
@@ -361,12 +322,19 @@ class Flashcard(Base):
     times_reviewed = Column(Integer, default=0)
     correct_count = Column(Integer, default=0)
     last_reviewed = Column(DateTime, nullable=True)
-    marked_for_review = Column(Boolean, default=False)  # Track "I don't know this" cards
-    is_edited = Column(Boolean, default=False)  # Track if card was manually edited
-    edited_at = Column(DateTime, nullable=True)  # When the card was last edited
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+    marked_for_review = Column(Boolean, default=False)
+    is_edited = Column(Boolean, default=False)
+    edited_at = Column(DateTime, nullable=True)
+    ease_factor = Column(Float, default=2.5)
+    interval = Column(Float, default=0)
+    repetitions = Column(Integer, default=0)
+    next_review_date = Column(DateTime, nullable=True)
+    lapses = Column(Integer, default=0)
+    sr_state = Column(String(20), default="new")
+    learning_step = Column(Integer, default=0)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
     flashcard_set = relationship("FlashcardSet", back_populates="flashcards")
 
 class FlashcardStudySession(Base):
@@ -378,12 +346,10 @@ class FlashcardStudySession(Base):
     cards_studied = Column(Integer, nullable=False)
     correct_answers = Column(Integer, nullable=False)
     session_duration = Column(Integer, nullable=False)
-    session_date = Column(DateTime, default=datetime.utcnow)
+    session_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="flashcard_study_sessions")
     flashcard_set = relationship("FlashcardSet", back_populates="study_sessions")
-
-# ==================== ENHANCED USER PROFILE SYSTEM ====================
 
 class UserPersonalityProfile(Base):
     """Individual user personality profile"""
@@ -392,31 +358,26 @@ class UserPersonalityProfile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     
-    # Communication Style
     formality_preference = Column(Float, default=0.5)
     humor_preference = Column(Float, default=0.5)
     detail_preference = Column(Float, default=0.5)
     encouragement_preference = Column(Float, default=0.7)
     
-    # Learning Characteristics
     pace_preference = Column(String(50), default="medium")
     question_frequency = Column(Float, default=0.5)
     example_preference = Column(Float, default=0.7)
     repetition_tolerance = Column(Float, default=0.5)
     
-    # Cognitive Style
     visual_learner_score = Column(Float, default=0.5)
     auditory_learner_score = Column(Float, default=0.5)
     kinesthetic_learner_score = Column(Float, default=0.5)
     reading_learner_score = Column(Float, default=0.5)
     
-    # Interaction Patterns
     session_length_preference = Column(Integer, default=30)
     break_frequency = Column(Integer, default=15)
     preferred_time_of_day = Column(String(50), nullable=True)
     
-    # Updated tracking
-    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     profile_confidence = Column(Float, default=0.1)
     
     user = relationship("User", back_populates="user_profile")
@@ -428,28 +389,24 @@ class LearningPattern(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     
-    # Temporal patterns
     most_active_hour = Column(Integer, nullable=True)
     most_active_day = Column(Integer, nullable=True)
     average_session_length = Column(Float, default=0.0)
     peak_performance_time = Column(String(50), nullable=True)
     
-    # Learning efficiency
     questions_per_session = Column(Float, default=0.0)
     concepts_mastered_per_hour = Column(Float, default=0.0)
     retention_rate = Column(Float, default=0.0)
     
-    # Behavioral patterns
     help_seeking_frequency = Column(Float, default=0.0)
     topic_jumping_tendency = Column(Float, default=0.0)
     depth_vs_breadth = Column(Float, default=0.5)
     
-    # Engagement metrics
     average_response_time = Column(Float, default=0.0)
     session_completion_rate = Column(Float, default=0.0)
     comeback_likelihood = Column(Float, default=0.0)
     
-    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="learning_patterns")
 
@@ -460,34 +417,29 @@ class UserPreferences(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     
-    # Response style preferences
     preferred_explanation_style = Column(String(50), default="balanced")
     preferred_example_types = Column(JSON, nullable=True)
     language_complexity = Column(String(50), default="medium")
     
-    # Content preferences
     favorite_subjects = Column(JSON, nullable=True)
     avoided_subjects = Column(JSON, nullable=True)
     preferred_difficulty_progression = Column(String(50), default="gradual")
     
-    # Interaction preferences
     likes_challenges = Column(Boolean, default=True)
     likes_games = Column(Boolean, default=False)
     likes_storytelling = Column(Boolean, default=True)
     likes_step_by_step = Column(Boolean, default=True)
     
-    # Feedback preferences
     wants_progress_updates = Column(Boolean, default=True)
     wants_encouragement = Column(Boolean, default=True)
     wants_constructive_criticism = Column(Boolean, default=True)
     
-    # Learning aids
     prefers_visual_aids = Column(Boolean, default=False)
     prefers_mnemonics = Column(Boolean, default=False)
     prefers_analogies = Column(Boolean, default=True)
     prefers_real_examples = Column(Boolean, default=True)
     
-    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="user_preferences")
 
@@ -501,31 +453,24 @@ class TopicMastery(Base):
     topic_name = Column(String(100), index=True)
     mastery_level = Column(Float, default=0.0)
     confidence_level = Column(Float, default=0.0)
-    last_practiced = Column(DateTime, default=datetime.utcnow)
+    last_practiced = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
-    # Learning metrics
     times_studied = Column(Integer, default=0)
     questions_asked = Column(Integer, default=0)
     correct_answers = Column(Integer, default=0)
     total_time_spent = Column(Float, default=0.0)
     
-    # Difficulty tracking
     struggles_with = Column(JSON, nullable=True)
     excels_at = Column(JSON, nullable=True)
     
-    # Prerequisites and relationships
     prerequisite_topics = Column(JSON, nullable=True)
     related_topics = Column(JSON, nullable=True)
     
     last_studied = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="topic_mastery")
-
-# ==================== COMPREHENSIVE USER PROFILE ====================
-
-# ==================== ENHANCED STATS AND ANALYTICS ====================
 
 class EnhancedUserStats(Base):
     """Enhanced user statistics"""
@@ -534,20 +479,17 @@ class EnhancedUserStats(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     
-    # Performance Metrics
     learning_velocity = Column(Float, default=0.0)
     comprehension_rate = Column(Float, default=0.0)
     retention_score = Column(Float, default=0.0)
     consistency_rating = Column(Float, default=0.0)
     
-    # Progress Tracking
     weekly_sessions = Column(Integer, default=0)
     monthly_goal = Column(Integer, default=100)
     achievement_score = Column(Integer, default=0)
     study_level = Column(String(50), default="Beginner")
     favorite_subject = Column(String(100), default="General")
     
-    # Activity Metrics
     total_questions = Column(Integer, default=0)
     correct_answers = Column(Integer, default=0)
     average_session_time = Column(Float, default=0.0)
@@ -555,10 +497,9 @@ class EnhancedUserStats(Base):
     total_notes = Column(Integer, default=0)
     total_chat_sessions = Column(Integer, default=0)
     
-    # Timestamps
     last_active_date = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="enhanced_stats")
 
@@ -568,25 +509,21 @@ class DailyLearningMetrics(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    date = Column(Date, default=datetime.utcnow().date)
+    date = Column(Date, default=datetime.now(timezone.utc).date)
     
-    # Daily Activity
     sessions_completed = Column(Integer, default=0)
     time_spent_minutes = Column(Float, default=0.0)
     questions_answered = Column(Integer, default=0)
     correct_answers = Column(Integer, default=0)
-    topics_studied = Column(Text, default="[]")  # JSON string
+    topics_studied = Column(Text, default="[]")
     
-    # Performance
     accuracy_rate = Column(Float, default=0.0)
     engagement_score = Column(Float, default=0.0)
     difficulty_level_attempted = Column(String(50), nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="daily_metrics")
-
-# ==================== ACHIEVEMENTS SYSTEM ====================
 
 class Achievement(Base):
     """Achievement definitions"""
@@ -596,12 +533,12 @@ class Achievement(Base):
     name = Column(String(100), unique=True)
     description = Column(Text)
     icon = Column(String(50))
-    criteria = Column(JSON)  # Achievement criteria
+    criteria = Column(JSON)
     points = Column(Integer, default=0)
     category = Column(String(50), default="general")
-    rarity = Column(String(20), default="common")  # common, rare, epic, legendary
+    rarity = Column(String(20), default="common")
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     user_achievements = relationship("UserAchievement", back_populates="achievement")
 
@@ -613,17 +550,11 @@ class UserAchievement(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     achievement_id = Column(Integer, ForeignKey("achievements.id"))
     
-    earned_at = Column(DateTime, default=datetime.utcnow)
-    progress_data = Column(JSON, nullable=True)  # Additional progress info
+    earned_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    progress_data = Column(JSON, nullable=True)
     
     user = relationship("User", back_populates="achievements")
     achievement = relationship("Achievement", back_populates="user_achievements")
-
-# Old gamification models removed - see comprehensive models at end of file
-
-# ==================== LEARNING REVIEWS ====================
-
-
 
 class GlobalKnowledgeBase(Base):
     """Global knowledge base that improves for all users"""
@@ -631,24 +562,20 @@ class GlobalKnowledgeBase(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     
-    # Question and answer patterns
     question_pattern = Column(Text)
     response_template = Column(Text)
     topic_category = Column(String(100), index=True)
     difficulty_level = Column(String(50))
     
-    # Effectiveness metrics
     success_rate = Column(Float, default=0.0)
     usage_count = Column(Integer, default=0)
     average_rating = Column(Float, default=0.0)
     
-    # Learning source
     created_from_feedback = Column(Boolean, default=False)
     original_user_id = Column(Integer, nullable=True)
     
-    # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     is_active = Column(Boolean, default=True)
 
 class AIResponseImprovement(Base):
@@ -657,26 +584,22 @@ class AIResponseImprovement(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     
-    # Original interaction
     original_question = Column(Text)
     original_response = Column(Text)
     user_rating = Column(Integer)
     
-    # Improvement suggestion
     improvement_suggestion = Column(Text)
     improvement_type = Column(String(50))
     suggested_by_user_id = Column(Integer, ForeignKey("users.id"))
     
-    # Implementation status
     is_implemented = Column(Boolean, default=False)
     implementation_notes = Column(Text, nullable=True)
     
-    # Global impact
     times_applied = Column(Integer, default=0)
     effectiveness_score = Column(Float, default=0.0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class CommonMisconceptions(Base):
     """Track common misconceptions and how to address them"""
@@ -688,17 +611,15 @@ class CommonMisconceptions(Base):
     misconception_text = Column(Text)
     correct_explanation = Column(Text)
     
-    # Detection patterns
     trigger_phrases = Column(JSON)
     confusion_indicators = Column(JSON)
     
-    # Effectiveness
     detection_accuracy = Column(Float, default=0.0)
     correction_success_rate = Column(Float, default=0.0)
     times_encountered = Column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class UserFeedback(Base):
     """User feedback for continuous AI improvement"""
@@ -707,22 +628,19 @@ class UserFeedback(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     
-    # Feedback content
     feedback_type = Column(String(50))
     feedback_text = Column(Text, nullable=True)
     rating = Column(Integer, nullable=True)
     
-    # Context
     related_message_id = Column(Integer, ForeignKey("chat_messages.id"), nullable=True)
     topic_context = Column(String(100), nullable=True)
     session_context = Column(JSON, nullable=True)
     
-    # Processing status
     is_processed = Column(Boolean, default=False)
     processing_notes = Column(Text, nullable=True)
     resulted_in_improvement = Column(Boolean, default=False)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     processed_at = Column(DateTime, nullable=True)
     
     user = relationship("User", back_populates="feedback_entries")
@@ -733,27 +651,22 @@ class AILearningMetrics(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     
-    # Time period
-    date = Column(Date, default=datetime.utcnow().date)
+    date = Column(Date, default=datetime.now(timezone.utc).date)
     
-    # Performance metrics
     average_response_rating = Column(Float, default=0.0)
     total_interactions = Column(Integer, default=0)
     successful_interactions = Column(Integer, default=0)
     
-    # Learning metrics
     new_knowledge_entries = Column(Integer, default=0)
     improvements_implemented = Column(Integer, default=0)
     misconceptions_corrected = Column(Integer, default=0)
     
-    # User satisfaction
     user_satisfaction_trend = Column(Float, default=0.0)
     repeat_user_percentage = Column(Float, default=0.0)
     
-    # Topic-specific performance
     topic_performance_data = Column(JSON, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class ConversationMemory(Base):
     """Enhanced conversation memory for RAG system"""
@@ -763,29 +676,24 @@ class ConversationMemory(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     session_id = Column(Integer, nullable=True)
     
-    # Conversation content
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     context_summary = Column(Text, nullable=True)
     
-    # Metadata
     topic_tags = Column(JSON, nullable=True)
     question_type = Column(String(50), nullable=True)
     emotional_context = Column(String(50), nullable=True)
     
-    # RAG embeddings (stored as hex strings)
     question_embedding = Column(Text, nullable=True)
     answer_embedding = Column(Text, nullable=True)
     combined_embedding = Column(Text, nullable=True)
     
-    # Usage tracking
     usage_count = Column(Integer, default=0)
     last_used = Column(DateTime, nullable=True)
     user_feedback_score = Column(Float, nullable=True)
     
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User")
 
@@ -796,24 +704,18 @@ class TopicKnowledgeBase(Base):
     id = Column(Integer, primary_key=True, index=True)
     topic_name = Column(String(100), unique=True, index=True)
     
-    # Aggregated knowledge
     key_concepts = Column(JSON, nullable=True)
     common_questions = Column(JSON, nullable=True)
     best_explanations = Column(JSON, nullable=True)
     
-    # Topic embedding for similarity search
     topic_embedding = Column(Text, nullable=True)
     
-    # Statistics
     total_questions = Column(Integer, default=0)
     average_difficulty = Column(Float, default=0.5)
     success_rate = Column(Float, default=0.8)
     
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-# ==================== LEARNING REVIEW SYSTEM ====================
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class LearningReview(Base):
     __tablename__ = "learning_reviews"
@@ -831,8 +733,8 @@ class LearningReview(Base):
     current_attempt = Column(Integer, default=0)
     attempt_count = Column(Integer, default=0)
     status = Column(String(20), default="active")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
 
 class LearningReviewAttempt(Base):
@@ -842,12 +744,12 @@ class LearningReviewAttempt(Base):
     review_id = Column(Integer, ForeignKey("learning_reviews.id"), nullable=False)
     attempt_number = Column(Integer, nullable=False)
     user_response = Column(Text, nullable=False)
-    covered_points = Column(Text)  # JSON array of points the user covered
-    missing_points = Column(Text)  # JSON array of points the user missed
-    completeness_percentage = Column(Float, default=0.0)  #  Percentage score
-    feedback = Column(Text)  #  ADD THIS - AI-generated feedback
-    submitted_at = Column(DateTime, default=datetime.utcnow)  #  ADD THIS
-    created_at = Column(DateTime, default=datetime.utcnow)
+    covered_points = Column(Text)
+    missing_points = Column(Text)
+    completeness_percentage = Column(Float, default=0.0)
+    feedback = Column(Text)
+    submitted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
 class LearningReviewHint(Base):
     __tablename__ = "learning_review_hints"
@@ -859,8 +761,8 @@ class LearningReviewHint(Base):
     hint_text = Column(Text, nullable=False)
     memory_trigger = Column(String(255))
     guiding_question = Column(Text)
-    was_helpful = Column(Boolean, nullable=True)  # User can rate if hint was helpful
-    created_at = Column(DateTime, default=datetime.utcnow)
+    was_helpful = Column(Boolean, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class LearningReviewStats(Base):
     __tablename__ = "learning_review_stats"
@@ -875,8 +777,8 @@ class LearningReviewStats(Base):
     total_study_time_minutes = Column(Float, default=0.0)
     favorite_review_type = Column(String(50), nullable=True)
     last_review_date = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class UploadedSlide(Base):
     __tablename__ = "uploaded_slides"
@@ -892,23 +794,21 @@ class UploadedSlide(Base):
     extracted_text = Column(Text, nullable=True)
     preview_url = Column(String(500), nullable=True)
     processing_status = Column(String(50), default="pending")
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    uploaded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     processed_at = Column(DateTime, nullable=True)
     
     user = relationship("User")
-
 
 class SlideAnalysis(Base):
     __tablename__ = "slide_analyses"
     
     id = Column(Integer, primary_key=True, index=True)
     slide_id = Column(Integer, ForeignKey("uploaded_slides.id"), nullable=False, unique=True)
-    analysis_data = Column(Text, nullable=False)  # JSON string of comprehensive analysis
-    analyzed_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    analysis_data = Column(Text, nullable=False)
+    analyzed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     slide = relationship("UploadedSlide", backref="analysis")
-
 
 class UserWeakArea(Base):
     """Track user's weak areas based on wrong answers"""
@@ -919,32 +819,26 @@ class UserWeakArea(Base):
     topic = Column(String(255), nullable=False, index=True)
     subtopic = Column(String(255), nullable=True)
     
-    # Performance metrics
     total_questions = Column(Integer, default=0)
     correct_count = Column(Integer, default=0)
     incorrect_count = Column(Integer, default=0)
     accuracy = Column(Float, default=0.0)
     
-    # Weakness tracking
-    weakness_score = Column(Float, default=0.0)  # 0-100, higher = weaker
+    weakness_score = Column(Float, default=0.0)
     consecutive_wrong = Column(Integer, default=0)
     last_wrong_streak = Column(Integer, default=0)
     
-    # Practice tracking
     practice_sessions = Column(Integer, default=0)
     last_practiced = Column(DateTime, nullable=True)
-    improvement_rate = Column(Float, default=0.0)  # Positive = improving
+    improvement_rate = Column(Float, default=0.0)
     
-    # Status
-    status = Column(String(50), default="needs_practice")  # needs_practice, improving, mastered
-    priority = Column(Integer, default=5)  # 1-10, higher = more urgent
+    status = Column(String(50), default="needs_practice")
+    priority = Column(Integer, default=5)
     
-    # Timestamps
-    first_identified = Column(DateTime, default=datetime.utcnow)
-    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    first_identified = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User")
-
 
 class WrongAnswerLog(Base):
     """Detailed log of wrong answers for analysis"""
@@ -956,30 +850,24 @@ class WrongAnswerLog(Base):
     question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=False)
     attempt_id = Column(Integer, ForeignKey("question_attempts.id"), nullable=True)
     
-    # Question details (denormalized for quick access)
     question_text = Column(Text, nullable=False)
     topic = Column(String(255), nullable=True, index=True)
     difficulty = Column(String(20), nullable=True)
     
-    # Answer details
     correct_answer = Column(Text, nullable=False)
     user_answer = Column(Text, nullable=False)
     
-    # Analysis
-    mistake_type = Column(String(100), nullable=True)  # conceptual, careless, knowledge_gap, misread
-    confidence_before = Column(Integer, nullable=True)  # 1-5 if user indicated
+    mistake_type = Column(String(100), nullable=True)
+    confidence_before = Column(Integer, nullable=True)
     
-    # Review status
     reviewed = Column(Boolean, default=False)
     reviewed_at = Column(DateTime, nullable=True)
     understood_after_review = Column(Boolean, nullable=True)
     
-    # Timestamps
-    answered_at = Column(DateTime, default=datetime.utcnow)
+    answered_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User")
     question = relationship("Question")
-
 
 class PracticeRecommendation(Base):
     """AI-generated practice recommendations based on weak areas"""
@@ -988,27 +876,22 @@ class PracticeRecommendation(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    # Recommendation details
-    recommendation_type = Column(String(50), nullable=False)  # weak_area, review, challenge
+    recommendation_type = Column(String(50), nullable=False)
     topic = Column(String(255), nullable=False)
     reason = Column(Text, nullable=True)
     priority = Column(Integer, default=5)
     
-    # Linked content
     question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=True)
     suggested_question_count = Column(Integer, default=5)
     suggested_difficulty = Column(String(20), default="medium")
     
-    # Status
-    status = Column(String(50), default="pending")  # pending, started, completed, dismissed
+    status = Column(String(50), default="pending")
     completed_at = Column(DateTime, nullable=True)
     
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     expires_at = Column(DateTime, nullable=True)
     
     user = relationship("User")
-
 
 class QuestionAttempt(Base):
     __tablename__ = "question_attempts"
@@ -1024,7 +907,7 @@ class QuestionAttempt(Base):
     total_questions = Column(Integer, default=0)
     time_spent_seconds = Column(Integer, nullable=True)
     feedback = Column(Text, nullable=True)
-    submitted_at = Column(DateTime, default=datetime.utcnow)
+    submitted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     
     user = relationship("User")
@@ -1042,7 +925,7 @@ class QuestionResult(Base):
     user_answer = Column(Text, nullable=True)
     is_correct = Column(Boolean, default=False)
     time_spent_seconds = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class LearningReviewSlide(Base):
     __tablename__ = "learning_review_slides"
@@ -1050,7 +933,7 @@ class LearningReviewSlide(Base):
     id = Column(Integer, primary_key=True, index=True)
     review_id = Column(Integer, ForeignKey("learning_reviews.id"), nullable=False)
     slide_id = Column(Integer, ForeignKey("uploaded_slides.id"), nullable=False)
-    added_at = Column(DateTime, default=datetime.utcnow)
+    added_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class QuestionSetSlide(Base):
     __tablename__ = "question_set_slides"
@@ -1058,15 +941,13 @@ class QuestionSetSlide(Base):
     id = Column(Integer, primary_key=True, index=True)
     question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=False)
     slide_id = Column(Integer, ForeignKey("uploaded_slides.id"), nullable=False)
-    added_at = Column(DateTime, default=datetime.utcnow)
-
-# ==================== PYDANTIC MODELS FOR API ====================
+    added_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class LearningReviewCreate(BaseModel):
     user_id: str
     chat_session_ids: List[int]
     review_title: str = "Learning Review Session"
-    review_type: str = "comprehensive"  # comprehensive, key_points, summary
+    review_type: str = "comprehensive"
 
 class LearningReviewResponse(BaseModel):
     review_id: int
@@ -1131,7 +1012,6 @@ class ComprehensiveUserProfile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     
-    # New profile quiz fields
     is_college_student = Column(Boolean, default=True)
     college_level = Column(String(100), nullable=True)
     major = Column(String(200), nullable=True)
@@ -1154,11 +1034,11 @@ class ComprehensiveUserProfile(Base):
     archetype_scores = Column(Text, nullable=True)
     archetype_description = Column(Text, nullable=True)
     
-    # Study insights settings
     show_study_insights = Column(Boolean, default=True)
+    notifications_enabled = Column(Boolean, default=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="comprehensive_profile")
 
@@ -1169,8 +1049,8 @@ class Friendship(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     friend_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    status = Column(String(20), default="active")  # active, blocked
-    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String(20), default="active")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", foreign_keys=[user_id])
     friend = relationship("User", foreign_keys=[friend_id])
@@ -1182,8 +1062,8 @@ class FriendRequest(Base):
     id = Column(Integer, primary_key=True, index=True)
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    status = Column(String(20), default="pending")  # pending, accepted, rejected
-    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String(20), default="pending")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     responded_at = Column(DateTime, nullable=True)
     
     sender = relationship("User", foreign_keys=[sender_id])
@@ -1195,12 +1075,12 @@ class FriendActivity(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    activity_type = Column(String(50), nullable=False)  # achievement, milestone, streak, quiz_completed
+    activity_type = Column(String(50), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    icon = Column(String(50), nullable=True)  # Icon name for frontend
-    activity_data = Column(Text, nullable=True)  # JSON for additional data (renamed from metadata to avoid SQLAlchemy conflict)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    icon = Column(String(50), nullable=True)
+    activity_data = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", foreign_keys=[user_id])
 
@@ -1211,8 +1091,8 @@ class Kudos(Base):
     id = Column(Integer, primary_key=True, index=True)
     activity_id = Column(Integer, ForeignKey("friend_activities.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    reaction_type = Column(String(20), default="👏")  # emoji reaction
-    created_at = Column(DateTime, default=datetime.utcnow)
+    reaction_type = Column(String(20), default="👏")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     activity = relationship("FriendActivity", foreign_keys=[activity_id])
     user = relationship("User", foreign_keys=[user_id])
@@ -1223,13 +1103,13 @@ class Leaderboard(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    category = Column(String(50), nullable=False)  # global, friends, subject, archetype
-    metric = Column(String(50), nullable=False)  # total_hours, accuracy, streak, lessons
-    period = Column(String(20), default="all_time")  # weekly, monthly, all_time
+    category = Column(String(50), nullable=False)
+    metric = Column(String(50), nullable=False)
+    period = Column(String(20), default="all_time")
     score = Column(Float, default=0.0)
     rank = Column(Integer, nullable=True)
     subject_filter = Column(String(100), nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", foreign_keys=[user_id])
 
@@ -1242,24 +1122,20 @@ class QuizBattle(Base):
     opponent_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     subject = Column(String(100), nullable=False)
     difficulty = Column(String(20), default="intermediate")
-    status = Column(String(20), default="pending")  # pending, active, completed, expired
+    status = Column(String(20), default="pending")
     
-    # Battle details
     question_count = Column(Integer, default=10)
-    time_limit_seconds = Column(Integer, default=300)  # 5 minutes
+    time_limit_seconds = Column(Integer, default=300)
     
-    # Scores
     challenger_score = Column(Integer, default=0)
     opponent_score = Column(Integer, default=0)
     challenger_completed = Column(Boolean, default=False)
     opponent_completed = Column(Boolean, default=False)
     
-    # Store answers as JSON
-    challenger_answers = Column(Text, nullable=True)  # JSON array of answers
-    opponent_answers = Column(Text, nullable=True)  # JSON array of answers
+    challenger_answers = Column(Text, nullable=True)
+    opponent_answers = Column(Text, nullable=True)
     
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     expires_at = Column(DateTime, nullable=True)
@@ -1275,20 +1151,17 @@ class Challenge(Base):
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    challenge_type = Column(String(50), nullable=False)  # speed, accuracy, topic_mastery, streak
+    challenge_type = Column(String(50), nullable=False)
     subject = Column(String(100), nullable=True)
     
-    # Challenge parameters
     target_metric = Column(String(50), nullable=False)
     target_value = Column(Float, nullable=False)
     time_limit_minutes = Column(Integer, nullable=True)
     
-    # Status
-    status = Column(String(20), default="active")  # active, completed, expired
+    status = Column(String(20), default="active")
     participant_count = Column(Integer, default=0)
     
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     starts_at = Column(DateTime, nullable=True)
     ends_at = Column(DateTime, nullable=True)
     
@@ -1302,14 +1175,12 @@ class ChallengeParticipation(Base):
     challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    # Performance
     score = Column(Float, default=0.0)
-    progress = Column(Float, default=0.0)  # Percentage
+    progress = Column(Float, default=0.0)
     completed = Column(Boolean, default=False)
     rank = Column(Integer, nullable=True)
     
-    # Timestamps
-    joined_at = Column(DateTime, default=datetime.utcnow)
+    joined_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
     
     challenge = relationship("Challenge", foreign_keys=[challenge_id])
@@ -1321,28 +1192,26 @@ class BattleQuestion(Base):
     id = Column(Integer, primary_key=True, index=True)
     battle_id = Column(Integer, ForeignKey("quiz_battles.id"), nullable=False)
     question = Column(Text, nullable=False)
-    options = Column(Text, nullable=False)  # JSON array
+    options = Column(Text, nullable=False)
     correct_answer = Column(Integer, nullable=False)
     explanation = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     battle = relationship("QuizBattle", foreign_keys=[battle_id])
 
-# Challenge Question Storage Model (add to models.py)
 class ChallengeQuestion(Base):
     __tablename__ = "challenge_questions"
     
     id = Column(Integer, primary_key=True, index=True)
     challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
     question = Column(Text, nullable=False)
-    options = Column(Text, nullable=False)  # JSON array
+    options = Column(Text, nullable=False)
     correct_answer = Column(Integer, nullable=False)
     explanation = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     challenge = relationship("Challenge", foreign_keys=[challenge_id])
 
-# User Answer Storage for Battles
 class BattleAnswer(Base):
     __tablename__ = "battle_answers"
     
@@ -1352,14 +1221,13 @@ class BattleAnswer(Base):
     question_id = Column(Integer, ForeignKey("battle_questions.id"), nullable=False)
     selected_answer = Column(Integer, nullable=False)
     is_correct = Column(Boolean, nullable=False)
-    time_taken = Column(Integer, nullable=True)  # seconds
-    answered_at = Column(DateTime, default=datetime.utcnow)
+    time_taken = Column(Integer, nullable=True)
+    answered_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     battle = relationship("QuizBattle", foreign_keys=[battle_id])
     user = relationship("User", foreign_keys=[user_id])
     question = relationship("BattleQuestion", foreign_keys=[question_id])
 
-# User Answer Storage for Challenges
 class ChallengeAnswer(Base):
     __tablename__ = "challenge_answers"
     
@@ -1369,12 +1237,11 @@ class ChallengeAnswer(Base):
     question_id = Column(Integer, ForeignKey("challenge_questions.id"), nullable=False)
     selected_answer = Column(Integer, nullable=False)
     is_correct = Column(Boolean, nullable=False)
-    answered_at = Column(DateTime, default=datetime.utcnow)
+    answered_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     challenge = relationship("Challenge", foreign_keys=[challenge_id])
     user = relationship("User", foreign_keys=[user_id])
     question = relationship("ChallengeQuestion", foreign_keys=[question_id])
-
 
 class SharedContent(Base):
     """Tracks content shared between users"""
@@ -1387,7 +1254,7 @@ class SharedContent(Base):
     shared_with_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     permission = Column(String(10), default="view")
     message = Column(Text, nullable=True)
-    shared_at = Column(DateTime, default=datetime.utcnow)
+    shared_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_accessed = Column(DateTime, nullable=True)
     
     owner = relationship("User", foreign_keys=[owner_id])
@@ -1400,7 +1267,7 @@ class SharedContentAccess(Base):
     id = Column(Integer, primary_key=True, index=True)
     shared_content_id = Column(Integer, ForeignKey("shared_content.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    accessed_at = Column(DateTime, default=datetime.utcnow)
+    accessed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     action = Column(String(20), nullable=False)
     
     shared_content = relationship("SharedContent", foreign_keys=[shared_content_id])
@@ -1413,21 +1280,17 @@ class SoloQuiz(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     subject = Column(String(100), nullable=False)
     difficulty = Column(String(20), default="intermediate")
-    status = Column(String(20), default="active")  # active, completed
+    status = Column(String(20), default="active")
     
-    # Quiz details
     question_count = Column(Integer, default=10)
     time_limit_seconds = Column(Integer, default=300)
     
-    # Score
     score = Column(Integer, default=0)
     completed = Column(Boolean, default=False)
     
-    # Store answers as JSON
     answers = Column(Text, nullable=True)
     
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
     
     user = relationship("User")
@@ -1439,13 +1302,11 @@ class SoloQuizQuestion(Base):
     id = Column(Integer, primary_key=True, index=True)
     quiz_id = Column(Integer, ForeignKey("solo_quizzes.id"), nullable=False)
     question = Column(Text, nullable=False)
-    options = Column(Text, nullable=False)  # JSON array
+    options = Column(Text, nullable=False)
     correct_answer = Column(Integer, nullable=False)
     explanation = Column(Text, nullable=True)
     
     quiz = relationship("SoloQuiz")
-
-# ==================== GAMIFICATION MODELS ====================
 
 class UserGamificationStats(Base):
     """Comprehensive gamification stats for each user"""
@@ -1454,12 +1315,10 @@ class UserGamificationStats(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
     
-    # Points and Level
     total_points = Column(Integer, default=0)
     level = Column(Integer, default=1)
     experience = Column(Integer, default=0)
     
-    # Weekly Stats (reset every Monday)
     weekly_points = Column(Integer, default=0)
     weekly_ai_chats = Column(Integer, default=0)
     weekly_notes_created = Column(Integer, default=0)
@@ -1469,7 +1328,6 @@ class UserGamificationStats(Base):
     weekly_study_minutes = Column(Integer, default=0)
     weekly_battles_won = Column(Integer, default=0)
     
-    # All-time Stats
     total_ai_chats = Column(Integer, default=0)
     total_notes_created = Column(Integer, default=0)
     total_questions_answered = Column(Integer, default=0)
@@ -1481,20 +1339,17 @@ class UserGamificationStats(Base):
     total_flashcards_reviewed = Column(Integer, default=0)
     total_flashcards_mastered = Column(Integer, default=0)
     
-    # Weekly Solo Quiz & Flashcard Stats
     weekly_solo_quizzes = Column(Integer, default=0)
     weekly_flashcards_reviewed = Column(Integer, default=0)
     weekly_flashcards_mastered = Column(Integer, default=0)
     
-    # Streaks
     current_streak = Column(Integer, default=0)
     longest_streak = Column(Integer, default=0)
     last_activity_date = Column(DateTime, nullable=True)
     
-    # Timestamps
-    week_start_date = Column(DateTime, default=datetime.utcnow)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    week_start_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="gamification_stats")
 
@@ -1504,11 +1359,11 @@ class PointTransaction(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    activity_type = Column(String(50), nullable=False)  # ai_chat, note_created, etc.
+    activity_type = Column(String(50), nullable=False)
     points_earned = Column(Integer, nullable=False)
     description = Column(String(255), nullable=True)
-    activity_metadata = Column(Text, nullable=True)  # JSON for additional data
-    created_at = Column(DateTime, default=datetime.utcnow)
+    activity_metadata = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User")
 
@@ -1520,26 +1375,25 @@ class WeeklyBingoProgress(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     week_start_date = Column(DateTime, nullable=False)
     
-    # Bingo task completion
-    task_1_completed = Column(Boolean, default=False)  # Chat 50 times
-    task_2_completed = Column(Boolean, default=False)  # Answer 20 questions
-    task_3_completed = Column(Boolean, default=False)  # Create 5 notes
-    task_4_completed = Column(Boolean, default=False)  # Study 5 hours
-    task_5_completed = Column(Boolean, default=False)  # Complete 3 quizzes
-    task_6_completed = Column(Boolean, default=False)  # Create 10 flashcards
-    task_7_completed = Column(Boolean, default=False)  # 7 day streak
-    task_8_completed = Column(Boolean, default=False)  # Win 3 battles
-    task_9_completed = Column(Boolean, default=False)  # Study 10 hours
-    task_10_completed = Column(Boolean, default=False)  # Chat 100 times
-    task_11_completed = Column(Boolean, default=False)  # Create 10 notes
-    task_12_completed = Column(Boolean, default=False)  # Answer 50 questions
-    task_13_completed = Column(Boolean, default=False)  # Complete 5 quizzes
-    task_14_completed = Column(Boolean, default=False)  # Win 5 battles
-    task_15_completed = Column(Boolean, default=False)  # Study 20 hours
-    task_16_completed = Column(Boolean, default=False)  # Master level (level 5)
+    task_1_completed = Column(Boolean, default=False)
+    task_2_completed = Column(Boolean, default=False)
+    task_3_completed = Column(Boolean, default=False)
+    task_4_completed = Column(Boolean, default=False)
+    task_5_completed = Column(Boolean, default=False)
+    task_6_completed = Column(Boolean, default=False)
+    task_7_completed = Column(Boolean, default=False)
+    task_8_completed = Column(Boolean, default=False)
+    task_9_completed = Column(Boolean, default=False)
+    task_10_completed = Column(Boolean, default=False)
+    task_11_completed = Column(Boolean, default=False)
+    task_12_completed = Column(Boolean, default=False)
+    task_13_completed = Column(Boolean, default=False)
+    task_14_completed = Column(Boolean, default=False)
+    task_15_completed = Column(Boolean, default=False)
+    task_16_completed = Column(Boolean, default=False)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User")
 
@@ -1552,10 +1406,10 @@ class Notification(Base):
     
     title = Column(String(200), nullable=False)
     message = Column(Text, nullable=False)
-    notification_type = Column(String(50))  # inactivity, quiz_poor_performance, achievement, etc.
+    notification_type = Column(String(50))
     is_read = Column(Boolean, default=False)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User")
 
@@ -1568,17 +1422,16 @@ class ReminderList(Base):
     
     name = Column(String(100), nullable=False)
     color = Column(String(20), default="#3b82f6")
-    icon = Column(String(50), default="list")  # list, star, book, briefcase, home, etc.
-    is_smart_list = Column(Boolean, default=False)  # For Today, Scheduled, Flagged, All
-    smart_list_type = Column(String(50), nullable=True)  # today, scheduled, flagged, all, completed
+    icon = Column(String(50), default="list")
+    is_smart_list = Column(Boolean, default=False)
+    smart_list_type = Column(String(50), nullable=True)
     sort_order = Column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User")
     reminders = relationship("Reminder", back_populates="list", cascade="all, delete-orphan")
-
 
 class Reminder(Base):
     """Calendar reminders and events - Apple Reminders style"""
@@ -1587,43 +1440,39 @@ class Reminder(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     list_id = Column(Integer, ForeignKey("reminder_lists.id"), nullable=True)
-    parent_id = Column(Integer, ForeignKey("reminders.id"), nullable=True)  # For subtasks
+    parent_id = Column(Integer, ForeignKey("reminders.id"), nullable=True)
     
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
-    notes = Column(Text, nullable=True)  # Additional notes
-    url = Column(String(500), nullable=True)  # Attached URL
+    notes = Column(Text, nullable=True)
+    url = Column(String(500), nullable=True)
     
-    reminder_date = Column(DateTime, nullable=True)  # Can be null for undated reminders
-    due_date = Column(DateTime, nullable=True)  # Separate due date
-    reminder_type = Column(String(50), default="reminder")  # reminder, event, deadline, study_session
-    priority = Column(String(20), default="none")  # none, low, medium, high
+    reminder_date = Column(DateTime, nullable=True)
+    due_date = Column(DateTime, nullable=True)
+    reminder_type = Column(String(50), default="reminder")
+    priority = Column(String(20), default="none")
     color = Column(String(20), default="#3b82f6")
     
     is_completed = Column(Boolean, default=False)
     completed_at = Column(DateTime, nullable=True)
-    is_flagged = Column(Boolean, default=False)  # Flagged/starred
+    is_flagged = Column(Boolean, default=False)
     is_notified = Column(Boolean, default=False)
     notify_before_minutes = Column(Integer, default=15)
     
-    # Recurring settings
-    recurring = Column(String(20), default="none")  # none, daily, weekly, monthly, yearly, custom
-    recurring_interval = Column(Integer, default=1)  # Every X days/weeks/months
+    recurring = Column(String(20), default="none")
+    recurring_interval = Column(Integer, default=1)
     recurring_end_date = Column(DateTime, nullable=True)
-    recurring_days = Column(String(50), nullable=True)  # JSON array for custom days [0,1,2,3,4,5,6]
+    recurring_days = Column(String(50), nullable=True)
     
-    # Location-based (optional)
     location = Column(String(200), nullable=True)
     location_reminder = Column(Boolean, default=False)
     
-    # Tags
-    tags = Column(Text, nullable=True)  # JSON array of tags
+    tags = Column(Text, nullable=True)
     
-    # Sort order within list
     sort_order = Column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User")
     list = relationship("ReminderList", back_populates="reminders")
@@ -1638,23 +1487,20 @@ class ConceptNode(Base):
     
     concept_name = Column(String(200), nullable=False)
     description = Column(Text)
-    category = Column(String(100))  # subject/topic category
+    category = Column(String(100))
     
-    # Metadata
-    importance_score = Column(Float, default=0.5)  # 0-1 scale
-    mastery_level = Column(Float, default=0.0)  # 0-1 scale based on quiz performance
+    importance_score = Column(Float, default=0.5)
+    mastery_level = Column(Float, default=0.0)
     
-    # Visual positioning
     position_x = Column(Float, nullable=True)
     position_y = Column(Float, nullable=True)
     
-    # Related content counts
     notes_count = Column(Integer, default=0)
     quizzes_count = Column(Integer, default=0)
     flashcards_count = Column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     user = relationship("User")
 
@@ -1668,19 +1514,17 @@ class ConceptConnection(Base):
     source_concept_id = Column(Integer, ForeignKey("concept_nodes.id"))
     target_concept_id = Column(Integer, ForeignKey("concept_nodes.id"))
     
-    connection_type = Column(String(50))  # prerequisite, related, opposite, example_of, etc.
-    strength = Column(Float, default=0.5)  # 0-1 scale, how strong the connection is
+    connection_type = Column(String(50))
+    strength = Column(Float, default=0.5)
     
     ai_generated = Column(Boolean, default=False)
     user_confirmed = Column(Boolean, default=False)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User")
     source = relationship("ConceptNode", foreign_keys=[source_concept_id])
     target = relationship("ConceptNode", foreign_keys=[target_concept_id])
-
-# ==================== NOTION-LEVEL FEATURES ====================
 
 class NoteBlock(Base):
     """Block-based content for notes (like Notion)"""
@@ -1690,17 +1534,14 @@ class NoteBlock(Base):
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
     parent_block_id = Column(Integer, ForeignKey("note_blocks.id"), nullable=True)
     
-    # Block properties
-    block_type = Column(String(50), nullable=False)  # paragraph, heading1, heading2, heading3, list, code, quote, callout, toggle, divider, image, embed, table, etc.
+    block_type = Column(String(50), nullable=False)
     content = Column(Text, default="")
-    properties = Column(JSON, nullable=True)  # Additional properties (language for code, color for callout, etc.)
+    properties = Column(JSON, nullable=True)
     
-    # Ordering
     position = Column(Integer, default=0)
     
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
 class NoteProperty(Base):
@@ -1711,25 +1552,24 @@ class NoteProperty(Base):
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
     
     property_name = Column(String(100), nullable=False)
-    property_type = Column(String(50), nullable=False)  # text, select, multi_select, date, checkbox, number, url, email, phone
-    property_value = Column(Text, nullable=True)  # JSON for complex types
+    property_type = Column(String(50), nullable=False)
+    property_value = Column(Text, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class NoteTemplate(Base):
     """Note templates"""
     __tablename__ = "note_templates"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # NULL for system templates
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    category = Column(String(100), default="general")  # meeting, project, personal, study, etc.
+    category = Column(String(100), default="general")
     icon = Column(String(50), nullable=True)
     
-    # Template content (JSON structure of blocks)
     template_blocks = Column(JSON, nullable=False)
     default_properties = Column(JSON, nullable=True)
     
@@ -1737,8 +1577,8 @@ class NoteTemplate(Base):
     is_public = Column(Boolean, default=False)
     usage_count = Column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class NoteLink(Base):
     """Links between notes (backlinks)"""
@@ -1748,10 +1588,10 @@ class NoteLink(Base):
     source_note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
     target_note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
     
-    link_type = Column(String(50), default="reference")  # reference, embed, mention
-    context = Column(Text, nullable=True)  # Surrounding text for context
+    link_type = Column(String(50), default="reference")
+    context = Column(Text, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class NoteComment(Base):
     """Comments on notes"""
@@ -1759,15 +1599,15 @@ class NoteComment(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
-    block_id = Column(Integer, ForeignKey("note_blocks.id"), nullable=True)  # Comment on specific block
+    block_id = Column(Integer, ForeignKey("note_blocks.id"), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    parent_comment_id = Column(Integer, ForeignKey("note_comments.id"), nullable=True)  # For threaded comments
+    parent_comment_id = Column(Integer, ForeignKey("note_comments.id"), nullable=True)
     
     content = Column(Text, nullable=False)
     is_resolved = Column(Boolean, default=False)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class NoteVersion(Base):
     """Version history for notes"""
@@ -1779,12 +1619,12 @@ class NoteVersion(Base):
     
     version_number = Column(Integer, nullable=False)
     title = Column(String(255), nullable=False)
-    content = Column(Text, nullable=False)  # Full content snapshot
-    blocks_snapshot = Column(JSON, nullable=True)  # Block structure snapshot
+    content = Column(Text, nullable=False)
+    blocks_snapshot = Column(JSON, nullable=True)
     
     change_summary = Column(Text, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class NoteCollaborator(Base):
     """Collaborators on notes"""
@@ -1794,11 +1634,11 @@ class NoteCollaborator(Base):
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    permission = Column(String(20), default="view")  # view, comment, edit
+    permission = Column(String(20), default="view")
     invited_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     last_viewed = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class NoteDatabase(Base):
     """Database views for notes"""
@@ -1811,15 +1651,13 @@ class NoteDatabase(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     
-    # View configuration
-    view_type = Column(String(50), default="table")  # table, board, calendar, gallery, timeline, list
-    view_config = Column(JSON, nullable=True)  # Filters, sorts, groups, etc.
+    view_type = Column(String(50), default="table")
+    view_config = Column(JSON, nullable=True)
     
-    # Properties schema
-    properties_schema = Column(JSON, nullable=False)  # Define columns/properties
+    properties_schema = Column(JSON, nullable=False)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class DatabaseEntry(Base):
     """Entries in a database"""
@@ -1827,15 +1665,14 @@ class DatabaseEntry(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     database_id = Column(Integer, ForeignKey("note_databases.id"), nullable=False)
-    note_id = Column(Integer, ForeignKey("notes.id"), nullable=True)  # Link to actual note
+    note_id = Column(Integer, ForeignKey("notes.id"), nullable=True)
     
-    # Entry data
-    entry_data = Column(JSON, nullable=False)  # Property values
+    entry_data = Column(JSON, nullable=False)
     
     position = Column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class NoteEmbed(Base):
     """Embedded content in notes"""
@@ -1845,11 +1682,11 @@ class NoteEmbed(Base):
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
     block_id = Column(Integer, ForeignKey("note_blocks.id"), nullable=True)
     
-    embed_type = Column(String(50), nullable=False)  # youtube, twitter, figma, pdf, image, video, audio, etc.
+    embed_type = Column(String(50), nullable=False)
     embed_url = Column(Text, nullable=False)
-    embed_data = Column(JSON, nullable=True)  # Metadata, thumbnails, etc.
+    embed_data = Column(JSON, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class NoteAttachment(Base):
     """File attachments in notes"""
@@ -1869,7 +1706,7 @@ class NoteAttachment(Base):
     
     preview_url = Column(String(500), nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class NoteMention(Base):
     """User mentions in notes"""
@@ -1884,7 +1721,7 @@ class NoteMention(Base):
     context = Column(Text, nullable=True)
     is_read = Column(Boolean, default=False)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class NoteActivity(Base):
     """Activity log for notes"""
@@ -1894,12 +1731,10 @@ class NoteActivity(Base):
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    activity_type = Column(String(50), nullable=False)  # created, edited, commented, shared, viewed, etc.
+    activity_type = Column(String(50), nullable=False)
     activity_data = Column(JSON, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-# ==================== LEARNING PLAYLISTS ====================
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class LearningPlaylist(Base):
     """Learning playlists - curated collections of learning resources"""
@@ -1909,23 +1744,21 @@ class LearningPlaylist(Base):
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
-    category = Column(String(100), nullable=True)  # e.g., "Mathematics", "Programming", etc.
-    difficulty_level = Column(String(20), default="intermediate")  # beginner, intermediate, advanced
+    category = Column(String(100), nullable=True)
+    difficulty_level = Column(String(20), default="intermediate")
     estimated_hours = Column(Float, nullable=True)
     is_public = Column(Boolean, default=True)
     is_collaborative = Column(Boolean, default=False)
     cover_color = Column(String(20), default="#4A90E2")
-    tags = Column(JSON, nullable=True)  # Array of tags
+    tags = Column(JSON, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
-    # Stats
     fork_count = Column(Integer, default=0)
     follower_count = Column(Integer, default=0)
     completion_count = Column(Integer, default=0)
     
-    # Relationships
     creator = relationship("User", foreign_keys=[creator_id])
     items = relationship("PlaylistItem", back_populates="playlist", cascade="all, delete-orphan")
     
@@ -1937,24 +1770,20 @@ class PlaylistItem(Base):
     playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
     order_index = Column(Integer, nullable=False)
     
-    # Item details
-    item_type = Column(String(50), nullable=False)  # note, chat, external_link, video, article, quiz
-    item_id = Column(Integer, nullable=True)  # Reference to internal content (note_id, chat_id, etc.)
+    item_type = Column(String(50), nullable=False)
+    item_id = Column(Integer, nullable=True)
     
-    # For external resources
     title = Column(String(300), nullable=True)
     url = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     duration_minutes = Column(Integer, nullable=True)
-    platform = Column(String(100), nullable=True)  # For courses: Coursera, edX, etc.
+    platform = Column(String(100), nullable=True)
     
-    # Metadata
     is_required = Column(Boolean, default=True)
-    notes = Column(Text, nullable=True)  # Creator's notes about this item
+    notes = Column(Text, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
-    # Relationships
     playlist = relationship("LearningPlaylist", back_populates="items")
 
 class PlaylistFollower(Base):
@@ -1965,14 +1794,13 @@ class PlaylistFollower(Base):
     playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    started_at = Column(DateTime, default=datetime.utcnow)
-    last_accessed = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_accessed = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     progress_percentage = Column(Float, default=0.0)
-    completed_items = Column(JSON, nullable=True)  # Array of completed item IDs
+    completed_items = Column(JSON, nullable=True)
     is_completed = Column(Boolean, default=False)
     completed_at = Column(DateTime, nullable=True)
     
-    # Relationships
     playlist = relationship("LearningPlaylist", foreign_keys=[playlist_id])
     user = relationship("User", foreign_keys=[user_id])
 
@@ -1985,9 +1813,8 @@ class PlaylistFork(Base):
     forked_playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
     forked_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    forked_at = Column(DateTime, default=datetime.utcnow)
+    forked_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
-    # Relationships
     original_playlist = relationship("LearningPlaylist", foreign_keys=[original_playlist_id])
     forked_playlist = relationship("LearningPlaylist", foreign_keys=[forked_playlist_id])
     forked_by = relationship("User", foreign_keys=[forked_by_id])
@@ -1999,12 +1826,11 @@ class PlaylistCollaborator(Base):
     id = Column(Integer, primary_key=True, index=True)
     playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    permission = Column(String(20), default="edit")  # edit, view
+    permission = Column(String(20), default="edit")
     
-    added_at = Column(DateTime, default=datetime.utcnow)
+    added_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     added_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
-    # Relationships
     playlist = relationship("LearningPlaylist", foreign_keys=[playlist_id])
     user = relationship("User", foreign_keys=[user_id])
     added_by = relationship("User", foreign_keys=[added_by_id])
@@ -2018,17 +1844,13 @@ class PlaylistComment(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     comment_text = Column(Text, nullable=False)
-    rating = Column(Integer, nullable=True)  # 1-5 stars
+    rating = Column(Integer, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
-    # Relationships
     playlist = relationship("LearningPlaylist", foreign_keys=[playlist_id])
     user = relationship("User", foreign_keys=[user_id])
-
-
-# ==================== IMPORT/EXPORT MODELS ====================
 
 class ImportExportHistory(Base):
     """Track all import/export operations"""
@@ -2037,25 +1859,23 @@ class ImportExportHistory(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    operation_type = Column(String(20), nullable=False)  # import, export
-    source_type = Column(String(50), nullable=False)  # notes, flashcards, questions, chat, media, etc.
-    destination_type = Column(String(50), nullable=False)  # notes, flashcards, questions, pdf, csv, etc.
+    operation_type = Column(String(20), nullable=False)
+    source_type = Column(String(50), nullable=False)
+    destination_type = Column(String(50), nullable=False)
     
-    source_ids = Column(JSON, nullable=True)  # IDs of source items
-    destination_ids = Column(JSON, nullable=True)  # IDs of created items
+    source_ids = Column(JSON, nullable=True)
+    destination_ids = Column(JSON, nullable=True)
     
     item_count = Column(Integer, default=0)
-    status = Column(String(20), default="completed")  # pending, completed, failed
+    status = Column(String(20), default="completed")
     error_message = Column(Text, nullable=True)
     
-    operation_metadata = Column(JSON, nullable=True)  # Additional operation details
+    operation_metadata = Column(JSON, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
     
-    # Relationships
     user = relationship("User", foreign_keys=[user_id])
-
 
 class ExportedFile(Base):
     """Track exported files (PDF, CSV, etc.)"""
@@ -2067,19 +1887,17 @@ class ExportedFile(Base):
     
     file_name = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=True)
-    file_type = Column(String(20), nullable=False)  # pdf, csv, json, markdown
-    file_size = Column(Integer, nullable=True)  # bytes
+    file_type = Column(String(20), nullable=False)
+    file_size = Column(Integer, nullable=True)
     
-    content_type = Column(String(50), nullable=False)  # flashcards, questions, notes, etc.
+    content_type = Column(String(50), nullable=False)
     download_count = Column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     expires_at = Column(DateTime, nullable=True)
     
-    # Relationships
     user = relationship("User", foreign_keys=[user_id])
     history = relationship("ImportExportHistory", foreign_keys=[history_id])
-
 
 class BatchOperation(Base):
     """Track batch operations (merge, combine, etc.)"""
@@ -2088,7 +1906,7 @@ class BatchOperation(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    operation_name = Column(String(100), nullable=False)  # merge_notes, combine_chats, etc.
+    operation_name = Column(String(100), nullable=False)
     source_type = Column(String(50), nullable=False)
     source_ids = Column(JSON, nullable=False)
     
@@ -2096,14 +1914,12 @@ class BatchOperation(Base):
     result_type = Column(String(50), nullable=True)
     
     status = Column(String(20), default="pending")
-    progress = Column(Integer, default=0)  # 0-100
+    progress = Column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
     
-    # Relationships
     user = relationship("User", foreign_keys=[user_id])
-
 
 class ExternalImport(Base):
     """Track imports from external sources"""
@@ -2112,11 +1928,11 @@ class ExternalImport(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    source_platform = Column(String(50), nullable=False)  # notion, evernote, google_docs, url, pdf
+    source_platform = Column(String(50), nullable=False)
     source_url = Column(String(500), nullable=True)
     source_file_name = Column(String(255), nullable=True)
     
-    import_type = Column(String(50), nullable=False)  # notes, documents, etc.
+    import_type = Column(String(50), nullable=False)
     items_imported = Column(Integer, default=0)
     
     status = Column(String(20), default="pending")
@@ -2124,12 +1940,10 @@ class ExternalImport(Base):
     
     import_metadata = Column(JSON, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
     
-    # Relationships
     user = relationship("User", foreign_keys=[user_id])
-
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
@@ -2143,10 +1957,7 @@ def get_db():
 
 if __name__ == "__main__":
     create_tables()
-    print(" Database tables created successfully!")
-
-
-# ==================== COMPREHENSIVE WEAKNESS PRACTICE SYSTEM MODELS ====================
+    logger.info(" Database tables created successfully!")
 
 class PracticeSession(Base):
     """Practice session for weakness improvement"""
@@ -2162,13 +1973,12 @@ class PracticeSession(Base):
     accuracy = Column(Float, default=0.0)
     max_streak = Column(Integer, default=0)
     avg_response_time = Column(Float, default=0.0)
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
-    status = Column(String, default="active")  # active, completed, abandoned
+    status = Column(String, default="active")
     
     user = relationship("User")
     answers = relationship("PracticeAnswer", back_populates="session", cascade="all, delete-orphan")
-
 
 class PracticeAnswer(Base):
     """Individual answer in a practice session"""
@@ -2180,11 +1990,10 @@ class PracticeAnswer(Base):
     user_answer = Column(Text, nullable=False)
     correct_answer = Column(Text, nullable=False)
     is_correct = Column(Boolean, default=False)
-    time_taken = Column(Integer, default=0)  # seconds
-    answered_at = Column(DateTime, default=datetime.utcnow)
+    time_taken = Column(Integer, default=0)
+    answered_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     session = relationship("PracticeSession", back_populates="answers")
-
 
 class StudyPlan(Base):
     """Personalized study plan"""
@@ -2194,12 +2003,44 @@ class StudyPlan(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     goal = Column(String, nullable=False)
     duration_weeks = Column(Integer, default=4)
-    plan_data = Column(Text, nullable=False)  # JSON string
-    created_at = Column(DateTime, default=datetime.utcnow)
-    status = Column(String, default="active")  # active, completed, abandoned
+    plan_data = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    status = Column(String, default="active")
     
     user = relationship("User")
 
+class ContextDocument(Base):
+    """
+    Tracks uploaded curriculum documents for Cerbyl HS Mode.
+    scope: 'private' (user only) | 'hs_shared' (contributes to global hs_curriculum ChromaDB collection)
+
+    FREE US HS Curriculum Sources for seeding hs_curriculum:
+      OpenStax (CC-BY):   https://openstax.org/subjects
+      CK-12 (free):       https://www.ck12.org
+      LibreTexts:         math/chem/bio.libretexts.org
+      AP Frameworks:      https://collegeboard.org/courses  (free PDF CED per course)
+      Common Core:        https://corestandards.org
+      NCBI Bookshelf:     https://www.ncbi.nlm.nih.gov/books/ (bio/anatomy, public domain)
+    """
+    __tablename__ = "context_documents"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    user_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
+    doc_id       = Column(String(36), unique=True, index=True, nullable=False)
+    filename     = Column(String(255), nullable=False)
+    file_type    = Column(String(10), nullable=False, default="pdf")
+    subject      = Column(String(100), nullable=True)
+    grade_level  = Column(String(20), nullable=True)
+    scope        = Column(String(20), nullable=False, default="private")
+    chunk_count  = Column(Integer, default=0)
+    status       = Column(String(20), default="processing")
+    source_url   = Column(String(500), nullable=True)
+    source_name  = Column(String(200), nullable=True)
+    license      = Column(String(80), nullable=True)
+    created_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", backref="context_documents")
 
 class GeneratedQuestion(Base):
     """AI-generated questions for practice"""
@@ -2209,12 +2050,12 @@ class GeneratedQuestion(Base):
     topic = Column(String, nullable=False)
     subtopic = Column(String, nullable=True)
     question_text = Column(Text, nullable=False)
-    question_type = Column(String, nullable=False)  # multiple_choice, true_false, short_answer
-    options = Column(Text, nullable=True)  # JSON array for multiple choice
+    question_type = Column(String, nullable=False)
+    options = Column(Text, nullable=True)
     correct_answer = Column(Text, nullable=False)
     explanation = Column(Text, nullable=False)
-    hints = Column(Text, nullable=True)  # JSON array
+    hints = Column(Text, nullable=True)
     difficulty = Column(String, default="intermediate")
-    generated_at = Column(DateTime, default=datetime.utcnow)
+    generated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     times_used = Column(Integer, default=0)
     avg_accuracy = Column(Float, default=0.0)

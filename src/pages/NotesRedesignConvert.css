@@ -1,441 +1,554 @@
-/* NotesRedesign Convert Modal Styles */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-.notes-redesign .iem-overlay *,
-.notes-redesign .iem-overlay *::before,
-.notes-redesign .iem-overlay *::after {
-  border-radius: 0 !important;
-}
-
-.notes-redesign .iem-overlay {
-  --iem-bg-primary: var(--nr-bg-primary);
-  --iem-bg-secondary: var(--nr-bg-secondary);
-  --iem-bg-tertiary: var(--nr-bg-tertiary);
-  --iem-border: var(--nr-border-subtle);
-  --iem-text-primary: var(--nr-text-primary);
-  --iem-text-secondary: var(--nr-text-secondary);
-  --iem-accent: var(--nr-accent);
-}
-
-.notes-redesign .iem-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  animation: nr-iem-fadeIn 0.2s ease;
+.notes-redesign .iem-overlay,
+.notes-redesign .iem-modal,
+.notes-redesign .iem-modal *,
+.notes-redesign .iem-modal *::before,
+.notes-redesign .iem-modal *::after {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+.notes-redesign .iem-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
+  z-index: 9998 !important;
+}
+
 .notes-redesign .iem-modal {
-  background: var(--iem-bg-secondary);
-  border: 2px solid var(--iem-border);
-  width: 90%;
-  max-width: 700px;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
-  animation: nr-iem-slideUp 0.3s ease;
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px;
+  width: 90% !important;
+  max-width: 600px !important;
+  max-height: 85vh !important;
+  overflow: hidden !important;
+  z-index: 9999 !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .notes-redesign .iem-header {
-  padding: 24px;
-  border-bottom: 2px solid var(--iem-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--iem-bg-secondary);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 20px 24px !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--bg-secondary) !important;
 }
 
-
 .notes-redesign .iem-header-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
 }
 
 .notes-redesign .iem-header-icon {
-  color: var(--iem-accent);
+  color: #D7B38C !important;
+  width: 24px !important;
+  height: 24px !important;
 }
 
 .notes-redesign .iem-header h2 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--iem-text-primary);
-  text-transform: capitalize;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #D7B38C !important;
+  margin: 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
 }
 
 .notes-redesign .iem-header-subtitle {
-  margin: 4px 0 0 0;
-  font-size: 14px;
-  color: var(--iem-text-secondary);
+  margin: 4px 0 0 0 !important;
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  font-weight: 500 !important;
 }
 
 .notes-redesign .iem-close-btn {
-  width: 40px;
-  height: 40px;
-  background: var(--iem-bg-tertiary);
-  border: 2px solid var(--iem-border);
-  color: var(--iem-text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
+  width: 36px !important;
+  height: 36px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  color: #D7B38C !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s !important;
 }
 
 .notes-redesign .iem-close-btn:hover {
-  background: var(--iem-accent);
-  border-color: var(--iem-accent);
-  color: var(--iem-bg-primary);
+  background: #D7B38C !important;
+  border-color: #D7B38C !important;
+  color: var(--bg-secondary) !important;
 }
 
 .notes-redesign .iem-body {
-  padding: 24px;
-  overflow-y: auto;
-  flex: 1;
+  padding: 24px !important;
+  overflow-y: auto !important;
+  flex: 1 !important;
+  background: var(--bg-secondary) !important;
 }
 
 .notes-redesign .iem-step-content h3 {
-  margin: 0 0 20px 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--iem-text-primary);
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--text-secondary) !important;
+  margin-bottom: 14px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
 }
 
-
 .notes-redesign .iem-select-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--iem-bg-tertiary);
-  border: 2px solid var(--iem-border);
-  margin-bottom: 16px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 16px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  margin-bottom: 16px !important;
 }
 
 .notes-redesign .iem-select-all-btn {
-  background: transparent;
-  border: 2px solid var(--iem-accent);
-  color: var(--iem-accent);
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s;
+  padding: 8px 14px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px;
+  color: var(--text-secondary) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  text-transform: uppercase !important;
 }
 
 .notes-redesign .iem-select-all-btn:hover {
-  background: var(--iem-accent);
-  color: var(--iem-bg-primary);
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+  border-color: #D7B38C !important;
+  color: var(--text-primary) !important;
 }
 
 .notes-redesign .iem-selection-count {
-  font-size: 14px;
-  color: var(--iem-text-secondary);
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
 }
 
 .notes-redesign .iem-items-list {
-  max-height: 350px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
+  max-height: 350px !important;
+  overflow-y: auto !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  background: var(--bg-secondary) !important;
+  margin-bottom: 20px !important;
+}
+
+.notes-redesign .iem-items-list::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.notes-redesign .iem-items-list::-webkit-scrollbar-track {
+  background: var(--bg-secondary) !important;
+}
+
+.notes-redesign .iem-items-list::-webkit-scrollbar-thumb {
+  background: #D7B38C !important;
 }
 
 .notes-redesign .iem-item-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: var(--iem-bg-tertiary);
-  border: 2px solid var(--iem-border);
-  cursor: pointer;
-  transition: all 0.2s;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px 18px !important;
+  border-bottom: 1px solid var(--border) !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+}
+
+.notes-redesign .iem-item-card:last-child {
+  border-bottom: none !important;
 }
 
 .notes-redesign .iem-item-card:hover {
-  border-color: var(--iem-accent);
-  background: var(--iem-bg-secondary);
+  background: rgba(215, 179, 140, 0.05) !important;
 }
 
-
 .notes-redesign .iem-item-card.selected {
-  background: color-mix(in srgb, var(--iem-accent) 15%, var(--iem-bg-tertiary));
-  border-color: var(--iem-accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
 }
 
 .notes-redesign .iem-item-checkbox {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--iem-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: transparent;
-  flex-shrink: 0;
-  background: var(--iem-bg-primary);
-  transition: all 0.2s;
+  width: 20px !important;
+  height: 20px !important;
+  accent-color: #D7B38C !important;
+  flex-shrink: 0 !important;
 }
 
-.notes-redesign .iem-item-card.selected .iem-item-checkbox {
-  border-color: var(--iem-accent);
-  background: var(--iem-accent);
-  color: var(--iem-bg-primary);
+.notes-redesign .iem-item-info {
+  flex: 1 !important;
 }
 
 .notes-redesign .iem-item-info h4 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--iem-text-primary);
+  font-size: 14px !important;
+  color: var(--text-primary) !important;
+  margin: 0 0 4px 0 !important;
+  font-weight: 600 !important;
 }
 
 .notes-redesign .iem-item-meta {
-  margin: 0;
-  font-size: 13px;
-  color: var(--iem-text-secondary);
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  margin: 0 !important;
 }
 
 .notes-redesign .iem-conversion-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+  gap: 12px !important;
+  margin-bottom: 24px !important;
 }
 
 .notes-redesign .iem-conversion-card {
-  padding: 20px;
-  background: var(--iem-bg-tertiary);
-  border: 2px solid var(--iem-border);
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
+  padding: 20px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  cursor: pointer !important;
+  text-align: center !important;
+  transition: all 0.2s !important;
 }
 
-
 .notes-redesign .iem-conversion-card:hover {
-  border-color: var(--iem-accent);
-  transform: translateY(-2px);
+  background: rgba(215, 179, 140, 0.05) !important;
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
 }
 
 .notes-redesign .iem-conversion-card.selected {
-  background: color-mix(in srgb, var(--iem-accent) 15%, var(--iem-bg-tertiary));
-  border-color: var(--iem-accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+  border-color: #D7B38C !important;
 }
 
 .notes-redesign .iem-conversion-icon {
-  margin-bottom: 8px;
-  color: var(--iem-accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin-bottom: 8px !important;
+  color: #D7B38C !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .notes-redesign .iem-conversion-card h4 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--iem-text-primary);
+  margin: 0 0 8px 0 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
 }
 
 .notes-redesign .iem-conversion-card p {
-  margin: 0;
-  font-size: 13px;
-  color: var(--iem-text-secondary);
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.4 !important;
 }
 
 .notes-redesign .iem-settings {
-  padding: 20px;
-  background: var(--iem-bg-tertiary);
-  border: 2px solid var(--iem-border);
-  margin-bottom: 20px;
+  padding: 20px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  margin-bottom: 20px !important;
 }
 
 .notes-redesign .iem-settings h4 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--iem-text-primary);
+  margin: 0 0 16px 0 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--text-secondary) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
 }
 
 .notes-redesign .iem-setting-group {
-  margin-bottom: 16px;
+  margin-bottom: 16px !important;
+}
+
+.notes-redesign .iem-setting-group:last-child {
+  margin-bottom: 0 !important;
 }
 
 .notes-redesign .iem-setting-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: var(--iem-text-secondary);
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
 }
-
 
 .notes-redesign .iem-input,
 .notes-redesign .iem-select {
-  width: 100%;
-  padding: 10px 12px;
-  background: var(--iem-bg-primary);
-  border: 2px solid var(--iem-border);
-  color: var(--iem-text-primary);
-  font-size: 14px;
-  outline: none;
-  transition: all 0.2s;
+  width: 100% !important;
+  padding: 10px 12px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px;
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+  outline: none !important;
+  transition: all 0.2s !important;
 }
 
 .notes-redesign .iem-input:focus,
 .notes-redesign .iem-select:focus {
-  border-color: var(--iem-accent);
+  border-color: #D7B38C !important;
 }
 
 .notes-redesign .iem-result {
-  text-align: center;
-  padding: 40px 20px;
+  text-align: center !important;
+  padding: 40px 20px !important;
 }
 
 .notes-redesign .iem-result-icon {
-  margin: 0 auto 24px;
-  width: 80px;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin: 0 auto 24px !important;
+  width: 80px !important;
+  height: 80px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .notes-redesign .iem-result-icon.success {
-  background: color-mix(in srgb, #22c55e 15%, transparent);
-  color: #22c55e;
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #22c55e !important;
 }
 
 .notes-redesign .iem-result-icon.error {
-  background: color-mix(in srgb, #ef4444 15%, transparent);
-  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
 }
 
 .notes-redesign .iem-result-details {
-  margin: 24px 0;
-  padding: 20px;
-  background: var(--iem-bg-tertiary);
-  border: 2px solid var(--iem-border);
-  text-align: left;
+  margin: 24px 0 !important;
+  padding: 20px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  text-align: left !important;
 }
 
 .notes-redesign .iem-result-details p {
-  margin: 8px 0;
-  font-size: 14px;
-  color: var(--iem-text-secondary);
+  margin: 8px 0 !important;
+  font-size: 14px !important;
+  color: var(--text-secondary) !important;
 }
 
 .notes-redesign .iem-result-details strong {
-  color: var(--iem-text-primary);
+  color: var(--text-primary) !important;
 }
-
 
 .notes-redesign .iem-loading,
 .notes-redesign .iem-empty {
-  padding: 60px 20px;
-  text-align: center;
-  color: var(--iem-text-secondary);
+  padding: 60px 20px !important;
+  text-align: center !important;
+  color: var(--text-secondary) !important;
 }
 
 .notes-redesign .iem-spinner {
-  animation: nr-iem-spin 1s linear infinite;
-  margin-bottom: 16px;
+  width: 40px !important;
+  height: 40px !important;
+  border: 3px solid transparent !important;
+  border-top-color: #D7B38C !important;
+  border-radius: 50%;
+  animation: nr-iem-spin 0.8s linear infinite !important;
+  margin: 0 auto 16px !important;
 }
 
 .notes-redesign .iem-empty svg {
-  opacity: 0.3;
-  margin-bottom: 16px;
+  opacity: 0.3 !important;
+  margin-bottom: 16px !important;
 }
 
 .notes-redesign .iem-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 2px solid var(--iem-border);
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  padding: 20px 24px !important;
+  border-top: 1px solid var(--border) !important;
+  background: var(--bg-secondary) !important;
 }
 
 .notes-redesign .iem-btn {
-  padding: 12px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
+  padding: 12px 24px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 
 .notes-redesign .iem-btn-primary {
-  background: var(--iem-accent);
-  color: var(--iem-bg-primary);
+  background: #D7B38C !important;
+  border: none !important;
+  border-radius: 8px;
+  color: var(--bg-secondary) !important;
+  font-weight: 700 !important;
 }
 
 .notes-redesign .iem-btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--iem-accent) 40%, transparent);
+  background: #c9a67a !important;
+  transform: translateY(-1px) !important;
 }
 
 .notes-redesign .iem-btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
 }
 
 .notes-redesign .iem-btn-secondary {
-  background: transparent;
-  color: var(--iem-text-secondary);
-  border: 2px solid var(--iem-border);
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  color: var(--text-primary) !important;
 }
-
 
 .notes-redesign .iem-btn-secondary:hover {
-  background: var(--iem-bg-tertiary);
-  color: var(--iem-text-primary);
-}
-
-@keyframes nr-iem-fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes nr-iem-slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: #D7B38C !important;
 }
 
 @keyframes nr-iem-spin {
-  from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-.notes-redesign .iem-items-list::-webkit-scrollbar,
-.notes-redesign .iem-body::-webkit-scrollbar {
-  width: 8px;
+.notes-redesign .iem-header {
+  background: linear-gradient(135deg, var(--bg-secondary), rgba(215, 179, 140, 0.05)) !important;
 }
 
-.notes-redesign .iem-items-list::-webkit-scrollbar-track,
-.notes-redesign .iem-body::-webkit-scrollbar-track {
-  background: var(--iem-bg-primary);
+.notes-redesign .iem-header h2 {
+  background: linear-gradient(135deg, #D7B38C, #c9a67a) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
 }
 
-.notes-redesign .iem-items-list::-webkit-scrollbar-thumb,
-.notes-redesign .iem-body::-webkit-scrollbar-thumb {
-  background: var(--iem-border);
+.notes-redesign .iem-close-btn:hover {
+  transform: rotate(90deg) !important;
 }
 
-.notes-redesign .iem-items-list::-webkit-scrollbar-thumb:hover,
-.notes-redesign .iem-body::-webkit-scrollbar-thumb:hover {
-  background: var(--iem-accent);
+.notes-redesign .iem-select-bar {
+  background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
+}
+
+.notes-redesign .iem-select-all-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+}
+
+.notes-redesign .iem-item-card {
+  border-radius: 6px;
+  margin: 8px !important;
+  border: 1px solid transparent !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.notes-redesign .iem-item-card:hover {
+  transform: translateX(4px) !important;
+  border-color: #D7B38C !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent) !important;
+}
+
+.notes-redesign .iem-item-card.selected {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), rgba(215, 179, 140, 0.05)) !important;
+  border-color: #D7B38C !important;
+}
+
+.notes-redesign .iem-conversion-card {
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.notes-redesign .iem-conversion-card::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(135deg, transparent, color-mix(in srgb, var(--accent) 10%, transparent)) !important;
+  opacity: 0 !important;
+  transition: opacity 0.3s !important;
+}
+
+.notes-redesign .iem-conversion-card:hover::before {
+  opacity: 1 !important;
+}
+
+.notes-redesign .iem-conversion-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+}
+
+.notes-redesign .iem-conversion-card.selected {
+  border-color: #D7B38C !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}
+
+.notes-redesign .iem-settings {
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
+}
+
+.notes-redesign .iem-input:focus,
+.notes-redesign .iem-select:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+
+.notes-redesign .iem-btn-primary {
+  background: linear-gradient(135deg, #D7B38C, #c9a67a) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.notes-redesign .iem-btn-primary::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent) !important;
+  transition: left 0.5s !important;
+}
+
+.notes-redesign .iem-btn-primary:hover::before {
+  left: 100% !important;
+}
+
+.notes-redesign .iem-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent) !important;
+}
+
+.notes-redesign .iem-btn-secondary:hover {
+  transform: translateY(-2px) !important;
+  border-color: #D7B38C !important;
+}
+
+.notes-redesign .iem-result-details {
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
+}
+
+.notes-redesign .iem-actions {
+  background: linear-gradient(135deg, var(--bg-secondary), rgba(215, 179, 140, 0.05)) !important;
 }

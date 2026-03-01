@@ -1,13 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-/* ==================== FORCE BOXY DESIGN ==================== */
 .challenge-session-page *,
 .challenge-session-page *::before,
 .challenge-session-page *::after,
 .challenge-session-loading *,
 .challenge-session-loading *::before,
 .challenge-session-loading *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 :root {
@@ -15,8 +12,8 @@
   --bg-bottom: var(--bg-secondary);
   --panel: var(--bg-secondary);
   --border: var(--border);
-  --text-primary: #EAECEF;
-  --text-secondary: #B8C0CC;
+  --text-primary: var(--text-primary);
+  --text-secondary: var(--text-secondary);
   --accent: #D7B38C;
   --success: #10B981;
   --warning: #F59E0B;
@@ -133,7 +130,7 @@
 .progress-label span:first-child {
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .progress-percentage {
@@ -205,7 +202,7 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   border-radius: 4px;
   background: color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--accent);
@@ -362,7 +359,7 @@
   font-weight: 600;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.3s;
   border-radius: 6px;
   font-family: 'Inter', sans-serif;
@@ -391,7 +388,7 @@
   font-size: 14px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 600;
   margin: 0 0 16px 0;
 }
@@ -430,7 +427,7 @@
   font-size: 14px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 600;
   margin: 0 0 16px 0;
 }
@@ -524,7 +521,7 @@
   font-size: 12px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 600;
 }
 
@@ -570,7 +567,7 @@
   font-weight: 600;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.3s;
   border-radius: 6px;
   font-family: 'Inter', sans-serif;

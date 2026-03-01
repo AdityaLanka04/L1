@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .weakness-tips-container {
   position: fixed !important;
   top: 0 !important;
@@ -19,7 +17,6 @@
   flex-direction: column;
 }
 
-/* Loading */
 .tips-loading {
   display: flex;
   flex-direction: column;
@@ -74,7 +71,6 @@
   letter-spacing: 2px;
 }
 
-/* Header */
 .tips-header {
   position: sticky;
   top: 0;
@@ -93,15 +89,15 @@
 }
 
 [data-theme-mode="dark"] .tips-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .tips-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .tips-header-left {
@@ -175,7 +171,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -201,7 +197,6 @@
   color: var(--accent);
 }
 
-/* Body */
 .tips-body {
   flex: 1;
   overflow-y: auto;
@@ -259,11 +254,10 @@
   color: var(--accent);
   margin-bottom: 24px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
-/* Suggestions */
 .suggestions-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -319,7 +313,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -346,7 +340,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Tips List */
 .tips-list {
   list-style: none;
   padding: 0;
@@ -383,7 +376,6 @@
   font-size: 20px;
 }
 
-/* Questions */
 .questions-grid {
   display: flex;
   flex-direction: column;
@@ -497,7 +489,7 @@
   border-radius: 10px;
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
@@ -518,7 +510,6 @@
   box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-/* Empty State */
 .tips-empty {
   display: flex;
   flex-direction: column;
@@ -541,7 +532,7 @@
   margin: 0;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .tips-empty p {
@@ -551,7 +542,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .tips-body {
     padding: 20px;
@@ -566,7 +556,6 @@
   }
 }
 
-/* Practice Generator Section */
 .practice-generator-section {
   margin-top: 32px;
 }
@@ -599,7 +588,7 @@
   color: var(--accent);
   margin: 0 0 8px 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -628,7 +617,7 @@
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -698,7 +687,7 @@
   transition: all 0.2s;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .difficulty-selector button:hover,
@@ -745,7 +734,7 @@
   border-radius: 12px;
   font-size: 14px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Inter', sans-serif;
@@ -806,7 +795,6 @@
   height: 18px;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .practice-generator-card {
     padding: 24px;
@@ -833,8 +821,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

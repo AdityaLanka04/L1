@@ -1,14 +1,9 @@
-/* Concept Web - Flashcards Style Layout */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-/* ==================== FORCE BOXY DESIGN ==================== */
 .concept-web-page *,
 .concept-web-page *::before,
 .concept-web-page *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
-/* CSS Variables - Matching Flashcards */
 .concept-web-page {
   --cw-bg-primary: var(--bg);
   --cw-bg-secondary: var(--panel);
@@ -29,10 +24,7 @@
   --cw-sidebar-width: 260px;
   --cw-sidebar-collapsed: 70px;
   --cw-header-height: 70px;
-}
 
-/* Reset and Base */
-.concept-web-page {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -49,14 +41,13 @@
   padding: 0 !important;
 }
 
+
 .concept-web-page * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* Main Layout */
-/* ==================== HEADER (Full Width) ==================== */
 .cw-header {
   position: sticky;
   top: 0;
@@ -111,7 +102,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .cw-nav-btn-ghost {
@@ -152,11 +143,10 @@
   font-size: 10px;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   opacity: 0.7;
 }
 
-/* ==================== LAYOUT (Below Header) ==================== */
 .cw-layout {
   display: flex;
   width: 100%;
@@ -164,7 +154,6 @@
   flex: 1;
 }
 
-/* ==================== SIDEBAR (No Header Section) ==================== */
 .cw-sidebar {
   width: var(--cw-sidebar-width);
   height: 100%;
@@ -289,7 +278,6 @@
   gap: 4px;
 }
 
-/* ==================== MAIN CONTENT AREA ==================== */
 .cw-main {
   flex: 1;
   width: 100%;
@@ -306,7 +294,6 @@
   position: relative;
 }
 
-/* ==================== HEADER (Full Width) ==================== */
 .cw-header {
   position: sticky;
   top: 0;
@@ -362,7 +349,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .cw-nav-btn-ghost {
@@ -403,12 +390,10 @@
   font-size: 10px;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   opacity: 0.7;
 }
 
-
-/* ==================== BUTTONS ==================== */
 .cw-btn {
   display: flex;
   align-items: center;
@@ -473,7 +458,6 @@
   cursor: not-allowed;
 }
 
-/* ==================== CONTENT AREA ==================== */
 .cw-content {
   flex: 1;
   overflow: hidden;
@@ -481,7 +465,6 @@
   display: flex;
 }
 
-/* ==================== NETWORK VIEW ==================== */
 .cw-network-container {
   flex: 1;
   position: relative;
@@ -498,7 +481,6 @@
   cursor: grabbing;
 }
 
-/* ==================== GRID VIEW (A+ PREMIUM DESIGN) ==================== */
 .cw-grid-container {
   flex: 1;
   overflow-y: auto;
@@ -524,7 +506,6 @@
   }
 }
 
-/* ==================== PREMIUM CONCEPT CARDS ==================== */
 .cw-card {
   background: var(--bg-secondary);
   border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
@@ -549,7 +530,6 @@
   box-shadow: 0 0 0 2px var(--accent);
 }
 
-/* Card Header */
 .cw-card-header {
   padding: 20px;
   display: flex;
@@ -559,7 +539,6 @@
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
-/* Icon */
 .cw-card-icon {
   width: 56px;
   height: 56px;
@@ -582,7 +561,6 @@
   height: 28px;
 }
 
-/* Action Buttons */
 .cw-card-actions {
   display: flex;
   gap: 8px;
@@ -613,7 +591,6 @@
   border-color: #ef4444;
 }
 
-/* Content Section */
 .cw-card-content {
   padding: 20px;
   flex: 1;
@@ -639,7 +616,7 @@
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   padding: 4px 10px;
   background: color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 4px;
@@ -660,7 +637,6 @@
   opacity: 0.85;
 }
 
-/* Stats Section */
 .cw-card-stats {
   display: flex;
   gap: 20px;
@@ -688,11 +664,10 @@
   font-weight: 600;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   opacity: 0.7;
 }
 
-/* Footer with Progress Bar */
 .cw-card-footer {
   padding: 16px 20px;
   background: var(--bg-primary);
@@ -713,7 +688,6 @@
   transition: width 0.5s ease;
 }
 
-/* Light mode adjustments */
 [data-theme-mode="light"] .cw-card {
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -731,9 +705,6 @@
   background: color-mix(in srgb, var(--accent) 5%, white);
 }
 
-/* Light mode adjustments for grid */
-
-/* ==================== DETAIL PANEL ==================== */
 .cw-detail-panel {
   position: fixed;
   top: 0;
@@ -773,7 +744,7 @@
   font-size: 11px;
   color: var(--cw-accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .cw-detail-close {
@@ -811,7 +782,7 @@
   font-weight: 600;
   color: var(--cw-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   margin-bottom: 12px;
 }
 
@@ -917,8 +888,6 @@
   text-transform: uppercase;
 }
 
-
-/* ==================== EMPTY STATE ==================== */
 .cw-empty {
   display: flex;
   flex-direction: column;
@@ -960,7 +929,6 @@
   gap: 12px;
 }
 
-/* ==================== LOADING STATE ==================== */
 .cw-loading {
   display: flex;
   flex-direction: column;
@@ -989,7 +957,6 @@
   color: var(--cw-text-secondary);
 }
 
-/* ==================== ANALYTICS PANEL ==================== */
 .cw-analytics-panel {
   position: absolute;
   top: 16px;
@@ -1016,7 +983,7 @@
   font-weight: 600;
   color: var(--cw-text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .cw-analytics-content {
@@ -1097,7 +1064,6 @@
   text-align: right;
 }
 
-/* ==================== MODAL ==================== */
 .cw-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1207,7 +1173,6 @@
   gap: 12px;
 }
 
-/* ==================== SEARCH & FILTER BAR ==================== */
 .cw-toolbar {
   padding: 20px 40px;
   background: var(--bg-secondary);
@@ -1301,7 +1266,6 @@
   background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
-/* Light mode adjustments for toolbar */
 [data-theme-mode="light"] .cw-toolbar {
   background: white;
   border-bottom-color: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -1324,7 +1288,6 @@
   color: var(--cw-text-secondary);
 }
 
-/* ==================== NETWORK NODE STYLES ==================== */
 .cw-node {
   cursor: pointer;
   transition: all 0.2s;
@@ -1366,7 +1329,6 @@
   stroke-width: 2;
 }
 
-/* ==================== TOOLTIP ==================== */
 .cw-tooltip {
   position: absolute;
   background: var(--cw-bg-secondary);
@@ -1398,7 +1360,6 @@
   line-height: 1.4;
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 1024px) {
   .cw-sidebar {
     width: 0;
@@ -1450,8 +1411,6 @@
   }
 }
 
-
-/* ==================== LIGHT MODE SUPPORT ==================== */
 [data-theme-mode="light"] .cw-header {
   background: var(--bg-primary, #fafafa);
   border-bottom-color: color-mix(in srgb, var(--accent) 15%, transparent);
@@ -1474,18 +1433,13 @@
 }
 
 [data-theme-mode="light"] .cw-sidebar {
-  background: var(--bg-secondary, #ffffff);
+  background: var(--bg-secondary, var(--bg-secondary));
   border-right-color: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="light"] .cw-sidebar-footer {
   border-top-color: color-mix(in srgb, var(--accent) 15%, transparent);
 }
-
-
-
-
-/* ==================== LEARNING PATHS VIEW ==================== */
 
 .cw-paths-container {
   flex: 1;
@@ -1742,8 +1696,6 @@
   color: var(--accent);
 }
 
-/* Suggestions Section */
-
 .cw-suggestions-section {
   margin-top: 40px;
   padding: 32px;
@@ -1836,9 +1788,6 @@
   background: var(--accent);
   color: white;
 }
-
-
-/* ==================== RESOURCES VIEW ==================== */
 
 .cw-resources-container {
   flex: 1;
@@ -1957,7 +1906,7 @@
   font-weight: 600;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -1995,7 +1944,7 @@
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   width: fit-content;
   font-family: 'Inter', sans-serif;
 }
@@ -2042,7 +1991,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -2110,8 +2059,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* ==================== TOOLTIPS & HOVER EFFECTS ==================== */
-
 .hover-tooltip-ethereal {
   position: absolute;
   background: var(--bg-secondary);
@@ -2155,7 +2102,7 @@
   font-weight: 600;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -2184,7 +2131,7 @@
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -2226,8 +2173,6 @@
   font-style: italic;
   font-family: 'Inter', sans-serif;
 }
-
-/* ==================== NETWORK CONTROLS ==================== */
 
 .network-controls-ethereal {
   position: absolute;
@@ -2321,7 +2266,7 @@
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   margin-bottom: 12px;
   font-family: 'Inter', sans-serif;
 }
@@ -2353,8 +2298,6 @@
   border-radius: 2px;
   flex-shrink: 0;
 }
-
-/* ==================== NETWORK NODE STYLES ==================== */
 
 .network-node-ethereal {
   cursor: pointer;
@@ -2394,8 +2337,6 @@
     opacity: 1;
   }
 }
-
-/* ==================== RESPONSIVE DESIGN ==================== */
 
 @media (max-width: 1400px) {
   .cw-paths-grid {
@@ -2506,8 +2447,6 @@
   }
 }
 
-/* ==================== PRINT STYLES ==================== */
-
 @media print {
   .cw-header,
   .cw-sidebar,
@@ -2531,8 +2470,6 @@
   }
 }
 
-/* ==================== ACCESSIBILITY ==================== */
-
 .cw-btn:focus-visible,
 .cw-icon-btn:focus-visible,
 .cw-nav-item:focus-visible,
@@ -2549,16 +2486,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .concept-web-page *,
+  .concept-web-page *::before,
+  .concept-web-page *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
-
-/* ==================== HIGH CONTRAST MODE ==================== */
 
 @media (prefers-contrast: high) {
   .cw-card,
@@ -2573,8 +2508,6 @@
   }
 }
 
-/* ==================== DARK MODE ENHANCEMENTS ==================== */
-
 [data-theme-mode="dark"] .cw-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
@@ -2586,8 +2519,6 @@
 [data-theme-mode="dark"] .hover-tooltip-ethereal {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
-
-/* ==================== LIGHT MODE ENHANCEMENTS ==================== */
 
 [data-theme-mode="light"] .cw-card {
   background: white;
@@ -2610,49 +2541,40 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
-/* ==================== END OF FILE ==================== */
-
-
-/* ==================== ENHANCED GRADIENTS & STYLING (AI CHAT STYLE) ==================== */
-
-/* Advanced Gradient Backgrounds */
 [data-theme-mode="dark"] .concept-web-page {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
+  background: linear-gradient(135deg, #0a0a0a 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
 }
 
 [data-theme-mode="light"] .concept-web-page {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%);
 }
 
-/* Enhanced Header with Gradients */
 [data-theme-mode="dark"] .cw-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5) !important;
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .cw-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05) !important;
+  background: linear-gradient(180deg, #ffffff 0%, var(--bg-primary) 100%);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
 }
 
-/* Sidebar Enhanced Styling with Gradients */
 [data-theme-mode="dark"] .cw-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
-    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3) !important;
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme-mode="light"] .cw-sidebar {
   background: linear-gradient(180deg, 
-    color-mix(in srgb, var(--accent) 15%, #ffffff) 0%, 
+    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 0%, 
     color-mix(in srgb, var(--accent) 25%, #ffffff) 50%, 
-    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%) !important;
-  box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%);
+  box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* All Buttons with Gradients */
 .cw-btn-primary,
 .cw-nav-btn.create-playlist-btn,
 .cw-detail-action-btn,
@@ -2672,7 +2594,6 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent) !important;
 }
 
-/* Icon Buttons with Gradients */
 .cw-path-icon,
 .cw-suggestion-icon,
 .cw-resource-concept-icon,
@@ -2680,7 +2601,6 @@
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
 }
 
-/* All Headings - Capital Inter Font */
 .cw-logo,
 .cw-subtitle,
 .cw-paths-title,
@@ -2711,11 +2631,10 @@
 .cw-resource-title {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
   font-weight: 700 !important;
 }
 
-/* Specific heading sizes with proper spacing */
 .cw-paths-title,
 .cw-resources-title {
   letter-spacing: -0.5px !important;
@@ -2734,95 +2653,87 @@
 
 .cw-nav-text,
 .sidebar-heading {
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
 }
 
-/* Cards with Gradients */
 [data-theme-mode="dark"] .cw-card,
 [data-theme-mode="dark"] .cw-path-card,
 [data-theme-mode="dark"] .cw-resource-card,
 [data-theme-mode="dark"] .cw-suggestion-card {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
-  border: 1px solid rgba(215, 179, 140, 0.1) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 [data-theme-mode="light"] .cw-card,
 [data-theme-mode="light"] .cw-path-card,
 [data-theme-mode="light"] .cw-resource-card,
 [data-theme-mode="light"] .cw-suggestion-card {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
-  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  background: linear-gradient(135deg, #ffffff 0%, var(--bg-primary) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Detail Panel with Gradients */
 [data-theme-mode="dark"] .cw-detail-panel {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
-  border-left: 1px solid rgba(215, 179, 140, 0.2) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-left: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .cw-detail-panel {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
-/* Analytics Panel with Gradients */
 [data-theme-mode="dark"] .cw-analytics-panel {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
-  border: 1px solid rgba(215, 179, 140, 0.2) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .cw-analytics-panel {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
-/* Modal with Gradients */
 [data-theme-mode="dark"] .cw-modal {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
-  border: 1px solid rgba(215, 179, 140, 0.2) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .cw-modal {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
-/* Tooltip with Gradients */
 [data-theme-mode="dark"] .hover-tooltip-ethereal {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
-  border: 1px solid rgba(215, 179, 140, 0.2) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .hover-tooltip-ethereal {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
-/* Network Controls with Gradients */
 [data-theme-mode="dark"] .network-controls-ethereal > div,
 [data-theme-mode="dark"] .color-legend-ethereal {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
-  border: 1px solid rgba(215, 179, 140, 0.2) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .network-controls-ethereal > div,
 [data-theme-mode="light"] .color-legend-ethereal {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
-/* Input Fields with Gradients */
 [data-theme-mode="dark"] .cw-form-input,
 [data-theme-mode="dark"] .cw-form-textarea,
 [data-theme-mode="dark"] .cw-form-select,
 [data-theme-mode="dark"] .cw-search input {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
-  border: 1px solid rgba(215, 179, 140, 0.2) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .cw-form-input,
 [data-theme-mode="light"] .cw-form-textarea,
 [data-theme-mode="light"] .cw-form-select,
 [data-theme-mode="light"] .cw-search input {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
-/* Hover Effects with Gradient Overlays */
 .cw-card::before,
 .cw-path-card::before,
 .cw-resource-card::before,
@@ -2846,14 +2757,12 @@
   opacity: 0.05;
 }
 
-/* Progress Bars with Gradients */
 .cw-mastery-fill,
 .cw-timeline-progress-fill,
 .circle {
   background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
 }
 
-/* Accent Text with Gradient */
 .cw-logo,
 .cw-paths-title,
 .cw-resources-title,
@@ -2865,7 +2774,6 @@
   background-clip: text !important;
 }
 
-/* Button Hover Glow Effects */
 .cw-btn-primary::before,
 .cw-step-action::before,
 .cw-resource-action-btn.primary::before {
@@ -2884,7 +2792,6 @@
   opacity: 1;
 }
 
-/* Ensure all buttons have relative positioning for pseudo-elements */
 .cw-btn-primary,
 .cw-step-action,
 .cw-resource-action-btn.primary,
@@ -2896,7 +2803,6 @@
   position: relative;
 }
 
-/* Ambient Background Glow */
 [data-theme-mode="dark"] .concept-web-page::before {
   content: '';
   position: fixed;
@@ -2921,41 +2827,32 @@
   z-index: 0;
 }
 
-/* Ensure content is above ambient glow */
 .cw-layout,
 .cw-header {
   position: relative;
   z-index: 1;
 }
 
-/* Enhanced Scrollbar */
 [data-theme-mode="dark"] ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
 }
 
-/* ==================== END OF ENHANCED GRADIENTS ==================== */
-
-
-/* ==================== ROUNDED CORNERS & TEXT FIXES ==================== */
-
-/* Remove the force boxy design - add rounded corners everywhere */
 .concept-web-page *,
 .concept-web-page *::before,
 .concept-web-page *::after {
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
-/* Specific rounded corners for different elements */
 .cw-header {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .cw-sidebar {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .cw-main {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .cw-btn,
@@ -2991,31 +2888,28 @@
 .cw-analytics-card,
 .cw-path-step,
 .cw-step-indicator {
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
-/* Smaller border radius for badges and small elements */
 .cw-resource-type-badge,
 .cw-card-category,
 .cw-resource-difficulty,
 .legend-color {
-  border-radius: 4px !important;
+  border-radius: 4px;
 }
 
-/* Circular elements */
 .cw-path-progress-circle,
 .cw-step-indicator,
 .legend-color,
 .cw-timeline-dot {
-  border-radius: 50% !important;
+  border-radius: 50%;
 }
 
-/* Fix sidebar text to match Flashcards */
 .cw-nav-text {
   font-size: 11px !important;
   font-weight: 600 !important;
   text-transform: uppercase !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
 }
 
 .cw-nav-icon {
@@ -3023,7 +2917,6 @@
   height: 18px !important;
 }
 
-/* Fix logo to be lowercase */
 .cw-logo {
   text-transform: lowercase !important;
   font-size: 20px !important;
@@ -3031,15 +2924,13 @@
   letter-spacing: -0.5px !important;
 }
 
-/* Fix subtitle */
 .cw-subtitle {
   font-size: 9px !important;
   font-weight: 600 !important;
-  letter-spacing: 1.5px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
-/* Reduce header stats size */
 .cw-stat-mini {
   gap: 2px !important;
 }
@@ -3052,15 +2943,14 @@
 .cw-stat-label {
   font-size: 9px !important;
   font-weight: 600 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
-/* Fix nav button size */
 .cw-nav-btn {
   font-size: 11px !important;
   font-weight: 600 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   padding: 8px 16px !important;
   height: 36px !important;
 }
@@ -3070,17 +2960,15 @@
   height: 12px !important;
 }
 
-/* Fix sidebar heading */
 .sidebar-heading,
 .cw-detail-section-title,
 .legend-title {
   font-size: 9px !important;
   font-weight: 700 !important;
-  letter-spacing: 1.5px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
-/* Fix card titles */
 .cw-card-title {
   font-size: 13px !important;
   font-weight: 700 !important;
@@ -3091,11 +2979,10 @@
 .cw-card-category {
   font-size: 9px !important;
   font-weight: 700 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
-/* Fix path and resource titles */
 .cw-path-name,
 .cw-resource-concept-name {
   font-size: 15px !important;
@@ -3121,7 +3008,6 @@
   text-transform: none !important;
 }
 
-/* Fix button text */
 .cw-btn,
 .cw-filter-btn,
 .cw-resource-action-btn,
@@ -3129,38 +3015,34 @@
 .cw-detail-action-btn {
   font-size: 11px !important;
   font-weight: 600 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
-/* Fix form labels */
 .cw-form-label {
   font-size: 10px !important;
   font-weight: 700 !important;
-  letter-spacing: 1.5px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
-/* Fix stat labels */
 .cw-card-stat-label,
 .cw-detail-stat-label,
 .cw-analytics-label,
 .cw-mastery-label {
   font-size: 9px !important;
   font-weight: 700 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
-/* Fix resource type badge */
 .cw-resource-type-badge {
   font-size: 9px !important;
   font-weight: 700 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
-/* Fix step title */
 .cw-step-title {
   font-size: 12px !important;
   font-weight: 600 !important;
@@ -3168,7 +3050,6 @@
   text-transform: uppercase !important;
 }
 
-/* Fix suggestion title */
 .cw-suggestion-title {
   font-size: 12px !important;
   font-weight: 600 !important;
@@ -3176,7 +3057,6 @@
   text-transform: uppercase !important;
 }
 
-/* Fix resource title */
 .cw-resource-title {
   font-size: 13px !important;
   font-weight: 600 !important;
@@ -3184,7 +3064,6 @@
   text-transform: uppercase !important;
 }
 
-/* Fix detail title */
 .cw-detail-title {
   font-size: 16px !important;
   font-weight: 700 !important;
@@ -3195,11 +3074,10 @@
 .cw-detail-category {
   font-size: 9px !important;
   font-weight: 600 !important;
-  letter-spacing: 1.5px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
-/* Fix modal title */
 .cw-modal-title {
   font-size: 18px !important;
   font-weight: 800 !important;
@@ -3207,7 +3085,6 @@
   text-transform: uppercase !important;
 }
 
-/* Fix empty state title */
 .cw-empty-title {
   font-size: 18px !important;
   font-weight: 800 !important;
@@ -3215,7 +3092,6 @@
   text-transform: uppercase !important;
 }
 
-/* Fix tooltip text */
 .tooltip-header h4 {
   font-size: 12px !important;
   font-weight: 700 !important;
@@ -3226,22 +3102,21 @@
 .tooltip-category {
   font-size: 9px !important;
   font-weight: 600 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
 .tooltip-stat-label {
   font-size: 8px !important;
   font-weight: 700 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
-/* Fix zoom controls */
 .zoom-level {
   font-size: 11px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
 }
 
 .zoom-hint,
@@ -3252,7 +3127,6 @@
   text-transform: none !important;
 }
 
-/* Fix legend items */
 .legend-item {
   font-size: 10px !important;
   font-weight: 500 !important;
@@ -3260,7 +3134,6 @@
   text-transform: none !important;
 }
 
-/* Fix path stat */
 .cw-path-stat {
   font-size: 11px !important;
   font-weight: 500 !important;
@@ -3268,7 +3141,6 @@
   text-transform: none !important;
 }
 
-/* Fix resource meta */
 .cw-resource-author,
 .cw-resource-duration {
   font-size: 10px !important;
@@ -3277,7 +3149,6 @@
   text-transform: none !important;
 }
 
-/* Fix descriptions to be normal case */
 .cw-card-description,
 .cw-path-description,
 .cw-resource-description,
@@ -3293,12 +3164,6 @@
   font-weight: 400 !important;
 }
 
-/* ==================== END OF ROUNDED CORNERS & TEXT FIXES ==================== */
-
-
-
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

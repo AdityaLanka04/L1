@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight , Menu} from 'lucide-react';
+import { ChevronRight, Menu, Users } from 'lucide-react';
 import './Games.css';
 import { API_URL } from '../config';
 
@@ -67,12 +67,12 @@ const Games = () => {
     if (username) {
       loadAllData(username);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [navigate]);
 
   const loadAllData = async (username) => {
     try {
-      // Load all data
+      
       await Promise.all([
         loadGamificationStats(username),
         loadBingoStats(username),
@@ -81,12 +81,13 @@ const Games = () => {
         loadDailyChallenge(username)
       ]);
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
   
-  // Backend now calculates points correctly - no need to recalculate on frontend
+  
 
   const loadGamificationStats = async (username) => {
     try {
@@ -99,7 +100,7 @@ const Games = () => {
         const data = await response.json();
         setGamificationStats(data);
         
-        // Use xp_to_next_level from backend if available, otherwise calculate
+        
         if (data.xp_to_next_level !== undefined) {
           setPointsToNextLevel(data.xp_to_next_level);
         } else {
@@ -108,7 +109,8 @@ const Games = () => {
         }
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadBingoStats = async (username) => {
@@ -121,7 +123,7 @@ const Games = () => {
       if (response.ok) {
         const data = await response.json();
                         
-        // Make sure we have the stats object
+        
         if (data.stats) {
           setBingoStats(data.stats);
                   } else {
@@ -129,7 +131,8 @@ const Games = () => {
       } else {
               }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadWeeklyProgress = async (username) => {
@@ -144,7 +147,8 @@ const Games = () => {
                 setWeeklyProgress(data);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadRecentActivities = async (username) => {
@@ -159,7 +163,8 @@ const Games = () => {
         setRecentActivities(data.activities || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadDailyChallenge = async (username) => {
@@ -175,7 +180,7 @@ const Games = () => {
         setDailyChallengeProgress(data.progress || 0);
       }
     } catch (error) {
-            // Generate a fallback challenge if backend doesn't support it yet
+            
       generateFallbackChallenge();
     }
   };
@@ -201,7 +206,7 @@ const Games = () => {
   };
 
   const calculateExpForLevel = (level) => {
-    // New level thresholds: 0, 100, 282, 500, 800, 1200, 1700, 2300, 3000...
+    
     const thresholds = [0, 100, 282, 500, 800, 1200, 1700, 2300, 3000];
     if (level < thresholds.length) {
       return thresholds[level];
@@ -211,9 +216,9 @@ const Games = () => {
   };
 
   const isTaskCompleted = (task) => {
-    // Use weeklyProgress instead of bingoStats for accurate data
+    
     const statValue = weeklyProgress[task.stat] || 0;
-    // Special handling for study_hours
+    
     if (task.stat === 'study_hours') {
       const hours = Math.floor(weeklyProgress.study_minutes / 60);
       return hours >= task.target;
@@ -222,9 +227,9 @@ const Games = () => {
   };
 
   const getProgress = (task) => {
-    // Use weeklyProgress instead of bingoStats for accurate data
+    
     let statValue = weeklyProgress[task.stat] || 0;
-    // Special handling for study_hours
+    
     if (task.stat === 'study_hours') {
       statValue = Math.floor(weeklyProgress.study_minutes / 60);
     }
@@ -330,9 +335,12 @@ const Games = () => {
           <span className="gm-subtitle">GAMES & CHALLENGES</span>
         </div>
         <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
+          </button>
           <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
+            Dashboard
           </button>
         </nav>
       </header>
@@ -413,7 +421,7 @@ const Games = () => {
               {bingoTasks.map((task) => {
                 const completed = isTaskCompleted(task);
                 const progress = getProgress(task);
-                // Use weeklyProgress for accurate stat values
+                
                 let statValue = weeklyProgress[task.stat] || 0;
                 if (task.stat === 'study_hours') {
                   statValue = Math.floor(weeklyProgress.study_minutes / 60);

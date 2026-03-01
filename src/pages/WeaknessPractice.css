@@ -17,8 +17,6 @@
   flex-direction: column;
 }
 
-/* ==================== HEADER - MATCHING WEAKNESSES PAGE ==================== */
-
 .practice-header {
   position: sticky;
   top: 0;
@@ -37,15 +35,15 @@
 }
 
 [data-theme-mode="dark"] .practice-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .practice-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .practice-header-left {
@@ -119,7 +117,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -168,7 +166,6 @@
   color: #D7B38C;
 }
 
-/* Start Screen */
 .practice-start-screen {
   display: flex;
   justify-content: center;
@@ -179,7 +176,7 @@
 
 .start-card {
   background: rgba(20, 20, 20, 0.8);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 16px;
   padding: 3rem;
   max-width: 500px;
@@ -244,7 +241,7 @@
 
 .start-practice-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .start-practice-btn:disabled {
@@ -252,7 +249,6 @@
   cursor: not-allowed;
 }
 
-/* Practice Main */
 .practice-main {
   display: flex;
   justify-content: center;
@@ -278,7 +274,7 @@
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(215, 179, 140, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .question-topic {
@@ -289,7 +285,7 @@
 
 .question-difficulty {
   padding: 0.25rem 0.75rem;
-  background: rgba(215, 179, 140, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-radius: 12px;
   font-size: 0.8rem;
   color: #D7B38C;
@@ -317,7 +313,7 @@
 .option-btn {
   padding: 1.25rem;
   background: rgba(30, 30, 30, 0.6);
-  border: 2px solid rgba(215, 179, 140, 0.2);
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
   color: #e0e0e0;
   font-size: 1rem;
@@ -327,12 +323,12 @@
 }
 
 .option-btn:hover:not(:disabled) {
-  background: rgba(215, 179, 140, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-color: #D7B38C;
 }
 
 .option-btn.selected {
-  background: rgba(215, 179, 140, 0.2);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   border-color: #D7B38C;
 }
 
@@ -356,7 +352,7 @@
   width: 100%;
   padding: 1rem;
   background: rgba(30, 30, 30, 0.6);
-  border: 2px solid rgba(215, 179, 140, 0.2);
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
   color: #e0e0e0;
   font-size: 1rem;
@@ -379,7 +375,7 @@
   flex: 1;
   padding: 1.5rem;
   background: rgba(30, 30, 30, 0.6);
-  border: 2px solid rgba(215, 179, 140, 0.2);
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
   color: #e0e0e0;
   font-size: 1.1rem;
@@ -389,12 +385,12 @@
 }
 
 .tf-btn:hover:not(:disabled) {
-  background: rgba(215, 179, 140, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-color: #D7B38C;
 }
 
 .tf-btn.selected {
-  background: rgba(215, 179, 140, 0.2);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   border-color: #D7B38C;
 }
 
@@ -410,7 +406,6 @@
   color: #ef4444;
 }
 
-/* Feedback Panel */
 .feedback-panel {
   margin-top: 2rem;
   padding: 1.5rem;
@@ -479,7 +474,6 @@
   color: #D7B38C;
 }
 
-/* Question Actions */
 .question-actions {
   display: flex;
   justify-content: center;
@@ -505,7 +499,7 @@
 .submit-answer-btn:hover:not(:disabled),
 .next-question-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .submit-answer-btn:disabled {
@@ -514,7 +508,6 @@
   transform: none;
 }
 
-/* Summary Screen */
 .practice-summary-screen {
   display: flex;
   justify-content: center;
@@ -525,7 +518,7 @@
 
 .summary-card {
   background: rgba(20, 20, 20, 0.8);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 16px;
   padding: 3rem;
   max-width: 600px;
@@ -580,7 +573,7 @@
 
 .performance-level {
   padding: 1rem;
-  background: rgba(215, 179, 140, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-radius: 12px;
   margin-bottom: 2rem;
 }
@@ -652,7 +645,7 @@
 
 .summary-btn.secondary {
   background: transparent;
-  border: 1px solid rgba(215, 179, 140, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   color: #D7B38C;
 }
 
@@ -661,14 +654,13 @@
 }
 
 .summary-btn.primary:hover {
-  box-shadow: 0 8px 20px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .summary-btn.secondary:hover {
-  background: rgba(215, 179, 140, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
-/* Animations */
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -693,7 +685,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .practice-header {
     padding: 1rem 1.5rem;
@@ -716,8 +707,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

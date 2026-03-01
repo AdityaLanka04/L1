@@ -24,7 +24,6 @@ import {
 , Menu} from 'lucide-react';
 import './CustomizeDashboard.css';
 
-// Widget definitions with default configurations
 const WIDGET_DEFINITIONS = {
   'ai-tutor': {
     id: 'ai-tutor',
@@ -111,7 +110,6 @@ const WIDGET_DEFINITIONS = {
   }
 };
 
-// Default layout configuration (matches Dashboard.js DEFAULT_LAYOUT_WIDGETS)
 const DEFAULT_LAYOUT = {
   name: 'Default',
   widgets: [
@@ -127,7 +125,6 @@ const DEFAULT_LAYOUT = {
   ]
 };
 
-// Preset color options
 const COLOR_PRESETS = [
   { name: 'Default', value: null },
   { name: 'Gold', value: '#D7B38C' },
@@ -140,7 +137,6 @@ const COLOR_PRESETS = [
   { name: 'Pink', value: '#E91E63' }
 ];
 
-// Blank layout for new layouts (completely empty - user can add any widgets they want)
 const BLANK_LAYOUT = {
   name: 'New Layout',
   widgets: []
@@ -152,19 +148,19 @@ const GRID_ROWS = 8;
 const CustomizeDashboard = () => {
   const navigate = useNavigate();
   
-  // Layout state
+  
   const [placedWidgets, setPlacedWidgets] = useState([]);
   const [availableWidgets, setAvailableWidgets] = useState([]);
   const [savedLayouts, setSavedLayouts] = useState([]);
   const [currentLayoutName, setCurrentLayoutName] = useState('Default');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
-  // Drag state
+  
   const [draggedWidget, setDraggedWidget] = useState(null);
   const [dragSource, setDragSource] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
   
-  // UI state
+  
   const [selectedWidget, setSelectedWidget] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -173,10 +169,10 @@ const CustomizeDashboard = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [shakeWidget, setShakeWidget] = useState(null);
   
-  // Check if layout is locked (Default layout)
+  
   const isLayoutLocked = currentLayoutName === 'Default';
   
-  // Custom alert/confirm modals
+  
   const [alertModal, setAlertModal] = useState({ show: false, message: '' });
   const [confirmModal, setConfirmModal] = useState({
     show: false,
@@ -184,7 +180,7 @@ const CustomizeDashboard = () => {
     onConfirm: null
   });
 
-  // Load saved layouts on mount
+  
   useEffect(() => {
     loadSavedLayouts();
     loadCurrentLayout();
@@ -195,10 +191,10 @@ const CustomizeDashboard = () => {
       const saved = localStorage.getItem('dashboardLayouts');
       let layouts = saved ? JSON.parse(saved) : [];
       
-      // Remove any saved "Default" layout - we always use the hardcoded one
+      
       layouts = layouts.filter((l) => l.name !== 'Default');
       
-      // Always add the hardcoded Default layout first
+      
       layouts = [DEFAULT_LAYOUT, ...layouts];
       
       setSavedLayouts(layouts);
@@ -212,7 +208,7 @@ const CustomizeDashboard = () => {
     try {
       const layoutName = localStorage.getItem('currentLayoutName') || 'Default';
       
-      // For Default layout, always use the hardcoded DEFAULT_LAYOUT
+      
       if (layoutName === 'Default') {
         applyLayout(DEFAULT_LAYOUT, 'Default');
         return;
@@ -235,7 +231,7 @@ const CustomizeDashboard = () => {
     setPlacedWidgets(layout.widgets || []);
     setCurrentLayoutName(name);
     
-    // Calculate available widgets
+    
     const placedIds = (layout.widgets || []).map(w => w.id);
     const available = Object.keys(WIDGET_DEFINITIONS)
       .filter(id => !placedIds.includes(id))
@@ -244,14 +240,14 @@ const CustomizeDashboard = () => {
     setHasUnsavedChanges(false);
   };
 
-  // Drag handlers
+  
   const triggerShake = (widgetId) => {
     setShakeWidget(widgetId);
     setTimeout(() => setShakeWidget(null), 500);
   };
 
   const handleDragStart = (e, widget, source) => {
-    // Block dragging if layout is locked
+    
     if (isLayoutLocked) {
       e.preventDefault();
       triggerShake(widget.id);
@@ -275,7 +271,7 @@ const CustomizeDashboard = () => {
       ? { cols: draggedWidget.cols, rows: draggedWidget.rows }
       : widgetDef.sizes[defaultSizeKey];
     
-    // Check if placement is valid
+    
     const isValid = canPlaceWidget(col, row, size.cols, size.rows, draggedWidget.id);
     
     setDropTarget({ col, row, valid: isValid });
@@ -289,7 +285,7 @@ const CustomizeDashboard = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Block dropping if layout is locked
+    
     if (isLayoutLocked) {
       resetDragState();
       return;
@@ -307,7 +303,7 @@ const CustomizeDashboard = () => {
       : widgetDef.sizes[defaultSizeKey];
     
     if (dragSource === 'available') {
-      // Add new widget from available list
+      
       const newWidget = {
         id: draggedWidget.id,
         col,
@@ -321,7 +317,7 @@ const CustomizeDashboard = () => {
       setPlacedWidgets(prev => [...prev, newWidget]);
       setAvailableWidgets(prev => prev.filter(w => w.id !== draggedWidget.id));
     } else if (dragSource === 'grid') {
-      // Move existing widget
+      
       setPlacedWidgets(prev => prev.map(w => 
         w.id === draggedWidget.id ? { ...w, col, row } : w
       ));
@@ -338,12 +334,12 @@ const CustomizeDashboard = () => {
   };
 
   const canPlaceWidget = (col, row, cols, rows, excludeId = null) => {
-    // Check bounds
+    
     if (col < 1 || row < 1 || col + cols - 1 > GRID_COLS || row + rows - 1 > GRID_ROWS) {
       return false;
     }
     
-    // Check overlap with other widgets
+    
     for (const widget of placedWidgets) {
       if (widget.id === excludeId) continue;
       
@@ -352,7 +348,7 @@ const CustomizeDashboard = () => {
       const newRight = col + cols - 1;
       const newBottom = row + rows - 1;
       
-      // Check if rectangles overlap
+      
       if (!(col > wRight || newRight < widget.col || row > wBottom || newBottom < widget.row)) {
         return false;
       }
@@ -361,9 +357,9 @@ const CustomizeDashboard = () => {
     return true;
   };
 
-  // Widget manipulation
+  
   const removeWidget = (widgetId) => {
-    // Block if layout is locked
+    
     if (isLayoutLocked) {
       triggerShake(widgetId);
       return;
@@ -385,7 +381,7 @@ const CustomizeDashboard = () => {
   };
 
   const setWidgetSize = (widgetId, size) => {
-    // Block if layout is locked
+    
     if (isLayoutLocked) {
       triggerShake(widgetId);
       return;
@@ -396,7 +392,7 @@ const CustomizeDashboard = () => {
     
     const def = WIDGET_DEFINITIONS[widgetId];
     
-    // Don't allow resizing for fixed size widgets
+    
     if (def.fixedSize) {
       return;
     }
@@ -404,7 +400,7 @@ const CustomizeDashboard = () => {
     const newSize = def.sizes[size];
     if (!newSize) return;
     
-    // Check if new size is valid
+    
     if (canPlaceWidget(widget.col, widget.row, newSize.cols, newSize.rows, widgetId)) {
       setPlacedWidgets(prev => prev.map(w => 
         w.id === widgetId ? { ...w, cols: newSize.cols, rows: newSize.rows, size: size } : w
@@ -419,7 +415,7 @@ const CustomizeDashboard = () => {
     const def = WIDGET_DEFINITIONS[widget.id];
     if (!def || !def.sizes) return 'M';
     
-    // Check which size matches current dimensions
+    
     for (const [sizeKey, sizeVal] of Object.entries(def.sizes)) {
       if (widget.cols === sizeVal.cols && widget.rows === sizeVal.rows) {
         return sizeKey;
@@ -429,7 +425,7 @@ const CustomizeDashboard = () => {
   };
 
   const setWidgetColor = (widgetId, color) => {
-    // Block if layout is locked
+    
     if (isLayoutLocked) {
       triggerShake(widgetId);
       return;
@@ -442,9 +438,9 @@ const CustomizeDashboard = () => {
     setShowColorPicker(false);
   };
 
-  // Layout management
+  
   const saveLayout = (name = currentLayoutName) => {
-    // Prevent saving over Default layout
+    
     if (name === 'Default') {
       setAlertModal({ show: true, message: 'Cannot modify the Default layout. Use "Save As" to create a new layout.' });
       return false;
@@ -457,11 +453,11 @@ const CustomizeDashboard = () => {
     };
     
     try {
-      // Save as current layout
+      
       localStorage.setItem('currentDashboardLayout', JSON.stringify(layout));
       localStorage.setItem('currentLayoutName', name);
       
-      // Update saved layouts list
+      
       const layouts = [...savedLayouts];
       const existingIndex = layouts.findIndex(l => l.name === name);
       
@@ -486,17 +482,17 @@ const CustomizeDashboard = () => {
     }
   };
 
-  // Create new layout with blank slate
+  
   const createNewLayout = (name) => {
     if (!name.trim()) return;
     
-    // Check if name already exists
+    
     if (savedLayouts.some(l => l.name === name)) {
       setAlertModal({ show: true, message: 'A layout with this name already exists.' });
       return;
     }
     
-    // Prevent using "Default" as name
+    
     if (name === 'Default') {
       setAlertModal({ show: true, message: 'Cannot use "Default" as layout name.' });
       return;
@@ -509,16 +505,16 @@ const CustomizeDashboard = () => {
     };
     
     try {
-      // Save as current layout
+      
       localStorage.setItem('currentDashboardLayout', JSON.stringify(newLayout));
       localStorage.setItem('currentLayoutName', name);
       
-      // Add to saved layouts
+      
       const layouts = [...savedLayouts, newLayout];
       localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
       setSavedLayouts(layouts);
       
-      // Apply the new layout
+      
       applyLayout(newLayout, name);
       
       setShowCreateModal(false);
@@ -530,15 +526,15 @@ const CustomizeDashboard = () => {
   };
 
   const loadLayout = (layout) => {
-    // For Default layout, always use the hardcoded DEFAULT_LAYOUT
+    
     if (layout.name === 'Default') {
       applyLayout(DEFAULT_LAYOUT, 'Default');
-      // Save to localStorage so Dashboard reads it
+      
       localStorage.setItem('currentDashboardLayout', JSON.stringify(DEFAULT_LAYOUT));
       localStorage.setItem('currentLayoutName', 'Default');
     } else {
       applyLayout(layout, layout.name);
-      // Save to localStorage so Dashboard reads it
+      
       localStorage.setItem('currentDashboardLayout', JSON.stringify(layout));
       localStorage.setItem('currentLayoutName', layout.name);
     }
@@ -595,19 +591,19 @@ const CustomizeDashboard = () => {
   };
 
   const resetToDefault = () => {
-    // If already on Default layout, do nothing
+    
     if (currentLayoutName === 'Default') {
       return;
     }
 
     const resetCurrentLayout = () => {
-      // Reset the current layout to default configuration but keep the name
+      
       const resetLayout = {
         ...DEFAULT_LAYOUT,
         name: currentLayoutName
       };
       
-      // Update in saved layouts
+      
       const layouts = savedLayouts.map(l => {
         if (l.name === currentLayoutName) {
           return resetLayout;
@@ -618,7 +614,7 @@ const CustomizeDashboard = () => {
       localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
       setSavedLayouts(layouts);
       
-      // Apply the reset layout
+      
       applyLayout(resetLayout, currentLayoutName);
       localStorage.setItem('currentDashboardLayout', JSON.stringify(resetLayout));
       setHasUnsavedChanges(false);
@@ -660,7 +656,7 @@ const CustomizeDashboard = () => {
     navigate('/dashboard');
   };
 
-  // Render grid cells
+  
   const renderGridCells = () => {
     const cells = [];
     
@@ -691,7 +687,7 @@ const CustomizeDashboard = () => {
     return cells;
   };
 
-  // Render placed widgets
+  
   const renderPlacedWidgets = () => {
     return placedWidgets.map(widget => {
       const def = WIDGET_DEFINITIONS[widget.id];
@@ -808,7 +804,6 @@ const CustomizeDashboard = () => {
 
   return (
     <div className="cd-page">
-      {/* Header - Profile Style */}
       <header className="cd-header">
         <div className="cd-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -842,7 +837,6 @@ const CustomizeDashboard = () => {
       </header>
 
       <div className="cd-main">
-        {/* Sidebar - Available Widgets */}
         <aside className="cd-sidebar">
           <div className="cd-sidebar-section">
             <h3>Available Widgets</h3>
@@ -939,7 +933,6 @@ const CustomizeDashboard = () => {
           </div>
         </aside>
 
-        {/* Grid Area */}
         <div className="cd-grid-container">
           <div className="cd-grid-info">
             <span>Current: <strong>{currentLayoutName}</strong></span>
@@ -972,7 +965,6 @@ const CustomizeDashboard = () => {
         </div>
       </div>
 
-      {/* Save As Modal */}
       {showSaveModal && (
         <div className="cd-modal-overlay" onClick={() => setShowSaveModal(false)}>
           <div className="cd-modal" onClick={(e) => e.stopPropagation()}>
@@ -1006,7 +998,6 @@ const CustomizeDashboard = () => {
         </div>
       )}
 
-      {/* Delete Confirm Modal */}
       {showDeleteConfirm && (
         <div className="cd-modal-overlay" onClick={() => setShowDeleteConfirm(null)}>
           <div className="cd-modal cd-modal-small" onClick={(e) => e.stopPropagation()}>
@@ -1032,7 +1023,6 @@ const CustomizeDashboard = () => {
         </div>
       )}
 
-      {/* Custom Alert Modal */}
       {alertModal.show && (
         <div className="cd-modal-overlay" onClick={() => setAlertModal({ show: false, message: '' })}>
           <div className="cd-modal cd-modal-small" onClick={(e) => e.stopPropagation()}>
@@ -1055,7 +1045,6 @@ const CustomizeDashboard = () => {
         </div>
       )}
 
-      {/* Custom Confirm Modal */}
       {confirmModal.show && (
         <div className="cd-modal-overlay" onClick={() => setConfirmModal({ show: false, message: '', onConfirm: null })}>
           <div className="cd-modal cd-modal-small" onClick={(e) => e.stopPropagation()}>
@@ -1084,7 +1073,6 @@ const CustomizeDashboard = () => {
         </div>
       )}
 
-      {/* Create New Layout Modal */}
       {showCreateModal && (
         <div className="cd-modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="cd-modal" onClick={(e) => e.stopPropagation()}>

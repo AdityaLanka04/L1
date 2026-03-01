@@ -1,5 +1,3 @@
-# websocket_manager.py
-# WebSocket Connection Manager for Quiz Battles
 
 from fastapi import WebSocket
 from typing import Dict, List
@@ -11,7 +9,6 @@ class ConnectionManager:
     """Manages WebSocket connections for real-time notifications"""
     
     def __init__(self):
-        # Store active connections: {user_id: websocket}
         self.active_connections: Dict[int, WebSocket] = {}
     
     async def connect(self, websocket: WebSocket, user_id: int):
@@ -35,7 +32,6 @@ class ConnectionManager:
                 return True
             except Exception as e:
                 logger.error(f" Error sending message to user {user_id}: {str(e)}")
-                # Remove dead connection
                 if user_id in self.active_connections:
                     del self.active_connections[user_id]
                 return False
@@ -51,10 +47,7 @@ class ConnectionManager:
                 success_count += 1
         return success_count
 
-# Global connection manager instance
 manager = ConnectionManager()
-
-# ==================== NOTIFICATION FUNCTIONS ====================
 
 async def notify_battle_challenge(opponent_id: int, battle_data: dict):
     """Notify user about a new battle challenge"""

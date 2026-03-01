@@ -1,19 +1,14 @@
-/**
- * Knowledge Graph Service
- * Frontend service for interacting with the Knowledge Graph API
- * Provides concept relationships, mastery tracking, and learning paths
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
 class KnowledgeGraphService {
   constructor() {
-    this.baseUrl = `${API_URL}/api/agents/knowledge-graph`;
+    
+    this.baseUrl = `${API_URL}/agents/knowledge-graph`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -22,11 +17,9 @@ class KnowledgeGraphService {
     };
   }
 
-  // ==================== SYSTEM STATUS ====================
+  
 
-  /**
-   * Get knowledge graph connection status
-   */
+  
   async getStatus() {
     try {
       const response = await fetch(`${this.baseUrl}/status`, {
@@ -45,11 +38,9 @@ class KnowledgeGraphService {
     }
   }
 
-  // ==================== USER INITIALIZATION ====================
+  
 
-  /**
-   * Initialize a user in the knowledge graph
-   */
+  
   async initializeUser(userId, userData = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/user/${userId}/initialize`, {
@@ -69,11 +60,9 @@ class KnowledgeGraphService {
     }
   }
 
-  // ==================== CONCEPT INTERACTIONS ====================
+  
 
-  /**
-   * Record a concept interaction (study, review, etc.)
-   */
+  
   async recordConceptInteraction(userId, concept, interactionType, performance = null) {
     try {
       const response = await fetch(`${this.baseUrl}/user/${userId}/concept-interaction`, {
@@ -81,8 +70,8 @@ class KnowledgeGraphService {
         headers: this.getHeaders(),
         body: JSON.stringify({
           concept,
-          interaction_type: interactionType, // 'study', 'review', 'quiz', 'flashcard'
-          performance: performance // 0.0 - 1.0 or null
+          interaction_type: interactionType, 
+          performance: performance 
         })
       });
 
@@ -97,11 +86,9 @@ class KnowledgeGraphService {
     }
   }
 
-  // ==================== USER MASTERY ====================
+  
 
-  /**
-   * Get all concept mastery data for a user
-   */
+  
   async getUserMastery(userId, limit = 50) {
     try {
       const response = await fetch(`${this.baseUrl}/user/${userId}/mastery?limit=${limit}`, {
@@ -120,9 +107,7 @@ class KnowledgeGraphService {
     }
   }
 
-  /**
-   * Get user's weak concepts
-   */
+  
   async getWeakConcepts(userId, threshold = 0.5, limit = 10) {
     try {
       const response = await fetch(
@@ -144,9 +129,7 @@ class KnowledgeGraphService {
     }
   }
 
-  /**
-   * Get user's strong concepts
-   */
+  
   async getStrongConcepts(userId, threshold = 0.7, limit = 10) {
     try {
       const response = await fetch(
@@ -168,9 +151,7 @@ class KnowledgeGraphService {
     }
   }
 
-  /**
-   * Get mastery breakdown by domain/subject
-   */
+  
   async getDomainMastery(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/user/${userId}/domain-mastery`, {
@@ -189,11 +170,9 @@ class KnowledgeGraphService {
     }
   }
 
-  // ==================== LEARNING PATHS ====================
+  
 
-  /**
-   * Get personalized learning path for a topic
-   */
+  
   async getLearningPath(userId, topic, maxConcepts = 10) {
     try {
       const response = await fetch(
@@ -215,9 +194,7 @@ class KnowledgeGraphService {
     }
   }
 
-  /**
-   * Find concepts user should learn based on current knowledge
-   */
+  
   async getKnowledgeGaps(userId, limit = 10) {
     try {
       const response = await fetch(
@@ -239,9 +216,7 @@ class KnowledgeGraphService {
     }
   }
 
-  /**
-   * Get recommended topics based on learning progress
-   */
+  
   async getRecommendedTopics(userId, limit = 5) {
     try {
       const response = await fetch(
@@ -263,11 +238,9 @@ class KnowledgeGraphService {
     }
   }
 
-  // ==================== ANALYTICS ====================
+  
 
-  /**
-   * Get comprehensive learning analytics
-   */
+  
   async getLearningAnalytics(userId, days = 30) {
     try {
       const response = await fetch(
@@ -289,11 +262,9 @@ class KnowledgeGraphService {
     }
   }
 
-  // ==================== CONCEPT MANAGEMENT ====================
+  
 
-  /**
-   * Add a new concept to the knowledge graph
-   */
+  
   async addConcept(concept, domain = null, description = null, prerequisites = []) {
     try {
       const response = await fetch(`${this.baseUrl}/concept`, {
@@ -318,9 +289,7 @@ class KnowledgeGraphService {
     }
   }
 
-  /**
-   * Get related concepts
-   */
+  
   async getRelatedConcepts(concept, relationshipType = null, limit = 10) {
     try {
       const params = new URLSearchParams({ limit: limit.toString() });
@@ -347,11 +316,9 @@ class KnowledgeGraphService {
     }
   }
 
-  // ==================== CONVENIENCE METHODS ====================
+  
 
-  /**
-   * Record a flashcard review
-   */
+  
   async recordFlashcardReview(userId, concept, correct) {
     return this.recordConceptInteraction(
       userId,
@@ -361,9 +328,7 @@ class KnowledgeGraphService {
     );
   }
 
-  /**
-   * Record a quiz result
-   */
+  
   async recordQuizResult(userId, concept, score) {
     return this.recordConceptInteraction(
       userId,
@@ -373,9 +338,7 @@ class KnowledgeGraphService {
     );
   }
 
-  /**
-   * Record studying a concept
-   */
+  
   async recordStudy(userId, concept) {
     return this.recordConceptInteraction(
       userId,
@@ -385,9 +348,7 @@ class KnowledgeGraphService {
     );
   }
 
-  /**
-   * Get comprehensive user learning data
-   */
+  
   async getUserLearningData(userId) {
     try {
       const [mastery, weakConcepts, strongConcepts, domainMastery, gaps, recommendations, analytics] = 
@@ -417,9 +378,7 @@ class KnowledgeGraphService {
     }
   }
 
-  /**
-   * Health check
-   */
+  
   async healthCheck() {
     try {
       const status = await this.getStatus();

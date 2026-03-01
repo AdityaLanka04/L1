@@ -1,13 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-/* ==================== FORCE BOXY DESIGN ==================== */
 .shared-viewer-page *,
 .shared-viewer-page *::before,
 .shared-viewer-page *::after,
 .shared-viewer-loading *,
 .shared-viewer-loading *::before,
 .shared-viewer-loading *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 :root {
@@ -15,8 +12,8 @@
   --bg-bottom: var(--bg-secondary);
   --panel: var(--bg-secondary);
   --border: var(--border);
-  --text-primary: #EAECEF;
-  --text-secondary: #B8C0CC;
+  --text-primary: var(--text-primary);
+  --text-secondary: var(--text-secondary);
   --accent: #D7B38C;
   --success: #10B981;
   --warning: #F59E0B;
@@ -122,7 +119,7 @@
   color: var(--accent);
   padding: 8px 16px;
   font-size: 11px;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
@@ -242,7 +239,6 @@
   padding: 32px;
 }
 
-/* Chat Messages */
 .chat-messages {
   display: flex;
   flex-direction: column;
@@ -324,7 +320,6 @@
   font-size: 16px;
 }
 
-/* Note Content */
 .note-content {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -395,7 +390,6 @@
   margin: 16px 0;
 }
 
-/* Edit Controls */
 .edit-controls {
   display: flex;
   flex-direction: column;
@@ -476,7 +470,6 @@
   transform: translateY(-2px);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .shared-viewer-container {
     padding: 20px 16px;

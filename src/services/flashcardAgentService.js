@@ -1,8 +1,4 @@
-/**
- * Flashcard Agent Service
- * Frontend service for interacting with the Flashcard Agent API
- * Provides AI-powered flashcard generation, review, and analysis
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
@@ -11,9 +7,7 @@ class FlashcardAgentService {
     this.baseUrl = `${API_URL}/agents/flashcards`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -22,9 +16,7 @@ class FlashcardAgentService {
     };
   }
 
-  /**
-   * Generic invoke method for the flashcard agent
-   */
+  
   async invoke(action, params) {
     try {
       const response = await fetch(this.baseUrl, {
@@ -53,9 +45,7 @@ class FlashcardAgentService {
     }
   }
 
-  /**
-   * Generate flashcards from topic or content
-   */
+  
   async generate(userId, topic, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/generate`, {
@@ -82,9 +72,7 @@ class FlashcardAgentService {
     }
   }
 
-  /**
-   * Process a review session and get spaced repetition updates
-   */
+  
   async review(userId, reviewResults, sessionId = null) {
     try {
       const response = await fetch(`${this.baseUrl}/review`, {
@@ -108,9 +96,7 @@ class FlashcardAgentService {
     }
   }
 
-  /**
-   * Analyze flashcard performance for a user
-   */
+  
   async analyze(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/analyze?user_id=${userId}`, {
@@ -129,9 +115,7 @@ class FlashcardAgentService {
     }
   }
 
-  /**
-   * Get study recommendations for a user
-   */
+  
   async getRecommendations(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/recommendations?user_id=${userId}`, {
@@ -150,9 +134,7 @@ class FlashcardAgentService {
     }
   }
 
-  /**
-   * Get an explanation for a flashcard concept
-   */
+  
   async explain(userId, concept, sessionId = null) {
     try {
       const response = await fetch(`${this.baseUrl}/explain`, {

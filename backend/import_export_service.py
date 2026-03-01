@@ -10,10 +10,11 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from groq import Groq
 import os
+from activity_logger import log_ai_tokens
+from ai_usage import extract_usage_from_openai_like
 
 logger = logging.getLogger(__name__)
 
-# Initialize Groq client
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 class ImportExportService:
@@ -21,8 +22,54 @@ class ImportExportService:
     
     def __init__(self, db: Session):
         self.db = db
+
+    def _combine_titles(self, titles: List[str], max_titles: int = 2, fallback: str = "Untitled") -> str:
+        cleaned = []
+        seen = set()
+        for title in titles:
+            if not title:
+                continue
+            text = str(title).strip()
+            if not text:
+                continue
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            cleaned.append(text)
+
+        if not cleaned:
+            return fallback
+        if len(cleaned) == 1:
+            return cleaned[0]
+
+        head = cleaned[:max_titles]
+        rest = len(cleaned) - len(head)
+        title = ", ".join(head)
+        if rest > 0:
+            title = f"{title} +{rest} more"
+        return title
+
+    def _log_groq_usage(self, user_id: int, tool_name: str, response):
+        usage = extract_usage_from_openai_like(response)
+        if not usage:
+            return
+        try:
+            log_ai_tokens(
+                user_id=user_id,
+                tool_name=tool_name,
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0),
+                model="llama-3.3-70b-versatile",
+                metadata={
+                    "provider": "groq",
+                    "source": "import_export"
+                }
+            )
+        except Exception:
+            pass
         
-    # ==================== NOTES CONVERSIONS ====================
     
     async def notes_to_flashcards(
         self, 
@@ -35,7 +82,6 @@ class ImportExportService:
         from models import Note, FlashcardSet, Flashcard
         
         try:
-            # Get notes
             notes = self.db.query(Note).filter(
                 Note.id.in_(note_ids),
                 Note.user_id == user_id
@@ -44,12 +90,10 @@ class ImportExportService:
             if not notes:
                 return {"success": False, "error": "No notes found"}
             
-            # Combine note content
             combined_content = "\n\n".join([
                 f"# {note.title}\n{note.content}" for note in notes
             ])
             
-            # Generate flashcards using AI
             prompt = f"""Generate {card_count} flashcards from these notes.
 Difficulty: {difficulty}
 
@@ -65,10 +109,11 @@ Return ONLY a JSON array of flashcards with this exact format:
                 temperature=0.7,
                 max_tokens=2000
             )
+            self._log_groq_usage(user_id, "flashcards_ai", response)
+            self._log_groq_usage(user_id, "flashcards_ai", response)
             
             content = response.choices[0].message.content.strip()
             
-            # Parse JSON
             if "```json" in content:
                 content = content.split("```json")[1].split("```")[0].strip()
             elif "```" in content:
@@ -76,8 +121,7 @@ Return ONLY a JSON array of flashcards with this exact format:
             
             flashcards_data = json.loads(content)
             
-            # Create flashcard set
-            set_title = f"Flashcards from {len(notes)} note(s)"
+            set_title = self._combine_titles([note.title for note in notes], fallback="Flashcards")
             flashcard_set = FlashcardSet(
                 user_id=user_id,
                 title=set_title,
@@ -86,7 +130,6 @@ Return ONLY a JSON array of flashcards with this exact format:
             self.db.add(flashcard_set)
             self.db.flush()
             
-            # Create flashcards
             for card_data in flashcards_data:
                 flashcard = Flashcard(
                     set_id=flashcard_set.id,
@@ -154,6 +197,9 @@ Return ONLY a JSON array with this exact format:
                 temperature=0.7,
                 max_tokens=3000
             )
+            self._log_groq_usage(user_id, "media_notes_ai", response)
+            self._log_groq_usage(user_id, "quiz_ai", response)
+            self._log_groq_usage(user_id, "question_bank_ai", response)
             
             content = response.choices[0].message.content.strip()
             if "```json" in content:
@@ -163,8 +209,7 @@ Return ONLY a JSON array with this exact format:
             
             questions_data = json.loads(content)
             
-            # Create question set
-            set_title = f"Questions from {len(notes)} note(s)"
+            set_title = self._combine_titles([note.title for note in notes], fallback="Practice Questions")
             question_set = QuestionSet(
                 user_id=user_id,
                 title=set_title,
@@ -175,7 +220,6 @@ Return ONLY a JSON array with this exact format:
             self.db.add(question_set)
             self.db.flush()
             
-            # Create questions
             for idx, q_data in enumerate(questions_data):
                 question = Question(
                     set_id=question_set.id,
@@ -204,7 +248,6 @@ Return ONLY a JSON array with this exact format:
             return {"success": False, "error": str(e)}
 
     
-    # ==================== FLASHCARDS CONVERSIONS ====================
     
     async def flashcards_to_notes(
         self,
@@ -224,7 +267,6 @@ Return ONLY a JSON array with this exact format:
             if not flashcard_sets:
                 return {"success": False, "error": "No flashcard sets found"}
             
-            # Collect all flashcards
             all_cards = []
             for fset in flashcard_sets:
                 cards = self.db.query(Flashcard).filter(
@@ -232,7 +274,6 @@ Return ONLY a JSON array with this exact format:
                 ).all()
                 all_cards.extend([(fset.title, card) for card in cards])
             
-            # Generate note content
             if format_style == "structured":
                 content = self._format_flashcards_structured(all_cards)
             elif format_style == "qa":
@@ -240,8 +281,7 @@ Return ONLY a JSON array with this exact format:
             else:
                 content = self._format_flashcards_summary(all_cards)
             
-            # Create note
-            note_title = f"Study Guide from {len(flashcard_sets)} Flashcard Set(s)"
+            note_title = self._combine_titles([fs.title for fs in flashcard_sets], fallback="Study Guide")
             note = Note(
                 user_id=user_id,
                 title=note_title,
@@ -315,7 +355,6 @@ Return ONLY a JSON array with this exact format:
             if not flashcard_sets:
                 return {"success": False, "error": "No flashcard sets found"}
             
-            # Collect flashcards
             all_cards = []
             for fset in flashcard_sets:
                 cards = self.db.query(Flashcard).filter(
@@ -323,10 +362,9 @@ Return ONLY a JSON array with this exact format:
                 ).all()
                 all_cards.extend(cards)
             
-            # Generate questions from flashcards using AI
             cards_text = "\n".join([
                 f"Q: {card.question}\nA: {card.answer}" 
-                for card in all_cards[:20]  # Limit to avoid token limits
+                for card in all_cards[:20]
             ])
             
             prompt = f"""Convert these flashcards into multiple-choice questions.
@@ -358,8 +396,7 @@ Return ONLY a JSON array:
             
             questions_data = json.loads(content)
             
-            # Create question set
-            set_title = f"Quiz from {len(flashcard_sets)} Flashcard Set(s)"
+            set_title = self._combine_titles([fs.title for fs in flashcard_sets], fallback="Quiz")
             question_set = QuestionSet(
                 user_id=user_id,
                 title=set_title,
@@ -370,7 +407,6 @@ Return ONLY a JSON array:
             self.db.add(question_set)
             self.db.flush()
             
-            # Create questions
             for idx, q_data in enumerate(questions_data):
                 question = Question(
                     set_id=question_set.id,
@@ -397,7 +433,6 @@ Return ONLY a JSON array:
             return {"success": False, "error": str(e)}
 
     
-    # ==================== QUESTIONS CONVERSIONS ====================
     
     async def questions_to_flashcards(
         self,
@@ -416,8 +451,7 @@ Return ONLY a JSON array:
             if not question_sets:
                 return {"success": False, "error": "No question sets found"}
             
-            # Create flashcard set
-            set_title = f"Flashcards from {len(question_sets)} Question Set(s)"
+            set_title = self._combine_titles([qs.title for qs in question_sets], fallback="Flashcards")
             flashcard_set = FlashcardSet(
                 user_id=user_id,
                 title=set_title,
@@ -426,7 +460,6 @@ Return ONLY a JSON array:
             self.db.add(flashcard_set)
             self.db.flush()
             
-            # Convert questions to flashcards
             card_count = 0
             for qset in question_sets:
                 questions = self.db.query(Question).filter(
@@ -434,7 +467,6 @@ Return ONLY a JSON array:
                 ).all()
                 
                 for question in questions:
-                    # Parse options to find correct answer
                     try:
                         options = json.loads(question.options)
                         correct_letter = question.correct_answer
@@ -491,7 +523,6 @@ Return ONLY a JSON array:
             if not question_sets:
                 return {"success": False, "error": "No question sets found"}
             
-            # Build note content
             content = "<h1>Study Guide from Questions</h1>\n\n"
             
             for qset in question_sets:
@@ -523,8 +554,7 @@ Return ONLY a JSON array:
                     
                     content += "<br>\n"
             
-            # Create note
-            note_title = f"Study Guide from {len(question_sets)} Question Set(s)"
+            note_title = self._combine_titles([qs.title for qs in question_sets], fallback="Study Guide")
             note = Note(
                 user_id=user_id,
                 title=note_title,
@@ -545,7 +575,6 @@ Return ONLY a JSON array:
             return {"success": False, "error": str(e)}
 
     
-    # ==================== MEDIA CONVERSIONS ====================
     
     async def media_to_questions(
         self,
@@ -565,7 +594,6 @@ Return ONLY a JSON array:
             if not media_files:
                 return {"success": False, "error": "No media files found"}
             
-            # Combine transcripts
             combined_transcript = "\n\n".join([
                 f"From {media.original_filename}:\n{media.transcript or ''}"
                 for media in media_files if media.transcript
@@ -574,7 +602,6 @@ Return ONLY a JSON array:
             if not combined_transcript.strip():
                 return {"success": False, "error": "No transcripts available"}
             
-            # Generate questions
             prompt = f"""Generate {question_count} multiple-choice questions from this transcript.
 
 Transcript:
@@ -603,8 +630,7 @@ Return ONLY a JSON array:
             
             questions_data = json.loads(content)
             
-            # Create question set
-            set_title = f"Questions from {len(media_files)} Media File(s)"
+            set_title = self._combine_titles([mf.original_filename for mf in media_files], fallback="Media Questions")
             question_set = QuestionSet(
                 user_id=user_id,
                 title=set_title,
@@ -615,7 +641,6 @@ Return ONLY a JSON array:
             self.db.add(question_set)
             self.db.flush()
             
-            # Create questions
             for idx, q_data in enumerate(questions_data):
                 question = Question(
                     set_id=question_set.id,
@@ -642,7 +667,6 @@ Return ONLY a JSON array:
             return {"success": False, "error": str(e)}
 
     
-    # ==================== PLAYLIST CONVERSIONS ====================
     
     async def playlist_to_notes(
         self,
@@ -664,14 +688,12 @@ Return ONLY a JSON array:
             
             logger.info(f"Found playlist: {playlist.title} (ID: {playlist.id})")
             
-            # Get playlist items
             items = self.db.query(PlaylistItem).filter(
                 PlaylistItem.playlist_id == playlist_id
             ).order_by(PlaylistItem.order_index).all()
             
             logger.info(f"Query returned {len(items)} items for playlist_id={playlist_id}")
             
-            # Debug: Check all items in the table
             all_items = self.db.query(PlaylistItem).all()
             logger.info(f"Total PlaylistItems in database: {len(all_items)}")
             for item in all_items[:5]:
@@ -680,7 +702,6 @@ Return ONLY a JSON array:
             if not items:
                 return {"success": False, "error": f"Playlist has no items (checked playlist_id={playlist_id})"}
             
-            # Build detailed context from playlist items
             playlist_context = f"# {playlist.title}\n\n"
             if playlist.description:
                 playlist_context += f"{playlist.description}\n\n"
@@ -699,7 +720,6 @@ Return ONLY a JSON array:
                     playlist_context += f"**Duration:** {item.duration_minutes} minutes\n"
                 playlist_context += "\n"
             
-            # Generate comprehensive notes using AI
             prompt = f"""You are an expert educator. Create comprehensive, detailed study notes from this learning playlist.
 
 {playlist_context[:4000]}
@@ -721,10 +741,10 @@ Write at least 500 words of educational content."""
                 temperature=0.7,
                 max_tokens=6000
             )
+            self._log_groq_usage(user_id, "notes_ai", response)
             
             ai_content = response.choices[0].message.content.strip()
             
-            # Clean up markdown code blocks
             if "```html" in ai_content:
                 ai_content = ai_content.split("```html")[1].split("```")[0].strip()
             elif "```" in ai_content:
@@ -732,33 +752,55 @@ Write at least 500 words of educational content."""
                 if len(parts) >= 3:
                     ai_content = parts[1].strip()
             
-            # Remove any remaining markdown artifacts
             if ai_content.startswith("html"):
                 ai_content = ai_content[4:].strip()
             
-            # Validate content
             if not ai_content or len(ai_content) < 100:
                 raise Exception(f"AI generated insufficient content (length: {len(ai_content)})")
             
-            # Ensure HTML structure
             if not ai_content.startswith("<"):
                 ai_content = f"<div>{ai_content}</div>"
             
-            # Create note
             note = Note(
                 user_id=user_id,
-                title=f"Study Notes: {playlist.title}",
+                title=playlist.title or "Study Notes",
                 content=ai_content
             )
             self.db.add(note)
             self.db.commit()
             self.db.refresh(note)
             
-            # Verify note was saved with content
             if not note.content or len(note.content) < 100:
                 raise Exception("Note content was not saved properly")
             
             logger.info(f"Created note {note.id} with {len(note.content)} characters")
+
+            try:
+                from tutor import chroma_store
+                if chroma_store.available():
+                    sample_titles = [item.title for item in items if item.title][:5]
+                    topics = "; ".join(sample_titles) if sample_titles else "playlist topics"
+                    summary = (
+                        f"AI generated study notes from playlist \"{playlist.title}\" "
+                        f"with {len(items)} items. Topics: {topics}."
+                    )
+                    chroma_store.write_episode(
+                        user_id=str(user_id),
+                        summary=summary,
+                        metadata={
+                            "source": "note_activity",
+                            "action": "ai_generated",
+                            "origin": "playlist",
+                            "playlist_id": str(playlist.id),
+                            "playlist_title": playlist.title[:100],
+                            "note_id": str(note.id),
+                            "note_title": note.title[:100],
+                            "topic": playlist.title[:100],
+                            "items_count": str(len(items)),
+                        },
+                    )
+            except Exception as e:
+                logger.warning(f"Chroma write failed on playlist notes generation: {e}")
             
             return {
                 "success": True,
@@ -793,7 +835,6 @@ Write at least 500 words of educational content."""
                 PlaylistItem.playlist_id == playlist_id
             ).all()
             
-            # Combine content from playlist items
             combined_content = "\n\n".join([
                 f"Title: {item.title or 'Untitled'}\n"
                 f"Type: {item.item_type}\n"
@@ -803,7 +844,6 @@ Write at least 500 words of educational content."""
                 for item in items
             ])
             
-            # Generate flashcards
             prompt = f"""Generate {card_count} flashcards from this playlist content.
 
 Content:
@@ -827,11 +867,10 @@ Return ONLY a JSON array:
             
             flashcards_data = json.loads(content)
             
-            # Create flashcard set
             flashcard_set = FlashcardSet(
                 user_id=user_id,
-                title=f"Flashcards: {playlist.title}",
-                description=f"From playlist: {playlist.title}"
+                title=playlist.title or "Flashcards",
+                description=f"From playlist: {playlist.title or 'Untitled'}"
             )
             self.db.add(flashcard_set)
             self.db.flush()
@@ -845,6 +884,34 @@ Return ONLY a JSON array:
                 self.db.add(flashcard)
             
             self.db.commit()
+
+            try:
+                from tutor import chroma_store
+                if chroma_store.available():
+                    sample_questions = [c.get("question", "")[:60] for c in flashcards_data[:5]]
+                    sample_text = "; ".join([q for q in sample_questions if q])
+                    summary = (
+                        f"AI generated flashcards from playlist \"{playlist.title}\" "
+                        f"with {len(flashcards_data)} cards. "
+                        f"Sample questions: {sample_text or 'N/A'}."
+                    )
+                    chroma_store.write_episode(
+                        user_id=str(user_id),
+                        summary=summary,
+                        metadata={
+                            "source": "flashcard_created",
+                            "action": "ai_generated",
+                            "origin": "playlist",
+                            "playlist_id": str(playlist.id),
+                            "playlist_title": playlist.title[:100],
+                            "set_id": str(flashcard_set.id),
+                            "set_title": flashcard_set.title[:100],
+                            "topic": playlist.title[:100],
+                            "card_count": str(len(flashcards_data)),
+                        },
+                    )
+            except Exception as e:
+                logger.warning(f"Chroma write failed on playlist flashcards generation: {e}")
             
             return {
                 "success": True,
@@ -859,7 +926,6 @@ Return ONLY a JSON array:
             return {"success": False, "error": str(e)}
 
     
-    # ==================== BATCH OPERATIONS ====================
     
     async def merge_notes(
         self,
@@ -879,12 +945,10 @@ Return ONLY a JSON array:
             if len(notes) < 2:
                 return {"success": False, "error": "Need at least 2 notes to merge"}
             
-            # Combine content
             merged_content = ""
             for note in notes:
                 merged_content += f"<h2>{note.title}</h2>\n{note.content}\n<hr>\n"
             
-            # Create merged note
             title = new_title or f"Merged: {', '.join([n.title[:20] for n in notes[:3]])}"
             merged_note = Note(
                 user_id=user_id,
@@ -906,7 +970,6 @@ Return ONLY a JSON array:
             self.db.rollback()
             return {"success": False, "error": str(e)}
     
-    # ==================== EXPORT OPERATIONS ====================
     
     def export_flashcards_to_csv(
         self,
@@ -927,7 +990,6 @@ Return ONLY a JSON array:
             if not flashcard_sets:
                 return {"success": False, "error": "No flashcard sets found"}
             
-            # Create CSV
             output = io.StringIO()
             writer = csv.writer(output)
             writer.writerow(["Set", "Question", "Answer"])
@@ -971,7 +1033,6 @@ Return ONLY a JSON array:
             if not question_sets:
                 return {"success": False, "error": "No question sets found"}
             
-            # Build HTML for PDF
             html_content = """
             <html>
             <head>
@@ -1048,7 +1109,6 @@ Return ONLY a JSON array:
             if not notes:
                 return {"success": False, "error": "No notes found"}
             
-            # Convert HTML to Markdown
             h = html2text.HTML2Text()
             h.ignore_links = False
             

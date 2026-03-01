@@ -1,19 +1,14 @@
-/**
- * Question Bank Operations Service
- * Frontend service for interacting with the Question Bank API
- * Provides question generation, organization, search, and analysis
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
 class QuestionBankService {
   constructor() {
-    this.baseUrl = `${API_URL}/api/agents/question-bank`;
+    
+    this.baseUrl = `${API_URL}/agents/question-bank`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -22,9 +17,7 @@ class QuestionBankService {
     };
   }
 
-  /**
-   * Generate questions using the Enhanced Question Bank Agent
-   */
+  
   async generateQuestions(params) {
     try {
       const response = await fetch(`${this.baseUrl}/generate`, {
@@ -59,9 +52,7 @@ class QuestionBankService {
     }
   }
 
-  /**
-   * Generate adaptive questions based on user weaknesses
-   */
+  
   async generateAdaptiveQuestions(params) {
     try {
       const response = await fetch(`${this.baseUrl}/adaptive`, {
@@ -88,9 +79,7 @@ class QuestionBankService {
     }
   }
 
-  /**
-   * Search questions by criteria
-   */
+  
   async searchQuestions(params) {
     try {
       const response = await fetch(`${this.baseUrl}/search`, {
@@ -119,9 +108,7 @@ class QuestionBankService {
     }
   }
 
-  /**
-   * Organize questions into categories
-   */
+  
   async organizeQuestions(params) {
     try {
       const response = await fetch(`${this.baseUrl}/organize`, {
@@ -130,7 +117,7 @@ class QuestionBankService {
         body: JSON.stringify({
           user_id: params.userId,
           question_ids: params.questionIds,
-          organization_method: params.organizationMethod || 'topic', // 'topic', 'difficulty', 'type'
+          organization_method: params.organizationMethod || 'topic', 
           custom_categories: params.customCategories || []
         })
       });
@@ -146,9 +133,7 @@ class QuestionBankService {
     }
   }
 
-  /**
-   * Analyze question performance and patterns
-   */
+  
   async analyzeQuestions(params) {
     try {
       const response = await fetch(`${this.baseUrl}/analyze`, {
@@ -157,7 +142,7 @@ class QuestionBankService {
         body: JSON.stringify({
           user_id: params.userId,
           question_ids: params.questionIds || [],
-          analysis_type: params.analysisType || 'comprehensive', // 'difficulty', 'topic', 'performance', 'comprehensive'
+          analysis_type: params.analysisType || 'comprehensive', 
           include_user_data: params.includeUserData !== false
         })
       });
@@ -173,9 +158,7 @@ class QuestionBankService {
     }
   }
 
-  /**
-   * Get question recommendations
-   */
+  
   async getRecommendations(params) {
     try {
       const response = await fetch(`${this.baseUrl}/recommend`, {
@@ -203,9 +186,7 @@ class QuestionBankService {
     }
   }
 
-  /**
-   * Categorize questions automatically
-   */
+  
   async categorizeQuestions(params) {
     try {
       const response = await fetch(`${this.baseUrl}/categorize`, {
@@ -214,7 +195,7 @@ class QuestionBankService {
         body: JSON.stringify({
           user_id: params.userId,
           question_ids: params.questionIds || [],
-          categorization_method: params.categorizationMethod || 'auto', // 'auto', 'topic', 'difficulty', 'blooms_taxonomy'
+          categorization_method: params.categorizationMethod || 'auto', 
           custom_categories: params.customCategories || []
         })
       });
@@ -230,9 +211,7 @@ class QuestionBankService {
     }
   }
 
-  /**
-   * Assess user knowledge with diagnostic questions
-   */
+  
   async assessKnowledge(params) {
     try {
       const response = await fetch(`${this.baseUrl}/assess`, {
@@ -241,7 +220,7 @@ class QuestionBankService {
         body: JSON.stringify({
           user_id: params.userId,
           topic: params.topic,
-          assessment_type: params.assessmentType || 'diagnostic', // 'diagnostic', 'comprehensive', 'quick'
+          assessment_type: params.assessmentType || 'diagnostic', 
           question_count: params.questionCount || 10,
           time_limit: params.timeLimit || null,
           adaptive: params.adaptive !== false
@@ -258,7 +237,6 @@ class QuestionBankService {
       throw error;
     }
   }
-
 
 }
 

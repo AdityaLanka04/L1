@@ -1,19 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-*,
-*::before,
-*::after {
+.ds-page,
+.ds-page *,
+.ds-page *::before,
+.ds-page *::after {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
-}
-
-html,
-body {
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
-  height: auto;
 }
 
 .ds-page {
@@ -241,7 +231,7 @@ body {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   border-radius: 6px;
 }
@@ -254,7 +244,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Theme Switcher Styling */
 .ds-header-left .dashboard-theme-switcher {
   position: relative;
 }
@@ -308,7 +297,7 @@ body {
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   margin: 0 0 12px 0;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
@@ -405,7 +394,6 @@ body {
   }
 }
 
-/* Notification Backdrop - Full Screen Frosted Glass */
 .ds-notif-backdrop {
   position: fixed;
   top: 0;
@@ -474,13 +462,19 @@ body {
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
+.ds-notif-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .ds-notif-panel-header h3 {
   font-size: 14px;
   font-weight: 700;
   color: var(--accent);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -513,7 +507,6 @@ body {
   padding: 8px;
 }
 
-/* Notification panel scrollbar - uses global auto-hiding styles */
 .ds-notif-panel-content {
   scrollbar-width: thin;
 }
@@ -537,7 +530,7 @@ body {
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   color: var(--accent);
   opacity: 0.6;
 }
@@ -619,7 +612,7 @@ body {
   color: var(--accent);
   flex: 1;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -666,12 +659,11 @@ body {
   margin-top: 8px;
   display: block;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
 }
 
-/* Dark mode enhancements */
 [data-theme-mode="dark"] .ds-notif-panel {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
 }
@@ -680,9 +672,8 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Light mode enhancements */
 [data-theme-mode="light"] .ds-notif-panel {
-  background: linear-gradient(145deg, #ffffff, #fafafa);
+  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
@@ -740,7 +731,7 @@ body {
 
 .ds-card {
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: 0.8rem;
   border: 1px solid var(--border);
   position: relative;
   overflow: hidden;
@@ -851,7 +842,7 @@ body {
   font-size: 10px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-ai-chat-btn {
@@ -864,7 +855,7 @@ body {
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
   flex-shrink: 0;
@@ -972,8 +963,6 @@ body {
   50% { transform: translateY(-12px); }
 }
 
-/* ==================== LEARNING HUB GRID ==================== */
-/* ==================== LEARNING HUB GRID ==================== */
 .ds-learning-hub-grid {
   grid-column: 2 / 4;
   grid-row: 1 / 4;
@@ -1125,13 +1114,12 @@ body {
   opacity: 0.8;
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.3s ease;
   position: relative;
   z-index: 1;
 }
 
-/* ==================== LEARNING SQUARES (OLD - KEEP FOR BACKWARDS COMPATIBILITY) ==================== */
 .ds-learning-square {
   display: flex;
   align-items: center;
@@ -1172,7 +1160,7 @@ body {
   color: var(--text-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-icon-top {
@@ -1324,7 +1312,7 @@ body {
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-streak-actions {
@@ -1441,10 +1429,9 @@ body {
   font-weight: 600;
   margin-top: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
-/* Medium mode for Activity widget */
 .ds-activity .ds-feature-content {
   padding: 24px;
   gap: 16px;
@@ -1475,7 +1462,6 @@ body {
   margin-top: 8px;
 }
 
-/* Small mode for Concept Web widget */
 .ds-concept-web .ds-feature-content {
   padding: 16px;
   gap: 8px;
@@ -1501,7 +1487,6 @@ body {
   font-size: 9px;
 }
 
-/* Compact mode for Concept Web widget (small size) - REMOVED */
 .ds-stats-prompts .ds-feature-content {
   padding: 8px;
   gap: 2px;
@@ -1527,7 +1512,6 @@ body {
   display: none;
 }
 
-/* Compact mode for Notes widget (small size only) */
 .ds-notes.ds-widget-small .ds-feature-content {
   padding: 8px;
   gap: 2px;
@@ -1558,7 +1542,6 @@ body {
   margin-top: 4px;
 }
 
-/* Compact mode for Flashcards widget (small size only) */
 .ds-flashcards.ds-widget-small .ds-feature-content {
   padding: 8px;
   gap: 2px;
@@ -1668,7 +1651,7 @@ body {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   color: var(--bg-primary);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1696,7 +1679,7 @@ body {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   line-height: 1.4;
 }
 
@@ -2117,11 +2100,6 @@ body {
   }
 }
 
-/* Global scrollbar styles removed - using index.css auto-hiding scrollbars */
-
-/* ============================================
-   HEATMAP WIDGET
-============================================ */
 .ds-heatmap {
   grid-column: 1 / 5;
   grid-row: 7 / 9;
@@ -2229,7 +2207,7 @@ body {
   font-weight: 600;
   color: var(--accent);
   text-transform: capitalize;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-legend-scale {
@@ -2328,9 +2306,6 @@ body {
   font-weight: 500;
 }
 
-/* ============================================
-   CUSTOMIZATION MODE
-============================================ */
 .ds-customize-btn.active {
   background: var(--accent);
   color: var(--bg-primary);
@@ -2385,7 +2360,7 @@ body {
   color: var(--accent);
   margin: 0 0 8px 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .ds-customize-header p {
@@ -2420,7 +2395,7 @@ body {
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -2443,7 +2418,7 @@ body {
   color: var(--accent);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-layout-list {
@@ -2491,7 +2466,7 @@ body {
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -2547,7 +2522,6 @@ body {
   font-weight: 600;
 }
 
-/* Modal Styles */
 .ds-modal-overlay {
   position: fixed;
   inset: 0;
@@ -2605,7 +2579,7 @@ body {
   color: var(--accent);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .ds-modal-close {
@@ -2642,7 +2616,7 @@ body {
   color: var(--accent);
   margin-bottom: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-layout-name-input {
@@ -2687,7 +2661,7 @@ body {
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -2715,7 +2689,6 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px var(--glow);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .ds-customize-overlay {
     width: calc(100% - 40px);
@@ -2724,9 +2697,6 @@ body {
   }
 }
 
-
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

@@ -1,8 +1,4 @@
-/**
- * Chat Agent Service
- * Frontend service for interacting with the AI Chat Agent API
- * Provides intelligent tutoring with emotional intelligence and adaptive responses
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
@@ -11,9 +7,7 @@ class ChatAgentService {
     this.baseUrl = `${API_URL}/agents/chat`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -22,9 +16,7 @@ class ChatAgentService {
     };
   }
 
-  /**
-   * Send a message to the chat agent
-   */
+  
   async chat(userId, message, options = {}) {
     try {
       const response = await fetch(this.baseUrl, {
@@ -51,9 +43,7 @@ class ChatAgentService {
     }
   }
 
-  /**
-   * Get available chat modes
-   */
+  
   async getChatModes() {
     try {
       const response = await fetch(`${this.baseUrl}/modes`, {
@@ -72,9 +62,7 @@ class ChatAgentService {
     }
   }
 
-  /**
-   * Get available response styles
-   */
+  
   async getResponseStyles() {
     try {
       const response = await fetch(`${this.baseUrl}/styles`, {
@@ -93,9 +81,7 @@ class ChatAgentService {
     }
   }
 
-  /**
-   * Analyze a message without generating a response
-   */
+  
   async analyzeMessage(message, context = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/analyze`, {
@@ -118,9 +104,7 @@ class ChatAgentService {
     }
   }
 
-  /**
-   * Chat with specific mode (convenience methods)
-   */
+  
   async tutoring(userId, message, sessionId = null) {
     return this.chat(userId, message, { chatMode: 'tutoring', sessionId });
   }

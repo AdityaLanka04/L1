@@ -3,7 +3,7 @@ import { ChevronRight, Home } from 'lucide-react';
 import './Breadcrumbs.css';
 
 const Breadcrumbs = ({ path, onNavigate }) => {
-  // path is an array of { id, title } objects
+  
   if (!path || path.length === 0) return null;
 
   return (

@@ -30,7 +30,7 @@ const WeaknessPractice = () => {
   const [sessionSummary, setSummary] = useState(null);
   const [timeStarted, setTimeStarted] = useState(null);
   
-  // Get data from navigation state
+  
   const topic = location.state?.topic || 'General Practice';
   const difficulty = location.state?.difficulty || 'intermediate';
   const generatedQuestions = location.state?.questions || [];
@@ -42,7 +42,7 @@ const WeaknessPractice = () => {
       return;
     }
     
-    // If questions were passed from generator, start immediately
+    
     if (fromGenerator && generatedQuestions.length > 0) {
       setSessionActive(true);
       setTimeStarted(Date.now());
@@ -116,7 +116,7 @@ const WeaknessPractice = () => {
     
     const timeTaken = Math.floor((Date.now() - timeStarted) / 1000);
     
-    // For generated questions, handle locally
+    
     if (fromGenerator && generatedQuestions.length > 0) {
       const isCorrect = checkAnswer(userAnswer, currentQuestion.correct_answer);
       
@@ -128,7 +128,7 @@ const WeaknessPractice = () => {
       });
       setShowFeedback(true);
       
-      // Update stats
+      
       const newQuestionsAnswered = sessionStats.questionsAnswered + 1;
       const newCorrectCount = sessionStats.correctCount + (isCorrect ? 1 : 0);
       const newAccuracy = (newCorrectCount / newQuestionsAnswered) * 100;
@@ -144,7 +144,7 @@ const WeaknessPractice = () => {
       return;
     }
     
-    // Original API-based flow
+    
     try {
       const response = await fetch(`${API_URL}/weakness-practice/submit-answer`, {
         method: 'POST',
@@ -180,13 +180,13 @@ const WeaknessPractice = () => {
     const userClean = String(userAns).trim().toLowerCase();
     const correctClean = String(correctAns).trim().toLowerCase();
     
-    // Direct match
+    
     if (userClean === correctClean) return true;
     
-    // For multiple choice (A, B, C, D)
+    
     if (userClean === correctClean.charAt(0)) return true;
     
-    // For true/false
+    
     if ((userClean === 'true' || userClean === 't') && (correctClean === 'true' || correctClean === 't')) return true;
     if ((userClean === 'false' || userClean === 'f') && (correctClean === 'false' || correctClean === 'f')) return true;
     
@@ -196,7 +196,7 @@ const WeaknessPractice = () => {
   const handleNext = () => {
     setTimeStarted(Date.now());
     
-    // For generated questions
+    
     if (fromGenerator && generatedQuestions.length > 0) {
       const nextIndex = currentQuestionIndex + 1;
       
@@ -206,13 +206,13 @@ const WeaknessPractice = () => {
         setUserAnswer('');
         setShowFeedback(false);
       } else {
-        // End of questions
+        
         endGeneratedSession();
       }
       return;
     }
     
-    // Original API-based flow
+    
     loadNextQuestion();
   };
 
@@ -324,7 +324,6 @@ const WeaknessPractice = () => {
   if (sessionSummary) {
     return (
       <div className="weakness-practice-container">
-        {/* Header - Matching Weaknesses Page Style */}
         <header className="practice-header">
           <div className="practice-header-left">
             <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -409,7 +408,6 @@ const WeaknessPractice = () => {
 
   return (
     <div className="weakness-practice-container">
-      {/* Header - Matching Weaknesses Page Style */}
       <header className="practice-header">
         <div className="practice-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">

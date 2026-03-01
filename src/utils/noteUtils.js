@@ -1,8 +1,5 @@
-/**
- * Utility functions for enhanced notes features
- */
 
-// Parse page links [[Note Name]] from content
+
 export const parsePageLinks = (content) => {
   const linkRegex = /\[\[([^\]]+)\]\]/g;
   const links = [];
@@ -19,9 +16,8 @@ export const parsePageLinks = (content) => {
   return links;
 };
 
-// Parse tags #tag from content
 export const parseTags = (content) => {
-  // Remove HTML tags first
+  
   const textContent = content.replace(/<[^>]*>/g, ' ');
   const tagRegex = /#([a-zA-Z0-9_-]+)/g;
   const tags = new Set();
@@ -34,7 +30,6 @@ export const parseTags = (content) => {
   return Array.from(tags);
 };
 
-// Convert content with page links to HTML with clickable links
 export const renderPageLinks = (content, notes, onLinkClick) => {
   const links = parsePageLinks(content);
   
@@ -42,7 +37,7 @@ export const renderPageLinks = (content, notes, onLinkClick) => {
   
   let result = content;
   
-  // Replace in reverse order to maintain indices
+  
   for (let i = links.length - 1; i >= 0; i--) {
     const link = links[i];
     const linkedNote = notes.find(n => 
@@ -59,9 +54,8 @@ export const renderPageLinks = (content, notes, onLinkClick) => {
   return result;
 };
 
-// Convert content with tags to HTML with clickable tags
 export const renderTags = (content, onTagClick) => {
-  // Don't process HTML tags
+  
   const parts = content.split(/(<[^>]*>)/);
   
   return parts.map((part, index) => {
@@ -73,7 +67,6 @@ export const renderTags = (content, onTagClick) => {
   }).join('');
 };
 
-// Find backlinks (notes that link to this note)
 export const findBacklinks = (noteTitle, allNotes) => {
   return allNotes.filter(note => {
     const links = parsePageLinks(note.content);
@@ -83,7 +76,6 @@ export const findBacklinks = (noteTitle, allNotes) => {
   });
 };
 
-// Get all unique tags from all notes
 export const getAllTags = (notes) => {
   const allTags = new Set();
   
@@ -95,7 +87,6 @@ export const getAllTags = (notes) => {
   return Array.from(allTags).sort();
 };
 
-// Filter notes by tag
 export const filterNotesByTag = (notes, tag) => {
   return notes.filter(note => {
     const tags = parseTags(note.content);
@@ -103,7 +94,6 @@ export const filterNotesByTag = (notes, tag) => {
   });
 };
 
-// Create a note link suggestion list
 export const getNotesSuggestions = (notes, query) => {
   if (!query) return notes.slice(0, 10);
   
@@ -113,7 +103,6 @@ export const getNotesSuggestions = (notes, query) => {
     .slice(0, 10);
 };
 
-// Format date for display
 export const formatDate = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -130,14 +119,15 @@ export const formatDate = (dateString) => {
   return date.toLocaleDateString();
 };
 
-// Extract plain text from HTML
 export const extractPlainText = (html) => {
+  if (!html) return '';
   const div = document.createElement('div');
-  div.innerHTML = html;
+  div.innerHTML = String(html)
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
   return div.textContent || div.innerText || '';
 };
 
-// Get note snippet for preview
 export const getNoteSnippet = (content, maxLength = 150) => {
   const text = extractPlainText(content);
   if (text.length <= maxLength) return text;

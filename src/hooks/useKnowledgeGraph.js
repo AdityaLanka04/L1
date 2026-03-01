@@ -1,16 +1,8 @@
-/**
- * useKnowledgeGraph Hook
- * React hook for accessing Knowledge Graph data
- */
+
 
 import { useState, useCallback, useEffect } from 'react';
 import knowledgeGraphService from '../services/knowledgeGraphService';
 
-/**
- * Hook for accessing Knowledge Graph data
- * @param {string} userId - User ID to fetch data for
- * @param {boolean} autoFetch - Whether to fetch data on mount
- */
 const useKnowledgeGraph = (userId, autoFetch = false) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

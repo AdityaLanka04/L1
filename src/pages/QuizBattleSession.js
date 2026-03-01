@@ -29,15 +29,15 @@ const QuizBattleSession = () => {
   const [showDetailedResults, setShowDetailedResults] = useState(false);
   const [detailedBattleData, setDetailedBattleData] = useState(null);
 
-  // WebSocket for live notifications (shared connection)
+  
   const { isConnected } = useSharedWebSocket(token, (message) => {
-    // Don't skip - process all messages
+    
     if (message.type === 'connected') {
             return;
     }
     
     if (message.type === 'pong') {
-      return; // Skip pong silently
+      return; 
     }
     
     if (message.type === 'battle_answer_submitted') {
@@ -48,22 +48,22 @@ const QuizBattleSession = () => {
           isCorrect: message.is_correct
         };
                 
-        // Show opponent's answer notification
+        
         setOpponentNotification(notificationData);
                 
-        // Hide notification after 2 seconds
+        
         setTimeout(() => {
           setOpponentNotification(null);
         }, 2000);
       } else {
-        // Battle ID mismatch
+        
       }
     } else if (message.type === 'battle_opponent_completed' && message.battle_id === parseInt(battleId)) {
       setOpponentCompleted(true);
-      // Immediately try to fetch results
+      
             setTimeout(() => fetchDetailedResults(), 500);
     } else if (message.type === 'battle_completed' && message.battle_id === parseInt(battleId)) {
-            // Both completed, fetch detailed results
+            
       setOpponentCompleted(true);
       setTimeout(() => fetchDetailedResults(), 500);
     }
@@ -73,19 +73,19 @@ const QuizBattleSession = () => {
     loadBattle();
   }, [battleId]);
 
-  // Poll for detailed results when opponent completes
+  
   useEffect(() => {
     if (opponentCompleted && showResult && !showDetailedResults) {
             fetchDetailedResults();
     }
   }, [opponentCompleted, showResult, showDetailedResults]);
 
-  // Poll for results when waiting
+  
   useEffect(() => {
     if (showResult && !showDetailedResults && !opponentCompleted) {
             const pollInterval = setInterval(() => {
                 fetchDetailedResults();
-      }, 3000); // Poll every 3 seconds
+      }, 3000); 
 
       return () => {
                 clearInterval(pollInterval);
@@ -93,7 +93,7 @@ const QuizBattleSession = () => {
     }
   }, [showResult, showDetailedResults, opponentCompleted]);
 
-  // Debug: Log when notification state changes
+  
   useEffect(() => {
     if (opponentNotification) {
                 } else {
@@ -122,12 +122,12 @@ const QuizBattleSession = () => {
         setBattle(data.battle);
         setTimeRemaining(data.battle.time_limit_seconds);
         
-        // Check if questions already exist
+        
         if (data.questions && data.questions.length > 0) {
           setQuestions(data.questions);
           setLoading(false);
         } else {
-          // Generate questions
+          
           await generateQuestions(data.battle);
         }
       }
@@ -142,7 +142,7 @@ const QuizBattleSession = () => {
     const username = localStorage.getItem('username');
     
     try {
-      // First try to use Quiz Agent for better question generation
+      
       const difficultyMap = {
         'beginner': { easy: 7, medium: 3, hard: 0 },
         'intermediate': { easy: 3, medium: 5, hard: 2 },
@@ -158,22 +158,22 @@ const QuizBattleSession = () => {
       });
 
       if (agentResponse.success && agentResponse.questions?.length > 0) {
-        // Transform questions to match battle format
+        
         const battleQuestions = agentResponse.questions.map((q, idx) => {
-          // Parse options if they're a string
+          
           let options = q.options || [];
           if (typeof options === 'string') {
             try { options = JSON.parse(options); } catch { options = []; }
           }
           
-          // Determine correct answer index
+          
           let correctIndex = 0;
           if (typeof q.correct_answer === 'number') {
             correctIndex = q.correct_answer;
           } else if (typeof q.correct_answer === 'string') {
-            // Handle letter answers (A, B, C, D)
+            
             const letter = q.correct_answer.toUpperCase().charAt(0);
-            correctIndex = letter.charCodeAt(0) - 65; // A=0, B=1, etc.
+            correctIndex = letter.charCodeAt(0) - 65; 
             if (correctIndex < 0 || correctIndex >= options.length) correctIndex = 0;
           }
           
@@ -193,7 +193,7 @@ const QuizBattleSession = () => {
       }
     } catch (agentError) {
             
-      // Fallback to original battle question generation
+      
       try {
         const response = await fetch(`${API_URL}/generate_battle_questions`, {
           method: 'POST',
@@ -229,8 +229,8 @@ const QuizBattleSession = () => {
     if (selectedAnswer !== null) return;
     setSelectedAnswer(answerIndex);
     
-    // Automatically advance to next question after 2 seconds
-    // Pass the answer index to avoid closure issues
+    
+    
     setTimeout(() => {
       handleNextQuestion(answerIndex);
     }, 2000);
@@ -255,11 +255,12 @@ const QuizBattleSession = () => {
               } else {
               }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleNextQuestion = (answerIndex = selectedAnswer) => {
-    // Use the passed answer index to avoid closure issues
+    
     const currentQuestion = questions[currentQuestionIndex];
     const isCorrect = answerIndex === currentQuestion.correct_answer;
     
@@ -278,7 +279,7 @@ const QuizBattleSession = () => {
     const newScore = score + (isCorrect ? 1 : 0);
     setScore(newScore);
 
-    // Send live notification to opponent
+    
     submitAnswerNotification(currentQuestionIndex, isCorrect);
 
     if (currentQuestionIndex < questions.length - 1) {
@@ -315,7 +316,7 @@ const QuizBattleSession = () => {
         const data = await response.json();
         setShowResult(true);
         
-        // If both completed, fetch detailed results
+        
         if (data.both_completed) {
           fetchDetailedResults();
         }
@@ -339,9 +340,9 @@ const QuizBattleSession = () => {
         if (data.battle.opponent_completed && data.battle.your_completed) {
                     setDetailedBattleData(data);
           setShowDetailedResults(true);
-          setOpponentCompleted(true); // Ensure this is set
+          setOpponentCompleted(true); 
           
-          // Track gamification activity based on result
+          
           const userName = localStorage.getItem('username');
           if (userName && data.battle) {
             if (data.battle.your_score > data.battle.opponent_score) {
@@ -357,7 +358,8 @@ const QuizBattleSession = () => {
       } else {
               }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const formatTime = (seconds) => {
@@ -378,7 +380,7 @@ const QuizBattleSession = () => {
 
   if (showResult) {
     if (showDetailedResults && detailedBattleData) {
-      // Show detailed comparison
+      
       const { battle: battleData, questions: battleQuestions } = detailedBattleData;
       const yourAnswers = battleData.your_answers || [];
       const opponentAnswers = battleData.opponent_answers || [];
@@ -418,7 +420,7 @@ const QuizBattleSession = () => {
                   const yourSelectedIndex = yourAnswer?.selected_answer;
                   const opponentSelectedIndex = opponentAnswer?.selected_answer;
                   const correctAnswerIndex = question.correct_answer;
-                  const showExplanation = !yourCorrect || !opponentCorrect; // Show if either got it wrong
+                  const showExplanation = !yourCorrect || !opponentCorrect; 
 
                   return (
                     <div key={index} className="question-comparison-item expanded">
@@ -427,7 +429,6 @@ const QuizBattleSession = () => {
                         <div className="question-text-full">{question.question}</div>
                       </div>
                       
-                      {/* Show all answer options */}
                       <div className="answer-options-review">
                         {question.options.map((option, optIndex) => {
                           const isCorrect = optIndex === correctAnswerIndex;
@@ -461,7 +462,6 @@ const QuizBattleSession = () => {
                         })}
                       </div>
 
-                      {/* Show explanation if anyone got it wrong */}
                       {showExplanation && question.explanation && (
                         <div className="question-explanation">
                           <strong>Explanation:</strong> {question.explanation}
@@ -484,7 +484,7 @@ const QuizBattleSession = () => {
       );
     }
 
-    // Waiting for opponent
+    
     return (
       <div className="battle-result-page">
         <div className="result-container">

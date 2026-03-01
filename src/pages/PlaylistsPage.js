@@ -1,13 +1,15 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Plus, Search, BookOpen, Users, Clock, Star, TrendingUp,
-  Globe, Lock, Home, Heart, Library, MoreHorizontal, Filter, X, Zap, ChevronRight
-, Menu} from 'lucide-react';
+import {
+  Plus, Search, BookOpen, Users, Clock,
+  Globe, Lock, Heart, Library, Filter, X, Zap, ChevronRight,
+  Menu, FileText, Share2, Check, Sparkles
+} from 'lucide-react';
 import './PlaylistsPage.css';
 import './PlaylistsConvert.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
+import PlaylistShareModal from '../components/PlaylistShareModal';
 
 const PlaylistsPage = () => {
   const navigate = useNavigate();
@@ -16,11 +18,16 @@ const PlaylistsPage = () => {
   const [playlists, setPlaylists] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showDifficultyDropdown, setShowDifficultyDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState('');
   const [loading, setLoading] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
+  const [sharePlaylist, setSharePlaylist] = useState(null);
+  const [aiLoading, setAiLoading] = useState({});
+  const [aiResult, setAiResult] = useState(null);
+  const [sortBy, setSortBy] = useState('recent');
 
   const categories = [
     'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
@@ -36,18 +43,19 @@ const PlaylistsPage = () => {
 
   useEffect(() => {
     fetchPlaylists();
-  }, [view, filterCategory, searchQuery]);
+  }, [view, filterCategory, filterDifficulty, searchQuery]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showCategoryDropdown && !event.target.closest('.custom-dropdown')) {
+      if ((showCategoryDropdown || showDifficultyDropdown) && !event.target.closest('.custom-dropdown')) {
         setShowCategoryDropdown(false);
+        setShowDifficultyDropdown(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showCategoryDropdown]);
+  }, [showCategoryDropdown, showDifficultyDropdown]);
 
   const fetchPlaylists = async () => {
     setLoading(true);
@@ -61,6 +69,7 @@ const PlaylistsPage = () => {
       }
       
       if (filterCategory) url += `category=${filterCategory}&`;
+      if (filterDifficulty) url += `difficulty=${filterDifficulty}&`;
       if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
 
       const response = await fetch(url, {
@@ -72,7 +81,8 @@ const PlaylistsPage = () => {
         setPlaylists(data.playlists || []);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -93,22 +103,118 @@ const PlaylistsPage = () => {
         fetchPlaylists();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handlePlaylistClick = (playlistId) => {
     navigate(`/playlists/${playlistId}`);
   };
 
-  const clearFilters = () => {
-    setFilterCategory('');
+  const handleFollowToggle = async (playlistId, currentlyFollowing) => {
+    try {
+      const response = await fetch(`${API_URL}/playlists/${playlistId}/follow`, {
+        method: currentlyFollowing ? 'DELETE' : 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setPlaylists(prev => prev.map(playlist => {
+          if (playlist.id !== playlistId) return playlist;
+          const followerCount = playlist.follower_count || 0;
+          return {
+            ...playlist,
+            is_following: !currentlyFollowing,
+            follower_count: currentlyFollowing ? Math.max(0, followerCount - 1) : followerCount + 1
+          };
+        }));
+      }
+    } catch (error) {
+    // silenced
+  }
   };
 
-  const hasActiveFilters = filterCategory;
+  const handleAiConvert = async (playlist, action) => {
+    if (!playlist) return;
+    setAiResult(null);
+    const key = `${playlist.id}-${action}`;
+    setAiLoading(prev => ({ ...prev, [key]: true }));
+
+    try {
+      const endpoint = action === 'notes'
+        ? `${API_URL}/import_export/playlist_to_notes`
+        : `${API_URL}/import_export/playlist_to_flashcards`;
+
+      const payload = action === 'notes'
+        ? { playlist_id: playlist.id }
+        : { playlist_id: playlist.id, card_count: 15 };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data.success === false) {
+        throw new Error(data.error || data.detail || 'AI conversion failed');
+      }
+
+      setAiResult({
+        status: 'success',
+        type: action,
+        playlistTitle: playlist.title,
+        noteId: data.note_id,
+        setId: data.set_id
+      });
+    } catch (error) {
+      setAiResult({
+        status: 'error',
+        message: error.message || 'AI conversion failed'
+      });
+    } finally {
+      setAiLoading(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const clearFilters = () => {
+    setFilterCategory('');
+    setFilterDifficulty('');
+    setSearchQuery('');
+  };
+
+  const hasActiveFilters = filterCategory || filterDifficulty || searchQuery;
+
+  useEffect(() => {
+    if (!aiResult) return;
+    const timer = setTimeout(() => setAiResult(null), 6000);
+    return () => clearTimeout(timer);
+  }, [aiResult]);
+
+  const sortedPlaylists = useMemo(() => {
+    const items = [...playlists];
+    switch (sortBy) {
+      case 'popular':
+        return items.sort((a, b) => (b.follower_count || 0) - (a.follower_count || 0));
+      case 'items':
+        return items.sort((a, b) => (b.item_count || 0) - (a.item_count || 0));
+      case 'hours':
+        return items.sort((a, b) => (b.estimated_hours || 0) - (a.estimated_hours || 0));
+      default:
+        return items.sort((a, b) => {
+          const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return bTime - aTime;
+        });
+    }
+  }, [playlists, sortBy]);
 
   return (
-    <div className="playlists-container">
-      {/* Top Navigation Bar */}
+    <div className="playlists-container playlists-page">
       <header className="hub-header">
         <div className="hub-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -137,9 +243,7 @@ const PlaylistsPage = () => {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <div className="playlists-body">
-        {/* Left Sidebar */}
         <aside className="playlists-sidebar">
           <div className="sidebar-section">
             <h3 className="sidebar-heading">Browse</h3>
@@ -189,7 +293,7 @@ const PlaylistsPage = () => {
                 <button 
                   className="dropdown-trigger"
                   onClick={() => {
-                    console.log('Dropdown clicked, current state:', showCategoryDropdown);
+                    setShowDifficultyDropdown(false);
                     setShowCategoryDropdown(!showCategoryDropdown);
                   }}
                 >
@@ -225,6 +329,51 @@ const PlaylistsPage = () => {
                 )}
               </div>
             </div>
+
+            <div className="filter-item">
+              <div className="filter-header">
+                <label>Difficulty</label>
+              </div>
+              <div className="custom-dropdown">
+                <button 
+                  className="dropdown-trigger"
+                  onClick={() => {
+                    setShowCategoryDropdown(false);
+                    setShowDifficultyDropdown(!showDifficultyDropdown);
+                  }}
+                >
+                  <span>{filterDifficulty || 'All Levels'}</span>
+                  <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                    <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </button>
+                {showDifficultyDropdown && (
+                  <div className="dropdown-menu" style={{ display: 'block', position: 'absolute' }}>
+                    <div 
+                      className={`dropdown-item ${!filterDifficulty ? 'active' : ''}`}
+                      onClick={() => {
+                        setFilterDifficulty('');
+                        setShowDifficultyDropdown(false);
+                      }}
+                    >
+                      All Levels
+                    </div>
+                    {difficulties.map(level => (
+                      <div
+                        key={level}
+                        className={`dropdown-item ${filterDifficulty === level ? 'active' : ''}`}
+                        onClick={() => {
+                          setFilterDifficulty(level);
+                          setShowDifficultyDropdown(false);
+                        }}
+                      >
+                        {level}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="sidebar-stats">
@@ -235,9 +384,78 @@ const PlaylistsPage = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="playlists-main">
           <div className="content-body">
+            <div className="playlists-toolbar">
+              <div className="playlists-toolbar-left">
+                <div className="playlists-search-field">
+                  <Search size={16} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search playlists, topics, creators..."
+                  />
+                  {searchQuery && (
+                    <button className="playlists-clear-search-btn" onClick={() => setSearchQuery('')}>
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <div className="playlists-toolbar-count">
+                  <span>{sortedPlaylists.length} playlists</span>
+                  {hasActiveFilters && <span className="playlists-toolbar-filtered">Filtered</span>}
+                </div>
+              </div>
+              <div className="playlists-toolbar-right">
+                <div className="playlists-sort-select">
+                  <Filter size={14} />
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="recent">Newest</option>
+                    <option value="popular">Most Followed</option>
+                    <option value="items">Most Items</option>
+                    <option value="hours">Most Hours</option>
+                  </select>
+                </div>
+                <button className="playlists-ai-hub-btn" onClick={() => setShowImportExport(true)}>
+                  <Sparkles size={14} />
+                  <span>AI Convert</span>
+                </button>
+              </div>
+            </div>
+
+            {aiResult && (
+              <div className={`playlists-ai-result-toast ${aiResult.status}`}>
+                <div className="playlists-ai-result-text">
+                  {aiResult.status === 'success' ? (
+                    aiResult.message ? (
+                      <span>{aiResult.message}</span>
+                    ) : (
+                      <>
+                        <span>AI {aiResult.type === 'notes' ? 'notes' : 'flashcards'} ready for</span>
+                        <strong>{aiResult.playlistTitle}</strong>
+                      </>
+                    )
+                  ) : (
+                    <span>{aiResult.message}</span>
+                  )}
+                </div>
+                {aiResult.status === 'success' && aiResult.type === 'notes' && aiResult.noteId && (
+                  <button className="playlists-ai-result-action" onClick={() => navigate(`/notes/editor/${aiResult.noteId}`)}>
+                    Open Notes
+                  </button>
+                )}
+                {aiResult.status === 'success' && aiResult.type === 'flashcards' && (
+                  <button className="playlists-ai-result-action" onClick={() => navigate('/flashcards')}>
+                    Open Flashcards
+                  </button>
+                )}
+                <button className="playlists-ai-result-close" onClick={() => setAiResult(null)}>
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
             {loading ? (
               <div className="loading-container">
                 <div className="fc-spinner">
@@ -259,11 +477,16 @@ const PlaylistsPage = () => {
               </div>
             ) : (
               <div className="playlists-grid">
-                {playlists.map(playlist => (
+                {sortedPlaylists.map(playlist => (
                   <PlaylistCard
                     key={playlist.id}
                     playlist={playlist}
                     onClick={() => handlePlaylistClick(playlist.id)}
+                    onShare={() => setSharePlaylist(playlist)}
+                    onGenerateNotes={() => handleAiConvert(playlist, 'notes')}
+                    onGenerateFlashcards={() => handleAiConvert(playlist, 'flashcards')}
+                    onToggleFollow={() => handleFollowToggle(playlist.id, playlist.is_following)}
+                    aiLoading={aiLoading}
                   />
                 ))}
               </div>
@@ -282,25 +505,67 @@ const PlaylistsPage = () => {
         />
       )}
       
-      {/* Import/Export Modal */}
       <ImportExportModal
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
         mode="import"
         sourceType="playlist"
         onSuccess={(result) => {
-          alert("Successfully converted playlist!");
+          if (result?.shouldNavigate) {
+            const items = result.items || [];
+            if (result.destinationType === 'notes') {
+              if (result.note_id) {
+                navigate(`/notes/editor/${result.note_id}`);
+              } else if (items.length === 1 && items[0]?.note_id) {
+                navigate(`/notes/editor/${items[0].note_id}`);
+              } else {
+                navigate('/notes');
+              }
+            } else if (result.destinationType === 'flashcards') {
+              if (result.set_id) {
+                navigate(`/flashcards?set_id=${result.set_id}&mode=preview`);
+              } else if (items.length === 1 && items[0]?.set_id) {
+                navigate(`/flashcards?set_id=${items[0].set_id}&mode=preview`);
+              } else {
+                navigate('/flashcards');
+              }
+            }
+          } else {
+            setAiResult({
+              status: 'success',
+              message: 'AI conversion completed. Check your notes or flashcards.'
+            });
+          }
         }}
       />
+
+      {sharePlaylist && (
+        <PlaylistShareModal
+          isOpen={!!sharePlaylist}
+          playlist={sharePlaylist}
+          onClose={() => setSharePlaylist(null)}
+        />
+      )}
     </div>
   );
 };
 
 export default PlaylistsPage;
 
-// ==================== PLAYLIST CARD ====================
+const PlaylistCard = ({
+  playlist,
+  onClick,
+  onShare,
+  onGenerateNotes,
+  onGenerateFlashcards,
+  onToggleFollow,
+  aiLoading
+}) => {
+  const itemCount = playlist.item_count || playlist.items?.length || 0;
+  const hasItems = itemCount > 0;
+  const notesLoading = aiLoading?.[`${playlist.id}-notes`];
+  const flashcardsLoading = aiLoading?.[`${playlist.id}-flashcards`];
 
-const PlaylistCard = ({ playlist, onClick }) => {
   return (
     <div className="playlist-card" onClick={onClick}>
       <div 
@@ -323,16 +588,21 @@ const PlaylistCard = ({ playlist, onClick }) => {
         <h3 className="card-title">{playlist.title}</h3>
         <p className="card-description">{playlist.description}</p>
         
-        {playlist.category && (
-        <div className="card-tags">
-          <span className="tag category-tag">{playlist.category}</span>
-        </div>
+        {(playlist.category || playlist.difficulty_level) && (
+          <div className="card-tags">
+            {playlist.category && (
+              <span className="tag category-tag">{playlist.category}</span>
+            )}
+            {playlist.difficulty_level && (
+              <span className="tag difficulty-tag">{playlist.difficulty_level}</span>
+            )}
+          </div>
         )}
 
         <div className="card-stats">
           <div className="stat">
             <BookOpen size={14} />
-            <span>{playlist.item_count || playlist.items?.length || 0}</span>
+            <span>{itemCount}</span>
           </div>
           <div className="stat">
             <Users size={14} />
@@ -344,6 +614,74 @@ const PlaylistCard = ({ playlist, onClick }) => {
               <span>{playlist.estimated_hours}h</span>
             </div>
           )}
+        </div>
+
+        {playlist.user_progress && (
+          <div className="playlists-card-progress">
+            <div className="playlists-progress-meta">
+              <span>Progress</span>
+              <strong>{Math.round(playlist.user_progress.progress_percentage || 0)}%</strong>
+            </div>
+            <div className="playlists-card-progress-track">
+              <div 
+                className="playlists-card-progress-fill" 
+                style={{ width: `${playlist.user_progress.progress_percentage || 0}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="playlists-card-actions">
+          <div className="playlists-card-actions-left">
+            <button
+              className="playlists-card-action-btn ai"
+              onClick={(e) => {
+                e.stopPropagation();
+                onGenerateNotes();
+              }}
+              disabled={notesLoading || !hasItems}
+              title={hasItems ? 'Generate AI notes' : 'Add items to enable AI'}
+            >
+              {notesLoading ? <span className="lp-btn-spinner" /> : <FileText size={14} />}
+              <span>{notesLoading ? 'Generating' : 'AI Notes'}</span>
+            </button>
+            <button
+              className="playlists-card-action-btn ai"
+              onClick={(e) => {
+                e.stopPropagation();
+                onGenerateFlashcards();
+              }}
+              disabled={flashcardsLoading || !hasItems}
+              title={hasItems ? 'Generate AI flashcards' : 'Add items to enable AI'}
+            >
+              {flashcardsLoading ? <span className="lp-btn-spinner" /> : <Zap size={14} />}
+              <span>{flashcardsLoading ? 'Generating' : 'Flashcards'}</span>
+            </button>
+          </div>
+          <div className="playlists-card-actions-right">
+            {!playlist.is_owner && (
+              <button
+                className={`playlists-icon-action-btn ${playlist.is_following ? 'following' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFollow();
+                }}
+                title={playlist.is_following ? 'Unfollow' : 'Follow'}
+              >
+                {playlist.is_following ? <Check size={14} /> : <Heart size={14} />}
+              </button>
+            )}
+            <button
+              className="playlists-icon-action-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onShare();
+              }}
+              title="Share playlist"
+            >
+              <Share2 size={14} />
+            </button>
+          </div>
         </div>
 
         <div className="card-footer">
@@ -364,8 +702,6 @@ const PlaylistCard = ({ playlist, onClick }) => {
     </div>
   );
 };
-
-// ==================== CREATE MODAL ====================
 
 const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties, coverColors }) => {
   const [formData, setFormData] = useState({
@@ -409,7 +745,7 @@ const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties, cove
     }));
   };
 
-  // Convert HSL to Hex
+  
   const hslToHex = (h, s, l) => {
     l /= 100;
     const a = s * Math.min(l, 1 - l) / 100;
@@ -421,7 +757,7 @@ const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties, cove
     return `#${f(0)}${f(8)}${f(4)}`;
   };
 
-  // Update color when sliders change
+  
   const updateColor = (newHue, newSat, newBright) => {
     const hexColor = hslToHex(newHue, newSat, newBright);
     setFormData(prev => ({ ...prev, cover_color: hexColor }));

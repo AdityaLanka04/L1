@@ -1,8 +1,4 @@
-/**
- * SearchHub Agent Service
- * Frontend service for interacting with the NLP-powered SearchHub Agent API
- * Provides natural language understanding for search and content creation
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
@@ -11,9 +7,7 @@ class SearchHubAgentService {
     this.baseUrl = `${API_URL}/agents/searchhub`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -22,9 +16,7 @@ class SearchHubAgentService {
     };
   }
 
-  /**
-   * Main search/command endpoint - understands natural language
-   */
+  
   async search(userId, query, options = {}) {
     try {
       const response = await fetch(this.baseUrl, {
@@ -49,9 +41,7 @@ class SearchHubAgentService {
     }
   }
 
-  /**
-   * Create a note with AI-generated content
-   */
+  
   async createNote(userId, topic, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/create-note`, {
@@ -77,9 +67,7 @@ class SearchHubAgentService {
     }
   }
 
-  /**
-   * Create flashcards with AI-generated content
-   */
+  
   async createFlashcards(userId, topic, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/create-flashcards`, {
@@ -105,9 +93,7 @@ class SearchHubAgentService {
     }
   }
 
-  /**
-   * Create questions with AI-generated content
-   */
+  
   async createQuestions(userId, topic, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/create-questions`, {
@@ -133,9 +119,7 @@ class SearchHubAgentService {
     }
   }
 
-  /**
-   * Get an explanation for a topic
-   */
+  
   async explain(userId, topic, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/explain`, {
@@ -159,9 +143,7 @@ class SearchHubAgentService {
     }
   }
 
-  /**
-   * Get search suggestions based on query and user context
-   */
+  
   async getSuggestions(userId, query = '') {
     try {
       const response = await fetch(
@@ -183,9 +165,7 @@ class SearchHubAgentService {
     }
   }
 
-  /**
-   * Get available actions
-   */
+  
   async getActions() {
     try {
       const response = await fetch(`${this.baseUrl}/actions`, {
@@ -204,9 +184,7 @@ class SearchHubAgentService {
     }
   }
 
-  /**
-   * Clear conversation context for a session
-   */
+  
   async clearContext(userId, sessionId) {
     try {
       const response = await fetch(`${this.baseUrl}/clear-context`, {

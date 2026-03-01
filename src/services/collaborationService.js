@@ -1,8 +1,4 @@
-/**
- * Real-time Collaboration Service
- * Frontend service for collaborative learning features
- * Provides real-time study sessions, shared workspaces, and collaborative tools
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
@@ -14,9 +10,7 @@ class CollaborationService {
     this.maxReconnectAttempts = 5;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -25,9 +19,7 @@ class CollaborationService {
     };
   }
 
-  /**
-   * Create a new collaborative study session
-   */
+  
   async createStudySession(sessionConfig) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions`, {
@@ -58,9 +50,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Join an existing study session
-   */
+  
   async joinStudySession(sessionId, userId, joinData = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/join`, {
@@ -84,9 +74,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Get active study sessions
-   */
+  
   async getActiveSessions(filters = {}) {
     try {
       const params = new URLSearchParams();
@@ -111,9 +99,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Send collaborative whiteboard update
-   */
+  
   async updateWhiteboard(sessionId, userId, whiteboardData) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/whiteboard`, {
@@ -140,9 +126,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Share screen or content
-   */
+  
   async shareContent(sessionId, userId, shareData) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/share`, {
@@ -150,7 +134,7 @@ class CollaborationService {
         headers: this.getHeaders(),
         body: JSON.stringify({
           user_id: userId,
-          share_type: shareData.shareType, // 'screen', 'window', 'tab', 'file'
+          share_type: shareData.shareType, 
           content_id: shareData.contentId || null,
           metadata: shareData.metadata || {}
         })
@@ -167,9 +151,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Send collaborative chat message
-   */
+  
   async sendChatMessage(sessionId, userId, messageData) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/chat`, {
@@ -195,9 +177,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Start collaborative quiz session
-   */
+  
   async startCollaborativeQuiz(sessionId, userId, quizConfig) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/quiz/start`, {
@@ -223,9 +203,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Submit collaborative quiz answer
-   */
+  
   async submitQuizAnswer(sessionId, userId, answerData) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/quiz/answer`, {
@@ -251,9 +229,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Create collaborative document
-   */
+  
   async createCollaborativeDocument(sessionId, userId, documentData) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/documents`, {
@@ -279,9 +255,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Update collaborative document
-   */
+  
   async updateCollaborativeDocument(sessionId, documentId, userId, updateData) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/documents/${documentId}`, {
@@ -306,9 +280,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Get session participants
-   */
+  
   async getSessionParticipants(sessionId) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/participants`, {
@@ -327,9 +299,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Leave study session
-   */
+  
   async leaveStudySession(sessionId, userId) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/leave`, {
@@ -351,9 +321,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * End study session (for creators)
-   */
+  
   async endStudySession(sessionId, userId) {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/end`, {
@@ -375,9 +343,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Get session history and analytics
-   */
+  
   async getSessionHistory(userId, filters = {}) {
     try {
       const params = new URLSearchParams();
@@ -401,16 +367,13 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Establish WebSocket connection for real-time updates
-   */
+  
   connectWebSocket(sessionId, userId, onMessage, onConnect, onDisconnect) {
     try {
       const wsUrl = `${this.baseUrl.replace('http', 'ws')}/ws/${sessionId}/${userId}`;
       this.wsConnection = new WebSocket(wsUrl);
 
       this.wsConnection.onopen = () => {
-        console.log('WebSocket connected');
         this.reconnectAttempts = 0;
         if (onConnect) onConnect();
       };
@@ -427,7 +390,6 @@ class CollaborationService {
       };
 
       this.wsConnection.onclose = () => {
-        console.log('WebSocket disconnected');
         if (onDisconnect) onDisconnect();
         this.attemptReconnection(sessionId, userId, onMessage, onConnect, onDisconnect);
       };
@@ -443,16 +405,13 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Attempt to reconnect WebSocket
-   */
+  
   attemptReconnection(sessionId, userId, onMessage, onConnect, onDisconnect) {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
       
       setTimeout(() => {
-        console.log(`Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
         this.connectWebSocket(sessionId, userId, onMessage, onConnect, onDisconnect);
       }, delay);
     } else {
@@ -460,9 +419,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Send message through WebSocket
-   */
+  
   sendWebSocketMessage(message) {
     if (this.wsConnection && this.wsConnection.readyState === WebSocket.OPEN) {
       this.wsConnection.send(JSON.stringify(message));
@@ -471,9 +428,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Disconnect WebSocket
-   */
+  
   disconnectWebSocket() {
     if (this.wsConnection) {
       this.wsConnection.close();
@@ -481,9 +436,7 @@ class CollaborationService {
     }
   }
 
-  /**
-   * Get collaboration health check
-   */
+  
   async healthCheck() {
     try {
       const response = await fetch(`${this.baseUrl}/health`, {

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader, Lock, CheckCircle, Circle, Play, Award,
+import { Loader, Lock, CheckCircle, Circle, Play, Pause, Award,
   Clock, Target, BookOpen, MessageCircle, FileText, Brain,
   ChevronRight, ChevronLeft, Sparkles, Zap, Download, Calendar,
-  Star, ExternalLink, Lightbulb, Map, TrendingUp, Code, Video,
-  Headphones, Image as ImageIcon, Activity, GitBranch, Menu } from 'lucide-react';
+  Lightbulb, Map, TrendingUp, Image as ImageIcon, Activity,
+  GitBranch, Menu, Timer } from 'lucide-react';
 import learningPathService from '../services/learningPathService';
 import './LearningPathDetail.css';
 
@@ -18,12 +18,12 @@ const LearningPathDetail = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   
-  // User notes state
+  
   const [userNote, setUserNote] = useState('');
   const [noteLoading, setNoteLoading] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
   
-  // Completion Quiz State
+  
   const [showCompletionQuiz, setShowCompletionQuiz] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [currentQuizQuestion, setCurrentQuizQuestion] = useState(0);
@@ -31,27 +31,29 @@ const LearningPathDetail = () => {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState(0);
   
-  // Enhanced features state
+  
   const [difficultyView, setDifficultyView] = useState('intermediate');
   const [resourceRatings, setResourceRatings] = useState({});
   const [completedResources, setCompletedResources] = useState([]);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [sessionActive, setSessionActive] = useState(false);
+  const [sessionSeconds, setSessionSeconds] = useState(0);
+  const [sessionLoggedMinutes, setSessionLoggedMinutes] = useState(null);
+  const [timeSpentMinutes, setTimeSpentMinutes] = useState(0);
 
   useEffect(() => {
     loadPathDetails();
-    
-    // Poll for progress updates every 10 seconds
-    const progressInterval = setInterval(() => {
-      loadPathDetails();
-    }, 10000);
-    
-    return () => clearInterval(progressInterval);
   }, [pathId]);
 
   useEffect(() => {
     if (selectedNode) {
       loadNodeNote();
-      // Load user's difficulty preference and resource progress
+      setSessionActive(false);
+      setSessionSeconds(0);
+      setSessionLoggedMinutes(null);
+      const initialTime = selectedNode.progress?.time_spent_minutes ?? selectedNode.progress?.time_spent ?? 0;
+      setTimeSpentMinutes(initialTime || 0);
+      
       if (selectedNode.progress) {
         setDifficultyView(selectedNode.progress.difficulty_view || 'intermediate');
         setResourceRatings(selectedNode.progress.resource_ratings || {});
@@ -69,6 +71,49 @@ const LearningPathDetail = () => {
     } catch (error) {
       console.error('Error loading note:', error);
     }
+  };
+
+  useEffect(() => {
+    if (!sessionActive) return;
+    const timer = setInterval(() => {
+      setSessionSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [sessionActive]);
+
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const logTimeSpent = async (minutes) => {
+    if (!selectedNode || minutes <= 0) return;
+    try {
+      const response = await learningPathService.updateTimeSpent(pathId, selectedNode.id, minutes);
+      if (response?.total_time_spent !== undefined) {
+        setTimeSpentMinutes(response.total_time_spent);
+      } else {
+        setTimeSpentMinutes((prev) => prev + minutes);
+      }
+      setSessionLoggedMinutes(minutes);
+    } catch (error) {
+      console.error('Error logging time spent:', error);
+    }
+  };
+
+  const handleSessionToggle = async () => {
+    if (!sessionActive) {
+      setSessionLoggedMinutes(null);
+      setSessionSeconds(0);
+      setSessionActive(true);
+      return;
+    }
+
+    setSessionActive(false);
+    const minutes = Math.max(1, Math.round(sessionSeconds / 60));
+    await logTimeSpent(minutes);
+    setSessionSeconds(0);
   };
 
   const handleSaveNote = async () => {
@@ -94,7 +139,7 @@ const LearningPathDetail = () => {
       setPath(response.path);
       setNodes(response.path.nodes || []);
       
-      // Auto-select first unlocked/in-progress node
+      
       const activeNode = response.path.nodes?.find(
         n => n.progress.status === 'unlocked' || n.progress.status === 'in_progress'
       );
@@ -136,7 +181,7 @@ const LearningPathDetail = () => {
     try {
       setActionLoading(true);
       
-      // Get completion quiz
+      
       const quizResponse = await learningPathService.getCompletionQuiz(pathId, node.id);
       
       if (quizResponse.error) {
@@ -144,7 +189,7 @@ const LearningPathDetail = () => {
         return;
       }
       
-      // Show quiz modal
+      
       setQuizQuestions(quizResponse.questions || []);
       setCurrentQuizQuestion(0);
       setQuizAnswers({});
@@ -168,7 +213,7 @@ const LearningPathDetail = () => {
   };
 
   const handleQuizSubmit = async () => {
-    // Calculate score
+    
     let correct = 0;
     quizQuestions.forEach((q, idx) => {
       if (quizAnswers[idx] === q.correct_answer) {
@@ -180,7 +225,7 @@ const LearningPathDetail = () => {
     setQuizScore(score);
     setQuizSubmitted(true);
     
-    // If passed, complete the node
+    
     if (score >= 75) {
       try {
         setActionLoading(true);
@@ -265,13 +310,13 @@ const LearningPathDetail = () => {
     try {
       setActionLoading(true);
       
-      // Get the export data from backend
+      
       const response = await learningPathService.exportToNotes(pathId, selectedNode.id, {
         include_resources: true,
         include_summary: true
       });
       
-      // Create note directly via API (like Knowledge Roadmap does)
+      
       const token = localStorage.getItem('token');
       const userName = localStorage.getItem('username');
       
@@ -292,7 +337,7 @@ const LearningPathDetail = () => {
         const newNote = await createNoteResponse.json();
         const noteId = newNote.id || newNote.note_id;
         
-        // Navigate to the newly created note
+        
         navigate(`/notes/editor/${noteId}`);
       } else {
         throw new Error('Failed to create note');
@@ -312,7 +357,7 @@ const LearningPathDetail = () => {
     try {
       const response = await learningPathService.exportToFlashcards(pathId, selectedNode.id);
       
-      // Navigate to flashcards with the exported deck
+      
       navigate('/flashcards', {
         state: {
           generatedFlashcards: {
@@ -341,7 +386,7 @@ const LearningPathDetail = () => {
       });
       
       alert('Study session added to calendar!');
-      // You can integrate with your calendar component here
+      
     } catch (error) {
       console.error('Error exporting to calendar:', error);
       alert('Failed to add to calendar');
@@ -367,22 +412,22 @@ const LearningPathDetail = () => {
         return;
       }
 
-      // Mark activity as started in progress
+      
       await learningPathService.updateNodeProgress(
         pathId,
         selectedNode.id,
         activity.type,
-        false, // Not completed yet, just started
+        false, 
         { started_at: new Date().toISOString() }
       );
 
-      // Reload to update checkmarks
+      
       await loadPathDetails();
 
-      // Route to appropriate page based on activity type
+      
       switch (activity.type) {
         case 'notes':
-          // Create note directly via API (like Knowledge Roadmap does)
+          
           const token = localStorage.getItem('token');
           const userName = localStorage.getItem('username');
           
@@ -476,6 +521,66 @@ const LearningPathDetail = () => {
     }
   };
 
+  const activityPlan = selectedNode?.content_plan || [];
+  const activityMap = activityPlan.reduce((acc, activity) => {
+    if (activity?.type && !acc[activity.type]) {
+      acc[activity.type] = activity;
+    }
+    return acc;
+  }, {});
+
+  const toolkitDefaults = {
+    notes: {
+      description: 'Turn this chapter into clean, structured notes.',
+    },
+    flashcards: {
+      description: 'Build recall with quick, spaced cards.',
+      count: 8,
+    },
+    quiz: {
+      description: 'Stress test understanding with scenario questions.',
+      question_count: 6,
+    },
+    chat: {
+      description: 'Ask follow-up questions and edge cases.',
+    },
+  };
+
+  const toolkitItems = ['notes', 'flashcards', 'quiz', 'chat'].map((type) => {
+    const fallback = toolkitDefaults[type] || {};
+    const planItem = activityMap[type] || { type, ...fallback };
+    const completed = selectedNode?.progress?.evidence?.[type]?.completed;
+    const count = planItem.count || planItem.question_count;
+    return {
+      type,
+      activity: planItem,
+      description: planItem.description || fallback.description || 'Start this learning activity.',
+      count,
+      completed,
+      label: type.toUpperCase(),
+    };
+  });
+
+  const rawTags = Array.isArray(selectedNode?.tags)
+    ? selectedNode.tags
+    : selectedNode?.tags
+      ? [selectedNode.tags]
+      : [];
+  const rawKeywords = Array.isArray(selectedNode?.keywords)
+    ? selectedNode.keywords
+    : selectedNode?.keywords
+      ? [selectedNode.keywords]
+      : [];
+  const keyTerms = Array.from(new Set([...rawTags, ...rawKeywords].filter(Boolean))).slice(0, 12);
+
+  const focusBlocks = Math.max(1, Math.ceil((selectedNode?.estimated_minutes || 0) / 25));
+
+  const nextActivity = selectedNode?.content_plan?.find(
+    (activity) => !selectedNode.progress?.evidence?.[activity.type]?.completed
+  ) || selectedNode?.content_plan?.[0];
+
+  const nodeProgressPct = selectedNode?.progress?.progress_pct || 0;
+
   if (loading) {
     return (
       <div className="lpd-container">
@@ -493,7 +598,6 @@ const LearningPathDetail = () => {
 
   return (
     <div className="lpd-container">
-      {/* Loading Overlay */}
       {actionLoading && (
         <div className="lpd-loading-overlay">
           <div className="lpd-loading-content">
@@ -504,7 +608,6 @@ const LearningPathDetail = () => {
         </div>
       )}
 
-      {/* Main Header with Path Info */}
       <div className="lpd-header">
         <div className="lpd-header-main">
           <div className="lpd-title-row">
@@ -541,7 +644,6 @@ const LearningPathDetail = () => {
           </div>
         </div>
 
-        {/* Progress Bar */}
         <div className="lpd-progress-section">
           <div className="lpd-progress-info">
             <span className="lpd-progress-label">OVERALL PROGRESS</span>
@@ -560,18 +662,14 @@ const LearningPathDetail = () => {
         </div>
       </div>
 
-      {/* Main Content Grid */}
       <div className="lpd-main">
-        {/* Left Sidebar - Path Map */}
         <div className="lpd-sidebar">
           <h3 className="lpd-sidebar-title">LEARNING PATH</h3>
           <div className="lpd-nodes">
             {nodes.map((node, index) => (
               <div key={node.id} className="lpd-node-item">
-                {/* Connector */}
                 {index < nodes.length - 1 && <div className="lpd-connector" />}
                 
-                {/* Node */}
                 <div
                   className={`lpd-node ${
                     node.progress.status === 'locked' ? 'lpd-locked' : ''
@@ -624,7 +722,6 @@ const LearningPathDetail = () => {
           </div>
         </div>
 
-        {/* Right Panel - Node Details */}
         <div className="lpd-details">
           {selectedNode ? (
             <>
@@ -639,7 +736,136 @@ const LearningPathDetail = () => {
                 </div>
               </div>
 
-              {/* Introduction Section */}
+              <div className="lpd-overview">
+                <div className="lpd-overview-card lpd-overview-next">
+                  <div className="lpd-overview-label">Next Up</div>
+                  <h4>{nextActivity ? nextActivity.type.toUpperCase() : 'ALL ACTIVITIES COMPLETE'}</h4>
+                  <p>
+                    {nextActivity
+                      ? nextActivity.description
+                      : 'You have completed all planned activities for this node.'}
+                  </p>
+                  <button
+                    className="lpd-overview-btn"
+                    onClick={() => nextActivity && handleActivityClick(nextActivity)}
+                    disabled={!nextActivity || actionLoading}
+                  >
+                    <Play size={14} />
+                    {nextActivity ? 'Launch Activity' : 'All Done'}
+                  </button>
+                </div>
+                <div className="lpd-overview-card lpd-overview-focus">
+                  <div className="lpd-overview-label">
+                    <Timer size={14} />
+                    Focus Session
+                  </div>
+                  <div className="lpd-focus-timer">{formatDuration(sessionSeconds)}</div>
+                  <div className="lpd-focus-meta">
+                    <span>Tracked time</span>
+                    <strong>{timeSpentMinutes} min</strong>
+                  </div>
+                  <div className="lpd-focus-actions">
+                    <button className="lpd-focus-btn" onClick={handleSessionToggle}>
+                      {sessionActive ? (
+                        <>
+                          <Pause size={14} />
+                          End & Log
+                        </>
+                      ) : (
+                        <>
+                          <Play size={14} />
+                          Start Focus
+                        </>
+                      )}
+                    </button>
+                    <button className="lpd-focus-btn lpd-focus-secondary" onClick={() => logTimeSpent(5)}>
+                      +5 min
+                    </button>
+                  </div>
+                  {sessionLoggedMinutes ? (
+                    <div className="lpd-focus-toast">Logged {sessionLoggedMinutes} min</div>
+                  ) : null}
+                </div>
+                <div className="lpd-overview-card lpd-overview-progress">
+                  <div className="lpd-overview-label">Node Pulse</div>
+                  <div className="lpd-overview-metric">
+                    <span>Progress</span>
+                    <strong>{nodeProgressPct}%</strong>
+                  </div>
+                  <div className="lpd-overview-metric">
+                    <span>Est. time</span>
+                    <strong>{selectedNode.estimated_minutes || 0} min</strong>
+                  </div>
+                  <div className="lpd-overview-metric">
+                    <span>XP Ready</span>
+                    <strong>+{selectedNode.reward?.xp || 50}</strong>
+                  </div>
+                </div>
+                <div className="lpd-overview-card lpd-overview-plan">
+                  <div className="lpd-overview-label">
+                    <Calendar size={14} />
+                    Study Plan
+                  </div>
+                  <h4>{focusBlocks} Focus Blocks</h4>
+                  <p>
+                    {focusBlocks === 1
+                      ? 'One 25-minute sprint to finish this chapter.'
+                      : `Split into ${focusBlocks} x 25-min sessions with short breaks.`}
+                  </p>
+                  <div className="lpd-overview-metric">
+                    <span>Recommended pace</span>
+                    <strong>{Math.max(1, Math.round((selectedNode.estimated_minutes || 0) / 10))} checkpoints</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lpd-block">
+                <h3 className="lpd-block-title">
+                  <Sparkles size={16} />
+                  LEARNING TOOLKIT
+                </h3>
+                <div className="lpd-toolkit">
+                  {toolkitItems.map((item) => (
+                    <button
+                      key={item.type}
+                      className={`lpd-toolkit-card ${item.completed ? 'is-complete' : ''}`}
+                      onClick={() => handleActivityClick(item.activity)}
+                      disabled={actionLoading}
+                      type="button"
+                    >
+                      <div className="lpd-toolkit-icon">
+                        {getActivityIcon(item.type)}
+                      </div>
+                      <div className="lpd-toolkit-body">
+                        <span className="lpd-toolkit-title">{item.label}</span>
+                        <p>{item.description}</p>
+                      </div>
+                      <div className="lpd-toolkit-meta">
+                        {item.completed ? (
+                          <span className="lpd-toolkit-status done">Done</span>
+                        ) : (
+                          <span className="lpd-toolkit-status">{item.count ? `${item.count} items` : 'Ready'}</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {keyTerms.length > 0 && (
+                <div className="lpd-block">
+                  <h3 className="lpd-block-title">
+                    <Zap size={16} />
+                    KEY TERMS
+                  </h3>
+                  <div className="lpd-tags">
+                    {keyTerms.map((term) => (
+                      <span key={term} className="lpd-tag">{term}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {selectedNode.introduction && (
                 <div className="lpd-block lpd-introduction-block">
                   <h3 className="lpd-block-title">
@@ -652,7 +878,6 @@ const LearningPathDetail = () => {
                 </div>
               )}
 
-              {/* Difficulty View Toggle */}
               <div className="lpd-block lpd-difficulty-toggle">
                 <h3 className="lpd-block-title">
                   <TrendingUp size={16} />
@@ -680,7 +905,6 @@ const LearningPathDetail = () => {
                 </div>
               </div>
 
-              {/* Core Content Sections */}
               {selectedNode.core_sections && selectedNode.core_sections.length > 0 && (
                 <div className="lpd-block">
                   <h3 className="lpd-block-title">
@@ -721,7 +945,6 @@ const LearningPathDetail = () => {
                 </div>
               )}
 
-              {/* Connection Map */}
               {selectedNode.connection_map && Object.keys(selectedNode.connection_map).length > 0 && (
                 <div className="lpd-block">
                   <h3 className="lpd-block-title">
@@ -763,7 +986,6 @@ const LearningPathDetail = () => {
                 </div>
               )}
 
-              {/* Real-World Applications */}
               {selectedNode.real_world_applications && selectedNode.real_world_applications.length > 0 && (
                 <div className="lpd-block">
                   <h3 className="lpd-block-title">
@@ -783,7 +1005,6 @@ const LearningPathDetail = () => {
                 </div>
               )}
 
-              {/* Summary Section */}
               {selectedNode.summary && selectedNode.summary.length > 0 && (
                 <div className="lpd-block lpd-summary-block">
                   <h3 className="lpd-block-title">
@@ -801,7 +1022,6 @@ const LearningPathDetail = () => {
                 </div>
               )}
 
-              {/* Objectives Section */}
               <div className="lpd-block">
                 <h3 className="lpd-block-title">
                   <Target size={16} />
@@ -817,7 +1037,6 @@ const LearningPathDetail = () => {
                 </ul>
               </div>
 
-              {/* Prerequisites Section */}
               {selectedNode.prerequisites && selectedNode.prerequisites.length > 0 && (
                 <div className="lpd-block">
                   <h3 className="lpd-block-title">
@@ -835,175 +1054,6 @@ const LearningPathDetail = () => {
                 </div>
               )}
 
-              {/* Resources Section - TEMPORARILY DISABLED (waiting for search API key) */}
-              {/* 
-              {((selectedNode.primary_resources && selectedNode.primary_resources.length > 0) ||
-                (selectedNode.supplementary_resources && selectedNode.supplementary_resources.length > 0) ||
-                (selectedNode.practice_resources && selectedNode.practice_resources.length > 0) ||
-                (selectedNode.resources && selectedNode.resources.length > 0)) && (
-                <div className="lpd-block">
-                  <h3 className="lpd-block-title">
-                    <Sparkles size={16} />
-                    LEARNING RESOURCES
-                  </h3>
-                  
-                  {selectedNode.primary_resources && selectedNode.primary_resources.length > 0 && (
-                    <div className="lpd-resource-category">
-                      <h4 className="lpd-resource-category-title">Required Resources</h4>
-                      <div className="lpd-resources">
-                        {selectedNode.primary_resources.map((resource, i) => (
-                          <div key={i} className="lpd-resource-wrapper">
-                            <a
-                              href={resource.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="lpd-resource-item"
-                            >
-                              <div className="lpd-resource-icon">
-                                {resource.type === 'video' && <Video size={16} />}
-                                {resource.type === 'article' && <FileText size={16} />}
-                                {resource.type === 'documentation' && <BookOpen size={16} />}
-                                {resource.type === 'interactive' && <Activity size={16} />}
-                                {!resource.type && <FileText size={16} />}
-                              </div>
-                              <div className="lpd-resource-info">
-                                <h4>{resource.title}</h4>
-                                {resource.description && <p>{resource.description}</p>}
-                                <div className="lpd-resource-meta">
-                                  {resource.estimated_minutes && (
-                                    <span className="lpd-resource-time">
-                                      <Clock size={10} /> {resource.estimated_minutes} min
-                                    </span>
-                                  )}
-                                  {resource.difficulty && (
-                                    <span className={`lpd-resource-difficulty lpd-diff-${resource.difficulty}`}>
-                                      {resource.difficulty}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <ExternalLink size={14} />
-                            </a>
-                            <div className="lpd-resource-actions">
-                              <div className="lpd-resource-rating">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    size={14}
-                                    className={`lpd-star ${resourceRatings[resource.url] >= star ? 'filled' : ''}`}
-                                    onClick={() => handleResourceRate(resource.url, star)}
-                                  />
-                                ))}
-                              </div>
-                              {!completedResources.includes(resource.url) && (
-                                <button
-                                  className="lpd-resource-complete-btn"
-                                  onClick={() => handleResourceComplete(resource.url, resource.estimated_minutes || 15)}
-                                >
-                                  <CheckCircle size={12} /> Mark Complete
-                                </button>
-                              )}
-                              {completedResources.includes(resource.url) && (
-                                <span className="lpd-resource-completed">
-                                  <CheckCircle size={12} /> Completed
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedNode.supplementary_resources && selectedNode.supplementary_resources.length > 0 && (
-                    <div className="lpd-resource-category">
-                      <h4 className="lpd-resource-category-title">Optional Resources</h4>
-                      <div className="lpd-resources">
-                        {selectedNode.supplementary_resources.map((resource, i) => (
-                          <div key={i} className="lpd-resource-wrapper">
-                            <a
-                              href={resource.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="lpd-resource-item lpd-resource-optional"
-                            >
-                              <div className="lpd-resource-icon">
-                                {resource.type === 'video' && <Video size={16} />}
-                                {resource.type === 'article' && <FileText size={16} />}
-                                {resource.type === 'audio' && <Headphones size={16} />}
-                                {!resource.type && <FileText size={16} />}
-                              </div>
-                              <div className="lpd-resource-info">
-                                <h4>{resource.title}</h4>
-                                {resource.description && <p>{resource.description}</p>}
-                                {resource.estimated_minutes && (
-                                  <span className="lpd-resource-time">
-                                    <Clock size={10} /> {resource.estimated_minutes} min
-                                  </span>
-                                )}
-                              </div>
-                              <ExternalLink size={14} />
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedNode.practice_resources && selectedNode.practice_resources.length > 0 && (
-                    <div className="lpd-resource-category">
-                      <h4 className="lpd-resource-category-title">Practice & Exercises</h4>
-                      <div className="lpd-resources">
-                        {selectedNode.practice_resources.map((resource, i) => (
-                          <div key={i} className="lpd-practice-item">
-                            <div className="lpd-practice-icon">
-                              <Target size={16} />
-                            </div>
-                            <div className="lpd-practice-info">
-                              <h4>{resource.title}</h4>
-                              <p>{resource.description}</p>
-                              {resource.difficulty && (
-                                <span className={`lpd-resource-difficulty lpd-diff-${resource.difficulty}`}>
-                                  {resource.difficulty}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {!selectedNode.primary_resources && selectedNode.resources && selectedNode.resources.length > 0 && (
-                    <div className="lpd-resources">
-                      {selectedNode.resources.map((resource, i) => (
-                        <a
-                          key={i}
-                          href={resource.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="lpd-resource-item"
-                        >
-                          <div className="lpd-resource-icon">
-                            {resource.type === 'video' && <Play size={16} />}
-                            {resource.type === 'article' && <FileText size={16} />}
-                            {resource.type === 'documentation' && <BookOpen size={16} />}
-                            {!resource.type && <FileText size={16} />}
-                          </div>
-                          <div className="lpd-resource-info">
-                            <h4>{resource.title}</h4>
-                            {resource.description && <p>{resource.description}</p>}
-                          </div>
-                          <ChevronRight size={14} />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              */}
-
-              {/* Activities Section */}
               <div className="lpd-block">
                 <h3 className="lpd-block-title">
                   <Sparkles size={16} />
@@ -1041,7 +1091,6 @@ const LearningPathDetail = () => {
                 </div>
               </div>
 
-              {/* User Notes Section */}
               <div className="lpd-block">
                 <h3 className="lpd-block-title">
                   <FileText size={16} />
@@ -1080,7 +1129,6 @@ const LearningPathDetail = () => {
                 </div>
               </div>
 
-              {/* Reward Section */}
               <div className="lpd-block">
                 <h3 className="lpd-block-title">
                   <Award size={16} />
@@ -1092,7 +1140,6 @@ const LearningPathDetail = () => {
                 </div>
               </div>
 
-              {/* Export Options */}
               <div className="lpd-block">
                 <h3 className="lpd-block-title">
                   <Download size={16} />
@@ -1114,7 +1161,6 @@ const LearningPathDetail = () => {
                 </div>
               </div>
 
-              {/* Scenarios Section */}
               {selectedNode.scenarios && selectedNode.scenarios.length > 0 && (
                 <div className="lpd-block">
                   <h3 className="lpd-block-title">
@@ -1156,7 +1202,6 @@ const LearningPathDetail = () => {
                 </div>
               )}
 
-              {/* Concept Mapping */}
               {selectedNode.concept_mapping && selectedNode.concept_mapping.concepts && selectedNode.concept_mapping.concepts.length > 0 && (
                 <div className="lpd-block">
                   <h3 className="lpd-block-title">
@@ -1175,9 +1220,12 @@ const LearningPathDetail = () => {
                       <div className="lpd-relationships">
                         <h5>Relationships:</h5>
                         <ul>
-                          {selectedNode.concept_mapping.relationships.map((rel, idx) => (
-                            <li key={idx}>{rel}</li>
-                          ))}
+                          {selectedNode.concept_mapping.relationships.map((rel, idx) => {
+                            const label = typeof rel === 'string'
+                              ? rel
+                              : `${rel.from || ''} ${rel.label || ''} ${rel.to || ''}`.trim();
+                            return <li key={idx}>{label || 'Relationship'}</li>;
+                          })}
                         </ul>
                       </div>
                     )}
@@ -1185,7 +1233,6 @@ const LearningPathDetail = () => {
                 </div>
               )}
 
-              {/* Action Buttons */}
               <div className="lpd-actions">
                 {selectedNode.progress.status === 'unlocked' && (
                   <button
@@ -1238,7 +1285,6 @@ const LearningPathDetail = () => {
         </div>
       </div>
 
-      {/* Completion Quiz Modal */}
       {showCompletionQuiz && (
         <div className="lpd-quiz-overlay">
           <div className="lpd-quiz-modal">

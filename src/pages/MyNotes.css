@@ -1,22 +1,17 @@
-/* My Notes Page - Matching Flashcards Layout */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-/* ==================== REMOVE BOXY DESIGN - USE ROUNDED ==================== */
 .my-notes-page-full *,
 .my-notes-page-full *::before,
 .my-notes-page-full *::after {
-  /* Allow natural border-radius */
+  
 }
 
-/* Base CSS Variables - Required for theme support */
 :root {
   --bg-top: var(--bg-primary);
   --bg-bottom: var(--bg-secondary);
   --bg: var(--bg-primary);
   --panel: var(--bg-secondary);
   --border: var(--border);
-  --text-primary: #EAECEF;
-  --text-secondary: #B8C0CC;
+  --text-primary: var(--text-primary);
+  --text-secondary: var(--text-secondary);
   --hover-bg: rgba(255, 255, 255, 0.05);
   --danger: #ef4444;
   --success: #22c55e;
@@ -26,7 +21,6 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
-/* CSS Variables */
 .my-notes-page-full {
   --nt-bg-primary: var(--bg-primary);
   --nt-bg-secondary: var(--bg-secondary);
@@ -49,7 +43,6 @@
   --nt-header-height: 70px;
 }
 
-/* Reset and Base */
 .my-notes-page-full {
   position: fixed !important;
   top: 0 !important;
@@ -75,7 +68,6 @@
   padding: 0;
 }
 
-/* Header - Full Width */
 .mn-header {
   position: sticky;
   top: 0;
@@ -151,22 +143,21 @@
 }
 
 [data-theme-mode="dark"] .mn-header-title {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="light"] .mn-header-title {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="dark"] .mn-header-subtitle {
-  color: color-mix(in srgb, var(--accent) 70%, var(--nt-text-primary)) !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--nt-text-primary));
 }
 
 [data-theme-mode="light"] .mn-header-subtitle {
-  color: color-mix(in srgb, var(--accent) 70%, var(--nt-text-primary)) !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--nt-text-primary));
 }
 
-/* Header Right Navigation */
 .mn-header-right {
   display: flex;
   align-items: center;
@@ -184,7 +175,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .mn-nav-btn svg {
@@ -210,21 +201,18 @@
   color: inherit !important;
 }
 
-/* Body - Contains Sidebar and Main */
 .mn-body {
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
-/* Main Layout */
 .nt-layout {
   display: flex;
   width: 100%;
   height: 100%;
 }
 
-/* Sidebar */
 .nt-sidebar {
   width: var(--nt-sidebar-width);
   height: 100%;
@@ -237,31 +225,30 @@
   padding-top: 16px;
 }
 
-/* Sidebar Text Colors */
 [data-theme-mode="dark"] .nt-sidebar {
-  background: var(--bg-secondary) !important;
-  color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
+  background: var(--bg-secondary);
+  color: color-mix(in srgb, var(--accent) 60%, #ffffff);
 }
 
 [data-theme-mode="dark"] .nt-nav-section-title {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="dark"] .nt-nav-text {
-  color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
 [data-theme-mode="light"] .nt-sidebar {
-  background: var(--bg-secondary) !important;
-  color: color-mix(in srgb, var(--accent) 80%, #000000) !important;
+  background: var(--bg-secondary);
+  color: color-mix(in srgb, var(--accent) 80%, #000000);
 }
 
 [data-theme-mode="light"] .nt-nav-section-title {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 [data-theme-mode="light"] .nt-nav-text {
-  color: color-mix(in srgb, var(--accent) 80%, #000000) !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
 .nt-sidebar.collapsed {
@@ -272,7 +259,6 @@
   border-right: none !important;
 }
 
-/* Floating button to show sidebar when collapsed */
 .nt-show-sidebar-btn {
   position: fixed !important;
   top: 80px !important;
@@ -375,7 +361,6 @@
   color: var(--nt-accent);
 }
 
-/* New Note Button */
 .nt-new-note-btn {
   display: flex;
   align-items: center;
@@ -394,37 +379,35 @@
   transition: all 0.2s;
 }
 
-/* Dark mode - black text on accent button */
 [data-theme-mode="dark"] .nt-new-note-btn {
-  color: #000000 !important;
+  color: #000000;
 }
 
 [data-theme-mode="dark"] .nt-new-note-btn svg {
-  color: #000000 !important;
+  color: #000000;
   flex-shrink: 0;
 }
 
 [data-theme-mode="dark"] .nt-new-note-btn .nt-nav-text {
-  color: #000000 !important;
+  color: #000000;
 }
 
-/* Light mode - white text on accent button */
 [data-theme-mode="light"] .nt-new-note-btn {
-  color: #ffffff !important;
+  color: var(--bg-secondary);
 }
 
 [data-theme-mode="light"] .nt-new-note-btn svg {
-  color: #ffffff !important;
+  color: #ffffff;
   flex-shrink: 0;
 }
 
 [data-theme-mode="light"] .nt-new-note-btn .nt-nav-text {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 .nt-new-note-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .nt-new-note-btn svg {
@@ -446,7 +429,6 @@
   padding: 12px;
 }
 
-/* Sidebar Nav */
 .nt-sidebar-nav {
   flex: 1;
   padding: 16px 12px;
@@ -523,6 +505,8 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 2px;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -548,7 +532,6 @@
   padding: 12px;
 }
 
-/* Add Folder Button */
 .nt-add-folder-btn {
   width: 20px;
   height: 20px;
@@ -577,7 +560,6 @@
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Main Content Area */
 .nt-main {
   flex: 1;
   display: flex;
@@ -587,12 +569,10 @@
   background: var(--bg-primary);
 }
 
-/* Header - Hidden, controls moved to content */
 .nt-header {
   display: none;
 }
 
-/* Content Controls - Search and View Toggle */
 .nt-content-controls {
   display: flex;
   align-items: center;
@@ -614,7 +594,7 @@
 }
 
 [data-theme-mode="dark"] .nt-header-title {
-  color: var(--nt-accent) !important;
+  color: var(--nt-accent);
 }
 
 .nt-header-subtitle {
@@ -628,7 +608,6 @@
   gap: 12px;
 }
 
-/* Search Box */
 .nt-search {
   display: flex;
   align-items: center;
@@ -669,7 +648,6 @@
   font-weight: 600;
 }
 
-/* View Controls */
 .nt-view-controls {
   display: flex;
   gap: 4px;
@@ -707,7 +685,6 @@
   height: 16px;
 }
 
-/* Buttons */
 .nt-btn {
   display: flex;
   align-items: center;
@@ -738,7 +715,7 @@
 
 .nt-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .nt-btn svg {
@@ -746,7 +723,6 @@
   height: 16px;
 }
 
-/* Content Area */
 .nt-content {
   flex: 1;
   overflow-y: auto;
@@ -771,21 +747,18 @@
   background: var(--nt-accent);
 }
 
-/* Notes Grid */
 .nt-notes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
 }
 
-/* Notes List */
 .nt-notes-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* Note Card */
 .nt-note-card {
   background: linear-gradient(145deg, var(--nt-bg-secondary), var(--nt-bg-tertiary));
   border: 1px solid var(--nt-border-subtle);
@@ -823,7 +796,6 @@
   opacity: 1;
 }
 
-/* Note Card Cover Area */
 .nt-note-card-cover {
   position: relative;
   width: 100%;
@@ -833,9 +805,47 @@
     color-mix(in srgb, var(--nt-accent) 20%, transparent) 100%);
   border-bottom: 1px solid var(--nt-border-subtle);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   overflow: hidden;
+  padding: 12px;
+}
+
+.nt-note-cover-preview {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--nt-text-muted);
+  opacity: 0.6;
+  pointer-events: none;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+
+.nt-note-cover-preview * {
+  font-size: 10px !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: inherit !important;
+}
+
+.nt-note-cover-preview h1,
+.nt-note-cover-preview h2,
+.nt-note-cover-preview h3,
+.nt-note-cover-preview h4,
+.nt-note-cover-preview h5,
+.nt-note-cover-preview h6 {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.nt-note-cover-preview img {
+  display: none;
 }
 
 .nt-note-card-cover::after {
@@ -858,8 +868,8 @@
   position: relative;
   z-index: 1;
   color: var(--nt-accent);
-  opacity: 0.3;
-  font-size: 48px;
+  opacity: 0.2;
+  font-size: 24px;
   transition: all 0.3s ease;
 }
 
@@ -868,7 +878,6 @@
   transform: scale(1.1);
 }
 
-/* Note Card Content */
 .nt-note-card-content {
   padding: 20px;
 }
@@ -889,7 +898,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -939,10 +948,11 @@
   line-height: 1.5;
   display: -webkit-box;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
   overflow: hidden;
   margin-bottom: 16px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
   font-weight: 600;
 }
@@ -979,7 +989,6 @@
   fill: currentColor;
 }
 
-/* Empty State */
 .nt-empty-state {
   display: flex;
   flex-direction: column;
@@ -1025,7 +1034,6 @@
   margin: 0;
 }
 
-/* Loading State */
 .nt-loading {
   display: flex;
   flex-direction: column;
@@ -1053,7 +1061,6 @@
   color: var(--nt-text-muted);
 }
 
-/* Modal */
 .nt-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1144,7 +1151,6 @@
   cursor: not-allowed;
 }
 
-/* Chat Sessions List */
 .nt-chat-list {
   max-height: 300px;
   overflow-y: auto;
@@ -1192,7 +1198,6 @@
   color: var(--nt-text-muted);
 }
 
-/* Folder Select List */
 .nt-folder-select-list {
   display: flex;
   flex-direction: column;
@@ -1225,7 +1230,6 @@
   color: var(--nt-accent);
 }
 
-/* Responsive */
 @media (max-width: 1024px) {
   .nt-sidebar {
     width: var(--nt-sidebar-collapsed);
@@ -1279,79 +1283,69 @@
   }
 }
 
-
-
-/* ==================== ENHANCED UI IMPROVEMENTS ==================== */
-
-/* Advanced Gradient Backgrounds */
 [data-theme-mode="dark"] .my-notes-page-full {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
+  background: linear-gradient(135deg, #0a0a0a 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
 }
 
 [data-theme-mode="light"] .my-notes-page-full {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%);
 }
 
-/* Sidebar Enhanced Styling */
 [data-theme-mode="dark"] .nt-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
-    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%);
 }
 
 [data-theme-mode="light"] .nt-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--accent) 15%, #ffffff) 0%, 
     color-mix(in srgb, var(--accent) 25%, #ffffff) 50%, 
-    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%) !important;
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%);
 }
 
-/* Enhanced Header */
 [data-theme-mode="dark"] .mn-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .mn-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, #ffffff 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
 }
 
-/* Enhanced Main Content */
 [data-theme-mode="dark"] .nt-main {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
+  background: linear-gradient(135deg, #0a0a0a 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
 }
 
 [data-theme-mode="light"] .nt-main {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, #f8f9fa 50%, #ffffff 100%);
 }
 
-/* Enhanced Content Header */
 [data-theme-mode="dark"] .nt-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.15);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="light"] .nt-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, #ffffff 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.03);
 }
 
-/* Enhanced Note Cards */
 [data-theme-mode="dark"] .nt-note-card {
   background: linear-gradient(145deg, 
     color-mix(in srgb, var(--nt-accent) 5%, var(--nt-bg-secondary)) 0%, 
     var(--nt-bg-tertiary) 100%);
-  border: 1px solid rgba(215, 179, 140, 0.1);
+  border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme-mode="light"] .nt-note-card {
   background: linear-gradient(145deg, 
-    #ffffff 0%, 
-    color-mix(in srgb, var(--nt-accent) 3%, #fafafa) 100%);
+    var(--bg-secondary) 0%, 
+    color-mix(in srgb, var(--nt-accent) 3%, var(--bg-primary)) 100%);
   border: 1px solid rgba(0, 0, 0, 0.05);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
@@ -1368,43 +1362,38 @@
   border-color: color-mix(in srgb, var(--nt-accent) 30%, transparent);
 }
 
-/* Enhanced Search Box */
 [data-theme-mode="dark"] .nt-search {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-  border: 1px solid rgba(215, 179, 140, 0.15);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="light"] .nt-search {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
-/* Enhanced View Controls */
 [data-theme-mode="dark"] .nt-view-controls {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-  border: 1px solid rgba(215, 179, 140, 0.15);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="light"] .nt-view-controls {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
-/* Enhanced Empty State */
 [data-theme-mode="dark"] .nt-empty-icon {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-  border: 1px solid rgba(215, 179, 140, 0.15);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
-/* Enhanced Modal */
 [data-theme-mode="dark"] .nt-modal {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .nt-modal {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
-/* Enhanced Nav Items */
 .nt-nav-item {
   position: relative;
   overflow: hidden;
@@ -1428,7 +1417,6 @@
   background: linear-gradient(90deg, var(--nt-accent-glow), transparent);
 }
 
-/* Enhanced New Note Button */
 .nt-new-note-btn {
   position: relative;
   overflow: hidden;
@@ -1447,7 +1435,6 @@
   opacity: 0.3;
 }
 
-/* Ambient Background Effect */
 .my-notes-page-full::before {
   content: '';
   position: fixed;
@@ -1460,7 +1447,6 @@
   z-index: 0;
 }
 
-/* Ensure content is above ambient background */
 .mn-header,
 .mn-body,
 .nt-sidebar,
@@ -1469,13 +1455,11 @@
   z-index: 1;
 }
 
-/* Enhanced Scrollbar */
 .nt-content::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, var(--nt-accent), var(--nt-accent-dark));
   box-shadow: 0 0 10px var(--nt-accent);
 }
 
-/* Section Title Gradient Text */
 .nt-nav-section-title {
   background: linear-gradient(135deg, var(--nt-accent), var(--nt-accent-dark));
   -webkit-background-clip: text;
@@ -1483,7 +1467,6 @@
   background-clip: text;
 }
 
-/* Header Title Gradient */
 .nt-header-title {
   background: linear-gradient(135deg, var(--nt-accent), var(--nt-accent-dark));
   -webkit-background-clip: text;
@@ -1491,7 +1474,6 @@
   background-clip: text;
 }
 
-/* Source Type Icons */
 .nt-source-flashcards {
   color: #f59e0b !important;
 }
@@ -1519,8 +1501,6 @@
   color: #4ade80 !important;
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;
@@ -1546,4 +1526,301 @@
 
 .nav-menu-btn svg {
   stroke-width: 2;
+}
+
+.nt-nav-item.convert-btn {
+  background: linear-gradient(135deg, var(--nt-accent), var(--nt-accent-dark));
+  font-weight: 600;
+  margin-top: 8px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nt-nav-item.convert-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.nt-nav-item.convert-btn:hover::after {
+  left: 100%;
+}
+
+[data-theme-mode="dark"] .nt-nav-item.convert-btn {
+  color: #000000;
+}
+
+[data-theme-mode="dark"] .nt-nav-item.convert-btn .nt-nav-text {
+  color: #000000;
+}
+
+[data-theme-mode="light"] .nt-nav-item.convert-btn {
+  color: #ffffff;
+}
+
+[data-theme-mode="light"] .nt-nav-item.convert-btn .nt-nav-text {
+  color: #ffffff;
+}
+
+.nt-nav-item.convert-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--nt-accent) 50%, transparent);
+}
+
+.nt-nav-item.convert-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--nt-accent) 30%, transparent);
+}
+
+.my-notes-page-full .nt-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
+  z-index: 9999 !important;
+}
+
+.my-notes-page-full .tpl-modal {
+  z-index: 10000 !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-modal {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-header {
+  background: var(--bg-secondary);
+  border-bottom-color: var(--border);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-header h2 {
+  color: var(--accent);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-close-btn {
+  background: var(--hover-bg);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-close-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-tabs {
+  background: var(--hover-bg);
+  border-bottom-color: var(--border);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-tab {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-tab:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000000;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-content {
+  background: var(--bg-secondary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-card {
+  background: var(--hover-bg);
+  border-color: var(--border);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-card:hover {
+  border-color: var(--accent);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-card h3 {
+  color: var(--text-primary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-card p {
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-card-icon {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
+  color: var(--bg-primary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-form {
+  background: var(--hover-bg);
+  border-color: var(--border);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-form h3 {
+  color: var(--text-primary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-form-group label {
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-input,
+[data-theme-mode="dark"] .my-notes-page-full .tpl-textarea {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-input:focus,
+[data-theme-mode="dark"] .my-notes-page-full .tpl-textarea:focus {
+  border-color: var(--accent);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-btn-secondary {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-btn-secondary:hover {
+  background: var(--hover-bg);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-btn-primary {
+  background: var(--accent);
+  color: #000000;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-saved-item {
+  background: var(--hover-bg);
+  border-color: var(--border);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-saved-item:hover {
+  border-color: var(--accent);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-saved-info h4 {
+  color: var(--text-primary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-saved-info p {
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-action-btn {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-action-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000000;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-hint {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-hint strong {
+  color: var(--accent);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-modal {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-header {
+  background: #ffffff;
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-header h2 {
+  color: var(--accent);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-close-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-close-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-tabs {
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-tab {
+  background: transparent;
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-tab:hover {
+  background: #ffffff;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-content {
+  background: #ffffff;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-card {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-card:hover {
+  border-color: var(--accent);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-card h3 {
+  color: rgba(0, 0, 0, 0.9);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-card p {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-card-icon {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
+  color: #ffffff;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-btn-primary {
+  background: var(--accent);
+  color: #ffffff;
 }

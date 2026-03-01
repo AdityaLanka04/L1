@@ -6,7 +6,7 @@ Replaces complex multi-file system with simple, efficient endpoints
 import logging
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -23,33 +23,21 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/flashcards", tags=["Flashcards"])
 
-
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
-
 def generate_share_code(length: int = 6) -> str:
     """Generate a random 6-character alphanumeric code"""
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choices(chars, k=length))
 
-
 def get_unique_share_code(db: Session, length: int = 6) -> str:
     """Generate a unique share code that doesn't exist in the database"""
-    for _ in range(10):  # Try up to 10 times
+    for _ in range(10):
         code = generate_share_code(length)
         existing = db.query(models.FlashcardSet).filter(
             models.FlashcardSet.share_code == code
         ).first()
         if not existing:
             return code
-    # Fallback: use longer code
     return generate_share_code(8)
-
-
-# ============================================================================
-# PYDANTIC MODELS
-# ============================================================================
 
 class FlashcardSetCreate(BaseModel):
     user_id: str
@@ -57,24 +45,17 @@ class FlashcardSetCreate(BaseModel):
     description: str = ""
     is_public: bool = False
 
-
 class FlashcardCreate(BaseModel):
     set_id: int
     question: str
     answer: str
     difficulty: Optional[str] = "medium"
 
-
 class CardReview(BaseModel):
     user_id: str
     card_id: str
     was_correct: bool
-    mode: Optional[str] = "preview"  # "preview" or "study"
-
-
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
+    mode: Optional[str] = "preview"
 
 def get_db():
     """Dependency to get database session"""
@@ -84,7 +65,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
 
 def get_user(db: Session, user_identifier: str):
     """Get user by username or email"""
@@ -96,11 +76,6 @@ def get_user(db: Session, user_identifier: str):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-
-# ============================================================================
-# FLASHCARD GENERATION
-# ============================================================================
-
 @router.post("/generate")
 async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session = Depends(get_db)):
     """Generate flashcards with minimal prompting"""
@@ -108,10 +83,8 @@ async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session =
     try:
         user = get_user(db, payload.user_id)
         
-        # Import unified AI
         from main import unified_ai
         
-        # Determine content source
         if payload.topic:
             flashcards = generate_flashcards_minimal(
                 unified_ai,
@@ -131,11 +104,9 @@ async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session =
         else:
             raise HTTPException(status_code=400, detail="Provide topic or chat_data")
         
-        # Save to database if requested
         if payload.save_to_set and flashcards:
             set_title = payload.set_title or f"Generated - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
             
-            # Generate unique share code
             share_code = get_unique_share_code(db)
             
             flashcard_set = models.FlashcardSet(
@@ -144,13 +115,12 @@ async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session =
                 description=f"Generated {len(flashcards)} cards",
                 source_type="ai_generated",
                 share_code=share_code,
-                is_public=payload.is_public  # Use the is_public parameter from frontend
+                is_public=payload.is_public
             )
             db.add(flashcard_set)
             db.commit()
             db.refresh(flashcard_set)
             
-            # Add cards to set
             for card in flashcards:
                 db_card = models.Flashcard(
                     set_id=flashcard_set.id,
@@ -160,7 +130,6 @@ async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session =
                 )
                 db.add(db_card)
                 
-                # Track in agent
                 agent = get_agent(payload.user_id)
                 agent.add_card(str(db_card.id))
             
@@ -183,11 +152,6 @@ async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session =
         logger.error(f"Generation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# ============================================================================
-# CARD REVIEW TRACKING
-# ============================================================================
-
 @router.post("/review")
 async def review_card(payload: CardReview, db: Session = Depends(get_db)):
     """Track card review and update mastery in database
@@ -200,7 +164,6 @@ async def review_card(payload: CardReview, db: Session = Depends(get_db)):
     try:
         user = get_user(db, payload.user_id)
         
-        # Update card in database
         card = db.query(models.Flashcard).filter(
             models.Flashcard.id == int(payload.card_id)
         ).first()
@@ -209,34 +172,27 @@ async def review_card(payload: CardReview, db: Session = Depends(get_db)):
             card.times_reviewed = (card.times_reviewed or 0) + 1
             if payload.was_correct:
                 card.correct_count = (card.correct_count or 0) + 1
-            card.last_reviewed = datetime.utcnow()
+            card.last_reviewed = datetime.now(timezone.utc)
             
-            # Mark card for review if answered wrong
             if not payload.was_correct:
                 card.marked_for_review = True
             elif payload.mode == "study" and payload.was_correct:
-                # Only unmark in study mode when answered correctly
                 card.marked_for_review = False
             
             db.commit()
             
-            # Recalculate set mastery
             flashcard_set = db.query(models.FlashcardSet).filter(
                 models.FlashcardSet.id == card.set_id
             ).first()
             
             set_mastery = 0.0
             if flashcard_set:
-                # Get all cards in the set
                 all_cards = db.query(models.Flashcard).filter(
                     models.Flashcard.set_id == flashcard_set.id
                 ).all()
                 
                 total_cards = len(all_cards)
                 if total_cards > 0:
-                    # Calculate mastery based on correct answers per card
-                    # Preview mode: 5% per card (max 50%)
-                    # Study mode: 10% per card (max 100%)
                     preview_mastery = 0
                     study_mastery = 0
                     
@@ -245,24 +201,18 @@ async def review_card(payload: CardReview, db: Session = Depends(get_db)):
                         reviewed = c.times_reviewed or 0
                         
                         if correct > 0:
-                            # If card was answered correctly at least once
                             if not c.marked_for_review:
-                                # Card mastered in study mode (not marked for review)
                                 study_mastery += 10
                             else:
-                                # Card only known in preview mode
                                 preview_mastery += 5
                     
-                    # Preview contributes max 50%, study can add up to 100%
                     preview_mastery = min(preview_mastery, 50)
                     study_mastery = min(study_mastery, 100)
                     
-                    # Total mastery is the higher of the two
                     set_mastery = max(preview_mastery, study_mastery)
         else:
             set_mastery = 0.0
         
-        # Also track in agent
         agent = get_agent(payload.user_id)
         result = agent.review_card(payload.card_id, payload.was_correct)
         
@@ -276,14 +226,12 @@ async def review_card(payload: CardReview, db: Session = Depends(get_db)):
         logger.error(f"Review error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 class StudySessionComplete(BaseModel):
     user_id: str
     set_id: int
     cards_studied: int
     correct_answers: int
-    session_duration: int  # in seconds
-
+    session_duration: int
 
 @router.post("/complete-session")
 async def complete_study_session(payload: StudySessionComplete, db: Session = Depends(get_db)):
@@ -292,14 +240,13 @@ async def complete_study_session(payload: StudySessionComplete, db: Session = De
     try:
         user = get_user(db, payload.user_id)
         
-        # Create study session record
         session = models.FlashcardStudySession(
             set_id=payload.set_id,
             user_id=user.id,
             cards_studied=payload.cards_studied,
             correct_answers=payload.correct_answers,
             session_duration=payload.session_duration,
-            session_date=datetime.utcnow()
+            session_date=datetime.now(timezone.utc)
         )
         db.add(session)
         db.commit()
@@ -314,7 +261,6 @@ async def complete_study_session(payload: StudySessionComplete, db: Session = De
     except Exception as e:
         logger.error(f"Error saving study session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/statistics")
 async def get_statistics(user_id: str = Query(...)):
@@ -332,7 +278,6 @@ async def get_statistics(user_id: str = Query(...)):
     except Exception as e:
         logger.error(f"Statistics error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/weak-cards")
 async def get_weak_cards(user_id: str = Query(...)):
@@ -354,18 +299,12 @@ async def get_weak_cards(user_id: str = Query(...)):
         logger.error(f"Weak cards error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# ============================================================================
-# CRUD OPERATIONS (Keep existing functionality)
-# ============================================================================
-
 @router.post("/sets/create")
 async def create_set(payload: FlashcardSetCreate, db: Session = Depends(get_db)):
     """Create new flashcard set"""
     
     user = get_user(db, payload.user_id)
     
-    # Generate unique share code
     share_code = get_unique_share_code(db)
     
     flashcard_set = models.FlashcardSet(
@@ -387,7 +326,6 @@ async def create_set(payload: FlashcardSetCreate, db: Session = Depends(get_db))
         "title": flashcard_set.title
     }
 
-
 @router.post("/cards/create")
 async def create_card(payload: FlashcardCreate, db: Session = Depends(get_db)):
     """Create individual flashcard"""
@@ -408,7 +346,6 @@ async def create_card(payload: FlashcardCreate, db: Session = Depends(get_db)):
         "card_id": flashcard.id
     }
 
-
 @router.get("/sets/user")
 async def get_user_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
     """Get all flashcard sets for user with accuracy"""
@@ -421,7 +358,6 @@ async def get_user_sets(user_id: str = Query(...), db: Session = Depends(get_db)
     
     result = []
     for s in sets:
-        # Calculate accuracy for this set
         cards = db.query(models.Flashcard).filter(
             models.Flashcard.set_id == s.id
         ).all()
@@ -448,7 +384,6 @@ async def get_user_sets(user_id: str = Query(...), db: Session = Depends(get_db)
         "success": True,
         "sets": result
     }
-
 
 @router.get("/sets/{set_id}/cards")
 async def get_set_cards(set_id: int, db: Session = Depends(get_db)):
@@ -477,7 +412,6 @@ async def get_set_cards(set_id: int, db: Session = Depends(get_db)):
         ]
     }
 
-
 @router.get("/by-code/{share_code}")
 async def get_set_by_code(share_code: str, db: Session = Depends(get_db)):
     """Get flashcard set by share code for preview/study URLs"""
@@ -489,12 +423,10 @@ async def get_set_by_code(share_code: str, db: Session = Depends(get_db)):
     if not flashcard_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
-    # Get all cards
     cards = db.query(models.Flashcard).filter(
         models.Flashcard.set_id == flashcard_set.id
     ).all()
     
-    # Calculate mastery based on individual card mastery
     total_cards = len(cards)
     if total_cards > 0:
         mastered_cards = 0
@@ -504,7 +436,6 @@ async def get_set_by_code(share_code: str, db: Session = Depends(get_db)):
             
             if times_reviewed > 0:
                 card_accuracy = correct_count / times_reviewed
-                # Weight by how many times it's been reviewed (max contribution at 3+ reviews)
                 review_weight = min(times_reviewed / 3, 1.0)
                 mastered_cards += card_accuracy * review_weight
         
@@ -539,12 +470,10 @@ async def get_set_by_code(share_code: str, db: Session = Depends(get_db)):
         ]
     }
 
-
 @router.post("/reset-mastery")
 async def reset_all_mastery(db: Session = Depends(get_db)):
     """Reset mastery data for all flashcards"""
     try:
-        # Reset all flashcard mastery data
         db.query(models.Flashcard).update({
             "times_reviewed": 0,
             "correct_count": 0,
@@ -561,7 +490,6 @@ async def reset_all_mastery(db: Session = Depends(get_db)):
         logger.error(f"Error resetting mastery: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.delete("/sets/{set_id}")
 async def delete_set(set_id: int, db: Session = Depends(get_db)):
     """Delete flashcard set"""
@@ -573,7 +501,6 @@ async def delete_set(set_id: int, db: Session = Depends(get_db)):
     if not flashcard_set:
         raise HTTPException(status_code=404, detail="Set not found")
     
-    # Delete all cards
     db.query(models.Flashcard).filter(
         models.Flashcard.set_id == set_id
     ).delete()
@@ -585,7 +512,6 @@ async def delete_set(set_id: int, db: Session = Depends(get_db)):
         "success": True,
         "message": "Set deleted"
     }
-
 
 @router.post("/toggle_visibility")
 async def toggle_flashcard_set_visibility(
@@ -603,7 +529,6 @@ async def toggle_flashcard_set_visibility(
     if not flashcard_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
-    # Update visibility
     flashcard_set.is_public = is_public
     db.commit()
     
@@ -614,11 +539,6 @@ async def toggle_flashcard_set_visibility(
         "message": f"Flashcard set is now {'public' if is_public else 'private'}",
         "is_public": is_public
     }
-
-
-# ============================================================================
-# PUBLIC FLASHCARDS ENDPOINTS
-# ============================================================================
 
 @router.get("/public")
 async def get_public_flashcards(
@@ -635,7 +555,6 @@ async def get_public_flashcards(
         
         result = []
         for s in sets:
-            # Get creator name (prefer first_name + last_name, fallback to username)
             user = db.query(models.User).filter(models.User.id == s.user_id).first()
             if user:
                 if user.first_name and user.last_name:
@@ -647,7 +566,6 @@ async def get_public_flashcards(
             else:
                 creator = 'Anonymous'
             
-            # Count cards
             card_count = db.query(models.Flashcard).filter(
                 models.Flashcard.set_id == s.id
             ).count()
@@ -672,7 +590,6 @@ async def get_public_flashcards(
         logger.error(f"Error fetching public flashcards: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/public/search")
 async def search_public_flashcards(
     query: str = Query(""),
@@ -696,7 +613,6 @@ async def search_public_flashcards(
         
         result = []
         for s in sets:
-            # Get creator name (prefer first_name + last_name, fallback to username)
             user = db.query(models.User).filter(models.User.id == s.user_id).first()
             if user:
                 if user.first_name and user.last_name:
@@ -708,7 +624,6 @@ async def search_public_flashcards(
             else:
                 creator = 'Anonymous'
             
-            # Count cards
             card_count = db.query(models.Flashcard).filter(
                 models.Flashcard.set_id == s.id
             ).count()
@@ -733,11 +648,9 @@ async def search_public_flashcards(
         logger.error(f"Error searching public flashcards: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 class CopySetRequest(BaseModel):
     user_id: str
     source_set_id: int
-
 
 @router.post("/public/copy")
 async def copy_public_flashcard_set(
@@ -749,7 +662,6 @@ async def copy_public_flashcard_set(
     try:
         user = get_user(db, payload.user_id)
         
-        # Get source set
         source_set = db.query(models.FlashcardSet).filter(
             models.FlashcardSet.id == payload.source_set_id,
             models.FlashcardSet.is_public == True
@@ -758,12 +670,10 @@ async def copy_public_flashcard_set(
         if not source_set:
             raise HTTPException(status_code=404, detail="Public flashcard set not found")
         
-        # Get source cards
         source_cards = db.query(models.Flashcard).filter(
             models.Flashcard.set_id == source_set.id
         ).all()
         
-        # Create new set for user
         new_share_code = get_unique_share_code(db)
         new_set = models.FlashcardSet(
             user_id=user.id,
@@ -771,13 +681,12 @@ async def copy_public_flashcard_set(
             description=source_set.description,
             source_type="copied",
             share_code=new_share_code,
-            is_public=False  # Copied sets are private by default
+            is_public=False
         )
         db.add(new_set)
         db.commit()
         db.refresh(new_set)
         
-        # Copy all cards
         for card in source_cards:
             new_card = models.Flashcard(
                 set_id=new_set.id,
@@ -804,16 +713,10 @@ async def copy_public_flashcard_set(
         logger.error(f"Error copying flashcard set: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# ============================================================================
-# CARD CRUD OPERATIONS
-# ============================================================================
-
 class CardUpdate(BaseModel):
     question: str
     answer: str
     difficulty: Optional[str] = "medium"
-
 
 @router.put("/cards/{card_id}")
 async def update_card(card_id: int, payload: CardUpdate, db: Session = Depends(get_db)):
@@ -829,9 +732,9 @@ async def update_card(card_id: int, payload: CardUpdate, db: Session = Depends(g
     card.question = payload.question
     card.answer = payload.answer
     card.difficulty = payload.difficulty
-    card.is_edited = True  # Mark as edited
-    card.edited_at = datetime.utcnow()  # Track when edited
-    card.updated_at = datetime.utcnow()
+    card.is_edited = True
+    card.edited_at = datetime.now(timezone.utc)
+    card.updated_at = datetime.now(timezone.utc)
     
     db.commit()
     
@@ -841,7 +744,6 @@ async def update_card(card_id: int, payload: CardUpdate, db: Session = Depends(g
         "is_edited": True,
         "edited_at": card.edited_at.isoformat()
     }
-
 
 @router.delete("/cards/{card_id}")
 async def delete_card(card_id: int, db: Session = Depends(get_db)):
@@ -861,7 +763,6 @@ async def delete_card(card_id: int, db: Session = Depends(get_db)):
         "success": True,
         "message": "Card deleted"
     }
-
 
 def register_flashcard_api_minimal(app):
     """Register streamlined flashcard routes"""

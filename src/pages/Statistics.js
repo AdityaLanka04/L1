@@ -8,7 +8,7 @@ const Statistics = () => {
   const token = localStorage.getItem('token');
   const [userName, setUserName] = useState('');
 
-  // State
+  
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [learningReviews, setLearningReviews] = useState([]);
@@ -29,7 +29,8 @@ const Statistics = () => {
         setUserName(data.first_name || 'User');
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchStatistics = async () => {
@@ -42,12 +43,13 @@ const Statistics = () => {
         const data = await response.json();
         setLearningReviews(data.reviews || []);
         
-        // Calculate stats from reviews
+        
         const calculatedStats = calculateStats(data.reviews || []);
         setStats(calculatedStats);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -71,7 +73,7 @@ const Statistics = () => {
     const uniqueTopics = new Set(reviews.map(r => r.topic).filter(Boolean));
     const topicsCovered = uniqueTopics.size;
 
-    // Group by topic to find strengths/improvements
+    
     const topicStats = {};
     reviews.forEach(r => {
       if (r.topic) {
@@ -96,7 +98,7 @@ const Statistics = () => {
 
     return {
       totalSessions,
-      totalTime: Math.round(totalTime / 60), // convert to minutes
+      totalTime: Math.round(totalTime / 60), 
       averageScore,
       topicsCovered,
       strengthAreas,
@@ -159,7 +161,6 @@ const Statistics = () => {
           </div>
         ) : (
           <>
-            {/* STATS GRID */}
             <div className="st-stats-grid">
               <div className="st-stat-card">
                 <div className="st-stat-icon">
@@ -202,9 +203,7 @@ const Statistics = () => {
               </div>
             </div>
 
-            {/* PERFORMANCE SECTIONS */}
             <div className="st-performance-grid">
-              {/* STRENGTH AREAS */}
               <div className="st-performance-card">
                 <div className="st-performance-header st-strength">
                   <TrendingUp size={20} />
@@ -224,7 +223,6 @@ const Statistics = () => {
                 )}
               </div>
 
-              {/* IMPROVEMENT AREAS */}
               <div className="st-performance-card">
                 <div className="st-performance-header st-warning">
                   <Target size={20} />
@@ -245,7 +243,6 @@ const Statistics = () => {
               </div>
             </div>
 
-            {/* RECENT REVIEWS */}
             {learningReviews.length > 0 && (
               <div className="st-reviews-section">
                 <div className="st-section-header">

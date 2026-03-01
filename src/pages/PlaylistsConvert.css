@@ -1,10 +1,7 @@
-/* Playlists Convert Modal Styles */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .playlists-container .iem-overlay *,
 .playlists-container .iem-overlay *::before,
 .playlists-container .iem-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .playlists-container .iem-overlay {

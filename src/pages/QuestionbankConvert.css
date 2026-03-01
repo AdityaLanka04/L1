@@ -1,10 +1,7 @@
-/* Questionbank Convert Modal Styles */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 .qbd-container .iem-overlay *,
 .qbd-container .iem-overlay *::before,
 .qbd-container .iem-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .qbd-container .iem-overlay {
@@ -53,7 +50,6 @@
   justify-content: space-between;
   background: var(--iem-bg-secondary);
 }
-
 
 .qbd-container .iem-header-content {
   display: flex;
@@ -276,7 +272,6 @@
   color: var(--iem-text-secondary);
 }
 
-
 .qbd-container .iem-input,
 .qbd-container .iem-select {
   width: 100%;
@@ -331,7 +326,6 @@
   font-size: 14px;
   color: var(--iem-text-secondary);
 }
-
 
 .qbd-container .iem-result-details strong {
   color: var(--iem-text-primary);
@@ -389,7 +383,6 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 
 .qbd-container .iem-btn-secondary {
   background: transparent;

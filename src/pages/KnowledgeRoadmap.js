@@ -105,34 +105,34 @@ const KnowledgeRoadmap = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [expandedNodes, setExpandedNodes] = useState(new Set());
-  const [exploredNodesCache, setExploredNodesCache] = useState(new Map()); // Cache for explored nodes
+  const [exploredNodesCache, setExploredNodesCache] = useState(new Map()); 
   const [exporting, setExporting] = useState(false);
 
-  // Chat states
+  
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
-  // Manual node states
+  
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
   const [addNodeParentId, setAddNodeParentId] = useState(null);
   const [newNodeTopic, setNewNodeTopic] = useState('');
   const [newNodeDescription, setNewNodeDescription] = useState('');
 
-  // Node selection and deletion states
+  
   const [selectedNodeId, setSelectedNodeId] = useState(null);
 
-  // Manual notes states
-  const [manualNotes, setManualNotes] = useState(new Map()); // nodeId -> notes string
+  
+  const [manualNotes, setManualNotes] = useState(new Map()); 
   const [editingNotes, setEditingNotes] = useState(false);
   const [tempNotes, setTempNotes] = useState('');
 
-  // Export success modal state
+  
   const [showExportSuccessModal, setShowExportSuccessModal] = useState(false);
   const [exportedNodeCount, setExportedNodeCount] = useState(0);
   const [exportedNoteId, setExportedNoteId] = useState(null);
 
-  // Save the current UI state (which nodes are actually expanded in the current view)
+  
   useEffect(() => {
     if (currentRoadmap && currentRoadmap.id && nodes.length > 0) {
       const roadmapState = {
@@ -148,7 +148,6 @@ const KnowledgeRoadmap = () => {
 const [chatSessions, setChatSessions] = useState([]);
 const [selectedChatId, setSelectedChatId] = useState(null);
 
-// Fetch chat sessions for modal
 const fetchChatSessions = async () => {
   try {
     const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${userId}`, {
@@ -159,10 +158,10 @@ const fetchChatSessions = async () => {
       setChatSessions(data.sessions || []);
     }
   } catch (error) {
-      }
+    // silenced
+  }
 };
 
-// Create roadmap from chat
 const createRoadmapFromChat = async () => {
   if (!selectedChatId) {
     alert('Please select a chat session');
@@ -172,7 +171,7 @@ const createRoadmapFromChat = async () => {
   try {
     setLoading(true);
     
-    // Get topic from chat
+    
     const topicResponse = await fetch(`${API_URL}/create_roadmap_from_chat`, {
       method: 'POST',
       headers: {
@@ -192,7 +191,7 @@ const createRoadmapFromChat = async () => {
     const topicData = await topicResponse.json();
     const extractedTopic = topicData.root_topic;
 
-    // Create roadmap with extracted topic
+    
     const response = await fetch(`${API_URL}/create_knowledge_roadmap`, {
       method: 'POST',
       headers: {
@@ -223,7 +222,7 @@ const createRoadmapFromChat = async () => {
     setLoading(false);
   }
 };
-  // Load the saved UI state
+  
   const loadRoadmapState = useCallback((roadmapId) => {
     const savedState = localStorage.getItem(`roadmap_state_${roadmapId}`);
     if (savedState) {
@@ -231,12 +230,13 @@ const createRoadmapFromChat = async () => {
         const state = JSON.parse(savedState);
                 return state;
       } catch (error) {
-              }
+    // silenced
+  }
     }
     return null;
   }, []);
 
-  // Clear roadmap state
+  
   const clearRoadmapState = useCallback((roadmapId) => {
     if (roadmapId) {
       localStorage.removeItem(`roadmap_state_${roadmapId}`);
@@ -247,12 +247,12 @@ const createRoadmapFromChat = async () => {
     setSelectedNodeId(null);
   }, []);
 
-  // Create refs for callbacks to prevent stale closures
+  
   const expandNodeRef = useRef(null);
   const exploreNodeRef = useRef(null);
   const addChildNodeRef = useRef(null);
 
-  // Layout constants
+  
   const HORIZONTAL_SPACING = 180;
   const VERTICAL_SPACING = 150;
 
@@ -264,7 +264,7 @@ const createRoadmapFromChat = async () => {
     fetchRoadmaps();
   }, []);
 
-  // Load roadmap from URL parameter
+  
   useEffect(() => {
     if (roadmapId && !currentRoadmap) {
       viewRoadmap(parseInt(roadmapId));
@@ -283,7 +283,8 @@ const createRoadmapFromChat = async () => {
       } else {
               }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -313,7 +314,7 @@ const createRoadmapFromChat = async () => {
         setShowCreateModal(false);
         setRootTopic('');
         
-        // Clear any existing state for new roadmap
+        
         clearRoadmapState(data.roadmap_id);
         
         await fetchRoadmaps();
@@ -342,13 +343,13 @@ const createRoadmapFromChat = async () => {
       });
 
       if (response.ok) {
-        // Remove the deleted roadmap from state
+        
         setRoadmaps(prev => prev.filter(roadmap => roadmap.id !== roadmapId));
         
-        // Clear saved state for this roadmap
+        
         clearRoadmapState(roadmapId);
         
-        // If the current roadmap is being viewed, clear it
+        
         if (currentRoadmap && currentRoadmap.id === roadmapId) {
           setCurrentRoadmap(null);
           setNodes([]);
@@ -365,7 +366,7 @@ const createRoadmapFromChat = async () => {
     }
   };
 
-  // FIXED: expandNode with useCallback to prevent stale closures and handle sibling collapse
+  
   const expandNode = useCallback(async (nodeId) => {
         
     setNodes((nds) => {
@@ -388,7 +389,7 @@ const createRoadmapFromChat = async () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Handle "already_expanded" case by fetching from roadmap
+        
         if (data.status === 'already_expanded') {
           const childrenExist = edges.some(e => String(e.source) === String(nodeId));
           
@@ -403,17 +404,17 @@ const createRoadmapFromChat = async () => {
               const children = allNodes.filter(n => n.parent_id === nodeId);
               
               if (children.length > 0) {
-                // Store removed node IDs for edge cleanup
+                
                 let removedNodeIds = new Set();
                 
-                // COLLAPSE SIBLINGS FIRST, THEN ADD CHILDREN
+                
                 setNodes((nds) => {
                   const parentNode = nds.find(n => n.data.nodeId === nodeId);
                   if (!parentNode) return nds;
                   
                   const parentDepth = parentNode.data.depth;
                   
-                  // Find siblings at same depth that are expanded
+                  
                   const siblingsAtSameDepth = nds.filter(n => 
                     n.data.depth === parentDepth && 
                     n.data.nodeId !== nodeId &&
@@ -422,11 +423,11 @@ const createRoadmapFromChat = async () => {
                   
                   let finalNodes = nds;
                   
-                  // Collapse siblings if any exist
+                  
                   if (siblingsAtSameDepth.length > 0) {
                     const siblingIds = siblingsAtSameDepth.map(s => String(s.id));
                     
-                    // Build adjacency map
+                    
                     const adjacencyMap = new Map();
                     edges.forEach(edge => {
                       const source = String(edge.source);
@@ -436,7 +437,7 @@ const createRoadmapFromChat = async () => {
                       adjacencyMap.get(source).push(String(edge.target));
                     });
                     
-                    // Find all descendants of siblings
+                    
                     const queue = [...siblingIds];
                     const visited = new Set();
                     
@@ -452,10 +453,10 @@ const createRoadmapFromChat = async () => {
                       });
                     }
                     
-                    // Remove descendant nodes and reset sibling status
+                    
                     finalNodes = nds.filter(n => !removedNodeIds.has(String(n.id))).map(n => {
                       if (siblingIds.includes(String(n.id))) {
-                        // Remove from expanded nodes when collapsing
+                        
                         setExpandedNodes(prev => {
                           const newSet = new Set(prev);
                           newSet.delete(n.data.nodeId);
@@ -467,7 +468,7 @@ const createRoadmapFromChat = async () => {
                     });
                   }
                   
-                  // Now add the children
+                  
                   const horizontalSpacing = 180;
                   const baseVerticalSpacing = 150;
                   const depthMultiplier = 1.2;
@@ -509,10 +510,10 @@ const createRoadmapFromChat = async () => {
                   ];
                 });
                 
-                // Add to expanded nodes
+                
                 setExpandedNodes(prev => new Set(prev).add(nodeId));
                 
-                // FIXED: Only remove edges for removed nodes
+                
                 setEdges((eds) => {
                   const cleanedEdges = eds.filter(edge => 
                     !removedNodeIds.has(String(edge.source)) && !removedNodeIds.has(String(edge.target))
@@ -552,14 +553,14 @@ const createRoadmapFromChat = async () => {
                 : n
             )
           );
-          // Add to expanded nodes even if already expanded
+          
           setExpandedNodes(prev => new Set(prev).add(nodeId));
           return;
         }
         
-        // Normal expansion flow with new child_nodes
+        
         if (data.child_nodes && data.child_nodes.length > 0) {
-          // Store removed node IDs
+          
           let removedNodeIds = new Set();
           
           setNodes((nds) => {
@@ -585,7 +586,7 @@ const createRoadmapFromChat = async () => {
             if (siblingsAtSameDepth.length > 0) {
               const siblingIds = siblingsAtSameDepth.map(s => String(s.id));
               
-              // Build adjacency map from edges
+              
               const adjacencyMap = new Map();
               edges.forEach(edge => {
                 const source = String(edge.source);
@@ -613,7 +614,7 @@ const createRoadmapFromChat = async () => {
               const filteredNodes = nds.filter(n => !removedNodeIds.has(String(n.id)));
               finalNodes = filteredNodes.map(n => {
                 if (siblingIds.includes(String(n.id))) {
-                  // Remove from expanded nodes when collapsing
+                  
                   setExpandedNodes(prev => {
                     const newSet = new Set(prev);
                     newSet.delete(n.data.nodeId);
@@ -669,17 +670,17 @@ const createRoadmapFromChat = async () => {
             ];
           });
           
-          // Add to expanded nodes
+          
           setExpandedNodes(prev => new Set(prev).add(nodeId));
           
-          // FIXED: Only remove edges for removed nodes
+          
           setEdges((eds) => {
-            // Remove only edges connected to removed nodes
+            
             const cleanedEdges = eds.filter(edge => 
               !removedNodeIds.has(String(edge.source)) && !removedNodeIds.has(String(edge.target))
             );
             
-            // Add new edges for the newly expanded children
+            
             const newEdges = data.child_nodes.map(child => ({
               id: `e${child.parent_id}-${child.id}`,
               source: String(child.parent_id),
@@ -727,13 +728,13 @@ const createRoadmapFromChat = async () => {
     }
   }, [setNodes, setEdges, edges, currentRoadmap, token]);
 
-  // Store expandNode in ref immediately
+  
   expandNodeRef.current = expandNode;
 
-  // FIXED: exploreNode with useCallback to prevent stale closures and caching
+  
   const exploreNode = useCallback(async (nodeId) => {
         
-    // Check if we have cached data for this node
+    
     if (exploredNodesCache.has(nodeId)) {
             const cachedData = exploredNodesCache.get(nodeId);
       setNodeExplanation(cachedData);
@@ -760,10 +761,10 @@ const createRoadmapFromChat = async () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Extract the node data - could be directly in data or in data.node
+        
         const nodeData = data.node || data;
                 
-        // Ensure we're setting the complete node data
+        
         const completeNodeData = {
           ...nodeData,
           topic_name: nodeData.topic_name,
@@ -774,7 +775,7 @@ const createRoadmapFromChat = async () => {
           learning_tips: nodeData.learning_tips
         };
         
-        // Cache the exploration data
+        
         setExploredNodesCache(prev => new Map(prev).set(nodeId, completeNodeData));
         
         setNodeExplanation(completeNodeData);
@@ -811,10 +812,10 @@ const createRoadmapFromChat = async () => {
     }
   }, [setNodes, token, exploredNodesCache]);
 
-  // Store exploreNode in ref immediately
+  
   exploreNodeRef.current = exploreNode;
 
-  // Add child node handler - opens modal to add custom node
+  
   const handleAddChildNode = useCallback((parentNodeId) => {
     setAddNodeParentId(parentNodeId);
     setNewNodeTopic('');
@@ -822,10 +823,10 @@ const createRoadmapFromChat = async () => {
     setShowAddNodeModal(true);
   }, []);
 
-  // Store addChildNode in ref
+  
   addChildNodeRef.current = handleAddChildNode;
 
-  // Create manual node
+  
   const createManualNode = async () => {
     if (!newNodeTopic.trim() || !addNodeParentId || !currentRoadmap) return;
 
@@ -849,12 +850,12 @@ const createRoadmapFromChat = async () => {
         const data = await response.json();
         const newNode = data.node;
 
-        // Add the new node to the flow
+        
         setNodes((nds) => {
           const parentNode = nds.find(n => n.data.nodeId === addNodeParentId);
           if (!parentNode) return nds;
 
-          // Find existing children of this parent to position new node
+          
           const siblingNodes = nds.filter(n => {
             const edge = edges.find(e => String(e.target) === String(n.id) && String(e.source) === String(addNodeParentId));
             return edge !== undefined;
@@ -865,7 +866,7 @@ const createRoadmapFromChat = async () => {
           const parentDepth = parentNode.data.depth;
           const verticalSpacing = parentDepth === 0 ? 350 : baseVerticalSpacing * Math.pow(1.2, parentDepth);
 
-          // Position to the right of existing siblings
+          
           const newX = siblingNodes.length > 0 
             ? Math.max(...siblingNodes.map(n => n.position.x)) + horizontalSpacing
             : parentNode.position.x;
@@ -895,7 +896,7 @@ const createRoadmapFromChat = async () => {
           return [...nds, flowNode];
         });
 
-        // Add edge from parent to new node
+        
         setEdges((eds) => [
           ...eds,
           {
@@ -914,7 +915,7 @@ const createRoadmapFromChat = async () => {
           }
         ]);
 
-        // Mark parent as expanded
+        
         setExpandedNodes(prev => new Set(prev).add(addNodeParentId));
         setNodes((nds) => nds.map(n => 
           n.data.nodeId === addNodeParentId 
@@ -922,7 +923,7 @@ const createRoadmapFromChat = async () => {
             : n
         ));
 
-        // Stop animation after 2 seconds
+        
         setTimeout(() => {
           setEdges((eds) => eds.map(e => 
             e.id === `e${addNodeParentId}-${newNode.id}` ? { ...e, animated: false } : e
@@ -944,11 +945,11 @@ const createRoadmapFromChat = async () => {
     }
   };
 
-  // Delete selected node
+  
   const deleteSelectedNode = async () => {
     if (!selectedNodeId || !currentRoadmap) return;
 
-    // Don't allow deleting root node
+    
     const selectedNode = nodes.find(n => n.data.nodeId === selectedNodeId);
     if (selectedNode && selectedNode.data.depth === 0) {
       alert('Cannot delete the root node');
@@ -966,7 +967,7 @@ const createRoadmapFromChat = async () => {
       });
 
       if (response.ok) {
-        // Find all descendant nodes to remove
+        
         const nodesToRemove = new Set([String(selectedNodeId)]);
         const queue = [String(selectedNodeId)];
 
@@ -980,28 +981,28 @@ const createRoadmapFromChat = async () => {
           });
         }
 
-        // Remove nodes
+        
         setNodes((nds) => nds.filter(n => !nodesToRemove.has(String(n.id))));
 
-        // Remove edges
+        
         setEdges((eds) => eds.filter(e => 
           !nodesToRemove.has(String(e.source)) && !nodesToRemove.has(String(e.target))
         ));
 
-        // Clear selection and explanation if viewing deleted node
+        
         setSelectedNodeId(null);
         if (nodeExplanation && nodesToRemove.has(String(nodeExplanation.id))) {
           setNodeExplanation(null);
         }
 
-        // Remove from expanded nodes
+        
         setExpandedNodes(prev => {
           const newSet = new Set(prev);
           nodesToRemove.forEach(id => newSet.delete(parseInt(id)));
           return newSet;
         });
 
-        // Remove manual notes for deleted nodes
+        
         setManualNotes(prev => {
           const newMap = new Map(prev);
           nodesToRemove.forEach(id => newMap.delete(parseInt(id)));
@@ -1016,12 +1017,12 @@ const createRoadmapFromChat = async () => {
     }
   };
 
-  // Handle node selection
+  
   const onNodeClick = useCallback((event, node) => {
     setSelectedNodeId(node.data.nodeId);
   }, []);
 
-  // Save manual notes for a node
+  
   const saveManualNotes = () => {
     if (nodeExplanation) {
       setManualNotes(prev => {
@@ -1034,7 +1035,7 @@ const createRoadmapFromChat = async () => {
         return newMap;
       });
 
-      // Update node to show notes badge
+      
       const nodeId = nodeExplanation.id || nodeExplanation.nodeId;
       setNodes((nds) => nds.map(n => 
         n.data.nodeId === nodeId 
@@ -1045,14 +1046,14 @@ const createRoadmapFromChat = async () => {
     setEditingNotes(false);
   };
 
-  // Start editing notes
+  
   const startEditingNotes = () => {
     const nodeId = nodeExplanation?.id || nodeExplanation?.nodeId;
     setTempNotes(manualNotes.get(nodeId) || '');
     setEditingNotes(true);
   };
 
-  // Chat functionality
+  
   const sendChatMessage = async () => {
     if (!chatInput.trim() || chatLoading || !nodeExplanation) return;
 
@@ -1074,7 +1075,7 @@ const createRoadmapFromChat = async () => {
       formData.append('question', `Context: I'm exploring the topic "${nodeExplanation.topic_name}" in a knowledge roadmap. Here's what I know about it: ${nodeExplanation.ai_explanation || 'No explanation available yet.'}
 
 User question: ${messageText}`);
-      formData.append('chat_id', ''); // Empty for new session
+      formData.append('chat_id', ''); 
 
       const response = await fetch(`${API_URL}/ask/`, {
         method: 'POST',
@@ -1116,7 +1117,7 @@ User question: ${messageText}`);
     }
   };
 
-  // Clear chat when node explanation changes
+  
   useEffect(() => {
     if (nodeExplanation) {
       setChatMessages([]);
@@ -1124,15 +1125,15 @@ User question: ${messageText}`);
     }
   }, [nodeExplanation]);
 
-  // FIXED: viewRoadmap using saved UI state as source of truth for what user was viewing
+  
   const viewRoadmap = async (roadmapId) => {
-    // Navigate to the roadmap URL
+    
     navigate(`/knowledge-roadmap/${roadmapId}`);
     
     try {
       setLoading(true);
       
-      // Load saved UI state
+      
       const savedState = loadRoadmapState(roadmapId);
       
       const response = await fetch(`${API_URL}/get_knowledge_roadmap/${roadmapId}`, {
@@ -1141,29 +1142,25 @@ User question: ${messageText}`);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Roadmap data received:', data);
         setCurrentRoadmap(data.roadmap);
         
-        // Use nodes_flat from backend response
+        
         const allNodes = data.nodes_flat || [];
-        console.log('📦 Total nodes from backend:', allNodes.length);
-        console.log('🌳 All nodes:', allNodes);
         
-        // Use saved expanded nodes if available, otherwise start with empty (only root visible)
+        
         const savedExpandedNodes = savedState ? new Set(savedState.expandedNodes) : new Set();
-        console.log('💾 Saved expanded nodes:', Array.from(savedExpandedNodes));
         
-        // Restore explored nodes cache
+        
         if (savedState && savedState.exploredNodesCache) {
           setExploredNodesCache(new Map(savedState.exploredNodesCache));
         }
 
-        // Restore manual notes
+        
         if (savedState && savedState.manualNotes) {
           setManualNotes(new Map(savedState.manualNotes));
         }
         
-        // Build parent-child map
+        
         const childrenMap = new Map();
         allNodes.forEach(node => {
           if (node.parent_id) {
@@ -1174,14 +1171,13 @@ User question: ${messageText}`);
           }
         });
         
-        // Find root nodes (no parent)
-        const rootNodes = allNodes.filter(node => !node.parent_id);
-        console.log('🌱 Root nodes found:', rootNodes.length, rootNodes);
         
-        // BFS to find visible nodes based on SAVED UI state (not backend expansion_status)
-        // A node is visible if:
-        // 1. It's a root node, OR
-        // 2. Its parent is visible AND parent is in savedExpandedNodes
+        const rootNodes = allNodes.filter(node => !node.parent_id);
+        
+        
+        
+        
+        
         const visibleNodeIds = new Set();
         const queue = [...rootNodes.map(n => n.id)];
         
@@ -1189,23 +1185,21 @@ User question: ${messageText}`);
           const currentNodeId = queue.shift();
           visibleNodeIds.add(currentNodeId);
           
-          // Check if THIS node was expanded in the saved UI state
+          
           if (savedExpandedNodes.has(currentNodeId)) {
             const children = childrenMap.get(currentNodeId) || [];
             children.forEach(child => queue.push(child.id));
           }
         }
         
-        console.log('👁️ Visible node IDs:', Array.from(visibleNodeIds));
         
-        // Update expandedNodes state to match saved state
+        
         setExpandedNodes(savedExpandedNodes);
         
-        // Filter to only visible nodes
+        
         const visibleNodes = allNodes.filter(node => visibleNodeIds.has(node.id));
-        console.log('✅ Visible nodes:', visibleNodes.length, visibleNodes);
                 
-        // Group nodes by depth for positioning
+        
         const nodesByDepth = new Map();
         visibleNodes.forEach(node => {
           if (!nodesByDepth.has(node.depth_level)) {
@@ -1214,7 +1208,7 @@ User question: ${messageText}`);
           nodesByDepth.get(node.depth_level).push(node);
         });
 
-        // Create flow nodes with proper positioning
+        
         const flowNodes = visibleNodes.map(node => {
           const nodesAtThisDepth = nodesByDepth.get(node.depth_level) || [];
           const indexAtDepth = nodesAtThisDepth.indexOf(node);
@@ -1226,7 +1220,7 @@ User question: ${messageText}`);
           const totalWidth = (nodesAtThisDepth.length - 1) * horizontalSpacing;
           const startX = 400 - (totalWidth / 2);
 
-          // Check if node has manual notes from saved state
+          
           const savedManualNotes = savedState?.manualNotes ? new Map(savedState.manualNotes) : new Map();
           const hasNotes = savedManualNotes.has(node.id);
 
@@ -1242,7 +1236,7 @@ User question: ${messageText}`);
               description: node.description,
               depth: node.depth_level,
               isExplored: node.is_explored,
-              // Use saved state to determine expansion status
+              
               expansionStatus: savedExpandedNodes.has(node.id) ? 'expanded' : 'unexpanded',
               nodeId: node.id,
               isManual: node.is_manual || false,
@@ -1254,7 +1248,7 @@ User question: ${messageText}`);
           };
         });
 
-        // Build edges only between visible nodes
+        
         const flowEdges = [];
         visibleNodes.forEach(node => {
           if (node.parent_id && visibleNodeIds.has(node.parent_id)) {
@@ -1277,8 +1271,6 @@ User question: ${messageText}`);
                 setNodes(flowNodes);
         setEdges(flowEdges);
         
-        console.log('🎨 Flow nodes created:', flowNodes.length, flowNodes);
-        console.log('🔗 Flow edges created:', flowEdges.length, flowEdges);
       }
     } catch (error) {
       console.error('❌ Error loading roadmap:', error);
@@ -1287,13 +1279,13 @@ User question: ${messageText}`);
     }
   };
 
-  // Export roadmap to notes
+  
   const exportRoadmapToNotes = async () => {
     if (!currentRoadmap || exporting) return;
 
     setExporting(true);
     try {
-      // Fetch complete roadmap data with all nodes
+      
       const response = await fetch(`${API_URL}/get_knowledge_roadmap/${currentRoadmap.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1305,7 +1297,7 @@ User question: ${messageText}`);
       const data = await response.json();
       const allNodes = data.nodes_flat || [];
 
-      // Filter only explored nodes
+      
       const exploredNodes = allNodes.filter(node => node.is_explored);
 
       if (exploredNodes.length === 0) {
@@ -1314,13 +1306,13 @@ User question: ${messageText}`);
         return;
       }
 
-      // Build a hierarchical structure
+      
       const nodeMap = new Map();
       exploredNodes.forEach(node => {
         nodeMap.set(node.id, { ...node, children: [] });
       });
 
-      // Link children to parents
+      
       const rootNodes = [];
       exploredNodes.forEach(node => {
         const nodeData = nodeMap.get(node.id);
@@ -1331,14 +1323,14 @@ User question: ${messageText}`);
         }
       });
 
-      // Sort children by id to maintain consistent order
+      
       const sortChildren = (node) => {
         node.children.sort((a, b) => a.id - b.id);
         node.children.forEach(sortChildren);
       };
       rootNodes.forEach(sortChildren);
 
-      // Generate formatted HTML content
+      
       let htmlContent = `<h1 style="font-weight: 800; font-size: 28px; margin-bottom: 24px; color: var(--accent);">${currentRoadmap.title || `Exploring ${currentRoadmap.root_topic}`}</h1>`;
       htmlContent += `<p style="color: var(--text-secondary); margin-bottom: 32px; font-style: italic;">Exported from Knowledge Roadmap on ${new Date().toLocaleDateString()}</p>`;
       htmlContent += `<hr style="border: none; border-top: 2px solid var(--border); margin: 24px 0;">`;
@@ -1347,21 +1339,21 @@ User question: ${messageText}`);
         let content = '';
         const indent = depth * 24;
         
-        // Heading size based on depth (h2 for depth 0, h3 for depth 1, etc.)
+        
         const headingLevel = Math.min(depth + 2, 6);
         const headingSize = [24, 20, 18, 16, 15, 14][depth] || 14;
         
-        // Node title - BOLD for explored nodes
+        
         content += `<h${headingLevel} style="font-weight: 700; font-size: ${headingSize}px; margin-top: ${depth === 0 ? 32 : 24}px; margin-bottom: 12px; margin-left: ${indent}px; color: var(--accent);">`;
         content += `<strong>${node.topic_name}</strong>`;
         content += `</h${headingLevel}>`;
 
-        // Node description
+        
         if (node.description) {
           content += `<p style="margin-left: ${indent}px; margin-bottom: 12px; color: var(--text-secondary); font-size: 14px;">${node.description}</p>`;
         }
 
-        // AI Explanation
+        
         if (node.ai_explanation) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px; padding: 16px; background: var(--panel); border-left: 4px solid var(--accent); border-radius: 4px;">`;
           content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Overview</h4>`;
@@ -1369,7 +1361,7 @@ User question: ${messageText}`);
           content += `</div>`;
         }
 
-        // Key Concepts
+        
         if (node.key_concepts && node.key_concepts.length > 0) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px;">`;
           content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Key Concepts</h4>`;
@@ -1380,7 +1372,7 @@ User question: ${messageText}`);
           content += `</ul></div>`;
         }
 
-        // Why Important
+        
         if (node.why_important) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px;">`;
           content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Why This Matters</h4>`;
@@ -1388,7 +1380,7 @@ User question: ${messageText}`);
           content += `</div>`;
         }
 
-        // Real World Examples
+        
         if (node.real_world_examples && node.real_world_examples.length > 0) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px;">`;
           content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Real-World Examples</h4>`;
@@ -1399,7 +1391,7 @@ User question: ${messageText}`);
           content += `</ul></div>`;
         }
 
-        // Learning Tips
+        
         if (node.learning_tips) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px; padding: 12px; background: color-mix(in srgb, var(--success) 10%, transparent); border-radius: 4px; border: 1px solid var(--success);">`;
           content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">Learning Tips</h4>`;
@@ -1407,7 +1399,7 @@ User question: ${messageText}`);
           content += `</div>`;
         }
 
-        // Manual Notes (user's personal notes)
+        
         const userNotes = manualNotes.get(node.id);
         if (userNotes) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px; padding: 12px; background: color-mix(in srgb, var(--warning) 10%, transparent); border-radius: 4px; border: 1px solid var(--warning);">`;
@@ -1416,12 +1408,12 @@ User question: ${messageText}`);
           content += `</div>`;
         }
 
-        // Add separator between nodes at same level
+        
         if (depth > 0) {
           content += `<hr style="border: none; border-top: 1px solid var(--border); margin: 20px ${indent}px; opacity: 0.3;">`;
         }
 
-        // Recursively add children
+        
         if (node.children && node.children.length > 0) {
           node.children.forEach(child => {
             content += generateNodeContent(child, depth + 1);
@@ -1431,18 +1423,18 @@ User question: ${messageText}`);
         return content;
       };
 
-      // Generate content for all root nodes
+      
       rootNodes.forEach(rootNode => {
         htmlContent += generateNodeContent(rootNode, 0);
       });
 
-      // Add footer
+      
       htmlContent += `<hr style="border: none; border-top: 2px solid var(--border); margin: 32px 0;">`;
       htmlContent += `<p style="color: var(--text-secondary); font-size: 12px; text-align: center; margin-top: 24px;">`;
       htmlContent += `Exported ${exploredNodes.length} explored node${exploredNodes.length !== 1 ? 's' : ''} from Knowledge Roadmap`;
       htmlContent += `</p>`;
 
-      // Create note via API
+      
       const createNoteResponse = await fetch(`${API_URL}/create_note`, {
         method: 'POST',
         headers: {
@@ -1718,7 +1710,6 @@ User question: ${messageText}`);
                       </div>
                     )}
 
-                    {/* Manual Notes Section */}
                     <div className="kr-manual-notes-section">
                       <div className="kr-manual-notes-header">
                         <h4>
@@ -1763,7 +1754,6 @@ User question: ${messageText}`);
                       )}
                     </div>
 
-                    {/* Chat Section */}
                     <div className="kr-chat-section">
                       <h4>Ask Questions About This Topic</h4>
                       <div className="kr-chat-messages">
@@ -1824,7 +1814,6 @@ User question: ${messageText}`);
         )}
       </div>
 
-      {/* CREATE ROADMAP MODAL */}
 {showCreateModal && (
   <div className="kr-modal-overlay" onClick={() => setShowCreateModal(false)}>
     <div className="kr-modal" onClick={e => e.stopPropagation()}>

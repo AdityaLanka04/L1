@@ -1,25 +1,31 @@
 ﻿import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
+import {
   Play, Brain, Sparkles, Loader, AlertCircle, BarChart3,
   BookOpen, Gauge, Cpu, Database, ArrowRight, History, TrendingUp, Zap, ChevronRight
 , Menu} from 'lucide-react';
 import './SoloQuiz.css';
 import quizAgentService from '../services/quizAgentService';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 const SoloQuiz = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const username = localStorage.getItem('username');
-  
+
   const [activeTab, setActiveTab] = useState('generator');
   const [subject, setSubject] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
   const [questionCount, setQuestionCount] = useState(10);
   const [questionTypes] = useState(['multiple_choice']);
   const [useAdaptive, setUseAdaptive] = useState(false);
-  const [quizMode, setQuizMode] = useState('standard'); // standard, sequential, sequential-instant
-  const [timingMode, setTimingMode] = useState('timed'); // timed, stopwatch, none
+  const [quizMode, setQuizMode] = useState('standard'); 
+  const [timingMode, setTimingMode] = useState('timed'); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [completedQuizzes, setCompletedQuizzes] = useState([]);
@@ -32,6 +38,17 @@ const SoloQuiz = () => {
       case 'hard': return { easy: 1, medium: 4, hard: 5 };
       default: return { easy: 3, medium: 5, hard: 2 };
     }
+  };
+
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
   };
 
   useEffect(() => {
@@ -75,7 +92,8 @@ const SoloQuiz = () => {
           topic: topicToUse,
           questionCount: countToUse,
           difficultyMix: getDifficultyMix(),
-          questionTypes
+          questionTypes,
+          use_hs_context: hsMode
         });
       }
 
@@ -86,7 +104,8 @@ const SoloQuiz = () => {
           difficulty: difficultyToUse,
           adaptiveConfig: response.adaptive_config,
           quizMode,
-          timingMode
+          timingMode,
+          quiz_id: response.quiz_id
         }));
         navigate('/solo-quiz/session');
       } else {
@@ -114,7 +133,8 @@ const SoloQuiz = () => {
           <span className="sq-subtitle">AI QUIZ</span>
         </div>
         <div className="sq-header-right">
-          <button 
+          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+          <button
             className="sq-nav-btn sq-nav-btn-accent"
             onClick={() => navigate('/quiz-hub')}
           >
@@ -129,7 +149,6 @@ const SoloQuiz = () => {
       </header>
 
       <div className="sq-body">
-        {/* Sidebar */}
         <aside className="sq-sidebar">
           <div className="sq-sidebar-section">
             <h3 className="sq-sidebar-heading">Navigation</h3>
@@ -164,7 +183,6 @@ const SoloQuiz = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="sq-main">
           {activeTab === 'generator' && (
             <div className="sq-content">
@@ -327,7 +345,7 @@ const SoloQuiz = () => {
                       </>
                     ) : (
                       <>
-                        <Play size={20} />
+                        <span style={{ fontSize: '24px', fontWeight: '400', lineHeight: '1' }}>+</span>
                         <span>START QUIZ</span>
                       </>
                     )}
@@ -339,14 +357,6 @@ const SoloQuiz = () => {
 
           {activeTab === 'completed' && (
             <div className="sq-content">
-              <div className="sq-section-header">
-                <History size={32} />
-                <div>
-                  <h2 className="sq-section-title">Completed Quizzes</h2>
-                  <p className="sq-section-desc">Review your past quiz attempts and analyze your performance</p>
-                </div>
-              </div>
-              
               <div className="sq-completed-list">
                 {completedQuizzes.length === 0 ? (
                   <div className="sq-empty-state">
@@ -354,8 +364,8 @@ const SoloQuiz = () => {
                     <h3>No Completed Quizzes Yet</h3>
                     <p>Start a new quiz to see your results here</p>
                     <button className="sq-empty-btn" onClick={() => setActiveTab('generator')}>
-                      <Sparkles size={16} />
-                      Generate Quiz
+                      <span style={{ fontSize: '24px', fontWeight: '400', lineHeight: '1' }}>+</span>
+                      <span>GENERATE QUIZ</span>
                     </button>
                   </div>
                 ) : (
@@ -447,6 +457,13 @@ const SoloQuiz = () => {
         </main>
       </div>
 
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
+      />
     </div>
   );
 };

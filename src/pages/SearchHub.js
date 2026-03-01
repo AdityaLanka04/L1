@@ -4,6 +4,9 @@ import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRigh
 import { useTheme } from '../contexts/ThemeContext';
 import './SearchHub.css';
 import { API_URL } from '../config/api';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 const SearchHub = () => {
   const navigate = useNavigate();
@@ -24,6 +27,8 @@ const SearchHub = () => {
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(true);
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [followUpContext, setFollowUpContext] = useState(null);
+  const [commandCatalog, setCommandCatalog] = useState([]);
+  const [showCommandGuide, setShowCommandGuide] = useState(false);
   
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -41,46 +46,144 @@ const SearchHub = () => {
   const [relatedSearches, setRelatedSearches] = useState([]);
   
   const [showAutocomplete, setShowAutocomplete] = useState(false);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);  // Track if user clicked on search
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);  
   const [autocompleteResults, setAutocompleteResults] = useState([]);
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(-1);
   const autocompleteDebounceRef = useRef(null);
   const [showLoginMessage, setShowLoginMessage] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
+
   
-  // NLP-powered session ID for context tracking
-  const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);  useEffect(() => {
+  const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const lastRecommendationRefreshRef = useRef(0);
+
+  const loadRecentSearches = (username) => {
+    const saved = localStorage.getItem(`recentSearches_${username}`);
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved));
+      } catch (error) {
+    // silenced
+  }
+    }
+  };
+
+  const refreshRecommendations = async (reason = 'manual') => {
+    const now = Date.now();
+    if (now - lastRecommendationRefreshRef.current < 5000) return;
+    lastRecommendationRefreshRef.current = now;
+
+    const username = localStorage.getItem('username');
+    const token = localStorage.getItem('token');
+    if (!username || !token) return;
+    loadRecentSearches(username);
+    await loadPersonalizedPrompts(username);
+  };
+
+  const getUsedRecommendationKeys = (username) => {
+    if (!username) return new Set();
+    const raw = localStorage.getItem(`searchhub_used_recs_${username}`);
+    if (!raw) return new Set();
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed.map(key => String(key)));
+      }
+    } catch (error) {
+    // silenced
+  }
+    return new Set();
+  };
+
+  const markRecommendationUsed = (username, rec) => {
+    if (!username || !rec) return;
+    const topic = (rec.topic || extractTopicName(rec.text || '') || '').toLowerCase();
+    const action = inferActionType(rec.text || '');
+    if (!topic || !action) return;
+    const key = `${topic}:${action}`;
+    const used = getUsedRecommendationKeys(username);
+    if (used.has(key)) return;
+    used.add(key);
+    localStorage.setItem(`searchhub_used_recs_${username}`, JSON.stringify(Array.from(used)));
+  };
+
+  useEffect(() => {
     const username = localStorage.getItem('username');
     const token = localStorage.getItem('token');
 
-    // Only consider logged in if BOTH username AND token exist
     if (username && token) {
       setUserName(username);
       loadRecentSearches(username);
       loadPersonalizedPrompts(username);
     } else {
-      // Not logged in - clear any stale data and show default recommendations
       setUserName('');
       const defaultPrompts = [
-        { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
-        { text: 'create notes on a topic', reason: 'Start documenting', priority: 'high' },
-        { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
-        { text: 'what are my weak areas', reason: 'Identify gaps', priority: 'high' },
+        { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
+        { text: '/notes', reason: 'Capture notes', priority: 'medium' },
+        { text: '/flashcards', reason: 'Study with flashcards', priority: 'medium' },
+        { text: '/weak', reason: 'Identify gaps', priority: 'high' },
+        { text: '/progress', reason: 'Track your journey', priority: 'low' },
       ];
-      setPersonalizedPrompts(defaultPrompts);
+      setPersonalizedPrompts(finalizeRecommendations(defaultPrompts));
       setIsLoadingPrompts(false);
     }
 
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
+
+    loadCommandCatalog();
   }, []);
+
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (userDocCount > 0) {
+      refreshRecommendations('doc_count');
+    }
+  }, [userDocCount]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshRecommendations('focus');
+    };
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        refreshRecommendations('visibility');
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
+    refreshRecommendations('hs_mode');
+  };
 
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === '/' && document.activeElement !== searchInputRef.current) {
         e.preventDefault();
         searchInputRef.current?.focus();
+      }
+
+      if (e.key === '?' && document.activeElement !== searchInputRef.current) {
+        e.preventDefault();
+        setShowCommandGuide(prev => !prev);
       }
     };
 
@@ -89,7 +192,7 @@ const SearchHub = () => {
   }, []);
 
   useEffect(() => {
-    // Close autocomplete when clicking outside
+    
     const handleClickOutside = (e) => {
       const searchWrapper = searchInputRef.current?.closest('.search-box-wrapper');
       if (searchWrapper && !searchWrapper.contains(e.target)) {
@@ -106,7 +209,7 @@ const SearchHub = () => {
   }, [showAutocomplete, showSuggestions]);
 
   useEffect(() => {
-    // Auto-hide scrollbar when not scrolling
+    
     let scrollTimeout;
     const pageElement = document.querySelector('.search-hub-page');
     
@@ -117,7 +220,7 @@ const SearchHub = () => {
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => {
           pageElement.classList.remove('is-scrolling');
-        }, 1000); // Hide scrollbar 1 second after scrolling stops
+        }, 1000); 
       }
     };
 
@@ -130,15 +233,236 @@ const SearchHub = () => {
     }
   }, []);
 
-  const loadRecentSearches = (username) => {
-    const saved = localStorage.getItem(`recentSearches_${username}`);
-    if (saved) {
-      try {
-        setRecentSearches(JSON.parse(saved));
-      } catch (error) {
-              }
+
+  const GENERIC_TOKENS = new Set([
+    'flashcards', 'flashcard', 'notes', 'note', 'quiz', 'quizzes',
+    'roadmap', 'path', 'plan', 'study', 'learning', 'guide',
+    'review', 'overview', 'summary', 'explain', 'practice'
+  ]);
+
+  const stripHtml = (text = '') => text.replace(/<[^>]*>/g, ' ');
+
+  const extractTopicFromFreeText = (text) => {
+    if (!text) return null;
+    const cleaned = text
+      .toLowerCase()
+      .replace(/[?!.,:;(){}[\]"'`~]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleaned) return null;
+    const stopwords = new Set([
+      'the', 'and', 'for', 'with', 'from', 'this', 'that', 'into', 'over',
+      'about', 'your', 'their', 'there', 'what', 'which', 'when', 'where',
+      'will', 'would', 'could', 'should', 'have', 'has', 'had', 'are', 'was',
+      'were', 'been', 'being', 'you', 'your', 'our', 'they', 'them', 'than'
+    ]);
+    const words = cleaned
+      .split(' ')
+      .filter(word => word.length > 2 && !stopwords.has(word) && !GENERIC_TOKENS.has(word));
+
+    if (!words.length) return null;
+    const topicWords = words.slice(0, 3);
+    return topicWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  const extractTopicFromNote = (note) => {
+    if (!note) return null;
+    const title = (note.title || '').trim();
+    const titleTopic = extractTopicName(title);
+    if (titleTopic && titleTopic.toLowerCase() !== 'new note') return titleTopic;
+
+    const content = stripHtml(note.content || '');
+    const headingMatch = content.match(/^\s*#+\s+(.+)$/m);
+    if (headingMatch && headingMatch[1]) {
+      const headingTopic = extractTopicFromFreeText(headingMatch[1]);
+      if (headingTopic) return headingTopic;
+    }
+
+    const firstLine = content.split('\n').map(line => line.trim()).find(Boolean) || '';
+    return extractTopicFromFreeText(firstLine) || extractTopicFromFreeText(content);
+  };
+
+  const extractTopicFromTitle = (title) => {
+    if (!title) return null;
+    const trimmed = title.trim();
+    if (!trimmed) return null;
+    const lower = trimmed.toLowerCase();
+    if (['new chat', 'chat', 'untitled', 'session'].includes(lower)) return null;
+    const cleaned = trimmed.replace(/^(practice:|quiz:|set:|flashcards?:|notes?:|chat:)\s*/i, '').trim();
+    return extractTopicName(cleaned) || extractTopicFromFreeText(cleaned);
+  };
+
+  const extractTopicName = (text) => {
+    if (!text) return null;
+    
+    
+    let cleaned = text
+      .toLowerCase()
+      .replace(/[?!.,:;]+/g, ' ')
+      .replace(/^(explain|create|make|generate|write|what is|tell me about|learn about|study|understand|summarize|summary|overview|review|practice|quiz on|notes on|flashcards on|about|a quiz on|a note on)\s+/gi, '')
+      .replace(/\s+(flashcards?|notes?|quiz|quizzes|roadmap|export|step-by-step)$/gi, '')
+      .trim();
+
+    
+    if (cleaned.startsWith('/')) {
+      const parts = cleaned.replace(/^\/+/, '').split(/\s+/);
+      if (parts.length >= 2) {
+        cleaned = parts.slice(1).join(' ').trim();
+      } else {
+        return null;
+      }
+    }
+    
+    
+    const prefixMatch = cleaned.match(/^(?:learning path|study plan|study guide|flashcards?|notes?|quiz(?:zes)?|roadmap|path)\s+(?:on|about|for|of)?\s*(.+)$/i);
+    if (prefixMatch && prefixMatch[1]) {
+      cleaned = prefixMatch[1].trim();
+    }
+
+    
+    const onMatch = cleaned.match(/(?:on|about|for|of)\s+(.+)/i);
+    if (onMatch && onMatch[1]) {
+      cleaned = onMatch[1].trim();
+    }
+    
+    
+    const words = cleaned.split(/\s+/).filter(w => w.length > 2);
+    if (words.length === 0) return null;
+    
+    
+    if (words.every(word => GENERIC_TOKENS.has(word))) {
+      return null;
+    }
+
+    const topicWords = words.slice(0, 4);
+    return topicWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  const inferActionType = (text = '') => {
+    const safeText = typeof text === 'string' ? text.trim() : '';
+    const lower = safeText.toLowerCase();
+    const command = lower.startsWith('/') ? lower.slice(1).split(/\s+/)[0] : '';
+
+    if (command) {
+      if (command === 'flashcards') return 'flashcards';
+      if (command === 'notes') return 'notes';
+      if (command === 'quiz') return 'quiz';
+      if (command === 'path') return 'path';
+      if (command === 'chat') return 'chat';
+      if (command === 'weak') return 'weak';
+      if (command === 'progress') return 'progress';
+      if (command === 'review') return 'review';
+    }
+
+    if (lower.includes('flashcard')) return 'flashcards';
+    if (lower.includes('note')) return 'notes';
+    if (lower.includes('quiz')) return 'quiz';
+    if (lower.includes('path') || lower.includes('roadmap') || lower.includes('study plan')) return 'path';
+    if (lower.includes('chat') || lower.includes('talk')) return 'chat';
+    if (lower.includes('weak')) return 'weak';
+    if (lower.includes('progress')) return 'progress';
+    if (lower.includes('review')) return 'review';
+    if (lower.startsWith('explain') || lower.includes(' explain ')) return 'explain';
+    if (lower.startsWith('learn') || lower.includes(' learn ')) return 'learn';
+
+    return '';
+  };
+
+  const actionLabelForType = (type) => {
+    switch (type) {
+      case 'flashcards':
+        return 'Flashcards';
+      case 'notes':
+        return 'Notes';
+      case 'quiz':
+        return 'Quiz';
+      case 'path':
+        return 'Path';
+      case 'chat':
+        return 'Chat';
+      case 'weak':
+        return 'Weakness';
+      case 'progress':
+        return 'Progress';
+      case 'review':
+        return 'Review';
+      case 'explain':
+        return 'Explain';
+      case 'learn':
+        return 'Learn';
+      default:
+        return '';
     }
   };
+
+  const buildActionCommand = (type, topic) => {
+    const safeTopic = (topic || '').trim();
+    switch (type) {
+      case 'flashcards':
+      case 'notes':
+      case 'quiz':
+      case 'path':
+      case 'chat':
+        return safeTopic ? `/${type} ${safeTopic}` : `/${type}`;
+      case 'review':
+        return '/review';
+      case 'weak':
+        return '/weak';
+      case 'progress':
+        return '/progress';
+      case 'explain':
+        return safeTopic ? `/explain ${safeTopic}` : '/explain';
+      case 'learn':
+        return safeTopic ? `learn ${safeTopic}` : 'learn';
+      default:
+        return safeTopic ? safeTopic : '/chat';
+    }
+  };
+
+  const extractTopicFromContextResult = (result) => {
+    const meta = result?.metadata || {};
+    const subject = (meta.subject || '').trim();
+    if (subject && subject.toLowerCase() !== 'general') {
+      return subject
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    }
+
+    const filename = (meta.filename || '').trim();
+    if (filename) {
+      const base = filename.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ');
+      const cleaned = base.replace(/\b(chapter|unit|lesson|notes?|doc|document|slides?)\b/gi, ' ');
+      const fromFile = extractTopicName(cleaned);
+      if (fromFile) return fromFile;
+    }
+
+    return extractTopicName(result?.text || '');
+  };
+
+  const buildRecommendationLabel = (text, topic) => {
+    const safeText = typeof text === 'string' ? text.trim() : '';
+    const topicName = (topic || extractTopicName(safeText) || '').trim();
+    const topicWords = topicName ? topicName.split(/\s+/) : [];
+
+    const pickTopic = (maxWords) => topicWords.slice(0, maxWords).join(' ');
+    const topicLabel = topicName ? pickTopic(2) : '';
+
+    const actionType = inferActionType(safeText);
+    const actionLabel = actionLabelForType(actionType);
+
+    if (topicLabel && actionLabel) return `${topicLabel} ${actionLabel}`;
+    if (topicLabel) return topicLabel;
+    if (actionLabel) return actionLabel;
+
+    return 'Suggested Topic';
+  };
+
+  const finalizeRecommendations = (items) => items.map(item => ({
+    ...item,
+    label: item.label || buildRecommendationLabel(item.text, item.topic)
+  }));
 
   const loadPersonalizedPrompts = async (username) => {
     setIsLoadingPrompts(true);
@@ -156,147 +480,616 @@ const SearchHub = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Helper function to extract clean topic name
-        const extractTopicName = (text) => {
-          if (!text) return null;
-          
-          // Remove common action words and clean up
-          let cleaned = text
-            .toLowerCase()
-            .replace(/^(explain|create|make|generate|write|what is|tell me about|learn about|study|understand|quiz on|notes on|flashcards on|about|a quiz on|a note on)\s+/gi, '')
-            .replace(/\s+(flashcards?|notes?|quiz|quizzes|roadmap|export|step-by-step)$/gi, '')
-            .trim();
-          
-          // Extract topic after "on" or "about"
-          const onMatch = cleaned.match(/(?:on|about)\s+(.+)/i);
-          if (onMatch && onMatch[1]) {
-            cleaned = onMatch[1].trim();
-          }
-          
-          // Take first 2-4 meaningful words for compound topics
-          const words = cleaned.split(/\s+/).filter(w => w.length > 2);
-          if (words.length === 0) return null;
-          
-          // Return up to 4 words for compound topics, capitalize properly
-          const topicWords = words.slice(0, 4);
-          return topicWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        };
         
-        // Process backend prompts
         const backendPrompts = (data.prompts || []).map(prompt => ({
           text: typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || ''),
           reason: typeof prompt.reason === 'string' ? prompt.reason : (prompt.reason?.label || 'Based on your activity'),
           priority: prompt.priority || 'medium',
           topic: extractTopicName(typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || ''))
         })).filter(p => p.text);
-        
-        // Build smart recommendations
-        const recommendations = [];
-        
-        // Always include: AI Chat
-        recommendations.push({ 
-          text: 'chat about any topic', 
-          reason: 'AI tutor ready to help', 
-          priority: 'high' 
+
+        const topicSignals = new Map();
+        const usedRecommendationKeys = getUsedRecommendationKeys(username);
+        const addTopicSignal = (topic, { score = 1, action = '', source = 'activity' } = {}) => {
+          const topicKey = (topic || '').trim();
+          if (!topicKey) return;
+          const key = topicKey.toLowerCase();
+          const entry = topicSignals.get(key) || {
+            topic: topicKey,
+            score: 0,
+            actionCounts: {},
+            sources: new Set(),
+            sourceActions: {}
+          };
+          entry.score += score;
+          if (action) {
+            entry.actionCounts[action] = (entry.actionCounts[action] || 0) + 1;
+          }
+          if (source) {
+            entry.sources.add(source);
+            if (action) entry.sourceActions[source] = action;
+          }
+          topicSignals.set(key, entry);
+        };
+
+        backendPrompts.forEach(prompt => {
+          if (prompt.topic) {
+            const action = inferActionType(prompt.text);
+            addTopicSignal(prompt.topic, { score: 1, action, source: 'activity' });
+          }
         });
+
+        const savedRecent = localStorage.getItem(`recentSearches_${username}`);
+        let recentSeeds = [];
+        if (savedRecent) {
+          try {
+            recentSeeds = JSON.parse(savedRecent);
+          } catch (error) {
+            recentSeeds = [];
+          }
+        }
+        if (!recentSeeds.length) {
+          recentSeeds = recentSearches;
+        }
+
+        recentSeeds.forEach((query, index) => {
+          const topic = extractTopicName(query);
+          if (topic) {
+            const action = inferActionType(query);
+            addTopicSignal(topic, { score: Math.max(1, 3 - index), action, source: 'recent' });
+          }
+        });
+
+        const fetchNoteTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/get_notes?user_id=${username}`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const notes = (data || [])
+              .filter(note => !note.is_deleted)
+              .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
+            const topics = [];
+            const seen = new Set();
+            for (const note of notes) {
+              const topic = extractTopicFromNote(note);
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: note.updated_at || note.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchDocumentTopics = async () => {
+          try {
+            const docData = await contextService.listDocuments();
+            const docs = docData?.user_docs || [];
+            const sortedDocs = docs.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            const topics = [];
+            const seen = new Set();
+            for (const doc of sortedDocs) {
+              const topic = doc.subject && doc.subject.trim()
+                ? doc.subject.trim()
+                : extractTopicName(doc.filename || '');
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                createdAt: doc.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchFlashcardTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/get_flashcard_history?user_id=${username}&limit=20`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const history = data?.flashcard_history || [];
+            const topics = [];
+            const seen = new Set();
+            for (const set of history) {
+              const topic = extractTopicFromTitle(set.title) || extractTopicFromFreeText(set.description || '');
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: set.updated_at || set.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchQuestionSetTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/get_question_sets?user_id=${username}`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const sets = data?.question_sets || [];
+            const topics = [];
+            const seen = new Set();
+            for (const set of sets) {
+              const topic = extractTopicFromTitle(set.title) || extractTopicFromFreeText(set.description || '');
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: set.updated_at || set.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchChatTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${username}`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const sessions = data?.sessions || [];
+            const topics = [];
+            const seen = new Set();
+            for (const session of sessions) {
+              const topic = extractTopicFromTitle(session.title);
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: session.updated_at || session.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchLearningPathTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/learning-paths`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const paths = data?.paths || [];
+            const topics = [];
+            const seen = new Set();
+            for (const path of paths) {
+              const topic = extractTopicFromTitle(path.title) || extractTopicFromFreeText(path.topic_prompt || path.description || '');
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: path.updated_at || path.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const fetchPlaylistTopics = async () => {
+          try {
+            const response = await fetch(`${API_URL}/playlists?my_playlists=true`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const playlists = data?.playlists || [];
+            const topics = [];
+            const seen = new Set();
+            for (const playlist of playlists) {
+              const topic = extractTopicFromTitle(playlist.title) || extractTopicFromFreeText(playlist.description || playlist.category || '');
+              if (!topic) continue;
+              const key = topic.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              topics.push({
+                topic,
+                updatedAt: playlist.created_at || null
+              });
+              if (topics.length >= 8) break;
+            }
+            return topics;
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const [
+          noteTopics,
+          documentTopics,
+          flashcardTopics,
+          questionTopics,
+          chatTopics,
+          learningPathTopics,
+          playlistTopics
+        ] = await Promise.all([
+          fetchNoteTopics(),
+          fetchDocumentTopics(),
+          fetchFlashcardTopics(),
+          fetchQuestionSetTopics(),
+          fetchChatTopics(),
+          fetchLearningPathTopics(),
+          fetchPlaylistTopics()
+        ]);
+
+        noteTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 3 ? 5 : ageDays <= 10 ? 4 : ageDays <= 30 ? 3 : 2;
+          addTopicSignal(entry.topic, { score, action: 'notes', source: 'notes' });
+        });
+
+        flashcardTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 5 ? 4 : ageDays <= 20 ? 3 : 2;
+          addTopicSignal(entry.topic, { score, action: 'flashcards', source: 'flashcards' });
+        });
+
+        questionTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 7 ? 4 : ageDays <= 25 ? 3 : 2;
+          addTopicSignal(entry.topic, { score, action: 'quiz', source: 'questions' });
+        });
+
+        chatTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 3 ? 3 : ageDays <= 14 ? 2 : 1;
+          addTopicSignal(entry.topic, { score, action: 'chat', source: 'chat' });
+        });
+
+        learningPathTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 7 ? 4 : ageDays <= 30 ? 3 : 2;
+          addTopicSignal(entry.topic, { score, action: 'path', source: 'paths' });
+        });
+
+        playlistTopics.forEach(entry => {
+          const updatedAt = entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 7 ? 3 : ageDays <= 30 ? 2 : 1;
+          addTopicSignal(entry.topic, { score, action: 'notes', source: 'playlists' });
+        });
+
+        documentTopics.forEach(entry => {
+          const createdAt = entry.createdAt ? new Date(entry.createdAt).getTime() : Date.now();
+          const ageDays = Math.max(0, (Date.now() - createdAt) / (1000 * 60 * 60 * 24));
+          const score = ageDays <= 7 ? 3 : ageDays <= 30 ? 2 : 1;
+          addTopicSignal(entry.topic, { score, action: 'flashcards', source: 'docs' });
+        });
+
+        const seedQueries = Array.from(
+          new Set([
+            ...(recentSeeds || []).filter(q => typeof q === 'string' && q.trim().length >= 2),
+            ...backendPrompts.map(p => p.topic).filter(Boolean),
+            ...noteTopics.map(entry => entry.topic),
+            ...documentTopics.map(entry => entry.topic),
+            ...flashcardTopics.map(entry => entry.topic),
+            ...questionTopics.map(entry => entry.topic),
+            ...chatTopics.map(entry => entry.topic),
+            ...learningPathTopics.map(entry => entry.topic),
+            ...playlistTopics.map(entry => entry.topic),
+          ])
+        ).slice(0, 5);
+
+        const fetchContextTopics = async () => {
+          if (!seedQueries.length) return [];
+          const responses = await Promise.all(
+            seedQueries.map(query =>
+              contextService.searchContext(query, hsMode, 6).catch(() => null)
+            )
+          );
+          const rawResults = responses.flatMap(res => res?.results || []);
+          const sorted = rawResults.sort((a, b) => {
+            if (a.source === b.source) return 0;
+            return a.source === 'private' ? -1 : 1;
+          });
+          const topics = [];
+          const seen = new Set();
+          for (const result of sorted) {
+            const topic = extractTopicFromContextResult(result);
+            if (!topic) continue;
+            const key = topic.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            topics.push({ topic, source: result.source });
+            if (topics.length >= 6) break;
+          }
+          return topics;
+        };
+
+        const contextTopics = await fetchContextTopics();
+        contextTopics.forEach(({ topic, source }) => {
+          const score = source === 'private' ? 6 : 3;
+          addTopicSignal(topic, { score, source });
+        });
+
+        const fetchRelatedTopics = async (seedTopics) => {
+          if (!seedTopics.length) return [];
+          try {
+            const response = await fetch(`${API_URL}/context/related-topics`, {
+              method: 'POST',
+              headers: { 
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                topics: seedTopics,
+                use_hs: hsMode,
+                top_k: 5,
+                max_related: 6
+              }),
+              cache: 'no-store'
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            return data?.topics || [];
+          } catch (error) {
+            return [];
+          }
+        };
+
+        const relatedSeeds = Array.from(topicSignals.values())
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3)
+          .map(entry => entry.topic);
+
+        const relatedTopics = await fetchRelatedTopics(relatedSeeds);
+        relatedTopics.forEach((topic, index) => {
+          const relatedActions = ['flashcards', 'notes', 'quiz', 'chat'];
+          const action = relatedActions[index % relatedActions.length];
+          addTopicSignal(topic, { score: 2, action, source: 'related' });
+        });
+
+        const sourcePriority = ['private', 'notes', 'flashcards', 'questions', 'chat', 'paths', 'playlists', 'docs', 'related', 'hs', 'recent', 'activity'];
+        const rankedTopics = Array.from(topicSignals.values()).sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          const aRank = sourcePriority.findIndex(src => a.sources.has(src));
+          const bRank = sourcePriority.findIndex(src => b.sources.has(src));
+          return (aRank === -1 ? 99 : aRank) - (bRank === -1 ? 99 : bRank);
+        });
+
+        const pickPrimarySource = (entry) => {
+          for (const src of sourcePriority) {
+            if (entry.sources.has(src)) return src;
+          }
+          return 'activity';
+        };
+
+        const pickActionForEntry = (entry, fallbackAction, preferredAction = '') => {
+          if (preferredAction) return preferredAction;
+          const actions = entry.actionCounts || {};
+          const sorted = Object.entries(actions).sort((a, b) => b[1] - a[1]);
+          if (sorted.length > 0) return sorted[0][0];
+          return fallbackAction;
+        };
+
+        const actionCycle = ['flashcards', 'notes', 'quiz', 'chat'];
+        let actionIndex = 0;
+
+        const recommendations = [];
+        const maxRecommendations = 8;
+        const recommendationKeys = new Set();
+
+        const getRecommendationKey = (rec) => {
+          const action = inferActionType(rec.text);
+          const topicKey = (rec.topic || extractTopicName(rec.text) || '').toLowerCase();
+          if (topicKey && action) return `${topicKey}:${action}`;
+          return (rec.text || rec.label || '').toLowerCase();
+        };
+
+        const addRecommendation = (rec) => {
+          if (recommendations.length >= maxRecommendations) return;
+          const key = getRecommendationKey(rec);
+          if (key && usedRecommendationKeys.has(key)) return;
+          if (key && recommendationKeys.has(key)) return;
+          if (key) recommendationKeys.add(key);
+          recommendations.push(rec);
+        };
+
+        const pickForSource = (source) => {
+          if (recommendations.length >= maxRecommendations) return;
+          const candidate = rankedTopics.find(entry => entry.sources.has(source) && !(entry._usedSources?.has(source)));
+          if (!candidate) return;
+          const fallbackAction = actionCycle[actionIndex++ % actionCycle.length];
+          const preferredAction = candidate.sourceActions?.[source];
+          const action = pickActionForEntry(candidate, fallbackAction, preferredAction);
+          const reason = source === 'private'
+            ? 'From your context'
+            : source === 'notes'
+              ? 'From your notes'
+              : source === 'flashcards'
+                ? 'From your flashcards'
+                : source === 'questions'
+                  ? 'From your quizzes'
+                  : source === 'chat'
+                    ? 'From your chats'
+                    : source === 'paths'
+                      ? 'From your learning paths'
+                      : source === 'playlists'
+                        ? 'From your playlists'
+                        : source === 'related'
+                          ? 'Related to your topics'
+                    : source === 'docs'
+                      ? 'From your uploads'
+                      : source === 'hs'
+                        ? 'From curriculum'
+                        : source === 'recent'
+                          ? 'From your searches'
+                          : 'Based on your activity';
+          addRecommendation({
+            text: buildActionCommand(action, candidate.topic),
+            reason,
+            priority: 'high',
+            topic: candidate.topic
+          });
+          candidate._usedSources = candidate._usedSources || new Set();
+          candidate._usedSources.add(source);
+        };
+
+        ['private', 'notes', 'flashcards', 'questions', 'chat', 'paths', 'playlists', 'docs', 'related', 'hs', 'recent'].forEach(pickForSource);
+
+        for (const entry of rankedTopics) {
+          if (recommendations.length >= maxRecommendations) break;
+          const fallbackAction = actionCycle[actionIndex++ % actionCycle.length];
+          const action = pickActionForEntry(entry, fallbackAction);
+          const source = pickPrimarySource(entry);
+          const reason = source === 'private'
+            ? 'From your context'
+            : source === 'notes'
+              ? 'From your notes'
+              : source === 'flashcards'
+                ? 'From your flashcards'
+                : source === 'questions'
+                  ? 'From your quizzes'
+                  : source === 'chat'
+                    ? 'From your chats'
+                    : source === 'paths'
+                      ? 'From your learning paths'
+                      : source === 'playlists'
+                        ? 'From your playlists'
+                        : source === 'related'
+                          ? 'Related to your topics'
+                : source === 'docs'
+                  ? 'From your uploads'
+                  : source === 'hs'
+                    ? 'From curriculum'
+                    : 'Based on your activity';
+          addRecommendation({
+            text: buildActionCommand(action, entry.topic),
+            reason,
+            priority: 'high',
+            topic: entry.topic
+          });
+        }
         
-        // Get weak areas first (highest priority)
+        
         const weakAreaPrompts = backendPrompts.filter(p => 
           p.text.toLowerCase().includes('weak') || 
           p.reason.toLowerCase().includes('weak')
         );
         
         if (weakAreaPrompts.length > 0) {
-          recommendations.push({
-            text: weakAreaPrompts[0].text,
-            reason: weakAreaPrompts[0].reason,
+          addRecommendation({
+            text: '/weak',
+            reason: 'Focus on weak areas',
             priority: 'high'
           });
         }
         
-        // Get topic-based prompts (from flashcards, notes, chats)
-        const topicPrompts = backendPrompts.filter(p => 
-          p.topic && 
-          !p.text.toLowerCase().includes('weak') &&
-          !p.text.toLowerCase().includes('review weak')
-        );
         
-        // Add 2-3 diverse topic prompts
-        const addedTopics = new Set();
-        for (const prompt of topicPrompts) {
-          if (recommendations.length >= 6) break;
-          
-          const topicLower = prompt.topic?.toLowerCase() || '';
-          if (!addedTopics.has(topicLower) && topicLower) {
-            addedTopics.add(topicLower);
-            recommendations.push({
-              text: prompt.text,
-              reason: prompt.reason,
-              priority: prompt.priority
-            });
-          }
-        }
-        
-        // Add review prompt if available
         const reviewPrompt = backendPrompts.find(p => 
           p.text.toLowerCase().includes('review') && 
           !p.text.toLowerCase().includes('weak')
         );
-        if (reviewPrompt && recommendations.length < 7) {
-          recommendations.push({
-            text: reviewPrompt.text,
-            reason: reviewPrompt.reason,
-            priority: 'medium'
+        if (reviewPrompt) {
+          addRecommendation({
+            text: '/review',
+            reason: 'Quick review session',
+            priority: 'medium',
           });
         }
-        
-        // Fill remaining slots with generic prompts if needed
-        const genericPrompts = [
-          { text: 'what are my weak areas', reason: 'Identify knowledge gaps', priority: 'high' },
-          { text: 'create flashcards to study', reason: 'Build study materials', priority: 'medium' },
-          { text: 'create notes on a topic', reason: 'Document your learning', priority: 'medium' },
-          { text: 'show my progress', reason: 'Track your journey', priority: 'medium' }
+
+        const fallbackActions = [
+          { text: '/progress', reason: 'Track your journey', priority: 'low' },
+          { text: '/chat', reason: 'Ask your AI tutor', priority: 'low' }
         ];
-        
-        for (const generic of genericPrompts) {
-          if (recommendations.length >= 8) break;
-          
-          // Only add if not already present
-          const alreadyExists = recommendations.some(r => 
-            r.text.toLowerCase() === generic.text.toLowerCase()
-          );
-          
-          if (!alreadyExists) {
-            recommendations.push(generic);
-          }
+
+        for (const fallback of fallbackActions) {
+          addRecommendation(fallback);
         }
         
-        setPersonalizedPrompts(recommendations.slice(0, 8));
+        setPersonalizedPrompts(finalizeRecommendations(recommendations));
       } else {
-        // Fallback to generic prompts
-        setPersonalizedPrompts([
-          { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
-          { text: 'what are my weak areas', reason: 'Identify knowledge gaps', priority: 'high' },
-          { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
-          { text: 'create notes on a topic', reason: 'Document your learning', priority: 'high' },
-          { text: 'show my progress', reason: 'Track your journey', priority: 'medium' },
-          { text: 'review flashcards', reason: 'Practice what you learned', priority: 'medium' }
-        ]);
-      }
-    } catch (error) {
-      console.error('Error loading prompts:', error);
-      // Fallback to generic prompts
-      setPersonalizedPrompts([
-        { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
-        { text: 'what are my weak areas', reason: 'Identify knowledge gaps', priority: 'high' },
-        { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
-        { text: 'create notes on a topic', reason: 'Document your learning', priority: 'high' },
-        { text: 'show my progress', reason: 'Track your journey', priority: 'medium' },
-        { text: 'review flashcards', reason: 'Practice what you learned', priority: 'medium' }
-      ]);
-    } finally {
+        
+      setPersonalizedPrompts(finalizeRecommendations([
+        { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
+        { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
+        { text: '/progress', reason: 'Track your journey', priority: 'medium' }
+      ]));
+    }
+  } catch (error) {
+    console.error('Error loading prompts:', error);
+    
+    setPersonalizedPrompts(finalizeRecommendations([
+      { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
+      { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
+      { text: '/progress', reason: 'Track your journey', priority: 'medium' }
+    ]));
+  } finally {
       setIsLoadingPrompts(false);
     }
+  };
+
+  const loadCommandCatalog = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/agents/searchhub/commands`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.commands) {
+          setCommandCatalog(data.commands);
+        }
+      }
+    } catch (error) {
+    // silenced
+  }
   };
 
   const saveRecentSearch = (query) => {
@@ -477,6 +1270,35 @@ const SearchHub = () => {
     }
   };
 
+  const isCommandMode = (value) => /^[/:>!]/.test((value || '').trim());
+
+  const buildCommandAutocomplete = (value) => {
+    if (!commandCatalog || commandCatalog.length === 0) {
+      return [];
+    }
+    
+    const trimmed = (value || '').trim().replace(/^[/:>!]+/, '').toLowerCase();
+    const matches = commandCatalog.filter(cmd => {
+      const command = (cmd.command || '').toLowerCase();
+      const aliases = (cmd.aliases || []).map(a => a.toLowerCase());
+      const desc = (cmd.description || '').toLowerCase();
+      
+      if (!trimmed) return true;
+      return (
+        command.startsWith(trimmed) ||
+        aliases.some(alias => alias.startsWith(trimmed)) ||
+        desc.includes(trimmed)
+      );
+    });
+
+    return matches.slice(0, 8).map(cmd => ({
+      text: (cmd.examples && cmd.examples[0]) ? cmd.examples[0] : (cmd.syntax || `/${cmd.command}`),
+      type: 'command',
+      category: 'Command',
+      source: 'commands'
+    }));
+  };
+
   const handleSearch = async (query = searchQuery) => {
     if (!query || !query.trim()) {
       return;
@@ -488,13 +1310,13 @@ const SearchHub = () => {
     setShowAutocomplete(false);
     saveRecentSearch(finalQuery);
 
-    // Scroll down to show results
+    
     window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
 
     try {
       const token = localStorage.getItem('token');
       
-      // Use the new SearchHub Agent - one endpoint does it all!
+      
       const response = await fetch(`${API_URL}/agents/searchhub`, {
         method: 'POST',
         headers: { 
@@ -504,49 +1326,32 @@ const SearchHub = () => {
         body: JSON.stringify({
           user_id: userName || 'guest',
           query: finalQuery,
-          session_id: sessionId // Use persistent session ID for context tracking
+          session_id: sessionId 
         })
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log('SearchHub NLP response:', data);
-        console.log('navigate_to value:', data.navigate_to);
-        console.log('search_results:', data.search_results);
-        console.log('ai_response:', data.ai_response);
         
-        // Log NLP understanding details
-        if (data.metadata) {
-          console.log('NLP Understanding:', {
-            action: data.metadata.action,
-            confidence: data.metadata.confidence,
-            topic: data.metadata.topic,
-            contextUsed: data.metadata.context_used,
-            language: data.metadata.language,
-            responseType: data.metadata.response_type,
-            chatbotMessage: data.metadata.chatbot_message
-          });
-        }
         
-        // Handle navigation actions (content was created or action requires navigation)
         if (data.navigate_to) {
           setIsCreating(true);
           
-          // Show chatbot-like message based on confidence
+          
           const confidenceLevel = data.metadata?.confidence || 0;
           let message = data.metadata?.chatbot_message || data.message || 'Processing...';
           
-          // Add confidence indicator for low confidence
+          
           if (confidenceLevel < 0.6 && confidenceLevel > 0) {
             message = `I think you want to: ${message}`;
           }
           setCreatingMessage(message);
           
-          // Short delay to show the message, then navigate
+          
           setTimeout(() => {
             setIsCreating(false);
             
-            // Navigate with any params
+            
             if (data.navigate_params && Object.keys(data.navigate_params).length > 0) {
               navigate(data.navigate_to, { state: data.navigate_params });
             } else {
@@ -556,7 +1361,7 @@ const SearchHub = () => {
           return;
         }
         
-        // Handle greeting/help responses (no navigation, just show response)
+        
         if (data.metadata?.response_type === 'chat' || data.metadata?.action === 'greeting' || data.metadata?.action === 'show_help') {
           setAiSuggestion({
             description: data.ai_response || data.message,
@@ -577,7 +1382,7 @@ const SearchHub = () => {
           return;
         }
         
-        // Handle search results
+        
         if (data.search_results && data.search_results.length > 0) {
           setSearchResults({
             results: data.search_results,
@@ -592,7 +1397,7 @@ const SearchHub = () => {
             nlp_metadata: data.metadata
           } : null);
         }
-        // Handle AI exploration (no search results but has explanation)
+        
         else if (data.ai_response) {
           setAiSuggestion({
             description: data.ai_response,
@@ -609,30 +1414,30 @@ const SearchHub = () => {
             nlp_confidence: data.metadata?.confidence
           });
         }
-        // Fallback
+        
         else {
           await getAiDescription(finalQuery);
         }
       } else {
-        // Fallback to old method if agent fails
+        
         console.warn('SearchHub agent failed, falling back to legacy search');
         await legacySearch(finalQuery);
       }
     } catch (error) {
       console.error('Search error:', error);
-      // Fallback to AI description on error
+      
       await getAiDescription(finalQuery);
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Legacy search fallback
+  
   const legacySearch = async (finalQuery) => {
     try {
       const token = localStorage.getItem('token');
       
-      // First, detect intent using AI
+      
       const intentFormData = new FormData();
       intentFormData.append('user_id', userName || 'guest');
       intentFormData.append('query', finalQuery);
@@ -646,14 +1451,14 @@ const SearchHub = () => {
       if (intentResponse.ok) {
         const intentData = await intentResponse.json();
         
-        // Execute action based on intent
+        
         if (intentData.intent === 'action') {
           await executeAction(intentData);
           return;
         }
       }
       
-      // If no action intent, perform regular search
+      
       const formData = new FormData();
       formData.append('user_id', userName || 'guest');
       formData.append('query', finalQuery);
@@ -691,7 +1496,7 @@ const SearchHub = () => {
     try {
                   const token = localStorage.getItem('token');
       
-      // Try to get AI-generated description from backend
+      
       const formData = new FormData();
       formData.append('user_id', userName || 'guest');
       formData.append('topic', topic);
@@ -717,7 +1522,7 @@ const SearchHub = () => {
           ]
         });
         
-        // Set empty results but keep the query
+        
         setSearchResults({
           results: [],
           total_results: 0,
@@ -727,7 +1532,7 @@ const SearchHub = () => {
       } else {
                 const errorText = await response.text();
                 
-        // Fallback: Show helpful message
+        
         setAiSuggestion({
           description: `I couldn't find any existing study materials about "${topic}". Let's create some! I can help you generate flashcards, notes, or start a learning session.`,
           suggestions: [
@@ -746,7 +1551,7 @@ const SearchHub = () => {
         });
       }
     } catch (error) {
-            // Fallback AI suggestion
+            
       setAiSuggestion({
         description: `I couldn't find any existing study materials about "${topic}". Would you like to create some? I can help you generate flashcards, notes, or start a learning session.`,
         suggestions: [
@@ -768,7 +1573,7 @@ const SearchHub = () => {
   const executeAction = async (intentData) => {
     const { action, parameters } = intentData;
     
-    // Check if user is logged in for creation actions
+    
     if (!userName && ['create_note', 'create_flashcards', 'create_questions', 'create_quiz', 'create_learning_path'].includes(action)) {
       setShowLoginModal(true);
       setIsSearching(false);
@@ -783,7 +1588,7 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Creating comprehensive note on ${parameters.topic || 'your topic'}...`);
           
-          // Use SearchHub agent to create note with full content
+          
           const noteResponse = await fetch(`${API_URL}/agents/searchhub/create-note`, {
             method: 'POST',
             headers: { 
@@ -792,10 +1597,11 @@ const SearchHub = () => {
             },
             body: JSON.stringify({
               user_id: userName,
-              topic: parameters.topic || searchQuery
+              topic: parameters.topic || searchQuery,
+              use_hs_context: hsMode
             })
           });
-          
+
           if (noteResponse.ok) {
             const noteData = await noteResponse.json();
             if (noteData.success && noteData.navigate_to) {
@@ -818,17 +1624,18 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Creating ${parameters.count || 10} flashcards on ${parameters.topic}...`);
           
-          // Use SearchHub agent to create flashcards with full content
+          
           const fcResponse = await fetch(`${API_URL}/agents/searchhub/create-flashcards`, {
             method: 'POST',
-            headers: { 
+            headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               user_id: userName,
               topic: parameters.topic || searchQuery,
-              count: parameters.count || 10
+              count: parameters.count || 10,
+              use_hs_context: hsMode
             })
           });
           
@@ -866,7 +1673,7 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Creating ${parameters.count || 10} questions on ${parameters.topic}...`);
           
-          // Use SearchHub agent to create questions with full content
+          
           const qResponse = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
             method: 'POST',
             headers: { 
@@ -876,10 +1683,11 @@ const SearchHub = () => {
             body: JSON.stringify({
               user_id: userName,
               topic: parameters.topic || searchQuery,
-              count: parameters.count || 10
+              count: parameters.count || 10,
+              use_hs_context: hsMode
             })
           });
-          
+
           if (qResponse.ok) {
             const qData = await qResponse.json();
             if (qData.success && qData.navigate_to) {
@@ -902,7 +1710,7 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Creating quiz on ${parameters.topic}...`);
           
-          // Create questions first, then navigate to quiz
+          
           const quizResponse = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
             method: 'POST',
             headers: { 
@@ -912,25 +1720,31 @@ const SearchHub = () => {
             body: JSON.stringify({
               user_id: userName,
               topic: parameters.topic || searchQuery,
-              count: parameters.count || 10
+              count: parameters.count || 10,
+              use_hs_context: hsMode
             })
           });
           
           if (quizResponse.ok) {
             const quizData = await quizResponse.json();
-            if (quizData.success && quizData.content_id) {
+            if (quizData.success) {
+              const target =
+                quizData.navigate_to ||
+                (quizData.content_id
+                  ? `/question-bank?set_id=${quizData.content_id}`
+                  : '/question-bank');
               setCreatingMessage('Quiz ready! Starting...');
               setTimeout(() => {
                 setIsCreating(false);
-                navigate(`/solo-quiz?set_id=${quizData.content_id}`);
+                navigate(target);
               }, 500);
             } else {
               setIsCreating(false);
-              navigate('/solo-quiz');
+              navigate('/question-bank');
             }
           } else {
             setIsCreating(false);
-            navigate('/solo-quiz');
+            navigate('/question-bank');
           }
           break;
           
@@ -962,7 +1776,7 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Generating learning path for ${parameters.topic}...`);
           
-          // Navigate to learning paths with auto-generation
+          
           setTimeout(() => {
             setIsCreating(false);
             navigate('/learning-paths', { 
@@ -981,7 +1795,7 @@ const SearchHub = () => {
           break;
           
         default:
-          // Fall back to regular search
+          
           setIsSearching(false);
           break;
       }
@@ -993,10 +1807,19 @@ const SearchHub = () => {
   };
 
   const handleAutocomplete = async (query) => {
-    // If empty query, show personalized recommendations
+    
     if (!query || query.trim() === '') {
       showPersonalizedRecommendations();
       return;
+    }
+
+    if (isCommandMode(query)) {
+      const commandMatches = buildCommandAutocomplete(query);
+      if (commandMatches.length > 0) {
+        setAutocompleteResults(commandMatches);
+        setShowAutocomplete(true);
+        return;
+      }
     }
     
     if (query.length < 2) {
@@ -1013,7 +1836,7 @@ const SearchHub = () => {
       try {
         const token = localStorage.getItem('token');
         
-        // Use the new NLP-powered suggestions endpoint
+        
         const response = await fetch(`${API_URL}/agents/searchhub/suggestions?query=${encodeURIComponent(query)}&user_id=${encodeURIComponent(userName || 'guest')}`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -1022,14 +1845,18 @@ const SearchHub = () => {
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.suggestions && data.suggestions.length > 0) {
-            // Format NLP suggestions with smart categorization
+            
             const formattedSuggestions = data.suggestions.map(suggestion => {
               const suggestionLower = suggestion.toLowerCase();
               let type = 'nlp_suggestion';
               let category = 'AI Suggestion';
+
+              if (suggestionLower.startsWith('/') || suggestionLower.startsWith(':') || suggestionLower.startsWith('>')) {
+                type = 'command';
+                category = 'Command';
+              }
               
-              // Intelligent categorization based on intent
-              if (suggestionLower.includes('learning path') || suggestionLower.includes('roadmap') || suggestionLower.includes('step by step') || 
+              else if (suggestionLower.includes('learning path') || suggestionLower.includes('roadmap') || suggestionLower.includes('step by step') || 
                   (suggestionLower.includes('path') && (suggestionLower.includes('create') || suggestionLower.includes('make') || suggestionLower.includes('generate'))) ||
                   suggestionLower.includes('study plan')) {
                 type = 'create_learning_path';
@@ -1083,7 +1910,7 @@ const SearchHub = () => {
           }
         }
         
-        // Fallback: Generate smart suggestions based on query
+        
         const smartSuggestions = generateSmartSuggestions(query);
         if (smartSuggestions.length > 0) {
           setAutocompleteResults(smartSuggestions);
@@ -1091,7 +1918,7 @@ const SearchHub = () => {
           return;
         }
         
-        // Final fallback: Show filtered recent searches and prompts
+        
         const queryLower = query.toLowerCase();
         const filteredRecent = recentSearches
           .filter(search => search.toLowerCase().includes(queryLower))
@@ -1117,7 +1944,6 @@ const SearchHub = () => {
           setShowAutocomplete(false);
         }
       } catch (error) {
-        console.log('Autocomplete error:', error);
         setShowAutocomplete(false);
       }
     }, 200);
@@ -1127,15 +1953,15 @@ const SearchHub = () => {
     const queryLower = query.toLowerCase();
     const suggestions = [];
     
-    // Action-based suggestions
+    
     if (queryLower.includes('create') || queryLower.includes('make') || queryLower.includes('generate')) {
-      // Extract topic - handle "path", "roadmap", "learning path" variations
+      
       let topic = queryLower
         .replace(/^(create|make|generate)\s+(a\s+)?(learning\s+)?(path|roadmap|study\s+plan)\s+(on|for|about)\s+/i, '')
         .replace(/^(create|make|generate)\s+(a\s+)?/i, '')
         .trim();
       
-      // If topic contains "path" or "roadmap", extract the actual topic
+      
       const pathMatch = topic.match(/(?:path|roadmap|study\s+plan)\s+(?:on|for|about)\s+(.+)/i);
       if (pathMatch) {
         topic = pathMatch[1].trim();
@@ -1143,56 +1969,56 @@ const SearchHub = () => {
       
       if (topic && topic.length > 2) {
         suggestions.push(
-          { text: `create learning path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `create path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
-          { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
-          { text: `create quiz on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' }
+          { text: `/path ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          { text: `/flashcards ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
+          { text: `/notes ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
+          { text: `/quiz ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' },
+          { text: `/questions ${topic}`, type: 'create_questions', category: 'Create', source: 'smart' }
         );
       }
     } else if (queryLower.includes('explain') || queryLower.includes('what is') || queryLower.includes('how')) {
       const topic = queryLower.replace(/^(explain|what is|how does|how to)\s+/i, '').trim();
       if (topic) {
         suggestions.push(
-          { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
-          { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
-          { text: `chat about ${topic}`, type: 'chat', category: 'Chat', source: 'smart' }
+          { text: `/explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
+          { text: `/notes ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
+          { text: `/chat ${topic}`, type: 'chat', category: 'Chat', source: 'smart' }
         );
       }
     } else if (queryLower.includes('weak') || queryLower.includes('struggle') || queryLower.includes('improve')) {
       suggestions.push(
-        { text: 'what are my weak areas', type: 'show_weak_areas', category: 'Weak Areas', source: 'smart' },
-        { text: 'show my progress', type: 'show_progress', category: 'Progress', source: 'smart' },
-        { text: 'review weak flashcards', type: 'review', category: 'Review', source: 'smart' }
+        { text: '/weak', type: 'show_weak_areas', category: 'Weak Areas', source: 'smart' },
+        { text: '/progress', type: 'show_progress', category: 'Progress', source: 'smart' },
+        { text: '/review', type: 'review', category: 'Review', source: 'smart' }
       );
     } else if (queryLower.includes('progress') || queryLower.includes('stats') || queryLower.includes('how am i')) {
       suggestions.push(
-        { text: 'show my progress', type: 'show_progress', category: 'Progress', source: 'smart' },
-        { text: 'what are my weak areas', type: 'show_weak_areas', category: 'Weak Areas', source: 'smart' },
-        { text: 'show my achievements', type: 'show_achievements', category: 'Progress', source: 'smart' }
+        { text: '/progress', type: 'show_progress', category: 'Progress', source: 'smart' },
+        { text: '/weak', type: 'show_weak_areas', category: 'Weak Areas', source: 'smart' },
+        { text: '/achievements', type: 'show_achievements', category: 'Progress', source: 'smart' }
       );
     } else {
-      // Topic-based suggestions - also handle "path on X" patterns
+      
       let topic = query.trim();
       
-      // Check if query is like "path on machine learning" or "roadmap for python"
+      
       const pathPatternMatch = topic.match(/^(path|roadmap|study\s+plan)\s+(on|for|about)\s+(.+)/i);
       if (pathPatternMatch) {
         const actualTopic = pathPatternMatch[3].trim();
         suggestions.push(
-          { text: `create learning path on ${actualTopic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `create path on ${actualTopic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `explain ${actualTopic}`, type: 'explain', category: 'Learn', source: 'smart' },
-          { text: `create flashcards on ${actualTopic}`, type: 'create_flashcards', category: 'Create', source: 'smart' }
+          { text: `/path ${actualTopic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          { text: `/explain ${actualTopic}`, type: 'explain', category: 'Learn', source: 'smart' },
+          { text: `/flashcards ${actualTopic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
+          { text: `/notes ${actualTopic}`, type: 'create_note', category: 'Create', source: 'smart' }
         );
       } else if (topic.length > 2) {
         suggestions.push(
-          { text: `create learning path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `create path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
-          { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
-          { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
-          { text: `quiz me on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' }
+          { text: `/path ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          { text: `/flashcards ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
+          { text: `/explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
+          { text: `/notes ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
+          { text: `/quiz ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' },
+          { text: `/questions ${topic}`, type: 'create_questions', category: 'Create', source: 'smart' }
         );
       }
     }
@@ -1201,11 +2027,11 @@ const SearchHub = () => {
   };
 
   const showPersonalizedRecommendations = async () => {
-    // Get user's actual topics from backend
+    
     try {
       const token = localStorage.getItem('token');
       
-      // First, try to get personalized prompts which contain actual user topics
+      
       const promptsResponse = await fetch(`${API_URL}/get_personalized_prompts`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -1220,46 +2046,54 @@ const SearchHub = () => {
         const promptsData = await promptsResponse.json();
         const userPrompts = promptsData.prompts || [];
         
-        // Extract actual topics from user prompts
+        
         const topicSuggestions = [];
         
         for (const prompt of userPrompts) {
           const text = typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || '');
           const textLower = text.toLowerCase();
           
-          // Extract topic from the prompt text
+          
           let topic = null;
           
-          // Try to extract topic after "on", "about", "for"
+          
           const onMatch = text.match(/(?:on|about|for)\s+(.+?)(?:\s*$|flashcards?|notes?|quiz)/i);
           if (onMatch && onMatch[1]) {
             topic = onMatch[1].trim();
           }
+
           
-          // If we found a topic, create suggestions for it
+          if (!topic && text.trim().startsWith('/')) {
+            const parts = text.trim().replace(/^\/+/, '').split(/\s+/);
+            if (parts.length >= 2) {
+              topic = parts.slice(1).join(' ').trim();
+            }
+          }
+          
+          
           if (topic && topic.length > 2) {
             topicSuggestions.push(
-              { text: `create learning path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'personalized' },
-              { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'personalized' },
-              { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'personalized' },
-              { text: `quiz me on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'personalized' }
+              { text: `/path ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'personalized' },
+              { text: `/flashcards ${topic}`, type: 'create_flashcards', category: 'Create', source: 'personalized' },
+              { text: `/explain ${topic}`, type: 'explain', category: 'Learn', source: 'personalized' },
+              { text: `/quiz ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'personalized' }
             );
           }
         }
         
-        // Add recent searches at the top
+        
         const recentItems = recentSearches
           .slice(0, 2)
           .map(text => ({ text, type: 'recent', category: 'Recent', source: 'history' }));
         
-        // Add generic helpful suggestions
+        
         const genericSuggestions = [
-          { text: 'what are my weak areas', type: 'show_weak_areas', category: 'Weak Areas', source: 'generic' },
-          { text: 'show my progress', type: 'show_progress', category: 'Progress', source: 'generic' },
-          { text: 'chat about any topic', type: 'chat', category: 'Chat', source: 'generic' }
+          { text: '/weak', type: 'show_weak_areas', category: 'Weak Areas', source: 'generic' },
+          { text: '/progress', type: 'show_progress', category: 'Progress', source: 'generic' },
+          { text: '/chat', type: 'chat', category: 'Chat', source: 'generic' }
         ];
         
-        // Combine: recent searches + topic suggestions + generic
+        
         const combined = [
           ...recentItems,
           ...topicSuggestions.slice(0, 4),
@@ -1273,10 +2107,10 @@ const SearchHub = () => {
         }
       }
     } catch (error) {
-      console.log('Personalized recommendations error:', error);
-    }
+    // silenced
+  }
     
-    // Fallback: Show recent searches and personalized prompts as-is
+    
     const recentItems = recentSearches
       .slice(0, 3)
       .map(text => ({ text, type: 'recent', category: 'Recent', source: 'history' }));
@@ -1324,6 +2158,43 @@ const SearchHub = () => {
     }
   };
 
+  const getQuickCommands = () => {
+    const quickOrder = ['flashcards', 'notes', 'quiz', 'path', 'chat', 'progress', 'weak'];
+    const fromCatalog = quickOrder
+      .map(name => commandCatalog.find(cmd => cmd.command === name))
+      .filter(Boolean)
+      .map(cmd => ({
+        syntax: cmd.syntax || `/${cmd.command}`,
+        label: cmd.description || ''
+      }));
+
+    if (fromCatalog.length > 0) {
+      return fromCatalog;
+    }
+
+    return [
+      { syntax: '/flashcards <topic>', label: 'Study cards' },
+      { syntax: '/notes <topic>', label: 'Study notes' },
+      { syntax: '/quiz <topic>', label: 'Quick quiz' },
+      { syntax: '/path <topic>', label: 'Learning path' },
+      { syntax: '/chat <topic>', label: 'Talk to AI' },
+      { syntax: '/progress', label: 'Your progress' },
+      { syntax: '/weak', label: 'Weak areas' }
+    ];
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    setUserName('');
+    window.location.reload();
+  };
+
+  const handleShowLoginMessage = () => {
+    setShowLoginMessage(true);
+    setTimeout(() => setShowLoginMessage(false), 3000);
+  };
+
   const handleInputChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
@@ -1359,13 +2230,13 @@ const SearchHub = () => {
   };
 
   const handleResultClick = (result) => {
-    // Use navigate_to if provided by the agent
+    
     if (result.navigate_to) {
       navigate(result.navigate_to);
       return;
     }
     
-    // Fallback to type-based navigation with correct paths
+    
     if (result.type === 'flashcards' || result.type === 'flashcard_deck' || result.type === 'flashcard_set') {
       navigate(`/flashcards?set_id=${result.id}`);
     } else if (result.type === 'notes' || result.type === 'note') {
@@ -1405,7 +2276,7 @@ const SearchHub = () => {
   };
 
   const handleCreateContent = async (type) => {
-    // Check if user is logged in
+    
     if (!userName) {
       setShowLoginModal(true);
       return;
@@ -1427,7 +2298,7 @@ const SearchHub = () => {
       const token = localStorage.getItem('token');
       
       if (type === 'flashcards') {
-        // Use SearchHub agent to create flashcards with AI content
+        
         const response = await fetch(`${API_URL}/agents/searchhub/create-flashcards`, {
           method: 'POST',
           headers: { 
@@ -1437,7 +2308,8 @@ const SearchHub = () => {
           body: JSON.stringify({
             user_id: userName,
             topic: topic,
-            count: 10
+            count: 10,
+            use_hs_context: hsMode
           })
         });
 
@@ -1452,20 +2324,21 @@ const SearchHub = () => {
             return;
           }
         }
-        // Fallback
-        navigate('/flashcards');
         
+        navigate('/flashcards');
+
       } else if (type === 'notes') {
-        // Use SearchHub agent to create note with AI content
+        
         const response = await fetch(`${API_URL}/agents/searchhub/create-note`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             user_id: userName,
-            topic: topic
+            topic: topic,
+            use_hs_context: hsMode
           })
         });
 
@@ -1480,11 +2353,11 @@ const SearchHub = () => {
             return;
           }
         }
-        // Fallback
+        
         navigate(`/notes/new?topic=${encodeURIComponent(topic)}`);
         
       } else if (type === 'questions') {
-        // Use SearchHub agent to create questions with AI content
+        
         const response = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
           method: 'POST',
           headers: { 
@@ -1494,7 +2367,8 @@ const SearchHub = () => {
           body: JSON.stringify({
             user_id: userName,
             topic: topic,
-            count: 10
+            count: 10,
+            use_hs_context: hsMode
           })
         });
 
@@ -1509,7 +2383,7 @@ const SearchHub = () => {
             return;
           }
         }
-        // Fallback
+        
         navigate('/question-bank');
         
       } else if (type === 'ai-chat') {
@@ -1569,52 +2443,19 @@ const SearchHub = () => {
           <div className="header-buttons">
             {!userName && (
               <>
-                <button 
-                  className="header-text-btn login-signup-btn"
-                  onClick={() => navigate('/login')}
-                >
-                  Login
-                </button>
-                <button 
-                  className="header-text-btn login-signup-btn"
-                  onClick={() => navigate('/register')}
-                >
-                  Sign Up
-                </button>
+                <button className="header-text-btn login-signup-btn" onClick={() => navigate('/login')}>Login</button>
+                <button className="header-text-btn login-signup-btn" onClick={() => navigate('/register')}>Sign Up</button>
               </>
             )}
-            
             {userName ? (
               <>
-                <button 
-                  className="header-text-btn login-signup-btn"
-                  onClick={() => navigate('/dashboard')}
-                >
-                  Dashboard
-                </button>
-                <button 
-                  className="header-text-btn login-signup-btn"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    setUserName('');
-                    window.location.reload();
-                  }}
-                >
-                  Logout
-                </button>
+                <button className="header-text-btn login-signup-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+                <button className="header-text-btn login-signup-btn" onClick={handleLogout}>Logout</button>
               </>
             ) : (
-              <button 
-                className="header-text-btn login-signup-btn"
-                onClick={() => {
-                  setShowLoginMessage(true);
-                  setTimeout(() => setShowLoginMessage(false), 3000);
-                }}
-              >
-                Dashboard
-              </button>
+              <button className="header-text-btn login-signup-btn" onClick={handleShowLoginMessage}>Dashboard</button>
             )}
+            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
           </div>
         </div>
       </header>
@@ -1622,6 +2463,14 @@ const SearchHub = () => {
       {showLoginMessage && (
         <div className="login-required-message">
           PLEASE LOGIN TO CONTINUE
+        </div>
+      )}
+
+      {hsMode && (
+        <div className="hs-mode-banner">
+          <span className="hs-mode-banner-icon">📚</span>
+          <span>HS Mode active — curriculum context is enriching your results</span>
+          <button className="hs-mode-banner-dismiss" onClick={() => handleHsModeToggle(false)}>✕</button>
         </div>
       )}
 
@@ -1665,6 +2514,7 @@ const SearchHub = () => {
                           className="recommendation-card"
                           data-priority={prompt.priority}
                           onClick={() => {
+                            markRecommendationUsed(userName, prompt);
                             setSearchQuery(prompt.text);
                             handleSearch(prompt.text);
                           }}
@@ -1674,7 +2524,15 @@ const SearchHub = () => {
                           </div>
                           <div className="rec-content">
                             <span className="rec-category">{prompt.priority || 'Suggestion'}</span>
-                            <span className="rec-text">{prompt.text}</span>
+                            <span className="rec-text">{
+                            prompt.label || (
+                              prompt.text?.startsWith('/')
+                                ? prompt.text.slice(1)
+                                : prompt.text?.startsWith('> ')
+                                  ? prompt.text.slice(2)
+                                  : prompt.text
+                            )
+                          }</span>
                             {prompt.reason && <span className="rec-reason">{prompt.reason}</span>}
                           </div>
                         </button>
@@ -1700,9 +2558,9 @@ const SearchHub = () => {
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
                         onClick={() => {
-                          // Mark that user has interacted
+                          
                           setHasUserInteracted(true);
-                          // Show suggestions when clicking on search bar
+                          
                           if (!searchQuery || searchQuery.trim() === '') {
                             showPersonalizedRecommendations();
                           } else {
@@ -1710,7 +2568,7 @@ const SearchHub = () => {
                           }
                         }}
                         onFocus={() => {
-                          // Only show suggestions if user has already interacted (clicked)
+                          
                           if (hasUserInteracted) {
                             if (!searchQuery || searchQuery.trim() === '') {
                               showPersonalizedRecommendations();
@@ -1719,7 +2577,7 @@ const SearchHub = () => {
                             }
                           }
                         }}
-                        placeholder="Ask me anything... try 'create flashcards on physics'"
+                        placeholder="Ask me anything... or type /help"
                         className="hero-search-input"
                         autoComplete="off"
                       />
@@ -1759,8 +2617,31 @@ const SearchHub = () => {
                     )}
                   </div>
                   <p className="search-helper-text">
-                    JUST ASK NATURALLY — "CREATE FLASHCARDS ON BIOLOGY" OR "WHAT ARE MY WEAK AREAS"
+                    Type a command or ask naturally. Try "/flashcards &lt;topic&gt;" • Press ? for commands
                   </p>
+                  <button
+                    type="button"
+                    className="command-toggle-btn"
+                    onClick={() => setShowCommandGuide(prev => !prev)}
+                    aria-expanded={showCommandGuide}
+                    aria-controls="command-guide"
+                    title="Shortcut: ?"
+                  >
+                    Commands <span className="command-toggle-hint">?</span>
+                  </button>
+                  {showCommandGuide && (
+                    <div id="command-guide" className="command-console" role="region" aria-label="SearchHub commands">
+                      <div className="command-console-header">COMMANDS</div>
+                      <div className="command-console-body">
+                        {getQuickCommands().map((cmd, index) => (
+                          <div key={`${cmd.syntax}-${index}`} className="command-line">
+                            <span className="command-syntax">{cmd.syntax}</span>
+                            <span className="command-desc">{cmd.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1821,7 +2702,7 @@ const SearchHub = () => {
               <div className="pulse-square pulse-2"></div>
               <div className="pulse-square pulse-3"></div>
             </div>
-            <p>Searching...</p>
+            <p>Loading...</p>
           </div>
         ) : (
           <div className="results-container">
@@ -1918,7 +2799,6 @@ const SearchHub = () => {
             )}
 
             <div className="results-content">
-              {/* AI Description Section - Show at top when available */}
               {aiSuggestion && aiSuggestion.description && (
                 <div className="ai-description-section">
                   <div className="ai-description-header">
@@ -1947,10 +2827,8 @@ const SearchHub = () => {
                 </div>
               )}
 
-              {/* Search Results Grid */}
               {searchResults && searchResults.results && searchResults.results.length > 0 ? (
                 <>
-                  {/* User Results Section Header */}
                   <div className="results-section-header">
                     <h3>User Results</h3>
                     <p>Study materials created by the community</p>
@@ -2052,7 +2930,7 @@ const SearchHub = () => {
                   )}
                 </>
               ) : searchResults?.has_ai_description ? (
-                /* No results but has AI description - show create options */
+                
                 <div className="no-results-with-ai">
                   <div className="create-options">
                     <h4>Create study materials or explore this topic:</h4>
@@ -2244,7 +3122,6 @@ const SearchHub = () => {
         )}
       </main>
 
-      {/* Login Required Modal */}
       {showLoginModal && (
         <div className="login-required-modal" onClick={() => setShowLoginModal(false)}>
           <div className="login-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -2280,6 +3157,14 @@ const SearchHub = () => {
           </div>
         </div>
       )}
+
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
+      />
     </div>
   );
 };

@@ -85,7 +85,6 @@ export const THEMES = {
   }
 };
 
-// Color palette for custom theme picker
 export const COLOR_PALETTE = [
   { name: 'Gold', value: '#D7B38C' },
   { name: 'Blue', value: '#3B82F6' },
@@ -156,13 +155,13 @@ export function applyThemeToRoot(themeId) {
 
   root.style.setProperty('--accent', theme.accent);
   root.style.setProperty('--accent-hover', theme.accentHover);
-  root.style.setProperty('--accent-2', theme.accentHover); // For Social page gradients
+  root.style.setProperty('--accent-2', theme.accentHover); 
   
-  // Dashboard-specific variables
+  
   root.style.setProperty('--dashboard-accent', theme.accent);
   root.style.setProperty('--dashboard-bg-primary', theme.mode === 'dark' ? '#0b0b0c' : '#fefefe');
   
-  // Glow effect
+  
   const { r, g, b } = hexToRgb(theme.accent);
   root.style.setProperty('--glow', `rgba(${r}, ${g}, ${b}, 0.35)`);
   
@@ -182,7 +181,7 @@ export function getCurrentTheme(themeId) {
   const normalized = THEME_ALIASES[themeId] || themeId;
   const theme = THEMES[normalized] || THEMES['gold-dark'];
   
-  // Return with tokens for backward compatibility
+  
   const base = theme.mode === 'dark' ? DARK_BASE : LIGHT_BASE;
   return {
     ...theme,
@@ -246,14 +245,12 @@ export const THEME_PROFILES = Object.values(THEMES).map(t => ({
   }
 }));
 
-
-// Custom theme support
 export function getCustomTheme() {
   const stored = localStorage.getItem('customTheme');
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      // Return with full tokens for compatibility
+      
       return buildCustomThemeTokens(parsed);
     } catch (e) {
       return null;
@@ -282,11 +279,11 @@ function buildCustomThemeTokens(customTheme) {
   const accentColor = customTheme.accent || '#D7B38C';
   const accentHover = customTheme.accentHover || lightenColor(accentColor, 15);
   
-  // Calculate luminance to determine if background is light or dark
+  
   const luminance = getRelativeLuminance(primaryColor);
   const isLightBackground = luminance > 0.5;
   
-  // Generate derived colors from primary
+  
   const bgSecondary = isLightBackground
     ? darkenColor(primaryColor, 3) 
     : lightenColor(primaryColor, 8);
@@ -294,7 +291,7 @@ function buildCustomThemeTokens(customTheme) {
     ? darkenColor(primaryColor, 15)
     : lightenColor(primaryColor, 20);
   
-  // Smart text colors based on background
+  
   const textPrimary = isLightBackground ? '#1a1a1a' : '#EAECEF';
   const textSecondary = isLightBackground ? '#666666' : '#B8C0CC';
   
@@ -318,7 +315,7 @@ function buildCustomThemeTokens(customTheme) {
     '--warning': isLightBackground ? '#D97706' : '#F59E0B',
     '--danger': isLightBackground ? '#DC2626' : '#EF4444',
     '--glow': `rgba(${hexToRgb(accentColor).r}, ${hexToRgb(accentColor).g}, ${hexToRgb(accentColor).b}, 0.35)`,
-    // Dashboard-specific variables
+    
     '--dashboard-accent': accentColor,
     '--dashboard-bg-primary': primaryColor
   };
@@ -334,7 +331,6 @@ function buildCustomThemeTokens(customTheme) {
   };
 }
 
-// Calculate relative luminance for WCAG contrast
 function getRelativeLuminance(hex) {
   const { r, g, b } = hexToRgb(hex);
   const [rs, gs, bs] = [r, g, b].map(c => {
@@ -351,18 +347,18 @@ export function applyCustomTheme(customTheme) {
   const themeWithTokens = customTheme.tokens ? customTheme : buildCustomThemeTokens(customTheme);
   
   if (themeWithTokens && themeWithTokens.tokens) {
-    // Apply ALL tokens to root
+    
     Object.entries(themeWithTokens.tokens).forEach(([key, value]) => {
       root.style.setProperty(key, value);
     });
     
-    // Ensure accent-2 is set for Social page gradients
+    
     if (themeWithTokens.accentHover) {
       root.style.setProperty('--accent-2', themeWithTokens.accentHover);
     }
   }
 
-  // Set mode based on background luminance
+  
   const mode = themeWithTokens.mode || customTheme.mode || 'dark';
   root.setAttribute('data-theme-mode', mode);
   root.setAttribute('data-theme-id', 'custom');
@@ -386,7 +382,6 @@ export function darkenColor(hex, percent) {
   return `#${((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1)}`;
 }
 
-// Primary color palette (background colors)
 export const PRIMARY_PALETTE = {
   dark: [
     { name: 'Midnight', value: '#0b0b0c' },

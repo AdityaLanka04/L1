@@ -1,29 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
-
-/* ==================== FORCE BOXY DESIGN ==================== */
 .homepage *,
 .homepage *::before,
 .homepage *::after {
-  border-radius: 0 !important;
-}
-
-body {
-  font-family: 'Quicksand', sans-serif;
-  background-color: #000000;
-  background-image:
-    linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
-    url("https://www.transparenttextures.com/patterns/shattered-dark.png");
-  color: #D7B38C;
-  overflow-x: hidden;
+  border-radius: 0;
 }
 
 .homepage {
+  font-family: 'Quicksand', sans-serif;
   width: 100vw;
   height: 100vh;
   background-color: #000000;
   background-image:
     linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
     url("https://www.transparenttextures.com/patterns/shattered-dark.png");
+  color: #D7B38C;
   position: relative;
   overflow-x: hidden;
 }

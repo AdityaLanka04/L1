@@ -1,19 +1,14 @@
-/**
- * Quiz Agent Service
- * Frontend service for interacting with the Quiz Agent API
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
 class QuizAgentService {
   constructor() {
-    // API_URL already includes /api, so we just add /agents/quiz
-    this.baseUrl = `${API_URL}/agents/quiz`;
+    
+    this.baseUrl = `${API_URL}`;
   }
 
-  /**
-   * Make API request with error handling and auth
-   */
+  
   async request(endpoint, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}${endpoint}`;
     const token = getAuthToken();
@@ -35,7 +30,7 @@ class QuizAgentService {
         }
       });
       
-      // Handle expired token
+      
       if (response.status === 401) {
                 localStorage.removeItem('token');
         window.location.href = '/login';
@@ -53,17 +48,7 @@ class QuizAgentService {
     }
   }
 
-  /**
-   * Generate quiz questions from a topic or content
-   * @param {Object} params - Generation parameters
-   * @param {string} params.userId - User ID
-   * @param {string} params.topic - Topic to generate questions about
-   * @param {string} [params.content] - Optional content to base questions on
-   * @param {number} [params.questionCount=10] - Number of questions to generate
-   * @param {Object} [params.difficultyMix] - Distribution of difficulties
-   * @param {string[]} [params.questionTypes] - Types of questions to generate
-   * @param {string[]} [params.topics] - Specific topics to focus on
-   */
+  
   async generateQuiz(params) {
     const {
       userId,
@@ -73,57 +58,52 @@ class QuizAgentService {
       difficultyMix = { easy: 3, medium: 5, hard: 2 },
       questionTypes = ['multiple_choice'],
       topics,
-      sessionId
+      sessionId,
+      use_hs_context
     } = params;
 
-    return this.request('/generate', {
+    
+    const createResponse = await this.request('/create_solo_quiz', {
       method: 'POST',
       body: JSON.stringify({
-        user_id: userId,
-        topic,
-        content,
-        question_count: questionCount,
-        difficulty_mix: difficultyMix,
-        question_types: questionTypes,
-        topics,
-        session_id: sessionId
+        subject: topic,
+        difficulty: this._getDifficultyFromMix(difficultyMix),
+        question_count: questionCount
       })
     });
+
+    if (!createResponse.quiz_id) {
+      return { success: false, questions: [] };
+    }
+
+    
+    const quizResponse = await this.request(`/solo_quiz/${createResponse.quiz_id}`, {
+      method: 'GET'
+    });
+
+    
+    return {
+      success: true,
+      questions: quizResponse.questions || [],
+      quiz_id: createResponse.quiz_id,
+      quiz: quizResponse.quiz
+    };
   }
 
-  /**
-   * Generate adaptive quiz questions based on user performance
-   * @param {Object} params - Adaptive generation parameters
-   */
+  _getDifficultyFromMix(mix) {
+    
+    if (mix.hard >= mix.medium && mix.hard >= mix.easy) return 'hard';
+    if (mix.medium >= mix.easy) return 'medium';
+    return 'easy';
+  }
+
+  
   async generateAdaptiveQuiz(params) {
-    const {
-      userId,
-      topic,
-      content,
-      questionCount = 10,
-      sessionId
-    } = params;
-
-    return this.request('/adaptive', {
-      method: 'POST',
-      body: JSON.stringify({
-        user_id: userId,
-        topic,
-        content,
-        question_count: questionCount,
-        session_id: sessionId
-      })
-    });
+    
+    return this.generateQuiz(params);
   }
 
-  /**
-   * Grade quiz answers
-   * @param {Object} params - Grading parameters
-   * @param {string} params.userId - User ID
-   * @param {Array} params.questions - Array of question objects
-   * @param {Object} params.answers - Map of question ID to user answer
-   * @param {number} [params.timeTakenSeconds] - Time taken to complete quiz
-   */
+  
   async gradeQuiz(params) {
     const {
       userId,
@@ -133,25 +113,69 @@ class QuizAgentService {
       sessionId
     } = params;
 
-    return this.request('/grade', {
-      method: 'POST',
-      body: JSON.stringify({
-        user_id: userId,
-        questions,
-        answers,
-        time_taken_seconds: timeTakenSeconds,
-        session_id: sessionId
-      })
+    
+    let correctCount = 0;
+    const results = questions.map((q, idx) => {
+      const questionId = String(q.id ?? idx);
+      const userAnswer = String(answers[questionId] || '').trim().toUpperCase();
+      const correctAnswer = String(q.correct_answer || '').trim().toUpperCase();
+      
+      
+      let isCorrect = false;
+      if (userAnswer === correctAnswer) {
+        isCorrect = true;
+      } else if (userAnswer.length === 1 && correctAnswer.startsWith(userAnswer)) {
+        
+        isCorrect = true;
+      } else if (correctAnswer.length === 1 && userAnswer.startsWith(correctAnswer)) {
+        
+        isCorrect = true;
+      }
+      
+      if (isCorrect) correctCount++;
+      
+      return {
+        question_text: q.question || q.question_text,
+        user_answer: answers[questionId] || '',
+        correct_answer: q.correct_answer,
+        is_correct: isCorrect,
+        explanation: q.explanation
+      };
     });
+
+    const percentage = Math.round((correctCount / questions.length) * 100);
+
+    
+    const quizData = JSON.parse(sessionStorage.getItem('quizData') || '{}');
+    const quiz_id = quizData.quiz_id;
+
+    if (quiz_id) {
+      try {
+        
+        await this.request('/complete_solo_quiz', {
+          method: 'POST',
+          body: JSON.stringify({
+            quiz_id,
+            score: percentage,
+            answers: results
+          })
+        });
+      } catch (error) {
+        console.error('Failed to submit quiz completion:', error);
+        
+      }
+    }
+
+    return {
+      success: true,
+      total_questions: questions.length,
+      correct_answers: correctCount,
+      percentage,
+      results
+    };
   }
 
-  /**
-   * Analyze quiz performance
-   * @param {Object} params - Analysis parameters
-   * @param {string} params.userId - User ID
-   * @param {Array} params.results - Grading results from gradeQuiz
-   * @param {number} [params.timeTakenSeconds] - Time taken
-   */
+  
   async analyzePerformance(params) {
     const {
       userId,
@@ -171,10 +195,7 @@ class QuizAgentService {
     });
   }
 
-  /**
-   * Get study recommendations based on quiz performance
-   * @param {string} userId - User ID
-   */
+  
   async getRecommendations(userId, sessionId = null) {
     const params = new URLSearchParams({ user_id: userId });
     if (sessionId) params.append('session_id', sessionId);
@@ -184,13 +205,7 @@ class QuizAgentService {
     });
   }
 
-  /**
-   * Get detailed explanation for a question
-   * @param {Object} params - Explanation parameters
-   * @param {string} params.userId - User ID
-   * @param {Object} params.question - Question object
-   * @param {string} [params.userAnswer] - User's answer
-   */
+  
   async explainQuestion(params) {
     const {
       userId,
@@ -210,14 +225,7 @@ class QuizAgentService {
     });
   }
 
-  /**
-   * Generate similar questions for practice
-   * @param {Object} params - Similar question parameters
-   * @param {string} params.userId - User ID
-   * @param {Object} params.question - Original question
-   * @param {string} [params.difficulty] - Desired difficulty
-   * @param {number} [params.count=1] - Number of similar questions
-   */
+  
   async generateSimilarQuestions(params) {
     const {
       userId,
@@ -239,12 +247,7 @@ class QuizAgentService {
     });
   }
 
-  /**
-   * Review wrong answers from a quiz
-   * @param {Object} params - Review parameters
-   * @param {string} params.userId - User ID
-   * @param {Array} params.results - Grading results
-   */
+  
   async reviewWrongAnswers(params) {
     const {
       userId,
@@ -262,31 +265,22 @@ class QuizAgentService {
     });
   }
 
-  /**
-   * Get available quiz actions
-   */
+  
   async getActions() {
     return this.request('/actions', { method: 'GET' });
   }
 
-  /**
-   * Get available question types
-   */
+  
   async getQuestionTypes() {
     return this.request('/question_types', { method: 'GET' });
   }
 
-  /**
-   * Get available difficulty levels
-   */
+  
   async getDifficulties() {
     return this.request('/difficulties', { method: 'GET' });
   }
 
-  /**
-   * Invoke the quiz agent with custom action
-   * @param {Object} params - Full request parameters
-   */
+  
   async invoke(params) {
     return this.request('', {
       method: 'POST',
@@ -312,9 +306,7 @@ class QuizAgentService {
   }
 }
 
-// Export singleton instance
 const quizAgentService = new QuizAgentService();
 export default quizAgentService;
 
-// Also export the class for testing
 export { QuizAgentService };

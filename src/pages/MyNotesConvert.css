@@ -1,0 +1,554 @@
+.my-notes-page-full .iem-overlay,
+.my-notes-page-full .iem-modal,
+.my-notes-page-full .iem-modal *,
+.my-notes-page-full .iem-modal *::before,
+.my-notes-page-full .iem-modal *::after {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.my-notes-page-full .iem-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
+  z-index: 9998 !important;
+}
+
+.my-notes-page-full .iem-modal {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px;
+  width: 90% !important;
+  max-width: 600px !important;
+  max-height: 85vh !important;
+  overflow: hidden !important;
+  z-index: 9999 !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.my-notes-page-full .iem-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 20px 24px !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--bg-secondary) !important;
+}
+
+.my-notes-page-full .iem-header-content {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+.my-notes-page-full .iem-header-icon {
+  color: #D7B38C !important;
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.my-notes-page-full .iem-header h2 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #D7B38C !important;
+  margin: 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+}
+
+.my-notes-page-full .iem-header-subtitle {
+  margin: 4px 0 0 0 !important;
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  font-weight: 500 !important;
+}
+
+.my-notes-page-full .iem-close-btn {
+  width: 36px !important;
+  height: 36px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  color: #D7B38C !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s !important;
+}
+
+.my-notes-page-full .iem-close-btn:hover {
+  background: #D7B38C !important;
+  border-color: #D7B38C !important;
+  color: var(--bg-secondary) !important;
+}
+
+.my-notes-page-full .iem-body {
+  padding: 24px !important;
+  overflow-y: auto !important;
+  flex: 1 !important;
+  background: var(--bg-secondary) !important;
+}
+
+.my-notes-page-full .iem-step-content h3 {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--text-secondary) !important;
+  margin-bottom: 14px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+}
+
+.my-notes-page-full .iem-select-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 16px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  margin-bottom: 16px !important;
+}
+
+.my-notes-page-full .iem-select-all-btn {
+  padding: 8px 14px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px;
+  color: var(--text-secondary) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  text-transform: uppercase !important;
+}
+
+.my-notes-page-full .iem-select-all-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+  border-color: #D7B38C !important;
+  color: var(--text-primary) !important;
+}
+
+.my-notes-page-full .iem-selection-count {
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+}
+
+.my-notes-page-full .iem-items-list {
+  max-height: 350px !important;
+  overflow-y: auto !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  background: var(--bg-secondary) !important;
+  margin-bottom: 20px !important;
+}
+
+.my-notes-page-full .iem-items-list::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.my-notes-page-full .iem-items-list::-webkit-scrollbar-track {
+  background: var(--bg-secondary) !important;
+}
+
+.my-notes-page-full .iem-items-list::-webkit-scrollbar-thumb {
+  background: #D7B38C !important;
+}
+
+.my-notes-page-full .iem-item-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px 18px !important;
+  border-bottom: 1px solid var(--border) !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+}
+
+.my-notes-page-full .iem-item-card:last-child {
+  border-bottom: none !important;
+}
+
+.my-notes-page-full .iem-item-card:hover {
+  background: rgba(215, 179, 140, 0.05) !important;
+}
+
+.my-notes-page-full .iem-item-card.selected {
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+
+.my-notes-page-full .iem-item-checkbox {
+  width: 20px !important;
+  height: 20px !important;
+  accent-color: #D7B38C !important;
+  flex-shrink: 0 !important;
+}
+
+.my-notes-page-full .iem-item-info {
+  flex: 1 !important;
+}
+
+.my-notes-page-full .iem-item-info h4 {
+  font-size: 14px !important;
+  color: var(--text-primary) !important;
+  margin: 0 0 4px 0 !important;
+  font-weight: 600 !important;
+}
+
+.my-notes-page-full .iem-item-meta {
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  margin: 0 !important;
+}
+
+.my-notes-page-full .iem-conversion-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+  gap: 12px !important;
+  margin-bottom: 24px !important;
+}
+
+.my-notes-page-full .iem-conversion-card {
+  padding: 20px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  cursor: pointer !important;
+  text-align: center !important;
+  transition: all 0.2s !important;
+}
+
+.my-notes-page-full .iem-conversion-card:hover {
+  background: rgba(215, 179, 140, 0.05) !important;
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}
+
+.my-notes-page-full .iem-conversion-card.selected {
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+  border-color: #D7B38C !important;
+}
+
+.my-notes-page-full .iem-conversion-icon {
+  margin-bottom: 8px !important;
+  color: #D7B38C !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.my-notes-page-full .iem-conversion-card h4 {
+  margin: 0 0 8px 0 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+.my-notes-page-full .iem-conversion-card p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.4 !important;
+}
+
+.my-notes-page-full .iem-settings {
+  padding: 20px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  margin-bottom: 20px !important;
+}
+
+.my-notes-page-full .iem-settings h4 {
+  margin: 0 0 16px 0 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--text-secondary) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+}
+
+.my-notes-page-full .iem-setting-group {
+  margin-bottom: 16px !important;
+}
+
+.my-notes-page-full .iem-setting-group:last-child {
+  margin-bottom: 0 !important;
+}
+
+.my-notes-page-full .iem-setting-group label {
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+}
+
+.my-notes-page-full .iem-input,
+.my-notes-page-full .iem-select {
+  width: 100% !important;
+  padding: 10px 12px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px;
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+  outline: none !important;
+  transition: all 0.2s !important;
+}
+
+.my-notes-page-full .iem-input:focus,
+.my-notes-page-full .iem-select:focus {
+  border-color: #D7B38C !important;
+}
+
+.my-notes-page-full .iem-result {
+  text-align: center !important;
+  padding: 40px 20px !important;
+}
+
+.my-notes-page-full .iem-result-icon {
+  margin: 0 auto 24px !important;
+  width: 80px !important;
+  height: 80px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.my-notes-page-full .iem-result-icon.success {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #22c55e !important;
+}
+
+.my-notes-page-full .iem-result-icon.error {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+}
+
+.my-notes-page-full .iem-result-details {
+  margin: 24px 0 !important;
+  padding: 20px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  text-align: left !important;
+}
+
+.my-notes-page-full .iem-result-details p {
+  margin: 8px 0 !important;
+  font-size: 14px !important;
+  color: var(--text-secondary) !important;
+}
+
+.my-notes-page-full .iem-result-details strong {
+  color: var(--text-primary) !important;
+}
+
+.my-notes-page-full .iem-loading,
+.my-notes-page-full .iem-empty {
+  padding: 60px 20px !important;
+  text-align: center !important;
+  color: var(--text-secondary) !important;
+}
+
+.my-notes-page-full .iem-spinner {
+  width: 40px !important;
+  height: 40px !important;
+  border: 3px solid transparent !important;
+  border-top-color: #D7B38C !important;
+  border-radius: 50%;
+  animation: mn-iem-spin 0.8s linear infinite !important;
+  margin: 0 auto 16px !important;
+}
+
+.my-notes-page-full .iem-empty svg {
+  opacity: 0.3 !important;
+  margin-bottom: 16px !important;
+}
+
+.my-notes-page-full .iem-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  padding: 20px 24px !important;
+  border-top: 1px solid var(--border) !important;
+  background: var(--bg-secondary) !important;
+}
+
+.my-notes-page-full .iem-btn {
+  padding: 12px 24px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.my-notes-page-full .iem-btn-primary {
+  background: #D7B38C !important;
+  border: none !important;
+  border-radius: 8px;
+  color: var(--bg-secondary) !important;
+  font-weight: 700 !important;
+}
+
+.my-notes-page-full .iem-btn-primary:hover:not(:disabled) {
+  background: #c9a67a !important;
+  transform: translateY(-1px) !important;
+}
+
+.my-notes-page-full .iem-btn-primary:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.my-notes-page-full .iem-btn-secondary {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  color: var(--text-primary) !important;
+}
+
+.my-notes-page-full .iem-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: #D7B38C !important;
+}
+
+@keyframes mn-iem-spin {
+  to { transform: rotate(360deg); }
+}
+
+.my-notes-page-full .iem-header {
+  background: linear-gradient(135deg, var(--bg-secondary), rgba(215, 179, 140, 0.05)) !important;
+}
+
+.my-notes-page-full .iem-header h2 {
+  background: linear-gradient(135deg, #D7B38C, #c9a67a) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.my-notes-page-full .iem-close-btn:hover {
+  transform: rotate(90deg) !important;
+}
+
+.my-notes-page-full .iem-select-bar {
+  background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
+}
+
+.my-notes-page-full .iem-select-all-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+}
+
+.my-notes-page-full .iem-item-card {
+  border-radius: 6px;
+  margin: 8px !important;
+  border: 1px solid transparent !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.my-notes-page-full .iem-item-card:hover {
+  transform: translateX(4px) !important;
+  border-color: #D7B38C !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent) !important;
+}
+
+.my-notes-page-full .iem-item-card.selected {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), rgba(215, 179, 140, 0.05)) !important;
+  border-color: #D7B38C !important;
+}
+
+.my-notes-page-full .iem-conversion-card {
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.my-notes-page-full .iem-conversion-card::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(135deg, transparent, color-mix(in srgb, var(--accent) 10%, transparent)) !important;
+  opacity: 0 !important;
+  transition: opacity 0.3s !important;
+}
+
+.my-notes-page-full .iem-conversion-card:hover::before {
+  opacity: 1 !important;
+}
+
+.my-notes-page-full .iem-conversion-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+}
+
+.my-notes-page-full .iem-conversion-card.selected {
+  border-color: #D7B38C !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}
+
+.my-notes-page-full .iem-settings {
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
+}
+
+.my-notes-page-full .iem-input:focus,
+.my-notes-page-full .iem-select:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+
+.my-notes-page-full .iem-btn-primary {
+  background: linear-gradient(135deg, #D7B38C, #c9a67a) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.my-notes-page-full .iem-btn-primary::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent) !important;
+  transition: left 0.5s !important;
+}
+
+.my-notes-page-full .iem-btn-primary:hover::before {
+  left: 100% !important;
+}
+
+.my-notes-page-full .iem-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent) !important;
+}
+
+.my-notes-page-full .iem-btn-secondary:hover {
+  transform: translateY(-2px) !important;
+  border-color: #D7B38C !important;
+}
+
+.my-notes-page-full .iem-result-details {
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
+}
+
+.my-notes-page-full .iem-actions {
+  background: linear-gradient(135deg, var(--bg-secondary), rgba(215, 179, 140, 0.05)) !important;
+}

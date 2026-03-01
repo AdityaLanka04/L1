@@ -8,10 +8,10 @@ const SharedContent = () => {
   const token = localStorage.getItem('token');
   const [sharedItems, setSharedItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState('all'); // 'all', 'chat', 'note'
-  const [filterPermission, setFilterPermission] = useState('all'); // 'all', 'view', 'edit'
+  const [filterType, setFilterType] = useState('all'); 
+  const [filterPermission, setFilterPermission] = useState('all'); 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('recent'); // 'recent', 'oldest', 'title'
+  const [sortBy, setSortBy] = useState('recent'); 
 
   useEffect(() => {
     fetchSharedContent();
@@ -29,7 +29,8 @@ const SharedContent = () => {
         setSharedItems(data.shared_items);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -57,23 +58,24 @@ const SharedContent = () => {
         setSharedItems(prev => prev.filter(item => item.id !== shareId));
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const getFilteredAndSortedItems = () => {
     let filtered = sharedItems;
 
-    // Filter by type
+    
     if (filterType !== 'all') {
       filtered = filtered.filter(item => item.content_type === filterType);
     }
 
-    // Filter by permission
+    
     if (filterPermission !== 'all') {
       filtered = filtered.filter(item => item.permission === filterPermission);
     }
 
-    // Filter by search query
+    
     if (searchQuery) {
       filtered = filtered.filter(item => 
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -82,7 +84,7 @@ const SharedContent = () => {
       );
     }
 
-    // Sort
+    
     switch (sortBy) {
       case 'recent':
         filtered.sort((a, b) => new Date(b.shared_at) - new Date(a.shared_at));
@@ -122,25 +124,27 @@ const SharedContent = () => {
 
   return (
     <div className="shared-content-page">
-      <header className="shared-header">
-        <div className="shared-header-left">
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="shared-logo" onClick={() => navigate('/search-hub')}>
-            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <span className="shared-subtitle">SHARED WITH ME</span>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">SHARED WITH ME</span>
         </div>
-        <div className="shared-header-right">
-          <button className="shared-nav-btn" onClick={() => navigate('/social')}>
-            Social Hub
+        <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
           </button>
-          <button className="shared-nav-btn" onClick={() => navigate('/dashboard')}>
-                  Dashboard
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            Dashboard
           </button>
-        </div>
+        </nav>
       </header>
 
       <div className="shared-container">

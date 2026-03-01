@@ -1,8 +1,5 @@
-/**
- * Utility functions to convert between HTML (Quill format) and Block format
- */
 
-// Convert HTML content to blocks
+
 export const htmlToBlocks = (html) => {
   if (!html || html.trim() === '') {
     return [{
@@ -20,6 +17,8 @@ export const htmlToBlocks = (html) => {
 
   const processNode = (node) => {
     const tagName = node.tagName?.toLowerCase();
+    
+    const content = node.innerHTML || node.textContent || '';
     const textContent = node.textContent || '';
 
     switch (tagName) {
@@ -27,7 +26,7 @@ export const htmlToBlocks = (html) => {
         blocks.push({
           id: blockId++,
           type: 'heading1',
-          content: textContent,
+          content: content,
           properties: {}
         });
         break;
@@ -35,7 +34,7 @@ export const htmlToBlocks = (html) => {
         blocks.push({
           id: blockId++,
           type: 'heading2',
-          content: textContent,
+          content: content,
           properties: {}
         });
         break;
@@ -43,7 +42,7 @@ export const htmlToBlocks = (html) => {
         blocks.push({
           id: blockId++,
           type: 'heading3',
-          content: textContent,
+          content: content,
           properties: {}
         });
         break;
@@ -60,7 +59,7 @@ export const htmlToBlocks = (html) => {
         blocks.push({
           id: blockId++,
           type: 'quote',
-          content: textContent,
+          content: content,
           properties: {}
         });
         break;
@@ -77,7 +76,7 @@ export const htmlToBlocks = (html) => {
           blocks.push({
             id: blockId++,
             type: 'bulletList',
-            content: li.textContent || '',
+            content: li.innerHTML || li.textContent || '',
             properties: {}
           });
         });
@@ -87,17 +86,17 @@ export const htmlToBlocks = (html) => {
           blocks.push({
             id: blockId++,
             type: 'numberedList',
-            content: li.textContent || '',
+            content: li.innerHTML || li.textContent || '',
             properties: {}
           });
         });
         break;
       case 'p':
-        if (textContent.trim()) {
+        if (content.trim() || textContent.trim()) {
           blocks.push({
             id: blockId++,
             type: 'paragraph',
-            content: textContent,
+            content: content,
             properties: {}
           });
         }
@@ -128,7 +127,6 @@ export const htmlToBlocks = (html) => {
   return blocks;
 };
 
-// Convert blocks to HTML
 export const blocksToHtml = (blocks) => {
   if (!blocks || blocks.length === 0) return '';
 
@@ -166,7 +164,6 @@ export const blocksToHtml = (blocks) => {
   }).join('\n');
 };
 
-// Merge consecutive list items
 export const mergeListBlocks = (blocks) => {
   const merged = [];
   let currentList = null;

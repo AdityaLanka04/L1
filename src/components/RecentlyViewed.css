@@ -1,11 +1,9 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .recently-viewed *,
 .recently-viewed *::before,
 .recently-viewed *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
-/* Recently Viewed Styles */
 .recently-viewed {
   background: var(--panel);
   border: 1px solid var(--border);

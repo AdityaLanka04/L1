@@ -17,7 +17,7 @@ const WeaknessTips = () => {
   const [suggestions, setSuggestions] = useState(null);
   const [similarQuestions, setSimilarQuestions] = useState(null);
   
-  // Practice generation state
+  
   const [generatingPractice, setGeneratingPractice] = useState(false);
   const [questionCount, setQuestionCount] = useState(10);
   const [difficulty, setDifficulty] = useState('medium');
@@ -34,7 +34,7 @@ const WeaknessTips = () => {
   const loadTipsData = async () => {
     setLoading(true);
     try {
-      // Load suggestions
+      
       const suggestionsRes = await fetch(
         `${API_URL}/study_insights/topic_suggestions?user_id=${userName}&topic=${encodeURIComponent(topic)}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
@@ -44,7 +44,7 @@ const WeaknessTips = () => {
         setSuggestions(data);
       }
 
-      // Load similar questions
+      
       const questionsRes = await fetch(
         `${API_URL}/study_insights/similar_questions?user_id=${userName}&topic=${encodeURIComponent(topic)}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
@@ -88,7 +88,7 @@ const WeaknessTips = () => {
       const data = await response.json();
 
       if (response.ok && data.questions && data.questions.length > 0) {
-        // Navigate directly to practice with the generated questions
+        
         navigate('/weakness-practice', {
           state: {
             questions: data.questions,
@@ -132,7 +132,6 @@ const WeaknessTips = () => {
 
   return (
     <div className="weakness-tips-container">
-      {/* Header */}
       <header className="tips-header">
         <div className="tips-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -161,7 +160,6 @@ const WeaknessTips = () => {
             <p>Personalized study recommendations and practice resources</p>
           </div>
 
-          {/* Suggestions Section */}
           {suggestions?.suggestions?.length > 0 && (
             <div className="tips-section">
               <h3><Lightbulb size={20} /> Personalized Suggestions</h3>
@@ -181,7 +179,6 @@ const WeaknessTips = () => {
             </div>
           )}
 
-          {/* Generate Practice Questions Section */}
           <div className="tips-section practice-generator-section">
             <h3><Zap size={20} /> Generate Practice Questions</h3>
             <div className="practice-generator-card">
@@ -301,7 +298,6 @@ const WeaknessTips = () => {
             </div>
           </div>
 
-          {/* Study Tips */}
           {suggestions?.study_tips?.length > 0 && (
             <div className="tips-section">
               <h3><BookOpen size={20} /> Study Tips</h3>
@@ -313,7 +309,6 @@ const WeaknessTips = () => {
             </div>
           )}
 
-          {/* Similar Questions */}
           {similarQuestions?.similar_questions?.length > 0 && (
             <div className="tips-section">
               <h3><Activity size={20} /> Practice Questions ({similarQuestions.total_found})</h3>
@@ -348,7 +343,6 @@ const WeaknessTips = () => {
             </div>
           )}
 
-          {/* Empty state */}
           {!suggestions?.suggestions?.length && !similarQuestions?.similar_questions?.length && (
             <div className="tips-empty">
               <Brain size={64} />

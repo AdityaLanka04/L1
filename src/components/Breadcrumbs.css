@@ -1,11 +1,9 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .breadcrumbs *,
 .breadcrumbs *::before,
 .breadcrumbs *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
-/* Breadcrumbs Styles */
 .breadcrumbs {
   display: flex;
   align-items: center;

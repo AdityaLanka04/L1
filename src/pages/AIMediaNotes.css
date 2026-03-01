@@ -1,7 +1,3 @@
-/* AI Media Notes Page - Premium Design with Accent Colors */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-/* CSS Variables */
 .ai-media-notes-page {
   --mn-bg-primary: var(--bg-primary);
   --mn-bg-secondary: var(--bg-secondary);
@@ -17,10 +13,7 @@
   --mn-header-height: 70px;
   
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
 
-/* Reset and Base */
-.ai-media-notes-page {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -38,15 +31,13 @@
   flex-direction: column;
 }
 
-.ai-media-notes-page * {
-  box-sizing: border-box;
-}
 
-/* ==================== HEADER - Matching NotesRedesign Exactly ==================== */
+
 .hub-header {
-  height: var(--mn-header-height);
-  min-height: var(--mn-header-height);
-  padding: 20px 40px;
+  height: 70px;
+  min-height: 70px;
+  max-height: 70px;
+  padding: 0 40px;
   background: var(--mn-bg-primary);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   display: flex;
@@ -55,6 +46,7 @@
   flex-shrink: 0;
   width: 100%;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .hub-header-left {
@@ -154,7 +146,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   border-radius: 8px;
 }
 
@@ -177,17 +169,16 @@
   color: var(--accent);
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .hub-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .hub-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .mn-top-header-left {
@@ -246,7 +237,6 @@
   margin: 0;
 }
 
-/* ==================== LAYOUT ==================== */
 .mn-layout {
   flex: 1;
   display: flex;
@@ -255,7 +245,6 @@
   overflow: hidden;
 }
 
-/* ==================== SIDEBAR ==================== */
 .mn-sidebar {
   width: var(--mn-sidebar-width);
   height: 100%;
@@ -271,13 +260,13 @@
 [data-theme-mode="dark"] .mn-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--mn-accent) 12%, #000000) 0%, 
-    color-mix(in srgb, var(--mn-accent) 6%, #000000) 100%) !important;
+    color-mix(in srgb, var(--mn-accent) 6%, #000000) 100%);
 }
 
 [data-theme-mode="light"] .mn-sidebar {
   background: linear-gradient(180deg, 
     color-mix(in srgb, var(--mn-accent) 12%, #ffffff) 0%, 
-    color-mix(in srgb, var(--mn-accent) 20%, #ffffff) 100%) !important;
+    color-mix(in srgb, var(--mn-accent) 20%, #ffffff) 100%);
 }
 
 .mn-sidebar.collapsed {
@@ -293,7 +282,6 @@
   border-bottom: 1px solid color-mix(in srgb, var(--mn-accent) 15%, transparent);
 }
 
-/* NEW UPLOAD BUTTON */
 .mn-new-upload-btn {
   display: flex;
   align-items: center;
@@ -323,7 +311,6 @@
   transform: translateY(0);
 }
 
-/* SIDEBAR NAVIGATION */
 .mn-sidebar-nav {
   flex: 1;
   padding: 12px 0;
@@ -395,7 +382,7 @@
   font-weight: 500;
   color: var(--mn-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .mn-history-actions {
@@ -434,7 +421,6 @@
   font-weight: 500;
 }
 
-/* SIDEBAR FOOTER */
 .mn-sidebar-footer {
   padding: 16px 12px;
   border-top: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
@@ -454,7 +440,7 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   color: var(--mn-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
@@ -481,7 +467,6 @@
   height: 20px;
 }
 
-/* ==================== MAIN CONTENT ==================== */
 .mn-main {
   flex: 1;
   display: flex;
@@ -491,11 +476,11 @@
 }
 
 [data-theme-mode="dark"] .mn-main {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
+  background: linear-gradient(135deg, #0a0a0a 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
 }
 
 [data-theme-mode="light"] .mn-main {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%);
 }
 
 .mn-content {
@@ -505,7 +490,6 @@
   padding: 40px;
 }
 
-/* ==================== UPLOAD SECTION ==================== */
 .mn-upload-section {
   max-width: 800px;
   margin: 0 auto;
@@ -568,7 +552,7 @@
   font-weight: 500;
   color: var(--mn-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .mn-uploaded-file {
@@ -666,7 +650,6 @@
   color: var(--mn-text-secondary);
 }
 
-/* ==================== SETTINGS PANEL ==================== */
 .mn-settings-panel {
   margin-top: 32px;
   border: 1px solid color-mix(in srgb, var(--mn-accent) 20%, transparent);
@@ -733,7 +716,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: var(--mn-accent);
   margin-bottom: 8px;
 }
@@ -784,7 +767,6 @@
   accent-color: var(--mn-accent);
 }
 
-/* ==================== PROCESS BUTTON ==================== */
 .mn-process-btn {
   display: flex;
   align-items: center;
@@ -829,7 +811,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* ==================== PROCESSING OVERLAY ==================== */
 .mn-processing-overlay {
   position: fixed;
   top: 0;
@@ -892,7 +873,6 @@
   border-radius: 3px;
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
   .mn-sidebar {
     position: fixed;
@@ -916,8 +896,6 @@
   }
 }
 
-
-/* ==================== RESULTS VIEW ==================== */
 .mn-results {
   max-width: 1200px;
   margin: 0 auto;
@@ -959,7 +937,7 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--mn-accent);
 }
 
@@ -968,7 +946,6 @@
   height: 14px;
 }
 
-/* TABS */
 .mn-tabs {
   display: flex;
   gap: 8px;
@@ -987,7 +964,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: var(--mn-text-secondary);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1010,7 +987,6 @@
   height: 16px;
 }
 
-/* TAB CONTENT */
 .mn-tab-content {
   animation: fadeIn 0.3s ease;
 }
@@ -1037,7 +1013,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1075,7 +1051,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--mn-accent);
   cursor: pointer;
   transition: all 0.2s;
@@ -1086,7 +1062,6 @@
   border-color: var(--mn-accent);
 }
 
-/* NOTES PANEL */
 .mn-notes-panel {
   background: var(--mn-bg-card);
   border: 1px solid color-mix(in srgb, var(--mn-accent) 15%, transparent);
@@ -1114,7 +1089,7 @@
   font-weight: 700;
   color: var(--mn-text-primary);
   margin: 24px 0 12px 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .mn-notes-output h4 {
@@ -1123,7 +1098,7 @@
   color: var(--mn-accent);
   margin: 20px 0 10px 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .mn-notes-output p {
@@ -1188,7 +1163,6 @@
   padding: 0;
 }
 
-/* ANALYSIS SECTION */
 .mn-analysis-section {
   margin-bottom: 32px;
   padding-bottom: 32px;
@@ -1272,7 +1246,6 @@
   height: 20px;
 }
 
-/* FLASHCARDS GRID */
 .mn-flashcards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1316,7 +1289,6 @@
   line-height: 1.7;
 }
 
-/* EMPTY STATE */
 .mn-empty-state {
   text-align: center;
   padding: 60px 40px;
@@ -1342,7 +1314,6 @@
   opacity: 0.7;
 }
 
-/* PROGRESS */
 .mn-progress {
   margin-top: 24px;
 }
@@ -1354,10 +1325,9 @@
   color: var(--mn-accent);
   margin-top: 12px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
-/* ==================== CORNELL NOTES STYLES ==================== */
 .cornell-notes {
   width: 100%;
   max-width: 100%;
@@ -1375,7 +1345,7 @@
   color: var(--mn-accent);
   margin: 0 0 8px 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .cornell-header p {
@@ -1384,7 +1354,7 @@
   color: var(--mn-text-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .cornell-row {
@@ -1434,7 +1404,7 @@
   font-weight: 700;
   color: var(--mn-text-primary);
   margin: 0 0 12px 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .notes-column p {
@@ -1479,7 +1449,6 @@
   margin: 0 0 12px 0;
 }
 
-/* ==================== MIND MAP STYLES ==================== */
 .mind-map {
   width: 100%;
   padding: 20px;
@@ -1496,7 +1465,7 @@
   border: 2px solid var(--mn-accent);
   border-radius: 50px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .branch {
@@ -1574,7 +1543,6 @@
   margin: 0 8px;
 }
 
-/* ==================== OUTLINE STYLES ==================== */
 .outline-notes {
   width: 100%;
 }
@@ -1587,7 +1555,7 @@
   padding-bottom: 16px;
   border-bottom: 3px solid var(--mn-accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .outline-notes h2 {
@@ -1600,7 +1568,7 @@
   border-left: 4px solid var(--mn-accent);
   border-radius: 8px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .outline-notes h3 {
@@ -1638,7 +1606,6 @@
   font-weight: 700;
 }
 
-/* ==================== Q&A STYLES ==================== */
 .qa-notes {
   width: 100%;
 }
@@ -1651,7 +1618,7 @@
   padding-bottom: 16px;
   border-bottom: 3px solid var(--mn-accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   text-align: center;
 }
 
@@ -1665,7 +1632,7 @@
   border-left: 4px solid var(--mn-accent);
   border-radius: 8px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .qa-pair {
@@ -1756,7 +1723,6 @@
   margin: 6px 0;
 }
 
-/* ==================== RESPONSIVE ADJUSTMENTS FOR NEW FORMATS ==================== */
 @media (max-width: 768px) {
   .cornell-row {
     grid-template-columns: 1fr;
@@ -1783,8 +1749,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

@@ -17,7 +17,6 @@ def get_model_columns(model):
     columns = {}
     for column in model.__table__.columns:
         col_type = str(column.type)
-        # Map SQLAlchemy types to SQLite types
         if 'INTEGER' in col_type or 'INT' in col_type:
             sqlite_type = 'INTEGER'
         elif 'BOOLEAN' in col_type or 'BOOL' in col_type:
@@ -29,14 +28,13 @@ def get_model_columns(model):
         elif 'TEXT' in col_type or 'CLOB' in col_type:
             sqlite_type = 'TEXT'
         else:
-            sqlite_type = 'TEXT'  # Default to TEXT
+            sqlite_type = 'TEXT'
         
-        # Add default value if exists
         default = ''
         if column.default is not None:
             if hasattr(column.default, 'arg'):
                 if callable(column.default.arg):
-                    default = ''  # Skip callable defaults
+                    default = ''
                 elif isinstance(column.default.arg, bool):
                     default = f' DEFAULT {1 if column.default.arg else 0}'
                 elif isinstance(column.default.arg, (int, float)):
@@ -88,11 +86,10 @@ def sync_table(cursor, model):
             print(f"      Error adding {column_name}: {e}")
 
 def run_migration():
-    # Check multiple possible database locations (prioritize brainwave_tutor.db)
     possible_paths = [
-        os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db'),  # backend/brainwave_tutor.db (PRIMARY)
-        os.path.join(os.path.dirname(__file__), 'brainwave.db'),  # backend/brainwave.db
-        os.path.join(os.path.dirname(__file__), '..', 'brainwave_tutor.db'),  # root/brainwave_tutor.db
+        os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db'),
+        os.path.join(os.path.dirname(__file__), 'brainwave.db'),
+        os.path.join(os.path.dirname(__file__), '..', 'brainwave_tutor.db'),
     ]
     
     db_path = None
@@ -102,14 +99,12 @@ def run_migration():
             break
     
     if not db_path:
-        # Create the database file if it doesn't exist
         db_path = possible_paths[0]
         print(f"📁 Creating new database: {db_path}")
         open(db_path, 'a').close()
     
     print(f" Syncing database schema: {db_path}")
     
-    # Step 1: Use SQLAlchemy to create ALL tables that don't exist
     print("\n🏗️  Creating all tables using SQLAlchemy...")
     try:
         Base.metadata.create_all(bind=engine)
@@ -117,11 +112,9 @@ def run_migration():
     except Exception as e:
         print(f" SQLAlchemy table creation warning: {e}")
     
-    # Step 2: Connect with sqlite3 to add any missing columns to existing tables
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # List of all models to check for column sync
     models = [
         User, ChatSession, ChatMessage,
         Flashcard, FlashcardSet, Note, LearningReview, UserStats,
@@ -131,17 +124,15 @@ def run_migration():
         ConceptConnection, KnowledgeRoadmap, Reminder, ReminderList
     ]
     
-    # Add share_code column to flashcard_sets if it doesn't exist
     try:
         cursor.execute("ALTER TABLE flashcard_sets ADD COLUMN share_code TEXT")
         print(" Added share_code column to flashcard_sets")
     except sqlite3.OperationalError as e:
         if "duplicate column" in str(e).lower():
-            pass  # Column already exists
+            pass
         else:
             print(f" share_code column: {e}")
     
-    # Create index for share_code
     try:
         cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_flashcard_sets_share_code ON flashcard_sets(share_code)")
         print(" Created index for share_code")
@@ -149,17 +140,15 @@ def run_migration():
         if "already exists" not in str(e).lower():
             print(f" share_code index: {e}")
     
-    # Add show_study_insights column to comprehensive_user_profiles
     try:
         cursor.execute("ALTER TABLE comprehensive_user_profiles ADD COLUMN show_study_insights BOOLEAN DEFAULT 1")
         print(" Added show_study_insights column to comprehensive_user_profiles")
     except sqlite3.OperationalError as e:
         if "duplicate column" in str(e).lower():
-            pass  # Column already exists
+            pass
         else:
             print(f" show_study_insights column: {e}")
     
-    # Generate share codes for existing flashcard sets that don't have one
     try:
         import random
         import string
@@ -170,7 +159,6 @@ def run_migration():
         if sets_without_code:
             print(f" Generating share codes for {len(sets_without_code)} flashcard sets...")
             for (set_id,) in sets_without_code:
-                # Generate unique 6-char code
                 while True:
                     code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
                     cursor.execute("SELECT id FROM flashcard_sets WHERE share_code = ?", (code,))
@@ -182,7 +170,6 @@ def run_migration():
         print(f" share code generation: {e}")
     
     try:
-        # Sync columns for all models
         for model in models:
             sync_table(cursor, model)
         

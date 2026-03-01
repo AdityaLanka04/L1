@@ -1,18 +1,10 @@
-/* ============================================
-   BRAINWAVE ACTIVITY TIMELINE & CALENDAR
-   Production-Ready Styles
-   ============================================ */
-
-/* ============================================
-   ROOT VARIABLES & THEME SYSTEM
-   ============================================ */
 :root {
-  /* Primary Colors */
+  
   --accent-primary: var(--accent);
   --accent-primary-hover: color-mix(in srgb, var(--accent) 85%, var(--bg));
   --accent-primary-light: color-mix(in srgb, var(--accent) 10%, transparent);
   
-  /* Secondary Accent Colors */
+  
   --accent-purple: #8b5cf6;
   --accent-pink: #ec4899;
   --accent-danger: #ef4444;
@@ -22,31 +14,31 @@
   --accent-teal: #14b8a6;
   --accent-blue: #0ea5e9;
   
-  /* Neutral Colors */
+  
   --bg-primary: var(--bg);
   --bg-secondary: var(--panel);
   --bg-tertiary: var(--hover-bg);
   --bg-elevated: var(--panel);
   --bg-overlay: color-mix(in srgb, var(--bg) 85%, transparent);
   
-  /* Text Colors */
+  
   --text-primary: var(--text-primary);
   --text-secondary: var(--text-secondary);
   --text-tertiary: color-mix(in srgb, var(--text-secondary) 70%, transparent);
   --text-muted: color-mix(in srgb, var(--text-secondary) 50%, transparent);
   
-  /* Border Colors */
+  
   --border-primary: var(--border);
   --border-secondary: color-mix(in srgb, var(--accent-primary) 30%, var(--border));
   --border-hover: color-mix(in srgb, var(--accent-primary) 50%, var(--border));
   
-  /* Shadow System */
+  
   --shadow-sm: 0 1px 2px 0 color-mix(in srgb, var(--accent-primary) 30%, transparent);
   --shadow-md: 0 4px 6px -1px color-mix(in srgb, var(--accent-primary) 40%, transparent);
   --shadow-lg: 0 10px 15px -3px color-mix(in srgb, var(--accent-primary) 50%, transparent);
   --shadow-xl: 0 20px 25px -5px color-mix(in srgb, var(--accent-primary) 60%, transparent);
   
-  /* Spacing System */
+  
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
@@ -55,23 +47,23 @@
   --spacing-2xl: 32px;
   --spacing-3xl: 48px;
   
-  /* Border Radius */
+  
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-full: 9999px;
   
-  /* Typography */
+  
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   
-  /* Transitions */
+  
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
   
-  /* Z-Index Scale */
+  
   --z-dropdown: 1000;
   --z-sticky: 1020;
   --z-fixed: 1030;
@@ -81,9 +73,6 @@
   --z-tooltip: 1070;
 }
 
-/* ============================================
-   BASE STYLES & RESETS
-   ============================================ */
 .at-activity-timeline-page {
   width: 100%;
   min-height: 100vh;
@@ -95,13 +84,7 @@
   overflow-x: hidden;
 }
 
-.at-activity-timeline-page * {
-  box-sizing: border-box;
-}
 
-/* ============================================
-   PAGE HEADER - MATCHING LEARNINGREVIEWHUB
-   ============================================ */
 .at-profile-header {
   position: sticky;
   top: 0;
@@ -119,17 +102,16 @@
   flex-shrink: 0;
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .at-profile-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .at-profile-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .at-profile-header-left {
@@ -201,7 +183,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .at-profile-nav-btn-ghost {
@@ -217,9 +199,6 @@
   transform: translateX(-2px);
 }
 
-/* ============================================
-   VIEW MODE TABS
-   ============================================ */
 .at-view-mode-tabs {
   display: flex;
   align-items: center;
@@ -270,9 +249,6 @@
   color: white;
 }
 
-/* ============================================
-   ACTIVITY FILTERS
-   ============================================ */
 .at-activity-filters {
   display: flex;
   align-items: center;
@@ -326,9 +302,6 @@
   color: white;
 }
 
-/* ============================================
-   MAIN CONTENT AREA
-   ============================================ */
 .at-main-content-area {
   flex: 1;
   display: flex;
@@ -356,9 +329,6 @@
   flex-direction: column;
 }
 
-/* ============================================
-   SIDEBAR VIEW MODE BUTTONS
-   ============================================ */
 .at-sidebar-view-modes {
   width: 100%;
   background: var(--bg-secondary);
@@ -423,9 +393,6 @@
   text-align: center;
 }
 
-/* ============================================
-   MINI CALENDAR (LEFT SIDEBAR)
-   ============================================ */
 .at-mini-calendar {
   width: 100%;
   background: var(--bg-secondary);
@@ -540,9 +507,6 @@
   border-radius: 50%;
 }
 
-/* ============================================
-   SIDEBAR FILTERS BOX
-   ============================================ */
 .at-sidebar-filters {
   width: 100%;
   background: var(--bg-secondary);
@@ -631,9 +595,11 @@
   box-shadow: 0 0 4px currentColor;
 }
 
-/* ============================================
-   CALENDAR VIEW TOGGLE
-   ============================================ */
+.at-filter-bullet--note { background-color: #86efac; }
+.at-filter-bullet--flashcard { background-color: #fcd34d; }
+.at-filter-bullet--quiz { background-color: #f9a8d4; }
+.at-filter-bullet--chat { background-color: #93c5fd; }
+
 .at-calendar-view-toggle {
   display: flex;
   align-items: center;
@@ -670,9 +636,6 @@
   color: color-mix(in srgb, var(--accent) 70%, var(--text-primary, #fff));
 }
 
-/* ============================================
-   WEEK VIEW
-   ============================================ */
 .at-week-view-container {
   width: 100%;
   height: auto;
@@ -784,7 +747,6 @@
   background: var(--accent-primary-hover);
 }
 
-/* Stats Panel */
 .at-stats-panel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -832,7 +794,6 @@
   margin-top: 2px;
 }
 
-/* Week View Grid */
 .at-week-view-grid {
   display: flex;
   flex: 1;
@@ -908,7 +869,7 @@
   font-weight: 700;
   color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
 }
 
 .at-week-day-date {
@@ -958,7 +919,6 @@
   border: 2px dashed var(--accent-primary);
 }
 
-/* Week View Cards */
 .at-week-reminder-card,
 .at-week-activity-card {
   padding: 6px 8px;
@@ -1041,7 +1001,6 @@
   color: rgba(0, 0, 0, 0.9);
 }
 
-/* Activities Popup */
 .at-activities-popup-overlay {
   position: fixed;
   top: 0;
@@ -1165,9 +1124,6 @@
   gap: 4px;
 }
 
-/* ============================================
-   DAY VIEW (Uses same container as week view)
-   ============================================ */
 .at-day-view-content {
   padding: 24px 32px;
   display: flex;
@@ -1386,7 +1342,7 @@
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .at-day-empty-state {
@@ -1417,9 +1373,6 @@
   margin: 0 0 24px 0;
 }
 
-/* ============================================
-   MONTH VIEW
-   ============================================ */
 .at-month-view-container {
   width: 100%;
   height: 100%;
@@ -1507,7 +1460,7 @@
   font-weight: 600;
   color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .at-month-weekday-header:last-child {
@@ -1525,12 +1478,10 @@
   overflow: hidden;
 }
 
-/* Remove right border from last column */
 .at-month-day-cell:nth-child(7n) {
   border-right: none;
 }
 
-/* Remove bottom border from last row and add rounded corners */
 .at-month-day-cell:nth-last-child(-n+7) {
   border-bottom: none;
 }
@@ -1662,9 +1613,6 @@
   color: var(--text-primary);
 }
 
-/* ============================================
-   TIMELINE VIEW
-   ============================================ */
 .at-timeline-view-container {
   width: 100%;
   max-width: 900px;
@@ -1822,12 +1770,9 @@
   font-weight: 600;
   color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
-/* ============================================
-   REMINDERS VIEW
-   ============================================ */
 .at-reminders-view-container {
   display: flex;
   height: 100%;
@@ -1855,7 +1800,7 @@
   font-weight: 700;
   color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
   margin: 0 0 var(--spacing-md) 0;
 }
 
@@ -2029,7 +1974,6 @@
   margin: 0;
 }
 
-/* Reminders Main Content */
 .at-reminders-main-content {
   flex: 1;
   display: flex;
@@ -2096,7 +2040,6 @@
   color: var(--text-tertiary);
 }
 
-/* Month Filter */
 .at-month-filter-wrapper {
   display: flex;
   align-items: center;
@@ -2136,7 +2079,7 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   min-width: 140px;
   text-align: center;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -2400,7 +2343,6 @@
   flex-shrink: 0;
 }
 
-/* Action Panel */
 .at-reminder-actions-panel {
   display: flex;
   align-items: center;
@@ -2465,7 +2407,6 @@
   background: color-mix(in srgb, var(--accent-danger) 10%, transparent);
 }
 
-/* Subtasks */
 .at-reminder-subtasks-section {
   margin-top: 12px;
   padding-top: 12px;
@@ -2510,7 +2451,6 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
   .at-reminder-list-item {
     flex-direction: column;
@@ -2593,9 +2533,6 @@
   color: white;
 }
 
-/* ============================================
-   MODALS
-   ============================================ */
 .at-modal-overlay {
   position: fixed;
   inset: 0;
@@ -2654,7 +2591,6 @@
   max-width: 650px;
 }
 
-/* Reminder Detail View */
 .at-reminder-detail-view {
   padding: 8px;
 }
@@ -2715,7 +2651,7 @@
   color: var(--text-secondary);
   margin: 0 0 12px 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
@@ -2763,7 +2699,7 @@
   font-weight: 700;
   color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
@@ -2803,7 +2739,7 @@
   border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -2853,7 +2789,7 @@
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
@@ -2885,7 +2821,6 @@
   background: var(--bg-secondary);
 }
 
-/* Day Summary */
 .at-day-summary {
   display: flex;
   align-items: center;
@@ -2903,7 +2838,6 @@
   color: var(--text-muted);
 }
 
-/* Day Timeline */
 .at-day-timeline {
   display: flex;
   flex-direction: column;
@@ -2971,9 +2905,6 @@
   color: var(--text-secondary);
 }
 
-/* ============================================
-   FORMS
-   ============================================ */
 .at-reminder-form-container,
 .at-list-form-container {
   display: flex;
@@ -2995,7 +2926,7 @@
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: 2px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
@@ -3138,7 +3069,7 @@
   color: var(--text-primary);
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -3187,7 +3118,6 @@
   background: color-mix(in srgb, var(--text-primary) 3%, transparent);
 }
 
-/* Primary Button with Gradient */
 .at-form-btn.primary {
   background: linear-gradient(135deg, 
     var(--accent-primary) 0%, 
@@ -3241,9 +3171,6 @@
   box-shadow: none;
 }
 
-/* ============================================
-   EMPTY STATES
-   ============================================ */
 .at-empty-state {
   display: flex;
   flex-direction: column;
@@ -3303,9 +3230,6 @@
   box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-primary) 35%, transparent);
 }
 
-/* ============================================
-   FLOATING ACTION BUTTON
-   ============================================ */
 .at-fab-btn {
   position: fixed;
   bottom: 32px;
@@ -3362,9 +3286,6 @@
   border-color: var(--accent-primary-hover);
 }
 
-/* ============================================
-   LOADING STATES
-   ============================================ */
 .at-loading-container {
   display: flex;
   flex-direction: column;
@@ -3396,9 +3317,6 @@
   margin: 0;
 }
 
-/* ============================================
-   SCROLLBAR STYLING
-   ============================================ */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -3417,9 +3335,6 @@
   background: var(--border-hover);
 }
 
-/* ============================================
-   RESPONSIVE DESIGN
-   ============================================ */
 @media (max-width: 1280px) {
   .at-left-sidebar {
     width: 280px;
@@ -3525,7 +3440,6 @@
   }
 }
 
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

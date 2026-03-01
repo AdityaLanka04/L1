@@ -1,5 +1,3 @@
-/* Analytics Page - Standardized Design */
-
 .analytics-page {
   min-height: 100vh;
   width: 100%;
@@ -14,7 +12,6 @@
   overflow-x: hidden;
 }
 
-/* ==================== HEADER (Exact copy from Profile) ==================== */
 .analytics-header {
   position: sticky;
   top: 0;
@@ -22,13 +19,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 40px;
+  padding: 0 40px;
   background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 80%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   flex-shrink: 0;
-  height: auto;
-  min-height: auto;
+  height: 70px;
+  min-height: 70px;
+  max-height: 70px;
 }
 
 .analytics-header-left {
@@ -50,8 +48,8 @@
 }
 
 .analytics-logo-img {
-  height: 40px;
-  width: 40px;
+  height: 60px;
+  width: 60px;
   -webkit-mask: url('../assets/logo.svg') no-repeat center;
   mask: url('../assets/logo.svg') no-repeat center;
   -webkit-mask-size: contain;
@@ -100,7 +98,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   border-radius: 8px;
   border: none;
 }
@@ -126,14 +124,12 @@
   background: transparent;
 }
 
-/* ==================== CONTAINER ==================== */
 .analytics-container {
   max-width: 1800px;
   margin: 0 auto;
   padding: 48px;
 }
 
-/* ==================== LOADING ==================== */
 .analytics-loading {
   display: flex;
   flex-direction: column;
@@ -162,7 +158,6 @@
   font-weight: 500;
 }
 
-/* ==================== SUMMARY CARDS ==================== */
 .analytics-summary-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -254,7 +249,6 @@
   font-weight: 500;
 }
 
-/* ==================== FILTERS ==================== */
 .analytics-filters {
   display: flex;
   gap: 32px;
@@ -278,7 +272,7 @@
   color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .analytics-filter-buttons {
@@ -313,7 +307,6 @@
   border-color: var(--accent);
 }
 
-/* ==================== METRICS TOGGLES ==================== */
 .analytics-metrics {
   display: flex;
   align-items: center;
@@ -327,7 +320,7 @@
   color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .analytics-metric-chips {
@@ -362,7 +355,6 @@
   border-color: var(--accent);
 }
 
-/* ==================== CHART SECTION ==================== */
 .analytics-chart-section {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -434,7 +426,6 @@
   font-weight: 500;
 }
 
-/* ==================== BAR CHART ==================== */
 .analytics-bar-chart {
   display: flex;
   height: 420px;
@@ -507,7 +498,6 @@
   overflow: hidden;
 }
 
-/* ==================== LINE CHART ==================== */
 .analytics-line-chart {
   height: 420px;
   width: 100%;
@@ -520,7 +510,6 @@
   height: 100%;
 }
 
-/* ==================== STATS GRID ==================== */
 .analytics-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -595,7 +584,6 @@
   color: var(--accent);
 }
 
-/* ==================== POINTS REFERENCE ==================== */
 .analytics-points-reference {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -653,7 +641,6 @@
   font-size: 18px;
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 1400px) {
   .analytics-summary-cards {
     grid-template-columns: repeat(2, 1fr);
@@ -705,21 +692,18 @@
   }
 }
 
-
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
 [data-theme-mode="dark"] .analytics-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 [data-theme-mode="light"] .analytics-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* ==================== TABS ==================== */
 .analytics-tabs {
   display: flex;
   gap: 12px;
@@ -739,7 +723,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
   border-bottom: 3px solid transparent;
@@ -757,7 +741,6 @@
   background: rgba(var(--accent-rgb, 215, 179, 140), 0.08);
 }
 
-/* ==================== WEAK AREAS ==================== */
 .weak-areas-content {
   animation: fadeIn 0.4s ease;
 }
@@ -809,7 +792,7 @@
   bottom: 8px;
   font-size: 8px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--text-secondary);
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -1037,7 +1020,7 @@
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .weak-accuracy-value {
@@ -1058,7 +1041,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .weak-source-badge.quiz {
@@ -1096,7 +1079,7 @@
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .weak-stat-value {
@@ -1115,7 +1098,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -1162,7 +1145,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 12px;
@@ -1173,7 +1156,6 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* ==================== RESPONSIVE UPDATES ==================== */
 @media (max-width: 1400px) {
   .weak-areas-summary {
     grid-template-columns: repeat(2, 1fr);
@@ -1205,7 +1187,6 @@
   }
 }
 
-/* Weak Area Card Enhancements */
 .weak-card-doubtful,
 .weak-card-struggling {
   display: flex;
@@ -1240,7 +1221,7 @@
   border-radius: 8px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1251,7 +1232,6 @@
   transform: translateY(-1px);
 }
 
-/* Topic Modal */
 .topic-modal-overlay {
   position: fixed;
   top: 0;
@@ -1339,7 +1319,7 @@
   color: var(--text-primary);
   margin-bottom: 16px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .topic-modal-loading {
@@ -1361,7 +1341,6 @@
   text-align: center;
 }
 
-/* Suggestions List */
 .topic-suggestions-list {
   display: flex;
   flex-direction: column;
@@ -1412,7 +1391,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .suggestion-priority.high {
@@ -1437,7 +1416,6 @@
   margin: 0;
 }
 
-/* Study Tips */
 .topic-tips-list {
   list-style: none;
   padding: 0;
@@ -1467,7 +1445,6 @@
   font-size: 16px;
 }
 
-/* Questions List */
 .topic-questions-list {
   display: flex;
   flex-direction: column;
@@ -1569,17 +1546,16 @@
   border-radius: 10px;
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .topic-practice-all-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(215, 179, 140, 0.3);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .topic-modal {
     max-width: 100%;
@@ -1601,8 +1577,6 @@
   }
 }
 
-
-/* ==================== NAVIGATION MENU BUTTON ==================== */
 .nav-menu-btn {
   background: transparent;
   border: none;

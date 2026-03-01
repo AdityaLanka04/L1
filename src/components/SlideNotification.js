@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Calendar, Award, Flame, TrendingUp, X, Zap, BookOpen, UserPlus, Users, Share2, Swords } from 'lucide-react';
+import { Bell, Calendar, Award, Flame, TrendingUp, X, Zap, BookOpen, UserPlus, Users, Share2, Swords, MessageSquare, FileText, Target, Clock, Trophy } from 'lucide-react';
 import './SlideNotification.css';
 
 const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) => {
@@ -9,7 +9,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Validate notification
+    
     if (!notification || !notification.id || (!notification.title && !notification.message)) {
             setIsValid(false);
       if (onClose) {
@@ -18,10 +18,10 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       return;
     }
 
-    // Show notification immediately (no delay)
+    
     setVisible(true);
 
-    // Auto-dismiss after 12 seconds
+    
     const dismissTimer = setTimeout(() => {
       handleClose();
     }, 12000);
@@ -31,7 +31,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
     };
   }, [notification]);
 
-  // Don't render if invalid
+  
   if (!isValid || !notification || !notification.id) {
     return null;
   }
@@ -47,7 +47,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
   };
 
   const handleClick = () => {
-    // Check if study insights is enabled for study_insights notifications
+    
     if (notification.notification_type === 'study_insights' || notification.notification_type === 'welcome_insights') {
       const profile = localStorage.getItem('userProfile');
       let showStudyInsights = true;
@@ -55,20 +55,23 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         try {
           const parsed = JSON.parse(profile);
           showStudyInsights = parsed.showStudyInsights !== false;
-        } catch (e) {}
+        } catch (e) {
+    // silenced
+  }
       }
       
       if (!showStudyInsights) {
-        // If study insights is disabled, stay on dashboard
+        
         handleClose();
         return;
       }
     }
     
-    // Navigate based on notification type
+    
     switch (notification.notification_type) {
       case 'reminder':
       case 'calendar_event':
+      case 'inactivity':
         navigate('/activity-timeline');
         break;
       case 'level_up':
@@ -80,18 +83,36 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       case 'quiz_result':
       case 'quiz_excellent':
       case 'quiz_poor_performance':
+      case 'quiz_completed':
+      case 'quiz_milestone':
         navigate('/quiz-hub');
         break;
       case 'flashcard_excellent':
       case 'flashcard_review':
+      case 'flashcard_reviewed':
+      case 'flashcard_mastered':
+      case 'flashcards_milestone':
         navigate('/flashcards');
         break;
       case 'proactive_ai':
         navigate('/ai-chat');
         break;
+      case 'ai_chat_milestone':
+        navigate('/ai-chat');
+        break;
+      case 'notes_milestone':
+        navigate('/notes');
+        break;
+      case 'questions_milestone':
+        navigate('/question-bank');
+        break;
+      case 'study_time_milestone':
+        navigate('/analytics');
+        break;
       case 'friend_request':
       case 'friend_accepted':
       case 'friend_rejected':
+      case 'friend_removed':
         navigate('/friends');
         break;
       case 'share_received':
@@ -100,14 +121,23 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         break;
       case 'battle_challenge':
       case 'battle_result':
-        navigate('/quiz-battle');
+      case 'battle_accepted':
+      case 'battle_declined':
+      case 'battle_started':
+      case 'battle_won':
+      case 'battle_lost':
+        navigate('/quiz-battles');
+        break;
+      case 'challenge_completed':
+      case 'challenge_joined':
+        navigate('/challenges');
         break;
       case 'study_insights':
       case 'welcome_insights':
         navigate('/study-insights');
         break;
       case 'welcome':
-        // For welcome notifications without insights, stay on dashboard
+        
         break;
       default:
         navigate('/dashboard');
@@ -119,6 +149,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
     switch (notification.notification_type) {
       case 'reminder':
       case 'calendar_event':
+      case 'inactivity':
         return <Calendar size={20} />;
       case 'level_up':
         return <TrendingUp size={20} />;
@@ -127,26 +158,51 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         return <Flame size={20} />;
       case 'achievement':
         return <Award size={20} />;
+      case 'ai_chat_milestone':
+        return <MessageSquare size={20} />;
+      case 'notes_milestone':
+        return <FileText size={20} />;
+      case 'flashcards_milestone':
+        return <BookOpen size={20} />;
+      case 'questions_milestone':
+        return <Target size={20} />;
+      case 'quiz_milestone':
+      case 'quiz_completed':
+        return <Trophy size={20} />;
+      case 'study_time_milestone':
+        return <Clock size={20} />;
       case 'quiz_result':
       case 'quiz_excellent':
       case 'flashcard_excellent':
         return <Award size={20} />;
       case 'quiz_poor_performance':
       case 'flashcard_review':
+      case 'flashcard_reviewed':
         return <BookOpen size={20} />;
+      case 'flashcard_mastered':
+        return <Award size={20} />;
       case 'proactive_ai':
         return <Zap size={20} />;
       case 'friend_request':
         return <UserPlus size={20} />;
       case 'friend_accepted':
       case 'friend_rejected':
+      case 'friend_removed':
         return <Users size={20} />;
       case 'share_received':
       case 'content_shared':
         return <Share2 size={20} />;
       case 'battle_challenge':
       case 'battle_result':
+      case 'battle_accepted':
+      case 'battle_declined':
+      case 'battle_started':
+      case 'battle_won':
+      case 'battle_lost':
         return <Swords size={20} />;
+      case 'challenge_completed':
+      case 'challenge_joined':
+        return <Trophy size={20} />;
       case 'study_insights':
       case 'welcome_insights':
         return <TrendingUp size={20} />;
@@ -161,6 +217,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
     switch (notification.notification_type) {
       case 'reminder':
       case 'calendar_event':
+      case 'inactivity':
         return '#3b82f6';
       case 'level_up':
         return '#10b981';
@@ -170,12 +227,28 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         return '#ef4444';
       case 'achievement':
         return '#8b5cf6';
+      case 'ai_chat_milestone':
+        return '#06b6d4';
+      case 'notes_milestone':
+        return '#f97316';
+      case 'flashcards_milestone':
+        return '#8b5cf6';
+      case 'questions_milestone':
+        return '#3b82f6';
+      case 'quiz_milestone':
+      case 'quiz_completed':
+        return '#10b981';
+      case 'study_time_milestone':
+        return '#f59e0b';
       case 'quiz_excellent':
       case 'flashcard_excellent':
         return '#10b981';
       case 'quiz_poor_performance':
       case 'flashcard_review':
+      case 'flashcard_reviewed':
         return '#f59e0b';
+      case 'flashcard_mastered':
+        return '#10b981';
       case 'proactive_ai':
         return '#06b6d4';
       case 'friend_request':
@@ -184,12 +257,26 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         return '#10b981';
       case 'friend_rejected':
         return '#ef4444';
+      case 'friend_removed':
+        return '#ef4444';
       case 'share_received':
       case 'content_shared':
         return '#8b5cf6';
       case 'battle_challenge':
       case 'battle_result':
+      case 'battle_accepted':
+        return '#10b981';
+      case 'battle_started':
         return '#f59e0b';
+      case 'battle_declined':
+      case 'battle_lost':
+        return '#ef4444';
+      case 'battle_won':
+        return '#10b981';
+      case 'challenge_completed':
+        return '#10b981';
+      case 'challenge_joined':
+        return '#3b82f6';
       case 'study_insights':
       case 'welcome_insights':
         return '#8b5cf6';
@@ -206,6 +293,8 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         return 'Reminder';
       case 'calendar_event':
         return 'Calendar Event';
+      case 'inactivity':
+        return 'Welcome Back';
       case 'level_up':
         return 'Level Up!';
       case 'streak_milestone':
@@ -214,6 +303,20 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         return 'Streak Alert';
       case 'achievement':
         return 'Achievement';
+      case 'ai_chat_milestone':
+        return 'AI Chat Milestone';
+      case 'notes_milestone':
+        return 'Notes Milestone';
+      case 'flashcards_milestone':
+        return 'Flashcards Milestone';
+      case 'questions_milestone':
+        return 'Practice Milestone';
+      case 'quiz_milestone':
+        return 'Quiz Milestone';
+      case 'quiz_completed':
+        return 'Quiz Completed';
+      case 'study_time_milestone':
+        return 'Study Time';
       case 'quiz_result':
       case 'quiz_excellent':
         return 'Quiz Result';
@@ -222,7 +325,10 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       case 'flashcard_excellent':
         return 'Flashcard Session';
       case 'flashcard_review':
+      case 'flashcard_reviewed':
         return 'Study Suggestion';
+      case 'flashcard_mastered':
+        return 'Flashcard Mastery';
       case 'proactive_ai':
         return 'AI Tutor';
       case 'friend_request':
@@ -231,13 +337,24 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         return 'Friend Accepted';
       case 'friend_rejected':
         return 'Friend Request';
+      case 'friend_removed':
+        return 'Friend Update';
       case 'share_received':
       case 'content_shared':
         return 'Shared Content';
       case 'battle_challenge':
         return 'Battle Challenge';
       case 'battle_result':
-        return 'Battle Result';
+      case 'battle_accepted':
+      case 'battle_declined':
+      case 'battle_started':
+      case 'battle_won':
+      case 'battle_lost':
+        return 'Battle Update';
+      case 'challenge_completed':
+        return 'Challenge Completed';
+      case 'challenge_joined':
+        return 'Challenge Joined';
       case 'study_insights':
       case 'welcome_insights':
         return 'Study Insights';

@@ -20,12 +20,12 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
     setLoading(true);
     
     try {
-      // Try AI-based grouping first
+      
       const grouped = await groupNotesWithAI(notes);
       setSmartFolders(grouped);
     } catch (error) {
       console.error('AI grouping failed, using fallback:', error);
-      // Fallback to keyword-based grouping
+      
       const grouped = groupNotesByKeywords(notes);
       setSmartFolders(grouped);
     }
@@ -37,7 +37,7 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
     const token = localStorage.getItem('token');
     const userName = localStorage.getItem('username');
     
-    // Prepare note summaries for AI
+    
     const noteSummaries = notesToGroup.map(note => ({
       id: note.id,
       title: note.title || 'Untitled',
@@ -62,7 +62,7 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
 
     const data = await response.json();
     
-    // Map AI groups back to full note objects
+    
     return data.groups.map(group => ({
       name: group.name,
       notes: group.note_ids.map(id => notesToGroup.find(n => n.id === id)).filter(Boolean)
@@ -73,7 +73,7 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
     const groups = {};
     const uncategorized = [];
 
-    // Common topic keywords
+    
     const topicPatterns = {
       'Study Notes': ['study', 'learn', 'exam', 'test', 'quiz', 'chapter', 'lecture', 'class', 'course'],
       'Work': ['meeting', 'project', 'deadline', 'client', 'report', 'task', 'work', 'office', 'team'],
@@ -105,13 +105,13 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
       }
     });
 
-    // Convert to array format
+    
     const result = Object.entries(groups)
       .map(([name, notes]) => ({ name, notes }))
       .filter(g => g.notes.length > 0)
       .sort((a, b) => b.notes.length - a.notes.length);
 
-    // Add uncategorized if any
+    
     if (uncategorized.length > 0) {
       result.push({ name: 'Other', notes: uncategorized });
     }
@@ -183,7 +183,6 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
           </div>
         )}
 
-        {/* Show notes in selected folder */}
         {selectedFolder && (
           <div className="sf-notes-preview">
             <h4>{selectedFolder}</h4>

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { sanitizeHtml } from '../utils/sanitize';
 import { createPortal } from 'react-dom';
 import {
   Type, Heading1, Heading2, Heading3, List, ListOrdered,
@@ -9,106 +10,155 @@ import {
   Hash, AtSign, MapPin, Clock, Paperclip, Palette,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Indent, Outdent, Columns, Youtube, ExternalLink,
-  GitBranch, X, Minimize2, Download, ArrowRight
+  GitBranch, X, Minimize2, Download, ArrowRight, Pen
 } from 'lucide-react';
 import './BlockEditor.css';
 import CodeBlock from './CodeBlock';
 import TableBlock from './TableBlock';
 import FileViewer from './FileViewer';
+import MathRenderer from './MathRenderer';
 
 const BLOCK_TYPES = [
-  // Basic Text
+  
   { type: 'paragraph', label: 'Text', icon: Type, description: 'Plain text paragraph', category: 'Basic' },
   { type: 'heading1', label: 'Heading 1', icon: Heading1, description: 'Large section heading', category: 'Basic' },
   { type: 'heading2', label: 'Heading 2', icon: Heading2, description: 'Medium section heading', category: 'Basic' },
   { type: 'heading3', label: 'Heading 3', icon: Heading3, description: 'Small section heading', category: 'Basic' },
   
-  // Lists
+  
   { type: 'bulletList', label: 'Bullet list', icon: List, description: 'Unordered list', category: 'Lists' },
   { type: 'numberedList', label: 'Numbered list', icon: ListOrdered, description: 'Ordered list', category: 'Lists' },
   { type: 'todo', label: 'To-do', icon: CheckSquare, description: 'Checkbox list item', category: 'Lists' },
   
-  // Advanced
+  
   { type: 'code', label: 'Code', icon: Code, description: 'Code block with syntax', category: 'Advanced' },
   { type: 'quote', label: 'Quote', icon: Quote, description: 'Blockquote', category: 'Advanced' },
   { type: 'callout', label: 'Callout', icon: AlertCircle, description: 'Highlighted info box', category: 'Advanced' },
   { type: 'toggle', label: 'Toggle', icon: ChevronRight, description: 'Collapsible section', category: 'Advanced' },
   { type: 'table', label: 'Table', icon: Table, description: 'Structured data table', category: 'Advanced' },
+  { type: 'canvas', label: 'Canvas', icon: Pen, description: 'Freehand sketch block', category: 'Media' },
   
-  // Special
+  
   { type: 'divider', label: 'Divider', icon: Minus, description: 'Horizontal line', category: 'Special' },
   { type: 'image', label: 'Image', icon: Image, description: 'Embed an image', category: 'Media' },
   { type: 'file', label: 'File', icon: Paperclip, description: 'Attach PDF or Word doc', category: 'Media' },
   { type: 'link', label: 'Link', icon: Link2, description: 'Bookmark or link', category: 'Special' },
-  { type: 'table', label: 'Table', icon: Table, description: 'Simple table', category: 'Advanced' },
   
-  // Callout Variants
+  
   { type: 'info', label: 'Info', icon: Lightbulb, description: 'Information callout', category: 'Callouts' },
   { type: 'warning', label: 'Warning', icon: AlertCircle, description: 'Warning callout', category: 'Callouts' },
   { type: 'success', label: 'Success', icon: Star, description: 'Success callout', category: 'Callouts' },
   { type: 'tip', label: 'Tip', icon: Zap, description: 'Tip or hint', category: 'Callouts' },
   
-  // Organization
+  
   { type: 'page', label: 'Page', icon: FileText, description: 'Sub-page reference', category: 'Organization' },
   { type: 'bookmark', label: 'Bookmark', icon: BookOpen, description: 'Bookmark link', category: 'Organization' },
   { type: 'date', label: 'Date', icon: Calendar, description: 'Date mention', category: 'Organization' },
   { type: 'tag', label: 'Tag', icon: Tag, description: 'Tag or label', category: 'Organization' },
   
-  // Layout
+  
   { type: 'column', label: 'Column', icon: Columns, description: 'Single column block', category: 'Layout' },
   { type: 'row', label: 'Row', icon: Minus, description: 'Horizontal row container', category: 'Layout' },
   
-  // Embeds
+  
   { type: 'youtube', label: 'YouTube', icon: Youtube, description: 'Embed YouTube video', category: 'Embeds' },
   { type: 'embed', label: 'Embed', icon: ExternalLink, description: 'Embed external content', category: 'Embeds' },
   { type: 'mermaid', label: 'Mermaid', icon: GitBranch, description: 'Flowchart diagram', category: 'Advanced' },
 ];
 
-// Mermaid Block Component
-const MermaidBlock = ({ block, updateBlock, readOnly }) => {
+const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
   const [showPreview, setShowPreview] = React.useState(false);
   const [renderError, setRenderError] = React.useState(null);
   const mermaidRef = React.useRef(null);
   const [mermaid, setMermaid] = React.useState(null);
+  const [renderedSvg, setRenderedSvg] = React.useState('');
+  const [isRendering, setIsRendering] = React.useState(false);
 
-  // Load Mermaid
+  
   React.useEffect(() => {
+    let mounted = true;
     import('mermaid').then((m) => {
-      m.default.initialize({ 
+      if (!mounted) return;
+      const instance = m.default;
+      instance.initialize({ 
         startOnLoad: false,
-        theme: 'default',
+        theme: darkMode ? 'dark' : 'default',
         securityLevel: 'loose',
       });
-      setMermaid(m.default);
+      setMermaid(instance);
     });
+    return () => { mounted = false; };
   }, []);
 
-  // Render diagram when preview is shown
   React.useEffect(() => {
-    if (showPreview && block.content && mermaidRef.current && mermaid) {
-      const renderDiagram = async () => {
-        try {
-          setRenderError(null);
+    if (!mermaid) return;
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: darkMode ? 'dark' : 'default',
+      securityLevel: 'loose',
+    });
+  }, [mermaid, darkMode]);
+
+  
+  React.useEffect(() => {
+    if (!showPreview) return;
+    if (!block.content || !mermaidRef.current || !mermaid) return;
+    let cancelled = false;
+    const renderDiagram = async () => {
+      try {
+        setRenderError(null);
+        setIsRendering(true);
+        mermaidRef.current.innerHTML = '';
+        const timestamp = Date.now();
+        const randomArr = new Uint32Array(1);
+        crypto.getRandomValues(randomArr);
+        const id = `mermaid_${timestamp}_${randomArr[0]}`;
+        const { svg } = await mermaid.render(id, block.content);
+        if (cancelled) return;
+        mermaidRef.current.innerHTML = sanitizeHtml(svg);
+        setRenderedSvg(svg);
+      } catch (error) {
+        if (cancelled) return;
+        setRenderError(error.message || 'Invalid diagram syntax');
+        setRenderedSvg('');
+        if (mermaidRef.current) {
           mermaidRef.current.innerHTML = '';
-          
-          // Generate a simple valid ID using only alphanumeric characters
-          const timestamp = Date.now();
-          const randomNum = Math.floor(Math.random() * 10000);
-          const id = `mermaid_${timestamp}_${randomNum}`;
-          
-          const { svg } = await mermaid.render(id, block.content);
-          mermaidRef.current.innerHTML = svg;
-        } catch (error) {
-                    setRenderError(error.message || 'Invalid diagram syntax');
-          // Clear any partial render
-          if (mermaidRef.current) {
-            mermaidRef.current.innerHTML = '';
-          }
         }
-      };
-      renderDiagram();
-    }
-  }, [showPreview, block.content, block.id, mermaid]);
+      } finally {
+        if (!cancelled) setIsRendering(false);
+      }
+    };
+    renderDiagram();
+    return () => { cancelled = true; };
+  }, [showPreview, block.content, mermaid, darkMode]);
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(block.content || '');
+    } catch (error) {
+    // silenced
+  }
+  };
+
+  const handleCopySvg = async () => {
+    if (!renderedSvg) return;
+    try {
+      await navigator.clipboard.writeText(renderedSvg);
+    } catch (error) {
+    // silenced
+  }
+  };
+
+  const handleDownloadSvg = () => {
+    if (!renderedSvg) return;
+    const blob = new Blob([renderedSvg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'diagram.svg';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
   
   return (
     <div className="block-mermaid-wrapper">
@@ -116,6 +166,30 @@ const MermaidBlock = ({ block, updateBlock, readOnly }) => {
         <GitBranch size={18} />
         <span>Mermaid Diagram</span>
         <div className="mermaid-actions">
+          <button
+            className="mermaid-toggle-btn"
+            onClick={handleCopyCode}
+            title="Copy code"
+            disabled={!block.content}
+          >
+            Copy Code
+          </button>
+          <button
+            className="mermaid-toggle-btn"
+            onClick={handleCopySvg}
+            title="Copy SVG"
+            disabled={!renderedSvg}
+          >
+            Copy SVG
+          </button>
+          <button
+            className="mermaid-toggle-btn"
+            onClick={handleDownloadSvg}
+            title="Download SVG"
+            disabled={!renderedSvg}
+          >
+            Download
+          </button>
           <button
             className="mermaid-toggle-btn"
             onClick={() => setShowPreview(!showPreview)}
@@ -130,7 +204,10 @@ const MermaidBlock = ({ block, updateBlock, readOnly }) => {
         <div className="mermaid-code-editor">
           <textarea
             value={block.content || ''}
-            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+            onChange={(e) => {
+              if (readOnly) return;
+              updateBlock(block.id, { content: e.target.value });
+            }}
             placeholder="graph TD&#10;    A[Start] --> B{Decision}&#10;    B -->|Yes| C[End]&#10;    B -->|No| D[Continue]"
             className="mermaid-textarea"
             readOnly={readOnly}
@@ -145,6 +222,8 @@ const MermaidBlock = ({ block, updateBlock, readOnly }) => {
                 <div className="mermaid-error">
                   <strong>Error:</strong> {renderError}
                 </div>
+              ) : isRendering ? (
+                <div className="mermaid-empty">Rendering diagram...</div>
               ) : (
                 <div ref={mermaidRef} className="mermaid-diagram" />
               )}
@@ -158,12 +237,12 @@ const MermaidBlock = ({ block, updateBlock, readOnly }) => {
   );
 };
 
-const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = false }) => {
+const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = false, onOpenCanvas, focusBlockId }) => {
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
   const [showBlockMenu, setShowBlockMenu] = useState(null);
   const [blockMenuPosition, setBlockMenuPosition] = useState({ top: 0, left: 0 });
   const [draggedBlockId, setDraggedBlockId] = useState(null);
-  const [dropIndicator, setDropIndicator] = useState(null); // { blockId, position: 'above' | 'below' }
+  const [dropIndicator, setDropIndicator] = useState(null); 
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuPosition, setSlashMenuPosition] = useState({ top: 0, left: 0 });
   const [activeBlockId, setActiveBlockId] = useState(null);
@@ -172,15 +251,17 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   const [lastKeyPress, setLastKeyPress] = useState({ key: '', time: 0 });
   const [showStyleMenu, setShowStyleMenu] = useState(null);
   const [styleMenuPosition, setStyleMenuPosition] = useState({ top: 0, left: 0 });
-  const [columnMenuOpen, setColumnMenuOpen] = useState({}); // Track which column menus are open
+  const [columnMenuOpen, setColumnMenuOpen] = useState({}); 
   const blockRefs = useRef({});
   const blockWrapperRefs = useRef({});
   const slashMenuRef = useRef(null);
   const draggedBlockIdRef = useRef(null);
   const styleMenuRef = useRef(null);
   const menuCloseTimeoutRef = useRef(null);
+  const focusHandledRef = useRef(null);
+  const showBlockMenuRef = useRef(null);
 
-  // Close menu when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (showBlockMenu && !e.target.closest('.sbe-dropdown-menu') && !e.target.closest('.block-menu-dropdown') && !e.target.closest('.block-control-btn')) {
@@ -243,9 +324,30 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     setTimeout(() => blockRefs.current[newBlock.id]?.focus(), 0);
   }, [blocks, onChange]);
 
+  const handleCanvasAction = useCallback((targetBlock) => {
+    if (!targetBlock) return;
+    if (targetBlock.type === 'canvas') {
+      onOpenCanvas?.(targetBlock.id);
+      return;
+    }
+    const newBlock = {
+      id: Date.now() + Math.random(),
+      type: 'canvas',
+      content: '',
+      properties: {},
+      parent_block_id: targetBlock.parent_block_id || null
+    };
+    const allBlocks = [...blocks];
+    const targetIndex = allBlocks.findIndex(b => b.id === targetBlock.id);
+    if (targetIndex === -1) return;
+    allBlocks.splice(targetIndex + 1, 0, newBlock);
+    onChange(allBlocks);
+    setTimeout(() => onOpenCanvas?.(newBlock.id), 0);
+  }, [blocks, onChange, onOpenCanvas]);
+
   const indentBlock = useCallback((blockId) => {
     const index = blocks.findIndex(b => b.id === blockId);
-    if (index <= 0) return; // Can't indent first block
+    if (index <= 0) return; 
     
     const prevBlock = blocks[index - 1];
     updateBlock(blockId, { parent_block_id: prevBlock.id });
@@ -253,7 +355,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
 
   const outdentBlock = useCallback((blockId) => {
     const block = blocks.find(b => b.id === blockId);
-    if (!block?.parent_block_id) return; // Already at root level
+    if (!block?.parent_block_id) return; 
     
     const parentBlock = blocks.find(b => b.id === block.parent_block_id);
     updateBlock(blockId, { parent_block_id: parentBlock?.parent_block_id || null });
@@ -289,7 +391,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   }, [blocks, onChange]);
 
   const handleKeyDown = (e, blockId, index) => {
-    // Slash menu navigation
+    
     if (showSlashMenu) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -303,17 +405,17 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         const el = blockRefs.current[blockId];
         
         if (el) {
-          // Remove the slash from content
+          
           const content = el.textContent.replace(/\/$/, '').trim();
           el.textContent = content;
           
-          // Update block with new type and content
+          
           updateBlock(blockId, { type: selectedType.type, content });
           
-          // Close menu
+          
           setShowSlashMenu(false);
           
-          // Focus and place cursor at the end
+          
           setTimeout(() => {
             el.focus();
             const range = document.createRange();
@@ -333,7 +435,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       } else if (e.key === 'Escape') {
         e.preventDefault();
         setShowSlashMenu(false);
-        // Remove the slash
+        
         const el = blockRefs.current[blockId];
         if (el) {
           const content = el.textContent.replace(/\/$/, '');
@@ -345,14 +447,14 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       return;
     }
 
-    // Check for "dd" shortcut to delete block
+    
     const now = Date.now();
     if (e.key === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const el = blockRefs.current[blockId];
-      // Only trigger if block is empty or cursor is at start
+      
       if (el && (el.textContent === '' || window.getSelection()?.anchorOffset === 0)) {
         if (lastKeyPress.key === 'd' && (now - lastKeyPress.time) < 500) {
-          // Double 'd' detected - delete block
+          
           e.preventDefault();
           deleteBlock(blockId);
           setLastKeyPress({ key: '', time: 0 });
@@ -365,7 +467,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       setLastKeyPress({ key: '', time: 0 });
     }
 
-    // Keyboard shortcuts for formatting
+    
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
       switch(e.key.toLowerCase()) {
         case 'b':
@@ -389,14 +491,14 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       }
     }
 
-    // Shift+Enter creates new block, Enter creates line break within block
+    
     if (e.key === 'Enter') {
       if (e.shiftKey) {
-        // Shift+Enter creates a new block
+        
         e.preventDefault();
         addBlock(index);
       }
-      // Regular Enter allows default behavior (line break within block)
+      
     } else if (e.key === 'Backspace') {
       const el = blockRefs.current[blockId];
       if (el && el.textContent === '') {
@@ -409,14 +511,14 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   const handleInput = (e, blockId) => {
     const content = e.currentTarget.innerHTML || '';
     
-    // Markdown shortcuts detection
+    
     const trimmedContent = content.trim();
     
-    // Check for markdown at start of line
+    
     if (trimmedContent.endsWith(' ') && content.length > 1) {
       const beforeSpace = trimmedContent.slice(0, -1);
       
-      // Heading shortcuts
+      
       if (beforeSpace === '#') {
         updateBlock(blockId, { type: 'heading1', content: '' });
         e.currentTarget.textContent = '';
@@ -430,7 +532,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         e.currentTarget.textContent = '';
         return;
       }
-      // List shortcuts
+      
       else if (beforeSpace === '-' || beforeSpace === '*') {
         updateBlock(blockId, { type: 'bulletList', content: '' });
         e.currentTarget.textContent = '';
@@ -440,25 +542,25 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         e.currentTarget.textContent = '';
         return;
       }
-      // Todo shortcut
+      
       else if (beforeSpace === '[]' || beforeSpace === '[ ]') {
         updateBlock(blockId, { type: 'todo', content: '', properties: { checked: false } });
         e.currentTarget.textContent = '';
         return;
       }
-      // Quote shortcut
+      
       else if (beforeSpace === '>') {
         updateBlock(blockId, { type: 'quote', content: '' });
         e.currentTarget.textContent = '';
         return;
       }
-      // Code shortcut
+      
       else if (beforeSpace === '```') {
         updateBlock(blockId, { type: 'code', content: '' });
         e.currentTarget.textContent = '';
         return;
       }
-      // Divider shortcut
+      
       else if (beforeSpace === '---' || beforeSpace === '***') {
         updateBlock(blockId, { type: 'divider', content: '' });
         e.currentTarget.textContent = '';
@@ -466,12 +568,12 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       }
     }
     
-    // Check for slash command BEFORE updating - trigger when / is typed at start or after space
+    
     const lastChar = content[content.length - 1];
     const beforeLastChar = content[content.length - 2];
     
     if (lastChar === '/' && (!beforeLastChar || beforeLastChar === ' ' || content.length === 1)) {
-      // Get position for slash menu
+      
       const el = blockRefs.current[blockId];
       if (el) {
         const rect = el.getBoundingClientRect();
@@ -484,27 +586,27 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       setShowSlashMenu(false);
     }
     
-    // Update block content AFTER checking for slash
+    
     updateBlock(blockId, { content });
   };
 
   const handleDragStart = useCallback((e, blockId) => {
-    // Prevent default browser drag behavior for text selection
+    
     e.stopPropagation();
     
-    // Set drag data
+    
     draggedBlockIdRef.current = blockId;
     setDraggedBlockId(blockId);
     
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', blockId.toString());
     
-    // Create a custom drag image clone
+    
     const blockWrapper = blockWrapperRefs.current[blockId];
     if (blockWrapper) {
       const rect = blockWrapper.getBoundingClientRect();
       
-      // Create a clone for the drag image
+      
       const clone = blockWrapper.cloneNode(true);
       clone.style.position = 'absolute';
       clone.style.top = '-9999px';
@@ -519,7 +621,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       clone.style.pointerEvents = 'none';
       clone.id = 'drag-ghost';
       
-      // Ensure all child text elements have white color
+      
       const allElements = clone.querySelectorAll('*');
       allElements.forEach(el => {
         el.style.color = '#ffffff';
@@ -527,10 +629,10 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       
       document.body.appendChild(clone);
       
-      // Set the clone as drag image with cursor at center-left
+      
       e.dataTransfer.setDragImage(clone, 20, rect.height / 2);
       
-      // Remove the clone after a short delay
+      
       requestAnimationFrame(() => {
         setTimeout(() => {
           const ghost = document.getElementById('drag-ghost');
@@ -553,14 +655,14 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     
     e.dataTransfer.dropEffect = 'move';
     
-    // Determine if we should show indicator above or below based on mouse position
+    
     const blockWrapper = blockWrapperRefs.current[targetBlockId];
     if (blockWrapper) {
       const rect = blockWrapper.getBoundingClientRect();
       const mouseY = e.clientY;
       const midpoint = rect.top + rect.height / 2;
       
-      // Magnetic snap zone - 30% of block height from edges
+      
       const snapZone = rect.height * 0.3;
       const distanceFromTop = mouseY - rect.top;
       const distanceFromBottom = rect.bottom - mouseY;
@@ -578,7 +680,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         position = mouseY < midpoint ? 'above' : 'below';
       }
       
-      // Add snap zone visual feedback
+      
       if (inSnapZone) {
         blockWrapper.classList.add('in-snap-zone');
       } else {
@@ -597,14 +699,14 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   const handleDragLeave = useCallback((e) => {
     e.preventDefault();
     
-    // Remove snap zone class from all blocks
+    
     Object.values(blockWrapperRefs.current).forEach(wrapper => {
       if (wrapper) {
         wrapper.classList.remove('in-snap-zone');
       }
     });
     
-    // Only clear indicator if we're leaving the editor entirely
+    
     const relatedTarget = e.relatedTarget;
     const currentTarget = e.currentTarget;
     
@@ -636,12 +738,12 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       return;
     }
     
-    // Adjust target index based on drop position indicator
+    
     if (dropIndicator?.position === 'below') {
       targetIndex += 1;
     }
     
-    // Adjust for the removal of the dragged item
+    
     if (dragIndex < targetIndex) {
       targetIndex -= 1;
     }
@@ -650,7 +752,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     const [draggedBlock] = newBlocks.splice(dragIndex, 1);
     newBlocks.splice(targetIndex, 0, draggedBlock);
     
-    // Add magnetic snap animation class
+    
     const targetWrapper = blockWrapperRefs.current[draggedBlock.id];
     if (targetWrapper) {
       targetWrapper.classList.add('magnetic-snap');
@@ -667,7 +769,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   }, [blocks, onChange, dropIndicator]);
 
   const handleDragEnd = useCallback(() => {
-    // Remove snap zone class from all blocks
+    
     Object.values(blockWrapperRefs.current).forEach(wrapper => {
       if (wrapper) {
         wrapper.classList.remove('in-snap-zone');
@@ -679,7 +781,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     setDropIndicator(null);
   }, []);
 
-  // Handle drag over the editor container for edge cases
+  
   const handleEditorDragOver = useCallback((e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -687,13 +789,13 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
 
   const handleEditorDrop = useCallback((e) => {
     e.preventDefault();
-    // Reset state if dropped on editor but not on a block
+    
     draggedBlockIdRef.current = null;
     setDraggedBlockId(null);
     setDropIndicator(null);
   }, []);
 
-  // Close slash menu when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (slashMenuRef.current && !slashMenuRef.current.contains(e.target) && !e.target.closest('.sbe-slash-menu')) {
@@ -704,7 +806,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close block menu when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (showBlockMenu && !e.target.closest('.sbe-dropdown-menu') && !e.target.closest('.block-menu-dropdown') && !e.target.closest('.block-control-btn')) {
@@ -715,7 +817,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showBlockMenu]);
 
-  // Close style menu when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (showStyleMenu && styleMenuRef.current && !styleMenuRef.current.contains(e.target)) {
@@ -726,8 +828,24 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showStyleMenu]);
 
+  useEffect(() => {
+    if (!focusBlockId) return;
+    if (focusHandledRef.current === focusBlockId) return;
+    focusHandledRef.current = focusBlockId;
+    requestAnimationFrame(() => {
+      const target = blockRefs.current[focusBlockId];
+      if (target && typeof target.focus === 'function') {
+        target.focus();
+      }
+    });
+  }, [focusBlockId, blocks]);
+
+  useEffect(() => {
+    showBlockMenuRef.current = showBlockMenu;
+  }, [showBlockMenu]);
+
   const renderBlockContent = (block) => {
-    // Special handling for code blocks - don't use contentEditable
+    
     if (block.type === 'code') {
       return (
         <CodeBlock
@@ -744,7 +862,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       );
     }
 
-    // Special handling for table blocks
+    
     if (block.type === 'table') {
       return (
         <TableBlock
@@ -754,12 +872,13 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
               properties: { ...block.properties, tableData }
             });
           }}
+          readOnly={readOnly}
         />
       );
     }
 
     const handleContentInput = (e) => {
-      // Save cursor position
+      
       const selection = window.getSelection();
       const range = selection.getRangeAt(0);
       const cursorOffset = range.startOffset;
@@ -767,7 +886,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       
       handleInput(e, block.id);
       
-      // Restore cursor position after state update
+      
       requestAnimationFrame(() => {
         try {
           const newRange = document.createRange();
@@ -777,12 +896,12 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           newSelection.removeAllRanges();
           newSelection.addRange(newRange);
         } catch (err) {
-          // Cursor restoration failed, ignore
-        }
+    // silenced
+  }
       });
     };
     
-    // Apply custom styling from block properties
+    
     const blockStyle = block.properties?.style || {};
     const customStyle = {
       backgroundColor: blockStyle.backgroundColor || 'transparent',
@@ -791,12 +910,15 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       padding: blockStyle.spacing === 'compact' ? '2px' : blockStyle.spacing === 'relaxed' ? '8px' : '4px',
     };
     
+    
+    const hasLatex = block.content && (block.content.includes('$') || block.content.includes('\\(') || block.content.includes('\\['));
+    
     const props = {
       ref: (el) => { 
         blockRefs.current[block.id] = el;
-        // Set initial content only once
+        
         if (el && el.innerHTML !== block.content) {
-          el.innerHTML = block.content;
+          el.innerHTML = sanitizeHtml(block.content);
         }
       },
       contentEditable: !readOnly && block.type !== 'divider',
@@ -813,6 +935,36 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       'data-placeholder': block.content ? '' : `Type something...`,
       style: customStyle
     };
+
+    
+    if (hasLatex) {
+      const ContentTag = block.type === 'heading1' ? 'h1' : 
+                         block.type === 'heading2' ? 'h2' : 
+                         block.type === 'heading3' ? 'h3' : 
+                         block.type === 'quote' ? 'blockquote' : 'div';
+      
+      return (
+        <ContentTag 
+          className={`block-content block-${block.type}`} 
+          style={customStyle}
+          contentEditable={!readOnly && block.type !== 'divider'}
+          suppressContentEditableWarning={true}
+          onInput={handleContentInput}
+          onBlur={(e) => {
+            const content = e.currentTarget.innerHTML || '';
+            if (content !== block.content) {
+              updateBlock(block.id, { content });
+            }
+          }}
+          onKeyDown={(e) => handleKeyDown(e, block.id, blocks.findIndex(b => b.id === block.id))}
+          ref={(el) => { 
+            blockRefs.current[block.id] = el;
+          }}
+        >
+          <MathRenderer content={block.content} />
+        </ContentTag>
+      );
+    }
 
     switch (block.type) {
       case 'heading1':
@@ -964,6 +1116,51 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
             <div {...props} placeholder="Table content..." />
           </div>
         );
+      case 'canvas': {
+        const preview = block.properties?.canvasPreview;
+        return (
+          <div
+            className="block-canvas-wrapper"
+            ref={(el) => {
+              blockRefs.current[block.id] = el;
+            }}
+            tabIndex={0}
+          >
+            <div
+              className="block-canvas-preview"
+              role="button"
+              tabIndex={0}
+              onClick={() => onOpenCanvas?.(block.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onOpenCanvas?.(block.id);
+                }
+              }}
+            >
+              {preview ? (
+                <img src={preview} alt="Canvas preview" />
+              ) : (
+                <div className="block-canvas-placeholder">
+                  <Pen size={20} />
+                  <span>Click to sketch</span>
+                </div>
+              )}
+            </div>
+            {!readOnly && (
+              <div className="block-canvas-actions">
+                <button
+                  type="button"
+                  className="block-canvas-btn"
+                  onClick={() => onOpenCanvas?.(block.id)}
+                >
+                  Open Canvas
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      }
       case 'page':
         return (
           <div className="block-page-wrapper">
@@ -1111,16 +1308,16 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           </div>
         );
       case 'mermaid':
-        return <MermaidBlock block={block} updateBlock={updateBlock} readOnly={readOnly} />;
+        return <MermaidBlock block={block} updateBlock={updateBlock} readOnly={readOnly} darkMode={darkMode} />;
       case 'column':
-        // Column block that can contain child blocks
+        
         const columnWidth = block.properties?.width || '50%';
         const columnBgColor = block.properties?.bgColor || 'none';
         const isCollapsed = block.properties?.collapsed || false;
         const isSticky = block.properties?.sticky || false;
         const showFullMenu = columnMenuOpen[block.id] || false;
         
-        // Get child blocks
+        
         const childBlocks = blocks.filter(b => b.parent_block_id === block.id);
         const hasChildren = childBlocks.length > 0;
         
@@ -1173,16 +1370,16 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         };
         
         const splitColumn = () => {
-          // Create two columns with half width each
+          
           const currentWidth = parseInt(columnWidth);
           const halfWidth = Math.floor(currentWidth / 2) + '%';
           
-          // Update current column
+          
           updateBlock(block.id, {
             properties: { ...block.properties, width: halfWidth }
           });
           
-          // Create new column
+          
           const newBlock = {
             id: Date.now() + Math.random(),
             type: 'column',
@@ -1198,12 +1395,12 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         };
         
         const mergeWithNext = () => {
-          // Find next column
+          
           const currentIndex = blocks.findIndex(b => b.id === block.id);
           const nextBlock = blocks[currentIndex + 1];
           
           if (nextBlock && nextBlock.type === 'column') {
-            // Move all children from next column to this column
+            
             const nextChildren = blocks.filter(b => b.parent_block_id === nextBlock.id);
             const updatedBlocks = blocks.map(b => {
               if (nextChildren.find(child => child.id === b.id)) {
@@ -1217,7 +1414,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         };
         
         const exportColumn = () => {
-          // Export column content as text
+          
           const columnContent = childBlocks.map(b => b.content).join('\n\n');
           const blob = new Blob([columnContent], { type: 'text/plain' });
           const url = URL.createObjectURL(blob);
@@ -1232,10 +1429,10 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           const currentIndex = blocks.findIndex(b => b.id === block.id);
           const newBlocks = [...blocks];
           
-          // Remove current column
+          
           newBlocks.splice(currentIndex, 1);
           
-          // Add template columns
+          
           if (template === 'two-column') {
             newBlocks.splice(currentIndex, 0,
               { id: Date.now(), type: 'column', content: '', properties: { width: '50%' }, parent_block_id: null },
@@ -1436,7 +1633,6 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                     <span>Click to add content or type /</span>
                   </button>
                 )}
-                {/* Render child blocks inside column */}
                 {childBlocks.map((childBlock, childIndex) => {
                   const childIsDragging = draggedBlockId === childBlock.id;
                   
@@ -1454,7 +1650,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                       }}
                       onMouseLeave={() => {
                         if (!readOnly && !draggedBlockId && showBlockMenu !== childBlock.id) {
-                          setHoveredBlockId(null);
+                          scheduleHideControls(childBlock.id);
                         }
                       }}
                     >
@@ -1462,12 +1658,13 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                         <div 
                           className={`block-controls ${shouldShowControls(childBlock.id) ? 'visible' : ''}`}
                           onMouseEnter={() => handleControlsMouseEnter(childBlock.id)}
-                          onMouseLeave={handleControlsMouseLeave}
+                          onMouseLeave={() => handleControlsMouseLeave(childBlock.id)}
                           style={shouldShowControls(childBlock.id) ? { opacity: '1 !important', pointerEvents: 'auto !important' } : {}}
                         >
                           <div 
                             className="block-control-btn drag-handle" 
                             title="Drag to reorder"
+                            aria-label="Drag to reorder"
                             draggable="true"
                             onDragStart={(e) => handleDragStart(e, childBlock.id)}
                             onDragEnd={handleDragEnd}
@@ -1491,8 +1688,17 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                               setTimeout(() => blockRefs.current[newBlock.id]?.focus(), 0);
                             }}
                             title="Add block"
+                            aria-label="Add block"
                           >
                             <Plus size={16} />
+                          </button>
+                          <button
+                            className="block-control-btn canvas-action"
+                            onClick={() => handleCanvasAction(childBlock)}
+                            title={childBlock.type === 'canvas' ? 'Open canvas' : 'Add canvas'}
+                            aria-label={childBlock.type === 'canvas' ? 'Open canvas' : 'Add canvas'}
+                          >
+                            <Pen size={16} />
                           </button>
                           <button
                             className="block-control-btn"
@@ -1501,7 +1707,8 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                               setBlockMenuPosition({ top: rect.bottom + 4, left: rect.left });
                               setShowBlockMenu(showBlockMenu === childBlock.id ? null : childBlock.id);
                             }}
-                            title="More"
+                            title="More options"
+                            aria-label="More options"
                           >
                             <MoreVertical size={16} />
                           </button>
@@ -1605,7 +1812,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           </div>
         );
       case 'row':
-        // Row block for horizontal layout
+        
         return (
           <div className="block-row-container">
             <div className="row-label">
@@ -1620,24 +1827,30 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     }
   };
 
-  // Determine if controls should be visible for a block
+  
   const shouldShowControls = (blockId) => {
     if (readOnly) return false;
-    // Always show controls for hovered block, dragged block, or block with open menu
+    
     return hoveredBlockId === blockId || draggedBlockId === blockId || showBlockMenu === blockId;
   };
+
+  const scheduleHideControls = (blockId) => {
+    clearTimeout(menuCloseTimeoutRef.current);
+    menuCloseTimeoutRef.current = setTimeout(() => {
+      if (showBlockMenuRef.current !== blockId) {
+        setHoveredBlockId(null);
+      }
+    }, 180);
+  };
   
-  // Keep menu open when hovering over controls or menu
+  
   const handleControlsMouseEnter = (blockId) => {
     clearTimeout(menuCloseTimeoutRef.current);
     setHoveredBlockId(blockId);
   };
   
-  const handleControlsMouseLeave = () => {
-    // Don't hide controls if menu is open
-    if (!showBlockMenu) {
-      setHoveredBlockId(null);
-    }
+  const handleControlsMouseLeave = (blockId) => {
+    scheduleHideControls(blockId);
   };
 
   return (
@@ -1648,7 +1861,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       onDrop={handleEditorDrop}
     >
       {blocks.filter(block => {
-        // Only render root-level blocks and blocks whose parent is NOT a column
+        
         if (!block.parent_block_id) return true;
         const parentBlock = blocks.find(b => b.id === block.parent_block_id);
         return parentBlock?.type !== 'column';
@@ -1657,7 +1870,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         const showAboveIndicator = dropIndicator?.blockId === block.id && dropIndicator?.position === 'above';
         const showBelowIndicator = dropIndicator?.blockId === block.id && dropIndicator?.position === 'below';
         
-        // Calculate indentation level
+        
         let indentLevel = 0;
         let currentBlock = block;
         while (currentBlock.parent_block_id && indentLevel < 4) {
@@ -1681,7 +1894,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
             }}
             onMouseLeave={() => {
               if (!readOnly && !draggedBlockId && showBlockMenu !== block.id) {
-                setHoveredBlockId(null);
+                scheduleHideControls(block.id);
               }
             }}
             onDragOver={(e) => handleDragOver(e, block.id)}
@@ -1689,22 +1902,21 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, block.id)}
           >
-            {/* Drop indicator above */}
             {!readOnly && showAboveIndicator && (
               <div className="drop-indicator drop-indicator-above" />
             )}
             
-            {/* Block controls - only render if not readOnly */}
             {!readOnly && (
             <div 
               className={`block-controls ${shouldShowControls(block.id) ? 'visible' : ''}`}
               onMouseEnter={() => handleControlsMouseEnter(block.id)}
-              onMouseLeave={handleControlsMouseLeave}
+              onMouseLeave={() => handleControlsMouseLeave(block.id)}
               style={shouldShowControls(block.id) ? { opacity: '1 !important', pointerEvents: 'auto !important' } : {}}
             >
               <div 
                 className="block-control-btn drag-handle" 
                 title="Drag to reorder"
+                aria-label="Drag to reorder"
                 draggable="true"
                 onDragStart={(e) => handleDragStart(e, block.id)}
                 onDragEnd={handleDragEnd}
@@ -1715,8 +1927,17 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                 className="block-control-btn"
                 onClick={() => addBlock(index)}
                 title="Add block"
+                aria-label="Add block"
               >
                 <Plus size={16} />
+              </button>
+              <button
+                className="block-control-btn canvas-action"
+                onClick={() => handleCanvasAction(block)}
+                title={block.type === 'canvas' ? 'Open canvas' : 'Add canvas'}
+                aria-label={block.type === 'canvas' ? 'Open canvas' : 'Add canvas'}
+              >
+                <Pen size={16} />
               </button>
               <button
                 className="block-control-btn"
@@ -1725,7 +1946,8 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                   setBlockMenuPosition({ top: rect.bottom + 4, left: rect.left });
                   setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
                 }}
-                title="More"
+                title="More options"
+                aria-label="More options"
               >
                 <MoreVertical size={16} />
               </button>
@@ -1888,12 +2110,10 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
               {renderBlockContent(block)}
             </div>
             
-            {/* Drop indicator below */}
             {!readOnly && showBelowIndicator && (
               <div className="drop-indicator drop-indicator-below" />
             )}
             
-            {/* Slash Menu - render as portal */}
             {showSlashMenu && activeBlockId === block.id && createPortal(
               <div
                 ref={slashMenuRef}
@@ -1931,17 +2151,17 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                 onClick={() => {
                   const el = blockRefs.current[activeBlockId];
                   if (el) {
-                    // Remove the slash from content
+                    
                     const content = el.textContent.replace(/\/$/, '').trim();
                     el.textContent = content;
                     
-                    // Update block with new type and content
+                    
                     updateBlock(activeBlockId, { type: blockType.type, content });
                     
-                    // Close menu
+                    
                     setShowSlashMenu(false);
                     
-                    // Focus and place cursor at the end
+                    
                     setTimeout(() => {
                       el.focus();
                       const range = document.createRange();

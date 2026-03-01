@@ -28,7 +28,7 @@ const Social = () => {
   const [showMyContentModal, setShowMyContentModal] = useState(false);
   const [myContentFilter, setMyContentFilter] = useState('all');
 
-  // Disable scrolling on this page
+  
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
@@ -57,7 +57,8 @@ const Social = () => {
         setUserId(data.email || data.username);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchFriendRequests = async () => {
@@ -70,7 +71,8 @@ const Social = () => {
         setFriendRequests(data);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchFriends = async () => {
@@ -83,7 +85,8 @@ const Social = () => {
         setFriends(data.friends);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchSharedContent = async () => {
@@ -100,7 +103,8 @@ const Social = () => {
         setSharedItems(data.shared_items || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const fetchMyContent = async () => {
@@ -121,7 +125,8 @@ const Social = () => {
         setMyChats(chatsData.sessions || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleSearch = async (query) => {
@@ -141,7 +146,8 @@ const Social = () => {
         setSearchResults(data.users);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setIsSearching(false);
     }
   };
@@ -164,7 +170,8 @@ const Social = () => {
         fetchFriendRequests();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const respondToFriendRequest = async (requestId, action) => {
@@ -183,7 +190,8 @@ const Social = () => {
         fetchFriends();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const removeFriend = async (friendId) => {
@@ -203,7 +211,8 @@ const Social = () => {
         fetchFriends();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleOpenSharedItem = (item) => {
@@ -229,7 +238,8 @@ const Social = () => {
         setSharedItems(prev => prev.filter(item => item.id !== shareId));
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleShareNewContent = async () => {
@@ -354,7 +364,7 @@ const Social = () => {
       icon: Share2,
       title: 'Shared',
       subtitle: 'LEARNING CONTENT',
-      onClick: () => setActiveTab('shared'),
+      onClick: () => navigate('/shared'),
       className: 'shared-card'
     },
     {
@@ -433,24 +443,23 @@ const Social = () => {
 
   return (
     <div className="hub-page">
-      <header className="hub-header">
-        <div className="hub-header-left">
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>
-            <div className="hub-logo-img" />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <div className="hub-header-divider"></div>
-          <p className="hub-header-subtitle">SOCIAL HUB</p>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">SOCIAL HUB</span>
         </div>
-        <div className="hub-header-right">
-          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
+        <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            Dashboard
           </button>
-        </div>
+        </nav>
       </header>
 
       {activeTab === 'hub' && (
@@ -747,104 +756,6 @@ const Social = () => {
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      <div className="hub-tabs-bottom">
-        <button 
-          className={`hub-tab ${activeTab === 'hub' ? 'active' : ''}`}
-          onClick={() => setActiveTab('hub')}
-        >
-          Hub
-        </button>
-        <button 
-          className={`hub-tab ${activeTab === 'search' ? 'active' : ''}`}
-          onClick={() => setActiveTab('search')}
-        >
-          Find Friends
-        </button>
-        <button 
-          className={`hub-tab ${activeTab === 'requests' ? 'active' : ''}`}
-          onClick={() => setActiveTab('requests')}
-        >
-          Requests {friendRequests.received.length > 0 && `(${friendRequests.received.length})`}
-        </button>
-        <button 
-          className={`hub-tab ${activeTab === 'friends' ? 'active' : ''}`}
-          onClick={() => setActiveTab('friends')}
-        >
-          Friends ({friends.length})
-        </button>
-        <button 
-          className={`hub-tab ${activeTab === 'shared' ? 'active' : ''}`}
-          onClick={() => setActiveTab('shared')}
-        >
-          Shared ({sharedItems.length})
-        </button>
-      </div>
-
-      {showMyContentModal && (
-        <div className="modal-overlay" onClick={() => setShowMyContentModal(false)}>
-          <div className="modal-content my-content-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Select Content to Share</h2>
-              <button className="modal-close" onClick={() => setShowMyContentModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="modal-filters">
-              <button
-                className={`filter-btn ${myContentFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setMyContentFilter('all')}
-              >
-                All
-              </button>
-              <button
-                className={`filter-btn ${myContentFilter === 'notes' ? 'active' : ''}`}
-                onClick={() => setMyContentFilter('notes')}
-              >
-                <FileText size={14} />
-                Notes ({myNotes.length})
-              </button>
-              <button
-                className={`filter-btn ${myContentFilter === 'chats' ? 'active' : ''}`}
-                onClick={() => setMyContentFilter('chats')}
-              >
-                <MessageSquare size={14} />
-                Chats ({myChats.length})
-              </button>
-            </div>
-
-            <div className="my-content-list">
-              {filteredMyContent.length === 0 ? (
-                <div className="empty-content">
-                  No content available to share
-                </div>
-              ) : (
-                filteredMyContent.map((item) => (
-                  <div 
-                    key={`${item.type || (myContentFilter === 'notes' ? 'note' : 'chat')}-${item.id}`}
-                    className="content-item"
-                    onClick={() => handleSelectItemToShare(item, item.type || (myContentFilter === 'notes' ? 'note' : 'chat'))}
-                  >
-                    <div className="content-item-icon">
-                      {(item.type === 'chat' || myContentFilter === 'chats') ? (
-                        <MessageSquare size={20} />
-                      ) : (
-                        <FileText size={20} />
-                      )}
-                    </div>
-                    <div className="content-item-info">
-                      <h4>{item.title || 'Untitled'}</h4>
-                      <p>{formatDate(item.updated_at || item.created_at)}</p>
-                    </div>
-                    <Share2 size={16} className="content-item-share-icon" />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
         </div>
       )}
 

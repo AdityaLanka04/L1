@@ -2,10 +2,14 @@
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
+import { safeInternalPath } from '../utils/sanitize';
 import gamificationService from '../services/gamificationService';
 import MathRenderer from '../components/MathRenderer';
-//import { processMathInContent } from '../utils/mathUtils';
+
 import './AIChat.css';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 const AIChat = ({ sharedMode = false }) => {
   const { chatId } = useParams();
@@ -35,13 +39,17 @@ const AIChat = ({ sharedMode = false }) => {
   
   const [selectedFiles, setSelectedFiles] = useState([]);
   
-  // AI Agent Integration States
+  
   const [agentInsights, setAgentInsights] = useState(null);
   const [showWeaknesses, setShowWeaknesses] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [conversationMode, setConversationMode] = useState('tutoring');
   const [agentAnalysis, setAgentAnalysis] = useState(null);
-  
+
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
+
   const handleFolderCreation = async () => {
     if (!folderName.trim()) return;
     
@@ -68,7 +76,8 @@ const AIChat = ({ sharedMode = false }) => {
         loadChatFolders();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleMoveToFolder = async (chatId, folderId) => {
@@ -91,7 +100,8 @@ const AIChat = ({ sharedMode = false }) => {
         setShowMoveMenu(null);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleContextMenu = (e, chatId) => {
@@ -107,9 +117,10 @@ const AIChat = ({ sharedMode = false }) => {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const sidebarNavRef = useRef(null);
+  const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const isLoadingRef = useRef(false);
-  const justSentMessageRef = useRef(false);  // Flag to prevent reload after sending
+  const justSentMessageRef = useRef(false);  
 
   const [showFolderCreation, setShowFolderCreation] = useState(false);
   const [folderName, setFolderName] = useState('');
@@ -122,20 +133,20 @@ const AIChat = ({ sharedMode = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [chatMessageCounts, setChatMessageCounts] = useState({});
 
-  // Helper to check if a chat session should be displayed
+  
   const shouldDisplayChat = (session) => {
-    // Always show chats that are not "New Chat"
+    
     if (session.title !== 'New Chat') return true;
     
-    // For "New Chat", only show if it's the active chat OR if it has messages
+    
     if (session.id === activeChatId) return true;
     
-    // Check if we have message count cached
+    
     if (chatMessageCounts[session.id] !== undefined) {
       return chatMessageCounts[session.id] > 0;
     }
     
-    // Default to hiding if we don't know yet
+    
     return false;
   };
 
@@ -175,9 +186,9 @@ const AIChat = ({ sharedMode = false }) => {
         setSharedChatData(data);
         setIsSharedContent(true);
         
-        // Set up the chat UI with shared data
+        
         setMessages(data.messages || []);
-        // You might want to set a special title or indicator for shared chats
+        
       } else {
         throw new Error('Failed to load shared chat');
       }
@@ -191,46 +202,56 @@ const AIChat = ({ sharedMode = false }) => {
     return randomGreeting.replace(/{name}/g, name);
   };
 
-  // Scroll to show latest message at TOP of viewport
-  // This allows user to scroll UP to see older messages
+  
   const scrollToLatestMessage = () => {
-    if (messagesContainerRef.current && messages.length > 0) {
+    if (messagesContainerRef.current) {
       const container = messagesContainerRef.current;
-      // Scroll to bottom (where latest message is)
+      
       container.scrollTop = container.scrollHeight;
     }
   };
 
-  // Enhanced scroll to bottom - NOW DISABLED (we use column-reverse)
-  // Messages are reversed in CSS, so "bottom" is actually the top (newest)
+  
   const scrollToBottom = () => {
-    // Scroll to show latest message at top of viewport
     scrollToLatestMessage();
   };
 
-  // Enhanced scroll handling from Knowledge Roadmap
+  
+  useEffect(() => {
+    
+    const timer = setTimeout(() => {
+      scrollToLatestMessage();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [messages]);
+
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
+  };
+
+  
   const handleScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
       
-      // Add scrolled class for visual indicator (more precise detection)
-      if (scrollTop > 10) {
-        messagesContainerRef.current.classList.add('scrolled');
-      } else {
-        messagesContainerRef.current.classList.remove('scrolled');
-      }
       
-      // Show scroll to top button when scrolled down significantly
       setShowScrollToTop(scrollTop > 200);
       
-      // Show scroll to bottom button when not at bottom
+      
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 30;
       setShowScrollToBottom(!isAtBottom && messages.length > 3);
     }
   };
 
-  // Enhanced scroll to top from Knowledge Roadmap
-  // Scrolls to show OLDEST messages (user scrolls up to see history)
+  
+  
   const scrollToTop = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -238,7 +259,7 @@ const AIChat = ({ sharedMode = false }) => {
         left: 0,
         behavior: 'smooth'
       });
-      // Force scroll to absolute top after smooth scroll completes
+      
       setTimeout(() => {
         if (messagesContainerRef.current) {
           messagesContainerRef.current.scrollTop = 0;
@@ -312,10 +333,11 @@ const AIChat = ({ sharedMode = false }) => {
       
       if (response.ok) {
         const foldersData = await response.json();
-        setFolders(foldersData || []);
+        setFolders(foldersData.folders || []);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadChatSessions = async () => {
@@ -333,22 +355,19 @@ const AIChat = ({ sharedMode = false }) => {
         setChatSessions(sessions);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const loadChatMessages = async (sessionId) => {
     if (!sessionId) {
-      console.log('⚠️ loadChatMessages called with no sessionId');
       return;
     }
     
-    console.log('📥 loadChatMessages called for chat_id:', sessionId);
-    console.log('   Current activeChatId:', activeChatId);
         
     try {
       const token = localStorage.getItem('token');
       const url = `${API_URL}/get_chat_messages?chat_id=${sessionId}`;
-      console.log('🌐 Fetching messages from:', url);
       
       const response = await fetch(url, {
         method: 'GET',
@@ -361,7 +380,7 @@ const AIChat = ({ sharedMode = false }) => {
       if (response.ok) {
         const messagesArray = await response.json();
                 setMessages(messagesArray);
-        // Scroll to show latest message at top of viewport
+        
         setTimeout(() => {
           scrollToLatestMessage();
         }, 100);
@@ -381,7 +400,6 @@ const AIChat = ({ sharedMode = false }) => {
       return null;
     }
     
-    console.log('🆕 createNewChat called for user:', userName);
     
     try {
       const token = localStorage.getItem('token');
@@ -399,7 +417,6 @@ const AIChat = ({ sharedMode = false }) => {
 
       if (response.ok) {
         const newChat = await response.json();
-        console.log('✅ Backend response:', newChat);
         
         const sessionData = {
           id: newChat.session_id || newChat.id,
@@ -408,8 +425,6 @@ const AIChat = ({ sharedMode = false }) => {
           updated_at: newChat.updated_at || newChat.created_at
         };
         
-        console.log('📋 Created session data:', sessionData);
-        console.log('   Using ID:', sessionData.id);
         
         setChatSessions(prev => [sessionData, ...prev]);
         return sessionData.id;
@@ -424,13 +439,13 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const cleanupEmptyNewChats = async () => {
-    // Only cleanup chats that are truly empty (no messages)
-    // Don't cleanup the active chat or any chat the user might be working on
+    
+    
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
       
-      // Only look at chats with title "New Chat" that are NOT the active chat
+      
       const potentialEmptyChats = chatSessions.filter(
         chat => chat.title === 'New Chat' && chat.id !== activeChatId
       );
@@ -447,7 +462,7 @@ const AIChat = ({ sharedMode = false }) => {
 
           if (response.ok) {
             const msgs = await response.json();
-            // Only delete if truly empty (no messages at all)
+            
             if (!msgs || msgs.length === 0) {
               const deleteResponse = await fetch(`${API_URL}/delete_chat_session/${chat.id}`, {
                 method: 'DELETE',
@@ -460,15 +475,16 @@ const AIChat = ({ sharedMode = false }) => {
             }
           }
         } catch (innerError) {
-          // Don't let one failed cleanup stop the others
-                  }
+    // silenced
+  }
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleNewChat = () => {
-    // Scroll sidebar to top
+    
     if (sidebarNavRef.current) {
       sidebarNavRef.current.scrollTo({
         top: 0,
@@ -476,18 +492,18 @@ const AIChat = ({ sharedMode = false }) => {
       });
     }
     
-    // Scroll messages to top
+    
     scrollToTop();
     
-    // Find any existing "New Chat" session
+    
     const existingNewChat = chatSessions.find(chat => chat.title === 'New Chat');
     
     if (existingNewChat) {
-      // Navigate to existing "New Chat"
+      
       isLoadingRef.current = false;
       navigate(`/ai-chat/${existingNewChat.id}`);
     } else {
-      // Create new chat only if no "New Chat" exists
+      
       createNewChat().then(newChatId => {
         if (newChatId) {
           isLoadingRef.current = false;
@@ -498,12 +514,12 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const selectChat = (chatSessionId) => {
-    // Don't cleanup when selecting a chat - only cleanup on explicit actions
+    
     isLoadingRef.current = false;
     navigate(`/ai-chat/${chatSessionId}`);
   };
 
-  // AI Agent Integration Functions
+  
   const sendMessageWithAgent = async (message, chatId) => {
     try {
       const token = localStorage.getItem('token');
@@ -530,7 +546,7 @@ const AIChat = ({ sharedMode = false }) => {
       if (result.success) {
         setAgentAnalysis(result.data.analysis);
         
-        // Show insights if confusion detected
+        
         if (result.data.analysis.confusion_detected) {
           setAgentInsights({
             type: 'confusion',
@@ -538,7 +554,7 @@ const AIChat = ({ sharedMode = false }) => {
           });
         }
         
-        // Store weaknesses and recommendations
+        
         if (result.data.weaknesses && result.data.weaknesses.length > 0) {
           setAgentInsights(prev => ({
             ...prev,
@@ -575,7 +591,8 @@ const AIChat = ({ sharedMode = false }) => {
         return result.data;
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const switchConversationMode = async (newMode) => {
@@ -598,7 +615,8 @@ const AIChat = ({ sharedMode = false }) => {
         setConversationMode(newMode);
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const sendMessage = async () => {
@@ -607,40 +625,37 @@ const AIChat = ({ sharedMode = false }) => {
     let currentChatId = activeChatId;
     let isNewChat = false;
     
-    console.log('🚀 sendMessage called');
-    console.log('   activeChatId (state):', activeChatId);
-    console.log('   currentChatId (local):', currentChatId);
     
-    // Store message text and files before clearing
+    
     const messageText = inputMessage;
     const messagedFiles = [...selectedFiles];
     
-    // Clear input immediately for better UX
+    
     setInputMessage('');
     
+    
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '24px';
+    }
+    
     if (!currentChatId) {
-      console.log('🆕 No active chat, creating new chat...');
       currentChatId = await createNewChat();
-      console.log('✅ New chat created with ID:', currentChatId);
       
       if (!currentChatId) {
         console.error('❌ Failed to create new chat');
         alert('Error: Failed to create new chat. Please try again.');
-        setInputMessage(messageText); // Restore input on error
+        setInputMessage(messageText); 
         return;
       }
       isNewChat = true;
-      // Set flag BEFORE changing activeChatId to prevent useEffect from reloading
+      
       justSentMessageRef.current = true;
-      // Set activeChatId immediately to prevent useEffect from clearing messages
+      
       setActiveChatId(currentChatId);
-      console.log('📍 Updated activeChatId state to:', currentChatId);
-      // Navigate with replace to update URL without triggering full reload
+      
       navigate(`/ai-chat/${currentChatId}`, { replace: true });
-      console.log('🔗 Navigated to /ai-chat/' + currentChatId);
     } else {
-      console.log('📝 Using existing chat ID:', currentChatId);
-      // Also set flag for existing chats
+      
       justSentMessageRef.current = true;
     }
 
@@ -656,15 +671,10 @@ const AIChat = ({ sharedMode = false }) => {
       }))
     };
 
-    // Add user message to UI immediately
+    
     setMessages(prev => [...prev, userMessage]);
     
-    // Scroll to show latest message (at bottom, but visible at top of viewport)
-    setTimeout(() => {
-      scrollToLatestMessage();
-    }, 50);
     
-    // Set loading state
     setLoading(true);
 
     try {
@@ -677,22 +687,16 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('user_id', userName);
       formData.append('question', messageText || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
-
-      console.log('📤 Sending message to backend:');
-      console.log('   user_id:', userName);
-      console.log('   chat_id:', currentChatId.toString());
-      console.log('   question:', messageText.substring(0, 50) + '...');
+      formData.append('use_hs_context', hsMode.toString());
 
       messagedFiles.forEach(file => {
         formData.append('files', file);
       });
 
-      // Use ask_simple for proper LaTeX formatting, files endpoint for attachments
+      
       const endpoint = messagedFiles.length > 0 ? 
         `${API_URL}/ask_with_files/` : 
         `${API_URL}/ask_simple/`;
-
-      console.log('🌐 Calling endpoint:', endpoint);
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -707,30 +711,21 @@ const AIChat = ({ sharedMode = false }) => {
 
       const data = await response.json();
       
-      console.log(`✅ AI response received (Chat Agent + RAG)`);
-      console.log(`   Sent chat_id: ${currentChatId}`);
-      console.log(`   Returned chat_id: ${data.chat_id || 'none'}`);
-      console.log(`   Chat ID Match: ${data.chat_id === currentChatId ? '✅ YES' : '❌ NO'}`);
-      console.log(`   RAG Used: ${data.rag_used ? 'YES' : 'NO'}`);
-      console.log(`   RAG Results: ${data.rag_results_count || 0} items`);
-      console.log(`   Weak Concepts: ${data.weak_concepts_count || 0} tracked`);
-      console.log(`   Provider: ${data.ai_provider || 'Unknown'}`);
       
       if (!data.answer) {
         throw new Error('No answer received from AI');
       }
       
-      // Get agent analysis AFTER receiving the real AI response (don't replace the response)
+      
       if (messageText && !messagedFiles.length) {
         sendMessageWithAgent(messageText, currentChatId).catch(err => {
-          console.log('Agent analysis failed (non-critical):', err);
         });
       }
       
       const aiMessage = {
         id: `ai_${Date.now()}`,
         type: 'ai',
-        content: data.answer,  // Use the real AI response, not agent response
+        content: data.answer,  
         timestamp: new Date().toISOString(),
         ...(data.ai_confidence !== null && data.ai_confidence !== undefined && {
           aiConfidence: data.ai_confidence,
@@ -744,7 +739,7 @@ const AIChat = ({ sharedMode = false }) => {
         agentAnalysis: agentAnalysis,
         actionButtons: data.action_buttons || [],
         contentFound: data.content_found || null,
-        // NEW: RAG metadata
+        
         ragUsed: data.rag_used || false,
         ragResultsCount: data.rag_results_count || 0,
         weakConcepts: data.weak_concepts || [],
@@ -752,17 +747,10 @@ const AIChat = ({ sharedMode = false }) => {
         aiProvider: data.ai_provider || 'AI'
       };
 
-      console.log('💬 AI Message created:', {
-        ragUsed: aiMessage.ragUsed,
-        ragResults: aiMessage.ragResultsCount,
-        weakConcepts: aiMessage.weakConcepts,
-        buttons: aiMessage.actionButtons?.length || 0
-      });
-
       setMessages(prev => [...prev, aiMessage]);
       clearAllFiles();
       
-      // Check if the backend used a different chat_id (in case of validation issues)
+      
       const actualChatId = data.chat_id;
       if (actualChatId && actualChatId !== currentChatId) {
         console.warn(`⚠️ Chat ID mismatch detected!`);
@@ -773,10 +761,9 @@ const AIChat = ({ sharedMode = false }) => {
         navigate(`/ai-chat/${actualChatId}`, { replace: true });
         currentChatId = actualChatId;
       } else {
-        console.log('✅ Chat ID consistent:', currentChatId);
       }
       
-      // Auto-rename chat if it's the first message or title is still "New Chat"
+      
       if (isNewChat || messageText.trim()) {
         const currentChat = chatSessions.find(chat => chat.id === currentChatId);
         if (!currentChat || currentChat.title === 'New Chat') {
@@ -784,10 +771,10 @@ const AIChat = ({ sharedMode = false }) => {
         }
       }
       
-      // Reload chat sessions to ensure the list is up to date
+      
       await loadChatSessions();
       
-      // Points are now awarded by backend when saving message
+      
 
     } catch (error) {
       console.error('Error in sendMessage:', error);
@@ -814,21 +801,21 @@ const AIChat = ({ sharedMode = false }) => {
     try {
       const token = localStorage.getItem('token');
       
-      // Generate a title from the first message (take first 50 chars or first sentence)
+      
       let title = userMessage.trim();
       
-      // Take first sentence or first 50 characters
+      
       const firstSentence = title.match(/^[^.!?]+[.!?]/);
       if (firstSentence) {
         title = firstSentence[0];
       }
       
-      // Limit to 50 characters
+      
       if (title.length > 50) {
         title = title.substring(0, 47) + '...';
       }
       
-      // Update the chat title
+      
       const response = await fetch(`${API_URL}/rename_chat_session`, {
         method: 'PUT',
         headers: {
@@ -842,13 +829,14 @@ const AIChat = ({ sharedMode = false }) => {
       });
 
       if (response.ok) {
-        // Update local state
+        
         setChatSessions(prev => prev.map(chat => 
           chat.id === chatId ? { ...chat, title } : chat
         ));
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const confirmDeleteChat = async () => {
@@ -878,15 +866,15 @@ const AIChat = ({ sharedMode = false }) => {
       }
 
       if (response.ok) {
-        // Remove from local state first
+        
         const wasActivChat = activeChatId === chatToDelete.id;
         setChatSessions(prev => prev.filter(chat => chat.id !== chatToDelete.id));
         
-        // Close modal
+        
         setShowDeleteConfirmation(false);
         setChatToDelete(null);
         
-        // Navigate if we deleted the active chat
+        
         if (wasActivChat) {
           const remainingChats = chatSessions.filter(chat => chat.id !== chatToDelete.id);
           if (remainingChats.length > 0) {
@@ -934,7 +922,8 @@ const AIChat = ({ sharedMode = false }) => {
         }
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const submitFeedback = async (messageId) => {
@@ -971,7 +960,8 @@ const AIChat = ({ sharedMode = false }) => {
         ));
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const getConfidenceClass = (confidence) => {
@@ -989,6 +979,29 @@ const AIChat = ({ sharedMode = false }) => {
 
   const handleInputChange = (e) => {
     setInputMessage(e.target.value);
+    
+    
+    if (textareaRef.current) {
+      
+      textareaRef.current.style.height = '24px';
+      
+      
+      const scrollHeight = textareaRef.current.scrollHeight;
+      
+      
+      const maxHeight = 300;
+      
+      
+      const newHeight = Math.min(scrollHeight, maxHeight);
+      textareaRef.current.style.height = newHeight + 'px';
+      
+      
+      if (scrollHeight > maxHeight) {
+        textareaRef.current.style.overflowY = 'auto';
+      } else {
+        textareaRef.current.style.overflowY = 'hidden';
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -1020,10 +1033,10 @@ const AIChat = ({ sharedMode = false }) => {
           });
   };
 
-  // Convert text symbols to Unicode symbols
+  
   const convertSymbolsToUnicode = (text) => {
     const symbolMap = {
-      // Greek letters
+      
       '*alpha*': 'α', '*Alpha*': 'Α',
       '*beta*': 'β', '*Beta*': 'Β',
       '*gamma*': 'γ', '*Gamma*': 'Γ',
@@ -1049,7 +1062,7 @@ const AIChat = ({ sharedMode = false }) => {
       '*psi*': 'ψ', '*Psi*': 'Ψ',
       '*omega*': 'ω', '*Omega*': 'Ω',
       
-      // Math symbols
+      
       '*infinity*': '∞',
       '*sum*': '∑',
       '*Sum*': '∑',
@@ -1089,21 +1102,21 @@ const AIChat = ({ sharedMode = false }) => {
       '*uparrow*': '↑',
       '*downarrow*': '↓',
       
-      // Additional statistical symbols
+      
       '*mean*': 'x̄',
       '*variance*': 'σ²',
       '*stddev*': 'σ',
       '*correlation*': 'ρ',
       '*proportion*': 'p̂',
       
-      // Set theory
+      
       '*emptyset*': '∅',
       '*element*': '∈',
       '*notelement*': '∉',
       '*contains*': '∋',
       '*notcontains*': '∌',
       
-      // Logic symbols
+      
       '*and*': '∧',
       '*or*': '∨',
       '*not*': '¬',
@@ -1111,48 +1124,48 @@ const AIChat = ({ sharedMode = false }) => {
       '*iff*': '⇔',
       '*equivalent*': '≡',
       
-      // Calculus
+      
       '*limit*': 'lim',
       '*derivative*': 'd/dx',
       '*del*': '∂',
       
-      // Inequalities
+      
       '*much_less*': '≪',
       '*much_greater*': '≫',
       '*less_equal*': '≤',
       '*greater_equal*': '≥',
       '*not_equal*': '≠',
       
-      // Arrows
+      
       '*implies_arrow*': '⇒',
       '*iff_arrow*': '⇔',
       '*maps_to*': '↦',
       '*left_right_arrow*': '↔',
       
-      // Fractions and numbers
+      
       '*half*': '½',
       '*third*': '⅓',
       '*quarter*': '¼',
       '*two_thirds*': '⅔',
       '*three_quarters*': '¾',
       
-      // Superscripts (common)
+      
       '*squared*': '²',
       '*cubed*': '³',
       
-      // Physics symbols
+      
       '*planck*': 'ℏ',
       '*angstrom*': 'Å',
       '*ohm*': 'Ω',
       '*micro*': 'μ',
       
-      // Currency
+      
       '*euro*': '€',
       '*pound*': '£',
       '*yen*': '¥',
       '*cent*': '¢',
       
-      // Miscellaneous
+      
       '*check*': '✓',
       '*cross*': '✗',
       '*star*': '★',
@@ -1166,7 +1179,7 @@ const AIChat = ({ sharedMode = false }) => {
       '*registered*': '®',
       '*trademark*': '™',
       
-      // Geometric shapes
+      
       '*circle*': '○',
       '*filled_circle*': '●',
       '*square*': '□',
@@ -1174,23 +1187,23 @@ const AIChat = ({ sharedMode = false }) => {
       '*triangle*': '△',
       '*filled_triangle*': '▲',
       
-      // Chemistry
+      
       '*equilibrium*': '⇌',
       '*reversible*': '⇄',
       
-      // Complex numbers
+      
       '*real*': 'ℝ',
       '*complex*': 'ℂ',
       '*natural*': 'ℕ',
       '*integer*': 'ℤ',
       '*rational*': 'ℚ',
       
-      // Probability
+      
       '*expected*': 'E',
       '*probability*': 'P',
       '*given*': '|',
       
-      // Dots
+      
       '*cdot*': '·',
       '*ldots*': '…',
       '*cdots*': '⋯',
@@ -1200,22 +1213,33 @@ const AIChat = ({ sharedMode = false }) => {
     
     let result = text;
     for (const [symbol, unicode] of Object.entries(symbolMap)) {
-      result = result.replace(new RegExp(symbol.replace(/[*]/g, '\\*'), 'gi'), unicode);
+      try {
+        // Escape ALL regex metacharacters, not just *
+        const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        result = result.replace(new RegExp(escaped, 'gi'), unicode);
+      } catch {
+        result = result.split(symbol).join(unicode);
+      }
     }
     return result;
   };
 
   const renderMarkdown = (text) => {
     if (!text) return '';
-    
-    // Wrap large mathematical symbols in special class
+
+
     const mathSymbols = ['∑', 'Σ', '∫', '∏', 'Π', '∮', '∯', '∰', '⨌'];
     mathSymbols.forEach(symbol => {
-      const regex = new RegExp(symbol, 'g');
-      text = text.replace(regex, `<span class="math-symbol">${symbol}</span>`);
+      try {
+        const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(escaped, 'g');
+        text = text.replace(regex, `<span class="math-symbol">${symbol}</span>`);
+      } catch {
+        text = text.split(symbol).join(`<span class="math-symbol">${symbol}</span>`);
+      }
     });
     
-    // Process line by line to handle headers and lists
+    
     const lines = text.split('\n');
     const processedLines = [];
     let inBulletList = false;
@@ -1226,28 +1250,28 @@ const AIChat = ({ sharedMode = false }) => {
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i].trim();
       
-      // Handle table detection
+      
       if (line.includes('|') && !inTable) {
-        // Start of table
+        
         inTable = true;
         tableRows = [line];
         continue;
       } else if (inTable && line.includes('|')) {
-        // Continue table
+        
         tableRows.push(line);
         continue;
       } else if (inTable && !line.includes('|')) {
-        // End of table
+        
         inTable = false;
         processedLines.push(renderTable(tableRows));
         tableRows = [];
-        // Process current line normally
+        
       }
       
-      // Skip empty lines in tables
+      
       if (inTable) continue;
       
-      // Check for headers FIRST
+      
       if (/^#### (.+)$/.test(line)) {
         if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
         if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
@@ -1277,20 +1301,20 @@ const AIChat = ({ sharedMode = false }) => {
         continue;
       }
       
-      // Bold and italic - Enhanced detection
-      // Use different classes for bold at start of line (heading-like) vs inline
+      
+      
       if (/^\*\*(.+?)\*\*/.test(line)) {
-        // Bold at start of line = main heading bold
+        
         line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-heading">$1</strong>');
       } else {
-        // Bold elsewhere = side/inline bold
+        
         line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-inline">$1</strong>');
       }
       line = line.replace(/__(.+?)__/g, '<strong class="md-bold-inline">$1</strong>');
       line = line.replace(/(?<!\w)\*([^*]+?)\*(?!\w)/g, '<em>$1</em>');
       line = line.replace(/(?<!\w)_([^_]+?)_(?!\w)/g, '<em>$1</em>');
       
-      // Inline code
+      
       line = line.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
       
       // Keywords highlighting (words in ALL CAPS or specific patterns)
@@ -1686,22 +1710,14 @@ const AIChat = ({ sharedMode = false }) => {
   useEffect(() => {
     const numericChatId = chatId ? parseInt(chatId) : null;
     
-    console.log('🔄 useEffect[chatId] triggered');
-    console.log('   URL chatId:', chatId);
-    console.log('   numericChatId:', numericChatId);
-    console.log('   activeChatId state:', activeChatId);
-    console.log('   justSentMessageRef:', justSentMessageRef.current);
-    console.log('   isLoadingRef:', isLoadingRef.current);
     
     if (numericChatId && !isNaN(numericChatId)) {
       // Skip reload if we just sent a message (to preserve messages and action buttons)
       if (justSentMessageRef.current) {
-        console.log('⏭️ Skipping reload - just sent message');
         justSentMessageRef.current = false;
         isLoadingRef.current = false;
         // Update activeChatId if needed but don't reload messages
         if (activeChatId !== numericChatId) {
-          console.log('📍 Updating activeChatId to:', numericChatId);
           setActiveChatId(numericChatId);
         }
         return;
@@ -1709,31 +1725,23 @@ const AIChat = ({ sharedMode = false }) => {
       
       // Only load messages if this is a different chat than what we have active
       if (activeChatId !== numericChatId) {
-        console.log('⚠️ Chat ID mismatch detected');
-        console.log('   Setting activeChatId to:', numericChatId);
         setActiveChatId(numericChatId);
         // Only clear and reload if we're switching to a different existing chat
         if (!isLoadingRef.current) {
-          console.log('📥 Loading messages for chat:', numericChatId);
           isLoadingRef.current = true;
           setMessages([]);
           loadChatMessages(numericChatId);
         } else {
-          console.log('⏭️ Skipping load (already loading)');
         }
       } else {
-        console.log('✅ Chat IDs match, no action needed');
       }
     } else if (chatId === undefined || chatId === null) {
-      console.log('📭 No chatId in URL');
       // Only reset if we're at /ai-chat with no ID (fresh start)
       // Don't reset if we just sent a message (new chat creation)
       if (!justSentMessageRef.current && activeChatId !== null) {
-        console.log('🔄 Resetting chat state');
         setActiveChatId(null);
         setMessages([]);
       } else {
-        console.log('⏭️ Skipping reset (just sent message or no active chat)');
       }
       isLoadingRef.current = false;
       justSentMessageRef.current = false;
@@ -1857,6 +1865,9 @@ const AIChat = ({ sharedMode = false }) => {
           </h1>
           <div className="hub-header-divider"></div>
           <p className="hub-header-subtitle">AI CHAT</p>
+        </div>
+        <div className="hub-header-right">
+          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
         </div>
       </header>
 
@@ -2033,7 +2044,6 @@ const AIChat = ({ sharedMode = false }) => {
           {/* Chat Content */}
           <div 
             className="ac-content"
-            ref={messagesContainerRef}
             onScroll={handleScroll}
           >
             {messages.length === 0 ? (
@@ -2041,63 +2051,53 @@ const AIChat = ({ sharedMode = false }) => {
                 <div className="ac-welcome">
                   <h2>{greeting}</h2>
                 </div>
-                {/* Input Area - Centered with greeting when empty */}
-                <div className="ac-input-area ac-input-centered">
-                  <div className="ac-input-container">
-                    <div 
-                      className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
-                      onDrop={handleDrop}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        accept=".pdf,image/*"
-                        onChange={handleFileInputChange}
-                        style={{ display: 'none' }}
-                      />
-                      
-                      <button
-                        className="ac-input-btn"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={loading}
-                        title="Attach files"
-                      >
-                        {Icons.attach}
-                      </button>
-                      
-                      <textarea
-                        value={inputMessage}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Type your message or drag files here..."
-                        className="ac-textarea"
-                        disabled={loading}
-                        rows="1"
-                        style={{
-                          height: '24px',
-                          minHeight: '24px',
-                          maxHeight: '24px',
-                          overflow: 'hidden',
-                          resize: 'none'
-                        }}
-                      />
-                      
-                      <button
-                        onClick={sendMessage}
-                        disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
-                        className="ac-send-btn"
-                      >
-                        {Icons.send}
-                      </button>
-                    </div>
-                  </div>
+                {/* Input Box - Centered with greeting when empty */}
+                <div 
+                  className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,image/*"
+                    onChange={handleFileInputChange}
+                    style={{ display: 'none' }}
+                  />
+                  
+                  <button
+                    className="ac-input-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading}
+                    title="Attach files"
+                  >
+                    {Icons.attach}
+                  </button>
+                  
+                  <textarea
+                    ref={textareaRef}
+                    value={inputMessage}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type your message or drag files here..."
+                    className="ac-textarea"
+                    disabled={loading}
+                    rows="1"
+                  />
+                  
+                  <button
+                    onClick={sendMessage}
+                    disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
+                    className="ac-send-btn"
+                  >
+                    {Icons.send}
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="ac-messages">
+              <div className="ac-messages" ref={messagesContainerRef} onScroll={handleScroll}>
                 {messages.map((message) => (
                   <div key={message.id} className={`ac-message ${message.type}`}>
                     <div className="ac-message-bubble">
@@ -2164,10 +2164,11 @@ const AIChat = ({ sharedMode = false }) => {
                                     });
                                     if (response.ok) {
                                       const result = await response.json();
-                                      if (result.navigate_to) {
-                                        navigate(result.navigate_to);
+                                      const safePath = safeInternalPath(result.navigate_to);
+                                      if (safePath) {
+                                        navigate(safePath);
                                       } else if (result.content_id) {
-                                        navigate(`/notes/editor/${result.content_id}`);
+                                        navigate(`/notes/editor/${encodeURIComponent(result.content_id)}`);
                                       } else {
                                         navigate('/notes/my-notes');
                                       }
@@ -2193,10 +2194,11 @@ const AIChat = ({ sharedMode = false }) => {
                                     });
                                     if (response.ok) {
                                       const result = await response.json();
-                                      if (result.navigate_to) {
-                                        navigate(result.navigate_to);
+                                      const safePath = safeInternalPath(result.navigate_to);
+                                      if (safePath) {
+                                        navigate(safePath);
                                       } else if (result.content_id) {
-                                        navigate(`/flashcards?set_id=${result.content_id}`);
+                                        navigate(`/flashcards?set_id=${encodeURIComponent(result.content_id)}`);
                                       } else {
                                         navigate('/flashcards');
                                       }
@@ -2209,19 +2211,22 @@ const AIChat = ({ sharedMode = false }) => {
                                   // Navigate to quiz with auto-start params
                                   navigate(`/solo-quiz?autoStart=true&topic=${encodeURIComponent(topic)}&questionCount=10`);
                                 } else if (btn.navigate_to) {
-                                  // Handle regular navigation
-                                  if (btn.navigate_params && Object.keys(btn.navigate_params).length > 0) {
-                                    const params = new URLSearchParams();
-                                    Object.entries(btn.navigate_params).forEach(([key, value]) => {
-                                      if (Array.isArray(value)) {
-                                        params.set(key, JSON.stringify(value));
-                                      } else {
-                                        params.set(key, String(value));
-                                      }
-                                    });
-                                    navigate(`${btn.navigate_to}?${params.toString()}`);
-                                  } else {
-                                    navigate(btn.navigate_to);
+                                  // Validate AI-provided path before navigating
+                                  const safeDest = safeInternalPath(btn.navigate_to);
+                                  if (safeDest) {
+                                    if (btn.navigate_params && Object.keys(btn.navigate_params).length > 0) {
+                                      const params = new URLSearchParams();
+                                      Object.entries(btn.navigate_params).forEach(([key, value]) => {
+                                        if (Array.isArray(value)) {
+                                          params.set(key, JSON.stringify(value));
+                                        } else {
+                                          params.set(key, String(value));
+                                        }
+                                      });
+                                      navigate(`${safeDest}?${params.toString()}`);
+                                    } else {
+                                      navigate(safeDest);
+                                    }
                                   }
                                 }
                               }}
@@ -2287,23 +2292,6 @@ const AIChat = ({ sharedMode = false }) => {
                           </span>
                         )}
                       </div>
-                      
-                      {message.type === 'ai' && !message.userRating && !message.feedbackSubmitted && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto', marginRight: '0' }}>
-                          <span className="ac-rating-label">RATE THIS RESPONSE</span>
-                          <div className="ac-rating-buttons">
-                            {[1, 2, 3, 4, 5].map(rating => (
-                              <button
-                                key={rating}
-                                className="ac-rating-btn"
-                                onClick={() => rateResponse(message.id, rating)}
-                              >
-                                {rating}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     {showFeedbackFor === message.id && (
@@ -2397,60 +2385,50 @@ const AIChat = ({ sharedMode = false }) => {
             </div>
           )}
 
-          {/* Input Area - Only show at bottom when there are messages */}
+          {/* Input Box - Fixed at bottom when there are messages */}
           {messages.length > 0 && (
-            <div className="ac-input-area">
-              <div className="ac-input-container">
-                <div 
-                  className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
-                  onDrop={handleDrop}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept=".pdf,image/*"
-                    onChange={handleFileInputChange}
-                    style={{ display: 'none' }}
-                  />
-                  
-                  <button
-                    className="ac-input-btn"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={loading}
-                    title="Attach files"
-                  >
-                    {Icons.attach}
-                  </button>
-                  
-                  <textarea
-                    value={inputMessage}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type your message or drag files here..."
-                    className="ac-textarea"
-                    disabled={loading}
-                    rows="1"
-                    style={{
-                      height: '24px',
-                      minHeight: '24px',
-                      maxHeight: '24px',
-                      overflow: 'hidden',
-                      resize: 'none'
-                    }}
-                  />
-                  
-                  <button
-                    onClick={sendMessage}
-                    disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
-                    className="ac-send-btn"
-                  >
-                    {Icons.send}
-                  </button>
-                </div>
-              </div>
+            <div 
+              className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,image/*"
+                onChange={handleFileInputChange}
+                style={{ display: 'none' }}
+              />
+              
+              <button
+                className="ac-input-btn"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                title="Attach files"
+              >
+                {Icons.attach}
+              </button>
+              
+              <textarea
+                ref={textareaRef}
+                value={inputMessage}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your message or drag files here..."
+                className="ac-textarea"
+                disabled={loading}
+                rows="1"
+              />
+              
+              <button
+                onClick={sendMessage}
+                disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
+                className="ac-send-btn"
+              >
+                {Icons.send}
+              </button>
             </div>
           )}
         </main>
@@ -2518,6 +2496,14 @@ const AIChat = ({ sharedMode = false }) => {
           </div>
         </>
       )}
+
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
+      />
     </div>
   );
 };

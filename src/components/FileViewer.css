@@ -1,8 +1,7 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
 .file-viewer-overlay *,
 .file-viewer-overlay *::before,
 .file-viewer-overlay *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .file-viewer-overlay {

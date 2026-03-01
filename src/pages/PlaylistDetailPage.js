@@ -3,16 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Plus, Trash2, Check, Users, Clock, BookOpen, X,
   FileText, MessageSquare, ExternalLink, Youtube, FileUp, Link as LinkIcon,
-  ChevronDown, ChevronUp, ChevronRight, Share2, Heart, Lock, Globe, GraduationCap
-, Menu} from 'lucide-react';
+  ChevronDown, ChevronUp, ChevronRight, Share2, Heart, Lock, Globe, GraduationCap,
+  CheckCircle, Sparkles, Zap, GitFork, Menu
+} from 'lucide-react';
 import './PlaylistDetailPage.css';
 import { API_URL } from '../config';
+import PlaylistShareModal from '../components/PlaylistShareModal';
 
 const PlaylistDetailPage = () => {
   const { playlistId } = useParams();
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
-  const userName = localStorage.getItem('username');
   
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,9 +24,23 @@ const PlaylistDetailPage = () => {
   const [expandedItems, setExpandedItems] = useState({});
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [aiLoading, setAiLoading] = useState({ notes: false, flashcards: false });
+  const [aiResult, setAiResult] = useState(null);
+  const [itemFilter, setItemFilter] = useState('all');
+  const [showOnlyRequired, setShowOnlyRequired] = useState(false);
+  const [updatingItem, setUpdatingItem] = useState(null);
+  const [forkLoading, setForkLoading] = useState(false);
 
   useEffect(() => {
     fetchPlaylistDetails();
+  }, [playlistId]);
+
+  useEffect(() => {
+    setItemFilter('all');
+    setShowOnlyRequired(false);
+    setAiResult(null);
+    setShowShareModal(false);
   }, [playlistId]);
 
   const fetchPlaylistDetails = async () => {
@@ -41,7 +56,8 @@ const PlaylistDetailPage = () => {
         setIsFollowing(data.is_following || false);
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoading(false);
     }
   };
@@ -65,8 +81,144 @@ const PlaylistDetailPage = () => {
         }));
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setFollowLoading(false);
+    }
+  };
+
+  const handleForkPlaylist = async () => {
+    if (forkLoading) return;
+    setForkLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/playlists/${playlistId}/fork`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.id) {
+        navigate(`/playlists/${data.id}`);
+      }
+    } catch (error) {
+    // silenced
+  } finally {
+      setForkLoading(false);
+    }
+  };
+
+  const handleGenerateNotes = async () => {
+    if (aiLoading.notes) return;
+    setAiResult(null);
+    setAiLoading(prev => ({ ...prev, notes: true }));
+    try {
+      const response = await fetch(`${API_URL}/import_export/playlist_to_notes`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ playlist_id: playlistId })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        throw new Error(data.error || data.detail || 'Failed to generate notes');
+      }
+      setAiResult({
+        status: 'success',
+        type: 'notes',
+        noteId: data.note_id
+      });
+    } catch (error) {
+      setAiResult({
+        status: 'error',
+        message: error.message || 'Failed to generate notes'
+      });
+    } finally {
+      setAiLoading(prev => ({ ...prev, notes: false }));
+    }
+  };
+
+  const handleGenerateFlashcards = async () => {
+    if (aiLoading.flashcards) return;
+    setAiResult(null);
+    setAiLoading(prev => ({ ...prev, flashcards: true }));
+    try {
+      const response = await fetch(`${API_URL}/import_export/playlist_to_flashcards`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ playlist_id: playlistId, card_count: 15 })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        throw new Error(data.error || data.detail || 'Failed to generate flashcards');
+      }
+      setAiResult({
+        status: 'success',
+        type: 'flashcards'
+      });
+    } catch (error) {
+      setAiResult({
+        status: 'error',
+        message: error.message || 'Failed to generate flashcards'
+      });
+    } finally {
+      setAiLoading(prev => ({ ...prev, flashcards: false }));
+    }
+  };
+
+  const handleAskAI = () => {
+    if (!playlist) return;
+    const itemList = (playlist.items || [])
+      .slice(0, 6)
+      .map((item, idx) => `${idx + 1}. ${item.title || 'Untitled'} (${item.item_type || 'item'})`)
+      .join('\n');
+
+    const message = `I want to study this playlist:
+
+${playlist.title}
+${playlist.description || ''}
+
+Category: ${playlist.category || 'Uncategorized'}
+Difficulty: ${playlist.difficulty_level || 'All levels'}
+Estimated time: ${playlist.estimated_hours || totalHours || 0} hours
+
+Items:
+${itemList}
+
+Help me summarize the key concepts, recommend an order, and suggest a study plan.`; 
+
+    navigate('/ai-chat', { state: { initialMessage: message } });
+  };
+
+  const handleToggleCompletion = async (itemId, completed) => {
+    if (updatingItem) return;
+    setUpdatingItem(itemId);
+    try {
+      const response = await fetch(
+        `${API_URL}/playlists/${playlistId}/progress?item_id=${itemId}&completed=${completed}`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        setPlaylist(prev => ({
+          ...prev,
+          user_progress: {
+            ...(prev.user_progress || {}),
+            completed_items: data.completed_items || [],
+            progress_percentage: data.progress_percentage || 0
+          }
+        }));
+      }
+    } catch (error) {
+    // silenced
+  } finally {
+      setUpdatingItem(null);
     }
   };
 
@@ -86,7 +238,8 @@ const PlaylistDetailPage = () => {
         fetchPlaylistDetails();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const handleDeleteItem = async (itemId) => {
@@ -102,7 +255,8 @@ const PlaylistDetailPage = () => {
         fetchPlaylistDetails();
       }
     } catch (error) {
-          }
+    // silenced
+  }
   };
 
   const toggleItem = (itemId) => {
@@ -128,7 +282,8 @@ const PlaylistDetailPage = () => {
             setShowViewModal(true);
           }
         } catch (error) {
-                  }
+    // silenced
+  }
       }
     } else if (item.url) {
       window.open(item.url, '_blank', 'noopener,noreferrer');
@@ -150,9 +305,15 @@ const PlaylistDetailPage = () => {
     return icons[type] || BookOpen;
   };
 
+  useEffect(() => {
+    if (!aiResult) return;
+    const timer = setTimeout(() => setAiResult(null), 6000);
+    return () => clearTimeout(timer);
+  }, [aiResult]);
+
   if (loading) {
     return (
-      <div className="detail-loading">
+      <div className="detail-loading playlist-detail-page">
         <div className="loading-spinner"></div>
       </div>
     );
@@ -160,7 +321,7 @@ const PlaylistDetailPage = () => {
 
   if (!playlist) {
     return (
-      <div className="detail-error">
+      <div className="detail-error playlist-detail-page">
         <h2>Playlist not found</h2>
         <button onClick={() => navigate('/playlists')} className="error-back-btn">
           <span>Back to Playlists</span>
@@ -171,13 +332,23 @@ const PlaylistDetailPage = () => {
   }
 
   const completedItems = playlist.user_progress?.completed_items || [];
-  const progressPercentage = playlist.items?.length > 0 
-    ? (completedItems.length / playlist.items.length) * 100 
+  const allItems = playlist.items || [];
+  const progressPercentage = allItems.length > 0 
+    ? (completedItems.length / allItems.length) * 100 
     : 0;
+  const itemTypes = Array.from(new Set(allItems.map(item => item.item_type))).filter(Boolean);
+  const filteredItems = allItems.filter(item => {
+    const typeMatch = itemFilter === 'all' || item.item_type === itemFilter;
+    const requiredMatch = !showOnlyRequired || item.is_required;
+    return typeMatch && requiredMatch;
+  });
+  const requiredCount = allItems.filter(item => item.is_required).length;
+  const optionalCount = allItems.length - requiredCount;
+  const totalMinutes = allItems.reduce((sum, item) => sum + (item.duration_minutes || 0), 0);
+  const totalHours = totalMinutes ? Math.round((totalMinutes / 60) * 10) / 10 : playlist.estimated_hours || 0;
 
   return (
-    <div className="playlist-detail-container">
-      {/* Top Bar */}
+    <div className="playlist-detail-container playlist-detail-page">
       <div className="detail-topbar">
         <div className="topbar-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
@@ -192,7 +363,7 @@ const PlaylistDetailPage = () => {
                 <Plus size={18} />
                 <span>Add Item</span>
               </button>
-              <button className="action-button secondary">
+              <button className="action-button secondary" onClick={() => setShowShareModal(true)}>
                 <Share2 size={18} />
               </button>
             </>
@@ -217,7 +388,7 @@ const PlaylistDetailPage = () => {
                   </>
                 )}
               </button>
-              <button className="action-button secondary">
+              <button className="action-button secondary" onClick={() => setShowShareModal(true)}>
                 <Share2 size={18} />
               </button>
             </>
@@ -229,7 +400,6 @@ const PlaylistDetailPage = () => {
         </div>
       </div>
 
-      {/* Header Section */}
       <div className="detail-header">
         <div 
           className="header-banner" 
@@ -248,6 +418,9 @@ const PlaylistDetailPage = () => {
             </span>
             {playlist.category && (
               <span className="meta-badge category">{playlist.category}</span>
+            )}
+            {playlist.difficulty_level && (
+              <span className="meta-badge difficulty">{playlist.difficulty_level}</span>
             )}
           </div>
 
@@ -299,16 +472,138 @@ const PlaylistDetailPage = () => {
         </div>
       </div>
 
-      {/* Items Section */}
+      <div className="detail-panels">
+        <div className="playlist-panel-card studio-card">
+          <div className="playlist-panel-header">
+            <div>
+              <span className="playlist-panel-eyebrow">Learning Studio</span>
+              <h3>AI + Sharing Tools</h3>
+            </div>
+            <Sparkles size={20} />
+          </div>
+
+          <div className="studio-actions">
+            <button
+              className="studio-btn"
+              onClick={handleGenerateNotes}
+              disabled={aiLoading.notes || allItems.length === 0}
+            >
+              {aiLoading.notes ? <span className="detail-btn-spinner" /> : <FileText size={16} />}
+              <span>{aiLoading.notes ? 'Generating Notes' : 'Generate Notes'}</span>
+            </button>
+            <button
+              className="studio-btn"
+              onClick={handleGenerateFlashcards}
+              disabled={aiLoading.flashcards || allItems.length === 0}
+            >
+              {aiLoading.flashcards ? <span className="detail-btn-spinner" /> : <Zap size={16} />}
+              <span>{aiLoading.flashcards ? 'Generating Cards' : 'Generate Flashcards'}</span>
+            </button>
+            <button className="studio-btn secondary" onClick={handleAskAI}>
+              <Sparkles size={16} />
+              <span>Ask AI About This</span>
+            </button>
+            <button className="studio-btn secondary" onClick={() => setShowShareModal(true)}>
+              <Share2 size={16} />
+              <span>Share Playlist</span>
+            </button>
+            {!playlist.is_owner && (
+              <button className="studio-btn secondary" onClick={handleForkPlaylist} disabled={forkLoading}>
+                <GitFork size={16} />
+                <span>{forkLoading ? 'Forking...' : 'Fork Playlist'}</span>
+              </button>
+            )}
+          </div>
+
+          {aiResult && (
+            <div className={`studio-result ${aiResult.status}`}>
+              {aiResult.status === 'success' ? (
+                <>
+                  <span>AI {aiResult.type === 'notes' ? 'notes' : 'flashcards'} are ready.</span>
+                  {aiResult.type === 'notes' && aiResult.noteId && (
+                    <button onClick={() => navigate(`/notes/editor/${aiResult.noteId}`)}>
+                      Open Notes
+                    </button>
+                  )}
+                  {aiResult.type === 'flashcards' && (
+                    <button onClick={() => navigate('/flashcards')}>Open Flashcards</button>
+                  )}
+                </>
+              ) : (
+                <span>{aiResult.message}</span>
+              )}
+              <button className="studio-close" onClick={() => setAiResult(null)}>
+                <X size={14} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="playlist-panel-card insights-card">
+          <div className="playlist-panel-header">
+            <div>
+              <span className="playlist-panel-eyebrow">Playlist Insights</span>
+              <h3>Snapshot</h3>
+            </div>
+          </div>
+          <div className="insights-grid">
+            <div className="insight-tile">
+              <span className="insight-label">Required Items</span>
+              <span className="insight-value">{requiredCount}</span>
+            </div>
+            <div className="insight-tile">
+              <span className="insight-label">Optional Items</span>
+              <span className="insight-value">{optionalCount}</span>
+            </div>
+            <div className="insight-tile">
+              <span className="insight-label">Total Hours</span>
+              <span className="insight-value">{totalHours || 0}h</span>
+            </div>
+            <div className="insight-tile">
+              <span className="insight-label">Completed</span>
+              <span className="insight-value">{completedItems.length}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="detail-body">
         <div className="items-header">
           <h2 className="items-title">Playlist Items</h2>
-          <span className="items-count">{playlist.items?.length || 0} items</span>
+          <span className="items-count">{filteredItems.length} of {allItems.length} items</span>
         </div>
 
-        {playlist.items && playlist.items.length > 0 ? (
+        {allItems.length > 0 && (
+          <div className="items-toolbar">
+            <div className="item-filters">
+              <button
+                className={`filter-pill ${itemFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setItemFilter('all')}
+              >
+                All
+              </button>
+              {itemTypes.map(type => (
+                <button
+                  key={type}
+                  className={`filter-pill ${itemFilter === type ? 'active' : ''}`}
+                  onClick={() => setItemFilter(type)}
+                >
+                  {type.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+            <button
+              className={`required-toggle ${showOnlyRequired ? 'active' : ''}`}
+              onClick={() => setShowOnlyRequired(prev => !prev)}
+            >
+              {showOnlyRequired ? 'Showing Required' : 'Required Only'}
+            </button>
+          </div>
+        )}
+
+        {filteredItems.length > 0 ? (
           <div className="items-container">
-            {playlist.items.map((item, index) => {
+            {filteredItems.map((item, index) => {
               const ItemIcon = getItemIcon(item.item_type);
               const isCompleted = completedItems.includes(item.id);
               const isExpanded = expandedItems[item.id];
@@ -345,6 +640,19 @@ const PlaylistDetailPage = () => {
                     </div>
 
                     <div className="item-actions">
+                      {isFollowing && (
+                        <button
+                          className={`item-btn complete ${isCompleted ? 'active' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleCompletion(item.id, !isCompleted);
+                          }}
+                          disabled={updatingItem === item.id}
+                          title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
+                        >
+                          <CheckCircle size={18} />
+                        </button>
+                      )}
                       {(item.description || item.notes) && (
                         <button
                           className="item-btn"
@@ -393,17 +701,26 @@ const PlaylistDetailPage = () => {
         ) : (
           <div className="empty-items">
             <BookOpen size={56} />
-            <h3>No items yet</h3>
+            <h3>{allItems.length > 0 ? 'No matches' : 'No items yet'}</h3>
             <p>
-              {playlist.is_owner 
-                ? 'Start adding items to your playlist'
-                : 'This playlist is empty'}
+              {allItems.length > 0
+                ? 'Try adjusting your filters'
+                : playlist.is_owner 
+                  ? 'Start adding items to your playlist'
+                  : 'This playlist is empty'}
             </p>
+            {allItems.length > 0 && (
+              <button className="empty-btn" onClick={() => {
+                setItemFilter('all');
+                setShowOnlyRequired(false);
+              }}>
+                Clear Filters
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Modals */}
       {showViewModal && itemContent && (
         <ViewItemModal
           item={viewingItem}
@@ -422,14 +739,19 @@ const PlaylistDetailPage = () => {
           onAdd={handleAddItem}
         />
       )}
+
+      {showShareModal && (
+        <PlaylistShareModal
+          isOpen={showShareModal}
+          playlist={playlist}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 };
 
 export default PlaylistDetailPage;
-
-
-// ==================== VIEW ITEM MODAL ====================
 
 const ViewItemModal = ({ item, content, onClose }) => {
   return (
@@ -473,8 +795,6 @@ const ViewItemModal = ({ item, content, onClose }) => {
     </div>
   );
 };
-
-// ==================== ADD ITEM MODAL - FULL PAGE DESIGN ====================
 
 const AddItemModal = ({ onClose, onAdd }) => {
   const token = localStorage.getItem('token');
@@ -541,7 +861,8 @@ const AddItemModal = ({ onClose, onAdd }) => {
         }
       }
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setLoadingResources(false);
     }
   };
@@ -555,7 +876,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
     };
     setAddedItems(prev => [...prev, newItem]);
     
-    // Reset form
+    
     setFormData({
       title: '',
       url: '',
@@ -579,7 +900,8 @@ const AddItemModal = ({ onClose, onAdd }) => {
       await onAdd(newItem);
       onClose();
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setIsSubmitting(false);
     }
   };
@@ -599,7 +921,8 @@ const AddItemModal = ({ onClose, onAdd }) => {
       }
       onClose();
     } catch (error) {
-          } finally {
+    // silenced
+  } finally {
       setIsSubmitting(false);
     }
   };
@@ -719,7 +1042,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
                         </div>
                       ))}
                       {itemType === 'flashcard' && userFlashcards.map(flashcard => {
-                        // Clean up the title: remove "Flashcards:", "Cerbyl", " : ", and capitalize first letter
+                        
                         let cleanTitle = (flashcard.title || flashcard.name || '')
                           .replace(/^(Flashcards?:\s*|Cerbyl\s*|AI Generated\s*|ai generated\s*)/gi, '')
                           .replace(/^\s*:\s*/, '')

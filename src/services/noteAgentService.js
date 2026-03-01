@@ -1,19 +1,14 @@
-/**
- * Note Agent Service
- * Frontend service for interacting with the Note Agent API
- * Provides AI-powered note generation, improvement, and analysis
- */
 
-import { API_URL, getAuthToken } from '../config';
+
+import { API_URL, getAuthToken } from '../config/api';
 
 class NoteAgentService {
   constructor() {
-    this.baseUrl = `${API_URL}/api/agents/notes`;
+    
+    this.baseUrl = `${API_URL}/agents/notes`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -22,9 +17,7 @@ class NoteAgentService {
     };
   }
 
-  /**
-   * Generic invoke method for the note agent
-   */
+  
   async invoke(action, params) {
     try {
       const response = await fetch(this.baseUrl, {
@@ -53,9 +46,7 @@ class NoteAgentService {
     }
   }
 
-  /**
-   * Generate new note content on a topic
-   */
+  
   async generate(userId, topic, options = {}) {
     return this.invoke('generate', {
       userId,
@@ -67,9 +58,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Improve existing note content
-   */
+  
   async improve(userId, content, options = {}) {
     return this.invoke('improve', {
       userId,
@@ -79,9 +68,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Expand note content with more details
-   */
+  
   async expand(userId, content, options = {}) {
     return this.invoke('expand', {
       userId,
@@ -92,9 +79,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Simplify note content
-   */
+  
   async simplify(userId, content, options = {}) {
     return this.invoke('simplify', {
       userId,
@@ -104,9 +89,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Summarize note content
-   */
+  
   async summarize(userId, content, options = {}) {
     return this.invoke('summarize', {
       userId,
@@ -115,9 +98,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Continue writing from existing content
-   */
+  
   async continue(userId, content, options = {}) {
     return this.invoke('continue', {
       userId,
@@ -127,9 +108,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Explain concepts in the note
-   */
+  
   async explain(userId, content, options = {}) {
     return this.invoke('explain', {
       userId,
@@ -139,9 +118,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Extract key points from content
-   */
+  
   async keyPoints(userId, content, options = {}) {
     return this.invoke('key_points', {
       userId,
@@ -150,9 +127,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Check grammar and spelling
-   */
+  
   async grammar(userId, content, options = {}) {
     return this.invoke('grammar', {
       userId,
@@ -161,9 +136,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Change tone of the content
-   */
+  
   async changeTone(userId, content, tone, options = {}) {
     return this.invoke('tone_change', {
       userId,
@@ -173,9 +146,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Generate outline from topic or content
-   */
+  
   async outline(userId, topicOrContent, options = {}) {
     return this.invoke('outline', {
       userId,
@@ -185,9 +156,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Organize and structure content
-   */
+  
   async organize(userId, content, options = {}) {
     return this.invoke('organize', {
       userId,
@@ -196,9 +165,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Analyze note content
-   */
+  
   async analyze(userId, content, options = {}) {
     return this.invoke('analyze', {
       userId,
@@ -207,9 +174,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Get suggestions for improving content
-   */
+  
   async suggest(userId, content, options = {}) {
     return this.invoke('suggest', {
       userId,
@@ -218,9 +183,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Explain code snippets in notes
-   */
+  
   async explainCode(userId, content, options = {}) {
     return this.invoke('code_explain', {
       userId,
@@ -229,9 +192,7 @@ class NoteAgentService {
     });
   }
 
-  /**
-   * Get available tones
-   */
+  
   async getTones() {
     try {
       const response = await fetch(`${this.baseUrl}/tones`, {
@@ -246,7 +207,7 @@ class NoteAgentService {
       return await response.json();
     } catch (error) {
       console.error('Get tones error:', error);
-      // Return default tones if API fails
+      
       return {
         tones: [
           { name: 'professional', description: 'Formal and business-like' },
@@ -259,9 +220,7 @@ class NoteAgentService {
     }
   }
 
-  /**
-   * Get available depth levels
-   */
+  
   async getDepthLevels() {
     try {
       const response = await fetch(`${this.baseUrl}/depths`, {
@@ -276,7 +235,7 @@ class NoteAgentService {
       return await response.json();
     } catch (error) {
       console.error('Get depth levels error:', error);
-      // Return default depths if API fails
+      
       return {
         depths: [
           { name: 'basic', description: 'Simple overview' },

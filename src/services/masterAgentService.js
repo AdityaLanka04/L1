@@ -1,8 +1,4 @@
-/**
- * Master Agent Service
- * Frontend service for interacting with the Master Agent API
- * Provides comprehensive user learning insights, recommendations, and analytics
- */
+
 
 import { API_URL, getAuthToken } from '../config';
 
@@ -11,9 +7,7 @@ class MasterAgentService {
     this.baseUrl = `${API_URL}/agents/master`;
   }
 
-  /**
-   * Get headers with authentication
-   */
+  
   getHeaders() {
     const token = getAuthToken();
     return {
@@ -22,9 +16,7 @@ class MasterAgentService {
     };
   }
 
-  /**
-   * Invoke the master agent with a specific action
-   */
+  
   async invoke(userId, action = 'get_full_context', sessionId = null) {
     try {
       const response = await fetch(this.baseUrl, {
@@ -48,9 +40,7 @@ class MasterAgentService {
     }
   }
 
-  /**
-   * Get comprehensive user learning profile
-   */
+  
   async getUserProfile(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/profile/${userId}`, {
@@ -69,9 +59,7 @@ class MasterAgentService {
     }
   }
 
-  /**
-   * Get user's weak topics that need attention
-   */
+  
   async getWeakTopics(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/weak-topics/${userId}`, {
@@ -90,9 +78,7 @@ class MasterAgentService {
     }
   }
 
-  /**
-   * Get user's strong topics
-   */
+  
   async getStrongTopics(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/strong-topics/${userId}`, {
@@ -111,9 +97,7 @@ class MasterAgentService {
     }
   }
 
-  /**
-   * Get personalized learning insights
-   */
+  
   async getLearningInsights(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/insights/${userId}`, {
@@ -132,9 +116,7 @@ class MasterAgentService {
     }
   }
 
-  /**
-   * Get personalized study recommendations
-   */
+  
   async getRecommendations(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/recommendations/${userId}`, {
@@ -153,9 +135,7 @@ class MasterAgentService {
     }
   }
 
-  /**
-   * Get full learning dashboard data
-   */
+  
   async getDashboard(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/dashboard/${userId}`, {
@@ -174,9 +154,7 @@ class MasterAgentService {
     }
   }
 
-  /**
-   * Get all learning data in one call (convenience method)
-   */
+  
   async getComprehensiveLearningData(userId) {
     try {
       const [profile, weakTopics, strongTopics, insights, recommendations] = await Promise.all([

@@ -3,27 +3,30 @@ import { useNavigate, useParams } from "react-router-dom";
 import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "./NotesRedesign.css";
-import "./NotesRedesignConvert.css";
 import "./NotesRedesignSmartFolders.css";
 import "./NotesRedesignChatImport.css";
+import "./NotesRedesignConvert.css";
 import CustomPopup from "./CustomPopup";
 import { useTheme } from '../contexts/ThemeContext';
 import { 
   Plus, FileText, Upload, Search, Star, Trash2, 
   FolderPlus, Folder, Download, FileDown, Printer, 
   Eye, Edit3, Maximize2, Minimize2, Menu, X, 
-  ChevronDown, ChevronRight, Check, Sparkles, Mic, MicOff, 
+  ChevronRight, Check, Sparkles, Mic, MicOff, 
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
-  ArrowLeft, Tag, Layout, Filter, Palette, Command, Zap
+  ArrowLeft, Layout, Filter, Palette, Command, Zap
 } from 'lucide-react';
 import { API_URL } from '../config';
+import { sanitizeHtml, escapeHtml } from '../utils/sanitize';
 import gamificationService from '../services/gamificationService';
 import noteAgentService from '../services/noteAgentService';
 import ImportExportModal from '../components/ImportExportModal';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
-// Enhanced Notes Features
 import SimpleBlockEditor from '../components/SimpleBlockEditor';
 import AdvancedSearch from '../components/AdvancedSearch';
 import Templates from '../components/Templates';
@@ -35,7 +38,24 @@ import SmartFolders from '../components/SmartFolders';
 import KeyboardShortcuts from '../components/KeyboardShortcuts';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 
-// Utility functions
+const encodeBlockPayload = (value) => {
+  if (!value) return '';
+  try {
+    return btoa(unescape(encodeURIComponent(value)));
+  } catch (e) {
+    return '';
+  }
+};
+
+const decodeBlockPayload = (value) => {
+  if (!value) return '';
+  try {
+    return decodeURIComponent(escape(atob(value)));
+  } catch (e) {
+    return '';
+  }
+};
+
 const htmlToBlocks = (html) => {
   if (!html || html.trim() === '') {
     return [{
@@ -50,7 +70,7 @@ const htmlToBlocks = (html) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
   
-  // Process each element in the body
+  
   const processNode = (node) => {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent.trim();
@@ -67,6 +87,21 @@ const htmlToBlocks = (html) => {
     
     if (node.nodeType === Node.ELEMENT_NODE) {
       const tagName = node.tagName.toLowerCase();
+      const dataBlockType = node.getAttribute('data-block-type');
+      if (dataBlockType === 'canvas') {
+        const canvasData = decodeBlockPayload(node.getAttribute('data-canvas') || '');
+        const canvasPreview = decodeBlockPayload(node.getAttribute('data-thumb') || '');
+        blocks.push({
+          id: Date.now() + Math.random(),
+          type: 'canvas',
+          content: '',
+          properties: {
+            canvasData,
+            canvasPreview
+          }
+        });
+        return;
+      }
       const content = node.innerHTML || node.textContent || '';
       const textContent = node.textContent.trim();
       
@@ -98,7 +133,7 @@ const htmlToBlocks = (html) => {
           });
           break;
         case 'ul':
-          // Process each list item as a separate bullet block
+          
           Array.from(node.querySelectorAll('li')).forEach(li => {
             blocks.push({
               id: Date.now() + Math.random(),
@@ -109,7 +144,7 @@ const htmlToBlocks = (html) => {
           });
           break;
         case 'ol':
-          // Process each list item as a separate numbered block
+          
           Array.from(node.querySelectorAll('li')).forEach(li => {
             blocks.push({
               id: Date.now() + Math.random(),
@@ -157,11 +192,11 @@ const htmlToBlocks = (html) => {
         case 'div':
         case 'section':
         case 'article':
-          // Process children
+          
           Array.from(node.childNodes).forEach(processNode);
           break;
         default:
-          // For other elements, create a paragraph with the content
+          
           if (textContent && !['ul', 'ol', 'li'].includes(tagName)) {
             blocks.push({
               id: Date.now() + Math.random(),
@@ -174,10 +209,10 @@ const htmlToBlocks = (html) => {
     }
   };
   
-  // Process all body children
+  
   Array.from(doc.body.childNodes).forEach(processNode);
   
-  // If no blocks were created, create a default paragraph
+  
   if (blocks.length === 0) {
     blocks.push({
       id: Date.now(),
@@ -221,22 +256,20 @@ const blocksToHtml = (blocks) => {
       case 'success':
       case 'tip':
         return `<div class="callout ${block.type}">${content}</div>`;
+      case 'canvas':
+        return `<div class="canvas-block" data-block-type="canvas" data-canvas="${encodeBlockPayload(block.properties?.canvasData || '')}" data-thumb="${encodeBlockPayload(block.properties?.canvasPreview || '')}"></div>`;
       default:
         return `<p>${content}</p>`;
     }
   }).join('\n');
 };
 
-// Stub components
 const QuickSwitcher = null;
 const FormattingToolbar = ({ onAIAssist, showAI, onInsertBlock }) => null;
 const SlashMenu = ({ isOpen, position, onSelect, onClose }) => null;
 const BacklinksPanel = ({ backlinks, onNoteClick }) => null;
-const TagsPanel = ({ tags, selectedTag, onTagSelect, onClose }) => null;
 
-// Stub hooks
 const useQuickSwitcher = (notes, folders, selectNote) => ({ QuickSwitcherComponent: null });
-const useTags = (notes) => ({ allTags: [] });
 const useBacklinks = (selectedNote, notes) => [];
 const useSlashCommands = (quillRef) => ({ 
   showSlashMenu: false, 
@@ -245,12 +278,8 @@ const useSlashCommands = (quillRef) => ({
   insertBlock: () => {} 
 });
 
-// Utility functions
 const parsePageLinks = (content) => [];
-const parseTags = (content) => [];
-const filterNotesByTag = (notes, tag) => notes;
 
-// Remove problematic imports and register them conditionally
 let QuillTableUI;
 try {
   QuillTableUI = require('quill-table-ui');
@@ -258,6 +287,7 @@ try {
     Quill.register('modules/tableUI', QuillTableUI.default);
   }
 } catch (error) {
+    // silenced
   }
 
 let katex;
@@ -267,39 +297,47 @@ try {
     window.katex = katex;
   }
 } catch (error) {
+    // silenced
   }
 
 const NotesRedesign = ({ sharedMode = false }) => {
   const { noteId } = useParams();
   const navigate = useNavigate();
   
-  // Shared content state
+  
   const [sharedNoteData, setSharedNoteData] = useState(null);
   const [isSharedContent, setIsSharedContent] = useState(sharedMode);
   const [canEdit, setCanEdit] = useState(false);
 
-  // User state
+  
   const [userName, setUserName] = useState("");
   const [userProfile, setUserProfile] = useState(null);
+
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
   
-  // Notes state
+  
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [canvasData, setCanvasData] = useState("");
+  const [canvasBlockId, setCanvasBlockId] = useState(null);
+  const [pendingFocusBlockId, setPendingFocusBlockId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const savedSelectionRef = useRef(null);
   
-  // UI state
+  
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
-  const [titleSectionCollapsed, setTitleSectionCollapsed] = useState(false);
+  const titleSectionCollapsed = false;
   const [viewMode, setViewMode] = useState("edit");
   
-  // AI state
+  
   const [showAIDropdown, setShowAIDropdown] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiDropdownPosition, setAiDropdownPosition] = useState({ top: 0, left: 0 });
@@ -312,41 +350,39 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [aiAssistTone, setAiAssistTone] = useState("professional");
   const [selectedText, setSelectedText] = useState("");
 
-  // AI Suggestion state (for approve/reject workflow)
-  const [aiSuggestion, setAiSuggestion] = useState(null); // { original, suggested, range, action }
+  
+  const [aiSuggestion, setAiSuggestion] = useState(null); 
   const [showAISuggestionModal, setShowAISuggestionModal] = useState(false);
 
-  // Folder state
+  
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderColor, setNewFolderColor] = useState("#D7B38C");
   
-  // Trash state
+  
   const [showTrash, setShowTrash] = useState(false);
   const [trashedNotes, setTrashedNotes] = useState([]);
   
-  // Other state
+  
   const [showFavorites, setShowFavorites] = useState(false);
   const [customFont, setCustomFont] = useState("Inter");
   const [draggedNote, setDraggedNote] = useState(null);
   const [dragOverFolder, setDragOverFolder] = useState(null);
 
-  // Font options
+  
   const FONTS = [
     'Inter', 'Arial', 'Georgia', 'Times New Roman', 'Courier New', 
     'Monaco', 'Roboto', 'Open Sans', 'Lato', 'Montserrat'
   ];
   
-  // Enhanced features state
-  const [showTagsPanel, setShowTagsPanel] = useState(false);
-  const [selectedTagFilter, setSelectedTagFilter] = useState(null);
+  
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState(null);
   
-  // Block editor state
+  
   const [noteBlocks, setNoteBlocks] = useState([{
     id: Date.now(),
     type: 'paragraph',
@@ -358,57 +394,59 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [selectedTextContent, setSelectedTextContent] = useState('');
   const [selectedBlockId, setSelectedBlockId] = useState(null);
   
-  // New features state
+  
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [showRecentlyViewed, setShowRecentlyViewed] = useState(false);
   const [pageProperties, setPageProperties] = useState([
     { id: '1', name: 'Created', type: 'date', value: new Date().toISOString().split('T')[0] },
     { id: '2', name: 'Status', type: 'text', value: 'Draft' },
-    { id: '3', name: 'Tags', type: 'tags', value: '' },
   ]);
   const [showPageProperties, setShowPageProperties] = useState(false);
   const [editorDarkMode, setEditorDarkMode] = useState(false);
   
-  // New features state
+  
   const [showCanvasMode, setShowCanvasMode] = useState(false);
   const [showSmartFolders, setShowSmartFolders] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
-  // Chat import state
+  
   const [showChatImport, setShowChatImport] = useState(false);
   const [chatSessions, setChatSessions] = useState([]);
   const [selectedSessions, setSelectedSessions] = useState([]);
+  const [showNavigateDialog, setShowNavigateDialog] = useState(false);
+  const [newNoteId, setNewNoteId] = useState(null);
+  const [newNoteTitle, setNewNoteTitle] = useState('');
   const [importMode, setImportMode] = useState("summary");
   const [importing, setImporting] = useState(false);
   
-  // Import/Export state
+  
   const [showImportExport, setShowImportExport] = useState(false);
   
-  // Debug: Log when showChatImport changes
+  
   useEffect(() => {
           }, [showChatImport, chatSessions]);
 
-  // Voice state
+  
   const [isRecording, setIsRecording] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [processingVoice, setProcessingVoice] = useState(false);
   
-  // Refs
+  
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const quillRef = useRef(null);
   const saveTimeout = useRef(null);
   const aiInputRef = useRef(null);
 
-  // Popup state
+  
   const [popup, setPopup] = useState({ isOpen: false, title: "", message: "" });
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
   const closePopup = () => setPopup({ isOpen: false, title: "", message: "" });
   
   const { selectedTheme } = useTheme();
   
-  // Theme effects
+  
   useEffect(() => {
           }, [selectedTheme]);
 
@@ -423,7 +461,24 @@ const NotesRedesign = ({ sharedMode = false }) => {
           }
   }, [selectedTheme]);
 
-  // Font registration
+  useEffect(() => {
+    if (!pendingFocusBlockId) return;
+    const timer = setTimeout(() => setPendingFocusBlockId(null), 300);
+    return () => clearTimeout(timer);
+  }, [pendingFocusBlockId]);
+
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
+  };
+
+  
   useEffect(() => {
     if (typeof Quill !== 'undefined') {
       try {
@@ -454,11 +509,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
         ];
         Quill.register(Font, true);
       } catch (error) {
-              }
+    // silenced
+  }
     }
   }, []);
 
-  // Load shared note function
+  
   const loadSharedNote = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -478,7 +534,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setIsSharedContent(true);
         setCanEdit(data.permission === 'edit' || data.is_owner);
         
-        // Set up the note with shared data
+        
         setSelectedNote({
           id: data.content_id,
           title: data.title,
@@ -496,7 +552,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
-  // Initial load effect
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
@@ -520,25 +576,27 @@ const NotesRedesign = ({ sharedMode = false }) => {
         try {
           setUserProfile(JSON.parse(profile));
         } catch (error) {
-                  }
+    // silenced
+  }
       }
     }
   }, [navigate, sharedMode, noteId]);
 
-  // Load notes and folders effect
+  
   useEffect(() => {
     if (userName && !isSharedContent) {
       loadNotes();
       loadFolders();
       loadChatSessions();
       
-      // Load recently viewed from localStorage
+      
       const stored = localStorage.getItem(`recentlyViewed_${userName}`);
       if (stored) {
         try {
           setRecentlyViewed(JSON.parse(stored));
         } catch (e) {
-                  }
+    // silenced
+  }
       }
     }
   }, [userName, isSharedContent]);
@@ -554,7 +612,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const activeNotes = data.filter(n => !n.is_deleted);
         setNotes(activeNotes);
         
-        // If noteId is provided in URL, select that note
+        
         if (noteId && !sharedMode) {
           const specificNote = activeNotes.find(n => n.id === parseInt(noteId));
           if (specificNote) {
@@ -674,7 +732,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setGeneratingAI(true);
 
     try {
-      // Use the note agent service
+      
       const result = await noteAgentService.invoke(action, {
         userId: userName,
         content: selectedText,
@@ -686,7 +744,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       const resultContent = result.content || result.response;
 
-      // Show suggestion modal instead of directly applying
+      
       setAiSuggestion({
         original: selectedText,
         suggested: resultContent,
@@ -704,18 +762,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
-  // Apply AI suggestion
+  
   const applyAISuggestion = () => {
     if (!aiSuggestion) return;
 
-    // Handle block editor case
+    
     if (aiSuggestion.isBlockEditor) {
       let updatedBlocks;
       const blockIndex = noteBlocks.findIndex(b => String(b.id) === String(aiSuggestion.blockId));
       
       if (blockIndex !== -1 && aiSuggestion.blockId) {
         if (aiSuggestion.action === 'continue') {
-          // Continue: append the result to the existing content
+          
           updatedBlocks = noteBlocks.map((block, idx) => {
             if (idx === blockIndex) {
               return {
@@ -726,7 +784,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             return block;
           });
         } else if (aiSuggestion.action === 'generate') {
-          // Generate: add new block at the end
+          
           const newBlock = {
             id: Date.now() + Math.random(),
             type: 'paragraph',
@@ -735,7 +793,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
           };
           updatedBlocks = [...noteBlocks, newBlock];
         } else {
-          // Improve, simplify, expand, summarize, fix_grammar, translate: replace the block content
+          
           updatedBlocks = noteBlocks.map((block, idx) => {
             if (idx === blockIndex) {
               return {
@@ -747,7 +805,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
           });
         }
       } else {
-        // No selected block - add new block at the end
+        
         const newBlock = {
           id: Date.now() + Math.random(),
           type: 'paragraph',
@@ -757,15 +815,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
         updatedBlocks = [...noteBlocks, newBlock];
       }
       
-      // Update state
+      
       setNoteBlocks(updatedBlocks);
       
-      // Trigger save
+      
       setTimeout(() => {
         handleBlocksChange(updatedBlocks);
       }, 100);
     } else {
-      // Handle Quill editor case
+      
       const quill = quillRef.current?.getEditor();
       if (quill && aiSuggestion.range) {
         quill.deleteText(aiSuggestion.range.index, aiSuggestion.range.length);
@@ -783,7 +841,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setSelectedBlockId(null);
   };
 
-  // Reject AI suggestion
+  
   const rejectAISuggestion = () => {
     setAiSuggestion(null);
     setShowAISuggestionModal(false);
@@ -792,7 +850,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setSelectedBlockId(null);
   };
 
-  // Explain text without modifying (new feature)
+  
   const explainTextOnly = async () => {
     if (!selectedText || !selectedText.trim()) {
       showPopup("No Text Selected", "Please select text first");
@@ -812,11 +870,11 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       const explanation = result.content || result.response;
       
-      // Show explanation in a popup without modifying the note
+      
       setAiSuggestion({
         original: selectedText,
         suggested: explanation,
-        range: null, // null range means explanation only, no replacement
+        range: null, 
         action: 'explain'
       });
       setShowAISuggestionModal(true);
@@ -836,7 +894,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setGeneratingAI(true);
 
     try {
-      // Map old action types to new agent actions
+      
       const actionMap = {
         'explain': 'explain',
         'key_points': 'key_points',
@@ -847,7 +905,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
       const agentAction = actionMap[actionType] || 'generate';
       
-      // Use the note agent service
+      
       const result = await noteAgentService.invoke(agentAction, {
         userId: userName,
         content: selectedText,
@@ -889,7 +947,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setFolders(data.folders || []);
       }
     } catch (e) {
-          }
+    // silenced
+  }
   };
 
   const loadTrash = async () => {
@@ -903,7 +962,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setTrashedNotes(data.trash || []);
       }
     } catch (e) {
-          }
+    // silenced
+  }
   };
 
   const loadChatSessions = async () => {
@@ -917,7 +977,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setChatSessions(data.sessions || []);
       }
     } catch (e) {
-          }
+    // silenced
+  }
   };
 
   const createFolder = async () => {
@@ -1123,7 +1184,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         showPopup("Success", newFavoriteStatus ? "Added to favorites" : "Removed from favorites");
       }
     } catch (e) {
-          }
+    // silenced
+  }
   };
 
   const moveToTrash = async (noteId) => {
@@ -1208,7 +1270,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
-  // Word count effect
+  
   useEffect(() => {
     if (noteContent) {
       const text = noteContent.replace(/<[^>]+>/g, "").trim();
@@ -1260,7 +1322,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const folderName = folders.find(f => f.id === folderId)?.name;
         showPopup("Created", folderName ? `New note created in ${folderName}` : "New note created");
         
-        // Track gamification activity
+        
         gamificationService.trackNoteCreated(userName);
       } else {
         throw new Error(`Failed to create note: ${res.status}`);
@@ -1300,16 +1362,42 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
+  const isLikelyHtml = (content) => {
+    if (!content) return false;
+    if (!/<[a-z][\s\S]*>/i.test(content)) return false;
+    return /<\s*(p|h1|h2|h3|h4|h5|h6|ul|ol|li|pre|code|blockquote|div|section|article|br|span|img|a)\b/i.test(content);
+  };
+
+  const isLikelyMarkdown = (content) => {
+    if (!content || isLikelyHtml(content)) return false;
+    return (
+      /(^|\n)\s{0,3}(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s+|```)/.test(content) ||
+      /(\*\*|__)(.*?)\1/.test(content) ||
+      /`[^`]+`/.test(content)
+    );
+  };
+
+  const normalizeNoteContent = (content) => {
+    if (!content) return '';
+    const text = String(content);
+    if (isLikelyHtml(text)) return text;
+    if (isLikelyMarkdown(text)) return convertMarkdownToHTML(text);
+    return text;
+  };
+
   const selectNote = (n) => {
+    const normalizedContent = normalizeNoteContent(n.content || '');
     setSelectedNote(n);
     setNoteTitle(n.title);
-    setNoteContent(n.content);
+    setNoteContent(normalizedContent);
     setCanvasData(n.canvas_data || "");
+    setCanvasBlockId(null);
+    setPendingFocusBlockId(null);
     
-    // Convert HTML content to blocks
-    let blocks = htmlToBlocks(n.content);
     
-    // Ensure we always have at least one block
+    let blocks = htmlToBlocks(normalizedContent);
+    
+    
     if (!blocks || blocks.length === 0) {
       blocks = [{
         id: Date.now(),
@@ -1322,10 +1410,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setNoteBlocks(blocks);
     setViewMode("edit");
     
-    // Track recently viewed
+    
     trackRecentlyViewed(n);
     
-    // Load note properties if they exist
+    
     if (n.properties) {
       try {
         const props = typeof n.properties === 'string' ? JSON.parse(n.properties) : n.properties;
@@ -1333,11 +1421,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
           setPageProperties(props);
         }
       } catch (e) {
-              }
+    // silenced
+  }
     }
   };
   
-  // Track recently viewed notes
+  
   const trackRecentlyViewed = (note) => {
     const viewedItem = {
       id: note.id,
@@ -1345,7 +1434,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       viewedAt: new Date().toISOString()
     };
     
-    // Add to beginning, remove duplicates, keep last 10
+    
     const updated = [
       viewedItem,
       ...recentlyViewed.filter(item => item.id !== note.id)
@@ -1355,19 +1444,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
     localStorage.setItem(`recentlyViewed_${userName}`, JSON.stringify(updated));
   };
   
-  // Enhanced features handlers
-  const handleTagSelect = (tag) => {
-    setSelectedTagFilter(tag);
-    setShowFavorites(false);
-    setShowTrash(false);
-    setSelectedFolder(null);
-  };
-
-  const handleClearTagFilter = () => {
-    setSelectedTagFilter(null);
-  };
-
-  // Keyboard shortcuts handlers
+  
+  
   const keyboardHandlers = {
     onSave: () => selectedNote && autoSave(),
     onPrint: () => exportAsPDF(),
@@ -1406,32 +1484,80 @@ const NotesRedesign = ({ sharedMode = false }) => {
       if (editor) editor.scrollTo({ top: editor.scrollHeight, behavior: 'smooth' });
     },
     onToggleSidebar: () => setSidebarOpen(!sidebarOpen),
-    onToggleFocusMode: () => setTitleSectionCollapsed(!titleSectionCollapsed),
     onGoToDashboard: () => navigate('/dashboard'),
     onGoToAIChat: () => navigate('/ai-chat'),
     onGoToNotes: () => navigate('/notes/dashboard'),
-    onFullscreen: () => setTitleSectionCollapsed(!titleSectionCollapsed),
+    onFullscreen: () => setIsFullscreen(!isFullscreen),
     onPreviewMode: () => setViewMode('preview'),
     onEditMode: () => setViewMode('edit'),
-    onToggleDarkEditor: () => setEditorDarkMode(true),
-    onToggleLightEditor: () => setEditorDarkMode(false),
     onToggleFavorite: () => selectedNote && toggleFavorite(selectedNote.id),
     onDelete: () => selectedNote && moveToTrash(selectedNote.id),
   };
 
-  // Use keyboard shortcuts hook
+  
   useKeyboardShortcuts(keyboardHandlers);
 
-  // Block editor handlers
+  
   const handleBlocksChange = (newBlocks) => {
     setNoteBlocks(newBlocks);
-    // Convert blocks to HTML for saving
+    
     const html = blocksToHtml(newBlocks);
     setNoteContent(html);
   };
 
+  const saveEditorSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    const element = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
+    if (element && element.closest('.block-editor-container')) {
+      savedSelectionRef.current = range;
+    }
+  }, []);
+
+  const restoreEditorSelection = useCallback(() => {
+    const range = savedSelectionRef.current;
+    if (!range) return;
+    const selection = window.getSelection();
+    if (!selection) return;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }, []);
+
+  const applyEditorCommand = useCallback((command, value = null) => {
+    restoreEditorSelection();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    const element = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
+    const editable = element?.closest?.('[contenteditable="true"]');
+    if (editable) editable.focus();
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand(command, false, value);
+    saveEditorSelection();
+  }, [restoreEditorSelection, saveEditorSelection]);
+
+  useEffect(() => {
+    const handleSelectionChange = () => saveEditorSelection();
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, [saveEditorSelection]);
+
+  const handleOpenCanvasBlock = (blockId) => {
+    if (viewMode === 'preview' || (isSharedContent && !canEdit)) return;
+    setCanvasBlockId(blockId);
+    setShowCanvasMode(true);
+  };
+
+  const getCanvasBlockContent = (blockId) => {
+    const block = noteBlocks.find((b) => String(b.id) === String(blockId));
+    return block?.properties?.canvasData || '';
+  };
+
   const handleInsertBlock = (blockType) => {
-    // Add a new block of the specified type at the end
+    
     const newBlock = {
       id: Date.now() + Math.random(),
       type: blockType,
@@ -1444,25 +1570,39 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const handleTemplateSelect = (template) => {
+    
+    const hasExistingContent = noteContent && noteContent.trim().length > 0;
+    
+    if (hasExistingContent) {
+      const confirmOverwrite = window.confirm(
+        'This will replace your current note content with the template. Do you want to continue?\n\n' +
+        'Tip: You can create a new note first, then apply the template to avoid losing your work.'
+      );
+      
+      if (!confirmOverwrite) {
+        setShowTemplates(false);
+        return;
+      }
+    }
+    
     setNoteTitle(template.title);
     
-    // If template already has blocks, use them
+    
     if (template.blocks && template.blocks.length > 0) {
       setNoteBlocks(template.blocks);
-      // Convert blocks to HTML for saving
+      
       const html = blocksToHtml(template.blocks);
       setNoteContent(html);
     } else {
-      // Fallback to HTML conversion
+      
       const blocks = htmlToBlocks(template.content);
       setNoteBlocks(blocks);
       setNoteContent(template.content);
     }
   };
 
-  // Enhanced features hooks (must be after selectNote is defined)
+  
   const { QuickSwitcherComponent } = useQuickSwitcher(notes, folders, selectNote);
-  const { allTags } = useTags(notes);
   const backlinks = useBacklinks(selectedNote, notes);
   const { 
     showSlashMenu, 
@@ -1474,7 +1614,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const autoSave = useCallback(async () => {
     if (!selectedNote) return;
     
-    // For shared notes, use the update_shared_note endpoint
+    
     if (isSharedContent) {
       if (!canEdit) return;
       
@@ -1506,7 +1646,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 showPopup("Error", "Failed to save changes");
       }
     } else {
-      // Normal save logic for own notes
+      
       const noteStillExists = notes.find(n => n.id === selectedNote.id);
       if (!noteStillExists) return;
       
@@ -1559,7 +1699,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   }, [selectedNote, noteTitle, noteContent, notes, isSharedContent, canEdit]);
 
-  // Auto-save effect
+  
   useEffect(() => {
     if (saveTimeout.current) {
       clearTimeout(saveTimeout.current);
@@ -1582,7 +1722,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     };
   }, [noteContent, noteTitle, canvasData, selectedNote, autoSave, isSharedContent, canEdit]);
 
-  // Keyboard shortcut for save
+  
   useEffect(() => {
     const handleKey = (e) => {
       if (e.ctrlKey && e.key === "s") {
@@ -1594,7 +1734,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     return () => window.removeEventListener("keydown", handleKey);
   }, [autoSave]);
 
-  // Keyboard shortcut for fullscreen
+  
   useEffect(() => {
     const handleFullscreenKey = (e) => {
       if (e.key === "F11") {
@@ -1608,7 +1748,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     return () => window.removeEventListener("keydown", handleFullscreenKey);
   }, [isFullscreen]);
 
-  // Handle page link clicks
+  
   useEffect(() => {
     const handlePageLinkClick = (e) => {
       if (e.target.classList.contains('page-link')) {
@@ -1625,24 +1765,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   }, [notes, quillRef]);
 
-  // Handle tag clicks
-  useEffect(() => {
-    const handleTagClick = (e) => {
-      if (e.target.classList.contains('tag')) {
-        const tag = e.target.dataset.tag;
-        handleTagSelect(tag);
-        setShowTagsPanel(true);
-      }
-    };
-
-    const editor = quillRef.current?.getEditor();
-    if (editor && editor.root) {
-      editor.root.addEventListener('click', handleTagClick);
-      return () => editor.root.removeEventListener('click', handleTagClick);
-    }
-  }, [quillRef]);
-
-  // Handle text selection for AI assistant in block editor
+  
   useEffect(() => {
     if (isSharedContent && !canEdit) return;
 
@@ -1654,11 +1777,11 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
 
-        // Find the block that contains the selection
+        
         let blockId = null;
         let node = range.startContainer;
         while (node && node !== document.body) {
-          if (node.nodeType === 1) { // Element node
+          if (node.nodeType === 1) { 
             const blockWrapper = node.closest('[data-block-id]');
             if (blockWrapper) {
               blockId = blockWrapper.getAttribute('data-block-id');
@@ -1728,7 +1851,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     setGeneratingAI(true);
     try {
-      // Determine action type from prompt
+      
       let actionType = "generate";
       if (aiPrompt.toLowerCase().includes("explain")) {
         actionType = "explain";
@@ -1740,7 +1863,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         actionType = "summarize";
       }
 
-      // Use the note agent service
+      
       const result = await noteAgentService.invoke(actionType, {
         userId: userName,
         topic: aiPrompt,
@@ -1777,7 +1900,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     setGeneratingAI(true);
     try {
-      // Map old action types to new agent actions
+      
       const actionMap = {
         'explain': 'explain',
         'key_points': 'key_points',
@@ -1788,7 +1911,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
       const agentAction = actionMap[actionType] || 'generate';
       
-      // Use the note agent service
+      
       const result = await noteAgentService.invoke(agentAction, {
         userId: userName,
         topic: aiPrompt || "Generate content",
@@ -1820,25 +1943,33 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const convertMarkdownToHTML = (markdown) => {
-    let html = markdown;
+    let html = markdown || '';
 
-    html = html.replace(/^[=\-*]{3,}\s*$/gim, '');
+    html = html.replace(/\r\n/g, '\n');
+    html = html.replace(/^[=\-*]{3,}\s*$/gim, '<hr>');
     html = html.replace(/\n{3,}/g, '\n\n');
+    html = html.replace(/^######\s+(.*$)/gim, '<h6>$1</h6>');
+    html = html.replace(/^#####\s+(.*$)/gim, '<h5>$1</h5>');
+    html = html.replace(/^####\s+(.*$)/gim, '<h4>$1</h4>');
     html = html.replace(/^###\s+(.*$)/gim, '<h3>$1</h3>');
     html = html.replace(/^##\s+(.*$)/gim, '<h2>$1</h2>');
     html = html.replace(/^#\s+(.*$)/gim, '<h1>$1</h1>');
+    html = html.replace(/^>\s+(.*$)/gim, '<blockquote>$1</blockquote>');
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
     html = html.replace(/(?<!\*)\*(?!\*)([^\*]+?)\*(?!\*)/g, '<em>$1</em>');
     html = html.replace(/(?<!_)_(?!_)([^_]+?)_(?!_)/g, '<em>$1</em>');
-    html = html.replace(/^\s*[-*]\s+(.*)$/gim, '<li>$1</li>');
-    html = html.replace(/(<li>.*?<\/li>\s*)+/gis, (match) => {
-      return `<ul>${match}</ul>`;
-    });
-    html = html.replace(/^\s*(\d+)\.\s+(.*)$/gim, '<li>$2</li>');
     html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    html = html.replace(/^\s*(\d+)\.\s+(.*)$/gim, '<li data-ol="true">$2</li>');
+    html = html.replace(/^\s*[-*+]\s+(.*)$/gim, '<li data-ul="true">$1</li>');
+    html = html.replace(/(<li data-ol="true">.*?<\/li>\s*)+/gis, (match) =>
+      `<ol>${match.replace(/ data-ol="true"/g, '')}</ol>`
+    );
+    html = html.replace(/(<li data-ul="true">.*?<\/li>\s*)+/gis, (match) =>
+      `<ul>${match.replace(/ data-ul="true"/g, '')}</ul>`
+    );
 
     const blocks = html.split(/\n\n+/);
     
@@ -1972,11 +2103,13 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
-  const aiWritingAssist = async () => {
-    if (isSharedContent && !canEdit && aiAssistAction !== 'explain_only') return;
+  const aiWritingAssist = async (actionOverride = null) => {
+    const action = actionOverride || aiAssistAction;
+    
+    if (isSharedContent && !canEdit && action !== 'explain_only') return;
     
     // Handle explain_only action separately
-    if (aiAssistAction === 'explain_only') {
+    if (action === 'explain_only') {
       await explainTextOnly();
       return;
     }
@@ -1985,7 +2118,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     let textToProcess = selectedText;
     
     // For generate action, we don't need selected text
-    if (aiAssistAction !== 'generate' && (!textToProcess || !textToProcess.trim())) {
+    if (action !== 'generate' && (!textToProcess || !textToProcess.trim())) {
       // Try to get selected text from the editor
       const selection = window.getSelection();
       if (selection && selection.toString()) {
@@ -1993,7 +2126,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }
     }
 
-    if (aiAssistAction !== 'generate' && (!textToProcess || !textToProcess.trim())) {
+    if (action !== 'generate' && (!textToProcess || !textToProcess.trim())) {
       showPopup("No Text Selected", "Please select text or enter text to process");
       return;
     }
@@ -2014,7 +2147,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         'translate': 'improve'  // Use improve as fallback for translate
       };
       
-      const agentAction = actionMap[aiAssistAction] || aiAssistAction;
+      const agentAction = actionMap[action] || action;
       
       // Use the note agent service
       const result = await noteAgentService.invoke(agentAction, {
@@ -2040,7 +2173,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         original: textToProcess || selectedText,
         suggested: resultText.trim(),
         range: selectedRange,
-        action: aiAssistAction,
+        action: action,
         blockId: selectedBlockId,
         isBlockEditor: true
       });
@@ -2048,10 +2181,30 @@ const NotesRedesign = ({ sharedMode = false }) => {
       setShowAIAssistant(false);
       
     } catch (error) {
-            showPopup("Error", "Failed to process text");
+      console.error("AI processing error:", error);
+      showPopup("Error", "Failed to process text");
     } finally {
       setGeneratingAI(false);
     }
+  };
+
+  // Quick action handler - executes AI action immediately
+  const handleQuickAction = async (action) => {
+    setAiAssistAction(action);
+    
+    // For actions that need text selection, validate first
+    if (action !== 'generate' && (!selectedText || !selectedText.trim())) {
+      const selection = window.getSelection();
+      if (selection && selection.toString()) {
+        setSelectedText(selection.toString());
+      } else {
+        showPopup("No Text Selected", "Please select text in the editor or enter text in the input field");
+        return;
+      }
+    }
+    
+    // Execute immediately
+    await aiWritingAssist(action);
   };
 
   const handleSessionToggle = (sid) =>
@@ -2079,29 +2232,59 @@ const NotesRedesign = ({ sharedMode = false }) => {
         { formatStyle: importMode === 'summary' ? 'summary' : 'structured' }
       );
       
-      if (result.success && result.result) {
-        const noteResult = result.result;
-        
+      
+      if (result.success) {
         // Refresh notes list
         await loadNotes();
         
         setShowChatImport(false);
         setSelectedSessions([]);
         
-        // Navigate to the newly created note if we have the ID
-        if (noteResult.note_id) {
-          navigate(`/notes/editor/${noteResult.note_id}`);
-        }
+        // Get note data from result
+        const noteData = result.result || result;
         
-        showPopup("Conversion Successful", `"${noteResult.note_title || 'Note'}" created successfully via AI Agent.`);
+        
+        // Check for note_id in various possible locations
+        const noteId = noteData.note_id || result.note_id || noteData.id || result.id;
+        const noteTitle = noteData.note_title || result.note_title || noteData.title || result.title || 'New Note';
+        
+        
+        if (noteId) {
+          setNewNoteId(noteId);
+          setNewNoteTitle(noteTitle);
+          setShowNavigateDialog(true);
+        } else {
+          showPopup("Conversion Successful", `"${noteTitle}" created successfully via AI Agent.`);
+        }
       } else {
-        throw new Error(result.response || 'Conversion failed');
+        throw new Error(result.response || result.error || 'Conversion failed');
       }
     } catch (err) {
       console.error('Chat to note conversion error:', err);
       showPopup("Conversion Failed", "Unable to convert chat to note.");
     }
     setImporting(false);
+  };
+
+  const handleNavigateToNewNote = () => {
+    if (newNoteId) {
+      // Close dialog first
+      setShowNavigateDialog(false);
+      setNewNoteId(null);
+      setNewNoteTitle('');
+      
+      navigate(`/notes/editor/${newNoteId}`);
+    } else {
+      console.error('No note ID to navigate to');
+      setShowNavigateDialog(false);
+    }
+  };
+
+  const handleStayOnCurrentNote = () => {
+    showPopup("Note Created", `"${newNoteTitle}" has been created successfully. You can find it in your notes list.`);
+    setShowNavigateDialog(false);
+    setNewNoteId(null);
+    setNewNoteTitle('');
   };
 
   const exportAsPDF = () => {
@@ -2256,17 +2439,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
       <html>
         <head>
           <meta charset="UTF-8">
-          <title>${noteTitle || 'Note'}</title>
+          <title>${escapeHtml(noteTitle || 'Note')}</title>
           ${styles}
         </head>
         <body>
-          <h1>${noteTitle || 'Untitled Note'}</h1>
+          <h1>${escapeHtml(noteTitle || 'Untitled Note')}</h1>
           <div class="metadata">
-            Last edited: ${new Date(selectedNote.updated_at).toLocaleString()}<br>
+            Last edited: ${escapeHtml(new Date(selectedNote.updated_at).toLocaleString())}<br>
             ${wordCount} words - ${charCount} characters
           </div>
           <div class="content">
-            ${noteContent}
+            ${sanitizeHtml(noteContent)}
           </div>
         </body>
       </html>
@@ -2307,11 +2490,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       filtered = filtered.filter(n => n.folder_id === selectedFolder);
     } else if (selectedFolder === 0) {
       filtered = filtered.filter(n => !n.folder_id);
-    }
-
-    // Tag filtering
-    if (selectedTagFilter) {
-      filtered = filterNotesByTag(filtered, selectedTagFilter);
     }
 
     return filtered;
@@ -2436,6 +2614,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         <nav className="nav-actions-new">
           {!isSharedContent && (
             <>
+              <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
               <button className="nr-nav-btn-ghost" onClick={() => setShowRecentlyViewed(!showRecentlyViewed)}>
                 <span>Recent</span>
                 <ChevronRight size={14} />
@@ -2464,7 +2643,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
             {/* Floating Menu Button - shows when sidebar is closed */}
             {!sidebarOpen && !isSharedContent && (
               <button 
-                className="nr-show-sidebar-btn" 
+                className="nr-show-sidebar-btn"
+                type="button"
                 onClick={() => setSidebarOpen(true)}
                 title="Show Tools Panel"
               >
@@ -2479,6 +2659,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 <button
                   onClick={() => setSidebarOpen(false)}
                   className="close-panel-btn"
+                  type="button"
                   title="Close panel"
                 >
                   <X size={18} />
@@ -2497,29 +2678,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     >
                       <Edit3 size={16} />
                       <span>Edit</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Editor Theme Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">EDITOR THEME</label>
-                  <div className="tool-buttons-group">
-                    <button
-                      className={`tool-panel-btn ${!editorDarkMode ? "active" : ""}`}
-                      onClick={() => setEditorDarkMode(false)}
-                      title="Light editor"
-                    >
-                      <Eye size={16} />
-                      <span>Light</span>
-                    </button>
-                    <button
-                      className={`tool-panel-btn ${editorDarkMode ? "active" : ""}`}
-                      onClick={() => setEditorDarkMode(true)}
-                      title="Dark editor"
-                    >
-                      <Eye size={16} />
-                      <span>Dark</span>
                     </button>
                   </div>
                 </div>
@@ -2603,21 +2761,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   </div>
                 </div>
 
-                {/* Tags Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">ORGANIZATION</label>
-                  <div className="tool-buttons-group">
-                    <button 
-                      onClick={() => setShowTagsPanel(!showTagsPanel)}
-                      className={`tool-panel-btn ${showTagsPanel ? 'active' : ''}`}
-                      title="Toggle tags panel"
-                    >
-                      <Tag size={16} />
-                      <span>Tags</span>
-                    </button>
-                  </div>
-                </div>
-
                 {/* Visual & Interactive Features */}
                 <div className="tool-section">
                   <label className="tool-section-label">VISUAL TOOLS</label>
@@ -2664,33 +2807,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 <div className="title-actions">
                   <button
                     className="title-action-btn"
+                    type="button"
                     onClick={() => setIsFullscreen(!isFullscreen)}
                     title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                   >
                     {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                  </button>
-                  <button
-                    className="title-collapse-btn"
-                    onClick={() => setTitleSectionCollapsed(!titleSectionCollapsed)}
-                    title={titleSectionCollapsed ? "Expand title" : "Collapse title"}
-                  >
-                    <ChevronDown size={16} className={titleSectionCollapsed ? '' : 'rotated'} />
                   </button>
                 </div>
               </div>
             </div>
 
             <div className="block-editor-wrapper" style={{ position: 'relative' }}>
-              {/* Floating expand button when collapsed - inside block editor */}
-              {titleSectionCollapsed && (
-                <button
-                  className={`floating-expand-btn ${editorDarkMode ? 'dark' : 'light'}`}
-                  onClick={() => setTitleSectionCollapsed(false)}
-                  title="Show navigation"
-                >
-                  <ChevronDown size={20} />
-                </button>
-              )}
               {viewMode === "edit" && (!isSharedContent || canEdit) && (
                 <div className="formatting-toolbar-wrapper">
                   <div className="formatting-toolbar">
@@ -2700,7 +2827,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       onChange={(e) => {
                         const value = e.target.value;
                         if (value) {
-                          document.execCommand('formatBlock', false, value);
+                          applyEditorCommand('formatBlock', value);
                           e.target.value = '';
                         }
                       }}
@@ -2718,13 +2845,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Font Family */}
                     <select 
                       className="format-select"
-                      value={customFont}
+                      defaultValue=""
+                      onMouseDown={saveEditorSelection}
                       onChange={(e) => {
-                        setCustomFont(e.target.value);
-                        localStorage.setItem('preferredFont', e.target.value);
+                        const value = e.target.value;
+                        if (value) {
+                          applyEditorCommand('fontName', value);
+                        }
+                        e.target.value = '';
                       }}
                       title="Font Family"
                     >
+                      <option value="" disabled>Font</option>
                       {FONTS.map(font => (
                         <option key={font} value={font}>{font}</option>
                       ))}
@@ -2736,7 +2868,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       onChange={(e) => {
                         const value = e.target.value;
                         if (value) {
-                          document.execCommand('fontSize', false, value);
+                          applyEditorCommand('fontSize', value);
                           e.target.value = '';
                         }
                       }}
@@ -2754,28 +2886,28 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Text Formatting */}
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('bold')}
+                      onClick={() => applyEditorCommand('bold')}
                       title="Bold (Ctrl+B)"
                     >
                       <Bold size={16} />
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('italic')}
+                      onClick={() => applyEditorCommand('italic')}
                       title="Italic (Ctrl+I)"
                     >
                       <Italic size={16} />
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('underline')}
+                      onClick={() => applyEditorCommand('underline')}
                       title="Underline (Ctrl+U)"
                     >
                       <Underline size={16} />
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('strikeThrough')}
+                      onClick={() => applyEditorCommand('strikeThrough')}
                       title="Strikethrough"
                     >
                       <span style={{ textDecoration: 'line-through', fontSize: '14px', fontWeight: 'bold' }}>S</span>
@@ -2787,13 +2919,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <input
                       type="color"
                       className="format-color"
-                      onChange={(e) => document.execCommand('foreColor', false, e.target.value)}
+                      onMouseDown={saveEditorSelection}
+                      onChange={(e) => applyEditorCommand('foreColor', e.target.value)}
                       title="Text Color"
                     />
                     <input
                       type="color"
                       className="format-color"
-                      onChange={(e) => document.execCommand('backColor', false, e.target.value)}
+                      onMouseDown={saveEditorSelection}
+                      onChange={(e) => applyEditorCommand('backColor', e.target.value)}
                       title="Background Color"
                     />
                     
@@ -2802,14 +2936,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Lists */}
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('insertUnorderedList')}
+                      onClick={() => applyEditorCommand('insertUnorderedList')}
                       title="Bullet List"
                     >
                       <List size={16} />
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('insertOrderedList')}
+                      onClick={() => applyEditorCommand('insertOrderedList')}
                       title="Numbered List"
                     >
                       <ListOrdered size={16} />
@@ -2818,21 +2952,21 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Alignment */}
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('justifyLeft')}
+                      onClick={() => applyEditorCommand('justifyLeft')}
                       title="Align Left"
                     >
                       <AlignLeft size={16} />
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('justifyCenter')}
+                      onClick={() => applyEditorCommand('justifyCenter')}
                       title="Align Center"
                     >
                       <span style={{ fontSize: '16px' }}>≡</span>
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('justifyRight')}
+                      onClick={() => applyEditorCommand('justifyRight')}
                       title="Align Right"
                     >
                       <span style={{ fontSize: '16px' }}>≣</span>
@@ -2844,8 +2978,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <button 
                       className="format-btn" 
                       onClick={() => {
+                        saveEditorSelection();
                         const url = prompt('Enter URL:');
-                        if (url) document.execCommand('createLink', false, url);
+                        if (url) applyEditorCommand('createLink', url);
                       }}
                       title="Insert Link"
                     >
@@ -2854,8 +2989,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <button 
                       className="format-btn" 
                       onClick={() => {
+                        saveEditorSelection();
                         const url = prompt('Enter image URL:');
-                        if (url) document.execCommand('insertImage', false, url);
+                        if (url) applyEditorCommand('insertImage', url);
                       }}
                       title="Insert Image"
                     >
@@ -2889,15 +3025,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       title="AI Assistant"
                     >
                       <Sparkles size={16} />
-                    </button>
-                    
-                    {/* Clear Formatting */}
-                    <button 
-                      className="format-btn" 
-                      onClick={() => document.execCommand('removeFormat')}
-                      title="Clear Formatting"
-                    >
-                      <X size={16} />
                     </button>
                   </div>
                 </div>
@@ -2937,6 +3064,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 <SimpleBlockEditor
                   blocks={noteBlocks}
                   onChange={handleBlocksChange}
+                  onOpenCanvas={handleOpenCanvasBlock}
+                  focusBlockId={pendingFocusBlockId}
                   readOnly={viewMode === "preview" || (isSharedContent && !canEdit)}
                   darkMode={editorDarkMode}
                 />
@@ -3000,7 +3129,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </div>
               )}
             </div>
-
 
           </div>
         ) : (
@@ -3138,60 +3266,83 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
             <div className="ai-assistant-content">
               <div className="ai-assistant-section">
-                <label>Select Action:</label>
+                <label>Quick Actions (Click to Execute):</label>
                 <div className="ai-action-buttons">
                   <button
-                    className={`ai-action-btn ${aiAssistAction === 'generate' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('generate')}
+                    className={`ai-action-btn ${aiAssistAction === 'grammar' ? 'active' : ''}`}
+                    onClick={() => handleQuickAction('grammar')}
+                    disabled={generatingAI}
+                    title="Fix grammar and spelling errors"
                   >
-                    <Sparkles size={14} style={{ marginRight: '4px', display: 'inline' }} />
-                    Generate Content
-                  </button>
-                  <button
-                    className={`ai-action-btn ${aiAssistAction === 'continue' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('continue')}
-                  >
-                    Continue Writing
+                    Fix Grammar
                   </button>
                   <button
                     className={`ai-action-btn ${aiAssistAction === 'improve' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('improve')}
+                    onClick={() => handleQuickAction('improve')}
+                    disabled={generatingAI}
+                    title="Improve clarity and style"
                   >
                     Improve
                   </button>
                   <button
                     className={`ai-action-btn ${aiAssistAction === 'simplify' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('simplify')}
+                    onClick={() => handleQuickAction('simplify')}
+                    disabled={generatingAI}
+                    title="Make text simpler and easier to understand"
                   >
                     Simplify
                   </button>
                   <button
                     className={`ai-action-btn ${aiAssistAction === 'expand' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('expand')}
+                    onClick={() => handleQuickAction('expand')}
+                    disabled={generatingAI}
+                    title="Add more details and examples"
                   >
                     Expand
                   </button>
                   <button
-                    className={`ai-action-btn ${aiAssistAction === 'grammar' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('grammar')}
-                  >
-                    Fix Grammar
-                  </button>
-                  <button
                     className={`ai-action-btn ${aiAssistAction === 'summarize' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('summarize')}
+                    onClick={() => handleQuickAction('summarize')}
+                    disabled={generatingAI}
+                    title="Create a concise summary"
                   >
                     Summarize
                   </button>
                   <button
+                    className={`ai-action-btn ${aiAssistAction === 'continue' ? 'active' : ''}`}
+                    onClick={() => handleQuickAction('continue')}
+                    disabled={generatingAI}
+                    title="Continue writing from where text ends"
+                  >
+                    Continue Writing
+                  </button>
+                </div>
+              </div>
+
+              <div className="ai-assistant-divider"></div>
+
+              <div className="ai-assistant-section">
+                <label>Advanced Actions:</label>
+                <div className="ai-action-buttons">
+                  <button
+                    className={`ai-action-btn ${aiAssistAction === 'generate' ? 'active' : ''}`}
+                    onClick={() => setAiAssistAction('generate')}
+                    disabled={generatingAI}
+                  >
+                    <Sparkles size={14} style={{ marginRight: '4px', display: 'inline' }} />
+                    Generate Content
+                  </button>
+                  <button
                     className={`ai-action-btn ${aiAssistAction === 'tone_change' ? 'active' : ''}`}
                     onClick={() => setAiAssistAction('tone_change')}
+                    disabled={generatingAI}
                   >
                     Change Tone
                   </button>
                   <button
                     className={`ai-action-btn ${aiAssistAction === 'code' ? 'active' : ''}`}
                     onClick={() => setAiAssistAction('code')}
+                    disabled={generatingAI}
                   >
                     <Code size={14} style={{ marginRight: '4px', display: 'inline' }} />
                     Code
@@ -3199,6 +3350,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   <button
                     className={`ai-action-btn explain-only ${aiAssistAction === 'explain_only' ? 'active' : ''}`}
                     onClick={() => setAiAssistAction('explain_only')}
+                    disabled={generatingAI}
                     title="Get explanation without modifying text"
                   >
                     <Eye size={14} style={{ marginRight: '4px', display: 'inline' }} />
@@ -3289,19 +3441,22 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 >
                   Cancel
                 </button>
-                <button
-                  className="ai-btn-generate"
-                  onClick={aiWritingAssist}
-                  disabled={generatingAI || processingVoice}
-                >
-                  {generatingAI ? (
-                    <>
-                      <span className="spinner"></span> Processing...
-                    </>
-                  ) : (
-                    <>Process Text</>
-                  )}
-                </button>
+                {/* Only show Process button for advanced actions that need configuration */}
+                {(aiAssistAction === 'generate' || aiAssistAction === 'tone_change' || aiAssistAction === 'code' || aiAssistAction === 'explain_only') && (
+                  <button
+                    className="ai-btn-generate"
+                    onClick={() => aiWritingAssist()}
+                    disabled={generatingAI || processingVoice}
+                  >
+                    {generatingAI ? (
+                      <>
+                        <span className="spinner"></span> Processing...
+                      </>
+                    ) : (
+                      <>Process Text</>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -3356,8 +3511,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </label>
                 <div 
                   className={`ai-suggestion-text suggested ${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? 'explanation-only' : ''}`}
-                  dangerouslySetInnerHTML={{ 
-                    __html: `<div class="${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? '' : 'diff-added-content'}">${aiSuggestion.suggested}</div>` 
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHtml(`<div class="${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? '' : 'diff-added-content'}">${aiSuggestion.suggested}</div>`)
                   }}
                 />
               </div>
@@ -3569,16 +3724,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         message={popup.message}
       />
 
-      {/* Tags Panel */}
-      {showTagsPanel && !isSharedContent && (
-        <TagsPanel
-          tags={allTags}
-          selectedTag={selectedTagFilter}
-          onTagSelect={handleTagSelect}
-          onClose={() => setShowTagsPanel(false)}
-        />
-      )}
-
       {/* Advanced Search */}
       {showAdvancedSearch && !isSharedContent && (
         <>
@@ -3600,6 +3745,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             onSelectTemplate={handleTemplateSelect}
             onClose={() => setShowTemplates(false)}
             userName={userName}
+            hasExistingContent={noteContent && noteContent.trim().length > 0}
           />
         </>
       )}
@@ -3628,15 +3774,55 @@ const NotesRedesign = ({ sharedMode = false }) => {
       {showCanvasMode && !isSharedContent && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
           <CanvasMode
-            initialContent={canvasData}
-            onClose={() => setShowCanvasMode(false)}
-            onSave={(newCanvasData, shouldClose = false) => {
-              setCanvasData(newCanvasData);
+            initialContent={canvasBlockId ? getCanvasBlockContent(canvasBlockId) : canvasData}
+            onClose={() => {
+              setShowCanvasMode(false);
+              setCanvasBlockId(null);
+            }}
+            onSave={(newCanvasData, shouldClose = false, previewData) => {
+              if (canvasBlockId) {
+                const updatedBlocks = noteBlocks.map((block) => {
+                  if (String(block.id) !== String(canvasBlockId)) return block;
+                  return {
+                    ...block,
+                    properties: {
+                      ...block.properties,
+                      canvasData: newCanvasData,
+                      canvasPreview: previewData !== undefined
+                        ? previewData
+                        : (block.properties?.canvasPreview || '')
+                    }
+                  };
+                });
+
+                let finalBlocks = updatedBlocks;
+                if (shouldClose) {
+                  const currentIndex = updatedBlocks.findIndex((block) => String(block.id) === String(canvasBlockId));
+                  let nextBlock = updatedBlocks[currentIndex + 1];
+                  if (!nextBlock) {
+                    const currentBlock = updatedBlocks[currentIndex];
+                    const newBlock = {
+                      id: Date.now() + Math.random(),
+                      type: 'paragraph',
+                      content: '',
+                      properties: {},
+                      parent_block_id: currentBlock?.parent_block_id || null
+                    };
+                    finalBlocks = [...updatedBlocks, newBlock];
+                    nextBlock = newBlock;
+                  }
+                  setPendingFocusBlockId(nextBlock?.id || null);
+                }
+                handleBlocksChange(finalBlocks);
+              } else {
+                setCanvasData(newCanvasData);
+              }
+
               if (shouldClose) {
                 setShowCanvasMode(false);
+                setCanvasBlockId(null);
+                autoSave();
               }
-              // Trigger auto-save after a short delay
-              setTimeout(() => autoSave(), 100);
             }}
           />
         </div>
@@ -3699,6 +3885,46 @@ const NotesRedesign = ({ sharedMode = false }) => {
             loadNotes();
           }
         }}
+      />
+
+      {/* Navigate to New Note Dialog */}
+      {showNavigateDialog && (
+        <>
+          <div className="ai-overlay" onClick={handleStayOnCurrentNote}></div>
+          <div className="navigate-dialog-modal">
+            <div className="navigate-dialog-header">
+              <h3>Note Created Successfully!</h3>
+            </div>
+            <div className="navigate-dialog-content">
+              <p>
+                Your note <strong>"{newNoteTitle}"</strong> has been created from the chat conversation.
+              </p>
+              <p>Would you like to open the new note now?</p>
+            </div>
+            <div className="navigate-dialog-actions">
+              <button
+                className="navigate-btn-secondary"
+                onClick={handleStayOnCurrentNote}
+              >
+                Stay Here
+              </button>
+              <button
+                className="navigate-btn-primary"
+                onClick={handleNavigateToNewNote}
+              >
+                Open New Note
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
       />
     </div>
   );
