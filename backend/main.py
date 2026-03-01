@@ -33,6 +33,8 @@ logger = logging.getLogger(__name__)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
+if os.getenv("ENVIRONMENT", "development") == "production" and "sqlite" in DATABASE_URL:
+    raise RuntimeError("DATABASE_URL must be set to PostgreSQL in production. SQLite is not supported for production use.")
 
 models.Base.metadata.create_all(bind=engine)
 
