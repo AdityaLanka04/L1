@@ -16,6 +16,7 @@ services:
       - backend_uploads:/app/uploads
       - backend_exports:/app/exports
       - backend_attachments:/app/attachments
+      - backend_chroma:/app/.chroma_data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
@@ -40,3 +41,4 @@ volumes:
   backend_uploads:
   backend_exports:
   backend_attachments:
+  backend_chroma:
