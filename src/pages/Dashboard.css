@@ -2723,3 +2723,39 @@
 .nav-menu-btn svg {
   stroke-width: 2;
 }
+
+/* Theme manager hard overrides to avoid other pages clobbering styles */
+.ds-page .ts-panel {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45) !important;
+  color: var(--text-primary) !important;
+}
+
+.ds-page .ts-header,
+.ds-page .ts-tabs {
+  background: color-mix(in srgb, var(--bg-primary) 92%, transparent) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border)) !important;
+}
+
+.ds-page .ts-tab {
+  border: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+.ds-page .ts-tab.active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--bg-primary) !important;
+}
+
+.ds-page .ts-preset-btn {
+  background: color-mix(in srgb, var(--bg-primary) 94%, transparent) !important;
+  border: 2px solid color-mix(in srgb, var(--accent) 15%, var(--border)) !important;
+}
+
+.ds-page .ts-cancel-btn,
+.ds-page .ts-ok-btn {
+  border-radius: 8px !important;
+}

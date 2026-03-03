@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import './Dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { formatToLocalTime, getRelativeTime } from '../utils/dateUtils';
 import { HelpTour, HelpButton } from './HelpTour';
@@ -13,7 +14,6 @@ import ThemeSwitcher from '../components/ThemeSwitcher';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ImportExportModal from '../components/ImportExportModal';
 import { useNotifications } from '../contexts/NotificationContext';
-import './Dashboard.css';
 import { API_URL } from '../config';
 import logo from '../assets/logo.svg';
 
