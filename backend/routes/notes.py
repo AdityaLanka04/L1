@@ -42,6 +42,51 @@ class AIWritingAssistRequest(BaseModel):
     action: str
     tone: Optional[str] = "professional"
 
+class NoteAgentRequest(BaseModel):
+    user_id: str
+    action: str
+    content: Optional[str] = None
+    topic: Optional[str] = None
+    tone: Optional[str] = "professional"
+    depth: Optional[str] = "standard"
+    context: Optional[str] = None
+
+def _trim(text: Optional[str], limit: int) -> str:
+    if not text:
+        return ""
+    return text[:limit]
+
+def _build_note_agent_prompt(req: NoteAgentRequest) -> str:
+    content = req.content or ""
+    topic = req.topic or ""
+    tone = req.tone or "professional"
+    depth = req.depth or "standard"
+    context = req.context or ""
+
+    base = topic or content
+
+    action_prompts = {
+        "generate": f"Create comprehensive study notes about: {base}\n\nTone: {tone}\nDepth: {depth}\n",
+        "explain": f"Explain this clearly and concisely:\n\n{_trim(content, 2000)}",
+        "key_points": f"Extract 5-8 key points from:\n\n{_trim(content, 2000)}",
+        "summarize": f"Summarize this:\n\n{_trim(content, 2000)}",
+        "grammar": f"Fix grammar and spelling while preserving meaning:\n\n{_trim(content, 2000)}",
+        "improve": f"Improve clarity and style:\n\n{_trim(content, 2000)}",
+        "simplify": f"Simplify this for easier understanding:\n\n{_trim(content, 2000)}",
+        "expand": f"Expand with more detail and examples:\n\n{_trim(content, 2000)}",
+        "continue": f"Continue writing from where this text ends:\n\n{_trim(content, 1200)}",
+        "tone_change": f"Rewrite in a {tone} tone:\n\n{_trim(content, 2000)}",
+        "outline": f"Create a structured outline about: {base}\n\nTone: {tone}\nDepth: {depth}\n",
+        "code": f"Help with this code or request:\n\n{_trim(content or topic, 2000)}",
+    }
+
+    prompt = action_prompts.get(req.action, f"Help with this request:\n\n{_trim(content or topic, 2000)}")
+
+    if context:
+        prompt += f"\n\nContext:\n{_trim(context, 2000)}"
+
+    return prompt
+
 @router.get("/get_notes")
 def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -476,6 +521,22 @@ async def ai_writing_assistant(
         return {"content": result.strip(), "status": "success", "action": request.action}
     except Exception as e:
         return {"content": "", "status": "error", "error": str(e)}
+
+@router.post("/agents/notes")
+async def notes_agent(
+    request: NoteAgentRequest,
+    db: Session = Depends(get_db),
+):
+    user = get_user_by_username(db, request.user_id) or get_user_by_email(db, request.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    try:
+        prompt = _build_note_agent_prompt(request)
+        result = call_ai(prompt, max_tokens=1500, temperature=0.7)
+        return {"success": True, "content": result.strip(), "action": request.action}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 @router.put("/update_shared_note/{note_id}")
 def update_shared_note(note_id: int, data: dict, db: Session = Depends(get_db)):

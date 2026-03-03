@@ -60,6 +60,43 @@ const SearchHub = () => {
   
   const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const lastRecommendationRefreshRef = useRef(0);
+  const CREATE_TIMEOUT_MS = 30000;
+
+  const fetchWithTimeout = async (url, options = {}, timeoutMs = CREATE_TIMEOUT_MS) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
+
+  const safeJson = async (response) => {
+    try {
+      return await response.json();
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const navigateToCreateFallback = (type, topic, count = 10) => {
+    if (type === 'flashcards') {
+      navigate('/flashcards');
+      return;
+    }
+    if (type === 'notes') {
+      navigate('/notes');
+      return;
+    }
+    if (type === 'questions' || type === 'quiz') {
+      navigate('/question-bank');
+      return;
+    }
+    if (type === 'ai-chat') {
+      navigate('/ai-chat', { state: { initialMessage: topic } });
+    }
+  };
 
   const loadRecentSearches = (username) => {
     const saved = localStorage.getItem(`recentSearches_${username}`);
@@ -1317,7 +1354,7 @@ const SearchHub = () => {
       const token = localStorage.getItem('token');
       
       
-      const response = await fetch(`${API_URL}/agents/searchhub`, {
+      const response = await fetchWithTimeout(`${API_URL}/agents/searchhub`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -1326,12 +1363,13 @@ const SearchHub = () => {
         body: JSON.stringify({
           user_id: userName || 'guest',
           query: finalQuery,
-          session_id: sessionId 
+          session_id: sessionId,
+          use_hs_context: hsMode
         })
       });
       
       if (response.ok) {
-        const data = await response.json();
+        const data = await safeJson(response) || {};
         
         
         if (data.navigate_to) {
@@ -1358,6 +1396,22 @@ const SearchHub = () => {
               navigate(data.navigate_to);
             }
           }, 800);
+          return;
+        }
+
+        if (data.metadata?.action === 'explain') {
+          if (!userName) {
+            setShowLoginModal(true);
+            return;
+          }
+
+          const explainTopic = data.metadata?.topic || finalQuery;
+          setIsCreating(true);
+          setCreatingMessage(`Opening AI chat for ${explainTopic}...`);
+          setTimeout(() => {
+            setIsCreating(false);
+            navigate('/ai-chat', { state: { initialMessage: `Explain ${explainTopic}` } });
+          }, 400);
           return;
         }
         
@@ -1421,7 +1475,7 @@ const SearchHub = () => {
       } else {
         
         console.warn('SearchHub agent failed, falling back to legacy search');
-        await legacySearch(finalQuery);
+          await legacySearch(finalQuery);
       }
     } catch (error) {
       console.error('Search error:', error);
@@ -1589,32 +1643,36 @@ const SearchHub = () => {
           setCreatingMessage(`Creating comprehensive note on ${parameters.topic || 'your topic'}...`);
           
           
-          const noteResponse = await fetch(`${API_URL}/agents/searchhub/create-note`, {
-            method: 'POST',
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              user_id: userName,
-              topic: parameters.topic || searchQuery,
-              use_hs_context: hsMode
-            })
-          });
+          try {
+            const noteResponse = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-note`, {
+              method: 'POST',
+              headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                user_id: userName,
+                topic: parameters.topic || searchQuery,
+                use_hs_context: hsMode
+              })
+            });
 
-          if (noteResponse.ok) {
-            const noteData = await noteResponse.json();
-            if (noteData.success && noteData.navigate_to) {
-              setCreatingMessage(`Created "${noteData.content_title}"! Opening...`);
-              setTimeout(() => {
-                setIsCreating(false);
-                navigate(noteData.navigate_to);
-              }, 500);
-            } else {
-              setIsCreating(false);
-              navigate('/notes');
+            if (noteResponse.ok) {
+              const noteData = await safeJson(noteResponse);
+              if (noteData?.success && noteData.navigate_to) {
+                setCreatingMessage(`Created "${noteData.content_title}"! Opening...`);
+                setTimeout(() => {
+                  setIsCreating(false);
+                  navigate(noteData.navigate_to);
+                }, 500);
+                break;
+              }
             }
-          } else {
+
+            setIsCreating(false);
+            navigate('/notes');
+          } catch (error) {
+            console.error('Create note error:', error);
             setIsCreating(false);
             navigate('/notes');
           }
@@ -1624,129 +1682,138 @@ const SearchHub = () => {
           setIsCreating(true);
           setCreatingMessage(`Creating ${parameters.count || 10} flashcards on ${parameters.topic}...`);
           
-          
-          const fcResponse = await fetch(`${API_URL}/agents/searchhub/create-flashcards`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              user_id: userName,
-              topic: parameters.topic || searchQuery,
-              count: parameters.count || 10,
-              use_hs_context: hsMode
-            })
-          });
-          
-          if (fcResponse.ok) {
-            const fcData = await fcResponse.json();
-            if (fcData.success && fcData.navigate_to) {
-              setCreatingMessage(`Created "${fcData.content_title}"! Opening...`);
-              setTimeout(() => {
-                setIsCreating(false);
-                navigate(fcData.navigate_to);
-              }, 500);
-            } else {
-              setIsCreating(false);
-              navigate('/flashcards', { 
-                state: { 
-                  autoCreate: true,
-                  topic: parameters.topic,
-                  count: parameters.count || 10
-                } 
-              });
-            }
-          } else {
-            setIsCreating(false);
-            navigate('/flashcards', { 
-              state: { 
-                autoCreate: true,
-                topic: parameters.topic,
-                count: parameters.count || 10
-              } 
+          try {
+            const fcResponse = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-flashcards`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                user_id: userName,
+                topic: parameters.topic || searchQuery,
+                count: parameters.count || 10,
+                use_hs_context: hsMode
+              })
             });
+            
+            if (fcResponse.ok) {
+              const fcData = await safeJson(fcResponse);
+              if (fcData?.success && fcData.navigate_to) {
+                setCreatingMessage(`Created "${fcData.content_title}"! Opening...`);
+                setTimeout(() => {
+                  setIsCreating(false);
+                  navigate(fcData.navigate_to);
+                }, 500);
+                break;
+              }
+            }
+          } catch (error) {
+            console.error('Create flashcards error:', error);
           }
+
+          setIsCreating(false);
+          navigate('/flashcards');
           break;
           
         case 'create_questions':
           setIsCreating(true);
           setCreatingMessage(`Creating ${parameters.count || 10} questions on ${parameters.topic}...`);
           
-          
-          const qResponse = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
-            method: 'POST',
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              user_id: userName,
-              topic: parameters.topic || searchQuery,
-              count: parameters.count || 10,
-              use_hs_context: hsMode
-            })
-          });
+          try {
+            const qResponse = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-questions`, {
+              method: 'POST',
+              headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                user_id: userName,
+                topic: parameters.topic || searchQuery,
+                count: parameters.count || 10,
+                use_hs_context: hsMode
+              })
+            });
 
-          if (qResponse.ok) {
-            const qData = await qResponse.json();
-            if (qData.success && qData.navigate_to) {
-              setCreatingMessage(`Created "${qData.content_title}"! Opening...`);
-              setTimeout(() => {
-                setIsCreating(false);
-                navigate(qData.navigate_to);
-              }, 500);
-            } else {
-              setIsCreating(false);
-              navigate('/question-bank');
+            if (qResponse.ok) {
+              const qData = await safeJson(qResponse);
+              if (qData?.success && qData.navigate_to) {
+                setCreatingMessage(`Created "${qData.content_title}"! Opening...`);
+                setTimeout(() => {
+                  setIsCreating(false);
+                  navigate(qData.navigate_to);
+                }, 500);
+                break;
+              }
             }
-          } else {
-            setIsCreating(false);
-            navigate('/question-bank');
+          } catch (error) {
+            console.error('Create questions error:', error);
           }
+
+          setIsCreating(false);
+          navigate('/question-bank');
           break;
           
         case 'create_quiz':
           setIsCreating(true);
           setCreatingMessage(`Creating quiz on ${parameters.topic}...`);
           
-          
-          const quizResponse = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
-            method: 'POST',
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              user_id: userName,
-              topic: parameters.topic || searchQuery,
-              count: parameters.count || 10,
-              use_hs_context: hsMode
-            })
-          });
-          
-          if (quizResponse.ok) {
-            const quizData = await quizResponse.json();
-            if (quizData.success) {
-              const target =
-                quizData.navigate_to ||
-                (quizData.content_id
-                  ? `/question-bank?set_id=${quizData.content_id}`
-                  : '/question-bank');
-              setCreatingMessage('Quiz ready! Starting...');
-              setTimeout(() => {
-                setIsCreating(false);
-                navigate(target);
-              }, 500);
-            } else {
-              setIsCreating(false);
-              navigate('/question-bank');
+          try {
+            const quizResponse = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-questions`, {
+              method: 'POST',
+              headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                user_id: userName,
+                topic: parameters.topic || searchQuery,
+                count: parameters.count || 10,
+                use_hs_context: hsMode
+              })
+            });
+            
+            if (quizResponse.ok) {
+              const quizData = await safeJson(quizResponse);
+              if (quizData?.success) {
+                const target =
+                  quizData.navigate_to ||
+                  (quizData.content_id
+                    ? `/question-bank?set_id=${quizData.content_id}`
+                    : '/question-bank');
+                setCreatingMessage('Quiz ready! Starting...');
+                setTimeout(() => {
+                  setIsCreating(false);
+                  navigate(target);
+                }, 500);
+                break;
+              }
             }
-          } else {
-            setIsCreating(false);
-            navigate('/question-bank');
+          } catch (error) {
+            console.error('Create quiz error:', error);
           }
+
+          setIsCreating(false);
+          navigate('/question-bank');
           break;
+
+        case 'explain': {
+          if (!userName) {
+            setShowLoginModal(true);
+            setIsSearching(false);
+            return;
+          }
+          const explainTopic = parameters?.topic || searchQuery;
+          setIsCreating(true);
+          setCreatingMessage(`Opening AI chat for ${explainTopic || 'your topic'}...`);
+          setTimeout(() => {
+            setIsCreating(false);
+            navigate('/ai-chat', {
+              state: { initialMessage: `Explain ${explainTopic || 'this topic'}` }
+            });
+          }, 400);
+          break;
+        }
           
         case 'start_chat':
           navigate('/ai-chat', { 
@@ -2299,7 +2366,7 @@ const SearchHub = () => {
       
       if (type === 'flashcards') {
         
-        const response = await fetch(`${API_URL}/agents/searchhub/create-flashcards`, {
+        const response = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-flashcards`, {
           method: 'POST',
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -2314,8 +2381,8 @@ const SearchHub = () => {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.navigate_to) {
+          const data = await safeJson(response);
+          if (data?.success && data.navigate_to) {
             setCreatingMessage(`Created "${data.content_title}"! Opening...`);
             setTimeout(() => {
               setIsCreating(false);
@@ -2329,7 +2396,7 @@ const SearchHub = () => {
 
       } else if (type === 'notes') {
         
-        const response = await fetch(`${API_URL}/agents/searchhub/create-note`, {
+        const response = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-note`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -2343,8 +2410,8 @@ const SearchHub = () => {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.navigate_to) {
+          const data = await safeJson(response);
+          if (data?.success && data.navigate_to) {
             setCreatingMessage(`Created "${data.content_title}"! Opening...`);
             setTimeout(() => {
               setIsCreating(false);
@@ -2354,11 +2421,11 @@ const SearchHub = () => {
           }
         }
         
-        navigate(`/notes/new?topic=${encodeURIComponent(topic)}`);
+        navigate('/notes');
         
       } else if (type === 'questions') {
         
-        const response = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
+        const response = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-questions`, {
           method: 'POST',
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -2373,8 +2440,8 @@ const SearchHub = () => {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.navigate_to) {
+          const data = await safeJson(response);
+          if (data?.success && data.navigate_to) {
             setCreatingMessage(`Created "${data.content_title}"! Opening...`);
             setTimeout(() => {
               setIsCreating(false);
@@ -2391,6 +2458,7 @@ const SearchHub = () => {
       }
     } catch (error) {
       console.error('Create content error:', error);
+      navigateToCreateFallback(type, topic);
     } finally {
       setIsCreating(false);
     }

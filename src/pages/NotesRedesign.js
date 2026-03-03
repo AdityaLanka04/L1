@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from "react";
+﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -264,6 +264,88 @@ const blocksToHtml = (blocks) => {
   }).join('\n');
 };
 
+const MAX_DIFF_TOKENS = 600;
+
+const normalizeAiText = (value) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch (error) {
+    return String(value);
+  }
+};
+
+const isAgentSuccess = (result) => result?.success !== false;
+
+const tokenizeForDiff = (text) => {
+  if (!text) return [];
+  return String(text).split(/(\s+)/).filter(Boolean);
+};
+
+const buildDiffTokens = (beforeText, afterText) => {
+  const beforeTokens = tokenizeForDiff(beforeText);
+  const afterTokens = tokenizeForDiff(afterText);
+
+  if (beforeTokens.length + afterTokens.length > MAX_DIFF_TOKENS) return null;
+
+  const rows = beforeTokens.length + 1;
+  const cols = afterTokens.length + 1;
+  const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+  for (let i = beforeTokens.length - 1; i >= 0; i -= 1) {
+    for (let j = afterTokens.length - 1; j >= 0; j -= 1) {
+      if (beforeTokens[i] === afterTokens[j]) {
+        dp[i][j] = dp[i + 1][j + 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+  }
+
+  const diff = [];
+  let i = 0;
+  let j = 0;
+
+  while (i < beforeTokens.length && j < afterTokens.length) {
+    if (beforeTokens[i] === afterTokens[j]) {
+      diff.push({ type: 'equal', value: beforeTokens[i] });
+      i += 1;
+      j += 1;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      diff.push({ type: 'remove', value: beforeTokens[i] });
+      i += 1;
+    } else {
+      diff.push({ type: 'add', value: afterTokens[j] });
+      j += 1;
+    }
+  }
+
+  while (i < beforeTokens.length) {
+    diff.push({ type: 'remove', value: beforeTokens[i] });
+    i += 1;
+  }
+
+  while (j < afterTokens.length) {
+    diff.push({ type: 'add', value: afterTokens[j] });
+    j += 1;
+  }
+
+  return diff;
+};
+
+const renderDiffHtml = (diffTokens, mode) => {
+  if (!diffTokens) return '';
+
+  return diffTokens.map(({ type, value }) => {
+    const safe = escapeHtml(value);
+    if (type === 'equal') return safe;
+    if (type === 'remove') return mode === 'before' ? `<span class="diff-removed">${safe}</span>` : '';
+    if (type === 'add') return mode === 'after' ? `<span class="diff-added">${safe}</span>` : '';
+    return safe;
+  }).join('');
+};
+
 const QuickSwitcher = null;
 const FormattingToolbar = ({ onAIAssist, showAI, onInsertBlock }) => null;
 const SlashMenu = ({ isOpen, position, onSelect, onClose }) => null;
@@ -445,6 +527,32 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const closePopup = () => setPopup({ isOpen: false, title: "", message: "" });
   
   const { selectedTheme } = useTheme();
+
+  const diffView = useMemo(() => {
+    if (!aiSuggestion) {
+      return { hasInlineDiff: false, beforeHtml: '', afterHtml: '', original: '', suggested: '' };
+    }
+
+    const original = normalizeAiText(aiSuggestion.original);
+    const suggested = normalizeAiText(aiSuggestion.suggested);
+
+    if (aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only') {
+      return { hasInlineDiff: false, beforeHtml: '', afterHtml: '', original, suggested };
+    }
+
+    const diffTokens = buildDiffTokens(original, suggested);
+    if (!diffTokens || diffTokens.length === 0) {
+      return { hasInlineDiff: false, beforeHtml: '', afterHtml: '', original, suggested };
+    }
+
+    return {
+      hasInlineDiff: true,
+      beforeHtml: renderDiffHtml(diffTokens, 'before'),
+      afterHtml: renderDiffHtml(diffTokens, 'after'),
+      original,
+      suggested
+    };
+  }, [aiSuggestion]);
   
   
   useEffect(() => {
@@ -740,14 +848,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
         context: noteContent
       });
 
-      if (!result.success) throw new Error("AI processing failed");
+      if (!isAgentSuccess(result)) throw new Error("AI processing failed");
 
-      const resultContent = result.content || result.response;
+      const resultContent = normalizeAiText(result.content || result.response);
+      const formatted = formatAiOutput(resultContent);
 
       
       setAiSuggestion({
-        original: selectedText,
-        suggested: resultContent,
+        original: normalizeAiText(selectedText),
+        suggested: formatted.text,
+        suggestedHtml: formatted.html,
+        suggestedBlocks: formatted.blocks,
+        useBlocks: formatted.useBlocks,
         range: selectedRange,
         action: action
       });
@@ -770,46 +882,71 @@ const NotesRedesign = ({ sharedMode = false }) => {
     if (aiSuggestion.isBlockEditor) {
       let updatedBlocks;
       const blockIndex = noteBlocks.findIndex(b => String(b.id) === String(aiSuggestion.blockId));
+      const hasStructuredBlocks = aiSuggestion.useBlocks && Array.isArray(aiSuggestion.suggestedBlocks) && aiSuggestion.suggestedBlocks.length > 0;
+      const suggestedHtml = aiSuggestion.suggestedHtml || aiSuggestion.suggested || '';
+      const insertActions = new Set(['generate', 'key_points', 'outline']);
       
-      if (blockIndex !== -1 && aiSuggestion.blockId) {
+      if (hasStructuredBlocks) {
+        const blocksToInsert = aiSuggestion.suggestedBlocks.map((block) => ({
+          ...block,
+          id: block.id || Date.now() + Math.random()
+        }));
+
+        if (insertActions.has(aiSuggestion.action)) {
+          const insertIndex = blockIndex !== -1 ? blockIndex + 1 : noteBlocks.length;
+          updatedBlocks = [
+            ...noteBlocks.slice(0, insertIndex),
+            ...blocksToInsert,
+            ...noteBlocks.slice(insertIndex)
+          ];
+        } else if (blockIndex !== -1) {
+          updatedBlocks = [
+            ...noteBlocks.slice(0, blockIndex),
+            ...blocksToInsert,
+            ...noteBlocks.slice(blockIndex + 1)
+          ];
+        } else {
+          updatedBlocks = [...noteBlocks, ...blocksToInsert];
+        }
+      } else if (blockIndex !== -1 && aiSuggestion.blockId) {
         if (aiSuggestion.action === 'continue') {
-          
           updatedBlocks = noteBlocks.map((block, idx) => {
             if (idx === blockIndex) {
               return {
                 ...block,
-                content: block.content + ' ' + aiSuggestion.suggested
+                content: `${block.content || ''} ${suggestedHtml}`.trim()
               };
             }
             return block;
           });
         } else if (aiSuggestion.action === 'generate') {
-          
           const newBlock = {
             id: Date.now() + Math.random(),
             type: 'paragraph',
-            content: aiSuggestion.suggested,
+            content: suggestedHtml,
             properties: {}
           };
-          updatedBlocks = [...noteBlocks, newBlock];
+          updatedBlocks = [
+            ...noteBlocks.slice(0, blockIndex + 1),
+            newBlock,
+            ...noteBlocks.slice(blockIndex + 1)
+          ];
         } else {
-          
           updatedBlocks = noteBlocks.map((block, idx) => {
             if (idx === blockIndex) {
               return {
                 ...block,
-                content: aiSuggestion.suggested
+                content: suggestedHtml
               };
             }
             return block;
           });
         }
       } else {
-        
         const newBlock = {
           id: Date.now() + Math.random(),
           type: 'paragraph',
-          content: aiSuggestion.suggested,
+          content: suggestedHtml,
           properties: {}
         };
         updatedBlocks = [...noteBlocks, newBlock];
@@ -866,14 +1003,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
         context: noteContent
       });
 
-      if (!result.success) throw new Error("AI explanation failed");
+      if (!isAgentSuccess(result)) throw new Error("AI explanation failed");
 
-      const explanation = result.content || result.response;
+      const explanation = normalizeAiText(result.content || result.response);
+      const formatted = formatAiOutput(explanation);
       
       
       setAiSuggestion({
-        original: selectedText,
-        suggested: explanation,
+        original: normalizeAiText(selectedText),
+        suggested: formatted.text,
+        suggestedHtml: formatted.html,
+        suggestedBlocks: formatted.blocks,
+        useBlocks: formatted.useBlocks,
         range: null, 
         action: 'explain'
       });
@@ -913,20 +1054,24 @@ const NotesRedesign = ({ sharedMode = false }) => {
         context: noteContent
       });
 
-      if (!result.success) throw new Error("AI generation failed");
+      if (!isAgentSuccess(result)) throw new Error("AI generation failed");
 
-      const resultContent = result.content || result.response;
-      const quill = quillRef.current?.getEditor();
+      const resultContent = normalizeAiText(result.content || result.response);
+      const formatted = formatAiOutput(resultContent);
 
-      if (quill && selectedRange) {
-        const insertPosition = selectedRange.index + selectedRange.length;
-        quill.insertText(insertPosition, "\n\n");
-        quill.clipboard.dangerouslyPasteHTML(insertPosition + 2, resultContent);
-        quill.setSelection(insertPosition + resultContent.length + 2);
-      }
-
-      setNoteContent(quill.root.innerHTML);
-      showPopup("Success", `${actionType} content added`);
+      setAiSuggestion({
+        original: normalizeAiText(selectedText || ''),
+        suggested: formatted.text,
+        suggestedHtml: formatted.html,
+        suggestedBlocks: formatted.blocks,
+        useBlocks: formatted.useBlocks,
+        range: selectedRange,
+        action: agentAction,
+        blockId: selectedBlockId,
+        isBlockEditor: true
+      });
+      setShowAISuggestionModal(true);
+      setShowAIAssistant(false);
     } catch (error) {
             showPopup("Error", "Failed to generate content");
     } finally {
@@ -1383,6 +1528,19 @@ const NotesRedesign = ({ sharedMode = false }) => {
     if (isLikelyHtml(text)) return text;
     if (isLikelyMarkdown(text)) return convertMarkdownToHTML(text);
     return text;
+  };
+
+  const formatAiOutput = (content) => {
+    const text = normalizeAiText(content);
+    if (!text) {
+      return { text: '', html: '', blocks: [], useBlocks: false };
+    }
+    const html = isLikelyHtml(text) ? text : convertMarkdownToHTML(text);
+    const blocks = htmlToBlocks(html);
+    const useBlocks =
+      blocks.length > 1 ||
+      /<\s*(h[1-6]|ul|ol|blockquote|pre|code|table)\b/i.test(html);
+    return { text, html, blocks, useBlocks };
   };
 
   const selectNote = (n) => {
@@ -1871,21 +2029,24 @@ const NotesRedesign = ({ sharedMode = false }) => {
         context: noteContent
       });
 
-      if (!result.success) throw new Error("AI generation failed");
+      if (!isAgentSuccess(result)) throw new Error("AI generation failed");
 
-      const resultContent = result.content || result.response;
-      const quill = quillRef.current?.getEditor();
-
-      if (quill) {
-        const range = quill.getSelection();
-        const index = range ? range.index : quill.getLength();
-        quill.insertText(index, "\n");
-        quill.clipboard.dangerouslyPasteHTML(index + 1, resultContent);
-        quill.setSelection(index + resultContent.length + 1);
-      }
-
-      setNoteContent(quillRef.current?.getEditor().root.innerHTML);
-      showPopup("Success", "Content inserted successfully");
+      const resultContent = normalizeAiText(result.content || result.response);
+      const formatted = formatAiOutput(resultContent);
+      
+      setAiSuggestion({
+        original: '',
+        suggested: formatted.text,
+        suggestedHtml: formatted.html,
+        suggestedBlocks: formatted.blocks,
+        useBlocks: formatted.useBlocks,
+        range: selectedRange,
+        action: actionType,
+        blockId: selectedBlockId,
+        isBlockEditor: true
+      });
+      setShowAISuggestionModal(true);
+      setShowAIAssistant(false);
     } catch (error) {
             showPopup("Error", "Failed to generate AI content");
     } finally {
@@ -1919,21 +2080,24 @@ const NotesRedesign = ({ sharedMode = false }) => {
         context: noteContent
       });
 
-      if (!result.success) throw new Error("AI generation failed");
+      if (!isAgentSuccess(result)) throw new Error("AI generation failed");
 
-      const resultContent = result.content || result.response;
-      const quill = quillRef.current?.getEditor();
-
-      if (quill) {
-        const range = quill.getSelection();
-        const index = range ? range.index : quill.getLength();
-        quill.insertText(index, "\n");
-        quill.clipboard.dangerouslyPasteHTML(index + 1, resultContent);
-        quill.setSelection(index + resultContent.length + 1);
-      }
-
-      setNoteContent(quillRef.current?.getEditor().root.innerHTML);
-      showPopup("Success", `${actionType} content inserted`);
+      const resultContent = normalizeAiText(result.content || result.response);
+      const formatted = formatAiOutput(resultContent);
+      
+      setAiSuggestion({
+        original: '',
+        suggested: formatted.text,
+        suggestedHtml: formatted.html,
+        suggestedBlocks: formatted.blocks,
+        useBlocks: formatted.useBlocks,
+        range: selectedRange,
+        action: agentAction,
+        blockId: selectedBlockId,
+        isBlockEditor: true
+      });
+      setShowAISuggestionModal(true);
+      setShowAIAssistant(false);
     } catch (error) {
             showPopup("Error", "Failed to generate content");
     } finally {
@@ -2077,7 +2241,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         context: noteContent
       });
 
-      if (!result.success) {
+      if (!isAgentSuccess(result)) {
         throw new Error("AI response failed");
       }
 
@@ -2103,7 +2267,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
-  const aiWritingAssist = async (actionOverride = null) => {
+  const aiWritingAssist = async (actionOverride = null, textOverride = null) => {
     const action = actionOverride || aiAssistAction;
     
     if (isSharedContent && !canEdit && action !== 'explain_only') return;
@@ -2115,7 +2279,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
     
     // Get text to process
-    let textToProcess = selectedText;
+    let textToProcess = textOverride ?? selectedText;
     
     // For generate action, we don't need selected text
     if (action !== 'generate' && (!textToProcess || !textToProcess.trim())) {
@@ -2124,6 +2288,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
       if (selection && selection.toString()) {
         textToProcess = selection.toString();
       }
+    }
+
+    if (action !== 'generate' && (!textToProcess || !textToProcess.trim()) && selectedTextContent) {
+      textToProcess = selectedTextContent;
     }
 
     if (action !== 'generate' && (!textToProcess || !textToProcess.trim())) {
@@ -2158,9 +2326,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
         context: noteBlocks.map(b => b.content).join('\n')
       });
 
-      if (!result.success) throw new Error("AI assist failed");
+      if (!isAgentSuccess(result)) throw new Error("AI assist failed");
 
-      const resultText = result.content || result.response;
+      const resultText = normalizeAiText(result.content || result.response);
+      const formatted = formatAiOutput(resultText);
       
       if (!resultText || resultText.trim() === '') {
         showPopup("Error", "AI returned empty response");
@@ -2170,8 +2339,11 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
       // Show suggestion modal for user approval instead of directly applying
       setAiSuggestion({
-        original: textToProcess || selectedText,
-        suggested: resultText.trim(),
+        original: normalizeAiText(textToProcess || selectedText),
+        suggested: formatted.text.trim(),
+        suggestedHtml: formatted.html,
+        suggestedBlocks: formatted.blocks,
+        useBlocks: formatted.useBlocks,
         range: selectedRange,
         action: action,
         blockId: selectedBlockId,
@@ -2195,16 +2367,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
     // For actions that need text selection, validate first
     if (action !== 'generate' && (!selectedText || !selectedText.trim())) {
       const selection = window.getSelection();
-      if (selection && selection.toString()) {
-        setSelectedText(selection.toString());
-      } else {
+      const selected = selection && selection.toString() ? selection.toString() : '';
+      if (!selected) {
         showPopup("No Text Selected", "Please select text in the editor or enter text in the input field");
         return;
       }
+      setSelectedText(selected);
+      await aiWritingAssist(action, selected);
+      return;
     }
     
     // Execute immediately
-    await aiWritingAssist(action);
+    await aiWritingAssist(action, selectedText);
   };
 
   const handleSessionToggle = (sid) =>
@@ -3485,14 +3659,24 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
             <div className="ai-suggestion-content">
               {/* Show original text with strikethrough for non-explain actions */}
-              {aiSuggestion.action !== 'explain' && aiSuggestion.action !== 'explain_only' && aiSuggestion.action !== 'generate' && (
+              {aiSuggestion.action !== 'explain' && aiSuggestion.action !== 'explain_only' && (
                 <div className="ai-suggestion-section">
                   <label className="ai-suggestion-label">
                     <span className="label-icon remove">−</span>
-                    Original Text
+                    Before
                   </label>
                   <div className="ai-suggestion-text original">
-                    <span className="diff-removed">{aiSuggestion.original}</span>
+                    <span
+                      dangerouslySetInnerHTML={{
+                        __html: sanitizeHtml(
+                          diffView.hasInlineDiff
+                            ? (diffView.beforeHtml.trim() ? diffView.beforeHtml : '<span class="ai-empty-state">No existing text selected.</span>')
+                            : (diffView.original?.trim()
+                              ? `<span class="diff-removed">${escapeHtml(diffView.original)}</span>`
+                              : '<span class="ai-empty-state">No existing text selected.</span>')
+                        )
+                      }}
+                    />
                   </div>
                 </div>
               )}
@@ -3505,14 +3689,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   </span>
                   {aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' 
                     ? 'Explanation' 
-                    : aiSuggestion.action === 'generate' 
-                      ? 'Generated Content'
-                      : 'Suggested Change'}
+                    : 'After'}
                 </label>
                 <div 
                   className={`ai-suggestion-text suggested ${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? 'explanation-only' : ''}`}
                   dangerouslySetInnerHTML={{
-                    __html: sanitizeHtml(`<div class="${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? '' : 'diff-added-content'}">${aiSuggestion.suggested}</div>`)
+                    __html: sanitizeHtml(
+                      aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only'
+                        ? `<div>${aiSuggestion.suggested}</div>`
+                        : (diffView.hasInlineDiff
+                          ? diffView.afterHtml
+                          : `<div class="diff-added-content">${aiSuggestion.suggestedHtml || diffView.suggested}</div>`)
+                    )
                   }}
                 />
               </div>

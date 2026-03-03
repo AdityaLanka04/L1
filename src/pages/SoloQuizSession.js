@@ -4,6 +4,7 @@ import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, Lightbulb, Refresh
 import './QuizBattleSession.css';
 import quizAgentService from '../services/quizAgentService';
 import MathRenderer from '../components/MathRenderer';
+import { extractQuestionText, normalizeQuestions } from '../utils/quizQuestionUtils';
 
 const SoloQuizSession = () => {
   const navigate = useNavigate();
@@ -33,8 +34,9 @@ const SoloQuizSession = () => {
     const storedData = sessionStorage.getItem('quizData');
     if (storedData) {
       const data = JSON.parse(storedData);
+      const normalizedQuestions = normalizeQuestions(data.questions || []);
       setQuizData(data);
-      setQuestions(data.questions || []);
+      setQuestions(normalizedQuestions);
       setQuizMode(data.quizMode || 'standard');
       setTimingMode(data.timingMode || 'timed');
       
@@ -304,7 +306,7 @@ const SoloQuizSession = () => {
         const isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase() || 
                          userAnswer.toLowerCase() === correctAnswer.toLowerCase().charAt(0);
         return {
-          question_text: q.question || q.question_text,
+          question_text: extractQuestionText(q),
           user_answer: userAnswer,
           correct_answer: correctAnswer,
           is_correct: isCorrect,
@@ -439,7 +441,7 @@ const SoloQuizSession = () => {
                   <div key={index} className={`question-comparison-item expanded ${isCorrect ? 'correct' : 'incorrect'}`}>
                     <div className="question-comparison-header">
                       <div className="question-number">Q{index + 1}</div>
-                      <MathRenderer content={result.question_text || question?.question_text || ''} className="question-text-full" />
+                      <MathRenderer content={result.question_text || extractQuestionText(question)} className="question-text-full" />
                       <span className={`status-badge ${isCorrect ? 'correct' : 'incorrect'}`}>
                         {isCorrect ? '✓ Correct' : '✗ Incorrect'}
                       </span>
@@ -522,6 +524,7 @@ const SoloQuizSession = () => {
 
   
   const currentQuestion = questions[currentQuestionIndex];
+  const currentQuestionText = extractQuestionText(currentQuestion);
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
   
   let options = currentQuestion?.options || [];
@@ -549,7 +552,7 @@ const SoloQuizSession = () => {
       <div className="battle-session-container">
         <div className="question-card">
           <div className="question-header">
-            <MathRenderer content={currentQuestion?.question || currentQuestion?.question_text || ''} className="question-text" />
+            <MathRenderer content={currentQuestionText} className="question-text" />
           </div>
 
           <div className="answers-grid">

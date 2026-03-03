@@ -6,6 +6,7 @@ import { API_URL } from '../config';
 import useSharedWebSocket from '../hooks/useSharedWebSocket';
 import gamificationService from '../services/gamificationService';
 import quizAgentService from '../services/quizAgentService';
+import { extractQuestionText, normalizeQuestions } from '../utils/quizQuestionUtils';
 
 const QuizBattleSession = () => {
   const navigate = useNavigate();
@@ -124,7 +125,7 @@ const QuizBattleSession = () => {
         
         
         if (data.questions && data.questions.length > 0) {
-          setQuestions(data.questions);
+          setQuestions(normalizeQuestions(data.questions));
           setLoading(false);
         } else {
           
@@ -179,7 +180,7 @@ const QuizBattleSession = () => {
           
           return {
             id: idx,
-            question: q.question_text,
+            question: extractQuestionText(q),
             options: options.map(opt => typeof opt === 'string' ? opt.replace(/^[A-D]\)\s*/, '') : opt),
             correct_answer: correctIndex,
             explanation: q.explanation,
@@ -187,7 +188,7 @@ const QuizBattleSession = () => {
           };
         });
         
-        setQuestions(battleQuestions);
+        setQuestions(normalizeQuestions(battleQuestions));
       } else {
         throw new Error('Agent returned no questions');
       }
@@ -211,7 +212,7 @@ const QuizBattleSession = () => {
 
         if (response.ok) {
           const data = await response.json();
-          setQuestions(data.questions);
+          setQuestions(normalizeQuestions(data.questions));
         } else {
           throw new Error('Failed to generate questions');
         }
@@ -426,7 +427,7 @@ const QuizBattleSession = () => {
                     <div key={index} className="question-comparison-item expanded">
                       <div className="question-comparison-header">
                         <div className="question-number">Q{index + 1}</div>
-                        <div className="question-text-full">{question.question}</div>
+                        <div className="question-text-full">{extractQuestionText(question)}</div>
                       </div>
                       
                       <div className="answer-options-review">
@@ -534,6 +535,7 @@ const QuizBattleSession = () => {
   }
 
   const currentQuestion = questions[currentQuestionIndex];
+  const currentQuestionText = extractQuestionText(currentQuestion);
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
@@ -585,7 +587,7 @@ const QuizBattleSession = () => {
       <div className="battle-session-container">
         <div className="question-card">
           <div className="question-header">
-            <h2 className="question-text">{currentQuestion.question}</h2>
+            <h2 className="question-text">{currentQuestionText}</h2>
             <div className="question-difficulty">
               <span className={`difficulty-badge ${battle?.difficulty}`}>
                 {battle?.difficulty}

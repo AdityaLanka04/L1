@@ -35,6 +35,7 @@ class CreateFlashcardsRequest(BaseModel):
     count: int = 10
     difficulty: str = "medium"
     content: Optional[str] = None
+    use_hs_context: bool = True
 
 class CreateQuestionsRequest(BaseModel):
     user_id: str
@@ -992,6 +993,7 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
             generation_type=generation_type,
             card_count=count,
             difficulty=difficulty,
+            use_hs_context=request.use_hs_context,
             db=db,
         )
         set_id = response.get("set_id")
@@ -1020,6 +1022,7 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
             "difficulty_mix": {"easy": 3, "medium": 5, "hard": 2},
             "question_types": ["multiple_choice"],
             "title": f"Practice: {topic[:50]}",
+            "use_hs_context": request.use_hs_context,
         }
         response = await question_routes.generate_practice_questions(payload=payload, db=db)
         content_id = response.get("question_set_id") or response.get("id")
@@ -1140,6 +1143,7 @@ async def create_flashcards_endpoint(request: CreateFlashcardsRequest, db: Sessi
         content=request.content,
         card_count=request.count,
         difficulty=request.difficulty,
+        use_hs_context=request.use_hs_context,
         db=db,
     )
 

@@ -14,6 +14,20 @@ import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRi
 import './KnowledgeRoadmap.css';
 import { API_URL } from '../config';
 const CustomNode = ({ data, selected }) => {
+  const [activeAction, setActiveAction] = useState(null);
+  const setAction = (action) => () => setActiveAction(action);
+  const clearAction = () => setActiveAction(null);
+  const handleActionBlur = (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setActiveAction(null);
+    }
+  };
+  const actionClass = (baseClass, actionName) => [
+    'kr-node-btn-flow',
+    baseClass,
+    activeAction === actionName ? 'kr-action-active' : ''
+  ].filter(Boolean).join(' ');
+
   return (
     <div className={`custom-kr-node ${data.isExplored ? 'kr-explored' : ''} ${data.expansionStatus === 'expanded' ? 'kr-expanded' : ''} ${selected ? 'kr-selected' : ''}`}>
       <Handle 
@@ -42,13 +56,20 @@ const CustomNode = ({ data, selected }) => {
           )}
         </div>
       </div>
-      <div className="kr-node-actions-flow">
+      <div
+        className="kr-node-actions-flow"
+        data-active-action={activeAction || undefined}
+        onMouseLeave={clearAction}
+        onBlur={handleActionBlur}
+      >
         <button 
-          className="kr-node-btn-flow kr-explore-btn nodrag nopan"
+          className={`${actionClass('kr-explore-btn', 'learn')} nodrag nopan`}
           onClick={(e) => { 
             e.stopPropagation(); 
             data.onExplore && data.onExplore(data.nodeId); 
           }}
+          onMouseEnter={setAction('learn')}
+          onFocus={setAction('learn')}
           disabled={data.isExploring || data.isExpanding}
           title={data.isExploring ? 'Exploring...' : 'Explore this topic'}
         >
@@ -57,11 +78,13 @@ const CustomNode = ({ data, selected }) => {
         </button>
         {(data.expansionStatus === 'unexpanded' || !data.expansionStatus) && (
           <button 
-            className="kr-node-btn-flow kr-expand-btn nodrag nopan"
+            className={`${actionClass('kr-expand-btn', 'more')} nodrag nopan`}
             onClick={(e) => { 
               e.stopPropagation(); 
               data.onExpand && data.onExpand(data.nodeId); 
             }}
+            onMouseEnter={setAction('more')}
+            onFocus={setAction('more')}
             disabled={data.isExpanding || data.isExploring}
             title={data.isExpanding ? 'Expanding...' : 'Expand to show subtopics'}
           >
@@ -70,11 +93,13 @@ const CustomNode = ({ data, selected }) => {
           </button>
         )}
         <button 
-          className="kr-node-btn-flow kr-add-child-btn nodrag nopan"
+          className={`${actionClass('kr-add-child-btn', 'add')} nodrag nopan`}
           onClick={(e) => { 
             e.stopPropagation(); 
             data.onAddChild && data.onAddChild(data.nodeId); 
           }}
+          onMouseEnter={setAction('add')}
+          onFocus={setAction('add')}
           title="Add custom child node"
         >
           <Plus size={8} />

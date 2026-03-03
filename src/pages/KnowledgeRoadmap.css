@@ -649,10 +649,12 @@
   margin-top: 6px;
   flex-wrap: nowrap;
   overflow: visible;
+  align-items: center;
+  --kr-action-collapsed: 18px;
 }
 
 .kr-node-btn-flow {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -671,6 +673,7 @@
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .kr-node-btn-flow svg {
@@ -680,8 +683,44 @@
 }
 
 .kr-node-btn-flow span {
+  display: inline-block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: max-width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kr-node-actions-flow[data-active-action] .kr-node-btn-flow {
+  flex: 0 0 var(--kr-action-collapsed);
+  padding-left: 2px;
+  padding-right: 2px;
+  gap: 0;
+}
+
+.kr-node-actions-flow[data-active-action] .kr-node-btn-flow:not(.kr-action-active) {
+  opacity: 0.75;
+}
+
+.kr-node-actions-flow[data-active-action] .kr-node-btn-flow.kr-action-active {
+  flex: 1 1 0;
+  padding-left: 4px;
+  padding-right: 4px;
+  gap: 2px;
+  opacity: 1;
+}
+
+.kr-node-actions-flow[data-active-action] .kr-node-btn-flow:not(.kr-action-active) span {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-2px);
+}
+
+.kr-node-actions-flow[data-active-action] .kr-node-btn-flow.kr-action-active span {
+  max-width: 100%;
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .kr-node-btn-flow:hover:not(:disabled) {
