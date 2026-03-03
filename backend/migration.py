@@ -4,13 +4,14 @@ Creates all tables if they don't exist and adds missing columns
 """
 import sqlite3
 import os
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from models import engine, Base, User, ChatSession, ChatMessage, \
     Flashcard, FlashcardSet, Note, LearningReview, UserStats, \
     ComprehensiveUserProfile, Friendship, FriendRequest, \
     Notification, Achievement, UserAchievement, Leaderboard, Challenge, \
     ChallengeParticipation, ConceptNode, ConceptConnection, KnowledgeRoadmap, \
     Reminder, ReminderList
+from database import DATABASE_URL
 
 def get_model_columns(model):
     """Get all columns defined in a SQLAlchemy model"""
@@ -86,6 +87,10 @@ def sync_table(cursor, model):
             print(f"      Error adding {column_name}: {e}")
 
 def run_migration():
+    if "postgres" in DATABASE_URL.lower():
+        _run_postgres_migration()
+        return
+
     possible_paths = [
         os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db'),
         os.path.join(os.path.dirname(__file__), 'brainwave.db'),
@@ -183,6 +188,80 @@ def run_migration():
         traceback.print_exc()
     finally:
         conn.close()
+
+
+def _run_postgres_migration():
+    print(" Syncing PostgreSQL schema")
+    try:
+        Base.metadata.create_all(bind=engine)
+        print(" All tables created/verified by SQLAlchemy")
+    except Exception as e:
+        print(f" SQLAlchemy table creation warning: {e}")
+
+    inspector = inspect(engine)
+    tables = set(inspector.get_table_names())
+
+    def add_missing_columns(table_name, columns):
+        if table_name not in tables:
+            return
+        existing = {c["name"] for c in inspector.get_columns(table_name)}
+        with engine.connect() as conn:
+            for column_name, column_def in columns.items():
+                if column_name in existing:
+                    continue
+                conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}"))
+                print(f" Added column {table_name}.{column_name}")
+            conn.commit()
+
+    add_missing_columns(
+        "flashcards",
+        {
+            "ease_factor": "DOUBLE PRECISION DEFAULT 2.5",
+            "interval": "DOUBLE PRECISION DEFAULT 0",
+            "repetitions": "INTEGER DEFAULT 0",
+            "next_review_date": "TIMESTAMP",
+            "lapses": "INTEGER DEFAULT 0",
+            "sr_state": "VARCHAR(20) DEFAULT 'new'",
+            "learning_step": "INTEGER DEFAULT 0",
+        },
+    )
+
+    add_missing_columns(
+        "flashcard_sets",
+        {
+            "share_code": "VARCHAR(6)",
+        },
+    )
+
+    add_missing_columns(
+        "comprehensive_user_profiles",
+        {
+            "show_study_insights": "BOOLEAN DEFAULT TRUE",
+            "notifications_enabled": "BOOLEAN DEFAULT TRUE",
+        },
+    )
+
+    add_missing_columns(
+        "context_documents",
+        {
+            "source_name": "VARCHAR(200)",
+            "license": "VARCHAR(80)",
+        },
+    )
+
+    if "flashcard_sets" in tables:
+        with engine.connect() as conn:
+            try:
+                conn.execute(
+                    text(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS idx_flashcard_sets_share_code "
+                        "ON flashcard_sets(share_code)"
+                    )
+                )
+                conn.commit()
+                print(" Created index for flashcard_sets.share_code")
+            except Exception as e:
+                print(f" share_code index: {e}")
 
 if __name__ == '__main__':
     run_migration()

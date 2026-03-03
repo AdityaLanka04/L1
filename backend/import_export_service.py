@@ -222,7 +222,7 @@ Return ONLY a JSON array with this exact format:
             
             for idx, q_data in enumerate(questions_data):
                 question = Question(
-                    set_id=question_set.id,
+                    question_set_id=question_set.id,
                     question_text=q_data["question"],
                     options=json.dumps(q_data["options"]),
                     correct_answer=q_data["correct_answer"],
@@ -409,7 +409,7 @@ Return ONLY a JSON array:
             
             for idx, q_data in enumerate(questions_data):
                 question = Question(
-                    set_id=question_set.id,
+                    question_set_id=question_set.id,
                     question_text=q_data["question"],
                     options=json.dumps(q_data["options"]),
                     correct_answer=q_data["correct_answer"],
@@ -463,7 +463,7 @@ Return ONLY a JSON array:
             card_count = 0
             for qset in question_sets:
                 questions = self.db.query(Question).filter(
-                    Question.set_id == qset.id
+                    Question.question_set_id == qset.id
                 ).all()
                 
                 for question in questions:
@@ -529,7 +529,7 @@ Return ONLY a JSON array:
                 content += f"<h2>{qset.title}</h2>\n\n"
                 
                 questions = self.db.query(Question).filter(
-                    Question.set_id == qset.id
+                    Question.question_set_id == qset.id
                 ).order_by(Question.order_index).all()
                 
                 for idx, question in enumerate(questions, 1):
@@ -643,7 +643,7 @@ Return ONLY a JSON array:
             
             for idx, q_data in enumerate(questions_data):
                 question = Question(
-                    set_id=question_set.id,
+                    question_set_id=question_set.id,
                     question_text=q_data["question"],
                     options=json.dumps(q_data["options"]),
                     correct_answer=q_data["correct_answer"],
@@ -1055,7 +1055,7 @@ Return ONLY a JSON array:
                 html_content += f"<h2>{qset.title}</h2>"
                 
                 questions = self.db.query(Question).filter(
-                    Question.set_id == qset.id
+                    Question.question_set_id == qset.id
                 ).order_by(Question.order_index).all()
                 
                 for idx, question in enumerate(questions, 1):
