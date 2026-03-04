@@ -59,7 +59,6 @@ const SearchHub = () => {
 
   
   const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-  const lastRecommendationRefreshRef = useRef(0);
   const CREATE_TIMEOUT_MS = 30000;
 
   const fetchWithTimeout = async (url, options = {}, timeoutMs = CREATE_TIMEOUT_MS) => {
@@ -107,18 +106,6 @@ const SearchHub = () => {
     // silenced
   }
     }
-  };
-
-  const refreshRecommendations = async (reason = 'manual') => {
-    const now = Date.now();
-    if (now - lastRecommendationRefreshRef.current < 5000) return;
-    lastRecommendationRefreshRef.current = now;
-
-    const username = localStorage.getItem('username');
-    const token = localStorage.getItem('token');
-    if (!username || !token) return;
-    loadRecentSearches(username);
-    await loadPersonalizedPrompts(username);
   };
 
   const getUsedRecommendationKeys = (username) => {
@@ -182,33 +169,9 @@ const SearchHub = () => {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (userDocCount > 0) {
-      refreshRecommendations('doc_count');
-    }
-  }, [userDocCount]);
-
-  useEffect(() => {
-    const handleFocus = () => {
-      refreshRecommendations('focus');
-    };
-    const handleVisibility = () => {
-      if (!document.hidden) {
-        refreshRecommendations('visibility');
-      }
-    };
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, []);
-
   const handleHsModeToggle = (val) => {
     setHsMode(val);
     localStorage.setItem('hs_mode_enabled', String(val));
-    refreshRecommendations('hs_mode');
   };
 
   useEffect(() => {
