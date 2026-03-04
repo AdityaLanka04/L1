@@ -6,7 +6,7 @@ import {
   TrendingUp, Activity, Clock, Bell, Star, Sparkles, Grid,
   ChevronDown, ChevronRight, X, Search, Settings, LogOut,
   GraduationCap, Lightbulb, BookMarked, PenTool, CheckSquare,
-  Gamepad2, Share2, Eye, Flame, Heart, Bookmark
+  Gamepad2, Share2, Eye, Flame, Heart, Bookmark, Library
 } from 'lucide-react';
 import './GlobalNavSidebar.css';
 
@@ -46,6 +46,7 @@ const GlobalNavSidebar = ({ isOpen, onClose }) => {
       icon: GraduationCap,
       items: [
         { path: '/ai-chat', label: 'AI Chat', icon: MessageSquare, description: 'Chat with AI tutor' },
+        { path: '/context', label: 'Context Hub', icon: Library, description: 'Curriculum library & HS context' },
         { path: '/notes-redesign', label: 'Notes', icon: FileText, description: 'Smart note-taking' },
         { path: '/flashcards', label: 'Flashcards', icon: BookMarked, description: 'Master key concepts' },
         { path: '/quiz-hub', label: 'Quiz Hub', icon: CheckSquare, description: 'Test your knowledge' },

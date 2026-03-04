@@ -243,11 +243,13 @@ html:has(.ai-chat-page) {
   width: var(--ac-sidebar-width);
   height: 100%;
   background: var(--ac-bg-secondary);
-  border-right: 1px solid var(--ac-border-subtle);
+  border-right: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   padding-top: 16px;
+  position: relative;
+  transition: width 0.3s ease;
 }
 
 [data-theme-mode="dark"] .ac-sidebar {
@@ -2234,11 +2236,46 @@ sub {
 }
 
 [data-theme-mode="light"] .ac-sidebar {
-  background: linear-gradient(180deg, 
-    color-mix(in srgb, var(--accent) 15%, #ffffff) 0%, 
-    color-mix(in srgb, var(--accent) 25%, #ffffff) 50%, 
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 0%,
+    color-mix(in srgb, var(--accent) 25%, #ffffff) 50%,
     color-mix(in srgb, var(--accent) 18%, #ffffff) 100%);
   box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+[data-theme-mode="dark"] .ac-sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 8%, transparent) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme-mode="light"] .ac-sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 12%, transparent) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ac-sidebar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .ac-nav-item {
@@ -4864,20 +4901,6 @@ button:focus-visible {
   transition: none !important;
 }
 
-.ac-sidebar {
-  background: linear-gradient(180deg, 
-    var(--ac-bg-secondary) 0%, 
-    color-mix(in srgb, var(--ac-bg-secondary) 95%, var(--ac-accent) 5%) 100%) !important;
-  border-right: 1px solid color-mix(in srgb, var(--ac-accent) 20%, transparent) !important;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.08) !important;
-}
-
-[data-theme-mode="dark"] .ac-sidebar {
-  background: linear-gradient(180deg, 
-    rgba(20, 20, 22, 0.98) 0%, 
-    rgba(15, 15, 17, 0.98) 100%);
-  border-right: 1px solid color-mix(in srgb, var(--ac-accent) 25%, transparent);
-}
 
 .ac-new-chat-btn {
   margin: 16px !important;

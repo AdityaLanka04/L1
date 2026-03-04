@@ -99,6 +99,19 @@ class ContextService {
     }
     return response.json();
   }
+
+  async listCommunityDocuments({ curriculum = '', grade = '', subject = '' } = {}) {
+    const params = new URLSearchParams();
+    if (curriculum) params.set('curriculum', curriculum);
+    if (grade) params.set('grade', String(grade));
+    if (subject) params.set('subject', subject);
+    const response = await fetch(`${API_URL}/context/community?${params}`, {
+      headers: this._headers(),
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(`Community list failed (${response.status})`);
+    return response.json();
+  }
 }
 
 const contextService = new ContextService();
