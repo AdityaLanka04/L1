@@ -2764,7 +2764,7 @@ const QuestionBankDashboard = () => {
             cerbyl
           </div>
           <div className="qbd-header-divider"></div>
-          <p className="qbd-header-subtitle">QUIZ HUB</p>
+          <p className="qbd-header-subtitle">QUESTION BANK</p>
         </div>
         <nav className="qbd-header-right">
           <button 

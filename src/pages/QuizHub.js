@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Users, Swords, ChevronRight, Zap, Menu, Home } from 'lucide-react';
+import { User, Swords, ChevronRight, Zap, Menu } from 'lucide-react';
 import './QuizHub.css';
 import ImportExportModal from '../components/ImportExportModal';
 import ContextSelector from '../components/ContextSelector';
@@ -69,36 +69,6 @@ const QuizHub = () => {
       </header>
 
       <div className="qh-layout-body">
-        <aside className="qh-sidebar">
-          <div className="qh-sidebar-nav">
-            <div className="qh-nav-section">
-              <p className="qh-nav-section-title">Quiz Modes</p>
-              <button className="qh-nav-item" onClick={() => navigate('/solo-quiz')}>
-                <span className="qh-nav-icon"><User size={16} /></span>
-                <span className="qh-nav-text">Solo Practice</span>
-              </button>
-              <button className="qh-nav-item" onClick={() => navigate('/quiz-battles')}>
-                <span className="qh-nav-icon"><Swords size={16} /></span>
-                <span className="qh-nav-text">1v1 Battles</span>
-              </button>
-            </div>
-            <div className="qh-nav-section">
-              <p className="qh-nav-section-title">Community</p>
-              <button className="qh-nav-item" onClick={() => navigate('/social')}>
-                <span className="qh-nav-icon"><Users size={16} /></span>
-                <span className="qh-nav-text">Friends & Social</span>
-              </button>
-            </div>
-          </div>
-          <div className="qh-sidebar-footer">
-            <button className="qh-nav-item qh-nav-item-dashboard" onClick={() => navigate('/dashboard')}>
-              <span className="qh-nav-icon"><Home size={16} /></span>
-              <span className="qh-nav-text">Dashboard</span>
-              <ChevronRight size={12} className="qh-nav-chevron" />
-            </button>
-          </div>
-        </aside>
-
         <main className="qh-main">
         <section 
           className={`qh-section qh-section-solo ${hoveredSection === 'solo' ? 'qh-section-hovered' : ''}`}

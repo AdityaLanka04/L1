@@ -244,6 +244,7 @@ const FriendsDashboard = () => {
           </button>
           <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
             Dashboard
+            <ChevronRight size={14} />
           </button>
         </nav>
       </header>

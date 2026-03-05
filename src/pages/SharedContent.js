@@ -134,7 +134,7 @@ const SharedContent = () => {
             cerbyl
           </h1>
           <div className="gm-header-divider"></div>
-          <span className="gm-subtitle">SHARED WITH ME</span>
+          <span className="gm-subtitle">SOCIAL</span>
         </div>
         <nav className="gm-header-right">
           <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
