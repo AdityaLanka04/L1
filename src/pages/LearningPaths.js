@@ -4,7 +4,7 @@ import {
   Plus, Loader, BookOpen, Target, Clock, Award,
   CheckCircle, Play, Trash2,
   Sparkles, Route, Map, Circle, Search,
-  SlidersHorizontal, ArrowUpDown, Menu
+  SlidersHorizontal, ArrowUpDown, Menu, ChevronRight
 } from 'lucide-react';
 import learningPathService from '../services/learningPathService';
 import './LearningPaths.css';
@@ -212,6 +212,7 @@ const LearningPaths = () => {
         <div className="lp-header-right">
           <button className="lp-back-btn" onClick={() => navigate('/dashboard')}>
             Dashboard
+            <ChevronRight size={14} />
           </button>
         </div>
       </header>

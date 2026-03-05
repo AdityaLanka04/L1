@@ -183,16 +183,26 @@
 }
 
 .xp-roadmap-nav-btn-accent:hover {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
+  color: var(--bg-primary);
   transform: translateY(-2px);
+}
+
+[data-theme-mode="light"] .xp-roadmap-nav-btn-accent:hover {
+  color: white;
 }
 
 .xp-roadmap-nav-btn-ghost {
   background: transparent;
-  color: var(--text-primary);
+  border: none;
+  color: var(--text-secondary);
+  height: auto;
+  min-width: auto;
+  padding: 0 4px;
 }
 
 .xp-roadmap-nav-btn-ghost:hover {
-  background: var(--bg-elevated);
+  background: transparent;
   color: var(--accent);
 }
 
