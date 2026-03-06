@@ -74,8 +74,8 @@
 }
 
 .qbd-logo-img {
-  height: 60px;
-  width: 60px;
+  height: 69px;
+  width: 69px;
   -webkit-mask: url('../assets/logo.svg') no-repeat center;
   mask: url('../assets/logo.svg') no-repeat center;
   -webkit-mask-size: contain;
@@ -172,7 +172,7 @@
 }
 
 .qbd-nav-btn-ghost:hover {
-  background: var(--bg-elevated);
+  background: transparent;
   color: var(--accent);
 }
 
@@ -388,17 +388,6 @@
   color: var(--bg-primary);
 }
 
-.qbd-sidebar-footer {
-  padding: 16px 12px;
-  border-top: 1px solid color-mix(in srgb, var(--qbd-accent) 40%, transparent);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.qbd-sidebar-footer .qbd-sidebar-item {
-  border: 1px solid color-mix(in srgb, var(--qbd-accent) 40%, transparent);
-}
 
 .qbd-main {
   flex: 1;
@@ -415,6 +404,8 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .qbd-view {
@@ -422,6 +413,9 @@
   margin: 0 auto;
   padding: 40px;
   width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .qbd-view-header {
@@ -498,29 +492,31 @@
 }
 
 .qbd-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
   background: linear-gradient(135deg, var(--qbd-accent), var(--qbd-accent-dark));
   border: none;
   border-radius: 8px;
   color: var(--bg-primary);
-  padding: 14px 28px;
   font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
   text-transform: uppercase;
   letter-spacing: 2px;
+  cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
+}
+
+.qbd-btn-primary svg {
+  flex-shrink: 0;
+  display: block;
 }
 
 [data-theme-mode="light"] .qbd-btn-primary {
   color: white;
-}
-
-[data-theme-mode="dark"] .qbd-btn-primary {
-  color: var(--bg-primary);
 }
 
 .qbd-btn-primary:hover:not(:disabled) {
@@ -1481,12 +1477,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+  flex: 1;
+  min-height: 0;
   gap: 20px;
   text-align: center;
 }
 
-.qbd-empty-state svg {
+.qbd-empty-state > svg {
   color: var(--accent);
   opacity: 0.5;
 }

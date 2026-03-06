@@ -60,8 +60,8 @@
 }
 
 .shared-logo-img {
-  height: 60px;
-  width: 60px;
+  height: 69px;
+  width: 69px;
   -webkit-mask: url('../assets/logo.svg') no-repeat center;
   mask: url('../assets/logo.svg') no-repeat center;
   -webkit-mask-size: contain;
@@ -112,30 +112,29 @@
   gap: 12px;
 }
 
-.shared-nav-btn {
+.sc-ghost-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  opacity: 0.7;
   padding: 10px 20px;
   font-size: 11px;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
+  font-family: 'Inter', sans-serif;
   text-transform: uppercase;
   letter-spacing: 2px;
-  border-radius: 0;
-  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: color 0.2s, opacity 0.2s;
+  box-shadow: none;
 }
 
-.shared-nav-btn:hover {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  border-color: var(--accent);
+.sc-ghost-btn:hover {
+  opacity: 1;
   color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
 }
 
 .shared-container {

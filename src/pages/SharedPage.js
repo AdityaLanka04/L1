@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Menu, Search, Plus, MessageSquare, FileText, Eye, Edit3, 
-  Trash2, Clock, Share2, Users, ChevronLeft
+  Menu, Search, Plus, MessageSquare, FileText, Eye, Edit3,
+  Trash2, Clock, Share2, Users
 } from 'lucide-react';
 import ShareModal from './SharedModal';
 import './SharedPage.css';
@@ -210,11 +210,11 @@ const SharedPage = () => {
           <span className="sp-subtitle">SHARED CONTENT</span>
         </div>
         <nav className="sp-header-right">
-          <button className="sp-nav-btn sp-nav-btn-ghost" onClick={() => navigate('/social')}>
-            <ChevronLeft size={16} />
-            Back to Social
+          <button className="sp-ghost-btn" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
           </button>
-          <button className="sp-nav-btn sp-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="sp-ghost-btn" onClick={() => navigate('/dashboard')}>
             Dashboard
           </button>
         </nav>

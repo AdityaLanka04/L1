@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   X, Download, FileText, HelpCircle, 
-  Zap, CheckCircle, Loader, ArrowRight 
+  Zap, CheckCircle, Loader, ChevronRight 
 } from 'lucide-react';
 import { API_URL } from '../config';
 import conversionAgentService from '../services/conversionAgentService';
@@ -347,7 +347,7 @@ const ImportExportModal = ({
                   onClick={() => setStep(2)}
                   disabled={selectedItems.length === 0}
                 >
-                  Next <ArrowRight size={16} />
+                  Next <ChevronRight size={16} />
                 </button>
               </div>
             </div>
@@ -541,7 +541,7 @@ const ImportExportModal = ({
                         }
                       }}
                     >
-                      View {destinationType === 'flashcards' ? 'Flashcards' : destinationType === 'questions' ? 'Questions' : 'Note'} <ArrowRight size={16} />
+                      View {destinationType === 'flashcards' ? 'Flashcards' : destinationType === 'questions' ? 'Questions' : 'Note'} <ChevronRight size={16} />
                     </button>
                   </>
                 )}

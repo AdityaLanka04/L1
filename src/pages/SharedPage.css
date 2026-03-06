@@ -126,8 +126,8 @@
 }
 
 .sp-logo-img {
-  height: 60px;
-  width: 60px;
+  height: 69px;
+  width: 69px;
   -webkit-mask: url('../assets/logo.svg') no-repeat center;
   mask: url('../assets/logo.svg') no-repeat center;
   -webkit-mask-size: contain;
@@ -181,39 +181,27 @@
   gap: 12px;
 }
 
-.sp-nav-btn {
+.sp-ghost-btn {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 10px 20px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--sp-transition);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
   letter-spacing: 2px;
   background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-secondary);
-  border-radius: 32px;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  opacity: 0.7;
+  transition: color 0.2s, opacity 0.2s;
 }
 
-.sp-nav-btn:hover {
-  background: var(--bg-bottom);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-2px);
-}
-
-.sp-nav-btn-ghost {
-  background: transparent;
-  border: 1px solid transparent;
-}
-
-.sp-nav-btn-ghost:hover {
-  background: var(--panel);
-  border-color: var(--accent);
+.sp-ghost-btn:hover {
+  opacity: 1;
   color: var(--accent);
 }
 

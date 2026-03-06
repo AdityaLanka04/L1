@@ -137,11 +137,11 @@ const SharedContent = () => {
           <span className="gm-subtitle">SOCIAL</span>
         </div>
         <nav className="gm-header-right">
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+          <button className="sc-ghost-btn" onClick={() => navigate('/social')}>
             <Users size={16} />
             Social
           </button>
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="sc-ghost-btn" onClick={() => navigate('/dashboard')}>
             Dashboard
           </button>
         </nav>

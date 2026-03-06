@@ -6,7 +6,8 @@
 .si-header{position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:0 60px !important;height:70px;min-height:70px;max-height:70px;background:color-mix(in srgb,var(--bg-primary,var(--bg-primary)) 80%,transparent);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--accent)}
 .si-header-left{display:flex;align-items:center;gap:16px}
 .si-logo{display:flex;align-items:center;gap:6px;font-size:24px;font-weight:800;color:var(--accent);letter-spacing:-1px;cursor:pointer;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);position:relative}
-.si-logo-img{height:60px;width:60px;-webkit-mask:url('../assets/logo.svg') no-repeat center;mask:url('../assets/logo.svg') no-repeat center;-webkit-mask-size:contain;mask-size:contain;background-color:var(--accent);transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}
+.si-logo-img {
+  height: 69px;width: 69px;-webkit-mask:url('../assets/logo.svg') no-repeat center;mask:url('../assets/logo.svg') no-repeat center;-webkit-mask-size:contain;mask-size:contain;background-color:var(--accent);transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}
 .si-logo:hover{transform:translateY(-2px);text-shadow:0 4px 20px color-mix(in srgb,var(--accent) 50%,transparent)}
 .si-logo:hover .si-logo-img{transform:scale(1.1)}
 .si-header-divider{width:1px;height:20px;background:color-mix(in srgb,var(--accent) 30%,transparent)}

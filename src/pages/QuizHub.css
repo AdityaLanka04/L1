@@ -113,8 +113,8 @@
 }
 
 .qh-logo-img {
-  height: 60px;
-  width: 60px;
+  height: 69px;
+  width: 69px;
   -webkit-mask: url('../assets/logo.svg') no-repeat center;
   mask: url('../assets/logo.svg') no-repeat center;
   -webkit-mask-size: contain;

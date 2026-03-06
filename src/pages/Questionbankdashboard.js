@@ -1285,16 +1285,6 @@ const QuestionBankDashboard = () => {
         </button>
       </nav>
 
-      <div className="qbd-sidebar-footer">
-        <button className="qbd-sidebar-item" onClick={() => navigate('/dashboard')}>
-          <ChevronLeft size={20} />
-          <span className="qbd-nav-text">Dashboard</span>
-        </button>
-        <button className="qbd-sidebar-item" onClick={() => navigate('/ai-chat')}>
-          <MessageSquare size={20} />
-          <span className="qbd-nav-text">AI Chat</span>
-        </button>
-      </div>
     </div>
   );
 
