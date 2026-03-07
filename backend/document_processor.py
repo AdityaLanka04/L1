@@ -1,5 +1,5 @@
 """
-document_processor.py — PDF/text ingestion and chunking for Cerbyl HS Mode.
+document_processor.py — document ingestion + chunking for Cerbyl HS Mode.
 
 Supported file types: .pdf, .txt, .md
 Max file size: enforced by the calling route (50 MB)
@@ -7,22 +7,25 @@ Max file size: enforced by the calling route (50 MB)
 Chunking strategy:
   - Chunk size: ~700 characters
   - Overlap:    80 characters (sliding window, step = 620)
-  - Minimum chunk length: 80 characters (discard short trailing fragments)
+  - Minimum chunk length: 80 characters
   - Optional TOC-aware chunking uses detected headings to split sections
 
-PDF extraction priority:
-  1. PyPDF2 (try first)
-  2. pdfplumber (fallback if PyPDF2 returns empty text)
+PDF extraction strategy:
+  1. pymupdf4llm (layout-aware, best quality for RAG)
+  2. PyMuPDF blocks/text fallback
+  3. pdfplumber fallback
+  4. PyPDF2 final fallback
 
-Both PyPDF2 and pdfplumber are common in Python ML environments.
-Install if missing: pip install PyPDF2 pdfplumber
+All parsers are attempted, scored, and the best candidate is selected.
 """
 
 from __future__ import annotations
 
 import io
+import importlib.util
 import logging
 import re
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -31,39 +34,278 @@ CHUNK_OVERLAP = 80
 MIN_CHUNK_LEN = 80
 MAX_HEADING_LEN = 90
 
-def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """
-    Extract all text from a PDF file.
+@dataclass
+class PDFExtractionCandidate:
+    parser: str
+    text: str
+    page_count: int
+    non_empty_pages: int
+    warnings: list[str]
 
-    Tries PyPDF2 first (faster), falls back to pdfplumber if the result is empty.
-    Never raises — returns "" on total failure.
+
+def _clean_pdf_page_text(text: str) -> str:
+    if not text:
+        return ""
+    text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\x00", "")
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def _strip_repeating_page_artifacts(page_texts: list[str]) -> list[str]:
     """
-    text = ""
+    Remove common header/footer lines repeated on most pages.
+    This reduces navigation noise before chunking.
+    """
+    if len(page_texts) < 4:
+        return page_texts
+
+    threshold = max(3, int(len(page_texts) * 0.6))
+    candidates: dict[str, int] = {}
+    first_lines: list[str] = []
+    last_lines: list[str] = []
+
+    for page in page_texts:
+        lines = [ln.strip() for ln in page.splitlines() if ln.strip()]
+        if not lines:
+            continue
+        first_lines.append(lines[0])
+        last_lines.append(lines[-1])
+
+    def _count_lines(lines: list[str]):
+        for line in lines:
+            normalized = re.sub(r"\s+", " ", line).strip()
+            if len(normalized) > 140:
+                continue
+            candidates[normalized] = candidates.get(normalized, 0) + 1
+
+    _count_lines(first_lines)
+    _count_lines(last_lines)
+    to_remove = {line for line, count in candidates.items() if count >= threshold}
+    if not to_remove:
+        return page_texts
+
+    cleaned_pages = []
+    for page in page_texts:
+        kept = []
+        for line in page.splitlines():
+            normalized = re.sub(r"\s+", " ", line).strip()
+            if normalized and normalized in to_remove:
+                continue
+            kept.append(line)
+        cleaned_pages.append("\n".join(kept).strip())
+    return cleaned_pages
+
+
+def _score_pdf_candidate(candidate: PDFExtractionCandidate) -> float:
+    text = candidate.text or ""
+    if not text.strip():
+        return -1.0
+    char_count = len(text)
+    alpha_ratio = sum(ch.isalpha() for ch in text) / max(1, char_count)
+    tokens = re.findall(r"[A-Za-z0-9]{2,}", text.lower())
+    unique_ratio = (len(set(tokens)) / len(tokens)) if tokens else 0.0
+    coverage = candidate.non_empty_pages / max(1, candidate.page_count)
+
+    return (
+        min(char_count, 400_000) * 0.55
+        + alpha_ratio * 4_000
+        + unique_ratio * 1_500
+        + coverage * 8_000
+    )
+
+
+def _extract_with_pymupdf4llm(file_bytes: bytes) -> PDFExtractionCandidate | None:
+    try:
+        import fitz
+        import pymupdf4llm
+    except Exception:
+        return None
+
+    doc = None
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        page_texts = [_clean_pdf_page_text(page.get_text("text", sort=True) or "") for page in doc]
+        cleaned_pages = _strip_repeating_page_artifacts(page_texts)
+
+        llm_text = _clean_pdf_page_text(pymupdf4llm.to_text(doc) or "")
+        fallback_text = _clean_pdf_page_text("\n\n".join(cleaned_pages))
+        final_text = llm_text if len(llm_text) >= len(fallback_text) * 0.7 else fallback_text
+
+        return PDFExtractionCandidate(
+            parser="pymupdf4llm",
+            text=final_text,
+            page_count=doc.page_count,
+            non_empty_pages=sum(1 for p in cleaned_pages if p),
+            warnings=[],
+        )
+    except Exception as e:
+        logger.warning(f"pymupdf4llm extraction failed: {e}")
+        return None
+    finally:
+        if doc is not None:
+            doc.close()
+
+
+def _extract_with_pymupdf(file_bytes: bytes) -> PDFExtractionCandidate | None:
+    try:
+        import fitz
+    except Exception:
+        return None
+
+    doc = None
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        page_texts: list[str] = []
+        for page in doc:
+            blocks = page.get_text("blocks", sort=True)
+            block_lines = []
+            for block in blocks:
+                if len(block) > 4 and str(block[4]).strip():
+                    block_lines.append(str(block[4]).strip())
+            page_text = "\n".join(block_lines) if block_lines else (page.get_text("text", sort=True) or "")
+            page_texts.append(_clean_pdf_page_text(page_text))
+
+        cleaned_pages = _strip_repeating_page_artifacts(page_texts)
+        return PDFExtractionCandidate(
+            parser="pymupdf",
+            text=_clean_pdf_page_text("\n\n".join(cleaned_pages)),
+            page_count=doc.page_count,
+            non_empty_pages=sum(1 for p in cleaned_pages if p),
+            warnings=[],
+        )
+    except Exception as e:
+        logger.warning(f"PyMuPDF extraction failed: {e}")
+        return None
+    finally:
+        if doc is not None:
+            doc.close()
+
+
+def _extract_with_pdfplumber(file_bytes: bytes) -> PDFExtractionCandidate | None:
+    try:
+        import pdfplumber
+    except Exception:
+        return None
 
     try:
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            page_texts: list[str] = []
+            for page in pdf.pages:
+                page_text = page.extract_text(
+                    x_tolerance=2,
+                    y_tolerance=3,
+                    layout=False,
+                ) or ""
+                page_texts.append(_clean_pdf_page_text(page_text))
+
+            cleaned_pages = _strip_repeating_page_artifacts(page_texts)
+            return PDFExtractionCandidate(
+                parser="pdfplumber",
+                text=_clean_pdf_page_text("\n\n".join(cleaned_pages)),
+                page_count=len(pdf.pages),
+                non_empty_pages=sum(1 for p in cleaned_pages if p),
+                warnings=[],
+            )
+    except Exception as e:
+        logger.warning(f"pdfplumber extraction failed: {e}")
+        return None
+
+
+def _extract_with_pypdf2(file_bytes: bytes) -> PDFExtractionCandidate | None:
+    try:
         import PyPDF2
+    except Exception:
+        return None
+
+    try:
         reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
-        pages = []
-        for page in reader.pages:
-            page_text = page.extract_text() or ""
-            pages.append(page_text)
-        text = "\n\n".join(pages).strip()
+        page_texts = [_clean_pdf_page_text((page.extract_text() or "")) for page in reader.pages]
+        cleaned_pages = _strip_repeating_page_artifacts(page_texts)
+        return PDFExtractionCandidate(
+            parser="pypdf2",
+            text=_clean_pdf_page_text("\n\n".join(cleaned_pages)),
+            page_count=len(reader.pages),
+            non_empty_pages=sum(1 for p in cleaned_pages if p),
+            warnings=[],
+        )
     except Exception as e:
         logger.warning(f"PyPDF2 extraction failed: {e}")
+        return None
 
-    if not text:
-        try:
-            import pdfplumber
-            with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-                pages = []
-                for page in pdf.pages:
-                    page_text = page.extract_text() or ""
-                    pages.append(page_text)
-                text = "\n\n".join(pages).strip()
-        except Exception as e:
-            logger.warning(f"pdfplumber extraction failed: {e}")
 
-    return text
+def extract_text_from_pdf_detailed(file_bytes: bytes) -> dict:
+    """
+    Extract text from PDF using multiple parsers and pick the best result.
+    Never raises. Returns text + parser metadata.
+    """
+    candidates: list[PDFExtractionCandidate] = []
+    warnings: list[str] = []
+
+    for extractor in (
+        _extract_with_pymupdf4llm,
+        _extract_with_pymupdf,
+        _extract_with_pdfplumber,
+        _extract_with_pypdf2,
+    ):
+        candidate = extractor(file_bytes)
+        if candidate is not None:
+            candidates.append(candidate)
+
+    if not candidates:
+        missing = []
+        if importlib.util.find_spec("fitz") is None:
+            missing.append("PyMuPDF")
+        if importlib.util.find_spec("pymupdf4llm") is None:
+            missing.append("pymupdf4llm")
+        if importlib.util.find_spec("pdfplumber") is None:
+            missing.append("pdfplumber")
+        if importlib.util.find_spec("PyPDF2") is None:
+            missing.append("PyPDF2")
+        if missing:
+            warnings.append("Missing PDF parser dependencies: " + ", ".join(sorted(set(missing))))
+        warnings.append("No PDF parser succeeded")
+        return {
+            "text": "",
+            "parser": "",
+            "page_count": 0,
+            "non_empty_pages": 0,
+            "warnings": warnings,
+        }
+
+    scored = sorted(
+        ((candidate, _score_pdf_candidate(candidate)) for candidate in candidates),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+    best, best_score = scored[0]
+    logger.info(
+        "PDF extraction selected parser=%s pages=%s non_empty_pages=%s score=%.2f",
+        best.parser,
+        best.page_count,
+        best.non_empty_pages,
+        best_score,
+    )
+    for candidate, score in scored[1:]:
+        logger.debug("PDF extraction candidate parser=%s score=%.2f", candidate.parser, score)
+
+    for c in candidates:
+        warnings.extend(c.warnings)
+
+    return {
+        "text": best.text,
+        "parser": best.parser,
+        "page_count": best.page_count,
+        "non_empty_pages": best.non_empty_pages,
+        "warnings": sorted(set(warnings)),
+    }
+
+
+def extract_text_from_pdf(file_bytes: bytes) -> str:
+    """
+    Backward-compatible convenience wrapper.
+    """
+    return extract_text_from_pdf_detailed(file_bytes).get("text", "")
 
 def extract_text_from_txt(file_bytes: bytes) -> str:
     """
@@ -383,10 +625,19 @@ def process_upload(
     detected_subject = ""
     detected_grade = ""
     chapters: list[str] = []
+    pdf_parser = ""
+    pdf_page_count = 0
+    pdf_non_empty_pages = 0
+    extraction_warnings: list[str] = []
 
     try:
         if lower_name.endswith(".pdf"):
-            text = extract_text_from_pdf(file_bytes)
+            extracted = extract_text_from_pdf_detailed(file_bytes)
+            text = extracted.get("text", "")
+            pdf_parser = extracted.get("parser", "")
+            pdf_page_count = extracted.get("page_count", 0) or 0
+            pdf_non_empty_pages = extracted.get("non_empty_pages", 0) or 0
+            extraction_warnings = extracted.get("warnings", []) or []
         elif lower_name.endswith((".txt", ".md")):
             text = extract_text_from_txt(file_bytes)
         else:
@@ -399,7 +650,18 @@ def process_upload(
         logger.error(error)
 
     if not text and not error:
-        error = "No text could be extracted from this file. It may be a scanned image PDF."
+        if lower_name.endswith(".pdf") and any(
+            w.lower().startswith("missing pdf parser dependencies")
+            for w in extraction_warnings
+        ):
+            error = "PDF parsing dependencies are missing on the server."
+        elif lower_name.endswith(".pdf") and pdf_page_count > 0:
+            error = (
+                "No extractable text found in this PDF. "
+                "It appears to be image-only or scanned content without OCR text."
+            )
+        else:
+            error = "No text could be extracted from this file."
 
     if text:
         chapters = extract_chapter_headings(text)
@@ -437,4 +699,8 @@ def process_upload(
         "chunk_size":  chunk_size,
         "chunk_overlap": chunk_overlap,
         "toc_aware":   toc_aware,
+        "pdf_parser": pdf_parser,
+        "pdf_page_count": pdf_page_count,
+        "pdf_non_empty_pages": pdf_non_empty_pages,
+        "extraction_warnings": extraction_warnings,
     }

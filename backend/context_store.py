@@ -189,6 +189,7 @@ def add_document_chunks(
     source_url: str = "",
     source_name: str = "",
     license: str = "",
+    replace_existing: bool = False,
 ) -> int:
     """
     Embed and store text chunks into the appropriate ChromaDB collection(s).
@@ -198,7 +199,9 @@ def add_document_chunks(
       - scope == "hs_shared" → store in BOTH user_docs_{hash} AND hs_curriculum
                                (user keeps their own copy, contributes to global)
 
-    Returns the number of chunks successfully stored.
+    Set replace_existing=True to delete existing doc_id chunks before insert.
+
+    Returns the number of chunks successfully stored in the user collection.
     Raises RuntimeError if not available(). Raises ValueError if chunks is empty.
     """
     if not available():
@@ -209,14 +212,38 @@ def add_document_chunks(
     timestamp = datetime.now(timezone.utc).isoformat()
     clean_subject = canonicalize_subject(subject) if subject else ""
     clean_grade = (grade_level or "").strip()
+    cleaned_chunks = [chunk.strip() for chunk in chunks if chunk and chunk.strip()]
+    if not cleaned_chunks:
+        raise ValueError("No non-empty chunks provided")
+
+    def _encode_chunks(payload: list[str]) -> list[list[float]]:
+        try:
+            vectors = _embed_model.encode(payload, batch_size=32, show_progress_bar=False)
+        except TypeError:
+            vectors = _embed_model.encode(payload)
+        if hasattr(vectors, "tolist"):
+            vectors = vectors.tolist()
+        out: list[list[float]] = []
+        for vector in vectors:
+            if hasattr(vector, "tolist"):
+                out.append(vector.tolist())
+            else:
+                out.append(list(vector))
+        return out
+
+    embeddings = _encode_chunks(cleaned_chunks)
 
     def _write_to_collection(col_name: str) -> int:
         col = _get_collection(col_name)
-        ids, embeddings, documents, metadatas = [], [], [], []
+        if replace_existing:
+            try:
+                col.delete(where={"doc_id": doc_id})
+            except Exception as e:
+                logger.warning(f"replace_existing delete failed for {doc_id} in {col_name}: {e}")
+        ids, documents, metadatas = [], [], []
 
-        for i, chunk in enumerate(chunks):
+        for i, chunk in enumerate(cleaned_chunks):
             chunk_id = f"{doc_id}_{i}"
-            embedding = _embed_model.encode(chunk).tolist()
             meta = {
                 "doc_id": doc_id,
                 "filename": filename[:200],
@@ -231,7 +258,6 @@ def add_document_chunks(
                 "timestamp": timestamp,
             }
             ids.append(chunk_id)
-            embeddings.append(embedding)
             documents.append(chunk)
             metadatas.append(meta)
 
