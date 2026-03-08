@@ -865,10 +865,17 @@ html:has(.ai-chat-page) {
 
 .ac-message-content {
   color: var(--ac-text-primary);
-  font-size: 14px;
-  line-height: 1.6;
-  white-space: pre-wrap;
+  font-size: 18px;
+  line-height: 1.8;
   word-wrap: break-word;
+}
+
+.ac-message-content p {
+  margin: 0 0 20px 0;
+}
+
+.ac-message-content p:last-child {
+  margin-bottom: 0;
 }
 
 .ac-suggestion-item {
@@ -1766,13 +1773,15 @@ html:has(.ai-chat-page) {
 .ac-message-content h3,
 .ac-message-content h4 {
   color: var(--ac-accent);
-  margin: 16px 0 8px 0;
+  font-weight: 700;
+  margin: 28px 0 12px 0;
+  line-height: 1.3;
 }
 
-.ac-message-content h1 { font-size: 18px; }
-.ac-message-content h2 { font-size: 16px; }
-.ac-message-content h3 { font-size: 15px; }
-.ac-message-content h4 { font-size: 14px; }
+.ac-message-content h1 { font-size: 26px; }
+.ac-message-content h2 { font-size: 23px; }
+.ac-message-content h3 { font-size: 20px; }
+.ac-message-content h4 { font-size: 18px; }
 
 .ac-message-content strong {
   color: var(--ac-accent);
@@ -1786,12 +1795,13 @@ html:has(.ai-chat-page) {
 
 .ac-message-content ul,
 .ac-message-content ol {
-  margin: 8px 0;
-  padding-left: 20px;
+  margin: 10px 0 14px 0;
+  padding-left: 24px;
 }
 
 .ac-message-content li {
-  margin: 4px 0;
+  margin: 6px 0;
+  line-height: 1.65;
 }
 
 .ac-message-content code {
@@ -2103,14 +2113,15 @@ html:has(.ai-chat-page) {
 
 .md-h1, .md-h2, .md-h3, .md-h4 {
   color: var(--ac-accent);
-  margin: 16px 0 8px 0;
-  font-weight: 600;
+  margin: 28px 0 12px 0;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
-.md-h1 { font-size: 18px; }
-.md-h2 { font-size: 16px; }
-.md-h3 { font-size: 15px; }
-.md-h4 { font-size: 14px; }
+.md-h1 { font-size: 26px; }
+.md-h2 { font-size: 23px; }
+.md-h3 { font-size: 20px; }
+.md-h4 { font-size: 18px; }
 
 .md-bold-heading,
 .md-bold-inline {
@@ -2119,13 +2130,13 @@ html:has(.ai-chat-page) {
 }
 
 .md-ul, .md-ol {
-  margin: 8px 0;
-  padding-left: 20px;
+  margin: 10px 0 14px 0;
+  padding-left: 24px;
 }
 
 .md-li, .md-li-num {
-  margin: 4px 0;
-  line-height: 1.6;
+  margin: 6px 0;
+  line-height: 1.65;
 }
 
 .keyword {
@@ -3117,8 +3128,8 @@ sub {
 .ac-message-content h3,
 .ac-message-content h4,
 .md-h1, .md-h2, .md-h3, .md-h4 {
-  position: relative;
-  padding-left: 12px;
+  position: static;
+  padding-left: 0;
 }
 
 .ac-message-content h1::before,
@@ -3126,13 +3137,7 @@ sub {
 .ac-message-content h3::before,
 .ac-message-content h4::before,
 .md-h1::before, .md-h2::before, .md-h3::before, .md-h4::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(180deg, var(--ac-accent), var(--ac-accent-dark));
+  content: none;
 }
 
 .ac-message-content strong {

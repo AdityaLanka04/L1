@@ -220,6 +220,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Context store init failed: {e}")
 
+    try:
+        import redis_cache
+        connected = redis_cache.init_redis()
+        if connected:
+            logger.info("Redis cache connected")
+        else:
+            logger.info("Redis unavailable — using in-memory cache fallback")
+    except Exception as e:
+        logger.warning(f"Redis cache init failed: {e}")
+
     logger.info("Startup complete")
     yield
 

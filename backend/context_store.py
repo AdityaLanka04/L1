@@ -56,6 +56,8 @@ import re
 from datetime import datetime, timezone
 from typing import Optional
 
+import redis_cache
+
 logger = logging.getLogger(__name__)
 
 _client = None
@@ -190,6 +192,7 @@ def add_document_chunks(
     source_name: str = "",
     license: str = "",
     replace_existing: bool = False,
+    chunk_pages: list[dict] | None = None,
 ) -> int:
     """
     Embed and store text chunks into the appropriate ChromaDB collection(s).
@@ -244,7 +247,7 @@ def add_document_chunks(
 
         for i, chunk in enumerate(cleaned_chunks):
             chunk_id = f"{doc_id}_{i}"
-            meta = {
+            meta: dict = {
                 "doc_id": doc_id,
                 "filename": filename[:200],
                 "subject": clean_subject[:100] if clean_subject else "",
@@ -252,11 +255,19 @@ def add_document_chunks(
                 "scope": scope,
                 "user_id": str(user_id),
                 "chunk_index": str(i),
+                "page_number": "",
+                "page_start": "",
+                "page_end": "",
                 "source_url": source_url[:300] if source_url else "",
                 "source_name": source_name[:120] if source_name else "",
                 "license": license[:60] if license else "",
                 "timestamp": timestamp,
             }
+            if chunk_pages and i < len(chunk_pages):
+                pg = chunk_pages[i]
+                meta["page_number"] = str(pg.get("page_label") or pg.get("page_start") or "")
+                meta["page_start"] = str(pg.get("page_start") or "")
+                meta["page_end"] = str(pg.get("page_end") or "")
             ids.append(chunk_id)
             documents.append(chunk)
             metadatas.append(meta)
@@ -278,6 +289,12 @@ def add_document_chunks(
             _write_to_collection(HS_CURRICULUM_COLLECTION)
         except Exception as e:
             logger.warning(f"HS curriculum write failed for doc {doc_id}: {e}")
+
+    # Invalidate cached search results so new doc content is immediately visible
+    try:
+        redis_cache.invalidate_user_search(str(user_id))
+    except Exception:
+        pass
 
     return stored
 
@@ -306,11 +323,21 @@ def search_context(
     if not available():
         return []
 
-    try:
-        query_embedding = _embed_model.encode(query).tolist()
-    except Exception as e:
-        logger.warning(f"Query embedding failed: {e}")
-        return []
+    # --- Cache: search results ---
+    _cache_kwargs = dict(use_hs=use_hs, top_k=top_k, subject=subject or "", grade_level=grade_level or "")
+    cached = redis_cache.get_search(query, user_id, **_cache_kwargs)
+    if cached is not None:
+        return cached
+
+    # --- Cache: query embedding ---
+    query_embedding: list[float] | None = redis_cache.get_embedding(query)
+    if query_embedding is None:
+        try:
+            query_embedding = _embed_model.encode(query).tolist()
+            redis_cache.set_embedding(query, query_embedding)
+        except Exception as e:
+            logger.warning(f"Query embedding failed: {e}")
+            return []
 
     results: list[dict] = []
     seen_keys: set[str] = set()
@@ -403,6 +430,13 @@ def search_context(
     cleaned = []
     for r in ranked[:top_k]:
         cleaned.append({k: v for k, v in r.items() if not k.startswith("_")})
+
+    # Cache the results for future identical queries
+    try:
+        redis_cache.set_search(query, user_id, cleaned, **_cache_kwargs)
+    except Exception:
+        pass
+
     return cleaned
 
 def list_user_docs(user_id: str) -> list[dict]:
@@ -492,6 +526,11 @@ def delete_document(user_id: str, doc_id: str, is_admin: bool = False):
         user_col.delete(where={"doc_id": doc_id})
     except Exception as e:
         logger.warning(f"delete_document user_col failed for {doc_id}: {e}")
+
+    try:
+        redis_cache.invalidate_user_search(str(user_id))
+    except Exception:
+        pass
 
     if is_admin:
         try:

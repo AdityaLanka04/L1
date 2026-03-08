@@ -329,6 +329,7 @@ async def upload_document(
             source_url=source_url,
             source_name=clean_source,
             license=clean_license,
+            chunk_pages=result.get("chunk_pages") or None,
         )
 
         doc_record.chunk_count = stored
@@ -355,6 +356,7 @@ async def upload_document(
             "pdf_parser": result.get("pdf_parser", ""),
             "pdf_page_count": result.get("pdf_page_count", 0),
             "pdf_non_empty_pages": result.get("pdf_non_empty_pages", 0),
+            "has_page_tracking": result.get("has_page_tracking", False),
             "extraction_warnings": result.get("extraction_warnings", []),
             "source_name": clean_source,
             "license": clean_license,
@@ -465,6 +467,7 @@ def import_document_url(
             source_url=url,
             source_name=clean_source,
             license=clean_license,
+            chunk_pages=result.get("chunk_pages") or None,
         )
 
         doc_record.chunk_count = stored
@@ -576,8 +579,33 @@ def list_documents(
     except Exception as e:
         logger.warning(f"hs_stats failed: {e}")
 
+    hs_docs_db = (
+        db.query(models.ContextDocument)
+        .filter(
+            models.ContextDocument.scope == "hs_shared",
+            models.ContextDocument.status == "ready",
+        )
+        .order_by(models.ContextDocument.created_at.desc())
+        .all()
+    )
+    hs_docs = [
+        {
+            "doc_id":      d.doc_id,
+            "filename":    d.filename,
+            "subject":     d.subject or "",
+            "grade_level": d.grade_level or "",
+            "scope":       d.scope,
+            "chunk_count": d.chunk_count,
+            "status":      d.status,
+            "source_name": d.source_name or "",
+            "created_at":  d.created_at.isoformat() + "Z" if d.created_at else "",
+        }
+        for d in hs_docs_db
+    ]
+
     return {
         "user_docs": user_docs,
+        "hs_docs": hs_docs,
         "hs_summary": {
             "total_subjects": len(hs_subjects),
             "total_docs": hs_total_docs,

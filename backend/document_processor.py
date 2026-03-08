@@ -9,6 +9,8 @@ Chunking strategy:
   - Overlap:    80 characters (sliding window, step = 620)
   - Minimum chunk length: 80 characters
   - Optional TOC-aware chunking uses detected headings to split sections
+  - Page-aware chunking: chunks stay within page boundaries, each chunk
+    carries page_start/page_end/page_label metadata
 
 PDF extraction strategy:
   1. pymupdf4llm (layout-aware, best quality for RAG)
@@ -17,6 +19,11 @@ PDF extraction strategy:
   4. PyPDF2 final fallback
 
 All parsers are attempted, scored, and the best candidate is selected.
+
+Per-page extraction (for page citation):
+  Extracts text page-by-page so every chunk knows its source page number.
+  Use extract_pages_from_pdf() + chunk_pages_with_tracking() for this flow.
+  process_upload() uses this automatically and returns chunk_pages alongside chunks.
 """
 
 from __future__ import annotations
@@ -306,6 +313,218 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
     Backward-compatible convenience wrapper.
     """
     return extract_text_from_pdf_detailed(file_bytes).get("text", "")
+
+
+# ---------------------------------------------------------------------------
+# Per-page extraction (for page citation support)
+# ---------------------------------------------------------------------------
+
+def _extract_pages_with_pymupdf(file_bytes: bytes) -> list[dict] | None:
+    """Per-page extraction using PyMuPDF (blocks layout, best fidelity)."""
+    try:
+        import fitz
+    except Exception:
+        return None
+    doc = None
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        pages = []
+        for i, page in enumerate(doc):
+            blocks = page.get_text("blocks", sort=True)
+            block_lines = []
+            for block in blocks:
+                if len(block) > 4 and str(block[4]).strip():
+                    block_lines.append(str(block[4]).strip())
+            page_text = "\n".join(block_lines) if block_lines else (page.get_text("text", sort=True) or "")
+            cleaned = _clean_pdf_page_text(page_text)
+            pages.append({"page_num": i + 1, "text": cleaned, "char_count": len(cleaned)})
+        return pages
+    except Exception as e:
+        logger.warning(f"PyMuPDF per-page extraction failed: {e}")
+        return None
+    finally:
+        if doc is not None:
+            doc.close()
+
+
+def _extract_pages_with_pdfplumber(file_bytes: bytes) -> list[dict] | None:
+    """Per-page extraction using pdfplumber."""
+    try:
+        import pdfplumber
+    except Exception:
+        return None
+    try:
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            pages = []
+            for i, page in enumerate(pdf.pages):
+                page_text = page.extract_text(x_tolerance=2, y_tolerance=3, layout=False) or ""
+                cleaned = _clean_pdf_page_text(page_text)
+                pages.append({"page_num": i + 1, "text": cleaned, "char_count": len(cleaned)})
+            return pages
+    except Exception as e:
+        logger.warning(f"pdfplumber per-page extraction failed: {e}")
+        return None
+
+
+def _extract_pages_with_pypdf2(file_bytes: bytes) -> list[dict] | None:
+    """Per-page extraction using PyPDF2 (last-resort fallback)."""
+    try:
+        import PyPDF2
+    except Exception:
+        return None
+    try:
+        reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
+        pages = []
+        for i, page in enumerate(reader.pages):
+            cleaned = _clean_pdf_page_text(page.extract_text() or "")
+            pages.append({"page_num": i + 1, "text": cleaned, "char_count": len(cleaned)})
+        return pages
+    except Exception as e:
+        logger.warning(f"PyPDF2 per-page extraction failed: {e}")
+        return None
+
+
+def _score_pages(pages: list[dict]) -> float:
+    """Score a per-page extraction result for quality selection."""
+    if not pages:
+        return -1.0
+    total_chars = sum(p["char_count"] for p in pages)
+    non_empty = sum(1 for p in pages if p["char_count"] > 10)
+    coverage = non_empty / max(1, len(pages))
+    all_text = " ".join(p["text"] for p in pages if p["text"])
+    alpha_ratio = (sum(c.isalpha() for c in all_text) / max(1, len(all_text))) if all_text else 0.0
+    return min(total_chars, 400_000) * 0.55 + alpha_ratio * 4_000 + coverage * 8_000
+
+
+def extract_pages_from_pdf(file_bytes: bytes) -> list[dict]:
+    """
+    Extract text page-by-page from a PDF, selecting the best parser.
+
+    Returns a list of dicts, one per page:
+        [{"page_num": int (1-based), "text": str, "char_count": int, "parser": str}, ...]
+
+    Common headers/footers are removed. Returns [] on total failure.
+    """
+    candidates: list[tuple[str, list[dict]]] = []
+    for name, extractor in [
+        ("pymupdf", _extract_pages_with_pymupdf),
+        ("pdfplumber", _extract_pages_with_pdfplumber),
+        ("pypdf2", _extract_pages_with_pypdf2),
+    ]:
+        result = extractor(file_bytes)
+        if result:
+            candidates.append((name, result))
+
+    if not candidates:
+        logger.warning("extract_pages_from_pdf: no parser succeeded")
+        return []
+
+    best_name, best_pages = max(candidates, key=lambda x: _score_pages(x[1]))
+    score = _score_pages(best_pages)
+    logger.info(
+        "Per-page extraction selected parser=%s pages=%d score=%.1f",
+        best_name, len(best_pages), score,
+    )
+
+    page_texts = [p["text"] for p in best_pages]
+    cleaned_texts = _strip_repeating_page_artifacts(page_texts)
+    result = []
+    for i, p in enumerate(best_pages):
+        text = cleaned_texts[i]
+        result.append({
+            "page_num": p["page_num"],
+            "text": text,
+            "char_count": len(text),
+            "parser": best_name,
+        })
+    return result
+
+
+def chunk_pages_with_tracking(
+    pages: list[dict],
+    chunk_size: int = CHUNK_SIZE,
+    overlap: int = CHUNK_OVERLAP,
+    min_length: int = MIN_CHUNK_LEN,
+) -> list[dict]:
+    """
+    Chunk per-page texts while preserving accurate page attribution.
+
+    Each output dict:
+        {
+            "text":       str,   — chunk content
+            "page_start": int,   — first page number this chunk covers
+            "page_end":   int,   — last page number this chunk covers
+            "page_label": str,   — "3" for single page, "3-4" for spanning
+        }
+
+    Strategy:
+      - Chunk within page boundaries (no cross-page chunks by default)
+      - Pages whose text is shorter than min_length are accumulated with the
+        next page and given a range label (e.g. "5-6")
+      - Any accumulated carry at EOF is flushed as a final chunk set
+    """
+    result: list[dict] = []
+    pending_text = ""
+    pending_page_start: int | None = None
+
+    for page_info in pages:
+        page_num: int = page_info["page_num"]
+        page_text: str = page_info.get("text", "")
+
+        if not page_text or not page_text.strip():
+            continue
+
+        if pending_text:
+            combined_text = pending_text + "\n\n" + page_text
+            page_start = pending_page_start
+        else:
+            combined_text = page_text
+            page_start = page_num
+
+        normalized = _normalize_text(combined_text)
+        if not normalized or len(normalized) < min_length:
+            pending_text = combined_text
+            pending_page_start = page_start
+            continue
+
+        chunks = _chunk_normalized_text(normalized, chunk_size, overlap, min_length)
+        if not chunks:
+            pending_text = combined_text
+            pending_page_start = page_start
+            continue
+
+        page_end = page_num
+        page_label = str(page_start) if page_start == page_end else f"{page_start}-{page_end}"
+        for chunk_text_item in chunks:
+            result.append({
+                "text": chunk_text_item,
+                "page_start": page_start,
+                "page_end": page_end,
+                "page_label": page_label,
+            })
+
+        pending_text = ""
+        pending_page_start = None
+
+    if pending_text:
+        normalized = _normalize_text(pending_text)
+        if normalized and len(normalized) >= min_length:
+            chunks = _chunk_normalized_text(normalized, chunk_size, overlap, min_length)
+            last_page = pages[-1]["page_num"] if pages else pending_page_start
+            page_label = (
+                str(pending_page_start)
+                if pending_page_start == last_page
+                else f"{pending_page_start}-{last_page}"
+            )
+            for chunk_text_item in chunks:
+                result.append({
+                    "text": chunk_text_item,
+                    "page_start": pending_page_start,
+                    "page_end": last_page,
+                    "page_label": page_label,
+                })
+
+    return result
 
 def extract_text_from_txt(file_bytes: bytes) -> str:
     """
@@ -629,15 +848,25 @@ def process_upload(
     pdf_page_count = 0
     pdf_non_empty_pages = 0
     extraction_warnings: list[str] = []
+    _pdf_pages: list[dict] = []  # per-page [{page_num, text, ...}]
 
     try:
         if lower_name.endswith(".pdf"):
-            extracted = extract_text_from_pdf_detailed(file_bytes)
-            text = extracted.get("text", "")
-            pdf_parser = extracted.get("parser", "")
-            pdf_page_count = extracted.get("page_count", 0) or 0
-            pdf_non_empty_pages = extracted.get("non_empty_pages", 0) or 0
-            extraction_warnings = extracted.get("warnings", []) or []
+            # --- Per-page extraction (preferred: gives page attribution) ---
+            _pdf_pages = extract_pages_from_pdf(file_bytes)
+            if _pdf_pages:
+                pdf_parser = _pdf_pages[0].get("parser", "pymupdf")
+                pdf_page_count = len(_pdf_pages)
+                pdf_non_empty_pages = sum(1 for p in _pdf_pages if p["char_count"] > 10)
+                text = "\n\n".join(p["text"] for p in _pdf_pages if p["text"])
+            else:
+                # Fall back to full-doc extraction (legacy path)
+                extracted = extract_text_from_pdf_detailed(file_bytes)
+                text = extracted.get("text", "")
+                pdf_parser = extracted.get("parser", "")
+                pdf_page_count = extracted.get("page_count", 0) or 0
+                pdf_non_empty_pages = extracted.get("non_empty_pages", 0) or 0
+                extraction_warnings = extracted.get("warnings", []) or []
         elif lower_name.endswith((".txt", ".md")):
             text = extract_text_from_txt(file_bytes)
         else:
@@ -676,16 +905,36 @@ def process_upload(
             detected_grade = infer_grade_level(f"{filename}\n{text[:4000]}")
             grade_level = detected_grade or grade_level
 
-    chunks = chunk_text(
-        text,
-        chunk_size=chunk_size,
-        overlap=chunk_overlap,
-        min_length=MIN_CHUNK_LEN,
-        toc_aware=toc_aware,
-    ) if text else []
+    # --- Chunking ---
+    # Use page-aware chunking when we have per-page data (PDFs with good extraction)
+    chunk_dicts: list[dict] = []
+    if _pdf_pages and text:
+        chunk_dicts = chunk_pages_with_tracking(
+            _pdf_pages,
+            chunk_size=chunk_size,
+            overlap=chunk_overlap,
+            min_length=MIN_CHUNK_LEN,
+        )
+    elif text:
+        # txt / md and PDF fallback: standard chunking without page tracking
+        plain_chunks = chunk_text(
+            text,
+            chunk_size=chunk_size,
+            overlap=chunk_overlap,
+            min_length=MIN_CHUNK_LEN,
+            toc_aware=toc_aware,
+        )
+        chunk_dicts = [{"text": c, "page_start": None, "page_end": None, "page_label": ""} for c in plain_chunks]
+
+    chunks: list[str] = [c["text"] for c in chunk_dicts]
+    chunk_pages: list[dict] = [
+        {"page_start": c["page_start"], "page_end": c["page_end"], "page_label": c["page_label"]}
+        for c in chunk_dicts
+    ]
 
     return {
-        "chunks":      chunks,
+        "chunks":      chunks,        # list[str]  — backward compat
+        "chunk_pages": chunk_pages,   # list[dict] — page attribution per chunk
         "chunk_count": len(chunks),
         "char_count":  len(text),
         "filename":    filename,
@@ -703,4 +952,5 @@ def process_upload(
         "pdf_page_count": pdf_page_count,
         "pdf_non_empty_pages": pdf_non_empty_pages,
         "extraction_warnings": extraction_warnings,
+        "has_page_tracking": bool(_pdf_pages),
     }

@@ -290,6 +290,7 @@ def seed_file(
             source_name=source_name,
             license=license_name,
             replace_existing=cfg.replace_existing,
+            chunk_pages=result.get("chunk_pages") or None,
         )
         print(f"    [OK] stored {stored:,} chunks")
 

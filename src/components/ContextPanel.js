@@ -8,6 +8,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
   const navigate = useNavigate();
 
   const [docs, setDocs]         = useState([]);
+  const [hsDocs, setHsDocs]     = useState([]);
   const [loading, setLoading]   = useState(false);
   const [deleting, setDeleting] = useState(null);
 
@@ -19,8 +20,9 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
     setLoading(true);
     try {
       const data = await contextService.listDocuments();
-      const all = Array.isArray(data) ? data : (data.user_docs || data.documents || []);
-      setDocs(all);
+      const userDocs = Array.isArray(data) ? data : (data.user_docs || data.documents || []);
+      setDocs(userDocs);
+      setHsDocs(Array.isArray(data.hs_docs) ? data.hs_docs : []);
     } catch { /* silenced */ }
     finally { setLoading(false); }
   }, []);
@@ -109,9 +111,36 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             )}
           </div>
 
-          {/* Documents in use */}
+          {/* HS Curriculum documents */}
+          {hsDocs.length > 0 && (
+            <div className="cp-section">
+              <div className="cp-section-title">Curriculum Documents</div>
+              <div className="cp-doc-list">
+                {hsDocs.map(doc => {
+                  const id   = doc.doc_id || doc.id;
+                  const name = doc.filename || 'Untitled';
+                  return (
+                    <div key={id} className="cp-doc-item">
+                      <FileText size={14} className="cp-doc-icon" />
+                      <div className="cp-doc-info">
+                        <div className="cp-doc-name" title={name}>{name}</div>
+                        <div className="cp-doc-meta">
+                          <span className="cp-tag shared"><Users size={9} />Community</span>
+                          {doc.subject && <span className="cp-tag">{doc.subject}</span>}
+                          {doc.grade_level && <span className="cp-tag">Gr {doc.grade_level}</span>}
+                          {doc.chunk_count > 0 && <span className="cp-tag">{doc.chunk_count} chunks</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* User's private documents */}
           <div className="cp-section">
-            <div className="cp-section-title">Documents in Context</div>
+            <div className="cp-section-title">Your Documents</div>
             {loading ? (
               <p className="cp-empty-msg">Loading…</p>
             ) : docs.length === 0 ? (
@@ -119,18 +148,15 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             ) : (
               <div className="cp-doc-list">
                 {docs.map(doc => {
-                  const id       = doc.doc_id || doc.id;
-                  const name     = doc.filename || doc.title || 'Untitled';
-                  const isPublic = doc.scope === 'public' || doc.scope === 'hs_shared';
+                  const id   = doc.doc_id || doc.id;
+                  const name = doc.filename || doc.title || 'Untitled';
                   return (
                     <div key={id} className="cp-doc-item">
                       <FileText size={14} className="cp-doc-icon" />
                       <div className="cp-doc-info">
                         <div className="cp-doc-name" title={name}>{name}</div>
                         <div className="cp-doc-meta">
-                          {isPublic
-                            ? <span className="cp-tag shared"><Users size={9} />Community</span>
-                            : <span className="cp-tag"><Lock size={9} />Private</span>}
+                          <span className="cp-tag"><Lock size={9} />Private</span>
                           {doc.subject && <span className="cp-tag">{doc.subject}</span>}
                         </div>
                       </div>
