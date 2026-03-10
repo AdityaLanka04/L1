@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader, TrendingUp, BookOpen, Target, Clock , Menu} from 'lucide-react';
 import './Statistics.css';

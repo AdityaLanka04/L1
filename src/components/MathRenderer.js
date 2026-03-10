@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, memo } from 'react';
+import { useEffect, useRef, memo } from 'react';
 import './MathRenderer.css';
 
 const KATEX_VERSION = '0.16.11';

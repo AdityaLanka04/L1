@@ -691,10 +691,25 @@ def delete_chat_folder(
     return {"status": "success"}
 
 @router.put("/move_chat_to_folder")
-def move_chat_to_folder(data: ChatUpdateFolder, db: Session = Depends(get_db)):
-    chat = db.query(models.ChatSession).filter(models.ChatSession.id == data.chat_id).first()
+def move_chat_to_folder(
+    data: ChatUpdateFolder,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    chat = db.query(models.ChatSession).filter(
+        models.ChatSession.id == data.chat_id,
+        models.ChatSession.user_id == current_user.id,
+    ).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat session not found")
+
+    if data.folder_id is not None:
+        folder = db.query(models.ChatFolder).filter(
+            models.ChatFolder.id == data.folder_id,
+            models.ChatFolder.user_id == current_user.id,
+        ).first()
+        if not folder:
+            raise HTTPException(status_code=404, detail="Folder not found")
 
     chat.folder_id = data.folder_id
     db.commit()

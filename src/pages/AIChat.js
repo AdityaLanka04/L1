@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
@@ -36,6 +36,8 @@ const AIChat = ({ sharedMode = false }) => {
   
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [chatToDelete, setChatToDelete] = useState(null);
+  const [showFolderDeleteConfirmation, setShowFolderDeleteConfirmation] = useState(false);
+  const [folderToDelete, setFolderToDelete] = useState(null);
   
   const [selectedFiles, setSelectedFiles] = useState([]);
   
@@ -96,11 +98,15 @@ const AIChat = ({ sharedMode = false }) => {
       });
 
       if (response.ok) {
-        loadChatSessions();
+        setChatSessions(prev => prev.map(chat => (
+          chat.id === chatId ? { ...chat, folder_id: folderId } : chat
+        )));
         setShowMoveMenu(null);
+        return true;
       }
+      return false;
     } catch (error) {
-    // silenced
+      return false;
   }
   };
 
@@ -109,6 +115,63 @@ const AIChat = ({ sharedMode = false }) => {
     e.stopPropagation();
     setMenuPosition({ x: e.clientX, y: e.clientY });
     setShowMoveMenu(chatId);
+  };
+
+  const clearChatDragState = () => {
+    setDraggedChatId(null);
+    setDragOverFolderId(null);
+  };
+
+  const handleChatDragStart = (event, chatId) => {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('application/x-chat-session', String(chatId));
+    event.dataTransfer.setData('text/plain', String(chatId));
+    setDraggedChatId(chatId);
+  };
+
+  const handleChatDragEnd = () => {
+    clearChatDragState();
+  };
+
+  const handleFolderDragOver = (event, folderId) => {
+    if (!draggedChatId) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    if (dragOverFolderId !== folderId) {
+      setDragOverFolderId(folderId);
+    }
+  };
+
+  const handleFolderDragLeave = (event, folderId) => {
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+    setDragOverFolderId(prev => (prev === folderId ? null : prev));
+  };
+
+  const handleFolderDrop = async (event, folderId) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const draggedIdFromEvent = Number(
+      event.dataTransfer.getData('application/x-chat-session') ||
+      event.dataTransfer.getData('text/plain')
+    );
+    const chatId = Number.isFinite(draggedIdFromEvent) && draggedIdFromEvent > 0
+      ? draggedIdFromEvent
+      : draggedChatId;
+
+    if (!chatId) {
+      clearChatDragState();
+      return;
+    }
+
+    const draggedChat = chatSessions.find(session => session.id === chatId);
+    if (draggedChat?.folder_id === folderId) {
+      clearChatDragState();
+      return;
+    }
+
+    await handleMoveToFolder(chatId, folderId);
+    clearChatDragState();
   };
   const [fileProcessing, setFileProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -127,6 +190,8 @@ const AIChat = ({ sharedMode = false }) => {
   const [showMoveMenu, setShowMoveMenu] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [selectedFolder, setSelectedFolder] = useState(null);
+  const [draggedChatId, setDraggedChatId] = useState(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -295,7 +360,13 @@ const AIChat = ({ sharedMode = false }) => {
     }
   };
 
+  const isFileDragEvent = (event) => {
+    const types = Array.from(event.dataTransfer?.types || []);
+    return types.includes('Files');
+  };
+
   const handleDrop = (e) => {
+    if (!isFileDragEvent(e)) return;
     e.preventDefault();
     setDragActive(false);
     if (e.dataTransfer.files) {
@@ -304,11 +375,13 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const handleDragOver = (e) => {
+    if (!isFileDragEvent(e)) return;
     e.preventDefault();
     setDragActive(true);
   };
 
   const handleDragLeave = (e) => {
+    if (!isFileDragEvent(e)) return;
     e.preventDefault();
     setDragActive(false);
   };
@@ -797,6 +870,11 @@ const AIChat = ({ sharedMode = false }) => {
     setShowDeleteConfirmation(true);
   };
 
+  const handleDeleteFolder = (folderId, folderName) => {
+    setFolderToDelete({ id: folderId, name: folderName });
+    setShowFolderDeleteConfirmation(true);
+  };
+
   const autoRenameChat = async (chatId, userMessage) => {
     try {
       const token = localStorage.getItem('token');
@@ -893,6 +971,54 @@ const AIChat = ({ sharedMode = false }) => {
     } catch (error) {
       console.error('Error deleting chat:', error);
       alert('Error deleting conversation. Please check your connection and try again.');
+    }
+  };
+
+  const confirmDeleteFolder = async () => {
+    if (!folderToDelete) return;
+
+    try {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/delete_chat_folder/${folderToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.status === 401) {
+        alert('Session expired. Please log in again.');
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
+
+      if (response.ok) {
+        const deletedFolderId = folderToDelete.id;
+        setFolders(prev => prev.filter(folder => folder.id !== deletedFolderId));
+        setChatSessions(prev => prev.map(chat => (
+          chat.folder_id === deletedFolderId ? { ...chat, folder_id: null } : chat
+        )));
+
+        if (selectedFolder === deletedFolderId) {
+          setSelectedFolder(null);
+        }
+
+        setShowFolderDeleteConfirmation(false);
+        setFolderToDelete(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to delete folder: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert('Error deleting folder. Please check your connection and try again.');
     }
   };
 
@@ -1958,17 +2084,40 @@ const AIChat = ({ sharedMode = false }) => {
               )}
 
               {folders.map((folder) => (
-                <button
+                <div
                   key={folder.id}
-                  className={`ac-folder-item ${selectedFolder === folder.id ? 'active' : ''}`}
-                  onClick={() => setSelectedFolder(selectedFolder === folder.id ? null : folder.id)}
+                  className={`ac-folder-item ${selectedFolder === folder.id ? 'active' : ''} ${
+                    dragOverFolderId === folder.id ? 'drop-target' : ''
+                  } ${
+                    draggedChatId && chatSessions.find(s => s.id === draggedChatId)?.folder_id !== folder.id
+                      ? 'can-drop'
+                      : ''
+                  }`}
+                  onDragOver={(event) => handleFolderDragOver(event, folder.id)}
+                  onDragEnter={(event) => handleFolderDragOver(event, folder.id)}
+                  onDragLeave={(event) => handleFolderDragLeave(event, folder.id)}
+                  onDrop={(event) => handleFolderDrop(event, folder.id)}
                 >
-                  <span className="ac-folder-icon">{Icons.folder}</span>
-                  <span className="ac-folder-name">{folder.name}</span>
-                  <span className="ac-folder-count">
-                    {chatSessions.filter(s => s.folder_id === folder.id).length}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    className="ac-folder-main-btn"
+                    onClick={() => setSelectedFolder(selectedFolder === folder.id ? null : folder.id)}
+                  >
+                    <span className="ac-folder-icon">{Icons.folder}</span>
+                    <span className="ac-folder-name">{folder.name}</span>
+                    <span className="ac-folder-count">
+                      {chatSessions.filter(s => s.folder_id === folder.id).length}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="ac-folder-delete-btn"
+                    onClick={() => handleDeleteFolder(folder.id, folder.name)}
+                    aria-label={`Delete folder ${folder.name}`}
+                  >
+                    {Icons.trash}
+                  </button>
+                </div>
               ))}
             </div>
 
@@ -2003,8 +2152,15 @@ const AIChat = ({ sharedMode = false }) => {
                     .map(session => (
                       <div
                         key={session.id}
-                        className={`ac-session-item ${activeChatId === session.id ? 'active' : ''}`}
+                        className={`ac-session-item ${activeChatId === session.id ? 'active' : ''} ${
+                          draggedChatId === session.id ? 'dragging' : ''
+                        } ${
+                          draggedChatId && draggedChatId !== session.id ? 'drag-source-dimmed' : ''
+                        }`}
                         onClick={() => selectChat(session.id)}
+                        draggable
+                        onDragStart={(event) => handleChatDragStart(event, session.id)}
+                        onDragEnd={handleChatDragEnd}
                       >
                         <span className="ac-session-icon">{Icons.chat}</span>
                         <div className="ac-session-info">
@@ -2466,6 +2622,34 @@ const AIChat = ({ sharedMode = false }) => {
               <button
                 className="ac-modal-btn delete"
                 onClick={confirmDeleteChat}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFolderDeleteConfirmation && (
+        <div className="ac-modal-overlay">
+          <div className="ac-modal">
+            <h3>DELETE FOLDER</h3>
+            <p>
+              Are you sure you want to delete "{folderToDelete?.name}"? Chats in this folder will be kept and moved to All Chats.
+            </p>
+            <div className="ac-modal-actions">
+              <button
+                className="ac-modal-btn cancel"
+                onClick={() => {
+                  setShowFolderDeleteConfirmation(false);
+                  setFolderToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="ac-modal-btn delete"
+                onClick={confirmDeleteFolder}
               >
                 Delete
               </button>

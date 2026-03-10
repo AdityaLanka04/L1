@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, BookOpen, Target, Brain, Award, TrendingUp, ChevronRight, Menu, Bell } from 'lucide-react';
 import './profile.css';

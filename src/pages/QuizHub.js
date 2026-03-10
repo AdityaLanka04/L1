@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Swords, ChevronRight, Zap, Menu } from 'lucide-react';
 import './QuizHub.css';

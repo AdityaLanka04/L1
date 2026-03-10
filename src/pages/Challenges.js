@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, Clock, Users, TrendingUp, Zap, Trophy, Plus, X , Menu} from 'lucide-react';
 import './Challenges.css';

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactFlow, {
   Background,
@@ -1078,6 +1078,65 @@ const createRoadmapFromChat = async () => {
     setEditingNotes(true);
   };
 
+  const getNodePathForContext = useCallback((nodeId) => {
+    if (!nodeId) return '';
+
+    const normalizedNodeId = String(nodeId);
+    const nodeById = new Map(nodes.map(n => [String(n.id), n]));
+    const parentByChild = new Map(edges.map(e => [String(e.target), String(e.source)]));
+    const pathLabels = [];
+    const visited = new Set();
+
+    let currentId = normalizedNodeId;
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId);
+      const flowNode = nodeById.get(currentId);
+      if (!flowNode) break;
+      pathLabels.unshift(flowNode.data?.label || flowNode.data?.topic_name || `Node ${currentId}`);
+      currentId = parentByChild.get(currentId);
+    }
+
+    return pathLabels.join(' -> ');
+  }, [nodes, edges]);
+
+  const buildNodeAwareChatPrompt = useCallback((node, questionText) => {
+    const nodeId = node?.id || node?.nodeId;
+    const nodeTopic = node?.topic_name || node?.label || 'Unknown topic';
+    const nodePath = getNodePathForContext(nodeId);
+    const keyConcepts = Array.isArray(node?.key_concepts) ? node.key_concepts : [];
+    const examples = Array.isArray(node?.real_world_examples) ? node.real_world_examples : [];
+    const personalNotes = nodeId ? (manualNotes.get(nodeId) || 'No personal notes yet.') : 'No personal notes yet.';
+
+    const recentTurns = chatMessages
+      .slice(-6)
+      .map((msg) => `${msg.type === 'user' ? 'Student' : 'Tutor'}: ${msg.content}`)
+      .join('\n');
+
+    return `You are helping the student with one specific Knowledge Roadmap node.
+Stay tightly focused on this node and its scope unless the student explicitly asks to broaden.
+
+Roadmap: ${currentRoadmap?.title || currentRoadmap?.root_topic || 'Knowledge Roadmap'}
+Node: ${nodeTopic}
+Node Path: ${nodePath || nodeTopic}
+Node Summary: ${node?.ai_explanation || 'No generated summary yet.'}
+Why It Matters: ${node?.why_important || 'Not available yet.'}
+Key Concepts: ${keyConcepts.length ? keyConcepts.join('; ') : 'Not available yet.'}
+Examples: ${examples.length ? examples.join('; ') : 'Not available yet.'}
+Learning Tips: ${node?.learning_tips || 'Not available yet.'}
+Student Notes: ${personalNotes}
+
+Recent Conversation (same node):
+${recentTurns || 'No prior turns.'}
+
+Student Question:
+${questionText}
+
+Instructions:
+- Answer in the context of this exact node.
+- Reference the node path when helpful.
+- If the question is ambiguous, ask one clarifying question tied to this node.`;
+  }, [chatMessages, currentRoadmap, getNodePathForContext, manualNotes]);
+
   
   const sendChatMessage = async () => {
     if (!chatInput.trim() || chatLoading || !nodeExplanation) return;
@@ -1097,9 +1156,7 @@ const createRoadmapFromChat = async () => {
     try {
       const formData = new FormData();
       formData.append('user_id', userId);
-      formData.append('question', `Context: I'm exploring the topic "${nodeExplanation.topic_name}" in a knowledge roadmap. Here's what I know about it: ${nodeExplanation.ai_explanation || 'No explanation available yet.'}
-
-User question: ${messageText}`);
+      formData.append('question', buildNodeAwareChatPrompt(nodeExplanation, messageText));
       formData.append('chat_id', ''); 
 
       const response = await fetch(`${API_URL}/ask/`, {

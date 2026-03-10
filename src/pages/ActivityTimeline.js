@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar as CalendarIcon, Clock, FileText, BookOpen, 
@@ -1547,8 +1547,9 @@ const ActivityTimeline = () => {
   
   const renderTimeline = () => {
     const filtered = getFilteredActivities();
+    const sortedFiltered = [...filtered].sort((a, b) => b.timestamp - a.timestamp);
     
-    if (filtered.length === 0) {
+    if (sortedFiltered.length === 0) {
       return (
         <div className="at-empty-state">
           <div className="at-empty-state-icon">
@@ -1561,11 +1562,15 @@ const ActivityTimeline = () => {
     }
 
     const grouped = {};
-    filtered.forEach(activity => {
+    sortedFiltered.forEach(activity => {
       const dateKey = activity.timestamp.toDateString();
       if (!grouped[dateKey]) grouped[dateKey] = [];
       grouped[dateKey].push(activity);
     });
+
+    const groupedEntries = Object.entries(grouped)
+      .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA))
+      .map(([date, items]) => [date, [...items].sort((a, b) => b.timestamp - a.timestamp)]);
 
     return (
       <div className="at-timeline-view-container">
@@ -1581,7 +1586,7 @@ const ActivityTimeline = () => {
 
         <div className="at-timeline-list">
           <div className="at-timeline-line"></div>
-          {Object.entries(grouped).map(([date, items]) => (
+          {groupedEntries.map(([date, items]) => (
             <div key={date} className="at-timeline-date-group">
               <div className="at-timeline-date-badge">
                 <CalendarDays size={14} />

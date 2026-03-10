@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Trophy, Award, Star, Zap, Target, Crown, Flame, 
@@ -152,6 +152,9 @@ const XPRoadmap = () => {
               break;
             case 'quiz_perfect':
               current = 0; 
+              break;
+            default:
+              current = 0;
               break;
           }
           return { ...achievement, current, completed: current >= achievement.target };

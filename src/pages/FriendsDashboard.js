@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Search, UserPlus, Check, X, UserMinus, ArrowLeft, Clock, Activity, Award, ChevronRight , Menu} from 'lucide-react';
 import './FriendsDashboard.css';

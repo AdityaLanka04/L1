@@ -38,7 +38,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "fix:positioning-sourcemaps": "node scripts/fix-positioning-sourcemaps.js",
+    "postinstall": "npm run fix:positioning-sourcemaps"
   },
   "eslintConfig": {
     "extends": [
