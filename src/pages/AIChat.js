@@ -1883,11 +1883,11 @@ const AIChat = ({ sharedMode = false }) => {
       </header>
 
       <div className="ac-layout">
-        {/* Sidebar - Matching Flashcards */}
+        {/* Sidebar */}
         <aside className="ac-sidebar">
           {/* New Chat Button */}
-          <button 
-            className="ac-new-chat-btn" 
+          <button
+            className="ac-new-chat-btn"
             onClick={handleNewChat}
             disabled={loading}
           >
@@ -1902,9 +1902,9 @@ const AIChat = ({ sharedMode = false }) => {
                 <circle cx="11" cy="11" r="8"/>
                 <path d="m21 21-4.35-4.35"/>
               </svg>
-              <input 
-                type="text" 
-                className="ac-search-input" 
+              <input
+                type="text"
+                className="ac-search-input"
                 placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -1917,14 +1917,14 @@ const AIChat = ({ sharedMode = false }) => {
             <div className="ac-folders-section">
               <div className="ac-folders-header">
                 <h4>Folders</h4>
-                <button 
+                <button
                   className="ac-add-folder-btn"
                   onClick={() => setShowFolderCreation(true)}
                 >
                   {Icons.plus}
                 </button>
               </div>
-              
+
               {showFolderCreation && (
                 <div className="ac-folder-input-group">
                   <input
@@ -1945,8 +1945,8 @@ const AIChat = ({ sharedMode = false }) => {
                   <button className="ac-folder-submit" onClick={handleFolderCreation}>
                     {Icons.check}
                   </button>
-                  <button 
-                    className="ac-folder-cancel" 
+                  <button
+                    className="ac-folder-cancel"
                     onClick={() => {
                       setShowFolderCreation(false);
                       setFolderName('');
@@ -1956,7 +1956,7 @@ const AIChat = ({ sharedMode = false }) => {
                   </button>
                 </div>
               )}
-              
+
               {folders.map((folder) => (
                 <button
                   key={folder.id}
@@ -1977,7 +1977,7 @@ const AIChat = ({ sharedMode = false }) => {
               <div className="ac-nav-section-title">
                 {selectedFolder ? folders.find(f => f.id === selectedFolder)?.name || 'Folder' : 'Chats'}
                 {selectedFolder && (
-                  <button 
+                  <button
                     className="ac-add-folder-btn"
                     onClick={() => setSelectedFolder(null)}
                     title="Close folder"
@@ -1995,8 +1995,8 @@ const AIChat = ({ sharedMode = false }) => {
                 ) : (
                   chatSessions
                     .filter(session => selectedFolder ? session.folder_id === selectedFolder : true)
-                    .filter(session => 
-                      searchQuery.trim() === '' || 
+                    .filter(session =>
+                      searchQuery.trim() === '' ||
                       session.title.toLowerCase().includes(searchQuery.toLowerCase())
                     )
                     .filter(session => shouldDisplayChat(session))
@@ -2010,9 +2010,9 @@ const AIChat = ({ sharedMode = false }) => {
                         <div className="ac-session-info">
                           <div className="ac-session-title">{session.title}</div>
                           <div className="ac-session-date">
-                            {new Date(session.updated_at).toLocaleDateString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric' 
+                            {new Date(session.updated_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric'
                             })}
                           </div>
                         </div>
