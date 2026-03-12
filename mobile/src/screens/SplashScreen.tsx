@@ -39,7 +39,7 @@ const s = StyleSheet.create({
     fontSize: 42,
     color: '#C9A87C',
     textAlign: 'center',
-    letterSpacing: 2,
+    letterSpacing: 0,
   },
   sub: {
     fontFamily: 'Inter_400Regular',

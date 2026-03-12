@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   FlatList, KeyboardAvoidingView, Platform, Animated,
-  Modal, ScrollView, ActivityIndicator,
+  Modal, ScrollView, ActivityIndicator, PanResponder,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter'; // Inter_700Bold used by MarkdownText
@@ -10,7 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MarkdownText from '../components/MarkdownText';
 import { AuthUser } from '../services/auth';
-import { getConversationStarters, createChatSession, askAI, getChatSessions, getChatMessages } from '../services/api';
+import { createChatSession, askAI, getChatSessions, getChatMessages } from '../services/api';
 
 const BG      = '#0A0A0A';
 const CARD    = '#111111';
@@ -67,20 +67,25 @@ export default function AIChatScreen({ user }: Props) {
   const [input, setInput]           = useState('');
   const [loading, setLoading]       = useState(false);
   const [chatId, setChatId]         = useState<number | undefined>();
-  const [starters, setStarters]     = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessions, setSessions]     = useState<Session[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const listRef = useRef<FlatList>(null);
   const insets  = useSafeAreaInsets();
-  const TAB_H   = 56 + insets.bottom;
   const slideAnim = useRef(new Animated.Value(-280)).current;
-
-  useEffect(() => {
-    getConversationStarters(user.username)
-      .then(d => { if (Array.isArray(d?.starters)) setStarters(d.starters.slice(0, 4)); })
-      .catch(() => {});
-  }, [user.username]);
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (_, g) => g.dx < -10 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      onPanResponderMove: (_, g) => { if (g.dx < 0) slideAnim.setValue(g.dx); },
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -60 || g.vx < -0.5) {
+          Animated.timing(slideAnim, { toValue: -280, duration: 220, useNativeDriver: true }).start(() => setSidebarOpen(false));
+        } else {
+          Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 100, friction: 14 }).start();
+        }
+      },
+    })
+  ).current;
 
   const openSidebar = useCallback(() => {
     setSidebarOpen(true);
@@ -146,14 +151,17 @@ export default function AIChatScreen({ user }: Props) {
   const newChat = () => { setMessages([]); setChatId(undefined); };
 
   const isEmpty = messages.length === 0 && !loading;
-  const displayStarters = starters.length > 0 ? starters : [
-    'Explain quantum entanglement', 'Help me understand derivatives',
-    'What caused World War I?', 'Summarise the cell cycle',
-  ];
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={TAB_H}>
+      {/* Subtle background */}
+      <LinearGradient colors={['#0A0A0A', '#0F0D05', '#0A0A0A']} style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={['transparent', GOLD_D + '18', 'transparent']}
+        start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={insets.top}>
 
         {/* Header */}
         <View style={s.header}>
@@ -169,19 +177,12 @@ export default function AIChatScreen({ user }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Empty / starters */}
+        {/* Empty state */}
         {isEmpty ? (
           <View style={s.emptyWrap}>
-            <LinearGradient colors={[GOLD_D + '30', 'transparent']} style={s.emptyGlow} />
+            <LinearGradient colors={[GOLD_D + '40', GOLD_D + '10', 'transparent']} style={s.emptyGlow} />
             <Text style={s.emptyTitle}>ask anything</Text>
             <Text style={s.emptySub}>your ai tutor is ready</Text>
-            <View style={s.starters}>
-              {displayStarters.map(q => (
-                <TouchableOpacity key={q} style={s.starterChip} onPress={() => send(q)} activeOpacity={0.7}>
-                  <Text style={s.starterText}>{q}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           </View>
         ) : (
           <FlatList
@@ -211,7 +212,7 @@ export default function AIChatScreen({ user }: Props) {
         )}
 
         {/* Input bar */}
-        <View style={s.inputBar}>
+        <View style={[s.inputBar, { paddingBottom: 10 }]}>
           <TextInput
             style={s.input}
             value={input}
@@ -239,40 +240,46 @@ export default function AIChatScreen({ user }: Props) {
         <Modal transparent animationType="none" onRequestClose={closeSidebar}>
           <View style={s.overlay}>
             <TouchableOpacity style={StyleSheet.absoluteFill} onPress={closeSidebar} activeOpacity={1} />
-            <Animated.View style={[s.sidebar, { transform: [{ translateX: slideAnim }] }]}>
+            <Animated.View style={[s.sidebar, { transform: [{ translateX: slideAnim }] }]} {...panResponder.panHandlers}>
+              <LinearGradient colors={['#1E1608', '#131008', '#0A0A0A']} style={StyleSheet.absoluteFill} />
               <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
                 <View style={s.sidebarHeader}>
                   <Text style={s.sidebarTitle}>chats</Text>
-                  <TouchableOpacity onPress={() => { closeSidebar(); newChat(); }} activeOpacity={0.7}>
-                    <Ionicons name="create-outline" size={20} color={GOLD_M} />
-                  </TouchableOpacity>
                 </View>
+                <LinearGradient colors={[GOLD_D + '60', 'transparent']} style={s.sidebarDivider} />
                 {sessionsLoading ? (
                   <ActivityIndicator color={GOLD_M} style={{ marginTop: 32 }} />
                 ) : sessions.length === 0 ? (
-                  <Text style={s.sidebarEmpty}>no chats yet</Text>
+                  <View style={s.sidebarEmptyWrap}>
+                    <Text style={s.sidebarEmpty}>no chats yet</Text>
+                  </View>
                 ) : (
-                  <ScrollView showsVerticalScrollIndicator={false}>
-                    {sessions.map(sess => (
-                      <TouchableOpacity
-                        key={sess.id}
-                        style={[s.sessionItem, chatId === sess.id && s.sessionActive]}
-                        onPress={() => loadSession(sess)}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="chatbubble-outline" size={14} color={chatId === sess.id ? GOLD_M : DIM} style={{ marginTop: 2 }} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={[s.sessionTitle, chatId === sess.id && { color: GOLD_M }]} numberOfLines={2}>
-                            {sess.title || 'untitled chat'}
-                          </Text>
-                          {sess.updated_at && (
-                            <Text style={s.sessionDate}>
-                              {new Date(sess.updated_at).toLocaleDateString()}
+                  <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8 }}>
+                    {sessions.map(sess => {
+                      const active = chatId === sess.id;
+                      return (
+                        <TouchableOpacity
+                          key={sess.id}
+                          style={s.sessionItem}
+                          onPress={() => loadSession(sess)}
+                          activeOpacity={0.75}
+                        >
+                          {active && <LinearGradient colors={[GOLD_D + '35', 'transparent']} style={StyleSheet.absoluteFill} />}
+                          <View style={[s.sessionDot, active && { backgroundColor: GOLD_M }]} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={[s.sessionTitle, active && { color: GOLD_M }]} numberOfLines={2}>
+                              {sess.title || 'untitled chat'}
                             </Text>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    ))}
+                            {sess.updated_at && (
+                              <Text style={s.sessionDate}>
+                                {new Date(sess.updated_at).toLocaleDateString()}
+                              </Text>
+                            )}
+                          </View>
+                          {active && <Ionicons name="chevron-forward" size={14} color={GOLD_D} />}
+                        </TouchableOpacity>
+                      );
+                    })}
                   </ScrollView>
                 )}
               </SafeAreaView>
@@ -285,7 +292,7 @@ export default function AIChatScreen({ user }: Props) {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
+  safe: { flex: 1, backgroundColor: BG, overflow: 'hidden' },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -298,12 +305,9 @@ const s = StyleSheet.create({
   onlineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#6BCB77' },
 
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  emptyGlow: { position: 'absolute', top: '20%', width: 260, height: 260, borderRadius: 130 },
+  emptyGlow: { position: 'absolute', top: '15%', width: 300, height: 300, borderRadius: 150 },
   emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 32, color: GOLD_L, marginBottom: 8 },
-  emptySub: { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM, letterSpacing: 2, marginBottom: 36 },
-  starters: { width: '100%', gap: 10 },
-  starterChip: { backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 16 },
-  starterText: { fontFamily: 'Inter_400Regular', fontSize: 13, color: GOLD_M },
+  emptySub: { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM, letterSpacing: 2 },
 
   list: { paddingHorizontal: 16, paddingVertical: 16, gap: 10 },
 
@@ -315,10 +319,10 @@ const s = StyleSheet.create({
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,
     paddingHorizontal: 16, paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: BORDER, backgroundColor: BG,
+    borderTopWidth: 1, borderTopColor: GOLD_D + '40', backgroundColor: 'transparent',
   },
   input: {
-    flex: 1, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER,
+    flex: 1, backgroundColor: CARD, borderWidth: 1.5, borderColor: GOLD_D + '70',
     borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12,
     fontFamily: 'Inter_400Regular', fontSize: 14, color: GOLD_L, maxHeight: 120,
   },
@@ -329,25 +333,27 @@ const s = StyleSheet.create({
   // Sidebar
   overlay: { flex: 1, flexDirection: 'row' },
   sidebar: {
-    width: 280, height: '100%', backgroundColor: CARD2,
-    borderRightWidth: 1, borderRightColor: BORDER,
-    shadowColor: '#000', shadowOffset: { width: 4, height: 0 }, shadowOpacity: 0.4, shadowRadius: 12,
-    elevation: 12,
+    width: 280, height: '100%',
+    borderRightWidth: 1, borderRightColor: GOLD_D + '50',
+    shadowColor: GOLD_D, shadowOffset: { width: 6, height: 0 }, shadowOpacity: 0.2, shadowRadius: 20,
+    elevation: 16, overflow: 'hidden',
   },
   sidebarHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 18,
-    borderBottomWidth: 1, borderBottomColor: BORDER,
+    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16,
   },
-  sidebarTitle: { fontFamily: 'Inter_900Black', fontSize: 16, color: GOLD_M },
-  sidebarEmpty: { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM, textAlign: 'center', marginTop: 40 },
+  sidebarTitle: { fontFamily: 'Inter_900Black', fontSize: 22, color: GOLD_L },
+  sidebarDivider: { height: 1, marginHorizontal: 20, marginBottom: 4 },
+  sidebarEmptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  sidebarEmpty: { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM, letterSpacing: 1 },
 
   sessionItem: {
-    flexDirection: 'row', gap: 10, alignItems: 'flex-start',
-    paddingHorizontal: 16, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: BORDER + '80',
+    flexDirection: 'row', gap: 10, alignItems: 'center',
+    marginHorizontal: 10, marginVertical: 3,
+    paddingHorizontal: 12, paddingVertical: 12,
+    borderRadius: 14, overflow: 'hidden',
   },
-  sessionActive: { backgroundColor: GOLD_D + '20' },
+  sessionDot:   { width: 6, height: 6, borderRadius: 3, backgroundColor: GOLD_D, flexShrink: 0 },
   sessionTitle: { fontFamily: 'Inter_400Regular', fontSize: 13, color: GOLD_L, lineHeight: 18 },
   sessionDate:  { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, marginTop: 3, letterSpacing: 0.5 },
 });

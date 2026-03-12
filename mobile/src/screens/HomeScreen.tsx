@@ -62,6 +62,17 @@ export default function HomeScreen({ user }: Props) {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <LinearGradient colors={['#0A0A0A', '#0F0D05', '#0A0A0A']} style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={['transparent', GOLD_DARK + '20', 'transparent']}
+        start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        colors={[GOLD_DARK + '10', 'transparent', 'transparent']}
+        start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 0.4 }}
+        style={StyleSheet.absoluteFill}
+      />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -128,7 +139,7 @@ export default function HomeScreen({ user }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
+  safe: { flex: 1, backgroundColor: BG, overflow: 'hidden' },
   scroll: { paddingHorizontal: 24, paddingBottom: 48 },
 
   topBar: {

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_URL = 'http://10.0.0.141:8080/api';
+export const API_URL = 'http://10.0.0.141:8000/api';
 
 async function getToken(): Promise<string | null> {
   return AsyncStorage.getItem('token');
@@ -136,6 +136,33 @@ export async function searchUsers(userId: string, query: string) {
   const headers = await authHeaders();
   const res = await fetch(`${API_URL}/search_users?user_id=${encodeURIComponent(userId)}&query=${encodeURIComponent(query)}`, { headers });
   return res.json();
+}
+
+// ── Flashcard Sets ────────────────────────────────────────────────────
+export async function getFlashcardHistory(userId: string, limit = 50, offset = 0) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/get_flashcard_history?user_id=${encodeURIComponent(userId)}&limit=${limit}&offset=${offset}`, { headers });
+  return res.json(); // { flashcard_history: [{id, title, card_count, accuracy_percentage, source_type, ...}] }
+}
+
+export async function getFlashcardsInSet(setId: number) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/get_flashcards_in_set?set_id=${setId}`, { headers });
+  return res.json(); // { set_title, flashcards: [{id, question, answer, difficulty}] }
+}
+
+// ── Notes ─────────────────────────────────────────────────────────────
+export async function getNotes(userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/get_notes?user_id=${encodeURIComponent(userId)}`, { headers });
+  return res.json(); // [{id, title, content, updated_at, is_favorite, folder_id}]
+}
+
+// ── Weekly Progress ───────────────────────────────────────────────────
+export async function getWeeklyProgress(userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/get_weekly_progress?user_id=${encodeURIComponent(userId)}`, { headers });
+  return res.json(); // { daily_breakdown: [{day, ai_chats, notes, flashcards, ...}], weekly_stats, ... }
 }
 
 // ── Flashcard Stats ───────────────────────────────────────────────────
