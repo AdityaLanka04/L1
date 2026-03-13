@@ -154,41 +154,9 @@ class YouTubeAPIService:
             logger.info(f"Fetching transcript with youtube-transcript-api for: {video_id}")
             
             loop = asyncio.get_event_loop()
-            
-            transcript_list = await loop.run_in_executor(
+            transcript_data, is_auto_generated, transcript_lang = await loop.run_in_executor(
                 None,
-                lambda: YouTubeTranscriptApi.list_transcripts(video_id)
-            )
-            
-            transcript = None
-            transcript_lang = language
-            is_auto_generated = False
-            
-            try:
-                transcript = transcript_list.find_transcript([language])
-                transcript_lang = language
-            except NoTranscriptFound:
-                try:
-                    transcript = transcript_list.find_transcript(['en', 'en-US', 'en-GB'])
-                    transcript_lang = 'en'
-                except NoTranscriptFound:
-                    try:
-                        transcript = transcript_list.find_generated_transcript(['en'])
-                        transcript_lang = 'en'
-                        is_auto_generated = True
-                    except NoTranscriptFound:
-                        available = list(transcript_list)
-                        if available:
-                            transcript = available[0]
-                            transcript_lang = transcript.language_code
-                            is_auto_generated = transcript.is_generated
-            
-            if not transcript:
-                return {"success": False, "error": "No transcripts available"}
-            
-            transcript_data = await loop.run_in_executor(
-                None,
-                lambda: transcript.fetch()
+                lambda: self._fetch_transcript_data_compat(video_id, language)
             )
             
             if not transcript_data:
@@ -198,12 +166,14 @@ class YouTubeAPIService:
             full_text = []
             
             for entry in transcript_data:
-                text = entry.get('text', '').strip()
+                text = str(self._entry_value(entry, 'text', '')).strip()
                 if text:
+                    start = float(self._entry_value(entry, 'start', 0) or 0)
+                    duration = float(self._entry_value(entry, 'duration', 0) or 0)
                     segments.append({
-                        "start": entry.get('start', 0),
-                        "end": entry.get('start', 0) + entry.get('duration', 0),
-                        "duration": entry.get('duration', 0),
+                        "start": start,
+                        "end": start + duration,
+                        "duration": duration,
                         "text": text
                     })
                     full_text.append(text)
@@ -237,7 +207,114 @@ class YouTubeAPIService:
             return {"success": False, "error": "No transcripts found for this video"}
         except Exception as e:
             logger.error(f"youtube-transcript-api error: {e}", exc_info=True)
+            error_text = str(e).lower()
+            if "transcript" in error_text and "disabled" in error_text:
+                return {"success": False, "error": "Transcripts are disabled for this video"}
+            if "video unavailable" in error_text or "private" in error_text:
+                return {"success": False, "error": "Video is unavailable or private"}
+            if "no transcripts" in error_text or "no transcript" in error_text:
+                return {"success": False, "error": "No transcripts found for this video"}
             return {"success": False, "error": f"Failed to fetch transcript: {str(e)}"}
+
+    def _entry_value(self, entry: Any, key: str, default: Any = None) -> Any:
+        if isinstance(entry, dict):
+            return entry.get(key, default)
+        return getattr(entry, key, default)
+
+    def _get_transcript_list_compat(self, video_id: str):
+        """Support both old and new youtube-transcript-api interfaces."""
+        if hasattr(YouTubeTranscriptApi, "list_transcripts"):
+            return YouTubeTranscriptApi.list_transcripts(video_id)
+
+        api_client = YouTubeTranscriptApi() if callable(YouTubeTranscriptApi) else YouTubeTranscriptApi
+        if hasattr(api_client, "list"):
+            return api_client.list(video_id)
+        if hasattr(api_client, "list_transcripts"):
+            return api_client.list_transcripts(video_id)
+        raise AttributeError("No transcript list method found in youtube-transcript-api")
+
+    def _fetch_transcript_data_compat(self, video_id: str, language: str):
+        """Fetch transcript data across youtube-transcript-api versions."""
+        lang_candidates = []
+        for langs in ([language], ['en', 'en-US', 'en-GB'], ['en']):
+            if langs not in lang_candidates:
+                lang_candidates.append(langs)
+
+        errors = []
+
+        if hasattr(YouTubeTranscriptApi, "get_transcript"):
+            for langs in lang_candidates:
+                try:
+                    data = YouTubeTranscriptApi.get_transcript(video_id, languages=langs)
+                    return data, False, langs[0]
+                except Exception as exc:
+                    errors.append(exc)
+
+        api_client = None
+        try:
+            api_client = YouTubeTranscriptApi() if callable(YouTubeTranscriptApi) else YouTubeTranscriptApi
+        except Exception as exc:
+            errors.append(exc)
+
+        if api_client and hasattr(api_client, "fetch"):
+            for langs in lang_candidates:
+                try:
+                    data = api_client.fetch(video_id, languages=langs)
+                    transcript_lang = getattr(data, "language_code", langs[0])
+                    is_generated = bool(getattr(data, "is_generated", False))
+                    if hasattr(data, "snippets"):
+                        data = data.snippets
+                    return data, is_generated, transcript_lang
+                except Exception as exc:
+                    errors.append(exc)
+
+        try:
+            transcript_list = self._get_transcript_list_compat(video_id)
+        except Exception as exc:
+            errors.append(exc)
+            transcript_list = None
+
+        if transcript_list:
+            transcript = None
+            transcript_lang = language
+            is_generated = False
+
+            if hasattr(transcript_list, "find_transcript"):
+                for langs in lang_candidates:
+                    try:
+                        transcript = transcript_list.find_transcript(langs)
+                        transcript_lang = langs[0]
+                        break
+                    except Exception as exc:
+                        errors.append(exc)
+
+            if transcript is None and hasattr(transcript_list, "find_generated_transcript"):
+                for langs in lang_candidates:
+                    try:
+                        transcript = transcript_list.find_generated_transcript(langs)
+                        transcript_lang = langs[0]
+                        is_generated = True
+                        break
+                    except Exception as exc:
+                        errors.append(exc)
+
+            if transcript is None:
+                try:
+                    available = list(transcript_list)
+                    if available:
+                        transcript = available[0]
+                        transcript_lang = getattr(transcript, "language_code", transcript_lang)
+                        is_generated = bool(getattr(transcript, "is_generated", False))
+                except Exception as exc:
+                    errors.append(exc)
+
+            if transcript is not None:
+                data = transcript.fetch()
+                return data, is_generated, transcript_lang
+
+        if errors:
+            raise RuntimeError(str(errors[-1]))
+        raise RuntimeError("No transcripts available")
     
     async def _get_video_metadata(self, video_id: str) -> Dict:
         """Get video metadata using YouTube Data API v3"""

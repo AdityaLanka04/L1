@@ -73,6 +73,24 @@ if "sqlite" in DATABASE_URL:
             logger.info("Added column context_documents.license")
         _conn.commit()
 
+    with engine.connect() as _conn:
+        _has_podcast_table = _conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name='podcast_sessions'")
+        ).fetchone()
+        if _has_podcast_table:
+            _podcast_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(podcast_sessions)"))}
+            _podcast_additions = {
+                "voice_persona": "VARCHAR(50) DEFAULT 'mentor'",
+                "difficulty": "VARCHAR(20) DEFAULT 'intermediate'",
+                "answer_language": "VARCHAR(20) DEFAULT 'en'",
+                "session_options": "TEXT DEFAULT '{}'",
+            }
+            for _col, _typ in _podcast_additions.items():
+                if _col not in _podcast_cols:
+                    _conn.execute(text(f"ALTER TABLE podcast_sessions ADD COLUMN {_col} {_typ}"))
+                    logger.info("Added column podcast_sessions.%s", _col)
+            _conn.commit()
+
 
 def _sync_sequences():
     if "postgres" not in DATABASE_URL.lower():

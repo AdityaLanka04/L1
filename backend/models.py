@@ -61,6 +61,8 @@ class User(Base):
     daily_metrics = relationship("DailyLearningMetrics", back_populates="user")
     achievements = relationship("UserAchievement", back_populates="user")
     comprehensive_profile = relationship("ComprehensiveUserProfile", back_populates="user", uselist=False)
+    podcast_sessions = relationship("PodcastSessionMemory", back_populates="user")
+    podcast_bookmarks = relationship("PodcastBookmark", back_populates="user")
     uploaded_slides = relationship("UploadedSlide", back_populates="user")
     uploaded_documents = relationship("UploadedDocument", back_populates="user")
     question_sets_new = relationship("QuestionSet", back_populates="user")
@@ -245,6 +247,55 @@ class Note(Base):
     user = relationship("User", back_populates="notes")
     folder = relationship("Folder", back_populates="notes")
     media_file = relationship("MediaFile", back_populates="notes")
+
+
+class PodcastSessionMemory(Base):
+    __tablename__ = "podcast_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String(64), unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    title = Column(String(255), default="Media Podcast")
+    source_type = Column(String(50), default="media")
+    voice_mode = Column(String(50), default="coach")
+    voice_persona = Column(String(50), default="mentor")
+    difficulty = Column(String(20), default="intermediate")
+    answer_language = Column(String(20), default="en")
+
+    transcript = Column(Text, default="")
+    analysis = Column(Text, default="{}")
+    key_takeaways = Column(Text, default="[]")
+    chapters = Column(Text, default="[]")
+    conversation = Column(Text, default="[]")
+    mcq_state = Column(Text, default="{}")
+    session_options = Column(Text, default="{}")
+
+    current_index = Column(Integer, default=-1)
+    is_active = Column(Boolean, default=True)
+    is_ended = Column(Boolean, default=False)
+
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    last_accessed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="podcast_sessions")
+
+
+class PodcastBookmark(Base):
+    __tablename__ = "podcast_bookmarks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String(64), ForeignKey("podcast_sessions.session_id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    chapter_index = Column(Integer, default=0)
+    timestamp_seconds = Column(Integer, default=0)
+    label = Column(String(255), default="Bookmarked moment")
+    excerpt = Column(Text, default="")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="podcast_bookmarks")
 
 class Folder(Base):
     __tablename__ = "folders"

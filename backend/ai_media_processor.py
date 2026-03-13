@@ -17,6 +17,7 @@ import os
 import json
 import tempfile
 import subprocess
+import shutil
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import asyncio
@@ -137,47 +138,101 @@ class AIMediaProcessor:
     
     async def process_youtube_video(self, url: str, options: Dict = None) -> Dict:
         """
-        Extract and process YouTube video transcript using official YouTube API
-        This method works reliably on AWS and cloud environments
+        Process YouTube video with audio-first strategy:
+        1) Download audio with yt-dlp and transcribe via Groq Whisper (primary)
+        2) Caption extraction fallback via YouTube transcript service (secondary)
         """
         try:
-            logger.info(f"Processing YouTube URL with official API: {url}")
+            logger.info(f"Processing YouTube URL with audio-first flow: {url}")
             
             if not url or url.strip() == "":
                 raise ValueError("YouTube URL is empty")
-            
-            result = await self.youtube_service.process_video(url.strip())
-            
-            if not result.get("success"):
-                error_msg = result.get("error", "Failed to process YouTube video")
-                logger.error(f"YouTube API error: {error_msg}")
-                raise ValueError(error_msg)
-            
-            video_info = result.get("video_info", {})
-            
-            language = result.get("language", "en")
-            if detect and result.get("transcript"):
+
+            normalized_url = url.strip()
+            download_result = await self._download_youtube_audio(normalized_url)
+
+            if download_result.get("success"):
+                temp_dir = download_result.get("temp_dir")
+                audio_path = download_result.get("audio_path")
+                metadata = download_result.get("metadata", {})
+                video_id = download_result.get("video_id")
+
                 try:
-                    detected_lang = detect(result["transcript"][:500])
-                    language = detected_lang
-                except:
+                    transcription_result = await self.transcribe_audio_groq(audio_path)
+                finally:
+                    if temp_dir and os.path.isdir(temp_dir):
+                        shutil.rmtree(temp_dir, ignore_errors=True)
+
+                if transcription_result.get("success"):
+                    transcript_text = transcription_result.get("transcript", "")
+                    language = transcription_result.get("language", "en")
+                    if detect and transcript_text:
+                        try:
+                            language = detect(transcript_text[:500])
+                        except Exception:
+                            pass
+
+                    duration = transcription_result.get("duration") or metadata.get("duration", 0)
+                    thumbnail = metadata.get("thumbnail")
+                    if not thumbnail and video_id:
+                        thumbnail = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+
+                    return {
+                        "success": True,
+                        "video_info": {
+                            "title": metadata.get("title", "YouTube Video"),
+                            "author": metadata.get("uploader") or metadata.get("channel", "Unknown"),
+                            "length": duration,
+                            "description": (metadata.get("description") or "")[:500],
+                            "thumbnail": thumbnail or ""
+                        },
+                        "transcript": transcript_text,
+                        "segments": transcription_result.get("segments", []),
+                        "language": language,
+                        "duration": duration,
+                        "has_timestamps": transcription_result.get("has_timestamps", False),
+                        "is_auto_generated": False
+                    }
+
+                logger.warning(
+                    "Primary audio transcription failed, trying caption fallback: %s",
+                    transcription_result.get("error", "Unknown transcription error")
+                )
+            else:
+                logger.warning(
+                    "Primary YouTube audio download failed, trying caption fallback: %s",
+                    download_result.get("error", "Unknown download error")
+                )
+
+            caption_result = await self.youtube_service.process_video(normalized_url)
+            if not caption_result.get("success"):
+                error_msg = caption_result.get("error", "Failed to process YouTube video")
+                logger.error(f"Caption fallback failed: {error_msg}")
+                raise ValueError(error_msg)
+
+            video_info = caption_result.get("video_info", {})
+            language = caption_result.get("language", "en")
+            if detect and caption_result.get("transcript"):
+                try:
+                    language = detect(caption_result["transcript"][:500])
+                except Exception:
                     pass
-            
+
             return {
                 "success": True,
                 "video_info": {
-                    "title": video_info.get("title", f"YouTube Video"),
+                    "title": video_info.get("title", "YouTube Video"),
                     "author": video_info.get("author", "Unknown"),
-                    "length": video_info.get("length", result.get("duration", 0)),
+                    "length": video_info.get("length", caption_result.get("duration", 0)),
                     "description": video_info.get("description", ""),
                     "thumbnail": video_info.get("thumbnail", "")
                 },
-                "transcript": result.get("transcript", ""),
-                "segments": result.get("segments", []),
+                "transcript": caption_result.get("transcript", ""),
+                "segments": caption_result.get("segments", []),
                 "language": language,
-                "duration": result.get("duration", video_info.get("length", 0)),
-                "has_timestamps": result.get("has_timestamps", True),
-                "is_auto_generated": result.get("is_auto_generated", False)
+                "duration": caption_result.get("duration", video_info.get("length", 0)),
+                "has_timestamps": caption_result.get("has_timestamps", True),
+                "is_auto_generated": caption_result.get("is_auto_generated", False)
             }
             
         except Exception as e:
@@ -186,6 +241,108 @@ class AIMediaProcessor:
                 "success": False,
                 "error": str(e)
             }
+
+    async def _download_youtube_audio(self, url: str) -> Dict:
+        """Download YouTube audio with yt-dlp for ASR transcription."""
+        temp_dir = tempfile.mkdtemp(prefix="yt_audio_")
+        output_template = os.path.join(temp_dir, "%(id)s.%(ext)s")
+        base_cmd = [
+            "yt-dlp",
+            "--no-playlist",
+            "--restrict-filenames",
+            "--extractor-args",
+            "youtube:player_client=android,web",
+            "--print-json",
+            "-o",
+            output_template,
+        ]
+        format_attempts = [
+            ["-f", "bestaudio/best"],
+            ["-f", "best"],
+            []
+        ]
+
+        try:
+            loop = asyncio.get_event_loop()
+            final_error = "yt-dlp failed to download audio"
+            for fmt_args in format_attempts:
+                cmd = base_cmd + fmt_args + [url]
+                process = await loop.run_in_executor(
+                    None,
+                    lambda: subprocess.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=180
+                    )
+                )
+
+                if process.returncode != 0:
+                    error_msg = (process.stderr or process.stdout or "yt-dlp failed").strip()
+                    logger.warning("yt-dlp audio attempt failed (%s): %s", " ".join(fmt_args) or "default", error_msg[:240])
+
+                    if "Sign in to confirm your age" in error_msg or "Sign in" in error_msg:
+                        final_error = "Video requires sign-in (age-restricted)"
+                        break
+                    if "429" in error_msg or "Too Many Requests" in error_msg:
+                        final_error = "YouTube rate limit reached. Please retry later."
+                        break
+                    if "Video unavailable" in error_msg:
+                        final_error = "Video is unavailable or private"
+                        break
+
+                    final_error = error_msg
+                    continue
+
+                metadata = {}
+                for line in reversed(process.stdout.splitlines()):
+                    line = line.strip()
+                    if line.startswith("{") and line.endswith("}"):
+                        try:
+                            metadata = json.loads(line)
+                            break
+                        except json.JSONDecodeError:
+                            continue
+
+                audio_candidates = [
+                    p for p in os.listdir(temp_dir)
+                    if os.path.isfile(os.path.join(temp_dir, p))
+                    and not p.endswith(".part")
+                    and not p.endswith(".ytdl")
+                    and os.path.splitext(p)[1].lower() in {".m4a", ".webm", ".mp3", ".wav", ".ogg", ".opus", ".mp4"}
+                ]
+
+                if not audio_candidates:
+                    final_error = "Downloaded audio file not found"
+                    continue
+
+                audio_candidates.sort(
+                    key=lambda name: os.path.getmtime(os.path.join(temp_dir, name)),
+                    reverse=True
+                )
+                audio_path = os.path.join(temp_dir, audio_candidates[0])
+
+                video_id = metadata.get("id") or self.youtube_service.extract_video_id(url)
+                return {
+                    "success": True,
+                    "audio_path": audio_path,
+                    "temp_dir": temp_dir,
+                    "metadata": metadata,
+                    "video_id": video_id
+                }
+
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return {"success": False, "error": final_error}
+        except subprocess.TimeoutExpired:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return {"success": False, "error": "Audio download timed out"}
+        except FileNotFoundError:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return {"success": False, "error": "yt-dlp not installed. Please install it: pip install yt-dlp"}
+        except Exception as e:
+            logger.error(f"YouTube audio download error: {str(e)}", exc_info=True)
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return {"success": False, "error": str(e)}
     
     async def transcribe_audio_groq(self, audio_path: str) -> Dict:
         """Transcribe audio using Groq Whisper (FREE)"""

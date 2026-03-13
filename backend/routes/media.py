@@ -12,6 +12,7 @@ from typing import List, Optional
 import PyPDF2
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 import models
@@ -28,12 +29,113 @@ try:
 except ImportError:
     process_math_in_response = None
 
+try:
+    from podcast_agent import podcast_agent_service
+except ImportError:
+    podcast_agent_service = None
+
 logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = Path("uploads/slides")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(prefix="/api", tags=["media"])
+
+
+class PodcastStartRequest(BaseModel):
+    user_id: str
+    transcript: str
+    analysis: dict = Field(default_factory=dict)
+    title: str = "Media Podcast"
+    source_type: str = "media"
+    voice_mode: str = "coach"
+    voice_persona: str = "mentor"
+    difficulty: str = "intermediate"
+    answer_language: str = "en"
+    session_options: dict = Field(default_factory=dict)
+
+
+class PodcastSessionRequest(BaseModel):
+    user_id: str
+    session_id: str
+
+
+class PodcastQuestionRequest(BaseModel):
+    user_id: str
+    session_id: str
+    question: str
+    voice_mode: Optional[str] = None
+    voice_persona: Optional[str] = None
+    difficulty: Optional[str] = None
+    question_language: Optional[str] = None
+    answer_language: Optional[str] = None
+
+
+class PodcastVoiceModeRequest(BaseModel):
+    user_id: str
+    session_id: str
+    voice_mode: str
+
+
+class PodcastSettingsRequest(BaseModel):
+    user_id: str
+    session_id: str
+    voice_mode: Optional[str] = None
+    voice_persona: Optional[str] = None
+    difficulty: Optional[str] = None
+    answer_language: Optional[str] = None
+    session_options: dict = Field(default_factory=dict)
+
+
+class PodcastBookmarkRequest(BaseModel):
+    user_id: str
+    session_id: str
+    label: Optional[str] = None
+    chapter_index: Optional[int] = None
+    timestamp_seconds: Optional[int] = None
+
+
+class PodcastReplayBookmarkRequest(BaseModel):
+    user_id: str
+    session_id: str
+    bookmark_id: int
+
+
+class PodcastJumpChapterRequest(BaseModel):
+    user_id: str
+    session_id: str
+    chapter_index: int
+
+
+class PodcastMCQStartRequest(BaseModel):
+    user_id: str
+    session_id: str
+    count: int = 5
+
+
+class PodcastMCQAnswerRequest(BaseModel):
+    user_id: str
+    session_id: str
+    question_index: int
+    selected_index: int
+
+
+class PodcastExportRequest(BaseModel):
+    user_id: str
+    session_id: str
+    format_type: str = "markdown"
+
+
+def _resolve_user_or_404(db: Session, user_id: str):
+    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+def _verify_user_access(requested_user, current_user: models.User):
+    if requested_user.id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
 @router.post("/transcribe_audio/")
 async def transcribe_audio(
@@ -1081,3 +1183,478 @@ async def get_slide_image(
     except Exception as e:
         logger.error(f"Error getting slide image: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error getting slide image: {str(e)}")
+
+
+@router.get("/media/podcast/voice-modes")
+def get_podcast_voice_modes():
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+    return {"voice_modes": podcast_agent_service.list_voice_modes()}
+
+
+@router.get("/media/podcast/voice-personas")
+def get_podcast_voice_personas():
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+    return {"voice_personas": podcast_agent_service.list_voice_personas()}
+
+
+@router.get("/media/podcast/languages")
+def get_podcast_languages():
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+    return {"languages": podcast_agent_service.list_supported_languages()}
+
+
+@router.get("/media/podcast/difficulties")
+def get_podcast_difficulties():
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+    return {"difficulties": podcast_agent_service.list_difficulty_levels()}
+
+
+@router.post("/media/podcast/start")
+async def start_media_podcast(
+    payload: PodcastStartRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        session_data = podcast_agent_service.start_session(
+            db=db,
+            user_id=requested_user.id,
+            transcript=payload.transcript,
+            analysis=payload.analysis,
+            title=payload.title,
+            source_type=payload.source_type,
+            voice_mode=payload.voice_mode,
+            voice_persona=payload.voice_persona,
+            difficulty=payload.difficulty,
+            answer_language=payload.answer_language,
+            session_options=payload.session_options,
+        )
+        return {"success": True, **session_data}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to start media podcast: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to start podcast session")
+
+
+@router.post("/media/podcast/next")
+async def next_media_podcast_segment(
+    payload: PodcastSessionRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        segment_data = podcast_agent_service.get_next_segment(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+        )
+        return {"success": True, **segment_data}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to fetch next podcast segment: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to fetch next podcast segment")
+
+
+@router.post("/media/podcast/ask")
+async def ask_media_podcast_question(
+    payload: PodcastQuestionRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        answer_data = podcast_agent_service.ask_question(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+            question=payload.question,
+            voice_mode=payload.voice_mode,
+            voice_persona=payload.voice_persona,
+            difficulty=payload.difficulty,
+            question_language=payload.question_language,
+            answer_language=payload.answer_language,
+        )
+        return {"success": True, **answer_data}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Podcast question handling failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to answer podcast question")
+
+
+@router.post("/media/podcast/voice-mode")
+async def set_media_podcast_voice_mode(
+    payload: PodcastVoiceModeRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        mode_data = podcast_agent_service.set_voice_mode(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+            voice_mode=payload.voice_mode,
+        )
+        return {"success": True, **mode_data}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to update podcast voice mode: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to update podcast voice mode")
+
+
+@router.post("/media/podcast/settings")
+async def update_media_podcast_settings(
+    payload: PodcastSettingsRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        settings_data = podcast_agent_service.update_settings(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+            difficulty=payload.difficulty,
+            answer_language=payload.answer_language,
+            voice_persona=payload.voice_persona,
+            voice_mode=payload.voice_mode,
+            session_options=payload.session_options,
+        )
+        return {"success": True, **settings_data}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to update podcast settings: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to update podcast settings")
+
+
+@router.post("/media/podcast/bookmark")
+async def add_media_podcast_bookmark(
+    payload: PodcastBookmarkRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        bookmark = podcast_agent_service.add_bookmark(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+            label=payload.label,
+            chapter_index=payload.chapter_index,
+            timestamp_seconds=payload.timestamp_seconds,
+        )
+        bookmarks = podcast_agent_service.list_bookmarks(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+        )
+        return {"success": True, "bookmark": bookmark, "bookmarks": bookmarks}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to add podcast bookmark: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to add podcast bookmark")
+
+
+@router.post("/media/podcast/bookmarks")
+async def get_media_podcast_bookmarks(
+    payload: PodcastSessionRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        bookmarks = podcast_agent_service.list_bookmarks(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+        )
+        return {"success": True, "bookmarks": bookmarks}
+    except Exception as e:
+        logger.error("Failed to fetch podcast bookmarks: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to fetch podcast bookmarks")
+
+
+@router.post("/media/podcast/replay")
+async def replay_media_podcast_bookmark(
+    payload: PodcastReplayBookmarkRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        replay_data = podcast_agent_service.replay_bookmark(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+            bookmark_id=payload.bookmark_id,
+        )
+        return {"success": True, **replay_data}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to replay bookmark: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to replay bookmark")
+
+
+@router.post("/media/podcast/jump")
+async def jump_media_podcast_chapter(
+    payload: PodcastJumpChapterRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        jump_data = podcast_agent_service.jump_to_chapter(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+            chapter_index=payload.chapter_index,
+        )
+        return {"success": True, **jump_data}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to jump podcast chapter: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to jump podcast chapter")
+
+
+@router.post("/media/podcast/mcq/start")
+async def start_media_podcast_mcq(
+    payload: PodcastMCQStartRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        mcq_data = podcast_agent_service.start_mcq_drill(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+            count=payload.count,
+        )
+        return {"success": True, **mcq_data}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to start podcast mcq drill: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to start podcast mcq drill")
+
+
+@router.post("/media/podcast/mcq/answer")
+async def answer_media_podcast_mcq(
+    payload: PodcastMCQAnswerRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        mcq_data = podcast_agent_service.answer_mcq(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+            question_index=payload.question_index,
+            selected_index=payload.selected_index,
+        )
+        return {"success": True, **mcq_data}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to answer podcast mcq: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to answer podcast mcq")
+
+
+@router.post("/media/podcast/export")
+async def export_media_podcast_session(
+    payload: PodcastExportRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        export_data = podcast_agent_service.export_session(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+            format_type=payload.format_type,
+        )
+        return {"success": True, **export_data}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to export podcast session: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to export podcast session")
+
+
+@router.get("/media/podcast/sessions")
+async def list_media_podcast_sessions(
+    user_id: str = Query(...),
+    limit: int = Query(20),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        sessions = podcast_agent_service.list_user_sessions(
+            db=db,
+            user_id=requested_user.id,
+            limit=limit,
+        )
+        return {"success": True, "sessions": sessions}
+    except Exception as e:
+        logger.error("Failed to list podcast sessions: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to list podcast sessions")
+
+
+@router.post("/media/podcast/resume")
+async def resume_media_podcast_session(
+    payload: PodcastSessionRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        resume_data = podcast_agent_service.resume_session(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+        )
+        return {"success": True, **resume_data}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to resume podcast session: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to resume podcast session")
+
+
+@router.post("/media/podcast/stop")
+async def stop_media_podcast(
+    payload: PodcastSessionRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        stop_data = podcast_agent_service.stop_session(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+        )
+        return {"success": True, **stop_data}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to stop podcast session: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to stop podcast session")
+
+
+@router.post("/media/podcast/state")
+async def get_media_podcast_state(
+    payload: PodcastSessionRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not podcast_agent_service:
+        raise HTTPException(status_code=500, detail="Podcast agent is not available")
+
+    requested_user = _resolve_user_or_404(db, payload.user_id)
+    _verify_user_access(requested_user, current_user)
+
+    try:
+        state_data = podcast_agent_service.get_state(
+            db=db,
+            session_id=payload.session_id,
+            user_id=requested_user.id,
+        )
+        return {"success": True, **state_data}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to fetch podcast session state: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to fetch podcast session state")

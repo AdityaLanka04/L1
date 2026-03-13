@@ -131,10 +131,18 @@ const AudioVideoNotes = () => {
         <div className="header-left">
           <h1 className="page-title-main">audio / video notes</h1>
           <p className="page-subtitle-main">generate notes from media files</p>
+          <p className="page-subtitle-main" style={{ marginTop: '6px' }}>
+            New podcast mode is available in AI Media Notes.
+          </p>
         </div>
-        <button onClick={() => navigate('/notes')} className="back-btn">
-          back to notes
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => navigate('/notes/ai-media')} className="back-btn">
+            open ai media + podcast
+          </button>
+          <button onClick={() => navigate('/notes')} className="back-btn">
+            back to notes
+          </button>
+        </div>
       </div>
 
       <div className="content-grid">

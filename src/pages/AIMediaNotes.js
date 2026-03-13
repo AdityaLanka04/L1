@@ -10,6 +10,7 @@ import './AIMediaNotesConvert.css';
 import { API_URL } from '../config';
 import { sanitizeHtml } from '../utils/sanitize';
 import ImportExportModal from '../components/ImportExportModal';
+import PodcastStudio from '../components/media/PodcastStudio';
 
 const AIMediaNotes = () => {
   const navigate = useNavigate();
@@ -505,6 +506,9 @@ const AIMediaNotes = () => {
                 <p className="mn-upload-subtitle">
                   Upload audio or video files, or paste a YouTube URL to generate AI-powered study notes
                 </p>
+                <p className="mn-upload-subtitle" style={{ marginTop: '-6px' }}>
+                  Podcast mode appears after processing, under the <strong>PODCAST</strong> tab.
+                </p>
 
                 <div
                   className={`mn-upload-area ${isDragging ? 'dragging' : ''}`}
@@ -712,6 +716,13 @@ const AIMediaNotes = () => {
                     <Zap size={16} />
                     <span>FLASHCARDS {results.flashcards?.length > 0 && `(${results.flashcards.length})`}</span>
                   </button>
+                  <button
+                    className={`mn-tab ${activeTab === 'podcast' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('podcast')}
+                  >
+                    <Mic size={16} />
+                    <span>PODCAST</span>
+                  </button>
                 </div>
 
                 <div className="mn-tab-content">
@@ -830,6 +841,10 @@ const AIMediaNotes = () => {
                         </>
                       )}
                     </>
+                  )}
+
+                  {activeTab === 'podcast' && (
+                    <PodcastStudio results={results} userName={userName} />
                   )}
 
                   {activeTab === 'quiz' && (

@@ -13,6 +13,7 @@ import 'reactflow/dist/style.css';
 import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight, X, Edit3, Save, StickyNote , Menu} from 'lucide-react';
 import './KnowledgeRoadmap.css';
 import { API_URL } from '../config';
+import MathRenderer from '../components/MathRenderer';
 const CustomNode = ({ data, selected }) => {
   const [activeAction, setActiveAction] = useState(null);
   const setAction = (action) => () => setActiveAction(action);
@@ -137,6 +138,8 @@ const KnowledgeRoadmap = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(null);
+  const chatMessagesRef = useRef(null);
 
   
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
@@ -1137,6 +1140,289 @@ Instructions:
 - If the question is ambiguous, ask one clarifying question tied to this node.`;
   }, [chatMessages, currentRoadmap, getNodePathForContext, manualNotes]);
 
+  const copyToClipboard = (text, codeIndex) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedCode(codeIndex);
+      setTimeout(() => setCopiedCode(null), 2000);
+    }).catch(() => {});
+  };
+
+  const renderTable = (tableRows) => {
+    if (tableRows.length < 2) return tableRows.join('\n');
+
+    const headers = tableRows[0].split('|').map(h => h.trim()).filter(Boolean);
+    const columnCount = headers.length;
+    let tableBlockHtml = '<div class="table-block-container">';
+
+    tableBlockHtml += '<div class="table-block-header">';
+    tableBlockHtml += '<span class="table-info">TABLE</span>';
+    tableBlockHtml += `<span class="table-meta">${tableRows.length - 1} rows × ${columnCount} columns</span>`;
+    tableBlockHtml += '</div>';
+
+    tableBlockHtml += '<div class="table-block-content">';
+    tableBlockHtml += '<table class="structured-table">';
+
+    if (headers.length > 0) {
+      tableBlockHtml += '<thead><tr>';
+      headers.forEach(header => {
+        tableBlockHtml += `<th>${header}</th>`;
+      });
+      tableBlockHtml += '</tr></thead>';
+    }
+
+    tableBlockHtml += '<tbody>';
+    let rowCount = 0;
+    for (let i = 1; i < tableRows.length; i++) {
+      const row = tableRows[i];
+      if (row.includes('---')) continue;
+
+      const cells = row.split('|').map(c => c.trim()).filter(Boolean);
+      if (cells.length > 0) {
+        rowCount++;
+        tableBlockHtml += `<tr class="table-row-${rowCount % 2 === 0 ? 'even' : 'odd'}">`;
+        cells.forEach((cell, index) => {
+          const cellContent = cell || '—';
+          tableBlockHtml += `<td data-column="${index + 1}">${cellContent}</td>`;
+        });
+        tableBlockHtml += '</tr>';
+      }
+    }
+    tableBlockHtml += '</tbody></table>';
+    tableBlockHtml += '</div></div>';
+
+    return tableBlockHtml;
+  };
+
+  const renderMarkdown = (text) => {
+    if (!text) return '';
+
+    const mathSymbols = ['∑', 'Σ', '∫', '∏', 'Π', '∮', '∯', '∰', '⨌'];
+    mathSymbols.forEach(symbol => {
+      try {
+        const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(escaped, 'g');
+        text = text.replace(regex, `<span class="math-symbol">${symbol}</span>`);
+      } catch {
+        text = text.split(symbol).join(`<span class="math-symbol">${symbol}</span>`);
+      }
+    });
+
+    const lines = text.split('\n');
+    const processedLines = [];
+    let inBulletList = false;
+    let inNumberedList = false;
+    let inTable = false;
+    let tableRows = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i].trim();
+
+      if (line.includes('|') && !inTable) {
+        inTable = true;
+        tableRows = [line];
+        continue;
+      } else if (inTable && line.includes('|')) {
+        tableRows.push(line);
+        continue;
+      } else if (inTable && !line.includes('|')) {
+        inTable = false;
+        processedLines.push(renderTable(tableRows));
+        tableRows = [];
+      }
+      if (inTable) continue;
+
+      if (/^#### (.+)$/.test(line)) {
+        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
+        processedLines.push(`<h4 class="md-h4">${line.replace(/^#### (.+)$/, '$1')}</h4>`);
+        continue;
+      }
+      if (/^### (.+)$/.test(line)) {
+        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
+        processedLines.push(`<h3 class="md-h3">${line.replace(/^### (.+)$/, '$1')}</h3>`);
+        continue;
+      }
+      if (/^## (.+)$/.test(line)) {
+        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
+        processedLines.push(`<h2 class="md-h2">${line.replace(/^## (.+)$/, '$1')}</h2>`);
+        continue;
+      }
+      if (/^# (.+)$/.test(line)) {
+        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
+        processedLines.push(`<h1 class="md-h1">${line.replace(/^# (.+)$/, '$1')}</h1>`);
+        continue;
+      }
+
+      if (/^\*\*(.+?)\*\*/.test(line)) {
+        line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-heading">$1</strong>');
+      } else {
+        line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-inline">$1</strong>');
+      }
+      line = line.replace(/__(.+?)__/g, '<strong class="md-bold-inline">$1</strong>');
+      line = line.replace(/(?<!\w)\*([^*]+?)\*(?!\w)/g, '<em>$1</em>');
+      line = line.replace(/(?<!\w)_([^_]+?)_(?!\w)/g, '<em>$1</em>');
+      line = line.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
+      line = line.replace(/\b([A-Z]{2,})\b/g, '<span class="keyword">$1</span>');
+
+      const isBullet = /^[\*\-•] (.+)$/.test(line);
+      const isNumbered = /^\d+\. (.+)$/.test(line);
+
+      if (isBullet) {
+        if (!inBulletList) {
+          processedLines.push('<ul class="md-ul">');
+          inBulletList = true;
+        }
+        processedLines.push(`<li class="md-li">${line.replace(/^[\*\-•] (.+)$/, '$1')}</li>`);
+      } else if (isNumbered) {
+        if (!inNumberedList) {
+          processedLines.push('<ol class="md-ol">');
+          inNumberedList = true;
+        }
+        processedLines.push(`<li class="md-li-num">${line.replace(/^\d+\. (.+)$/, '$1')}</li>`);
+      } else {
+        if (inBulletList) {
+          processedLines.push('</ul>');
+          inBulletList = false;
+        }
+        if (inNumberedList) {
+          processedLines.push('</ol>');
+          inNumberedList = false;
+        }
+        processedLines.push(line);
+      }
+    }
+
+    if (inTable && tableRows.length > 0) {
+      processedLines.push(renderTable(tableRows));
+    }
+    if (inBulletList) processedLines.push('</ul>');
+    if (inNumberedList) processedLines.push('</ol>');
+
+    const finalContent = [];
+    let currentParagraph = [];
+
+    for (let i = 0; i < processedLines.length; i++) {
+      const line = processedLines[i];
+      const trimmedLine = line.trim();
+      const isBlockElement = line.startsWith('<h') || line.startsWith('<ul') || line.startsWith('<ol') ||
+        line.startsWith('</ul>') || line.startsWith('</ol>') ||
+        line.startsWith('<div class="table-block-container">');
+      const isEmptyLine = trimmedLine === '';
+
+      if (isBlockElement) {
+        if (currentParagraph.length > 0) {
+          finalContent.push(`<p>${currentParagraph.join(' ')}</p>`);
+          currentParagraph = [];
+        }
+        finalContent.push(line);
+      } else if (isEmptyLine) {
+        if (currentParagraph.length > 0) {
+          finalContent.push(`<p>${currentParagraph.join(' ')}</p>`);
+          currentParagraph = [];
+        }
+      } else if (trimmedLine) {
+        currentParagraph.push(trimmedLine);
+      }
+    }
+
+    if (currentParagraph.length > 0) {
+      finalContent.push(`<p>${currentParagraph.join(' ')}</p>`);
+    }
+
+    text = finalContent.join('\n');
+    if (text && !text.startsWith('<')) {
+      text = `<p>${text}</p>`;
+    }
+    return text;
+  };
+
+  const stripThinking = (text) => {
+    if (!text) return text;
+    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    text = text.replace(/\[thinking\][\s\S]*?\[\/thinking\]/gi, '').trim();
+    return text;
+  };
+
+  const renderChatMessageContent = (content) => {
+    if (!content) return null;
+    content = stripThinking(content);
+
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: content.substring(lastIndex, match.index)
+        });
+      }
+      parts.push({
+        type: 'code',
+        language: match[1] || 'plaintext',
+        content: match[2].trim()
+      });
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < content.length) {
+      parts.push({
+        type: 'text',
+        content: content.substring(lastIndex)
+      });
+    }
+
+    if (parts.length === 0) {
+      parts.push({ type: 'text', content });
+    }
+
+    return parts.map((part, index) => {
+      if (part.type === 'text') {
+        const htmlContent = renderMarkdown(part.content);
+        const finalContent = htmlContent && htmlContent.trim() ? htmlContent : `<p>${part.content}</p>`;
+        return <MathRenderer key={`${part.type}-${index}`} content={finalContent} />;
+      }
+
+      return (
+        <div key={`${part.type}-${index}`} className="code-block-container" data-language={part.language}>
+          <div className="code-block-header">
+            <span className="code-language">{part.language.toUpperCase()}</span>
+            <button
+              className={`code-copy-btn ${copiedCode === index ? 'copied' : ''}`}
+              onClick={() => copyToClipboard(part.content, index)}
+              title="Copy code"
+            >
+              {copiedCode === index ? (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  COPIED
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  COPY
+                </>
+              )}
+            </button>
+          </div>
+          <pre className="code-block">
+            <code className={`language-${part.language}`}>{part.content}</code>
+          </pre>
+        </div>
+      );
+    });
+  };
+
   
   const sendChatMessage = async () => {
     if (!chatInput.trim() || chatLoading || !nodeExplanation) return;
@@ -1158,6 +1444,8 @@ Instructions:
       formData.append('user_id', userId);
       formData.append('question', buildNodeAwareChatPrompt(nodeExplanation, messageText));
       formData.append('chat_id', ''); 
+      const hsModeEnabled = localStorage.getItem('hs_mode_enabled') === 'true';
+      formData.append('use_hs_context', String(hsModeEnabled));
 
       const response = await fetch(`${API_URL}/ask/`, {
         method: 'POST',
@@ -1206,6 +1494,12 @@ Instructions:
       setChatInput('');
     }
   }, [nodeExplanation]);
+
+  useEffect(() => {
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+    }
+  }, [chatMessages, chatLoading]);
 
   
   const viewRoadmap = async (roadmapId) => {
@@ -1838,7 +2132,7 @@ Instructions:
 
                     <div className="kr-chat-section">
                       <h4>Ask Questions About This Topic</h4>
-                      <div className="kr-chat-messages">
+                      <div className="kr-chat-messages" ref={chatMessagesRef}>
                         {chatMessages.length === 0 ? (
                           <div className="kr-chat-placeholder">
                             <p>Ask me anything about "{nodeExplanation.topic_name}"</p>
@@ -1846,11 +2140,15 @@ Instructions:
                         ) : (
                           chatMessages.map(message => (
                             <div key={message.id} className={`kr-chat-message ${message.type}`}>
-                              <div className="kr-chat-message-content">
-                                {message.content}
+                              <div className={`kr-chat-message-content ${message.type === 'assistant' ? 'ac-message-content' : ''}`}>
+                                {renderChatMessageContent(message.content)}
                               </div>
                               <div className="kr-chat-message-time">
-                                {new Date(message.timestamp).toLocaleTimeString()}
+                                {new Date(message.timestamp).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })}
                               </div>
                             </div>
                           ))
@@ -1858,10 +2156,10 @@ Instructions:
                         {chatLoading && (
                           <div className="kr-chat-message assistant">
                             <div className="kr-chat-message-content">
-                              <div className="kr-chat-typing">
-                                <span></span>
-                                <span></span>
-                                <span></span>
+                              <div className="ac-pulse-loader">
+                                <div className="ac-pulse-square ac-pulse-1"></div>
+                                <div className="ac-pulse-square ac-pulse-2"></div>
+                                <div className="ac-pulse-square ac-pulse-3"></div>
                               </div>
                             </div>
                           </div>
@@ -1882,9 +2180,13 @@ Instructions:
                           disabled={chatLoading || !chatInput.trim()}
                           className="kr-chat-send-btn"
                         >
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M1 8l14-6-6 14-2-8z"/>
-                          </svg>
+                          {chatLoading ? (
+                            <span className="kr-send-spinner" aria-hidden="true" />
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M1 8l14-6-6 14-2-8z"/>
+                            </svg>
+                          )}
                         </button>
                       </div>
                     </div>
