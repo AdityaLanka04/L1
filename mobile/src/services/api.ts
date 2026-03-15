@@ -166,6 +166,45 @@ export async function getNotes(userId: string) {
   return res.json(); // [{id, title, content, updated_at, is_favorite, folder_id}]
 }
 
+// ── AI Media Notes ────────────────────────────────────────────────────
+export async function processMediaYouTube(userId: string, youtubeUrl: string, noteStyle = 'detailed') {
+  const headers = await authHeaders();
+  const body = new FormData();
+  body.append('user_id', userId);
+  body.append('youtube_url', youtubeUrl);
+  body.append('note_style', noteStyle);
+  body.append('difficulty', 'intermediate');
+  body.append('subject', 'general');
+  const res = await fetch(`${API_URL}/media/process`, {
+    method: 'POST',
+    headers,
+    body,
+  });
+  return res.json();
+}
+
+export async function getMediaHistory(userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/media/history?user_id=${encodeURIComponent(userId)}`, { headers });
+  return res.json(); // { history: [{id, title, created_at, preview}] }
+}
+
+export async function saveMediaNotes(
+  userId: string,
+  title: string,
+  content: string,
+  transcript?: string,
+  analysis?: any,
+) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/media/save-notes`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId, title, content, transcript, analysis }),
+  });
+  return res.json(); // { success, note_id }
+}
+
 // ── Weekly Progress ───────────────────────────────────────────────────
 export async function getWeeklyProgress(userId: string) {
   const headers = await authHeaders();

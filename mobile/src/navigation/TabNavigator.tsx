@@ -11,6 +11,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import MoreScreen from '../screens/MoreScreen';
 import FlashcardsScreen from '../screens/FlashcardsScreen';
 import NotesScreen from '../screens/NotesScreen';
+import AIMediaNotesScreen from '../screens/AIMediaNotesScreen';
 
 const GOLD = '#C9A87C';
 const BG   = '#0A0A0A';
@@ -31,7 +32,7 @@ type Props = { user: AuthUser; onLogout: () => void };
 export default function TabNavigator({ user, onLogout }: Props) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(2);
-  const [activeScreen, setActiveScreen] = useState<'flashcards' | 'notes' | null>(null);
+  const [activeScreen, setActiveScreen] = useState<'flashcards' | 'notes' | 'aimedia' | null>(null);
   const pager = useRef<PagerView>(null);
 
   const goTo = (i: number) => {
@@ -73,6 +74,10 @@ export default function TabNavigator({ user, onLogout }: Props) {
 
       <Modal visible={activeScreen === 'notes'} animationType="slide" onRequestClose={() => setActiveScreen(null)}>
         <NotesScreen user={user} onBack={() => setActiveScreen(null)} />
+      </Modal>
+
+      <Modal visible={activeScreen === 'aimedia'} animationType="slide" onRequestClose={() => setActiveScreen(null)}>
+        <AIMediaNotesScreen user={user} onBack={() => setActiveScreen(null)} />
       </Modal>
     </View>
   );

@@ -101,11 +101,11 @@ export const COLOR_PALETTE = [
 ];
 
 const DARK_BASE = {
-  '--bg-primary': '#0b0b0c',
-  '--bg-secondary': '#16181d',
+  '--bg-primary': '#0a0a09',
+  '--bg-secondary': '#111110',
   '--text-primary': '#EAECEF',
-  '--text-secondary': '#B8C0CC',
-  '--border': '#2a2f37',
+  '--text-secondary': '#B8B8B0',
+  '--border': '#252422',
   '--success': '#10B981',
   '--warning': '#F59E0B',
   '--danger': '#EF4444'
@@ -190,12 +190,12 @@ export function getCurrentTheme(themeId) {
       '--accent': theme.accent,
       '--accent-2': theme.accentHover,
       ...base,
-      '--bg-top': theme.mode === 'dark' ? '#0b0b0c' : '#fefefe',
-      '--bg-bottom': theme.mode === 'dark' ? '#0f1012' : '#f8f9fa',
-      '--panel': theme.mode === 'dark' ? '#16181d' : '#ffffff',
-      '--primary': theme.mode === 'dark' ? '#16181d' : '#ffffff',
+      '--bg-top': theme.mode === 'dark' ? '#0a0a09' : '#fefefe',
+      '--bg-bottom': theme.mode === 'dark' ? '#0d0c0b' : '#f8f9fa',
+      '--panel': theme.mode === 'dark' ? '#111110' : '#ffffff',
+      '--primary': theme.mode === 'dark' ? '#111110' : '#ffffff',
       '--primary-contrast': theme.mode === 'dark' ? '#EAECEF' : '#1a1a1a',
-      '--hero-bg': theme.mode === 'dark' ? '#16181d' : '#ffffff',
+      '--hero-bg': theme.mode === 'dark' ? '#111110' : '#ffffff',
       '--hero-text': theme.mode === 'dark' ? '#EAECEF' : '#1a1a1a',
       '--glow': `rgba(${hexToRgb(theme.accent).r}, ${hexToRgb(theme.accent).g}, ${hexToRgb(theme.accent).b}, 0.35)`,
       '--dashboard-accent': theme.accent,

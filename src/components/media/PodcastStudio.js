@@ -939,13 +939,12 @@ const PodcastStudio = ({ results, userName }) => {
 
   return (
     <div className="podcast-studio">
+
+      {/* ── Hero strip ── */}
       <div className="podcast-hero">
-        <div>
+        <div className="podcast-hero-content">
           <p className="podcast-kicker">Podcast Studio Pro</p>
           <h3>{episodeTitle || 'Turn This Media Into An Interactive Podcast'}</h3>
-          <p>
-            Chapters, bookmarks, live drill mode, multilingual Q&A, follow-ups, and hands-free interaction.
-          </p>
           <div className="podcast-hero-stats">
             <span className="podcast-stat">{transcript.split(' ').filter(Boolean).length.toLocaleString()} words</span>
             <span className="podcast-stat">{keyConcepts.length} key concepts</span>
@@ -954,18 +953,20 @@ const PodcastStudio = ({ results, userName }) => {
           </div>
         </div>
         <div className="podcast-hero-badge">
-          <Headphones size={18} />
-          <span>{sessionId ? 'Live Session' : 'Ready'}</span>
+          <Headphones size={16} />
+          <span>{sessionId ? 'Live' : 'Ready'}</span>
         </div>
       </div>
 
-      <div className="podcast-controls-grid">
+      {/* ── Bento top row ── */}
+      <div className="podcast-bento-top">
+
+        {/* Card 1 — Voice Mode + Session Controls */}
         <div className="podcast-card">
           <div className="podcast-card-header">
-            <Sparkles size={16} />
-            <h4>Voice Mode + Persona</h4>
+            <Sparkles size={14} />
+            <h4>Voice Mode</h4>
           </div>
-
           <div className="podcast-mode-list">
             {voiceModes.map((mode) => (
               <button
@@ -978,157 +979,125 @@ const PodcastStudio = ({ results, userName }) => {
               </button>
             ))}
           </div>
-
-          <div className="podcast-playback-row" style={{ marginTop: '10px' }}>
-            <label>Persona</label>
-            <select value={selectedPersona} onChange={(e) => handlePersonaChange(e.target.value)}>
-              {voicePersonas.map((persona) => (
-                <option key={persona.id} value={persona.id}>
-                  {persona.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="podcast-playback-row">
-            <label>Difficulty</label>
-            <input
-              type="range"
-              min="0"
-              max="2"
-              step="1"
-              value={difficultySliderValue}
-              onChange={(e) => handleDifficultyChange(difficultyFromIndex(Number(e.target.value)))}
-            />
-            <span>{selectedDifficulty}</span>
+          <div className="podcast-session-controls">
+            {!sessionId ? (
+              <button className="podcast-btn primary podcast-btn--full" onClick={startSession} disabled={isStarting}>
+                {isStarting ? <Loader2 size={15} className="spin" /> : <Play size={15} />}
+                <span>{isStarting ? 'Starting...' : 'Start Session'}</span>
+              </button>
+            ) : (
+              <div className="podcast-playback-btns">
+                <button className="podcast-btn podcast-btn--icon" title="Play" onClick={() => speakText(currentSegment)} disabled={!currentSegment || !speechSupported}>
+                  <Play size={15} />
+                </button>
+                <button className="podcast-btn podcast-btn--icon" title="Pause" onClick={stopSpeaking} disabled={!isSpeaking}>
+                  <Pause size={15} />
+                </button>
+                <button className="podcast-btn podcast-btn--icon" title="Next chapter" onClick={fetchNextSegment} disabled={isFetchingNext || !hasMore}>
+                  {isFetchingNext ? <Loader2 size={15} className="spin" /> : <SkipForward size={15} />}
+                </button>
+                <button className="podcast-btn danger podcast-btn--icon" title="Stop session" onClick={stopSession}>
+                  <Square size={15} />
+                </button>
+                <span className="podcast-session-label">Session live</span>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Card 2 — Playback Settings */}
         <div className="podcast-card">
           <div className="podcast-card-header">
-            <Languages size={16} />
-            <h4>Language + Playback</h4>
+            <Languages size={14} />
+            <h4>Playback + Settings</h4>
           </div>
-
-          <div className="podcast-playback-row">
-            <label>Ask In</label>
-            <select value={questionLanguage} onChange={(e) => setQuestionLanguage(e.target.value)}>
-              {languages.map((lang) => (
-                <option key={lang.code} value={lang.code}>{lang.label}</option>
-              ))}
-            </select>
+          <div className="podcast-settings-stack">
+            <div className="podcast-setting-row">
+              <label>Ask In</label>
+              <select value={questionLanguage} onChange={(e) => setQuestionLanguage(e.target.value)}>
+                {languages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>{lang.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="podcast-setting-row">
+              <label>Answer In</label>
+              <select value={answerLanguage} onChange={(e) => handleAnswerLanguageChange(e.target.value)}>
+                {languages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>{lang.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="podcast-setting-row">
+              <label>Voice</label>
+              <select value={selectedVoiceUri} onChange={(e) => setSelectedVoiceUri(e.target.value)} disabled={!speechSupported || voices.length === 0}>
+                {voices.length === 0 && <option value="">No voices available</option>}
+                {voices.map((voice) => (
+                  <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="podcast-setting-row">
+              <label>Persona</label>
+              <select value={selectedPersona} onChange={(e) => handlePersonaChange(e.target.value)}>
+                {voicePersonas.map((persona) => (
+                  <option key={persona.id} value={persona.id}>{persona.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="podcast-setting-row">
+              <label>Difficulty</label>
+              <div className="podcast-range-row">
+                <input type="range" min="0" max="2" step="1" value={difficultySliderValue} onChange={(e) => handleDifficultyChange(difficultyFromIndex(Number(e.target.value)))} />
+                <span>{selectedDifficulty}</span>
+              </div>
+            </div>
+            <div className="podcast-setting-row">
+              <label>Speed</label>
+              <div className="podcast-range-row">
+                <input type="range" min="0.85" max="1.2" step="0.01" value={playbackRate} onChange={(e) => setPlaybackRate(Number(e.target.value))} />
+                <span>{playbackRate.toFixed(2)}x</span>
+              </div>
+            </div>
           </div>
-
-          <div className="podcast-playback-row">
-            <label>Answer In</label>
-            <select value={answerLanguage} onChange={(e) => handleAnswerLanguageChange(e.target.value)}>
-              {languages.map((lang) => (
-                <option key={lang.code} value={lang.code}>{lang.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="podcast-playback-row">
-            <label>Browser Voice</label>
-            <select
-              value={selectedVoiceUri}
-              onChange={(e) => setSelectedVoiceUri(e.target.value)}
-              disabled={!speechSupported || voices.length === 0}
-            >
-              {voices.length === 0 && <option value="">No speech voices available</option>}
-              {voices.map((voice) => (
-                <option key={voice.voiceURI} value={voice.voiceURI}>
-                  {voice.name} ({voice.lang})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="podcast-playback-row">
-            <label>Speed</label>
-            <input
-              type="range"
-              min="0.85"
-              max="1.2"
-              step="0.01"
-              value={playbackRate}
-              onChange={(e) => setPlaybackRate(Number(e.target.value))}
-            />
-            <span>{playbackRate.toFixed(2)}x</span>
-          </div>
-
-          <div className="podcast-toggle-row">
-            <label>
+          <div className="podcast-toggle-strip">
+            <label className="podcast-toggle-label">
               <input type="checkbox" checked={autoPlay} onChange={(e) => setAutoPlay(e.target.checked)} />
-              Auto-play generated responses
+              Auto-play
+            </label>
+            <label className="podcast-toggle-label">
+              <input type="checkbox" checked={handsFreeEnabled} onChange={toggleHandsFree} />
+              Hands-free {isHandsFreeListening ? '· listening' : ''}
             </label>
           </div>
-
-          <div className="podcast-toggle-row">
-            <label>
-              <input type="checkbox" checked={handsFreeEnabled} onChange={toggleHandsFree} />
-              Hands-free mode ({isHandsFreeListening ? 'listening' : 'idle'})
-            </label>
+          {handsFreeEnabled && (
             <input
               type="text"
               value={wakePhrase}
               onChange={(e) => setWakePhrase(e.target.value)}
               onBlur={() => persistSettings({ wake_phrase: wakePhrase })}
-              placeholder="Wake phrase"
+              placeholder="Wake phrase (e.g. hey cerbyl)"
               className="podcast-wake-input"
-              disabled={!handsFreeEnabled}
             />
-          </div>
+          )}
         </div>
 
-        <div className="podcast-card">
+        {/* Card 3 — Session Memory */}
+        <div className="podcast-card podcast-card--memory">
           <div className="podcast-card-header">
-            <List size={16} />
+            <List size={14} />
             <h4>Session Memory</h4>
           </div>
-
-          <div className="podcast-buttons" style={{ justifyContent: 'flex-start', marginBottom: '10px' }}>
-            {!sessionId ? (
-              <button className="podcast-btn primary" onClick={startSession} disabled={isStarting}>
-                {isStarting ? <Loader2 size={16} className="spin" /> : <Play size={16} />}
-                <span>{isStarting ? 'Starting...' : 'Start New'}</span>
-              </button>
-            ) : (
-              <>
-                <button className="podcast-btn" onClick={() => speakText(currentSegment)} disabled={!currentSegment || !speechSupported}>
-                  <Play size={16} />
-                  <span>Play</span>
-                </button>
-                <button className="podcast-btn" onClick={stopSpeaking} disabled={!isSpeaking}>
-                  <Pause size={16} />
-                  <span>Pause</span>
-                </button>
-                <button className="podcast-btn" onClick={fetchNextSegment} disabled={isFetchingNext || !hasMore}>
-                  {isFetchingNext ? <Loader2 size={16} className="spin" /> : <SkipForward size={16} />}
-                  <span>Next</span>
-                </button>
-                <button className="podcast-btn danger" onClick={stopSession}>
-                  <Square size={16} />
-                  <span>Stop</span>
-                </button>
-              </>
-            )}
-          </div>
-
           <div className="podcast-saved-list">
             {isLoadingSaved ? (
-              <p className="podcast-placeholder">Loading previous sessions...</p>
+              <p className="podcast-placeholder">Loading...</p>
             ) : savedSessions.length === 0 ? (
               <p className="podcast-placeholder">No saved sessions yet.</p>
             ) : (
               savedSessions.slice(0, 6).map((item) => (
-                <button
-                  key={item.session_id}
-                  className="podcast-saved-item"
-                  onClick={() => resumeSession(item.session_id)}
-                >
+                <button key={item.session_id} className="podcast-saved-item" onClick={() => resumeSession(item.session_id)}>
                   <strong>{item.title || 'Podcast Session'}</strong>
-                  <span>{item.voice_mode} · {item.difficulty} · chapter {Math.max((item.current_index || 0) + 1, 1)}</span>
+                  <span>{item.voice_mode} · {item.difficulty} · ch {Math.max((item.current_index || 0) + 1, 1)}</span>
                 </button>
               ))
             )}
@@ -1136,34 +1105,32 @@ const PodcastStudio = ({ results, userName }) => {
         </div>
       </div>
 
+      {/* ── Main 2-col panel ── */}
       <div className="podcast-main-panel">
+
+        {/* Left — Chapter viewer */}
         <div className="podcast-segment-panel">
           <div className="podcast-segment-header">
             <div>
               <h4>Current Chapter</h4>
-              <p>
-                {totalSegments > 0
-                  ? `Chapter ${Math.max(currentIndex + 1, 1)} of ${totalSegments}`
-                  : 'No active chapter'}
-              </p>
+              <p>{totalSegments > 0 ? `Chapter ${Math.max(currentIndex + 1, 1)} of ${totalSegments}` : 'No active chapter'}</p>
             </div>
-
             <div className="podcast-buttons">
               <button className="podcast-btn" onClick={addBookmark} disabled={!sessionId}>
-                <BookmarkPlus size={16} />
+                <BookmarkPlus size={14} />
                 <span>Bookmark</span>
               </button>
               <button className="podcast-btn" onClick={startMcqDrill} disabled={!sessionId}>
-                <Sparkles size={16} />
+                <Sparkles size={14} />
                 <span>MCQ Drill</span>
               </button>
               <button className="podcast-btn" onClick={() => exportSession('markdown')} disabled={!sessionId || isExporting}>
-                {isExporting ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
+                {isExporting ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
                 <span>Export MD</span>
               </button>
               <button className="podcast-btn" onClick={() => exportSession('json')} disabled={!sessionId || isExporting}>
-                <Download size={16} />
-                <span>Export JSON</span>
+                <Download size={14} />
+                <span>JSON</span>
               </button>
             </div>
           </div>
@@ -1179,11 +1146,8 @@ const PodcastStudio = ({ results, userName }) => {
             {currentSegment ? (
               <p>{currentSegment}</p>
             ) : (
-              <p className="podcast-placeholder">
-                Start or resume a session to generate chapters from this media transcript.
-              </p>
+              <p className="podcast-placeholder">Start or resume a session to generate chapters from this media transcript.</p>
             )}
-
             {keyTakeaways.length > 0 && (
               <div className="podcast-takeaways">
                 <h5>Key Takeaways</h5>
@@ -1192,7 +1156,6 @@ const PodcastStudio = ({ results, userName }) => {
                 ))}
               </div>
             )}
-
             {chapters.length > 0 && (
               <div className="podcast-chapter-list">
                 <h5>Chapter List</h5>
@@ -1208,16 +1171,11 @@ const PodcastStudio = ({ results, userName }) => {
                 ))}
               </div>
             )}
-
             {bookmarks.length > 0 && (
               <div className="podcast-bookmarks">
-                <h5>Bookmarks (Replay This Point)</h5>
+                <h5>Bookmarks</h5>
                 {bookmarks.map((bookmark) => (
-                  <button
-                    key={`bookmark-${bookmark.id}`}
-                    className="podcast-bookmark-item"
-                    onClick={() => replayBookmark(bookmark.id)}
-                  >
+                  <button key={`bookmark-${bookmark.id}`} className="podcast-bookmark-item" onClick={() => replayBookmark(bookmark.id)}>
                     <strong>{bookmark.label}</strong>
                     <span>{bookmark.timestamp_label}</span>
                   </button>
@@ -1227,21 +1185,18 @@ const PodcastStudio = ({ results, userName }) => {
           </div>
         </div>
 
+        {/* Right — Q&A chat */}
         <div className="podcast-chat-panel">
           <div className="podcast-chat-header">
-            <MessageCircle size={16} />
+            <MessageCircle size={14} />
             <h4>Q&A + Follow-ups</h4>
             <div className="podcast-chat-tools">
-              <button
-                className="podcast-tool-btn"
-                onClick={copyLatestAnswer}
-                disabled={!conversation.some((item) => item.role === 'assistant')}
-              >
-                <Copy size={14} />
+              <button className="podcast-tool-btn" onClick={copyLatestAnswer} disabled={!conversation.some((item) => item.role === 'assistant')}>
+                <Copy size={13} />
                 <span>{copied ? 'Copied' : 'Copy Latest'}</span>
               </button>
               <button className="podcast-tool-btn" onClick={clearConversation} disabled={conversation.length === 0}>
-                <Trash2 size={14} />
+                <Trash2 size={13} />
                 <span>Clear</span>
               </button>
             </div>
@@ -1258,37 +1213,25 @@ const PodcastStudio = ({ results, userName }) => {
                 </div>
               ))
             )}
-
             {followUps.length > 0 && (
               <div className="podcast-followups">
                 <h5>Follow-up suggestions</h5>
                 <div className="podcast-quick-questions">
                   {followUps.map((item, idx) => (
-                    <button
-                      key={`follow-up-${idx}`}
-                      className="podcast-question-chip"
-                      onClick={() => askQuestion(item)}
-                      disabled={!sessionId || isAsking || isTranscribing}
-                    >
+                    <button key={`follow-up-${idx}`} className="podcast-question-chip" onClick={() => askQuestion(item)} disabled={!sessionId || isAsking || isTranscribing}>
                       {item}
                     </button>
                   ))}
                 </div>
               </div>
             )}
-
             {mcqState?.active && mcqState?.question && (
               <div className="podcast-mcq-card">
                 <h5>MCQ Drill ({(mcqState.current_index || 0) + 1}/{mcqState.total || 0})</h5>
                 <p>{mcqState.question.question}</p>
                 <div className="podcast-mcq-options">
                   {(mcqState.question.options || []).map((option, index) => (
-                    <button
-                      key={`mcq-opt-${index}`}
-                      className="podcast-question-chip"
-                      onClick={() => answerMcq(index)}
-                      disabled={isAsking}
-                    >
+                    <button key={`mcq-opt-${index}`} className="podcast-question-chip" onClick={() => answerMcq(index)} disabled={isAsking}>
                       {String.fromCharCode(65 + index)}. {option}
                     </button>
                   ))}
@@ -1296,10 +1239,9 @@ const PodcastStudio = ({ results, userName }) => {
                 {mcqFeedback && <p className="podcast-helper-text">{mcqFeedback}</p>}
               </div>
             )}
-
             {!mcqState?.active && mcqState?.completed && (
               <div className="podcast-mcq-card">
-                <h5>MCQ Drill Complete</h5>
+                <h5>MCQ Complete</h5>
                 <p>{mcqState.summary || `Score: ${mcqState.score}/${mcqState.total}`}</p>
               </div>
             )}
@@ -1308,12 +1250,7 @@ const PodcastStudio = ({ results, userName }) => {
           <div className="podcast-ask-row">
             <div className="podcast-quick-questions">
               {quickQuestions.map((item, index) => (
-                <button
-                  key={`${item}-${index}`}
-                  className="podcast-question-chip"
-                  onClick={() => setQuestion(item)}
-                  disabled={!sessionId || isAsking || isTranscribing}
-                >
+                <button key={`${item}-${index}`} className="podcast-question-chip" onClick={() => setQuestion(item)} disabled={!sessionId || isAsking || isTranscribing}>
                   {item}
                 </button>
               ))}
@@ -1326,32 +1263,22 @@ const PodcastStudio = ({ results, userName }) => {
               rows={2}
               disabled={!sessionId || isAsking}
             />
-
             <div className="podcast-ask-actions">
               <button
                 className={`podcast-btn ${isRecording ? 'danger' : ''}`}
                 onClick={isRecording ? stopRecordingQuestion : startRecordingQuestion}
                 disabled={!sessionId || isTranscribing || isAsking}
               >
-                {isTranscribing ? <Loader2 size={16} className="spin" /> : isRecording ? <Square size={16} /> : <Mic size={16} />}
-                <span>
-                  {isTranscribing ? 'Transcribing...' : isRecording ? 'Stop Recording' : 'Talk To Ask'}
-                </span>
+                {isTranscribing ? <Loader2 size={15} className="spin" /> : isRecording ? <Square size={15} /> : <Mic size={15} />}
+                <span>{isTranscribing ? 'Transcribing...' : isRecording ? 'Stop Recording' : 'Talk To Ask'}</span>
               </button>
-
-              <button
-                className="podcast-btn primary"
-                onClick={() => askQuestion(question)}
-                disabled={!sessionId || !question.trim() || isAsking}
-              >
-                {isAsking ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
+              <button className="podcast-btn primary" onClick={() => askQuestion(question)} disabled={!sessionId || !question.trim() || isAsking}>
+                {isAsking ? <Loader2 size={15} className="spin" /> : <Send size={15} />}
                 <span>{isAsking ? 'Asking...' : 'Ask'}</span>
               </button>
             </div>
             {!sessionId && (
-              <p className="podcast-helper-text">
-                Start or resume a session first. Talk/Ask controls unlock once session is live.
-              </p>
+              <p className="podcast-helper-text">Start or resume a session first to unlock Q&A.</p>
             )}
           </div>
         </div>
@@ -1359,7 +1286,7 @@ const PodcastStudio = ({ results, userName }) => {
 
       {error && (
         <div className="podcast-error">
-          <Mic size={14} />
+          <Mic size={13} />
           <span>{error}</span>
         </div>
       )}

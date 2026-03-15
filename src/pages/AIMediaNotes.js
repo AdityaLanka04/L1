@@ -703,20 +703,6 @@ const AIMediaNotes = () => {
                     <span>NOTES</span>
                   </button>
                   <button
-                    className={`mn-tab ${activeTab === 'analysis' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('analysis')}
-                  >
-                    <Brain size={16} />
-                    <span>ANALYSIS</span>
-                  </button>
-                  <button
-                    className={`mn-tab ${activeTab === 'flashcards' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('flashcards')}
-                  >
-                    <Zap size={16} />
-                    <span>FLASHCARDS {results.flashcards?.length > 0 && `(${results.flashcards.length})`}</span>
-                  </button>
-                  <button
                     className={`mn-tab ${activeTab === 'podcast' ? 'active' : ''}`}
                     onClick={() => setActiveTab('podcast')}
                   >

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find d:/Brainwave/L1/backend/routes -name *.py)",
+      "Bash(find d:/Brainwave/L1/backend -maxdepth 2 -name *.py)",
+      "Bash(npx tsc:*)",
+      "Bash(curl -s http://10.0.0.141:8000/api/me)"
+    ]
+  }
+}

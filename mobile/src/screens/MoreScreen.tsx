@@ -31,7 +31,7 @@ const BAR_MAX_H = 72;
 
 
 type DayData = { day: string; ai_chats: number; notes: number; flashcards: number };
-type Props   = { user: AuthUser; onNavigate?: (screen: 'flashcards' | 'notes') => void; onNavigateToAI?: () => void };
+type Props   = { user: AuthUser; onNavigate?: (screen: 'flashcards' | 'notes' | 'aimedia') => void; onNavigateToAI?: () => void };
 
 export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) {
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
@@ -164,6 +164,46 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
           </TouchableOpacity>
 
         </View>
+
+        {/* ── AI Media Notes — cinematic full tile ── */}
+        <TouchableOpacity
+          style={[s.tile, s.full, s.mediaTile]}
+          onPress={() => onNavigate?.('aimedia')}
+          activeOpacity={0.85}
+        >
+          <LinearGradient colors={['#0A0A0A', '#1A1005', '#2A1A08']} style={StyleSheet.absoluteFill} />
+          <LinearGradient
+            colors={['transparent', GOLD_XD + 'BB', GOLD_D + '44', 'transparent']}
+            start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Text style={s.mediaWatermark}>M</Text>
+          <View style={s.mediaContent}>
+            <View style={s.mediaTopRow}>
+              <Text style={s.mediaEyebrow}>AI-POWERED TRANSCRIPTION</Text>
+              <View style={s.mediaBadge}><Text style={s.mediaBadgeText}>NEW</Text></View>
+            </View>
+            <Text style={s.mediaTitle}>media notes</Text>
+            <View style={s.mediaDivider} />
+            <View style={s.mediaStatsRow}>
+              <View style={s.mediaStat}>
+                <Text style={s.mediaStatNum}>YT</Text>
+                <Text style={s.mediaStatLabel}>YOUTUBE</Text>
+              </View>
+              <View style={s.mediaStatSep} />
+              <View style={s.mediaStat}>
+                <Text style={s.mediaStatNum}>AI</Text>
+                <Text style={s.mediaStatLabel}>NOTES</Text>
+              </View>
+              <View style={s.mediaStatSep} />
+              <View style={s.mediaStat}>
+                <Text style={s.mediaStatNum}>∞</Text>
+                <Text style={s.mediaStatLabel}>TOPICS</Text>
+              </View>
+            </View>
+          </View>
+          <LinearGradient colors={['transparent', GOLD_D + '80']} style={s.mediaBottomGlow} />
+        </TouchableOpacity>
 
         {/* ── Flashcard 2×2 grid — black bg, accent text ── */}
         <TouchableOpacity
@@ -476,6 +516,102 @@ const s = StyleSheet.create({
     letterSpacing: 1.5,
   },
   quizBottomGlow: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+  },
+
+  // AI Media Notes tile
+  mediaTile: {
+    height: 186,
+    borderColor: GOLD_D,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  mediaWatermark: {
+    position: 'absolute',
+    right: -18,
+    bottom: -44,
+    fontFamily: 'Inter_900Black',
+    fontSize: 230,
+    color: GOLD_D + '18',
+    lineHeight: 230,
+  },
+  mediaContent: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'space-between',
+  },
+  mediaTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  mediaEyebrow: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 9,
+    color: GOLD_D,
+    letterSpacing: 3,
+  },
+  mediaBadge: {
+    backgroundColor: GOLD_D + '30',
+    borderWidth: 1,
+    borderColor: GOLD_D + '60',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  mediaBadgeText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 8,
+    color: GOLD_L,
+    letterSpacing: 2,
+  },
+  mediaTitle: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 40,
+    color: GOLD_XL,
+    lineHeight: 44,
+    marginTop: 2,
+    textShadowColor: GOLD_D + '80',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 12,
+  },
+  mediaDivider: {
+    height: 1,
+    backgroundColor: GOLD_D + '40',
+    marginVertical: 10,
+  },
+  mediaStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mediaStat: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 3,
+  },
+  mediaStatSep: {
+    width: 1,
+    height: 28,
+    backgroundColor: GOLD_D + '35',
+  },
+  mediaStatNum: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 20,
+    color: GOLD_L,
+    lineHeight: 24,
+  },
+  mediaStatLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 7,
+    color: GOLD_D,
+    letterSpacing: 1.5,
+  },
+  mediaBottomGlow: {
     position: 'absolute',
     bottom: 0,
     left: 0,
