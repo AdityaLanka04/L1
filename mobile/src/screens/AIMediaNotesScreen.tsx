@@ -1,29 +1,26 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  ScrollView, Animated, KeyboardAvoidingView, Platform, Dimensions,
+  ScrollView, Animated, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { LinearGradient } from 'expo-linear-gradient';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../services/auth';
 import { processMediaYouTube, getMediaHistory, saveMediaNotes } from '../services/api';
 
-const { width } = Dimensions.get('window');
-
 const BG      = '#0A0A0A';
-const SURFACE = '#0F0F0F';
+const SURFACE = '#111111';
 const GOLD_XL = '#FFF0BC';
 const GOLD_L  = '#E8CC88';
 const GOLD_M  = '#C9A87C';
 const GOLD_D  = '#8A6535';
 const GOLD_XD = '#5A3F1A';
-const BORDER  = '#1A1408';
-const DIM     = '#3A3020';
-const DIM2    = '#4A3E2A';
 const INK     = '#0D0A06';
 const ERR     = '#BF5D5D';
+
+const CARD_BORDER = GOLD_D + '55';
+const TOP_GLOW    = GOLD_D + '28';
 
 const STATUSES = [
   'extracting audio...',
@@ -34,6 +31,7 @@ const STATUSES = [
   'almost done...',
 ];
 
+type Mode      = 'youtube' | 'record';
 type ViewState = 'hub' | 'processing' | 'results';
 type Tab       = 'notes' | 'transcript';
 
@@ -44,7 +42,7 @@ interface MediaResult {
   language_name: string;
   notes: { content: string };
   analysis: any;
-  video_info?: { title?: string; thumbnail?: string };
+  video_info?: { title?: string };
 }
 
 interface HistoryItem {
@@ -56,7 +54,16 @@ interface HistoryItem {
 
 type Props = { user: AuthUser; onBack?: () => void };
 
-// ── Pulsing ring animation ────────────────────────────────────────────
+function CardGlow() {
+  return (
+    <LinearGradient
+      colors={[TOP_GLOW, 'transparent']}
+      style={s.cardGlow}
+      pointerEvents="none"
+    />
+  );
+}
+
 function ProcessingView({ status }: { status: string }) {
   const ring0 = useRef(new Animated.Value(0)).current;
   const ring1 = useRef(new Animated.Value(0)).current;
@@ -71,12 +78,10 @@ function ProcessingView({ status }: { status: string }) {
         Animated.timing(v, { toValue: 0, duration: 0,    useNativeDriver: true }),
         Animated.delay(600 - delay),
       ]));
-
     const glow = Animated.loop(Animated.sequence([
       Animated.timing(pulse, { toValue: 1,   duration: 800, useNativeDriver: true }),
       Animated.timing(pulse, { toValue: 0.5, duration: 800, useNativeDriver: true }),
     ]));
-
     const a0 = mkRing(ring0, 0);
     const a1 = mkRing(ring1, 660);
     const a2 = mkRing(ring2, 1320);
@@ -84,27 +89,20 @@ function ProcessingView({ status }: { status: string }) {
     return () => [a0, a1, a2, glow].forEach(a => a.stop());
   }, []);
 
-  const ringView = (anim: Animated.Value, size: number) => (
-    <Animated.View style={[pr.ring, {
-      width: size, height: size, borderRadius: size / 2,
-      opacity: anim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.6, 0] }),
-      transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 2.4] }) }],
-    }]} />
-  );
-
   return (
     <View style={pr.container}>
-      <LinearGradient colors={[BG, '#100E07', BG]} style={StyleSheet.absoluteFill} />
-
       <View style={pr.rings}>
-        {ringView(ring0, 80)}
-        {ringView(ring1, 80)}
-        {ringView(ring2, 80)}
+        {[ring0, ring1, ring2].map((anim, i) => (
+          <Animated.View key={i} style={[pr.ring, {
+            width: 80, height: 80, borderRadius: 40,
+            opacity: anim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.6, 0] }),
+            transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 2.4] }) }],
+          }]} />
+        ))}
         <Animated.View style={[pr.core, { opacity: pulse }]}>
-          <Ionicons name="mic" size={28} color={GOLD_L} />
+          <Text style={pr.coreText}>AI</Text>
         </Animated.View>
       </View>
-
       <Text style={pr.status}>{status}</Text>
       <Text style={pr.hint}>this may take a minute</Text>
     </View>
@@ -120,48 +118,282 @@ const pr = StyleSheet.create({
     borderColor: GOLD_M,
   },
   core: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 76, height: 76, borderRadius: 38,
     backgroundColor: GOLD_XD + '90',
-    borderWidth: 1.5,
-    borderColor: GOLD_M,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1.5, borderColor: GOLD_M,
+    alignItems: 'center', justifyContent: 'center',
     shadowColor: GOLD_M,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOpacity: 0.6, shadowRadius: 20, elevation: 8,
   },
-  status: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: GOLD_L,
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  hint: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 11,
-    color: DIM2,
-    letterSpacing: 1.5,
-  },
+  coreText: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_L },
+  status: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: GOLD_XL, letterSpacing: 1, marginBottom: 8 },
+  hint:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: GOLD_L, letterSpacing: 1.5 },
 });
 
-// ── Main screen ───────────────────────────────────────────────────────
+// ── Step 1: normalise content → clean markdown ────────────────────────
+function toMarkdown(raw: string): string {
+  let s = raw;
+
+  // Fix line endings
+  s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // HTML entities
+  s = s.replace(/&amp;/g,  '&')
+       .replace(/&lt;/g,   '<')
+       .replace(/&gt;/g,   '>')
+       .replace(/&nbsp;/g, ' ')
+       .replace(/&quot;/g, '"')
+       .replace(/&#39;/g,  "'");
+
+  // Detect whether content is HTML
+  const isHtml = /<(h[1-6]|p|ul|ol|li|strong|b|em|i|br)\b/i.test(s);
+
+  if (isHtml) {
+    // Convert block HTML → markdown before stripping
+    s = s
+      .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n# $1\n')
+      .replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n## $1\n')
+      .replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n### $1\n')
+      .replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '\n#### $1\n')
+      .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi,  '\n- $1')
+      .replace(/<br\s*\/?>/gi,                  '\n')
+      .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi,     '\n$1\n')
+      .replace(/<hr[^>]*>/gi,                   '\n---\n')
+      // Inline: strong/b/em/i/code
+      .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**')
+      .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi,           '**$1**')
+      .replace(/<em[^>]*>([\s\S]*?)<\/em>/gi,          '*$1*')
+      .replace(/<i[^>]*>([\s\S]*?)<\/i>/gi,            '*$1*')
+      .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi,      '`$1`')
+      // Strip remaining tags
+      .replace(/<[^>]+>/g, '');
+  }
+
+  // Collapse 3+ blank lines → 2
+  s = s.replace(/\n{3,}/g, '\n\n');
+
+  return s.trim();
+}
+
+// ── Step 2: parse inline spans ────────────────────────────────────────
+type Span = { bold?: true; italic?: true; code?: true; text: string };
+
+function parseSpans(line: string): Span[] {
+  const out: Span[] = [];
+  // Match **bold**, *italic*, `code` — bold must be checked before italic
+  const re = /\*\*(.+?)\*\*|\*([^*\n]+?)\*|`([^`\n]+?)`/g;
+  let cursor = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(line)) !== null) {
+    if (m.index > cursor) out.push({ text: line.slice(cursor, m.index) });
+    if (m[1] !== undefined) out.push({ bold:   true, text: m[1] });
+    else if (m[2] !== undefined) out.push({ italic: true, text: m[2] });
+    else if (m[3] !== undefined) out.push({ code:   true, text: m[3] });
+    cursor = m.index + m[0].length;
+  }
+  if (cursor < line.length) out.push({ text: line.slice(cursor) });
+  return out.filter(s => s.text.length > 0);
+}
+
+// ── Step 3: render inline spans ───────────────────────────────────────
+function Inline({ line, baseStyle }: { line: string; baseStyle: any }) {
+  const spans = parseSpans(line);
+  // fast path — no markup
+  if (spans.length === 1 && !spans[0].bold && !spans[0].italic && !spans[0].code) {
+    return <Text style={baseStyle}>{spans[0].text}</Text>;
+  }
+  return (
+    <Text style={baseStyle}>
+      {spans.map((sp, i) => {
+        if (sp.bold)   return <Text key={i} style={{ fontFamily: 'Inter_700Bold',    fontSize: (baseStyle as any).fontSize, color: '#FFFFFF' }}>{sp.text}</Text>;
+        if (sp.italic) return <Text key={i} style={{ fontFamily: 'Inter_400Regular', fontSize: (baseStyle as any).fontSize, color: GOLD_L, fontStyle: 'italic' }}>{sp.text}</Text>;
+        if (sp.code)   return <Text key={i} style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: GOLD_L, backgroundColor: GOLD_D + '40' }}>{sp.text}</Text>;
+        return <Text key={i}>{sp.text}</Text>;
+      })}
+    </Text>
+  );
+}
+
+// ── Step 4: parse into blocks ─────────────────────────────────────────
+type Block =
+  | { k: 'h1' | 'h2' | 'h3'; text: string }
+  | { k: 'bullet'; text: string; depth: number }
+  | { k: 'numbered'; text: string; n: number }
+  | { k: 'hr' }
+  | { k: 'gap' }
+  | { k: 'para'; text: string };
+
+function parseBlocks(md: string): Block[] {
+  const lines  = md.split('\n');
+  const blocks: Block[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw     = lines[i];
+    const trimmed = raw.trim();
+
+    if (trimmed === '') {
+      blocks.push({ k: 'gap' });
+      continue;
+    }
+
+    if (/^-{3,}$|^\*{3,}$|^_{3,}$/.test(trimmed)) {
+      blocks.push({ k: 'hr' });
+      continue;
+    }
+
+    // Markdown headings
+    const hMatch = trimmed.match(/^(#{1,6})\s+(.*)/);
+    if (hMatch) {
+      const level = hMatch[1].length;
+      const text  = hMatch[2].trim();
+      blocks.push({ k: level === 1 ? 'h1' : level === 2 ? 'h2' : 'h3', text });
+      continue;
+    }
+
+    // Bullet
+    const bulletMatch = raw.match(/^(\s*)([-*+])\s+(.*)/);
+    if (bulletMatch) {
+      const depth = Math.floor(bulletMatch[1].length / 2);
+      blocks.push({ k: 'bullet', text: bulletMatch[3].trim(), depth });
+      continue;
+    }
+
+    // Numbered
+    const numMatch = trimmed.match(/^(\d+)[.)]\s+(.*)/);
+    if (numMatch) {
+      blocks.push({ k: 'numbered', n: parseInt(numMatch[1], 10), text: numMatch[2] });
+      continue;
+    }
+
+    // A line that is ONLY **text** (acts as h3)
+    if (/^\*\*[^*]+\*\*:?$/.test(trimmed)) {
+      const text = trimmed.replace(/^\*\*/, '').replace(/\*\*:?$/, '');
+      blocks.push({ k: 'h3', text });
+      continue;
+    }
+
+    blocks.push({ k: 'para', text: trimmed });
+  }
+
+  // Deduplicate consecutive gaps
+  const out: Block[] = [];
+  for (const b of blocks) {
+    if (b.k === 'gap' && out[out.length - 1]?.k === 'gap') continue;
+    out.push(b);
+  }
+  while (out[0]?.k === 'gap')            out.shift();
+  while (out[out.length - 1]?.k === 'gap') out.pop();
+  return out;
+}
+
+// ── Step 5: render ────────────────────────────────────────────────────
+function MarkdownNote({ content }: { content: string }) {
+  const blocks = parseBlocks(toMarkdown(content));
+
+  return (
+    <View style={md.root}>
+      {blocks.map((b, i) => {
+        switch (b.k) {
+
+          case 'h1':
+            return (
+              <View key={i} style={md.h1Wrap}>
+                <Text style={md.h1}>{b.text}</Text>
+                <View style={md.h1Rule} />
+              </View>
+            );
+
+          case 'h2':
+            return (
+              <View key={i} style={md.h2Wrap}>
+                <Text style={md.h2}>{b.text}</Text>
+              </View>
+            );
+
+          case 'h3':
+            return (
+              <View key={i} style={md.h3Wrap}>
+                <View style={md.h3Bar} />
+                <Text style={md.h3}>{b.text}</Text>
+              </View>
+            );
+
+          case 'hr':
+            return <View key={i} style={md.hr} />;
+
+          case 'gap':
+            return <View key={i} style={md.gap} />;
+
+          case 'bullet':
+            return (
+              <View key={i} style={[md.listRow, { paddingLeft: 4 + b.depth * 16 }]}>
+                <View style={b.depth > 0 ? md.dotSub : md.dot} />
+                <Inline line={b.text} baseStyle={md.listText} />
+              </View>
+            );
+
+          case 'numbered':
+            return (
+              <View key={i} style={md.listRow}>
+                <Text style={md.num}>{b.n}.</Text>
+                <Inline line={b.text} baseStyle={md.listText} />
+              </View>
+            );
+
+          case 'para':
+          default:
+            return <Inline key={i} line={b.text} baseStyle={md.para} />;
+        }
+      })}
+    </View>
+  );
+}
+
+const md = StyleSheet.create({
+  root: { paddingBottom: 48 },
+
+  // H1 — big, white, underlined
+  h1Wrap: { marginTop: 36, marginBottom: 8 },
+  h1:     { fontFamily: 'Inter_900Black', fontSize: 28, color: '#FFFFFF', lineHeight: 34 },
+  h1Rule: { height: 1.5, backgroundColor: GOLD_D + '70', marginTop: 10 },
+
+  // H2 — medium, bright gold
+  h2Wrap: { marginTop: 28, marginBottom: 6 },
+  h2:     { fontFamily: 'Inter_900Black', fontSize: 21, color: GOLD_XL, lineHeight: 27 },
+
+  // H3 — smaller, gold with left accent bar
+  h3Wrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 18, marginBottom: 4 },
+  h3Bar:  { width: 3, height: 18, borderRadius: 2, backgroundColor: GOLD_M, flexShrink: 0 },
+  h3:     { fontFamily: 'Inter_700Bold', fontSize: 17, color: GOLD_L, lineHeight: 23, flex: 1 },
+
+  hr:  { height: 1, backgroundColor: GOLD_D + '50', marginVertical: 20 },
+  gap: { height: 10 },
+
+  // Paragraph — regular body text
+  para: { fontFamily: 'Inter_400Regular', fontSize: 15, color: '#C8BFA8', lineHeight: 26, marginVertical: 2 },
+
+  // Lists
+  listRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 7, paddingRight: 4 },
+  dot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: GOLD_M, marginTop: 10, flexShrink: 0 },
+  dotSub:   { width: 4, height: 4, borderRadius: 2, backgroundColor: GOLD_D, marginTop: 11, flexShrink: 0 },
+  listText: { fontFamily: 'Inter_400Regular', fontSize: 15, color: '#C8BFA8', lineHeight: 26, flex: 1 },
+  num:      { fontFamily: 'Inter_700Bold', fontSize: 14, color: GOLD_M, lineHeight: 26, width: 26, flexShrink: 0 },
+});
+
 export default function AIMediaNotesScreen({ user, onBack }: Props) {
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
 
-  const [view,       setView]       = useState<ViewState>('hub');
-  const [tab,        setTab]        = useState<Tab>('notes');
-  const [url,        setUrl]        = useState('');
-  const [saving,     setSaving]     = useState(false);
-  const [saved,      setSaved]      = useState(false);
-  const [statusIdx,  setStatusIdx]  = useState(0);
-  const [history,    setHistory]    = useState<HistoryItem[]>([]);
-  const [result,     setResult]     = useState<MediaResult | null>(null);
-  const [error,      setError]      = useState('');
+  const [view,      setView]      = useState<ViewState>('hub');
+  const [mode,      setMode]      = useState<Mode>('youtube');
+  const [tab,       setTab]       = useState<Tab>('notes');
+  const [url,       setUrl]       = useState('');
+  const [saving,    setSaving]    = useState(false);
+  const [saved,     setSaved]     = useState(false);
+  const [statusIdx, setStatusIdx] = useState(0);
+  const [history,   setHistory]   = useState<HistoryItem[]>([]);
+  const [result,    setResult]    = useState<MediaResult | null>(null);
+  const [error,     setError]     = useState('');
   const cancelRef = useRef(false);
 
   const loadHistory = useCallback(() => {
@@ -186,7 +418,6 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
     setError('');
     setStatusIdx(0);
     setView('processing');
-
     try {
       const data = await processMediaYouTube(user.username, url.trim());
       if (cancelRef.current) return;
@@ -217,15 +448,14 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
     }
   }, [result, saving, saved, user.username, loadHistory]);
 
-  const fmtDuration = (s: number) => {
-    if (!s) return '';
-    return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const fmtDuration = (sec: number) => {
+    if (!sec) return '';
+    return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
   };
 
   const fmtDate = (iso: string) => {
-    const d   = new Date(iso);
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
+    const d    = new Date(iso);
+    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
     if (diff === 0) return 'today';
     if (diff === 1) return 'yesterday';
     if (diff < 7)  return `${diff}d ago`;
@@ -234,30 +464,30 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
 
   if (!fontsLoaded) return null;
 
-  // ── Processing ─────────────────────────────────────────────────────
+  // ── Processing ──────────────────────────────────────────────────────
   if (view === 'processing') {
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
         <View style={s.subHeader}>
-          <TouchableOpacity onPress={() => { cancelRef.current = true; setView('hub'); }} style={s.iconBtn}>
-            <Ionicons name="close" size={22} color={GOLD_M} />
+          <TouchableOpacity onPress={() => { cancelRef.current = true; setView('hub'); }} style={s.backBtn}>
+            <Text style={s.backBtnText}>✕</Text>
           </TouchableOpacity>
           <Text style={s.subTitle}>processing</Text>
-          <View style={s.iconBtn} />
+          <View style={s.backBtn} />
         </View>
         <ProcessingView status={STATUSES[statusIdx]} />
       </SafeAreaView>
     );
   }
 
-  // ── Results ────────────────────────────────────────────────────────
+  // ── Results ─────────────────────────────────────────────────────────
   if (view === 'results' && result) {
     const displayTitle = result.video_info?.title || result.filename || 'Media Note';
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
         <View style={s.subHeader}>
-          <TouchableOpacity onPress={() => setView('hub')} style={s.iconBtn}>
-            <Ionicons name="arrow-back" size={22} color={GOLD_L} />
+          <TouchableOpacity onPress={() => setView('hub')} style={s.backBtn}>
+            <Text style={s.backBtnText}>‹</Text>
           </TouchableOpacity>
           <Text style={s.subTitle}>notes</Text>
           <TouchableOpacity
@@ -266,50 +496,28 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
             disabled={saving || saved}
             activeOpacity={0.8}
           >
-            {saving ? (
-              <Text style={s.saveChipText}>saving...</Text>
-            ) : saved ? (
-              <>
-                <Ionicons name="checkmark" size={12} color={INK} />
-                <Text style={s.saveChipText}>saved</Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="bookmark-outline" size={12} color={INK} />
-                <Text style={s.saveChipText}>save</Text>
-              </>
-            )}
+            <Text style={s.saveChipText}>
+              {saving ? 'saving...' : saved ? 'saved' : 'save'}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Source meta strip */}
         <View style={s.metaStrip}>
-          <View style={s.metaIconBox}>
-            <Ionicons name="logo-youtube" size={16} color={GOLD_M} />
-          </View>
           <View style={{ flex: 1 }}>
             <Text style={s.metaTitle} numberOfLines={2}>{displayTitle}</Text>
             <View style={s.metaBadges}>
               {!!result.duration && (
-                <View style={s.badge}>
-                  <Ionicons name="time-outline" size={9} color={GOLD_D} />
-                  <Text style={s.badgeText}>{fmtDuration(result.duration)}</Text>
-                </View>
+                <View style={s.badge}><Text style={s.badgeText}>{fmtDuration(result.duration)}</Text></View>
               )}
               {!!result.language_name && (
-                <View style={s.badge}>
-                  <Ionicons name="language-outline" size={9} color={GOLD_D} />
-                  <Text style={s.badgeText}>{result.language_name}</Text>
-                </View>
+                <View style={s.badge}><Text style={s.badgeText}>{result.language_name}</Text></View>
               )}
             </View>
           </View>
         </View>
 
-        {/* Gold divider */}
-        <View style={s.metaDivider} />
+        <View style={s.divider} />
 
-        {/* Tab strip */}
         <View style={s.tabRow}>
           {(['notes', 'transcript'] as Tab[]).map(t => (
             <TouchableOpacity
@@ -318,29 +526,24 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
               onPress={() => setTab(t)}
               activeOpacity={0.75}
             >
-              <Ionicons
-                name={t === 'notes' ? 'document-text-outline' : 'text-outline'}
-                size={12}
-                color={tab === t ? GOLD_M : DIM2}
-              />
               <Text style={[s.tabText, tab === t && s.tabTextActive]}>
                 {t.toUpperCase()}
               </Text>
             </TouchableOpacity>
           ))}
-          <View style={{ flex: 1 }} />
         </View>
 
         <ScrollView contentContainerStyle={s.resultsScroll} showsVerticalScrollIndicator={false}>
-          <Text style={[s.noteBody, tab === 'transcript' && s.transcriptBody]}>
-            {tab === 'notes' ? result.notes.content : result.transcript}
-          </Text>
+          {tab === 'notes'
+            ? <MarkdownNote content={result.notes.content} />
+            : <Text style={s.transcriptBody}>{result.transcript}</Text>
+          }
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // ── Hub ────────────────────────────────────────────────────────────
+  // ── Hub ─────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -349,64 +552,52 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-
           {/* Header */}
           <View style={s.header}>
-            {onBack ? (
-              <TouchableOpacity onPress={onBack} style={s.iconBtn}>
-                <Ionicons name="chevron-back" size={24} color={GOLD_L} />
+            {onBack && (
+              <TouchableOpacity onPress={onBack} style={s.backBtn}>
+                <Text style={s.backBtnText}>‹</Text>
               </TouchableOpacity>
-            ) : (
-              <View style={s.iconBtn} />
             )}
             <View style={{ flex: 1 }}>
-              <Text style={s.pageTitle}>ai media notes</Text>
-              <Text style={s.pageSubtitle}>audio · video · youtube</Text>
+              <Text style={s.pageTitle}>media notes</Text>
+              <Text style={s.pageSubtitle}>ai-powered transcription & notes</Text>
             </View>
-            <Ionicons name="mic-outline" size={20} color={GOLD_D} />
           </View>
 
-          {/* Cinematic hero tile */}
-          <View style={[s.tile, s.heroTile]}>
-            <LinearGradient colors={['#0A0A0A', '#1A1005', '#2E1E08']} style={StyleSheet.absoluteFill} />
-            <LinearGradient
-              colors={['transparent', GOLD_XD + 'CC', GOLD_D + '44', 'transparent']}
-              start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-              style={StyleSheet.absoluteFill}
-            />
-            {/* Watermark */}
-            <Text style={s.heroWatermark}>M</Text>
-            {/* Content */}
-            <View style={s.heroInner}>
-              <View style={s.heroTopRow}>
-                <Text style={s.heroEyebrow}>AI-POWERED TRANSCRIPTION</Text>
-                <View style={s.heroBadge}>
-                  <Text style={s.heroBadgeText}>BETA</Text>
-                </View>
-              </View>
-              <Text style={s.heroHeading}>media notes</Text>
-              <View style={s.heroDivider} />
-              <Text style={s.heroBody}>transform any audio or video{'\n'}into structured smart notes</Text>
-            </View>
-            <LinearGradient colors={['transparent', GOLD_D + '70']} style={s.heroGlow} />
+          {/* Mode switcher */}
+          <View style={s.modeSwitcher}>
+            <TouchableOpacity
+              style={[s.modeBtn, mode === 'youtube' && s.modeBtnActive]}
+              onPress={() => { setMode('youtube'); setError(''); }}
+              activeOpacity={0.8}
+            >
+              <Text style={[s.modeBtnText, mode === 'youtube' && s.modeBtnTextActive]}>
+                YouTube
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.modeBtn, mode === 'record' && s.modeBtnActive]}
+              onPress={() => { setMode('record'); setError(''); }}
+              activeOpacity={0.8}
+            >
+              <Text style={[s.modeBtnText, mode === 'record' && s.modeBtnTextActive]}>
+                Record Audio
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Input card */}
-          <View style={s.inputCard}>
-            <LinearGradient colors={['#111008', '#0A0A08']} style={StyleSheet.absoluteFill} />
-            <View style={s.inputCardInner}>
+          {/* YouTube input */}
+          {mode === 'youtube' && (
+            <View style={s.inputCard}>
+              <CardGlow />
+              <View style={s.inputCardInner}>
+                <Text style={s.inputCardLabel}>YOUTUBE URL</Text>
 
-              <View style={s.inputLabel}>
-                <Ionicons name="logo-youtube" size={14} color={GOLD_D} />
-                <Text style={s.inputLabelText}>YOUTUBE URL</Text>
-              </View>
-
-              <View style={s.urlRow}>
-                <Ionicons name="link-outline" size={14} color={DIM2} />
                 <TextInput
                   style={s.urlInput}
-                  placeholder="paste link here..."
-                  placeholderTextColor={DIM2}
+                  placeholder="paste youtube link here..."
+                  placeholderTextColor={GOLD_D + '80'}
                   value={url}
                   onChangeText={t => { setUrl(t); setError(''); }}
                   autoCapitalize="none"
@@ -415,56 +606,57 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
                   returnKeyType="go"
                   onSubmitEditing={handleProcess}
                 />
-                {!!url && (
-                  <TouchableOpacity onPress={() => setUrl('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Ionicons name="close-circle" size={16} color={GOLD_D} />
-                  </TouchableOpacity>
-                )}
-              </View>
 
-              {!!error && (
-                <View style={s.errorRow}>
-                  <Ionicons name="alert-circle-outline" size={13} color={ERR} />
+                {!!error && (
                   <Text style={s.errorText}>{error}</Text>
-                </View>
-              )}
+                )}
 
-              <TouchableOpacity
-                style={[s.processBtn, !url.trim() && { opacity: 0.45 }]}
-                onPress={handleProcess}
-                disabled={!url.trim()}
-                activeOpacity={0.85}
-              >
-                <LinearGradient
-                  colors={url.trim() ? [GOLD_L, GOLD_M, GOLD_D] : [DIM, DIM]}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                  style={s.processBtnGrad}
+                <TouchableOpacity
+                  style={[s.processBtn, !url.trim() && s.processBtnDisabled]}
+                  onPress={handleProcess}
+                  disabled={!url.trim()}
+                  activeOpacity={0.85}
                 >
-                  <Ionicons name="sparkles" size={15} color={url.trim() ? INK : DIM2} />
-                  <Text style={[s.processBtnText, !url.trim() && { color: DIM2 }]}>
-                    GENERATE NOTES
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-            </View>
-          </View>
-
-          {/* Feature pills */}
-          <View style={s.pillRow}>
-            {[
-              { icon: 'mic-outline',           label: 'TRANSCRIBE' },
-              { icon: 'document-text-outline', label: 'NOTES'      },
-              { icon: 'sparkles-outline',      label: 'ANALYSIS'   },
-            ].map((p, i) => (
-              <View key={i} style={s.pill}>
-                <Ionicons name={p.icon as any} size={12} color={GOLD_D} />
-                <Text style={s.pillText}>{p.label}</Text>
+                  <LinearGradient
+                    colors={url.trim() ? [GOLD_L, GOLD_M, GOLD_D] : [GOLD_D + '40', GOLD_D + '40']}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    style={s.processBtnGrad}
+                  >
+                    <Text style={[s.processBtnText, !url.trim() && { color: GOLD_D }]}>
+                      GENERATE NOTES
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               </View>
-            ))}
-          </View>
+            </View>
+          )}
 
-          {/* History section */}
+          {/* Record audio */}
+          {mode === 'record' && (
+            <View style={s.inputCard}>
+              <CardGlow />
+              <View style={s.recordInner}>
+                <Text style={s.inputCardLabel}>AUDIO RECORDING</Text>
+                <Text style={s.recordHint}>
+                  record a lecture, meeting, or voice note and get ai-generated notes instantly
+                </Text>
+                <View style={s.recordBtnWrap}>
+                  <TouchableOpacity style={s.recordBtn} activeOpacity={0.8}>
+                    <LinearGradient
+                      colors={[GOLD_L, GOLD_D]}
+                      style={s.recordBtnGrad}
+                    >
+                      <View style={s.recordDot} />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  <Text style={s.recordLabel}>tap to record</Text>
+                </View>
+                <Text style={s.comingSoon}>coming soon — requires expo-av</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Recent history */}
           <View style={s.sectionRow}>
             <Text style={s.sectionLabel}>RECENT</Text>
             {history.length > 0 && (
@@ -476,17 +668,20 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
 
           {history.length === 0 ? (
             <View style={s.emptyBox}>
-              <View style={s.emptyIconRing}>
-                <Ionicons name="mic-circle-outline" size={32} color={GOLD_D} />
+              <View style={s.emptyRing}>
+                <Text style={s.emptyRingText}>0</Text>
               </View>
               <Text style={s.emptyTitle}>no media notes yet</Text>
-              <Text style={s.emptyHint}>paste a youtube url above{'\n'}to transcribe & generate notes</Text>
+              <Text style={s.emptyHint}>
+                paste a youtube url above{'\n'}to transcribe and generate notes
+              </Text>
             </View>
           ) : (
             history.slice(0, 8).map(item => (
               <TouchableOpacity key={item.id} style={s.histRow} activeOpacity={0.8}>
-                <View style={s.histIcon}>
-                  <Ionicons name="document-text-outline" size={14} color={GOLD_M} />
+                <CardGlow />
+                <View style={s.histIconBox}>
+                  <Text style={s.histIconText}>N</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.histTitle} numberOfLines={1}>{item.title}</Text>
@@ -496,10 +691,7 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
                     </Text>
                   )}
                 </View>
-                <View style={s.histMeta}>
-                  <Text style={s.histDate}>{fmtDate(item.created_at)}</Text>
-                  <Ionicons name="chevron-forward" size={12} color={DIM} />
-                </View>
+                <Text style={s.histDate}>{fmtDate(item.created_at)}</Text>
               </TouchableOpacity>
             ))
           )}
@@ -511,10 +703,17 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
 }
 
 const s = StyleSheet.create({
-  safe:     { flex: 1, backgroundColor: BG },
+  safe:      { flex: 1, backgroundColor: BG },
   hubScroll: { paddingHorizontal: 16, paddingBottom: 48, gap: 12 },
 
-  // header
+  cardGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 72,
+    zIndex: 0,
+  },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -522,11 +721,12 @@ const s = StyleSheet.create({
     paddingBottom: 6,
     gap: 8,
   },
-  iconBtn:     { width: 38, alignItems: 'flex-start' },
-  pageTitle:   { fontFamily: 'Inter_900Black',   fontSize: 24, color: GOLD_L, lineHeight: 28 },
-  pageSubtitle:{ fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM2,   letterSpacing: 2, marginTop: 2 },
+  backBtn:     { width: 36, alignItems: 'flex-start', justifyContent: 'center' },
+  backBtnText: { fontFamily: 'Inter_700Bold', fontSize: 18, color: GOLD_XL, lineHeight: 22 },
+  pageTitle:   { fontFamily: 'Inter_900Black',   fontSize: 26, color: GOLD_XL },
+  pageSubtitle:{ fontFamily: 'Inter_400Regular', fontSize: 10, color: GOLD_L, letterSpacing: 2, marginTop: 3 },
 
-  // sub-screen header
+  // Sub-screen header
   subHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -538,19 +738,16 @@ const s = StyleSheet.create({
   subTitle: {
     fontFamily: 'Inter_900Black',
     fontSize: 18,
-    color: GOLD_L,
+    color: GOLD_XL,
     flex: 1,
     textAlign: 'center',
   },
 
-  // save chip
+  // Save chip
   saveChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
     backgroundColor: GOLD_M,
     borderRadius: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
   },
   saveChipDone: { backgroundColor: GOLD_D },
@@ -561,96 +758,81 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // tile base
-  tile: {
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: BORDER,
-    overflow: 'hidden',
-  },
-
-  // hero tile
-  heroTile: {
-    height: 186,
-    borderColor: GOLD_D,
-    borderWidth: 1.5,
-    position: 'relative',
-  },
-  heroWatermark: {
-    position: 'absolute',
-    right: -18,
-    bottom: -44,
-    fontFamily: 'Inter_900Black',
-    fontSize: 230,
-    color: GOLD_D + '18',
-    lineHeight: 230,
-  },
-  heroInner: {
-    flex: 1,
-    padding: 22,
-    justifyContent: 'space-between',
-  },
-  heroTopRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heroEyebrow:  { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_D, letterSpacing: 3 },
-  heroBadge:    {
-    backgroundColor: GOLD_D + '28',
-    borderWidth: 1,
-    borderColor: GOLD_D + '55',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  heroBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 8, color: GOLD_L, letterSpacing: 2 },
-  heroHeading:  {
-    fontFamily: 'Inter_900Black',
-    fontSize: 40,
-    color: GOLD_XL,
-    lineHeight: 44,
-    textShadowColor: GOLD_D + '80',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 12,
-  },
-  heroDivider: { height: 1, backgroundColor: GOLD_D + '40', marginVertical: 8 },
-  heroBody:    { fontFamily: 'Inter_400Regular', fontSize: 12, color: GOLD_D, letterSpacing: 0.5, lineHeight: 19 },
-  heroGlow:    { position: 'absolute', bottom: 0, left: 0, right: 0, height: 44 },
-
-  // input card
-  inputCard: {
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: GOLD_D,
-    overflow: 'hidden',
-  },
-  inputCardInner: { padding: 18, gap: 13 },
-  inputLabel:     { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  inputLabelText: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_D, letterSpacing: 3 },
-  urlRow: {
+  // Mode switcher
+  modeSwitcher: {
     flexDirection: 'row',
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    padding: 4,
+    gap: 4,
+  },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 11,
     alignItems: 'center',
-    gap: 8,
+    borderRadius: 10,
+  },
+  modeBtnActive: {
+    backgroundColor: GOLD_D + '35',
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+  },
+  modeBtnText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 12,
+    color: GOLD_D,
+    letterSpacing: 0.5,
+  },
+  modeBtnTextActive: {
+    color: GOLD_XL,
+  },
+
+  // Input card (shared)
+  inputCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    backgroundColor: SURFACE,
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: GOLD_D,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  inputCardInner: { padding: 18, gap: 14, zIndex: 1 },
+  inputCardLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 9,
+    color: GOLD_XL,
+    letterSpacing: 3,
+  },
+  urlInput: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    color: GOLD_XL,
     backgroundColor: BG,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDER,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
+    borderColor: GOLD_D + '50',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
   },
-  urlInput: {
-    flex: 1,
+  errorText: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 13,
-    color: GOLD_L,
+    fontSize: 11,
+    color: ERR,
   },
-  errorRow:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  errorText: { fontFamily: 'Inter_400Regular', fontSize: 11, color: ERR, flex: 1 },
-  processBtn: { borderRadius: 16, overflow: 'hidden' },
+  processBtn:         { borderRadius: 14, overflow: 'hidden' },
+  processBtnDisabled: { opacity: 0.5 },
   processBtnGrad: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 9,
     paddingVertical: 15,
-    paddingHorizontal: 20,
   },
   processBtnText: {
     fontFamily: 'Inter_700Bold',
@@ -659,54 +841,66 @@ const s = StyleSheet.create({
     letterSpacing: 2.5,
   },
 
-  // feature pills
-  pillRow:  { flexDirection: 'row', gap: 8 },
-  pill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    backgroundColor: SURFACE,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingVertical: 10,
+  // Record mode
+  recordInner: { padding: 18, gap: 16, zIndex: 1, alignItems: 'center' },
+  recordHint: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: GOLD_L,
+    textAlign: 'center',
+    lineHeight: 19,
+    letterSpacing: 0.3,
   },
-  pillText: { fontFamily: 'Inter_600SemiBold', fontSize: 8, color: GOLD_D, letterSpacing: 1.5 },
+  recordBtnWrap: { alignItems: 'center', gap: 12, paddingVertical: 8 },
+  recordBtn:     { width: 72, height: 72, borderRadius: 36, overflow: 'hidden' },
+  recordBtnGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  recordDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: INK,
+  },
+  recordLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 10,
+    color: GOLD_L,
+    letterSpacing: 2,
+  },
+  comingSoon: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 9,
+    color: GOLD_D,
+    letterSpacing: 1.5,
+    paddingBottom: 4,
+  },
 
-  // section header
-  sectionRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 4 },
-  sectionLabel:{ fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_D, letterSpacing: 3 },
-  countBadge:  {
-    backgroundColor: GOLD_D + '22',
+  // Section header
+  sectionRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 4 },
+  sectionLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_XL, letterSpacing: 3 },
+  countBadge:   {
+    backgroundColor: GOLD_D + '25',
     borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 2,
-  },
-  countText: { fontFamily: 'Inter_700Bold', fontSize: 9, color: GOLD_XD, letterSpacing: 1 },
-
-  // empty
-  emptyBox: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 10,
-  },
-  emptyIconRing: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: GOLD_D + '15',
     borderWidth: 1,
-    borderColor: GOLD_D + '30',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: CARD_BORDER,
+  },
+  countText: { fontFamily: 'Inter_700Bold', fontSize: 9, color: GOLD_L, letterSpacing: 1 },
+
+  // Empty state
+  emptyBox: { alignItems: 'center', paddingVertical: 40, gap: 10 },
+  emptyRing: {
+    width: 68, height: 68, borderRadius: 34,
+    backgroundColor: GOLD_D + '15',
+    borderWidth: 1, borderColor: GOLD_D + '35',
+    alignItems: 'center', justifyContent: 'center',
     marginBottom: 4,
   },
-  emptyTitle: { fontFamily: 'Inter_900Black',   fontSize: 16, color: GOLD_D,  textAlign: 'center' },
-  emptyHint:  { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM2,    textAlign: 'center', lineHeight: 18 },
+  emptyRingText: { fontFamily: 'Inter_900Black', fontSize: 22, color: GOLD_D },
+  emptyTitle: { fontFamily: 'Inter_900Black',   fontSize: 16, color: GOLD_L, textAlign: 'center' },
+  emptyHint:  { fontFamily: 'Inter_400Regular', fontSize: 12, color: GOLD_L, textAlign: 'center', lineHeight: 19 },
 
-  // history row
+  // History rows
   histRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -714,94 +908,66 @@ const s = StyleSheet.create({
     backgroundColor: SURFACE,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: CARD_BORDER,
     padding: 14,
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: GOLD_D,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  histIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: GOLD_D + '1E',
-    borderWidth: 1,
-    borderColor: GOLD_D + '35',
-    alignItems: 'center',
-    justifyContent: 'center',
+  histIconBox: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: GOLD_D + '25',
+    borderWidth: 1, borderColor: CARD_BORDER,
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 1,
   },
-  histTitle:   { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: GOLD_L, lineHeight: 17 },
-  histPreview: { fontFamily: 'Inter_400Regular',  fontSize: 11, color: DIM2,   marginTop: 2 },
-  histMeta:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  histDate:    { fontFamily: 'Inter_400Regular',  fontSize: 10, color: DIM },
+  histIconText: { fontFamily: 'Inter_900Black', fontSize: 14, color: GOLD_L },
+  histTitle:    { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: GOLD_XL, lineHeight: 17, zIndex: 1 },
+  histPreview:  { fontFamily: 'Inter_400Regular',  fontSize: 11, color: GOLD_L,  marginTop: 2,   zIndex: 1 },
+  histDate:     { fontFamily: 'Inter_400Regular',  fontSize: 10, color: GOLD_D,  zIndex: 1 },
 
-  // results meta strip
-  metaStrip: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingBottom: 14,
-  },
-  metaIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 11,
-    backgroundColor: GOLD_D + '20',
-    borderWidth: 1,
-    borderColor: GOLD_D + '40',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  metaTitle: {
-    fontFamily: 'Inter_900Black',
-    fontSize: 17,
-    color: GOLD_L,
-    lineHeight: 22,
-    flex: 1,
-  },
-  metaBadges: { flexDirection: 'row', gap: 6, marginTop: 6 },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: GOLD_D + '1E',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  badgeText: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_D, letterSpacing: 1 },
+  // Divider
+  divider: { height: 1, backgroundColor: GOLD_D + '30', marginHorizontal: 0 },
 
-  metaDivider: { height: 1, backgroundColor: BORDER, marginHorizontal: 0 },
-
-  // tabs
+  // Tabs
   tabRow: {
     flexDirection: 'row',
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 4,
   },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 10,
-  },
-  tabActive: { backgroundColor: GOLD_D + '25' },
-  tabText:       { fontFamily: 'Inter_600SemiBold', fontSize: 9,  color: DIM2,   letterSpacing: 2.5 },
-  tabTextActive: { fontFamily: 'Inter_600SemiBold', fontSize: 9,  color: GOLD_M, letterSpacing: 2.5 },
+  tab:           { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10 },
+  tabActive:     { backgroundColor: GOLD_D + '25', borderWidth: 1, borderColor: CARD_BORDER },
+  tabText:       { fontFamily: 'Inter_600SemiBold', fontSize: 9,  color: GOLD_D,  letterSpacing: 2.5 },
+  tabTextActive: { fontFamily: 'Inter_600SemiBold', fontSize: 9,  color: GOLD_XL, letterSpacing: 2.5 },
 
-  // note content
-  resultsScroll: { padding: 20, paddingBottom: 80 },
-  noteBody: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 15,
-    color: GOLD_L,
-    lineHeight: 27,
+  // Results meta
+  metaStrip: {
+    paddingHorizontal: 18,
+    paddingBottom: 14,
   },
-  transcriptBody: {
-    fontSize: 13,
-    color: DIM2,
+  metaTitle: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 17,
+    color: GOLD_XL,
     lineHeight: 22,
   },
+  metaBadges: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  badge: {
+    backgroundColor: GOLD_D + '25',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+  },
+  badgeText: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_L, letterSpacing: 1 },
+
+  // Note content
+  resultsScroll:  { padding: 20, paddingBottom: 80 },
+  transcriptBody: { fontFamily: 'Inter_400Regular', fontSize: 13, color: GOLD_L, lineHeight: 22 },
 });

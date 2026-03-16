@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const FALLBACK_API_URL = 'http://10.0.0.141:8000/api';
+const FALLBACK_API_URL = 'http://192.168.1.178:8000/api';
 
 function normalizeApiUrl(url: string): string {
   const trimmed = url.trim().replace(/\/+$/, '');

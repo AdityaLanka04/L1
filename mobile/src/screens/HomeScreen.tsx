@@ -10,12 +10,16 @@ import { getEnhancedStats } from '../services/api';
 
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
 
-const BG = '#0A0A0A';
-const GOLD_LIGHT = '#FFE8A0';
-const GOLD_MID = '#C9A87C';
+const BG        = '#0A0A0A';
+const SURFACE   = '#111111';
+const GOLD_XL   = '#FFF0BC';
+const GOLD_L    = '#E8CC88';
+const GOLD_MID  = '#C9A87C';
 const GOLD_DARK = '#7A5C2E';
-const TEXT_DIM = '#5A5040';
-const CARD_BG = '#141414';
+const GOLD_D    = '#8A6535';
+
+const CARD_BORDER = GOLD_D + '55';
+const TOP_GLOW    = GOLD_D + '28';
 
 type Props = { user: AuthUser };
 
@@ -94,7 +98,7 @@ export default function HomeScreen({ user }: Props) {
               </Text>
             }>
               <LinearGradient
-                colors={[GOLD_LIGHT, GOLD_MID, GOLD_DARK]}
+                colors={[GOLD_XL, GOLD_MID, GOLD_DARK]}
                 start={{ x: 0.5, y: 0 }}
                 end={{ x: 0.5, y: 1 }}
               >
@@ -118,18 +122,17 @@ export default function HomeScreen({ user }: Props) {
         <View style={styles.continueSection}>
           <Text style={styles.sectionTitle}>your activity</Text>
           <View style={styles.activityGrid}>
-            <View style={styles.activityCard}>
-              <Text style={styles.activityValue}>{stats?.totalChatSessions ?? '—'}</Text>
-              <Text style={styles.activityLabel}>CHATS</Text>
-            </View>
-            <View style={styles.activityCard}>
-              <Text style={styles.activityValue}>{stats?.totalFlashcards ?? '—'}</Text>
-              <Text style={styles.activityLabel}>FLASHCARDS</Text>
-            </View>
-            <View style={styles.activityCard}>
-              <Text style={styles.activityValue}>{stats?.totalNotes ?? '—'}</Text>
-              <Text style={styles.activityLabel}>NOTES</Text>
-            </View>
+            {[
+              { val: stats?.totalChatSessions ?? '—', lbl: 'CHATS' },
+              { val: stats?.totalFlashcards   ?? '—', lbl: 'FLASHCARDS' },
+              { val: stats?.totalNotes        ?? '—', lbl: 'NOTES' },
+            ].map(item => (
+              <View key={item.lbl} style={styles.activityCard}>
+                <LinearGradient colors={[TOP_GLOW, 'transparent']} style={styles.cardGlow} pointerEvents="none" />
+                <Text style={styles.activityValue}>{item.val}</Text>
+                <Text style={styles.activityLabel}>{item.lbl}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
@@ -152,13 +155,13 @@ const styles = StyleSheet.create({
   appName: {
     fontFamily: 'Inter_900Black',
     fontSize: 16,
-    color: GOLD_MID,
+    color: GOLD_XL,
     letterSpacing: 0,
   },
   greeting: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: TEXT_DIM,
+    color: GOLD_L,
     letterSpacing: 1,
   },
 
@@ -170,7 +173,7 @@ const styles = StyleSheet.create({
   streakEyebrow: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: TEXT_DIM,
+    color: GOLD_L,
     letterSpacing: 5,
   },
   bigNum: {
@@ -188,7 +191,7 @@ const styles = StyleSheet.create({
   weeklyTitle: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 11,
-    color: TEXT_DIM,
+    color: GOLD_XL,
     letterSpacing: 3,
   },
   statsRow: {
@@ -203,7 +206,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 11,
-    color: TEXT_DIM,
+    color: GOLD_XL,
     letterSpacing: 3,
     marginBottom: 14,
   },
@@ -213,23 +216,40 @@ const styles = StyleSheet.create({
   },
   activityCard: {
     flex: 1,
-    backgroundColor: CARD_BG,
-    borderRadius: 14,
+    backgroundColor: SURFACE,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#1E1E1E',
+    borderColor: CARD_BORDER,
     alignItems: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: GOLD_D,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  cardGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    zIndex: 0,
   },
   activityValue: {
     fontFamily: 'Inter_900Black',
     fontSize: 24,
-    color: GOLD_LIGHT,
+    color: GOLD_XL,
+    zIndex: 1,
   },
   activityLabel: {
     fontFamily: 'Inter_400Regular',
     fontSize: 8,
-    color: TEXT_DIM,
+    color: GOLD_L,
     letterSpacing: 1.5,
     marginTop: 4,
+    zIndex: 1,
   },
 });

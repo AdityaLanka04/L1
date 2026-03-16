@@ -3,35 +3,38 @@ import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { LinearGradient } from 'expo-linear-gradient';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../services/auth';
 import { getEnhancedStats, getFlashcardStatistics, getWeeklyProgress } from '../services/api';
 
 const { width } = Dimensions.get('window');
 const GAP = 12;
 const PAD = 16;
-const COL = (width - PAD * 2 - GAP) / 2;
 
 const BG      = '#0A0A0A';
-const SURFACE = '#0F0F0F';
-const SURF2   = '#141414';
-const ACCENT  = '#C9A87C';   // primary accent — tile backgrounds
-const ACCENT2 = '#B8956A';   // slightly deeper accent for variety
+const SURFACE = '#111111';
+const ACCENT  = '#C9A87C';
 const GOLD_XL = '#FFF0BC';
 const GOLD_L  = '#E8CC88';
 const GOLD_D  = '#8A6535';
-const GOLD_XD = '#5A3F1A';
-const GOLD_XX = '#2A1E0A';
-const BORDER  = '#1A1408';
-const DIM     = '#3A3020';
 const DIM2    = '#4A3E2A';
-const INK     = '#0D0A06';   // near-black text on accent bg
+
+const CARD_BORDER = GOLD_D + '55';
+const TOP_GLOW    = GOLD_D + '28';
 
 const BAR_MAX_H = 72;
 
-
 type DayData = { day: string; ai_chats: number; notes: number; flashcards: number };
 type Props   = { user: AuthUser; onNavigate?: (screen: 'flashcards' | 'notes' | 'aimedia') => void; onNavigateToAI?: () => void };
+
+function CardGlow() {
+  return (
+    <LinearGradient
+      colors={[TOP_GLOW, 'transparent']}
+      style={s.cardGlow}
+      pointerEvents="none"
+    />
+  );
+}
 
 export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) {
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
@@ -58,7 +61,6 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
   const fcAccuracy   = fcStats?.average_accuracy   != null
     ? Math.round(fcStats.average_accuracy) + '%' : '—';
 
-  // normalise graph — find max across all three series
   const maxVal = weekly.length
     ? Math.max(...weekly.flatMap(d => [d.ai_chats, d.notes, d.flashcards]), 1)
     : 1;
@@ -73,12 +75,12 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
           <Text style={s.subtitle}>your learning universe</Text>
         </View>
 
-{/* ── Weekly activity graph — real data ── */}
-        <View style={[s.tile, s.full, { height: 270 }]}>
+        {/* ── Weekly activity graph ── */}
+        <View style={[s.card, s.full, { height: 270 }]}>
+          <CardGlow />
           <View style={s.inner}>
-
             <View style={s.topRow}>
-              <Text style={s.label}>THIS WEEK</Text>
+              <Text style={s.cardLabel}>THIS WEEK</Text>
               <View style={s.legend}>
                 {[
                   { color: GOLD_XL, label: 'AI' },
@@ -117,199 +119,139 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
                   })}
               </View>
             </View>
-
           </View>
         </View>
 
-        {/* ── ROW: AI Chats | Notes — cinematic ── */}
+        {/* ── AI Chats | Notes ── */}
         <View style={s.row}>
 
-          <TouchableOpacity style={[s.tile, s.halfTile]} onPress={() => onNavigateToAI?.()} activeOpacity={0.85}>
-            <LinearGradient colors={['#0A0A0A', '#0F0D05', '#1A1508']} style={StyleSheet.absoluteFill} />
-            <LinearGradient
-              colors={['transparent', GOLD_XD + 'AA', 'transparent']}
-              start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-              style={StyleSheet.absoluteFill}
-            />
-            <Text style={s.halfWatermark}>AI</Text>
-            <View style={s.halfContent}>
-              <Text style={s.halfEyebrow}>AI CHATS</Text>
-              <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                <Text style={s.halfNum}>{totalChats}</Text>
-                <Text style={s.halfUnit}>SESSIONS</Text>
-                <View style={s.halfDivider} />
-                <Text style={[s.halfHint, { color: GOLD_XL }]}>open chat</Text>
-              </View>
+          <TouchableOpacity style={[s.card, s.halfCard]} onPress={() => onNavigateToAI?.()} activeOpacity={0.75}>
+            <CardGlow />
+            <View style={s.cardInner}>
+              <Text style={s.cardLabel}>AI CHATS</Text>
+              <Text style={s.cardStat}>{totalChats}</Text>
+              <Text style={s.cardUnit}>SESSIONS</Text>
+              <View style={s.cardDivider} />
+              <Text style={s.cardHint}>open chat</Text>
             </View>
-            <LinearGradient colors={['transparent', GOLD_D + '70']} style={s.halfBottomGlow} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[s.tile, s.halfTile]} onPress={() => onNavigate?.('notes')} activeOpacity={0.85}>
-            <LinearGradient colors={['#0A0A0A', '#0D0F05', '#131A08']} style={StyleSheet.absoluteFill} />
-            <LinearGradient
-              colors={['transparent', GOLD_XD + '99', 'transparent']}
-              start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={s.halfContent}>
-              <Text style={s.halfEyebrow}>NOTES</Text>
-              <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                <Text style={s.halfNum}>{totalNotes}</Text>
-                <Text style={s.halfUnit}>CREATED</Text>
-                <View style={s.halfDivider} />
-                <Text style={[s.halfHint, { color: GOLD_XL }]}>open notes</Text>
-              </View>
+          <TouchableOpacity style={[s.card, s.halfCard]} onPress={() => onNavigate?.('notes')} activeOpacity={0.75}>
+            <CardGlow />
+            <View style={s.cardInner}>
+              <Text style={s.cardLabel}>NOTES</Text>
+              <Text style={s.cardStat}>{totalNotes}</Text>
+              <Text style={s.cardUnit}>CREATED</Text>
+              <View style={s.cardDivider} />
+              <Text style={s.cardHint}>open notes</Text>
             </View>
-            <LinearGradient colors={['transparent', GOLD_D + '70']} style={s.halfBottomGlow} />
           </TouchableOpacity>
 
         </View>
 
-        {/* ── AI Media Notes — cinematic full tile ── */}
-        <TouchableOpacity
-          style={[s.tile, s.full, s.mediaTile]}
-          onPress={() => onNavigate?.('aimedia')}
-          activeOpacity={0.85}
-        >
-          <LinearGradient colors={['#0A0A0A', '#1A1005', '#2A1A08']} style={StyleSheet.absoluteFill} />
-          <LinearGradient
-            colors={['transparent', GOLD_XD + 'BB', GOLD_D + '44', 'transparent']}
-            start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <Text style={s.mediaWatermark}>M</Text>
-          <View style={s.mediaContent}>
-            <View style={s.mediaTopRow}>
-              <Text style={s.mediaEyebrow}>AI-POWERED TRANSCRIPTION</Text>
-              <View style={s.mediaBadge}><Text style={s.mediaBadgeText}>NEW</Text></View>
+        {/* ── AI Media Notes ── */}
+        <TouchableOpacity style={[s.card, s.full, s.featureTile]} onPress={() => onNavigate?.('aimedia')} activeOpacity={0.75}>
+          <CardGlow />
+          <View style={s.featureInner}>
+            <View style={s.featureTopRow}>
+              <Text style={s.featureEyebrow}>AI-POWERED TRANSCRIPTION</Text>
+              <View style={s.featureBadge}><Text style={s.featureBadgeText}>NEW</Text></View>
             </View>
-            <Text style={s.mediaTitle}>media notes</Text>
-            <View style={s.mediaDivider} />
-            <View style={s.mediaStatsRow}>
-              <View style={s.mediaStat}>
-                <Text style={s.mediaStatNum}>YT</Text>
-                <Text style={s.mediaStatLabel}>YOUTUBE</Text>
-              </View>
-              <View style={s.mediaStatSep} />
-              <View style={s.mediaStat}>
-                <Text style={s.mediaStatNum}>AI</Text>
-                <Text style={s.mediaStatLabel}>NOTES</Text>
-              </View>
-              <View style={s.mediaStatSep} />
-              <View style={s.mediaStat}>
-                <Text style={s.mediaStatNum}>∞</Text>
-                <Text style={s.mediaStatLabel}>TOPICS</Text>
-              </View>
+            <Text style={s.featureTitle}>media notes</Text>
+            <View style={s.cardDivider} />
+            <View style={s.statsRow}>
+              {[
+                { val: 'YT',  lbl: 'YOUTUBE' },
+                { val: 'AI',  lbl: 'NOTES'   },
+                { val: '∞',   lbl: 'TOPICS'  },
+              ].map((item, i) => (
+                <View key={i} style={s.statCell}>
+                  {i > 0 && <View style={s.statSep} />}
+                  <View style={s.stat}>
+                    <Text style={s.statVal}>{item.val}</Text>
+                    <Text style={s.statLbl}>{item.lbl}</Text>
+                  </View>
+                </View>
+              ))}
             </View>
           </View>
-          <LinearGradient colors={['transparent', GOLD_D + '80']} style={s.mediaBottomGlow} />
         </TouchableOpacity>
 
-        {/* ── Flashcard 2×2 grid — black bg, accent text ── */}
-        <TouchableOpacity
-          style={[s.tile, s.full, { backgroundColor: BG, borderColor: GOLD_D, borderWidth: 2 }]}
-          onPress={() => onNavigate?.('flashcards')}
-          activeOpacity={0.85}
-        >
+        {/* ── Flashcards ── */}
+        <TouchableOpacity style={[s.card, s.full]} onPress={() => onNavigate?.('flashcards')} activeOpacity={0.75}>
+          <CardGlow />
           <View style={s.inner}>
             <View style={s.topRow}>
-              <Text style={s.label}>FLASHCARDS</Text>
-              <Ionicons name="layers-outline" size={14} color={GOLD_D} />
+              <Text style={s.cardLabel}>FLASHCARDS</Text>
+              <Text style={s.cardChevron}>›</Text>
             </View>
             <View style={s.fcGrid}>
               {[
                 { val: fcTotal,    lbl: 'TOTAL CARDS' },
-                { val: fcSets,     lbl: 'SETS' },
-                { val: fcMastered, lbl: 'MASTERED' },
-                { val: fcAccuracy, lbl: 'ACCURACY' },
+                { val: fcSets,     lbl: 'SETS'        },
+                { val: fcMastered, lbl: 'MASTERED'    },
+                { val: fcAccuracy, lbl: 'ACCURACY'    },
               ].map((item, i) => (
                 <View key={i} style={[s.fcCell, {
                   borderTopWidth:  i >= 2 ? 1 : 0,
                   borderLeftWidth: i % 2 === 1 ? 1 : 0,
-                  borderColor:     GOLD_D + '30',
+                  borderColor:     GOLD_D + '25',
                 }]}>
-                  <Text style={[s.num, { fontSize: 30, color: ACCENT, lineHeight: 34 }]}>{item.val}</Text>
-                  <Text style={[s.unit, { color: GOLD_D, marginTop: 2 }]}>{item.lbl}</Text>
+                  <Text style={s.fcNum}>{item.val}</Text>
+                  <Text style={s.fcLbl}>{item.lbl}</Text>
                 </View>
               ))}
             </View>
-            <Text style={[s.hint, { color: GOLD_D, marginTop: 8, marginLeft: 14, marginBottom: 10 }]}>open flashcards</Text>
           </View>
         </TouchableOpacity>
 
-        {/* ── Quiz Hub — cinematic ── */}
-        <View style={[s.tile, s.full, s.quizTile]}>
-          {/* layered gradients for depth */}
-          <LinearGradient
-            colors={['#0A0A0A', '#1A1005', '#2A1A08']}
-            style={StyleSheet.absoluteFill}
-          />
-          <LinearGradient
-            colors={['transparent', GOLD_XD + 'CC', GOLD_D + '55', 'transparent']}
-            start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-            style={StyleSheet.absoluteFill}
-          />
-          {/* large decorative watermark */}
-          <Text style={s.quizWatermark}>Q</Text>
-          {/* content */}
-          <View style={s.quizContent}>
-            <View style={s.quizTopRow}>
-              <Text style={s.quizEyebrow}>CHALLENGE YOURSELF</Text>
-              <View style={s.quizBadge}>
-                <Text style={s.quizBadgeText}>HUB</Text>
-              </View>
+        {/* ── Quiz Hub ── */}
+        <View style={[s.card, s.full, s.featureTile]}>
+          <CardGlow />
+          <View style={s.featureInner}>
+            <View style={s.featureTopRow}>
+              <Text style={s.featureEyebrow}>CHALLENGE YOURSELF</Text>
+              <View style={s.featureBadge}><Text style={s.featureBadgeText}>HUB</Text></View>
             </View>
-            <Text style={s.quizTitle}>quiz hub</Text>
-            <View style={s.quizDivider} />
-            <View style={s.quizStatsRow}>
-              <View style={s.quizStat}>
-                <Text style={s.quizStatNum}>{totalQuizzes}</Text>
-                <Text style={s.quizStatLabel}>COMPLETED</Text>
-              </View>
-              <View style={s.quizStatSep} />
-              <View style={s.quizStat}>
-                <Text style={s.quizStatNum}>∞</Text>
-                <Text style={s.quizStatLabel}>TOPICS</Text>
-              </View>
-              <View style={s.quizStatSep} />
-              <View style={s.quizStat}>
-                <Text style={s.quizStatNum}>AI</Text>
-                <Text style={s.quizStatLabel}>POWERED</Text>
-              </View>
+            <Text style={s.featureTitle}>quiz hub</Text>
+            <View style={s.cardDivider} />
+            <View style={s.statsRow}>
+              {[
+                { val: String(totalQuizzes), lbl: 'COMPLETED' },
+                { val: '∞',                  lbl: 'TOPICS'    },
+                { val: 'AI',                 lbl: 'POWERED'   },
+              ].map((item, i) => (
+                <View key={i} style={s.statCell}>
+                  {i > 0 && <View style={s.statSep} />}
+                  <View style={s.stat}>
+                    <Text style={s.statVal}>{item.val}</Text>
+                    <Text style={s.statLbl}>{item.lbl}</Text>
+                  </View>
+                </View>
+              ))}
             </View>
           </View>
-          {/* bottom gold glow strip */}
-          <LinearGradient
-            colors={['transparent', GOLD_D + '80']}
-            style={s.quizBottomGlow}
-          />
         </View>
 
-        {/* ── Bottom row: SearchHub | Slides — accent bg ── */}
+        {/* ── Bottom row: SearchHub | Slides ── */}
         <View style={s.row}>
-
-          <View style={[s.tile, { flex: 1, height: 130, backgroundColor: ACCENT, borderColor: ACCENT2 }]}>
-            <View style={s.inner}>
-              <View style={s.topRow}>
-                <Text style={[s.label, { color: INK, opacity: 0.6 }]}>SEARCHHUB</Text>
-                <Ionicons name="search-outline" size={13} color={INK} />
-              </View>
-              <Text style={[s.num, { fontSize: 34, color: INK, marginTop: 4 }]}>∞</Text>
-              <Text style={[s.unit, { color: INK, opacity: 0.55 }]}>explore topics</Text>
+          <View style={[s.card, { flex: 1, height: 110 }]}>
+            <CardGlow />
+            <View style={s.cardInner}>
+              <Text style={s.cardLabel}>SEARCHHUB</Text>
+              <Text style={s.bottomStat}>∞</Text>
+              <Text style={s.bottomLbl}>explore topics</Text>
             </View>
           </View>
 
-          <View style={[s.tile, { flex: 1, height: 130, backgroundColor: ACCENT2, borderColor: GOLD_D }]}>
-            <View style={s.inner}>
-              <View style={s.topRow}>
-                <Text style={[s.label, { color: INK, opacity: 0.6 }]}>SLIDES</Text>
-                <Ionicons name="easel-outline" size={13} color={INK} />
-              </View>
-              <Text style={[s.num, { fontSize: 34, color: INK, marginTop: 4 }]}>AI</Text>
-              <Text style={[s.unit, { color: INK, opacity: 0.55 }]}>generated decks</Text>
+          <View style={[s.card, { flex: 1, height: 110 }]}>
+            <CardGlow />
+            <View style={s.cardInner}>
+              <Text style={s.cardLabel}>SLIDES</Text>
+              <Text style={s.bottomStat}>AI</Text>
+              <Text style={s.bottomLbl}>generated decks</Text>
             </View>
           </View>
-
         </View>
 
       </ScrollView>
@@ -319,36 +261,131 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
 
 const s = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: BG },
-  scroll: { paddingHorizontal: PAD, paddingBottom: 16, gap: GAP },
+  scroll: { paddingHorizontal: PAD, paddingBottom: 24, gap: GAP },
   row:    { flexDirection: 'row', gap: GAP },
   full:   { width: '100%' },
 
-  tile: {
-    borderRadius: 22,
+  card: {
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: CARD_BORDER,
     backgroundColor: SURFACE,
     overflow: 'hidden',
+    shadowColor: GOLD_D,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+    position: 'relative',
   },
-  inner:   { flex: 1, padding: 16, justifyContent: 'space-between' },
-  topRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  divider: { height: 1, marginVertical: 8 },
+  cardGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 72,
+    zIndex: 0,
+  },
+
+  inner:    { flex: 1, padding: 16, justifyContent: 'space-between', zIndex: 1 },
+  topRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
   header:   { paddingTop: 18, paddingBottom: 6 },
-  title:    { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_L },
-  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, letterSpacing: 3, marginTop: 3 },
+  title:    { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_XL },
+  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: GOLD_L, letterSpacing: 3, marginTop: 3 },
 
-  label: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_D, letterSpacing: 2.5 },
-  num:   { fontFamily: 'Inter_900Black', fontSize: 50, color: GOLD_L, lineHeight: 54 },
-  unit:  { fontFamily: 'Inter_400Regular', fontSize: 9, color: DIM2, letterSpacing: 1.2 },
-  hint:  { fontFamily: 'Inter_400Regular', fontSize: 9, color: GOLD_XD, letterSpacing: 1 },
+  cardLabel:   { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_XL, letterSpacing: 2.5 },
+  cardChevron: { fontFamily: 'Inter_700Bold', fontSize: 20, color: GOLD_XL, lineHeight: 22 },
 
+  // Half-width stat cards
+  halfCard: { flex: 1, height: 170 },
+  cardInner: {
+    flex: 1,
+    padding: 16,
+    justifyContent: 'space-between',
+    zIndex: 1,
+  },
+  cardStat: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 46,
+    color: GOLD_XL,
+    lineHeight: 50,
+    marginTop: 10,
+  },
+  cardUnit: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 8,
+    color: GOLD_L,
+    letterSpacing: 2,
+    marginTop: 2,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: GOLD_D + '30',
+    marginVertical: 10,
+  },
+  cardHint: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 9,
+    color: GOLD_L,
+    letterSpacing: 1,
+  },
 
-  fcGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 14 },
-  fcCell: { width: '50%', paddingVertical: 16, paddingHorizontal: 14 },
+  // Feature tiles (media notes, quiz hub)
+  featureTile:  { height: 180 },
+  featureInner: { flex: 1, padding: 20, justifyContent: 'space-between', zIndex: 1 },
+  featureTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  featureEyebrow: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 8,
+    color: GOLD_L,
+    letterSpacing: 2.5,
+  },
+  featureBadge: {
+    backgroundColor: GOLD_D + '25',
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  featureBadgeText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 8,
+    color: GOLD_L,
+    letterSpacing: 2,
+  },
+  featureTitle: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 36,
+    color: GOLD_XL,
+    lineHeight: 40,
+    marginTop: 6,
+  },
+  statsRow: { flexDirection: 'row', alignItems: 'center' },
+  statCell: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  stat:     { flex: 1, alignItems: 'center', gap: 3 },
+  statSep:  { width: 1, height: 28, backgroundColor: GOLD_D + '35' },
+  statVal:  { fontFamily: 'Inter_900Black', fontSize: 20, color: GOLD_XL, lineHeight: 24 },
+  statLbl:  { fontFamily: 'Inter_400Regular', fontSize: 7, color: GOLD_L, letterSpacing: 1.5 },
 
+  // Flashcard grid
+  fcGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 },
+  fcCell: { width: '50%', paddingVertical: 14, paddingHorizontal: 14 },
+  fcNum:  { fontFamily: 'Inter_900Black', fontSize: 30, color: ACCENT, lineHeight: 34 },
+  fcLbl:  { fontFamily: 'Inter_400Regular', fontSize: 8, color: GOLD_L, letterSpacing: 1.5, marginTop: 2 },
+
+  // Bottom small tiles
+  bottomStat: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_XL, lineHeight: 34, marginTop: 6 },
+  bottomLbl:  { fontFamily: 'Inter_400Regular', fontSize: 9, color: GOLD_L, letterSpacing: 1, marginTop: 2 },
+
+  // Graph
   graphArea: { flex: 1, marginTop: 14, position: 'relative' },
-  gridLine:  { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: DIM },
+  gridLine:  { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: DIM2 + '40' },
   barsRow:   {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
@@ -356,266 +393,10 @@ const s = StyleSheet.create({
   barGroup:   { flex: 1, alignItems: 'center' },
   barCluster: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: BAR_MAX_H },
   bar:        { width: 7, borderRadius: 4 },
-  dayLabel:   { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: DIM2, marginTop: 6, letterSpacing: 0.5 },
+  dayLabel:   { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_L, marginTop: 6, letterSpacing: 0.5 },
 
   legend:     { flexDirection: 'row', gap: 10 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot:  { width: 5, height: 5, borderRadius: 3 },
-  legendText: { fontFamily: 'Inter_400Regular', fontSize: 8, color: DIM2, letterSpacing: 1 },
-
-  // Half-width cinematic tiles (AI Chats / Notes)
-  halfTile: {
-    flex: 1,
-    height: 170,
-    borderColor: GOLD_D,
-    borderWidth: 1.5,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  halfWatermark: {
-    position: 'absolute',
-    right: -8,
-    bottom: -18,
-    fontFamily: 'Inter_900Black',
-    fontSize: 110,
-    color: GOLD_D + '1A',
-    lineHeight: 110,
-  },
-  halfContent: {
-    flex: 1,
-    padding: 14,
-  },
-  halfEyebrow: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 8,
-    color: GOLD_D,
-    letterSpacing: 2.5,
-  },
-  halfNum: {
-    fontFamily: 'Inter_900Black',
-    fontSize: 42,
-    color: GOLD_XL,
-    lineHeight: 46,
-    textShadowColor: GOLD_D + '80',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
-  },
-  halfUnit: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 7,
-    color: GOLD_D,
-    letterSpacing: 1.5,
-    marginTop: 1,
-  },
-  halfDivider: {
-    height: 1,
-    backgroundColor: GOLD_D + '35',
-    marginVertical: 8,
-  },
-  halfHint: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
-    color: GOLD_D,
-    letterSpacing: 0.5,
-  },
-  halfBottomGlow: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 32,
-  },
-
-  // Quiz Hub cinematic
-  quizTile: {
-    height: 190,
-    borderColor: GOLD_D,
-    borderWidth: 1.5,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  quizWatermark: {
-    position: 'absolute',
-    right: -10,
-    bottom: -30,
-    fontFamily: 'Inter_900Black',
-    fontSize: 200,
-    color: GOLD_D + '18',
-    lineHeight: 200,
-  },
-  quizContent: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'space-between',
-  },
-  quizTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  quizEyebrow: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 9,
-    color: GOLD_D,
-    letterSpacing: 3,
-  },
-  quizBadge: {
-    backgroundColor: GOLD_D + '30',
-    borderWidth: 1,
-    borderColor: GOLD_D + '60',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  quizBadgeText: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 8,
-    color: GOLD_L,
-    letterSpacing: 2,
-  },
-  quizTitle: {
-    fontFamily: 'Inter_900Black',
-    fontSize: 40,
-    color: GOLD_XL,
-    lineHeight: 44,
-    marginTop: 2,
-    textShadowColor: GOLD_D + '80',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 12,
-  },
-  quizDivider: {
-    height: 1,
-    backgroundColor: GOLD_D + '40',
-    marginVertical: 10,
-  },
-  quizStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 0,
-  },
-  quizStat: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 3,
-  },
-  quizStatSep: {
-    width: 1,
-    height: 28,
-    backgroundColor: GOLD_D + '35',
-  },
-  quizStatNum: {
-    fontFamily: 'Inter_900Black',
-    fontSize: 20,
-    color: GOLD_L,
-    lineHeight: 24,
-  },
-  quizStatLabel: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 7,
-    color: GOLD_D,
-    letterSpacing: 1.5,
-  },
-  quizBottomGlow: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 40,
-  },
-
-  // AI Media Notes tile
-  mediaTile: {
-    height: 186,
-    borderColor: GOLD_D,
-    borderWidth: 1.5,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  mediaWatermark: {
-    position: 'absolute',
-    right: -18,
-    bottom: -44,
-    fontFamily: 'Inter_900Black',
-    fontSize: 230,
-    color: GOLD_D + '18',
-    lineHeight: 230,
-  },
-  mediaContent: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'space-between',
-  },
-  mediaTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  mediaEyebrow: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 9,
-    color: GOLD_D,
-    letterSpacing: 3,
-  },
-  mediaBadge: {
-    backgroundColor: GOLD_D + '30',
-    borderWidth: 1,
-    borderColor: GOLD_D + '60',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  mediaBadgeText: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 8,
-    color: GOLD_L,
-    letterSpacing: 2,
-  },
-  mediaTitle: {
-    fontFamily: 'Inter_900Black',
-    fontSize: 40,
-    color: GOLD_XL,
-    lineHeight: 44,
-    marginTop: 2,
-    textShadowColor: GOLD_D + '80',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 12,
-  },
-  mediaDivider: {
-    height: 1,
-    backgroundColor: GOLD_D + '40',
-    marginVertical: 10,
-  },
-  mediaStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  mediaStat: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 3,
-  },
-  mediaStatSep: {
-    width: 1,
-    height: 28,
-    backgroundColor: GOLD_D + '35',
-  },
-  mediaStatNum: {
-    fontFamily: 'Inter_900Black',
-    fontSize: 20,
-    color: GOLD_L,
-    lineHeight: 24,
-  },
-  mediaStatLabel: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 7,
-    color: GOLD_D,
-    letterSpacing: 1.5,
-  },
-  mediaBottomGlow: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 40,
-  },
+  legendText: { fontFamily: 'Inter_400Regular', fontSize: 8, color: GOLD_L, letterSpacing: 1 },
 });
