@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity,
+  View, Text, StyleSheet, TextInput,
   FlatList, KeyboardAvoidingView, Platform, Animated,
   Modal, ScrollView, ActivityIndicator, PanResponder,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter'; // Inter_700Bold used by MarkdownText
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MarkdownText from '../components/MarkdownText';
+import HapticTouchable from '../components/HapticTouchable';
 import { AuthUser } from '../services/auth';
 import { createChatSession, askAI, getChatSessions, getChatMessages } from '../services/api';
 
@@ -165,16 +166,16 @@ export default function AIChatScreen({ user }: Props) {
 
         {/* Header */}
         <View style={s.header}>
-          <TouchableOpacity onPress={openSidebar} activeOpacity={0.7} style={s.headerBtn}>
+          <HapticTouchable onPress={openSidebar} activeOpacity={0.7} style={s.headerBtn} haptic="selection">
             <Ionicons name="menu-outline" size={22} color={DIM} />
-          </TouchableOpacity>
+          </HapticTouchable>
           <View style={s.headerCenter}>
             <Text style={s.headerTitle}>cerbyl</Text>
             <View style={s.onlineDot} />
           </View>
-          <TouchableOpacity onPress={newChat} activeOpacity={0.7} style={s.headerBtn}>
+          <HapticTouchable onPress={newChat} activeOpacity={0.7} style={s.headerBtn} haptic="light">
             <Ionicons name="create-outline" size={20} color={DIM} />
-          </TouchableOpacity>
+          </HapticTouchable>
         </View>
 
         {/* Empty state */}
@@ -221,16 +222,17 @@ export default function AIChatScreen({ user }: Props) {
             placeholderTextColor={DIM}
             multiline
           />
-          <TouchableOpacity
+          <HapticTouchable
             style={[s.sendBtn, (!input.trim() || loading) && s.sendDisabled]}
             onPress={() => send()}
             activeOpacity={0.8}
             disabled={!input.trim() || loading}
+            haptic="medium"
           >
             <LinearGradient colors={[GOLD_L, GOLD_M]} style={s.sendGrad}>
               <Ionicons name="chevron-up" size={20} color="#0A0A0A" />
             </LinearGradient>
-          </TouchableOpacity>
+          </HapticTouchable>
         </View>
 
       </KeyboardAvoidingView>
@@ -238,53 +240,56 @@ export default function AIChatScreen({ user }: Props) {
       {/* Sidebar overlay */}
       {sidebarOpen && (
         <Modal transparent animationType="none" onRequestClose={closeSidebar}>
-          <View style={s.overlay}>
-            <TouchableOpacity style={StyleSheet.absoluteFill} onPress={closeSidebar} activeOpacity={1} />
-            <Animated.View style={[s.sidebar, { transform: [{ translateX: slideAnim }] }]} {...panResponder.panHandlers}>
-              <LinearGradient colors={['#1E1608', '#131008', '#0A0A0A']} style={StyleSheet.absoluteFill} />
-              <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-                <View style={s.sidebarHeader}>
-                  <Text style={s.sidebarTitle}>chats</Text>
-                </View>
-                <LinearGradient colors={[GOLD_D + '60', 'transparent']} style={s.sidebarDivider} />
-                {sessionsLoading ? (
-                  <ActivityIndicator color={GOLD_M} style={{ marginTop: 32 }} />
-                ) : sessions.length === 0 ? (
-                  <View style={s.sidebarEmptyWrap}>
-                    <Text style={s.sidebarEmpty}>no chats yet</Text>
+          <SafeAreaProvider>
+            <View style={s.overlay}>
+              <HapticTouchable style={StyleSheet.absoluteFill} onPress={closeSidebar} activeOpacity={1} haptic="none" />
+              <Animated.View style={[s.sidebar, { transform: [{ translateX: slideAnim }] }]} {...panResponder.panHandlers}>
+                <LinearGradient colors={['#1E1608', '#131008', '#0A0A0A']} style={StyleSheet.absoluteFill} />
+                <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+                  <View style={s.sidebarHeader}>
+                    <Text style={s.sidebarTitle}>chats</Text>
                   </View>
-                ) : (
-                  <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8 }}>
-                    {sessions.map(sess => {
-                      const active = chatId === sess.id;
-                      return (
-                        <TouchableOpacity
-                          key={sess.id}
-                          style={s.sessionItem}
-                          onPress={() => loadSession(sess)}
-                          activeOpacity={0.75}
-                        >
-                          {active && <LinearGradient colors={[GOLD_D + '35', 'transparent']} style={StyleSheet.absoluteFill} />}
-                          <View style={[s.sessionDot, active && { backgroundColor: GOLD_M }]} />
-                          <View style={{ flex: 1 }}>
-                            <Text style={[s.sessionTitle, active && { color: GOLD_M }]} numberOfLines={2}>
-                              {sess.title || 'untitled chat'}
-                            </Text>
-                            {sess.updated_at && (
-                              <Text style={s.sessionDate}>
-                                {new Date(sess.updated_at).toLocaleDateString()}
+                  <LinearGradient colors={[GOLD_D + '60', 'transparent']} style={s.sidebarDivider} />
+                  {sessionsLoading ? (
+                    <ActivityIndicator color={GOLD_M} style={{ marginTop: 32 }} />
+                  ) : sessions.length === 0 ? (
+                    <View style={s.sidebarEmptyWrap}>
+                      <Text style={s.sidebarEmpty}>no chats yet</Text>
+                    </View>
+                  ) : (
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8 }}>
+                      {sessions.map(sess => {
+                        const active = chatId === sess.id;
+                        return (
+                          <HapticTouchable
+                            key={sess.id}
+                            style={s.sessionItem}
+                            onPress={() => loadSession(sess)}
+                            activeOpacity={0.75}
+                            haptic="selection"
+                          >
+                            {active && <LinearGradient colors={[GOLD_D + '35', 'transparent']} style={StyleSheet.absoluteFill} />}
+                            <View style={[s.sessionDot, active && { backgroundColor: GOLD_M }]} />
+                            <View style={{ flex: 1 }}>
+                              <Text style={[s.sessionTitle, active && { color: GOLD_M }]} numberOfLines={2}>
+                                {sess.title || 'untitled chat'}
                               </Text>
-                            )}
-                          </View>
-                          {active && <Ionicons name="chevron-forward" size={14} color={GOLD_D} />}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                )}
-              </SafeAreaView>
-            </Animated.View>
-          </View>
+                              {sess.updated_at && (
+                                <Text style={s.sessionDate}>
+                                  {new Date(sess.updated_at).toLocaleDateString()}
+                                </Text>
+                              )}
+                            </View>
+                            {active && <Ionicons name="chevron-forward" size={14} color={GOLD_D} />}
+                          </HapticTouchable>
+                        );
+                      })}
+                    </ScrollView>
+                  )}
+                </SafeAreaView>
+              </Animated.View>
+            </View>
+          </SafeAreaProvider>
         </Modal>
       )}
     </SafeAreaView>

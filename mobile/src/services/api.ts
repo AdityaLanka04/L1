@@ -19,6 +19,17 @@ async function authHeaders(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+async function readApiError(res: Response, fallback: string): Promise<never> {
+  let detail = fallback;
+  try {
+    const data = await res.json();
+    detail = data?.detail || data?.message || fallback;
+  } catch {
+    // ignore JSON parse failures and use fallback
+  }
+  throw new Error(detail);
+}
+
 // ── Auth ─────────────────────────────────────────────────────────────
 export async function login(username: string, password: string) {
   const body = new URLSearchParams({ username, password, grant_type: 'password' });
@@ -159,11 +170,248 @@ export async function getFlashcardsInSet(setId: number) {
   return res.json(); // { set_title, flashcards: [{id, question, answer, difficulty}] }
 }
 
+export async function generateFlashcards(payload: {
+  userId: string;
+  topic: string;
+  cardCount: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  additionalSpecs?: string;
+  setTitle?: string;
+  isPublic?: boolean;
+}) {
+  const headers = await authHeaders();
+  const body = new FormData();
+  body.append('user_id', payload.userId);
+  body.append('topic', payload.topic);
+  body.append('generation_type', 'topic');
+  body.append('card_count', String(payload.cardCount));
+  body.append('difficulty', payload.difficulty);
+  body.append('depth_level', 'standard');
+  body.append('additional_specs', payload.additionalSpecs ?? '');
+  body.append('use_hs_context', 'false');
+  body.append('set_title', payload.setTitle ?? `Flashcards: ${payload.topic}`);
+  body.append('is_public', String(Boolean(payload.isPublic)));
+
+  const res = await fetch(`${API_URL}/generate_flashcards`, {
+    method: 'POST',
+    headers,
+    body,
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to generate flashcards');
+  }
+
+  return res.json();
+}
+
+export async function createFlashcardSet(payload: {
+  userId: string;
+  title: string;
+  description?: string;
+  isPublic?: boolean;
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/flashcards/sets/create`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: payload.userId,
+      title: payload.title,
+      description: payload.description ?? '',
+      is_public: Boolean(payload.isPublic),
+    }),
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to create flashcard set');
+  }
+
+  return res.json();
+}
+
+export async function createFlashcard(payload: {
+  setId: number;
+  question: string;
+  answer: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/flashcards/cards/create`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      set_id: payload.setId,
+      question: payload.question,
+      answer: payload.answer,
+      difficulty: payload.difficulty ?? 'medium',
+    }),
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to create flashcard');
+  }
+
+  return res.json();
+}
+
 // ── Notes ─────────────────────────────────────────────────────────────
 export async function getNotes(userId: string) {
   const headers = await authHeaders();
   const res = await fetch(`${API_URL}/get_notes?user_id=${encodeURIComponent(userId)}`, { headers });
   return res.json(); // [{id, title, content, updated_at, is_favorite, folder_id}]
+}
+
+export async function createNote(payload: {
+  userId: string;
+  title: string;
+  content?: string;
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/create_note`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: payload.userId,
+      title: payload.title,
+      content: payload.content ?? '',
+    }),
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to create note');
+  }
+
+  return res.json();
+}
+
+export async function updateNote(payload: {
+  noteId: number;
+  title: string;
+  content: string;
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/update_note`, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      note_id: payload.noteId,
+      title: payload.title,
+      content: payload.content,
+    }),
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to update note');
+  }
+
+  return res.json();
+}
+
+export async function toggleFavorite(payload: {
+  noteId: number;
+  isFavorite: boolean;
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/toggle_favorite`, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      note_id: payload.noteId,
+      is_favorite: payload.isFavorite,
+    }),
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to update favorite');
+  }
+
+  return res.json();
+}
+
+export async function moveNoteToTrash(noteId: number) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/soft_delete_note/${noteId}`, {
+    method: 'PUT',
+    headers,
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to move note to trash');
+  }
+
+  return res.json();
+}
+
+export async function getTrash(userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/get_trash?user_id=${encodeURIComponent(userId)}`, { headers });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to load trash');
+  }
+
+  return res.json();
+}
+
+export async function restoreNote(noteId: number) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/restore_note/${noteId}`, {
+    method: 'PUT',
+    headers,
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to restore note');
+  }
+
+  return res.json();
+}
+
+export async function permanentlyDeleteNote(noteId: number) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/permanent_delete_note/${noteId}`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to permanently delete note');
+  }
+
+  return res.json();
+}
+
+export async function getFolders(userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/get_folders?user_id=${encodeURIComponent(userId)}`, { headers });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to load folders');
+  }
+
+  return res.json();
+}
+
+export async function moveNoteToFolder(payload: {
+  noteId: number;
+  folderId: number | null;
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/move_note_to_folder`, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      note_id: payload.noteId,
+      folder_id: payload.folderId,
+    }),
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to move note');
+  }
+
+  return res.json();
 }
 
 // ── AI Media Notes ────────────────────────────────────────────────────

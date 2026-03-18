@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AuthUser } from '../services/auth';
 import { getEnhancedStats, getFlashcardStatistics, getWeeklyProgress } from '../services/api';
+import HapticTouchable from '../components/HapticTouchable';
 
 const { width } = Dimensions.get('window');
 const GAP = 12;
@@ -125,7 +126,7 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
         {/* ── AI Chats | Notes ── */}
         <View style={s.row}>
 
-          <TouchableOpacity style={[s.card, s.halfCard]} onPress={() => onNavigateToAI?.()} activeOpacity={0.75}>
+          <HapticTouchable style={[s.card, s.halfCard]} onPress={() => onNavigateToAI?.()} activeOpacity={0.75} haptic="selection">
             <CardGlow />
             <View style={s.cardInner}>
               <Text style={s.cardLabel}>AI CHATS</Text>
@@ -134,9 +135,9 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
               <View style={s.cardDivider} />
               <Text style={s.cardHint}>open chat</Text>
             </View>
-          </TouchableOpacity>
+          </HapticTouchable>
 
-          <TouchableOpacity style={[s.card, s.halfCard]} onPress={() => onNavigate?.('notes')} activeOpacity={0.75}>
+          <HapticTouchable style={[s.card, s.halfCard]} onPress={() => onNavigate?.('notes')} activeOpacity={0.75} haptic="selection">
             <CardGlow />
             <View style={s.cardInner}>
               <Text style={s.cardLabel}>NOTES</Text>
@@ -145,12 +146,12 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
               <View style={s.cardDivider} />
               <Text style={s.cardHint}>open notes</Text>
             </View>
-          </TouchableOpacity>
+          </HapticTouchable>
 
         </View>
 
         {/* ── AI Media Notes ── */}
-        <TouchableOpacity style={[s.card, s.full, s.featureTile]} onPress={() => onNavigate?.('aimedia')} activeOpacity={0.75}>
+        <HapticTouchable style={[s.card, s.full, s.featureTile]} onPress={() => onNavigate?.('aimedia')} activeOpacity={0.75} haptic="medium">
           <CardGlow />
           <View style={s.featureInner}>
             <View style={s.featureTopRow}>
@@ -175,10 +176,10 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
               ))}
             </View>
           </View>
-        </TouchableOpacity>
+        </HapticTouchable>
 
         {/* ── Flashcards ── */}
-        <TouchableOpacity style={[s.card, s.full]} onPress={() => onNavigate?.('flashcards')} activeOpacity={0.75}>
+        <HapticTouchable style={[s.card, s.full]} onPress={() => onNavigate?.('flashcards')} activeOpacity={0.75} haptic="medium">
           <CardGlow />
           <View style={s.inner}>
             <View style={s.topRow}>
@@ -203,7 +204,7 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
               ))}
             </View>
           </View>
-        </TouchableOpacity>
+        </HapticTouchable>
 
         {/* ── Quiz Hub ── */}
         <View style={[s.card, s.full, s.featureTile]}>

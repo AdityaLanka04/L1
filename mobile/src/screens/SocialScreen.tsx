@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../services/auth';
 import { getFriends, getFriendRequests, getFriendActivityFeed, respondFriendRequest, searchUsers } from '../services/api';
+import HapticTouchable from '../components/HapticTouchable';
 
 const BG = '#0A0A0A';
 const CARD = '#111111';
@@ -118,9 +119,9 @@ export default function SocialScreen({ user }: Props) {
               <View key={r.id ?? i} style={styles.card}>
                 <Avatar name={r.username ?? r.name ?? '?'} />
                 <Text style={[styles.friendName, { flex: 1 }]}>{r.username ?? r.name}</Text>
-                <TouchableOpacity style={styles.btnAccept}>
+                <HapticTouchable style={styles.btnAccept} haptic="light">
                   <Ionicons name="person-add-outline" size={14} color={GOLD_LIGHT} />
-                </TouchableOpacity>
+                </HapticTouchable>
               </View>
             ))}
           </>
@@ -134,12 +135,12 @@ export default function SocialScreen({ user }: Props) {
                 <Avatar name={r.sender_username ?? r.name ?? '?'} />
                 <Text style={[styles.friendName, { flex: 1 }]}>{r.sender_username ?? r.name}</Text>
                 <View style={styles.reqActions}>
-                  <TouchableOpacity style={styles.btnAccept} onPress={() => handleRespond(r.id, 'accept')}>
+                  <HapticTouchable style={styles.btnAccept} onPress={() => handleRespond(r.id, 'accept')} haptic="success">
                     <Ionicons name="checkmark" size={16} color={GOLD_LIGHT} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.btnDecline} onPress={() => handleRespond(r.id, 'decline')}>
+                  </HapticTouchable>
+                  <HapticTouchable style={styles.btnDecline} onPress={() => handleRespond(r.id, 'decline')} haptic="warning">
                     <Ionicons name="close" size={16} color={DIM} />
-                  </TouchableOpacity>
+                  </HapticTouchable>
                 </View>
               </View>
             ))}

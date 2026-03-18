@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser, signOut } from '../services/auth';
 import { getEnhancedStats } from '../services/api';
+import HapticTouchable from '../components/HapticTouchable';
+import { triggerHaptic } from '../utils/haptics';
 
 const BG = '#0A0A0A';
 const CARD = '#111111';
@@ -15,11 +17,17 @@ const GOLD_DARK = '#7A5C2E';
 const DIM = '#5A5040';
 const BORDER = '#1E1E1E';
 
-type Props = { user: AuthUser; onLogout?: () => void };
+type Props = {
+  user: AuthUser;
+  onLogout?: () => void;
+  onNavigate?: (screen: 'flashcards' | 'notes' | 'aimedia') => void;
+};
 
-export default function ProfileScreen({ user, onLogout }: Props) {
+export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const [stats, setStats] = useState<any>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(true);
 
   useEffect(() => {
     getEnhancedStats(user.username).then(data => setStats(data)).catch(() => {});
@@ -40,9 +48,38 @@ export default function ProfileScreen({ user, onLogout }: Props) {
   ];
 
   const prefs = [
-    { label: 'Notifications', icon: 'notifications-outline', value: true  },
-    { label: 'Dark Mode',     icon: 'moon-outline',          value: true  },
+    {
+      label: 'Notifications',
+      icon: 'notifications-outline',
+      value: notificationsEnabled,
+      onChange: (value: boolean) => {
+        setNotificationsEnabled(value);
+        triggerHaptic('selection');
+      },
+    },
+    {
+      label: 'Dark Mode',
+      icon: 'moon-outline',
+      value: darkModeEnabled,
+      onChange: (value: boolean) => {
+        setDarkModeEnabled(value);
+        triggerHaptic('selection');
+      },
+    },
   ];
+
+  const handleAccountPress = (label: string) => {
+    if (label === 'My Flashcards') {
+      onNavigate?.('flashcards');
+      return;
+    }
+    if (label === 'My Notes') {
+      onNavigate?.('notes');
+      return;
+    }
+
+    Alert.alert('Not available yet', `${label} is not available on mobile yet.`);
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -97,7 +134,7 @@ export default function ProfileScreen({ user, onLogout }: Props) {
               <Text style={styles.prefLabel}>{p.label}</Text>
               <Switch
                 value={p.value}
-                onValueChange={() => {}}
+                onValueChange={p.onChange}
                 trackColor={{ false: BORDER, true: GOLD_DARK }}
                 thumbColor={p.value ? GOLD_LIGHT : DIM}
                 style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
@@ -114,17 +151,23 @@ export default function ProfileScreen({ user, onLogout }: Props) {
             { label: 'Quiz History',    icon: 'bar-chart-outline'       },
             { label: 'Import / Export', icon: 'swap-horizontal-outline' },
           ].map((l, i) => (
-            <TouchableOpacity key={l.label} style={[styles.linkRow, i < 3 && styles.prefDivider]} activeOpacity={0.7}>
+            <HapticTouchable
+              key={l.label}
+              style={[styles.linkRow, i < 3 && styles.prefDivider]}
+              activeOpacity={0.7}
+              haptic="light"
+              onPress={() => handleAccountPress(l.label)}
+            >
               <Ionicons name={l.icon as any} size={16} color={GOLD_MID} />
               <Text style={styles.linkLabel}>{l.label}</Text>
               <Ionicons name="chevron-forward" size={13} color={DIM} />
-            </TouchableOpacity>
+            </HapticTouchable>
           ))}
-          <TouchableOpacity style={[styles.linkRow, styles.prefDivider]} activeOpacity={0.7} onPress={handleLogout}>
+          <HapticTouchable style={[styles.linkRow, styles.prefDivider]} activeOpacity={0.7} onPress={handleLogout} haptic="warning">
             <Ionicons name="log-out-outline" size={16} color="#8B3A3A" />
             <Text style={[styles.linkLabel, styles.linkDanger]}>Log Out</Text>
             <Ionicons name="chevron-forward" size={13} color={DIM} />
-          </TouchableOpacity>
+          </HapticTouchable>
         </View>
 
         <Text style={styles.version}>cerbyl · v1.0.0</Text>

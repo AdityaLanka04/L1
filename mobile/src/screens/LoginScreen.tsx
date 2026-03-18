@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
@@ -9,6 +9,7 @@ import { makeRedirectUri } from 'expo-auth-session';
 
 import { signIn, signInWithGoogle, AuthUser } from '../services/auth';
 import { register } from '../services/api';
+import HapticTouchable from '../components/HapticTouchable';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -128,12 +129,12 @@ export default function LoginScreen({ onLogin }: Props) {
 
           {/* Tab toggle */}
           <View style={s.tabs}>
-            <TouchableOpacity style={[s.tab, mode === 'login' && s.tabActive]} onPress={() => switchMode('login')}>
+            <HapticTouchable style={[s.tab, mode === 'login' && s.tabActive]} onPress={() => switchMode('login')} haptic="selection">
               <Text style={[s.tabText, mode === 'login' && s.tabTextActive]}>sign in</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.tab, mode === 'register' && s.tabActive]} onPress={() => switchMode('register')}>
+            </HapticTouchable>
+            <HapticTouchable style={[s.tab, mode === 'register' && s.tabActive]} onPress={() => switchMode('register')} haptic="selection">
               <Text style={[s.tabText, mode === 'register' && s.tabTextActive]}>new user</Text>
-            </TouchableOpacity>
+            </HapticTouchable>
           </View>
 
           {success ? <Text style={s.success}>{success}</Text> : null}
@@ -148,11 +149,11 @@ export default function LoginScreen({ onLogin }: Props) {
                 <Text style={[s.label, { marginTop: 16 }]}>password</Text>
                 <TextInput style={s.input} value={password} onChangeText={setPassword} placeholder="enter password" placeholderTextColor={DIM} secureTextEntry />
 
-                <TouchableOpacity style={s.btnWrap} onPress={handleLogin} activeOpacity={0.85} disabled={loading}>
+                <HapticTouchable style={s.btnWrap} onPress={handleLogin} activeOpacity={0.85} disabled={loading} haptic="medium">
                   <LinearGradient colors={[GOLD_L, GOLD_M, GOLD_D]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btn}>
                     {loading ? <ActivityIndicator color="#0A0A0A" /> : <Text style={s.btnText}>sign in</Text>}
                   </LinearGradient>
-                </TouchableOpacity>
+                </HapticTouchable>
 
                 <View style={s.dividerRow}>
                   <View style={s.dividerLine} />
@@ -160,10 +161,10 @@ export default function LoginScreen({ onLogin }: Props) {
                   <View style={s.dividerLine} />
                 </View>
 
-                <TouchableOpacity style={s.googleBtn} onPress={() => { setError(''); promptAsync(); }} activeOpacity={0.85} disabled={loading || !request}>
+                <HapticTouchable style={s.googleBtn} onPress={() => { setError(''); promptAsync(); }} activeOpacity={0.85} disabled={loading || !request} haptic="medium">
                   <Text style={s.googleIcon}>G</Text>
                   <Text style={s.googleText}>continue with google</Text>
-                </TouchableOpacity>
+                </HapticTouchable>
               </>
             ) : (
               <>
@@ -187,11 +188,11 @@ export default function LoginScreen({ onLogin }: Props) {
                 <Text style={[s.label, { marginTop: 16 }]}>password</Text>
                 <TextInput style={s.input} value={regPassword} onChangeText={setRegPassword} placeholder="min 6 characters" placeholderTextColor={DIM} secureTextEntry />
 
-                <TouchableOpacity style={s.btnWrap} onPress={handleRegister} activeOpacity={0.85} disabled={loading}>
+                <HapticTouchable style={s.btnWrap} onPress={handleRegister} activeOpacity={0.85} disabled={loading} haptic="medium">
                   <LinearGradient colors={[GOLD_L, GOLD_M, GOLD_D]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btn}>
                     {loading ? <ActivityIndicator color="#0A0A0A" /> : <Text style={s.btnText}>create account</Text>}
                   </LinearGradient>
-                </TouchableOpacity>
+                </HapticTouchable>
               </>
             )}
           </View>

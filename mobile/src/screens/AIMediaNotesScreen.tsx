@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity,
-  ScrollView, Animated, KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet, TextInput,
+  ScrollView, Animated, KeyboardAvoidingView, Platform, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { useFocusEffect } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import HapticTouchable from '../components/HapticTouchable';
 import { AuthUser } from '../services/auth';
 import { processMediaYouTube, getMediaHistory, saveMediaNotes } from '../services/api';
 
@@ -32,7 +35,6 @@ const STATUSES = [
 ];
 
 type Mode      = 'youtube' | 'record';
-type ViewState = 'hub' | 'processing' | 'results';
 type Tab       = 'notes' | 'transcript';
 
 interface MediaResult {
@@ -53,6 +55,13 @@ interface HistoryItem {
 }
 
 type Props = { user: AuthUser; onBack?: () => void };
+type AIMediaStackParamList = {
+  AIMediaHub: undefined;
+  AIMediaProcessing: { url: string };
+  AIMediaResults: { result: MediaResult };
+};
+
+const AIMediaStack = createNativeStackNavigator<AIMediaStackParamList>();
 
 function CardGlow() {
   return (
@@ -381,20 +390,29 @@ const md = StyleSheet.create({
   num:      { fontFamily: 'Inter_700Bold', fontSize: 14, color: GOLD_M, lineHeight: 26, width: 26, flexShrink: 0 },
 });
 
-export default function AIMediaNotesScreen({ user, onBack }: Props) {
-  const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
+function fmtDuration(sec: number) {
+  if (!sec) return '';
+  return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+}
 
-  const [view,      setView]      = useState<ViewState>('hub');
-  const [mode,      setMode]      = useState<Mode>('youtube');
-  const [tab,       setTab]       = useState<Tab>('notes');
-  const [url,       setUrl]       = useState('');
-  const [saving,    setSaving]    = useState(false);
-  const [saved,     setSaved]     = useState(false);
-  const [statusIdx, setStatusIdx] = useState(0);
-  const [history,   setHistory]   = useState<HistoryItem[]>([]);
-  const [result,    setResult]    = useState<MediaResult | null>(null);
-  const [error,     setError]     = useState('');
-  const cancelRef = useRef(false);
+function fmtDate(iso: string) {
+  const d    = new Date(iso);
+  const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (diff === 0) return 'today';
+  if (diff === 1) return 'yesterday';
+  if (diff < 7)  return `${diff}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function AIMediaHub({
+  user,
+  onBack,
+  onStartProcessing,
+}: Props & { onStartProcessing: (url: string) => void }) {
+  const [mode,    setMode]    = useState<Mode>('youtube');
+  const [url,     setUrl]     = useState('');
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [error,   setError]   = useState('');
 
   const loadHistory = useCallback(() => {
     getMediaHistory(user.username)
@@ -402,148 +420,10 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
       .catch(() => {});
   }, [user.username]);
 
-  useEffect(() => { loadHistory(); }, [loadHistory]);
+  useFocusEffect(useCallback(() => {
+    loadHistory();
+  }, [loadHistory]));
 
-  useEffect(() => {
-    if (view !== 'processing') return;
-    const iv = setInterval(() => {
-      setStatusIdx(i => Math.min(i + 1, STATUSES.length - 1));
-    }, 4200);
-    return () => clearInterval(iv);
-  }, [view]);
-
-  const handleProcess = useCallback(async () => {
-    if (!url.trim()) return;
-    cancelRef.current = false;
-    setError('');
-    setStatusIdx(0);
-    setView('processing');
-    try {
-      const data = await processMediaYouTube(user.username, url.trim());
-      if (cancelRef.current) return;
-      if (!data.success) throw new Error(data.detail || 'Processing failed');
-      setResult(data);
-      setTab('notes');
-      setSaved(false);
-      setView('results');
-    } catch (e: any) {
-      if (!cancelRef.current) {
-        setError(e.message || 'Something went wrong. Please try again.');
-        setView('hub');
-      }
-    }
-  }, [url, user.username]);
-
-  const handleSave = useCallback(async () => {
-    if (!result || saving || saved) return;
-    setSaving(true);
-    try {
-      const title = result.video_info?.title || result.filename || 'Media Note';
-      await saveMediaNotes(user.username, title, result.notes.content, result.transcript, result.analysis);
-      setSaved(true);
-      loadHistory();
-    } catch { // silenced
-    } finally {
-      setSaving(false);
-    }
-  }, [result, saving, saved, user.username, loadHistory]);
-
-  const fmtDuration = (sec: number) => {
-    if (!sec) return '';
-    return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
-  };
-
-  const fmtDate = (iso: string) => {
-    const d    = new Date(iso);
-    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
-    if (diff === 0) return 'today';
-    if (diff === 1) return 'yesterday';
-    if (diff < 7)  return `${diff}d ago`;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  if (!fontsLoaded) return null;
-
-  // ── Processing ──────────────────────────────────────────────────────
-  if (view === 'processing') {
-    return (
-      <SafeAreaView style={s.safe} edges={['top']}>
-        <View style={s.subHeader}>
-          <TouchableOpacity onPress={() => { cancelRef.current = true; setView('hub'); }} style={s.backBtn}>
-            <Text style={s.backBtnText}>✕</Text>
-          </TouchableOpacity>
-          <Text style={s.subTitle}>processing</Text>
-          <View style={s.backBtn} />
-        </View>
-        <ProcessingView status={STATUSES[statusIdx]} />
-      </SafeAreaView>
-    );
-  }
-
-  // ── Results ─────────────────────────────────────────────────────────
-  if (view === 'results' && result) {
-    const displayTitle = result.video_info?.title || result.filename || 'Media Note';
-    return (
-      <SafeAreaView style={s.safe} edges={['top']}>
-        <View style={s.subHeader}>
-          <TouchableOpacity onPress={() => setView('hub')} style={s.backBtn}>
-            <Text style={s.backBtnText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={s.subTitle}>notes</Text>
-          <TouchableOpacity
-            style={[s.saveChip, saved && s.saveChipDone]}
-            onPress={handleSave}
-            disabled={saving || saved}
-            activeOpacity={0.8}
-          >
-            <Text style={s.saveChipText}>
-              {saving ? 'saving...' : saved ? 'saved' : 'save'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={s.metaStrip}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.metaTitle} numberOfLines={2}>{displayTitle}</Text>
-            <View style={s.metaBadges}>
-              {!!result.duration && (
-                <View style={s.badge}><Text style={s.badgeText}>{fmtDuration(result.duration)}</Text></View>
-              )}
-              {!!result.language_name && (
-                <View style={s.badge}><Text style={s.badgeText}>{result.language_name}</Text></View>
-              )}
-            </View>
-          </View>
-        </View>
-
-        <View style={s.divider} />
-
-        <View style={s.tabRow}>
-          {(['notes', 'transcript'] as Tab[]).map(t => (
-            <TouchableOpacity
-              key={t}
-              style={[s.tab, tab === t && s.tabActive]}
-              onPress={() => setTab(t)}
-              activeOpacity={0.75}
-            >
-              <Text style={[s.tabText, tab === t && s.tabTextActive]}>
-                {t.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <ScrollView contentContainerStyle={s.resultsScroll} showsVerticalScrollIndicator={false}>
-          {tab === 'notes'
-            ? <MarkdownNote content={result.notes.content} />
-            : <Text style={s.transcriptBody}>{result.transcript}</Text>
-          }
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  // ── Hub ─────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -552,12 +432,11 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
           <View style={s.header}>
             {onBack && (
-              <TouchableOpacity onPress={onBack} style={s.backBtn}>
+              <HapticTouchable onPress={onBack} style={s.backBtn} haptic="selection">
                 <Text style={s.backBtnText}>‹</Text>
-              </TouchableOpacity>
+              </HapticTouchable>
             )}
             <View style={{ flex: 1 }}>
               <Text style={s.pageTitle}>media notes</Text>
@@ -565,29 +444,29 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
             </View>
           </View>
 
-          {/* Mode switcher */}
           <View style={s.modeSwitcher}>
-            <TouchableOpacity
+            <HapticTouchable
               style={[s.modeBtn, mode === 'youtube' && s.modeBtnActive]}
               onPress={() => { setMode('youtube'); setError(''); }}
               activeOpacity={0.8}
+              haptic="selection"
             >
               <Text style={[s.modeBtnText, mode === 'youtube' && s.modeBtnTextActive]}>
                 YouTube
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </HapticTouchable>
+            <HapticTouchable
               style={[s.modeBtn, mode === 'record' && s.modeBtnActive]}
               onPress={() => { setMode('record'); setError(''); }}
               activeOpacity={0.8}
+              haptic="selection"
             >
               <Text style={[s.modeBtnText, mode === 'record' && s.modeBtnTextActive]}>
                 Record Audio
               </Text>
-            </TouchableOpacity>
+            </HapticTouchable>
           </View>
 
-          {/* YouTube input */}
           {mode === 'youtube' && (
             <View style={s.inputCard}>
               <CardGlow />
@@ -604,18 +483,19 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
                   autoCorrect={false}
                   keyboardType="url"
                   returnKeyType="go"
-                  onSubmitEditing={handleProcess}
+                  onSubmitEditing={() => url.trim() && onStartProcessing(url.trim())}
                 />
 
                 {!!error && (
                   <Text style={s.errorText}>{error}</Text>
                 )}
 
-                <TouchableOpacity
+                <HapticTouchable
                   style={[s.processBtn, !url.trim() && s.processBtnDisabled]}
-                  onPress={handleProcess}
+                  onPress={() => onStartProcessing(url.trim())}
                   disabled={!url.trim()}
                   activeOpacity={0.85}
+                  haptic="medium"
                 >
                   <LinearGradient
                     colors={url.trim() ? [GOLD_L, GOLD_M, GOLD_D] : [GOLD_D + '40', GOLD_D + '40']}
@@ -626,12 +506,11 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
                       GENERATE NOTES
                     </Text>
                   </LinearGradient>
-                </TouchableOpacity>
+                </HapticTouchable>
               </View>
             </View>
           )}
 
-          {/* Record audio */}
           {mode === 'record' && (
             <View style={s.inputCard}>
               <CardGlow />
@@ -641,14 +520,14 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
                   record a lecture, meeting, or voice note and get ai-generated notes instantly
                 </Text>
                 <View style={s.recordBtnWrap}>
-                  <TouchableOpacity style={s.recordBtn} activeOpacity={0.8}>
+                  <HapticTouchable style={s.recordBtn} activeOpacity={0.8} haptic="medium">
                     <LinearGradient
                       colors={[GOLD_L, GOLD_D]}
                       style={s.recordBtnGrad}
                     >
                       <View style={s.recordDot} />
                     </LinearGradient>
-                  </TouchableOpacity>
+                  </HapticTouchable>
                   <Text style={s.recordLabel}>tap to record</Text>
                 </View>
                 <Text style={s.comingSoon}>coming soon — requires expo-av</Text>
@@ -656,7 +535,6 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
             </View>
           )}
 
-          {/* Recent history */}
           <View style={s.sectionRow}>
             <Text style={s.sectionLabel}>RECENT</Text>
             {history.length > 0 && (
@@ -678,7 +556,7 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
             </View>
           ) : (
             history.slice(0, 8).map(item => (
-              <TouchableOpacity key={item.id} style={s.histRow} activeOpacity={0.8}>
+              <HapticTouchable key={item.id} style={s.histRow} activeOpacity={0.8} haptic="light">
                 <CardGlow />
                 <View style={s.histIconBox}>
                   <Text style={s.histIconText}>N</Text>
@@ -692,13 +570,214 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
                   )}
                 </View>
                 <Text style={s.histDate}>{fmtDate(item.created_at)}</Text>
-              </TouchableOpacity>
+              </HapticTouchable>
             ))
           )}
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+function AIMediaProcessing({
+  user,
+  url,
+  onCancel,
+  onComplete,
+  onError,
+}: {
+  user: AuthUser;
+  url: string;
+  onCancel: () => void;
+  onComplete: (result: MediaResult) => void;
+  onError: (message: string) => void;
+}) {
+  const [statusIdx, setStatusIdx] = useState(0);
+  const cancelRef = useRef(false);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setStatusIdx(i => Math.min(i + 1, STATUSES.length - 1));
+    }, 4200);
+    return () => clearInterval(iv);
+  }, []);
+
+  useEffect(() => {
+    cancelRef.current = false;
+
+    (async () => {
+      try {
+        const data = await processMediaYouTube(user.username, url);
+        if (cancelRef.current) return;
+        if (!data.success) throw new Error(data.detail || 'Processing failed');
+        onComplete(data);
+      } catch (e: any) {
+        if (!cancelRef.current) onError(e.message || 'Something went wrong. Please try again.');
+      }
+    })();
+
+    return () => {
+      cancelRef.current = true;
+    };
+  }, [onComplete, onError, url, user.username]);
+
+  return (
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <View style={s.subHeader}>
+        <HapticTouchable onPress={() => { cancelRef.current = true; onCancel(); }} style={s.backBtn} haptic="warning">
+          <Text style={s.backBtnText}>✕</Text>
+        </HapticTouchable>
+        <Text style={s.subTitle}>processing</Text>
+        <View style={s.backBtn} />
+      </View>
+      <ProcessingView status={STATUSES[statusIdx]} />
+    </SafeAreaView>
+  );
+}
+
+function AIMediaResults({
+  user,
+  result,
+  onBack,
+}: {
+  user: AuthUser;
+  result: MediaResult;
+  onBack: () => void;
+}) {
+  const [tab,    setTab]    = useState<Tab>('notes');
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+  const displayTitle = result.video_info?.title || result.filename || 'Media Note';
+
+  const handleSave = useCallback(async () => {
+    if (saving || saved) return;
+    setSaving(true);
+    try {
+      await saveMediaNotes(user.username, displayTitle, result.notes.content, result.transcript, result.analysis);
+      setSaved(true);
+    } catch {
+      Alert.alert('Save failed', 'Unable to save notes right now.');
+    } finally {
+      setSaving(false);
+    }
+  }, [displayTitle, result, saved, saving, user.username]);
+
+  return (
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <View style={s.subHeader}>
+        <HapticTouchable onPress={onBack} style={s.backBtn} haptic="selection">
+          <Text style={s.backBtnText}>‹</Text>
+        </HapticTouchable>
+        <Text style={s.subTitle}>notes</Text>
+        <HapticTouchable
+          style={[s.saveChip, saved && s.saveChipDone]}
+          onPress={handleSave}
+          disabled={saving || saved}
+          activeOpacity={0.8}
+          haptic="success"
+        >
+          <Text style={s.saveChipText}>
+            {saving ? 'saving...' : saved ? 'saved' : 'save'}
+          </Text>
+        </HapticTouchable>
+      </View>
+
+      <View style={s.metaStrip}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.metaTitle} numberOfLines={2}>{displayTitle}</Text>
+          <View style={s.metaBadges}>
+            {!!result.duration && (
+              <View style={s.badge}><Text style={s.badgeText}>{fmtDuration(result.duration)}</Text></View>
+            )}
+            {!!result.language_name && (
+              <View style={s.badge}><Text style={s.badgeText}>{result.language_name}</Text></View>
+            )}
+          </View>
+        </View>
+      </View>
+
+      <View style={s.divider} />
+
+      <View style={s.tabRow}>
+        {(['notes', 'transcript'] as Tab[]).map(t => (
+          <HapticTouchable
+            key={t}
+            style={[s.tab, tab === t && s.tabActive]}
+            onPress={() => setTab(t)}
+            activeOpacity={0.75}
+            haptic="selection"
+          >
+            <Text style={[s.tabText, tab === t && s.tabTextActive]}>
+              {t.toUpperCase()}
+            </Text>
+          </HapticTouchable>
+        ))}
+      </View>
+
+      <ScrollView contentContainerStyle={s.resultsScroll} showsVerticalScrollIndicator={false}>
+        {tab === 'notes'
+          ? <MarkdownNote content={result.notes.content} />
+          : <Text style={s.transcriptBody}>{result.transcript}</Text>
+        }
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+export default function AIMediaNotesScreen({ user, onBack }: Props) {
+  const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
+
+  if (!fontsLoaded) return null;
+
+  return (
+    <AIMediaStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+        gestureEnabled: true,
+        fullScreenGestureEnabled: true,
+        gestureDirection: 'horizontal',
+      }}
+    >
+      <AIMediaStack.Screen name="AIMediaHub">
+        {({ navigation }) => (
+          <AIMediaHub
+            user={user}
+            onBack={onBack}
+            onStartProcessing={(url) => navigation.navigate('AIMediaProcessing', { url })}
+          />
+        )}
+      </AIMediaStack.Screen>
+      <AIMediaStack.Screen name="AIMediaProcessing">
+        {({ route, navigation }) => (
+          <AIMediaProcessing
+            user={user}
+            url={route.params.url}
+            onCancel={() => navigation.goBack()}
+            onComplete={(result) => navigation.reset({
+              index: 1,
+              routes: [
+                { name: 'AIMediaHub' },
+                { name: 'AIMediaResults', params: { result } },
+              ],
+            })}
+            onError={(message) => {
+              Alert.alert('Processing failed', message);
+              navigation.goBack();
+            }}
+          />
+        )}
+      </AIMediaStack.Screen>
+      <AIMediaStack.Screen name="AIMediaResults">
+        {({ route, navigation }) => (
+          <AIMediaResults
+            user={user}
+            result={route.params.result}
+            onBack={() => navigation.goBack()}
+          />
+        )}
+      </AIMediaStack.Screen>
+    </AIMediaStack.Navigator>
   );
 }
 

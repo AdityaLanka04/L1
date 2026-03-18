@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator } fro
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaskedView from '@react-native-masked-view/masked-view';
 import RingProgress from '../components/RingProgress';
 import { AuthUser } from '../services/auth';
 import { getEnhancedStats } from '../services/api';
@@ -92,21 +91,9 @@ export default function HomeScreen({ user }: Props) {
           {stats === null ? (
             <ActivityIndicator color={GOLD_MID} size="large" style={{ marginTop: 40 }} />
           ) : (
-            <MaskedView maskElement={
-              <Text style={[styles.bigNum, { fontSize: STREAK_FONT, lineHeight: STREAK_FONT + 10 }]}>
-                {streakStr}
-              </Text>
-            }>
-              <LinearGradient
-                colors={[GOLD_XL, GOLD_MID, GOLD_DARK]}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-              >
-                <Text style={[styles.bigNum, { fontSize: STREAK_FONT, lineHeight: STREAK_FONT + 10, opacity: 0 }]}>
-                  {streakStr}
-                </Text>
-              </LinearGradient>
-            </MaskedView>
+            <Text style={[styles.bigNum, { fontSize: STREAK_FONT, lineHeight: STREAK_FONT + 10 }]}>
+              {streakStr}
+            </Text>
           )}
         </View>
 
@@ -178,6 +165,7 @@ const styles = StyleSheet.create({
   },
   bigNum: {
     fontFamily: 'Inter_900Black',
+    color: GOLD_XL,
     textAlign: 'center',
     textShadowColor: GOLD_MID + '55',
     textShadowOffset: { width: 0, height: 0 },
