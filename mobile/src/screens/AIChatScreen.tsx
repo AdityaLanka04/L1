@@ -154,7 +154,7 @@ export default function AIChatScreen({ user }: Props) {
   const isEmpty = messages.length === 0 && !loading;
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={[]}>
       {/* Subtle background */}
       <LinearGradient colors={['#0A0A0A', '#0F0D05', '#0A0A0A']} style={StyleSheet.absoluteFill} />
       <LinearGradient
@@ -297,7 +297,7 @@ export default function AIChatScreen({ user }: Props) {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG, overflow: 'hidden' },
+  safe: { flex: 1, backgroundColor: 'transparent', overflow: 'hidden' },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

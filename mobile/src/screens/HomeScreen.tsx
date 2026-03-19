@@ -64,7 +64,7 @@ export default function HomeScreen({ user }: Props) {
   const firstName = user.first_name || user.username;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <LinearGradient colors={['#0A0A0A', '#0F0D05', '#0A0A0A']} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={['transparent', GOLD_DARK + '20', 'transparent']}
@@ -129,7 +129,7 @@ export default function HomeScreen({ user }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG, overflow: 'hidden' },
+  safe: { flex: 1, backgroundColor: 'transparent', overflow: 'hidden' },
   scroll: { paddingHorizontal: 24, paddingBottom: 48 },
 
   topBar: {

@@ -515,3 +515,135 @@ export async function googleAuth(idToken: string) {
   if (!res.ok) throw new Error('Google auth failed');
   return res.json(); // { access_token, token_type, user_info }
 }
+
+// ── Friends (extended) ────────────────────────────────────────────────
+export async function sendFriendRequest(userId: string, targetUsername: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/send_friend_request`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId, target_username: targetUsername }),
+  });
+  return res.json(); // { message }
+}
+
+export async function removeFriend(userId: string, friendId: number) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/remove_friend`, {
+    method: 'DELETE',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId, friend_id: friendId }),
+  });
+  return res.json();
+}
+
+export async function giveKudos(userId: string, recipientId: number, kudosType = 'great_study') {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/give_kudos`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId, recipient_id: recipientId, kudos_type: kudosType }),
+  });
+  return res.json();
+}
+
+// ── Leaderboard ───────────────────────────────────────────────────────
+export async function getFriendsLeaderboard(userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/leaderboard?user_id=${encodeURIComponent(userId)}`, { headers });
+  return res.json(); // { leaderboard: [{rank, username, score, streak, is_current_user}], current_user_rank }
+}
+
+export async function getGlobalLeaderboard(limit = 20) {
+  const res = await fetch(`${API_URL}/get_global_leaderboard?limit=${limit}`);
+  return res.json(); // { leaderboard: [{rank, username, total_points, streak}] }
+}
+
+// ── Quiz Battles ──────────────────────────────────────────────────────
+export async function getQuizBattles(userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/quiz_battles?user_id=${encodeURIComponent(userId)}`, { headers });
+  return res.json(); // { battles: [{id, subject, status, challenger, opponent, ...}] }
+}
+
+export async function createQuizBattle(payload: {
+  challenger_id: string;
+  opponent_id: number;
+  subject: string;
+  difficulty?: string;
+  question_count?: number;
+  time_limit_seconds?: number;
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/create_quiz_battle`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      difficulty: 'medium',
+      question_count: 10,
+      time_limit_seconds: 300,
+      ...payload,
+    }),
+  });
+  return res.json(); // { battle_id, message }
+}
+
+export async function acceptQuizBattle(battleId: number, userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/accept_quiz_battle`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ battle_id: battleId, user_id: userId }),
+  });
+  return res.json();
+}
+
+export async function declineQuizBattle(battleId: number, userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/decline_quiz_battle`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ battle_id: battleId, user_id: userId }),
+  });
+  return res.json();
+}
+
+export async function getBattleDetails(battleId: number) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/quiz_battle/${battleId}`, { headers });
+  return res.json();
+}
+
+// ── Challenges ────────────────────────────────────────────────────────
+export async function getChallenges(userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/challenges?user_id=${encodeURIComponent(userId)}`, { headers });
+  return res.json(); // { challenges: [{id, title, subject, participants, ...}] }
+}
+
+export async function createChallenge(payload: {
+  creator_id: string;
+  title: string;
+  subject: string;
+  difficulty?: string;
+  question_count?: number;
+  time_limit_hours?: number;
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/create_challenge`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ difficulty: 'medium', question_count: 10, time_limit_hours: 24, ...payload }),
+  });
+  return res.json();
+}
+
+export async function joinChallenge(challengeId: number, userId: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/join_challenge`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ challenge_id: challengeId, user_id: userId }),
+  });
+  return res.json();
+}

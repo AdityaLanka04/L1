@@ -5,7 +5,18 @@
       "Bash(find d:/Brainwave/L1/backend -maxdepth 2 -name *.py)",
       "Bash(npx tsc:*)",
       "Bash(curl -s http://10.0.0.141:8000/api/me)",
-      "Bash(cat d:/Brainwave/L1/mobile/src/services/*.ts)"
+      "Bash(cat d:/Brainwave/L1/mobile/src/services/*.ts)",
+      "Bash(find d:/Brainwave/L1/src -name *social* -o -name *Social* -o -name *friend* -o -name *Friend*)",
+      "Bash(sed -i 's/style={StyleSheet\\\\.absoluteFillObject} borderRadius={20}/style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}/g' d:/Brainwave/L1/mobile/src/screens/SocialScreen.tsx)",
+      "Bash(sed -i 's/style={StyleSheet\\\\.absoluteFillObject} borderRadius={20}/style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}/g' d:/Brainwave/L1/mobile/src/screens/social/FriendsScreen.tsx)",
+      "Bash(sed -i 's/style={StyleSheet\\\\.absoluteFillObject} borderRadius={20}/style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}/g' d:/Brainwave/L1/mobile/src/screens/social/LeaderboardScreen.tsx)",
+      "Bash(sed -i 's/style={StyleSheet\\\\.absoluteFillObject} borderRadius={20}/style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}/g' d:/Brainwave/L1/mobile/src/screens/social/GamesScreen.tsx)",
+      "Bash(sed -i 's/style={StyleSheet\\\\.absoluteFillObject} borderRadius={20}/style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}/g' d:/Brainwave/L1/mobile/src/screens/social/QuizPlaylistScreen.tsx)",
+      "Bash(head -10 grep -n \"SafeAreaView\\\\|backgroundColor.*BG\\\\|style={s.safe\" d:/Brainwave/L1/mobile/src/screens/ProfileScreen.tsx)",
+      "Bash(head -5 grep -n \"SafeAreaView\\\\|backgroundColor.*BG\" d:/Brainwave/L1/mobile/src/screens/AIChatScreen.tsx)"
+    ],
+    "additionalDirectories": [
+      "d:\\Brainwave\\L1\\mobile\\src\\screens"
     ]
   }
 }

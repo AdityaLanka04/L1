@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { NavigationContainer } from '@react-navigation/native';
 import { NavigationIndependentTree } from '@react-navigation/core';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -51,7 +52,13 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['#100D07', '#0A0908', '#07080D']}
+        locations={[0, 0.55, 1]}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <View style={{ flex: 1, paddingTop: insets.top }}>
       <PagerView
         ref={pager}
         style={{ flex: 1 }}
@@ -76,6 +83,7 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
             </HapticTouchable>
           );
         })}
+      </View>
       </View>
     </View>
   );

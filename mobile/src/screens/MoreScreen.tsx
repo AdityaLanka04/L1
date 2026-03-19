@@ -67,7 +67,7 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
     : 1;
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={[]}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* ── Header ── */}
@@ -261,7 +261,7 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
 }
 
 const s = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: BG },
+  safe:   { flex: 1, backgroundColor: 'transparent' },
   scroll: { paddingHorizontal: PAD, paddingBottom: 24, gap: GAP },
   row:    { flexDirection: 'row', gap: GAP },
   full:   { width: '100%' },
