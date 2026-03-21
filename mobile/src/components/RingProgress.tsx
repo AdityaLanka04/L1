@@ -1,10 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-
-const GOLD_LIGHT = '#FFE8A0';
-const GOLD_MID = '#C9A87C';
-const GOLD_DARK = '#7A5C2E';
-const TEXT_DIM = '#5A5040';
+import { useAppTheme } from '../contexts/ThemeContext';
+import { darkenColor } from '../utils/theme';
 
 type Props = {
   value: string;
@@ -15,6 +12,9 @@ type Props = {
 };
 
 export default function RingProgress({ value, label, progress, size = 90, strokeWidth = 7 }: Props) {
+  const { selectedTheme } = useAppTheme();
+  const styles = createStyles(selectedTheme);
+  const accentDark = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 18 : 35);
   const r = (size - strokeWidth) / 2;
   const cx = size / 2;
   const cy = size / 2;
@@ -30,16 +30,16 @@ export default function RingProgress({ value, label, progress, size = 90, stroke
         <Svg width={size} height={size}>
           <Defs>
             <LinearGradient id="arcGrad" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={GOLD_LIGHT} stopOpacity="1" />
-              <Stop offset="0.5" stopColor={GOLD_MID} stopOpacity="1" />
-              <Stop offset="1" stopColor={GOLD_DARK} stopOpacity="1" />
+              <Stop offset="0" stopColor={selectedTheme.accentHover} stopOpacity="1" />
+              <Stop offset="0.5" stopColor={selectedTheme.accent} stopOpacity="1" />
+              <Stop offset="1" stopColor={accentDark} stopOpacity="1" />
             </LinearGradient>
           </Defs>
 
           {/* Track ring */}
           <Circle
             cx={cx} cy={cy} r={r}
-            stroke={GOLD_DARK}
+            stroke={accentDark}
             strokeWidth={strokeWidth}
             strokeOpacity={0.18}
             fill="none"
@@ -69,26 +69,28 @@ export default function RingProgress({ value, label, progress, size = 90, stroke
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    alignItems: 'center',
-    gap: 10,
-  },
-  center: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  value: {
-    fontFamily: 'Inter_900Black',
-    fontSize: 22,
-    color: GOLD_LIGHT,
-  },
-  label: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
-    color: TEXT_DIM,
-    letterSpacing: 1.5,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-});
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  return StyleSheet.create({
+    wrap: {
+      alignItems: 'center',
+      gap: 10,
+    },
+    center: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    value: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 22,
+      color: theme.accentHover,
+    },
+    label: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 9,
+      color: theme.accent,
+      letterSpacing: 1.5,
+      textAlign: 'center',
+      lineHeight: 14,
+    },
+  });
+}

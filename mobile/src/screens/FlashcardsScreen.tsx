@@ -14,11 +14,12 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import HapticTouchable from '../components/HapticTouchable';
 import { AuthUser } from '../services/auth';
+import { useAppTheme } from '../contexts/ThemeContext';
 import {
   createFlashcard,
   createFlashcardSet,
@@ -27,23 +28,25 @@ import {
   getFlashcardsInSet,
   getFlashcardStatistics,
 } from '../services/api';
+import { darkenColor, getDefaultTheme, rgbaFromHex } from '../utils/theme';
 
 const { width: W, height: H } = Dimensions.get('window');
 
-const BG = '#0A0A0A';
-const SURFACE = '#0F0F0F';
-const SURFACE_2 = '#141414';
-const ACCENT = '#C9A87C';
-const ACCENT2 = '#B8956A';
-const GOLD_L = '#E8CC88';
-const GOLD_D = '#8A6535';
-const GOLD_XD = '#5A3F1A';
-const BORDER = '#1A1408';
-const DIM = '#3A3020';
-const DIM2 = '#4A3E2A';
-const INK = '#0D0A06';
-const GREEN = '#5DBF7A';
-const RED = '#BF5D5D';
+const DEFAULT_THEME = getDefaultTheme();
+let BG = DEFAULT_THEME.bgPrimary;
+let SURFACE = DEFAULT_THEME.panel;
+let SURFACE_2 = DEFAULT_THEME.panelAlt;
+let ACCENT = DEFAULT_THEME.accent;
+let ACCENT2 = DEFAULT_THEME.accentHover;
+let GOLD_L = DEFAULT_THEME.accentHover;
+let GOLD_D = darkenColor(DEFAULT_THEME.accent, DEFAULT_THEME.isLight ? 10 : 26);
+let GOLD_XD = darkenColor(DEFAULT_THEME.accent, DEFAULT_THEME.isLight ? 26 : 40);
+let BORDER = DEFAULT_THEME.borderStrong;
+let DIM = DEFAULT_THEME.panelMuted;
+let DIM2 = DEFAULT_THEME.textSecondary;
+let INK = DEFAULT_THEME.isLight ? darkenColor(DEFAULT_THEME.accent, 45) : darkenColor(DEFAULT_THEME.primary, 2);
+let GREEN = DEFAULT_THEME.success;
+let RED = DEFAULT_THEME.danger;
 
 type FlashcardSet = {
   id: number;
@@ -82,6 +85,23 @@ const FlashcardsStack = createNativeStackNavigator<FlashcardsStackParamList>();
 
 const difficultyOptions: Difficulty[] = ['easy', 'medium', 'hard'];
 const cardCountOptions = [5, 10, 15, 20];
+
+function applyTheme(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  BG = theme.bgPrimary;
+  SURFACE = theme.panel;
+  SURFACE_2 = theme.panelAlt;
+  ACCENT = theme.accent;
+  ACCENT2 = theme.accentHover;
+  GOLD_L = theme.accentHover;
+  GOLD_D = darkenColor(theme.accent, theme.isLight ? 10 : 26);
+  GOLD_XD = darkenColor(theme.accent, theme.isLight ? 26 : 40);
+  BORDER = theme.borderStrong;
+  DIM = theme.panelMuted;
+  DIM2 = theme.textSecondary;
+  INK = theme.isLight ? darkenColor(theme.accent, 45) : darkenColor(theme.primary, 2);
+  GREEN = theme.success;
+  RED = theme.danger;
+}
 
 function buildSetDraft(input: Partial<FlashcardSet> & { id: number; title: string; card_count: number; source_type: string }): FlashcardSet {
   return {
@@ -651,7 +671,7 @@ function FlashcardsSets({
           ListHeaderComponent={(
             <View style={s.createRow}>
               <HapticTouchable style={s.createBtnPrimary} onPress={() => onOpenCreate('ai')} haptic="medium">
-                <Ionicons name="sparkles" size={15} color="#0A0908" />
+                <Ionicons name="sparkles" size={15} color={INK} />
                 <Text style={s.createBtnPrimaryText}>AI generate</Text>
               </HapticTouchable>
               <HapticTouchable style={s.createBtnSecondary} onPress={() => onOpenCreate('manual')} haptic="light">
@@ -717,7 +737,10 @@ function FlashcardsSets({
 }
 
 export default function FlashcardsScreen({ user, onBack }: Props) {
-  const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
+  const { selectedTheme } = useAppTheme();
+  applyTheme(selectedTheme);
+  s = createStyles();
+  const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   const [refreshTick, setRefreshTick] = useState(0);
 
   if (!fontsLoaded) return null;
@@ -787,7 +810,15 @@ export default function FlashcardsScreen({ user, onBack }: Props) {
 
 const CARD_H = H * 0.46;
 
-const s = StyleSheet.create({
+function createStyles() {
+  const softAccent = rgbaFromHex(ACCENT, 0.12);
+  const softAccentBorder = rgbaFromHex(ACCENT, 0.26);
+  const softAccentFill = rgbaFromHex(ACCENT, 0.18);
+  const softDanger = rgbaFromHex(RED, 0.12);
+  const softDangerBorder = rgbaFromHex(RED, 0.26);
+  const softSuccess = rgbaFromHex(GREEN, 0.12);
+  const softSuccessBorder = rgbaFromHex(GREEN, 0.26);
+  return StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   header: {
     flexDirection: 'row',
@@ -797,11 +828,25 @@ const s = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 12,
   },
-  title: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_L },
+  title: { fontFamily: 'Inter_900Black', fontSize: 30, color: ACCENT },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, letterSpacing: 3, marginTop: 2 },
 
-  statsStrip: { flexDirection: 'row', backgroundColor: SURFACE, borderTopWidth: 1, borderBottomWidth: 1, borderColor: BORDER },
-  statCell: { flex: 1, alignItems: 'center', paddingVertical: 10 },
+  statsStrip: {
+    flexDirection: 'row',
+    backgroundColor: SURFACE,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginHorizontal: 16,
+    marginBottom: 6,
+    overflow: 'hidden',
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 22,
+    elevation: 6,
+  },
+  statCell: { flex: 1, alignItems: 'center', paddingVertical: 14 },
   statVal: { fontFamily: 'Inter_900Black', fontSize: 18, color: ACCENT },
   statLbl: { fontFamily: 'Inter_400Regular', fontSize: 8, color: DIM2, letterSpacing: 1.5, marginTop: 2 },
 
@@ -809,22 +854,47 @@ const s = StyleSheet.create({
   createRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   createBtnPrimary: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 7, backgroundColor: ACCENT, borderRadius: 14, paddingVertical: 13,
+    gap: 7, backgroundColor: ACCENT, borderRadius: 16, paddingVertical: 14,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    elevation: 6,
   },
   createBtnPrimaryText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: INK },
   createBtnSecondary: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 7, borderRadius: 14, paddingVertical: 13,
-    borderWidth: 1, borderColor: GOLD_XD, backgroundColor: SURFACE,
+    gap: 7, borderRadius: 16, paddingVertical: 14,
+    borderWidth: 1, borderColor: softAccentBorder, backgroundColor: SURFACE_2,
   },
   createBtnSecondaryText: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: GOLD_L },
 
-  setCard: { backgroundColor: SURFACE, borderRadius: 20, borderWidth: 1, borderColor: BORDER, padding: 16, gap: 12 },
+  setCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 18,
+    gap: 12,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 6,
+  },
   setCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   setTitle: { fontFamily: 'Inter_900Black', fontSize: 17, color: GOLD_L, lineHeight: 22 },
   setDesc: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, marginTop: 3, lineHeight: 16 },
 
-  countBadge: { backgroundColor: GOLD_XD, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, alignItems: 'center' },
+  countBadge: {
+    backgroundColor: softAccent,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: softAccentBorder,
+  },
   countText: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_L },
   countLbl: { fontFamily: 'Inter_400Regular', fontSize: 8, color: GOLD_D, letterSpacing: 1, marginTop: 1 },
 
@@ -834,9 +904,9 @@ const s = StyleSheet.create({
   masteryPct: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_D, width: 36, textAlign: 'right' },
 
   setCardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sourcePill: { backgroundColor: DIM, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  sourcePill: { backgroundColor: softAccent, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: softAccentBorder },
   sourceText: { fontFamily: 'Inter_600SemiBold', fontSize: 8, color: GOLD_L, letterSpacing: 1.5 },
-  studyBtn: { backgroundColor: ACCENT, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 7 },
+  studyBtn: { backgroundColor: ACCENT, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 8 },
   studyBtnText: { fontFamily: 'Inter_900Black', fontSize: 12, color: INK },
 
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 50 },
@@ -851,6 +921,21 @@ const s = StyleSheet.create({
   },
 
   createContent: { padding: 16, gap: 14, paddingBottom: 120 },
+  heroCreateCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: softAccentBorder,
+    padding: 18,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 22,
+    elevation: 5,
+  },
+  heroEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_D, letterSpacing: 2.6, marginBottom: 10 },
+  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 22, lineHeight: 28, color: GOLD_L },
+  heroBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 21, color: DIM2, marginTop: 8 },
   modeSwitch: { flexDirection: 'row', gap: 10 },
   optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 },
   optionPill: {
@@ -866,10 +951,15 @@ const s = StyleSheet.create({
   optionPillTextActive: { color: INK },
   formCard: {
     backgroundColor: SURFACE,
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 22,
+    elevation: 5,
   },
   inputLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: GOLD_D, letterSpacing: 1.8, textTransform: 'uppercase', marginTop: 14 },
   input: {
@@ -887,10 +977,15 @@ const s = StyleSheet.create({
   inputMultiline: { minHeight: 112 },
   manualCard: {
     backgroundColor: SURFACE,
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.07,
+    shadowRadius: 22,
+    elevation: 4,
   },
   manualCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   manualCardIndex: { fontFamily: 'Inter_900Black', fontSize: 15, color: GOLD_L, textTransform: 'lowercase' },
@@ -900,21 +995,26 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    borderRadius: 16,
+    borderRadius: 18,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: GOLD_D,
+    borderColor: softAccentBorder,
     backgroundColor: SURFACE_2,
   },
   addCardText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: GOLD_L },
   createSubmitBtn: {
     backgroundColor: ACCENT,
-    borderRadius: 20,
+    borderRadius: 22,
     paddingVertical: 18,
     paddingHorizontal: 18,
     alignItems: 'center',
     minHeight: 76,
     justifyContent: 'center',
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 8,
   },
   createSubmitBtnDisabled: { opacity: 0.7 },
   createSubmitText: { fontFamily: 'Inter_900Black', fontSize: 15, color: INK, textTransform: 'lowercase' },
@@ -939,25 +1039,30 @@ const s = StyleSheet.create({
     width: W - 40,
     height: CARD_H,
     backgroundColor: SURFACE,
-    borderRadius: 26,
+    borderRadius: 30,
     borderWidth: 1,
-    borderColor: GOLD_XD,
+    borderColor: softAccentBorder,
     padding: 26,
     justifyContent: 'space-between',
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.12,
+    shadowRadius: 28,
+    elevation: 10,
   },
   cardSide: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_D, letterSpacing: 2.5 },
   cardText: { fontFamily: 'Inter_900Black', fontSize: 20, color: GOLD_L, lineHeight: 28, flex: 1, marginTop: 16 },
   tapHint: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, textAlign: 'center', letterSpacing: 1 },
-  diffPill: { alignSelf: 'flex-start', backgroundColor: GOLD_XD + '80', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  diffPill: { alignSelf: 'flex-start', backgroundColor: softAccentFill, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: softAccentBorder },
   diffText: { fontFamily: 'Inter_600SemiBold', fontSize: 8, color: INK, letterSpacing: 1.5 },
 
   answerRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingBottom: 20, paddingTop: 8 },
   wrongBtn: {
     flex: 1,
-    backgroundColor: '#1A0808',
-    borderRadius: 20,
+    backgroundColor: softDanger,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#3A1212',
+    borderColor: softDangerBorder,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
@@ -965,10 +1070,10 @@ const s = StyleSheet.create({
   },
   rightBtn: {
     flex: 1,
-    backgroundColor: '#081A0A',
-    borderRadius: 20,
+    backgroundColor: softSuccess,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#123A16',
+    borderColor: softSuccessBorder,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
@@ -983,7 +1088,7 @@ const s = StyleSheet.create({
   resultsRow: {
     flexDirection: 'row',
     backgroundColor: SURFACE,
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: BORDER,
     overflow: 'hidden',
@@ -995,7 +1100,7 @@ const s = StyleSheet.create({
   resultLbl: { fontFamily: 'Inter_400Regular', fontSize: 9, color: DIM2, letterSpacing: 1.5, marginTop: 4 },
   actionBtn: {
     backgroundColor: ACCENT,
-    borderRadius: 18,
+    borderRadius: 20,
     paddingVertical: 15,
     paddingHorizontal: 40,
     marginTop: 14,
@@ -1005,3 +1110,6 @@ const s = StyleSheet.create({
   actionBtnOutline: { backgroundColor: 'transparent', borderWidth: 1, borderColor: GOLD_D },
   actionBtnText: { fontFamily: 'Inter_900Black', fontSize: 14, color: INK },
 });
+}
+
+let s: ReturnType<typeof createStyles> = createStyles();

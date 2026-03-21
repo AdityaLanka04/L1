@@ -1,374 +1,388 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../services/auth';
 import { getEnhancedStats, getFlashcardStatistics, getWeeklyProgress } from '../services/api';
 import HapticTouchable from '../components/HapticTouchable';
+import { useAppTheme } from '../contexts/ThemeContext';
+import { darkenColor, rgbaFromHex } from '../utils/theme';
 
 const { width } = Dimensions.get('window');
-const GAP = 12;
-const PAD = 16;
+const PAD = 18;
 
-const BG      = '#0A0A0A';
-const SURFACE = '#111111';
-const ACCENT  = '#C9A87C';
-const GOLD_XL = '#FFF0BC';
-const GOLD_L  = '#E8CC88';
-const GOLD_D  = '#8A6535';
-const DIM2    = '#4A3E2A';
-
-const CARD_BORDER = GOLD_D + '55';
-
-const BAR_MAX_H = 72;
+const BAR_MAX_H = 82;
 
 type DayData = { day: string; ai_chats: number; notes: number; flashcards: number };
-type Props   = { user: AuthUser; onNavigate?: (screen: 'flashcards' | 'notes' | 'aimedia') => void; onNavigateToAI?: () => void };
+type Props = { user: AuthUser; onNavigate?: (screen: 'flashcards' | 'notes' | 'aimedia') => void; onNavigateToAI?: () => void };
+
+function QuickTile({
+  title,
+  subtitle,
+  icon,
+  accent,
+  styles,
+  textColor,
+  onPress,
+  badge,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  accent: string;
+  styles: ReturnType<typeof createStyles>;
+  textColor: string;
+  onPress?: () => void;
+  badge?: string;
+}) {
+  return (
+    <HapticTouchable style={styles.quickTile} onPress={onPress} haptic="selection" activeOpacity={0.86}>
+      <LinearGradient colors={[rgbaFromHex(accent, 0.09), rgbaFromHex(accent, 0)]} style={styles.quickGlow} />
+      <View style={[styles.quickIcon, { borderColor: rgbaFromHex(accent, 0.38), backgroundColor: rgbaFromHex(accent, 0.1) }]}>
+        <Ionicons name={icon} size={16} color={accent} />
+      </View>
+      {badge ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badge}</Text>
+        </View>
+      ) : null}
+      <Text style={[styles.quickTitle, { color: textColor }]}>{title}</Text>
+      <Text style={styles.quickSubtitle}>{subtitle}</Text>
+    </HapticTouchable>
+  );
+}
 
 export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) {
+  const { selectedTheme } = useAppTheme();
+  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
-  const [stats,   setStats]   = useState<any>(null);
+  const [stats, setStats] = useState<any>(null);
   const [fcStats, setFcStats] = useState<any>(null);
-  const [weekly,  setWeekly]  = useState<DayData[]>([]);
+  const [weekly, setWeekly] = useState<DayData[]>([]);
 
   useEffect(() => {
     getEnhancedStats(user.username).then(setStats).catch(() => {});
     getFlashcardStatistics(user.username).then(setFcStats).catch(() => {});
     getWeeklyProgress(user.username)
-      .then(d => { if (d?.daily_breakdown) setWeekly(d.daily_breakdown); })
+      .then((data) => {
+        if (data?.daily_breakdown) setWeekly(data.daily_breakdown);
+      })
       .catch(() => {});
   }, [user.username]);
 
   if (!fontsLoaded) return null;
 
-  const totalChats   = stats?.totalChatSessions   ?? stats?.total_chat_sessions ?? '—';
-  const totalNotes   = stats?.totalNotes           ?? stats?.total_notes         ?? '—';
-  const totalQuizzes = stats?.totalQuizzes         ?? stats?.quiz_count          ?? '—';
-  const fcTotal      = fcStats?.total_cards        ?? '—';
-  const fcSets       = fcStats?.total_sets         ?? '—';
-  const fcMastered   = fcStats?.cards_mastered     ?? '—';
-  const fcAccuracy   = fcStats?.average_accuracy   != null
-    ? Math.round(fcStats.average_accuracy) + '%' : '—';
+  const totalChats = stats?.totalChatSessions ?? stats?.total_chat_sessions ?? 0;
+  const totalNotes = stats?.totalNotes ?? stats?.total_notes ?? 0;
+  const totalQuizzes = stats?.totalQuizzes ?? stats?.quiz_count ?? 0;
+  const fcTotal = fcStats?.total_cards ?? 0;
+  const fcSets = fcStats?.total_sets ?? 0;
+  const fcMastered = fcStats?.cards_mastered ?? 0;
+  const fcAccuracy = fcStats?.average_accuracy != null ? `${Math.round(fcStats.average_accuracy)}%` : '—';
 
   const maxVal = weekly.length
-    ? Math.max(...weekly.flatMap(d => [d.ai_chats, d.notes, d.flashcards]), 1)
+    ? Math.max(...weekly.flatMap((day) => [day.ai_chats, day.notes, day.flashcards]), 1)
     : 1;
 
   return (
     <SafeAreaView style={s.safe} edges={[]}>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFill} />
+      <View style={[s.glow, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.08) }]} pointerEvents="none" />
 
-        {/* ── Header ── */}
+      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.header}>
           <Text style={s.title}>explore</Text>
-          <Text style={s.subtitle}>your learning universe</Text>
+          <Text style={s.subtitle}>your learning toolkit, refined</Text>
         </View>
 
-        {/* ── AI Chats | Notes ── */}
-        <View style={s.row}>
+        <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.10), rgbaFromHex(selectedTheme.panel, 0.985), rgbaFromHex(selectedTheme.bgPrimary, 0.995)]} locations={[0, 0.62, 1]} style={s.heroCard}>
+          <Text style={s.heroEyebrow}>workspace overview</Text>
+          <Text style={s.heroTitle}>Everything you need for focused study, in one calm system.</Text>
+          <Text style={s.heroText}>
+            {totalChats} AI chats, {totalNotes} notes, and {fcTotal} flashcards are already in motion.
+          </Text>
+          <View style={s.heroStats}>
+            {[
+              { label: 'chat', value: String(totalChats) },
+              { label: 'notes', value: String(totalNotes) },
+              { label: 'quizzes', value: String(totalQuizzes) },
+            ].map((item) => (
+              <View key={item.label} style={s.heroStat}>
+                <Text style={s.heroStatValue}>{item.value}</Text>
+                <Text style={s.heroStatLabel}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+        </LinearGradient>
 
-          <HapticTouchable style={[s.card, s.halfCard]} onPress={() => onNavigateToAI?.()} activeOpacity={0.75} haptic="selection">
-            <View style={s.cardInner}>
-              <Text style={s.cardLabel}>AI CHATS</Text>
-              <Text style={s.cardStat}>{totalChats}</Text>
-              <Text style={s.cardUnit}>SESSIONS</Text>
-              <View style={s.cardDivider} />
-              <Text style={s.cardHint}>open chat</Text>
-            </View>
-          </HapticTouchable>
-
-          <HapticTouchable style={[s.card, s.halfCard]} onPress={() => onNavigate?.('notes')} activeOpacity={0.75} haptic="selection">
-            <View style={s.cardInner}>
-              <Text style={s.cardLabel}>NOTES</Text>
-              <Text style={s.cardStat}>{totalNotes}</Text>
-              <Text style={s.cardUnit}>CREATED</Text>
-              <View style={s.cardDivider} />
-              <Text style={s.cardHint}>open notes</Text>
-            </View>
-          </HapticTouchable>
-
+        <View style={s.sectionRow}>
+          <Text style={s.sectionTitle}>core tools</Text>
+          <Text style={s.sectionMeta}>jump directly into work</Text>
         </View>
 
-        {/* ── AI Media Notes ── */}
-        <HapticTouchable style={[s.card, s.full, s.featureTile]} onPress={() => onNavigate?.('aimedia')} activeOpacity={0.75} haptic="medium">
-          <View style={s.featureInner}>
-            <View style={s.featureTopRow}>
-              <Text style={s.featureEyebrow}>AI-POWERED TRANSCRIPTION</Text>
-              <View style={s.featureBadge}><Text style={s.featureBadgeText}>NEW</Text></View>
+        <View style={s.grid}>
+          <QuickTile
+            title="AI chat"
+            subtitle="think, ask, iterate"
+            icon="sparkles-outline"
+            accent={selectedTheme.accentHover}
+            styles={s}
+            textColor={selectedTheme.accentHover}
+            onPress={() => onNavigateToAI?.()}
+          />
+          <QuickTile
+            title="notes"
+            subtitle="capture what matters"
+            icon="document-text-outline"
+            accent={selectedTheme.accent}
+            styles={s}
+            textColor={selectedTheme.accent}
+            onPress={() => onNavigate?.('notes')}
+          />
+        </View>
+
+        <HapticTouchable style={s.featureCard} onPress={() => onNavigate?.('aimedia')} haptic="medium" activeOpacity={0.88}>
+          <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.09), rgbaFromHex(selectedTheme.panel, 0.985), rgbaFromHex(selectedTheme.bgPrimary, 0.995)]} locations={[0, 0.65, 1]} style={StyleSheet.absoluteFillObject} />
+          <View style={s.featureTop}>
+            <Text style={s.featureEyebrow}>signature flow</Text>
+            <View style={s.featurePill}>
+              <Text style={s.featurePillText}>media</Text>
             </View>
-            <Text style={s.featureTitle}>media notes</Text>
-            <View style={s.cardDivider} />
-            <View style={s.statsRow}>
-              {[
-                { val: 'YT',  lbl: 'YOUTUBE' },
-                { val: 'AI',  lbl: 'NOTES'   },
-                { val: '∞',   lbl: 'TOPICS'  },
-              ].map((item, i) => (
-                <View key={i} style={s.statCell}>
-                  {i > 0 && <View style={s.statSep} />}
-                  <View style={s.stat}>
-                    <Text style={s.statVal}>{item.val}</Text>
-                    <Text style={s.statLbl}>{item.lbl}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
+          </View>
+          <Text style={s.featureTitle}>AI media notes</Text>
+          <Text style={s.featureBody}>Turn lectures, videos, and long-form content into clean notes without losing momentum.</Text>
+          <View style={s.featureMetaRow}>
+            {[
+              { value: 'YT', label: 'video' },
+              { value: 'AI', label: 'summary' },
+              { value: '∞', label: 'topics' },
+            ].map((item) => (
+              <View key={item.label} style={s.featureMeta}>
+                <Text style={s.featureMetaValue}>{item.value}</Text>
+                <Text style={s.featureMetaLabel}>{item.label}</Text>
+              </View>
+            ))}
           </View>
         </HapticTouchable>
 
-        {/* ── Flashcards ── */}
-        <HapticTouchable style={[s.card, s.full]} onPress={() => onNavigate?.('flashcards')} activeOpacity={0.75} haptic="medium">
-          <View style={s.inner}>
-            <View style={s.topRow}>
-              <Text style={s.cardLabel}>FLASHCARDS</Text>
-              <Text style={s.cardChevron}>›</Text>
+        <HapticTouchable style={s.flashcardCard} onPress={() => onNavigate?.('flashcards')} haptic="medium" activeOpacity={0.88}>
+          <View style={s.flashHeader}>
+            <View>
+              <Text style={s.cardEyebrow}>flashcards</Text>
+              <Text style={s.cardTitle}>Review system</Text>
             </View>
-            <View style={s.fcGrid}>
-              {[
-                { val: fcTotal,    lbl: 'TOTAL CARDS' },
-                { val: fcSets,     lbl: 'SETS'        },
-                { val: fcMastered, lbl: 'MASTERED'    },
-                { val: fcAccuracy, lbl: 'ACCURACY'    },
-              ].map((item, i) => (
-                <View key={i} style={[s.fcCell, {
-                  borderTopWidth:  i >= 2 ? 1 : 0,
-                  borderLeftWidth: i % 2 === 1 ? 1 : 0,
-                  borderColor:     GOLD_D + '25',
-                }]}>
-                  <Text style={s.fcNum}>{item.val}</Text>
-                  <Text style={s.fcLbl}>{item.lbl}</Text>
-                </View>
-              ))}
-            </View>
+            <Ionicons name="arrow-forward" size={18} color={selectedTheme.accentHover} />
+          </View>
+          <View style={s.flashGrid}>
+            {[
+              { value: String(fcTotal), label: 'cards' },
+              { value: String(fcSets), label: 'sets' },
+              { value: String(fcMastered), label: 'mastered' },
+              { value: fcAccuracy, label: 'accuracy' },
+            ].map((item) => (
+              <View key={item.label} style={s.flashCell}>
+                <Text style={s.flashValue}>{item.value}</Text>
+                <Text style={s.flashLabel}>{item.label}</Text>
+              </View>
+            ))}
           </View>
         </HapticTouchable>
 
-        {/* ── Quiz Hub ── */}
-        <View style={[s.card, s.full, s.featureTile]}>
-          <View style={s.featureInner}>
-            <View style={s.featureTopRow}>
-              <Text style={s.featureEyebrow}>CHALLENGE YOURSELF</Text>
-              <View style={s.featureBadge}><Text style={s.featureBadgeText}>HUB</Text></View>
-            </View>
-            <Text style={s.featureTitle}>quiz hub</Text>
-            <View style={s.cardDivider} />
-            <View style={s.statsRow}>
-              {[
-                { val: String(totalQuizzes), lbl: 'COMPLETED' },
-                { val: '∞',                  lbl: 'TOPICS'    },
-                { val: 'AI',                 lbl: 'POWERED'   },
-              ].map((item, i) => (
-                <View key={i} style={s.statCell}>
-                  {i > 0 && <View style={s.statSep} />}
-                  <View style={s.stat}>
-                    <Text style={s.statVal}>{item.val}</Text>
-                    <Text style={s.statLbl}>{item.lbl}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
+        <View style={s.sectionRow}>
+          <Text style={s.sectionTitle}>weekly tempo</Text>
+          <Text style={s.sectionMeta}>how the week is unfolding</Text>
         </View>
 
-        {/* ── Bottom row: SearchHub | Slides ── */}
-        <View style={s.row}>
-          <View style={[s.card, { flex: 1, height: 110 }]}>
-            <View style={s.cardInner}>
-              <Text style={s.cardLabel}>SEARCHHUB</Text>
-              <Text style={s.bottomStat}>∞</Text>
-              <Text style={s.bottomLbl}>explore topics</Text>
-            </View>
-          </View>
-
-          <View style={[s.card, { flex: 1, height: 110 }]}>
-            <View style={s.cardInner}>
-              <Text style={s.cardLabel}>SLIDES</Text>
-              <Text style={s.bottomStat}>AI</Text>
-              <Text style={s.bottomLbl}>generated decks</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* ── Weekly activity graph ── */}
-        <View style={[s.card, s.full, { height: 270 }]}>
-          <View style={s.inner}>
-            <View style={s.topRow}>
-              <Text style={s.cardLabel}>THIS WEEK</Text>
-              <View style={s.legend}>
-                {[
-                  { color: GOLD_XL, label: 'AI' },
-                  { color: GOLD_L,  label: 'CARDS' },
-                  { color: GOLD_D,  label: 'NOTES' },
-                ].map(item => (
-                  <View key={item.label} style={s.legendItem}>
-                    <View style={[s.legendDot, { backgroundColor: item.color }]} />
-                    <Text style={s.legendText}>{item.label}</Text>
-                  </View>
-                ))}
+        <View style={s.chartCard}>
+          <View style={s.chartLegend}>
+            {[
+              { color: selectedTheme.textPrimary, label: 'AI' },
+              { color: selectedTheme.accentHover, label: 'cards' },
+              { color: darkenColor(selectedTheme.accent, selectedTheme.isLight ? 16 : 34), label: 'notes' },
+            ].map((item) => (
+              <View key={item.label} style={s.legendItem}>
+                <View style={[s.legendDot, { backgroundColor: item.color }]} />
+                <Text style={s.legendText}>{item.label}</Text>
               </View>
-            </View>
+            ))}
+          </View>
 
-            <View style={s.graphArea}>
-              {[0.33, 0.66, 1].map(pct => (
-                <View key={pct} style={[s.gridLine, { bottom: pct * BAR_MAX_H + 18 }]} />
-              ))}
-              <View style={s.barsRow}>
-                {(weekly.length ? weekly : Array(7).fill({ day: '?', ai_chats: 0, notes: 0, flashcards: 0 }))
-                  .map((day: DayData, i: number) => {
-                    const aiH    = Math.max(3, (day.ai_chats   / maxVal) * BAR_MAX_H);
-                    const cardsH = Math.max(3, (day.flashcards / maxVal) * BAR_MAX_H);
-                    const notesH = Math.max(3, (day.notes      / maxVal) * BAR_MAX_H);
-                    const label  = day.day ? day.day[0] : '?';
-                    return (
-                      <View key={i} style={s.barGroup}>
-                        <View style={s.barCluster}>
-                          <View style={[s.bar, { height: aiH,    backgroundColor: GOLD_XL }]} />
-                          <View style={[s.bar, { height: cardsH, backgroundColor: GOLD_L  }]} />
-                          <View style={[s.bar, { height: notesH, backgroundColor: GOLD_D  }]} />
-                        </View>
-                        <Text style={s.dayLabel}>{label}</Text>
-                      </View>
-                    );
-                  })}
-              </View>
+          <View style={s.chartArea}>
+            {[0.33, 0.66, 1].map((pct) => (
+              <View key={pct} style={[s.gridLine, { bottom: pct * BAR_MAX_H + 18 }]} />
+            ))}
+            <View style={s.barsRow}>
+              {(weekly.length ? weekly : Array(7).fill({ day: '?', ai_chats: 0, notes: 0, flashcards: 0 })).map((day: DayData, index: number) => {
+                const aiH = Math.max(3, (day.ai_chats / maxVal) * BAR_MAX_H);
+                const cardsH = Math.max(3, (day.flashcards / maxVal) * BAR_MAX_H);
+                const notesH = Math.max(3, (day.notes / maxVal) * BAR_MAX_H);
+                return (
+                  <View key={`${day.day}-${index}`} style={s.barGroup}>
+                    <View style={s.barCluster}>
+                      <View style={[s.bar, { height: aiH, backgroundColor: selectedTheme.textPrimary }]} />
+                      <View style={[s.bar, { height: cardsH, backgroundColor: selectedTheme.accentHover }]} />
+                      <View style={[s.bar, { height: notesH, backgroundColor: darkenColor(selectedTheme.accent, selectedTheme.isLight ? 16 : 34) }]} />
+                    </View>
+                    <Text style={s.dayLabel}>{day.day ? day.day[0] : '?'}</Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: 'transparent' },
-  scroll: { paddingHorizontal: PAD, paddingBottom: 24, gap: GAP },
-  row:    { flexDirection: 'row', gap: GAP },
-  full:   { width: '100%' },
-
-  card: {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const BG = theme.bgPrimary;
+  const SURFACE = theme.panel;
+  const SURFACE_ALT = theme.panelAlt;
+  const GOLD_XL = theme.textPrimary;
+  const GOLD_L = theme.accentHover;
+  const GOLD_M = theme.accent;
+  const DIM = theme.textSecondary;
+  const BORDER = theme.border;
+  return StyleSheet.create({
+  safe: { flex: 1, backgroundColor: BG },
+  scroll: { paddingHorizontal: PAD, paddingBottom: 120, gap: 14 },
+  glow: {
+    position: 'absolute',
+    top: -30,
+    left: width * 0.45,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+  },
+  header: { marginTop: 18, marginBottom: 4 },
+  title: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_L, letterSpacing: -0.8 },
+  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 1.6, marginTop: 4, textTransform: 'uppercase' },
+  heroCard: {
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 22,
+    overflow: 'hidden',
+  },
+  heroEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_L, textTransform: 'uppercase', letterSpacing: 1.8 },
+  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 28, lineHeight: 32, color: GOLD_L, marginTop: 10 },
+  heroText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, color: GOLD_M, marginTop: 12 },
+  heroStats: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  heroStat: {
+    flex: 1,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: rgbaFromHex(SURFACE_ALT, 0.78),
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+  },
+  heroStatValue: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_L },
+  heroStatLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 4 },
+  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  sectionTitle: { fontFamily: 'Inter_900Black', fontSize: 16, color: GOLD_L },
+  sectionMeta: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM },
+  grid: { flexDirection: 'row', gap: 12 },
+  quickTile: {
+    flex: 1,
+    minHeight: 148,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: SURFACE_ALT,
+    padding: 18,
+    overflow: 'hidden',
+  },
+  quickGlow: { ...StyleSheet.absoluteFillObject },
+  quickIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  badge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    borderRadius: 999,
+    backgroundColor: rgbaFromHex(theme.accent, 0.12),
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  badgeText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_L, textTransform: 'uppercase' },
+  quickTitle: { fontFamily: 'Inter_900Black', fontSize: 20, color: GOLD_L },
+  quickSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, color: DIM, marginTop: 8 },
+  featureCard: {
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: SURFACE,
+    padding: 22,
+    overflow: 'hidden',
+  },
+  featureTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  featureEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_L, textTransform: 'uppercase', letterSpacing: 1.8 },
+  featurePill: { borderRadius: 999, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: rgbaFromHex(theme.accent, 0.10) },
+  featurePillText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_M, textTransform: 'uppercase' },
+  featureTitle: { fontFamily: 'Inter_900Black', fontSize: 26, color: GOLD_L, marginTop: 14 },
+  featureBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, color: GOLD_M, marginTop: 10, maxWidth: '88%' },
+  featureMetaRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  featureMeta: {
+    flex: 1,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
-    backgroundColor: SURFACE,
-    overflow: 'hidden',
-    shadowColor: GOLD_D,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-    position: 'relative',
-  },
-  inner:    { flex: 1, padding: 16, justifyContent: 'space-between', zIndex: 1 },
-  topRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-
-  header:   { paddingTop: 18, paddingBottom: 6 },
-  title:    { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_XL },
-  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: GOLD_L, letterSpacing: 3, marginTop: 3 },
-
-  cardLabel:   { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_XL, letterSpacing: 2.5 },
-  cardChevron: { fontFamily: 'Inter_700Bold', fontSize: 20, color: GOLD_XL, lineHeight: 22 },
-
-  // Half-width stat cards
-  halfCard: { flex: 1, height: 170 },
-  cardInner: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'space-between',
-    zIndex: 1,
-  },
-  cardStat: {
-    fontFamily: 'Inter_900Black',
-    fontSize: 46,
-    color: GOLD_XL,
-    lineHeight: 50,
-    marginTop: 10,
-  },
-  cardUnit: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 8,
-    color: GOLD_L,
-    letterSpacing: 2,
-    marginTop: 2,
-  },
-  cardDivider: {
-    height: 1,
-    backgroundColor: GOLD_D + '30',
-    marginVertical: 10,
-  },
-  cardHint: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
-    color: GOLD_L,
-    letterSpacing: 1,
-  },
-
-  // Feature tiles (media notes, quiz hub)
-  featureTile:  { height: 180 },
-  featureInner: { flex: 1, padding: 20, justifyContent: 'space-between', zIndex: 1 },
-  featureTopRow: {
-    flexDirection: 'row',
+    borderColor: BORDER,
+    backgroundColor: rgbaFromHex(SURFACE_ALT, 0.88),
+    paddingVertical: 12,
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  featureEyebrow: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 8,
-    color: GOLD_L,
-    letterSpacing: 2.5,
-  },
-  featureBadge: {
-    backgroundColor: GOLD_D + '25',
+  featureMetaValue: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_L },
+  featureMetaLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1.2 },
+  flashcardCard: {
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    borderColor: BORDER,
+    backgroundColor: SURFACE,
+    padding: 20,
   },
-  featureBadgeText: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 8,
-    color: GOLD_L,
-    letterSpacing: 2,
+  flashHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  cardEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_M, textTransform: 'uppercase', letterSpacing: 1.6 },
+  cardTitle: { fontFamily: 'Inter_900Black', fontSize: 22, color: GOLD_L, marginTop: 4 },
+  flashGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  flashCell: {
+    width: '47%',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: SURFACE_ALT,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
   },
-  featureTitle: {
-    fontFamily: 'Inter_900Black',
-    fontSize: 36,
-    color: GOLD_XL,
-    lineHeight: 40,
-    marginTop: 6,
+  flashValue: { fontFamily: 'Inter_900Black', fontSize: 20, color: GOLD_L },
+  flashLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, textTransform: 'uppercase', letterSpacing: 1.1, marginTop: 5 },
+  chartCard: {
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: SURFACE,
+    padding: 18,
   },
-  statsRow: { flexDirection: 'row', alignItems: 'center' },
-  statCell: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  stat:     { flex: 1, alignItems: 'center', gap: 3 },
-  statSep:  { width: 1, height: 28, backgroundColor: GOLD_D + '35' },
-  statVal:  { fontFamily: 'Inter_900Black', fontSize: 20, color: GOLD_XL, lineHeight: 24 },
-  statLbl:  { fontFamily: 'Inter_400Regular', fontSize: 7, color: GOLD_L, letterSpacing: 1.5 },
-
-  // Flashcard grid
-  fcGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 },
-  fcCell: { width: '50%', paddingVertical: 14, paddingHorizontal: 14 },
-  fcNum:  { fontFamily: 'Inter_900Black', fontSize: 30, color: ACCENT, lineHeight: 34 },
-  fcLbl:  { fontFamily: 'Inter_400Regular', fontSize: 8, color: GOLD_L, letterSpacing: 1.5, marginTop: 2 },
-
-  // Bottom small tiles
-  bottomStat: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_XL, lineHeight: 34, marginTop: 6 },
-  bottomLbl:  { fontFamily: 'Inter_400Regular', fontSize: 9, color: GOLD_L, letterSpacing: 1, marginTop: 2 },
-
-  // Graph
-  graphArea: { flex: 1, marginTop: 14, position: 'relative' },
-  gridLine:  { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: DIM2 + '40' },
-  barsRow:   {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
-  },
-  barGroup:   { flex: 1, alignItems: 'center' },
-  barCluster: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: BAR_MAX_H },
-  bar:        { width: 7, borderRadius: 4 },
-  dayLabel:   { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_L, marginTop: 6, letterSpacing: 0.5 },
-
-  legend:     { flexDirection: 'row', gap: 10 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot:  { width: 5, height: 5, borderRadius: 3 },
-  legendText: { fontFamily: 'Inter_400Regular', fontSize: 8, color: GOLD_L, letterSpacing: 1 },
+  chartLegend: { flexDirection: 'row', gap: 12, marginBottom: 18 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, textTransform: 'uppercase' },
+  chartArea: { height: 164, justifyContent: 'flex-end', position: 'relative' },
+  gridLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: BORDER },
+  barsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 132 },
+  barGroup: { width: 28, alignItems: 'center' },
+  barCluster: { height: BAR_MAX_H + 12, flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
+  bar: { width: 6, borderRadius: 6 },
+  dayLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, marginTop: 10, textTransform: 'uppercase' },
 });
+}

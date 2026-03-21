@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
@@ -8,44 +8,51 @@ import { AuthUser, signOut } from '../services/auth';
 import { getEnhancedStats } from '../services/api';
 import HapticTouchable from '../components/HapticTouchable';
 import { triggerHaptic } from '../utils/haptics';
-
-const BG = '#0A0A0A';
-const CARD = '#111111';
-const GOLD_XL = '#FFF0BC';
-const GOLD_LIGHT = '#FFE8A0';
-const GOLD_MID = '#C9A87C';
-const GOLD_DARK = '#7A5C2E';
-const DIM = '#5A5040';
-const BORDER = '#1E1E1E';
+import { useAppTheme } from '../contexts/ThemeContext';
+import { darkenColor, rgbaFromHex } from '../utils/theme';
 
 type Props = {
   user: AuthUser;
   onLogout?: () => void;
-  onNavigate?: (screen: 'flashcards' | 'notes' | 'aimedia') => void;
+  onNavigate?: (screen: 'flashcards' | 'notes' | 'aimedia' | 'settings') => void;
 };
 
+function StatChip({ value, label }: { value: string; label: string }) {
+  const { selectedTheme } = useAppTheme();
+  const styles = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  return (
+    <View style={styles.statChip}>
+      <Text style={styles.statChipValue}>{value}</Text>
+      <Text style={styles.statChipLabel}>{label}</Text>
+    </View>
+  );
+}
+
 export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
+  const { selectedTheme } = useAppTheme();
+  const styles = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const [stats, setStats] = useState<any>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(true);
+  const switchTrackOff = rgbaFromHex(selectedTheme.accent, selectedTheme.isLight ? 0.18 : 0.22);
+  const switchTrackOn = rgbaFromHex(selectedTheme.accent, selectedTheme.isLight ? 0.42 : 0.52);
+  const switchThumbOff = selectedTheme.isLight ? selectedTheme.panelAlt : selectedTheme.textSecondary;
+  const switchThumbOn = selectedTheme.isLight ? darkenColor(selectedTheme.accent, 18) : selectedTheme.accentHover;
 
   useEffect(() => {
-    getEnhancedStats(user.username).then(data => setStats(data)).catch(() => {});
+    getEnhancedStats(user.username).then((data) => setStats(data)).catch(() => {});
   }, [user.username]);
 
   if (!fontsLoaded) return null;
 
   const displayName = [user.first_name, (user as any).last_name].filter(Boolean).join(' ') || user.username;
-  const initials = displayName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
-  const joinYear = (user as any).created_at
-    ? new Date((user as any).created_at).getFullYear()
-    : 2026;
+  const initials = displayName.split(' ').map((name: string) => name[0]).join('').slice(0, 2).toUpperCase();
+  const joinYear = (user as any).created_at ? new Date((user as any).created_at).getFullYear() : 2026;
 
   const statItems = [
-    { label: 'STREAK',  value: String(stats?.streak ?? '—') },
-    { label: 'STATS',   value: String(stats?.totalFlashcards ?? '—') },
-    { label: 'QUIZZES', value: String(stats?.totalQuizzes ?? stats?.quiz_count ?? '—') },
+    { label: 'streak', value: String(stats?.streak ?? '—') },
+    { label: 'cards', value: String(stats?.totalFlashcards ?? '—') },
+    { label: 'quizzes', value: String(stats?.totalQuizzes ?? stats?.quiz_count ?? '—') },
   ];
 
   const prefs = [
@@ -55,15 +62,6 @@ export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
       value: notificationsEnabled,
       onChange: (value: boolean) => {
         setNotificationsEnabled(value);
-        triggerHaptic('selection');
-      },
-    },
-    {
-      label: 'Dark Mode',
-      icon: 'moon-outline',
-      value: darkModeEnabled,
-      onChange: (value: boolean) => {
-        setDarkModeEnabled(value);
         triggerHaptic('selection');
       },
     },
@@ -78,7 +76,6 @@ export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
       onNavigate?.('notes');
       return;
     }
-
     Alert.alert('Not available yet', `${label} is not available on mobile yet.`);
   };
 
@@ -87,51 +84,67 @@ export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
     onLogout?.();
   };
 
+  const handleOpenSettings = () => {
+    triggerHaptic('selection');
+    onNavigate?.('settings');
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
-      <LinearGradient colors={['#0A0A0A', '#0F0D05', '#0A0A0A']} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFill} />
+      <View style={[styles.glow, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.08) }]} pointerEvents="none" />
 
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
           <View>
             <Text style={styles.pageTitle}>profile</Text>
-            <Text style={styles.pageSubtitle}>your account</Text>
+            <Text style={styles.pageSubtitle}>identity, settings, and progress</Text>
           </View>
-          <Ionicons name="settings-outline" size={20} color={GOLD_XL} />
+          <HapticTouchable onPress={handleOpenSettings} activeOpacity={0.8} haptic="selection" style={styles.settingsButton}>
+            <Ionicons name="settings-outline" size={20} color={selectedTheme.textPrimary} />
+          </HapticTouchable>
         </View>
 
-        <View style={styles.avatarSection}>
-          <LinearGradient
-            colors={[GOLD_DARK + '60', GOLD_DARK + '20']}
-            style={styles.avatarCircle}
-          >
-            <Text style={styles.avatarInitials}>{initials}</Text>
-          </LinearGradient>
-          <Text style={styles.userName}>{displayName}</Text>
-          <Text style={styles.userHandle}>@{user.username} · joined {joinYear}</Text>
-        </View>
-
-        <View style={styles.statStrip}>
-          {statItems.map((s, i) => (
-            <View key={s.label} style={[styles.statItem, i < statItems.length - 1 && styles.statBorder]}>
-              <Text style={styles.statValue}>{s.value}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
+        <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.10), rgbaFromHex(selectedTheme.panel, 0.985), rgbaFromHex(selectedTheme.bgPrimary, 0.995)]} locations={[0, 0.62, 1]} style={styles.heroCard}>
+          <View style={styles.heroTopRow}>
+            <LinearGradient
+              colors={
+                selectedTheme.isLight
+                  ? [rgbaFromHex(selectedTheme.accent, 0.12), rgbaFromHex(selectedTheme.panelAlt, 0.99)]
+                  : [rgbaFromHex(darkenColor(selectedTheme.accent, 34), 0.52), rgbaFromHex(darkenColor(selectedTheme.accent, 34), 0.16)]
+              }
+              style={styles.avatarCircle}
+            >
+              <Text style={styles.avatarInitials}>{initials}</Text>
+            </LinearGradient>
+            <View style={styles.heroCopy}>
+              <Text style={styles.userName}>{displayName}</Text>
+              <Text style={styles.userHandle}>@{user.username} · joined {joinYear}</Text>
             </View>
-          ))}
-        </View>
+          </View>
+          <Text style={styles.heroText}>Your account is set up for focused study. Keep the essentials close and the noise low.</Text>
+          <View style={styles.statRow}>
+            {statItems.map((item) => (
+              <StatChip key={item.label} value={item.value} label={item.label} />
+            ))}
+          </View>
+        </LinearGradient>
 
         <Text style={styles.sectionLabel}>preferences</Text>
         <View style={styles.card}>
-          {prefs.map((p, i) => (
-            <View key={p.label} style={[styles.prefRow, i < prefs.length - 1 && styles.prefDivider]}>
-              <Ionicons name={p.icon as any} size={16} color={GOLD_MID} />
-              <Text style={styles.prefLabel}>{p.label}</Text>
+          {prefs.map((pref, index) => (
+            <View key={pref.label} style={[styles.prefRow, index < prefs.length - 1 && styles.rowDivider]}>
+              <View style={styles.iconWrap}>
+                <Ionicons name={pref.icon as any} size={16} color={selectedTheme.accent} />
+              </View>
+              <Text style={styles.prefLabel}>{pref.label}</Text>
               <Switch
-                value={p.value}
-                onValueChange={p.onChange}
-                trackColor={{ false: BORDER, true: GOLD_DARK }}
-                thumbColor={p.value ? GOLD_LIGHT : DIM}
-                style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
+                value={pref.value}
+                onValueChange={pref.onChange}
+                trackColor={{ false: switchTrackOff, true: switchTrackOn }}
+                thumbColor={pref.value ? switchThumbOn : switchThumbOff}
+                ios_backgroundColor={switchTrackOff}
+                style={{ transform: [{ scaleX: 0.86 }, { scaleY: 0.86 }] }}
               />
             </View>
           ))}
@@ -140,60 +153,133 @@ export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
         <Text style={styles.sectionLabel}>account</Text>
         <View style={styles.card}>
           {[
-            { label: 'My Flashcards',   icon: 'layers-outline'          },
-            { label: 'My Notes',        icon: 'document-text-outline'   },
-            { label: 'Quiz History',    icon: 'bar-chart-outline'       },
+            { label: 'My Flashcards', icon: 'layers-outline' },
+            { label: 'My Notes', icon: 'document-text-outline' },
+            { label: 'Quiz History', icon: 'bar-chart-outline' },
             { label: 'Import / Export', icon: 'swap-horizontal-outline' },
-          ].map((l, i) => (
+          ].map((item, index) => (
             <HapticTouchable
-              key={l.label}
-              style={[styles.linkRow, i < 3 && styles.prefDivider]}
-              activeOpacity={0.7}
+              key={item.label}
+              style={[styles.linkRow, index < 3 && styles.rowDivider]}
+              activeOpacity={0.8}
               haptic="light"
-              onPress={() => handleAccountPress(l.label)}
+              onPress={() => handleAccountPress(item.label)}
             >
-              <Ionicons name={l.icon as any} size={16} color={GOLD_MID} />
-              <Text style={styles.linkLabel}>{l.label}</Text>
-              <Ionicons name="chevron-forward" size={13} color={DIM} />
+              <View style={styles.iconWrap}>
+                <Ionicons name={item.icon as any} size={16} color={selectedTheme.accent} />
+              </View>
+              <Text style={styles.linkLabel}>{item.label}</Text>
+              <Ionicons name="chevron-forward" size={14} color={selectedTheme.textSecondary} />
             </HapticTouchable>
           ))}
-          <HapticTouchable style={[styles.linkRow, styles.prefDivider]} activeOpacity={0.7} onPress={handleLogout} haptic="warning">
-            <Ionicons name="log-out-outline" size={16} color="#8B3A3A" />
+          <HapticTouchable style={styles.linkRow} activeOpacity={0.8} onPress={handleLogout} haptic="warning">
+            <View style={styles.iconWrap}>
+              <Ionicons name="log-out-outline" size={16} color={selectedTheme.danger} />
+            </View>
             <Text style={[styles.linkLabel, styles.linkDanger]}>Log Out</Text>
-            <Ionicons name="chevron-forward" size={13} color={DIM} />
+            <Ionicons name="chevron-forward" size={14} color={selectedTheme.textSecondary} />
           </HapticTouchable>
         </View>
 
         <Text style={styles.version}>cerbyl · v1.0.0</Text>
-
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const CARD = theme.panel;
+  const CARD_ALT = theme.panelAlt;
+  const GOLD_XL = theme.textPrimary;
+  const GOLD_LIGHT = theme.accentHover;
+  const GOLD_MID = theme.accent;
+  const GOLD_DARK = darkenColor(theme.accent, theme.isLight ? 16 : 34);
+  const DIM = theme.textSecondary;
+  const BORDER = theme.border;
+  return StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent', overflow: 'hidden' },
-  scroll: { paddingHorizontal: 24, paddingBottom: 48 },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 18, marginBottom: 6 },
-  pageTitle: { fontFamily: 'Inter_900Black', fontSize: 30, lineHeight: 32, color: GOLD_XL, letterSpacing: 0 },
-  pageSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: GOLD_LIGHT, letterSpacing: 3, marginTop: 3 },
-  avatarSection: { alignItems: 'center', marginBottom: 28 },
-  avatarCircle: { width: 88, height: 88, borderRadius: 44, borderWidth: 1.5, borderColor: GOLD_DARK, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  avatarInitials: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_LIGHT },
-  userName: { fontFamily: 'Inter_900Black', fontSize: 22, color: GOLD_LIGHT, letterSpacing: 0 },
-  userHandle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 1, marginTop: 4 },
-  statStrip: { flexDirection: 'row', backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER, marginBottom: 32 },
-  statItem: { flex: 1, alignItems: 'center', paddingVertical: 16 },
-  statBorder: { borderRightWidth: 1, borderRightColor: BORDER },
-  statValue: { fontFamily: 'Inter_900Black', fontSize: 22, color: GOLD_LIGHT },
-  statLabel: { fontFamily: 'Inter_400Regular', fontSize: 9, color: DIM, letterSpacing: 1.5, marginTop: 3 },
-  sectionLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, letterSpacing: 3, marginBottom: 10 },
-  card: { backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER, marginBottom: 24, overflow: 'hidden' },
+  scroll: { paddingHorizontal: 18, paddingBottom: 120 },
+  glow: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+  },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 18, marginBottom: 12 },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: rgbaFromHex(CARD_ALT, 0.88),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageTitle: { fontFamily: 'Inter_900Black', fontSize: 30, lineHeight: 32, color: GOLD_LIGHT, letterSpacing: -0.8 },
+  pageSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 1.6, marginTop: 4, textTransform: 'uppercase' },
+  heroCard: {
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 22,
+    overflow: 'hidden',
+    marginBottom: 26,
+  },
+  heroTopRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  avatarCircle: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 1.5,
+    borderColor: GOLD_DARK,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: { fontFamily: 'Inter_900Black', fontSize: 28, color: GOLD_LIGHT },
+  heroCopy: { flex: 1 },
+  userName: { fontFamily: 'Inter_900Black', fontSize: 24, color: GOLD_LIGHT, letterSpacing: -0.4 },
+  userHandle: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM, letterSpacing: 0.2, marginTop: 5 },
+  heroText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, color: GOLD_MID, marginTop: 18 },
+  statRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  statChip: {
+    flex: 1,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: rgbaFromHex(CARD_ALT, 0.78),
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+  },
+  statChipValue: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_LIGHT },
+  statChipLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 4 },
+  sectionLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, letterSpacing: 2, marginBottom: 10, textTransform: 'uppercase' },
+  card: {
+    backgroundColor: CARD,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginBottom: 24,
+    overflow: 'hidden',
+  },
+  rowDivider: { borderBottomWidth: 1, borderBottomColor: BORDER },
+  iconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: CARD_ALT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   prefRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
-  prefDivider: { borderBottomWidth: 1, borderBottomColor: BORDER },
   prefLabel: { fontFamily: 'Inter_400Regular', fontSize: 14, color: GOLD_LIGHT, flex: 1 },
   linkRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 15, gap: 12 },
   linkLabel: { fontFamily: 'Inter_400Regular', fontSize: 14, color: GOLD_LIGHT, flex: 1 },
-  linkDanger: { color: '#8B3A3A' },
+  linkDanger: { color: theme.danger },
   version: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, letterSpacing: 2, textAlign: 'center', marginTop: 8 },
 });
+}

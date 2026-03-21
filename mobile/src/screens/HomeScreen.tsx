@@ -1,25 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator, Animated, PanResponder, Easing } from 'react-native';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import RingProgress from '../components/RingProgress';
 import HapticTouchable from '../components/HapticTouchable';
 import { AuthUser } from '../services/auth';
 import { getEnhancedStats } from '../services/api';
 import { triggerHaptic } from '../utils/haptics';
+import { useAppTheme } from '../contexts/ThemeContext';
+import { darkenColor, rgbaFromHex } from '../utils/theme';
 
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
 const AnimatedView = Animated.createAnimatedComponent(View);
-
-const SURFACE   = '#111111';
-const GOLD_XL   = '#FFF0BC';
-const GOLD_L    = '#E8CC88';
-const GOLD_MID  = '#C9A87C';
-const GOLD_D    = '#8A6535';
-const GOLD_SOFT = '#F4E7C5';
-
-const CARD_BORDER = GOLD_D + '55';
 
 type HomeTarget = 'flashcards' | 'notes' | 'aimedia';
 type Props = {
@@ -41,13 +35,27 @@ type Stats = {
   weeklyMastered?: number;
 };
 
+function MetricCapsule({ label, value }: { label: string; value: string }) {
+  const { selectedTheme } = useAppTheme();
+  const styles = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  return (
+    <View style={styles.metricCapsule}>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+    </View>
+  );
+}
+
 export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLeftPage, onSwipeRightPage }: Props) {
+  const { selectedTheme } = useAppTheme();
+  const styles = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const [stats, setStats] = useState<Stats | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
   const heroSwap = useRef(new Animated.Value(1)).current;
   const heroAnimating = useRef(false);
   const cycleHeroRef = useRef<() => void>(() => {});
+
   const pageSwipeResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
@@ -67,6 +75,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
       onPanResponderTerminationRequest: () => false,
     })
   ).current;
+
   const heroSwipeResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -76,149 +85,111 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
       onPanResponderRelease: (_, gestureState) => {
         const isTap = Math.abs(gestureState.dx) < 10 && Math.abs(gestureState.dy) < 10;
         const isSwipe = Math.abs(gestureState.dx) > 34 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-        if (isTap || isSwipe) {
-          cycleHeroRef.current();
-        }
+        if (isTap || isSwipe) cycleHeroRef.current();
       },
       onShouldBlockNativeResponder: () => true,
     })
   ).current;
 
   useEffect(() => {
-    getEnhancedStats(user.username).then(data => {
-      setStats(data);
-    }).catch(() => {});
+    getEnhancedStats(user.username).then((data) => setStats(data)).catch(() => {});
   }, [user.username]);
 
   const streak = stats?.streak ?? 0;
-  const streakStr = String(streak);
-
+  const GOLD_XL = selectedTheme.textPrimary;
+  const GOLD_L = selectedTheme.accentHover;
+  const GOLD_MID = selectedTheme.accent;
+  const GOLD_SOFT = selectedTheme.textPrimary;
+  const accentDark = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 16 : 34);
   const weeklyHours = stats?.weeklyHours ?? stats?.hours ?? 0;
   const weeklyInteractions = stats?.weeklyInteractions ?? stats?.totalChatSessions ?? 0;
   const weeklyMastered = stats?.weeklyMastered ?? stats?.totalFlashcards ?? 0;
   const totalChats = stats?.totalChatSessions ?? 0;
   const totalFlashcards = stats?.totalFlashcards ?? 0;
   const totalNotes = stats?.totalNotes ?? 0;
-  const todayProgress = Math.min(99, Math.round(((Math.min(weeklyHours / 4, 1) + Math.min(weeklyInteractions / 8, 1) + Math.min(weeklyMastered / 6, 1)) / 3) * 100)) || 0;
+  const todayProgress =
+    Math.min(
+      99,
+      Math.round(((Math.min(weeklyHours / 4, 1) + Math.min(weeklyInteractions / 8, 1) + Math.min(weeklyMastered / 6, 1)) / 3) * 100)
+    ) || 0;
+
   const hour = new Date().getHours();
   const todayDate = new Date();
   const dayLabel = todayDate.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
   const dateLabel = todayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
 
   const heroSlides = [
-    {
-      key: 'streak',
-      eyebrow: 'HOME',
-      title: 'STREAK',
-      value: streakStr,
-      unit: 'DAYS',
-      subcopy: 'current streak',
-      accent: GOLD_XL,
-    },
-    {
-      key: 'hours',
-      eyebrow: 'HOME',
-      title: 'STUDY TIME',
-      value: weeklyHours.toFixed(1),
-      unit: 'HOURS THIS WEEK',
-      subcopy: 'study hours',
-      accent: GOLD_L,
-    },
-    {
-      key: 'chat',
-      eyebrow: 'HOME',
-      title: 'AI CHATS',
-      value: String(totalChats),
-      unit: 'TOTAL SESSIONS',
-      subcopy: 'ai chat sessions',
-      accent: GOLD_SOFT,
-    },
-    {
-      key: 'flashcards',
-      eyebrow: 'HOME',
-      title: 'FLASHCARDS',
-      value: String(totalFlashcards),
-      unit: 'TOTAL CARDS',
-      subcopy: 'flashcards created',
-      accent: GOLD_MID,
-    },
-    {
-      key: 'notes',
-      eyebrow: 'HOME',
-      title: 'NOTES',
-      value: String(totalNotes),
-      unit: 'TOTAL NOTES',
-      subcopy: 'notes created',
-      accent: GOLD_D,
-    },
-    {
-      key: 'progress',
-      eyebrow: 'HOME',
-      title: 'TODAY',
-      value: `${todayProgress}%`,
-      unit: 'PROGRESS',
-      subcopy: 'today progress',
-      accent: GOLD_XL,
-    },
+    { key: 'streak', eyebrow: 'daily signal', title: 'streak', value: String(streak), unit: 'days active', subcopy: 'keep the chain alive', accent: GOLD_L },
+    { key: 'hours', eyebrow: 'focus depth', title: 'study time', value: weeklyHours.toFixed(1), unit: 'hours this week', subcopy: 'time invested in real work', accent: GOLD_L },
+    { key: 'chat', eyebrow: 'thinking loop', title: 'ai chats', value: String(totalChats), unit: 'total sessions', subcopy: 'questions, iterations, answers', accent: GOLD_MID },
+    { key: 'flashcards', eyebrow: 'memory system', title: 'flashcards', value: String(totalFlashcards), unit: 'cards created', subcopy: 'repeat and retain', accent: GOLD_MID },
+    { key: 'notes', eyebrow: 'knowledge base', title: 'notes', value: String(totalNotes), unit: 'notes saved', subcopy: 'captured ideas and lessons', accent: accentDark },
+    { key: 'progress', eyebrow: 'today', title: 'progress', value: `${todayProgress}%`, unit: 'momentum score', subcopy: 'how the day is moving', accent: GOLD_L },
   ] as const;
 
   const hero = heroSlides[heroIndex];
-  const HERO_FONT = Math.min(248, Math.floor((SCREEN_W * 0.78) / Math.max(hero.value.length * 0.62, 1)));
+  const heroFontSize = Math.min(240, Math.floor((SCREEN_W * 0.75) / Math.max(hero.value.length * 0.62, 1)));
 
   const nextAction =
     streak === 0
       ? {
-          eyebrow: 'NEXT ACTION',
-          title: 'Open flashcards',
-          detail: 'Start a study session to rebuild your streak.',
-          cta: 'Open flashcards',
+          eyebrow: 'next action',
+          title: 'Start a session',
+          detail: 'Open flashcards and put today on the board.',
+          cta: 'open flashcards',
           target: 'flashcards' as const,
+          icon: 'layers-outline' as const,
         }
       : weeklyMastered < 8
         ? {
-            eyebrow: 'NEXT ACTION',
-            title: 'Review flashcards',
-            detail: `${Math.max(6, 12 - weeklyMastered)} cards would improve your weekly total.`,
-            cta: 'Open flashcards',
+            eyebrow: 'next action',
+            title: 'Review your cards',
+            detail: `${Math.max(6, 12 - weeklyMastered)} more cards would sharpen the week.`,
+            cta: 'review now',
             target: 'flashcards' as const,
+            icon: 'layers-outline' as const,
           }
         : weeklyInteractions < 4
           ? {
-              eyebrow: 'NEXT ACTION',
-              title: 'Open AI chat',
-              detail: 'Continue asking questions in AI chat.',
-              cta: 'Open AI chat',
+              eyebrow: 'next action',
+              title: 'Think with AI',
+              detail: 'Open AI chat and keep the loop moving.',
+              cta: 'open ai',
               target: 'ai' as const,
+              icon: 'sparkles-outline' as const,
             }
           : totalNotes < 3
             ? {
-                eyebrow: 'NEXT ACTION',
-                title: 'Open notes',
-                detail: 'Add a note to save what you studied.',
-                cta: 'Open notes',
+                eyebrow: 'next action',
+                title: 'Capture a note',
+                detail: 'Save what you learned while it is still fresh.',
+                cta: 'open notes',
                 target: 'notes' as const,
+                icon: 'document-text-outline' as const,
               }
             : {
-                eyebrow: 'NEXT ACTION',
-                title: 'Open media notes',
-                detail: 'Create notes from a video or lecture.',
-                cta: 'Open media notes',
+                eyebrow: 'next action',
+                title: 'Build media notes',
+                detail: 'Turn a lecture or video into a cleaner study asset.',
+                cta: 'open media notes',
                 target: 'aimedia' as const,
+                icon: 'videocam-outline' as const,
               };
 
   const rings = [
-    { label: 'HRS\nSTUDIED',  value: weeklyHours.toFixed(1),        progress: Math.min(weeklyHours / 10, 1) },
-    { label: 'INTER-\nACTIONS', value: String(weeklyInteractions),  progress: Math.min(weeklyInteractions / 50, 1) },
-    { label: 'MASTERED',      value: String(weeklyMastered),         progress: Math.min(weeklyMastered / 30, 1) },
+    { label: 'HRS\nFOCUS', value: weeklyHours.toFixed(1), progress: Math.min(weeklyHours / 10, 1) },
+    { label: 'AI\nLOOPS', value: String(weeklyInteractions), progress: Math.min(weeklyInteractions / 50, 1) },
+    { label: 'CARDS\nMASTERED', value: String(weeklyMastered), progress: Math.min(weeklyMastered / 30, 1) },
   ];
 
   const greeting = hour < 12 ? 'good morning' : hour < 18 ? 'good afternoon' : 'good evening';
   const firstName = user.first_name || user.username;
   const momentumLabel =
-    todayProgress >= 75 ? 'STRONG DAY' :
-    todayProgress >= 45 ? 'ON TRACK' :
-    streak > 0 ? 'KEEP GOING' :
-    'START NOW';
+    todayProgress >= 75 ? 'high momentum' :
+    todayProgress >= 45 ? 'on track' :
+    streak > 0 ? 'keep pushing' :
+    'ready to start';
+
   const cycleHero = () => {
     if (stats === null || heroAnimating.current) return;
     heroAnimating.current = true;
@@ -249,54 +220,35 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
     }
     onNavigate?.(nextAction.target);
   };
+
   const heroStats = [
-    { label: 'STREAK', value: `${streak}` },
-    { label: 'HOURS', value: weeklyHours.toFixed(1) },
-    { label: 'CHATS', value: `${weeklyInteractions}` },
+    { label: 'streak', value: `${streak}` },
+    { label: 'hours', value: weeklyHours.toFixed(1) },
+    { label: 'chats', value: `${weeklyInteractions}` },
   ];
+
   const quickActions = [
-    { label: 'AI CHAT', detail: 'ask anything', action: () => onNavigateToAI?.() },
-    { label: 'FLASHCARDS', detail: 'review cards', action: () => onNavigate?.('flashcards') },
-    { label: 'NOTES', detail: 'open notes', action: () => onNavigate?.('notes') },
-    { label: 'MEDIA NOTES', detail: 'from video', action: () => onNavigate?.('aimedia') },
+    { label: 'ai chat', detail: 'ask, draft, iterate', icon: 'sparkles-outline' as const, action: () => onNavigateToAI?.() },
+    { label: 'flashcards', detail: 'review memory', icon: 'layers-outline' as const, action: () => onNavigate?.('flashcards') },
+    { label: 'notes', detail: 'save the lesson', icon: 'document-text-outline' as const, action: () => onNavigate?.('notes') },
+    { label: 'media notes', detail: 'from video to notes', icon: 'videocam-outline' as const, action: () => onNavigate?.('aimedia') },
   ];
 
   const todayRows = [
-    {
-      label: 'focus time',
-      value: `${weeklyHours.toFixed(1)}h`,
-      note: 'this week',
-      progress: Math.min(weeklyHours / 4, 1),
-    },
-    {
-      label: 'ai chats',
-      value: String(weeklyInteractions),
-      note: 'this week',
-      progress: Math.min(weeklyInteractions / 8, 1),
-    },
-    {
-      label: 'mastered',
-      value: String(weeklyMastered),
-      note: 'this week',
-      progress: Math.min(weeklyMastered / 6, 1),
-    },
+    { label: 'focus time', value: `${weeklyHours.toFixed(1)}h`, note: 'this week', progress: Math.min(weeklyHours / 4, 1) },
+    { label: 'ai chats', value: String(weeklyInteractions), note: 'this week', progress: Math.min(weeklyInteractions / 8, 1) },
+    { label: 'mastered', value: String(weeklyMastered), note: 'this week', progress: Math.min(weeklyMastered / 6, 1) },
   ];
-
-  const heroContentStyle = {
-    opacity: heroSwap,
-  };
 
   if (!fontsLoaded) return null;
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
-      <LinearGradient colors={['#040404', '#090909', '#120E08']} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFill} />
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        alwaysBounceVertical={false}
-      >
+      <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
+      <View style={[styles.glowTop, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.08) }]} pointerEvents="none" />
+      <View style={[styles.glowBottom, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.09) }]} pointerEvents="none" />
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false} alwaysBounceVertical={false}>
         <View style={styles.topBar} {...pageSwipeResponder.panHandlers}>
           <View>
             <Text style={styles.appName}>cerbyl</Text>
@@ -309,63 +261,43 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
         </View>
 
         <View style={styles.heroWrap}>
-          <View
-            {...heroSwipeResponder.panHandlers}
-          >
+          <View {...heroSwipeResponder.panHandlers}>
             <View style={styles.heroSection}>
-              <LinearGradient colors={['#0B0B0B', '#14110D', '#080808']} locations={[0, 0.6, 1]} style={StyleSheet.absoluteFillObject} />
+              <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.10), rgbaFromHex(selectedTheme.panel, 0.985), rgbaFromHex(selectedTheme.bgPrimary, 0.995)]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
               <View style={styles.heroBorder} />
-              <View
-                style={[
-                  styles.heroOrb,
-                  styles.heroOrbPrimary,
-                  {
-                    backgroundColor: hero.accent + '22',
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.heroOrb,
-                  styles.heroOrbSecondary,
-                  {
-                    backgroundColor: GOLD_D + '1F',
-                  },
-                ]}
-              />
+              <View style={[styles.heroOrb, styles.heroOrbPrimary, { backgroundColor: rgbaFromHex(hero.accent, 0.08) }]} />
+              <View style={[styles.heroOrb, styles.heroOrbSecondary, { backgroundColor: rgbaFromHex(darkenColor(selectedTheme.accent, selectedTheme.isLight ? 16 : 34), 0.14) }]} />
+
               <View style={styles.heroTopRow}>
-                <View style={[styles.phaseChip, { borderColor: hero.accent + '55', backgroundColor: hero.accent + '18' }]}>
-                  <Text style={styles.phaseChipText}>HOME</Text>
+                <View style={[styles.phaseChip, { borderColor: rgbaFromHex(hero.accent, 0.33), backgroundColor: rgbaFromHex(selectedTheme.panelAlt, 0.86) }]}>
+                  <Text style={styles.phaseChipText}>{hero.eyebrow}</Text>
                 </View>
                 <View style={styles.heroStatusPill}>
                   <Text style={styles.heroStatusText}>{momentumLabel}</Text>
                 </View>
               </View>
+
               {stats === null ? (
-                <ActivityIndicator color={GOLD_MID} size="large" style={{ marginTop: 40 }} />
+                <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 40 }} />
               ) : (
-                <AnimatedView style={[styles.heroContent, heroContentStyle]}>
-                  <Text style={styles.heroEyebrow}>{hero.eyebrow}</Text>
+                <AnimatedView style={[styles.heroContent, { opacity: heroSwap, transform: [{ scale: heroSwap.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) }] }]}>
                   <Text style={styles.heroLabel}>{hero.title}</Text>
-                  <Text style={[styles.bigNum, { fontSize: HERO_FONT, lineHeight: HERO_FONT + 10 }]}>
-                    {hero.value}
-                  </Text>
+                  <Text style={[styles.bigNum, { fontSize: heroFontSize, lineHeight: heroFontSize + 10 }]}>{hero.value}</Text>
                   <Text style={styles.heroUnit}>{hero.unit}</Text>
                   <Text style={styles.heroHint}>{hero.subcopy}</Text>
+
                   <View style={styles.heroStatsRow}>
                     {heroStats.map((item) => (
-                      <View key={item.label} style={styles.heroStatChip}>
-                        <Text style={styles.heroStatValue}>{item.value}</Text>
-                        <Text style={styles.heroStatLabel}>{item.label}</Text>
-                      </View>
+                      <MetricCapsule key={item.label} label={item.label} value={item.value} />
                     ))}
                   </View>
+
                   <View style={styles.heroDots}>
                     {heroSlides.map((_, index) => (
                       <View key={index} style={[styles.heroDot, index === heroIndex && styles.heroDotActive]} />
                     ))}
                   </View>
-                  <Text style={styles.heroSwipeHint}>tap or swipe to switch view</Text>
+                  <Text style={styles.heroSwipeHint}>tap or swipe the hero to cycle views</Text>
                 </AnimatedView>
               )}
             </View>
@@ -373,22 +305,31 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
         </View>
 
         <View style={styles.bodySection} {...pageSwipeResponder.panHandlers}>
-          <HapticTouchable style={styles.nextCard} onPress={handleNextAction} activeOpacity={0.92} haptic="medium">
-            <LinearGradient colors={['rgba(255,240,188,0.08)', 'rgba(255,240,188,0.02)', 'rgba(0,0,0,0)']} style={StyleSheet.absoluteFillObject} />
+          <HapticTouchable style={styles.nextCard} onPress={handleNextAction} activeOpacity={0.9} haptic="medium">
+            <LinearGradient colors={[rgbaFromHex(selectedTheme.accentHover, 0.05), rgbaFromHex(selectedTheme.accentHover, 0.015), rgbaFromHex(selectedTheme.bgPrimary, 0)]} style={StyleSheet.absoluteFillObject} />
             <View style={styles.nextTopRow}>
               <Text style={styles.nextEyebrow}>{nextAction.eyebrow}</Text>
-              <Text style={styles.nextCta}>{nextAction.cta}</Text>
+              <View style={styles.nextCtaPill}>
+                <Ionicons name={nextAction.icon} size={13} color={selectedTheme.textPrimary} />
+                <Text style={styles.nextCta}>{nextAction.cta}</Text>
+              </View>
             </View>
             <Text style={styles.nextTitle}>{nextAction.title}</Text>
             <Text style={styles.nextDetail}>{nextAction.detail}</Text>
           </HapticTouchable>
 
           <View style={styles.sectionBlock}>
-            <Text style={styles.sectionTitle}>quick launch</Text>
-            <Text style={styles.sectionSubtitle}>jump into your most used tools</Text>
+            <View style={styles.sectionHeadRow}>
+              <Text style={styles.sectionTitle}>quick launch</Text>
+              <Text style={styles.sectionSubtitle}>favorite tools on standby</Text>
+            </View>
             <View style={styles.quickGrid}>
               {quickActions.map((item) => (
                 <HapticTouchable key={item.label} style={styles.quickCard} onPress={item.action} activeOpacity={0.88} haptic="selection">
+                  <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.05), rgbaFromHex(selectedTheme.bgPrimary, 0)]} style={StyleSheet.absoluteFillObject} />
+                  <View style={styles.quickIconWrap}>
+                    <Ionicons name={item.icon} size={18} color={selectedTheme.textPrimary} />
+                  </View>
                   <Text style={styles.quickLabel}>{item.label}</Text>
                   <Text style={styles.quickDetail}>{item.detail}</Text>
                 </HapticTouchable>
@@ -396,30 +337,50 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
             </View>
           </View>
 
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionTitle}>today</Text>
-            <Text style={styles.sectionSubtitle}>current stats</Text>
-            <View style={styles.todayCard}>
-              {todayRows.map((row, index) => (
-                <View key={row.label} style={[styles.todayRow, index < todayRows.length - 1 && styles.todayDivider]}>
-                  <View style={styles.todayTextWrap}>
-                    <Text style={styles.todayLabel}>{row.label}</Text>
-                    <Text style={styles.todayNote}>{row.note}</Text>
-                  </View>
-                  <View style={styles.todayValueWrap}>
-                    <Text style={styles.todayValue}>{row.value}</Text>
-                    <View style={styles.todayRail}>
-                      <View style={[styles.todayRailFill, { width: `${Math.max(12, row.progress * 100)}%` }]} />
+          <View style={styles.duoRow}>
+            <View style={[styles.sectionCard, styles.todaySectionCard, styles.duoCard]}>
+              <View style={styles.sectionHeadRow}>
+                <Text style={styles.sectionTitle}>today</Text>
+                <Text style={styles.sectionSubtitle}>live progress</Text>
+              </View>
+              <View style={styles.todayCard}>
+                {todayRows.map((row, index) => (
+                  <View key={row.label} style={[styles.todayRow, index < todayRows.length - 1 && styles.todayDivider]}>
+                    <View style={styles.todayTextWrap}>
+                      <Text style={styles.todayLabel}>{row.label}</Text>
+                      <Text style={styles.todayNote}>{row.note}</Text>
+                    </View>
+                    <View style={styles.todayValueWrap}>
+                      <Text style={styles.todayValue}>{row.value}</Text>
+                      <View style={styles.todayRail}>
+                        <View style={[styles.todayRailFill, { width: `${Math.max(12, row.progress * 100)}%` }]} />
+                      </View>
                     </View>
                   </View>
-                </View>
-              ))}
+                ))}
+              </View>
+            </View>
+
+            <View style={[styles.sectionCard, styles.duoCard]}>
+              <View style={styles.sectionHeadRow}>
+                <Text style={styles.sectionTitle}>weekly orbit</Text>
+                <Text style={styles.sectionSubtitle}>signal strength</Text>
+              </View>
+              <View style={styles.ringsWrap}>
+                {rings.map((ring) => (
+                  <View key={ring.label} style={styles.ringMuted}>
+                    <RingProgress value={ring.value} label={ring.label} progress={ring.progress} size={88} strokeWidth={6} />
+                  </View>
+                ))}
+              </View>
             </View>
           </View>
 
           <View style={styles.sectionBlock}>
-            <Text style={styles.sectionTitle}>totals</Text>
-            <Text style={styles.sectionSubtitle}>overall usage</Text>
+            <View style={styles.sectionHeadRow}>
+              <Text style={styles.sectionTitle}>lifetime totals</Text>
+              <Text style={styles.sectionSubtitle}>what you have built so far</Text>
+            </View>
             <View style={styles.totalsRow}>
               {[
                 { val: totalChats, label: 'chat sessions' },
@@ -433,33 +394,48 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
               ))}
             </View>
           </View>
-
-          <View style={[styles.sectionBlock, styles.quietSection]}>
-            <Text style={styles.quietTitle}>this week</Text>
-            <Text style={styles.quietSubtitle}>weekly summary</Text>
-            <View style={styles.ringsWrap}>
-              {rings.map((r) => (
-                <View key={r.label} style={styles.ringMuted}>
-                  <RingProgress value={r.value} label={r.label} progress={r.progress} size={84} strokeWidth={6} />
-                </View>
-              ))}
-            </View>
-          </View>
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const SURFACE = theme.panel;
+  const SURFACE_ALT = theme.panelAlt;
+  const GOLD_XL = theme.textPrimary;
+  const GOLD_L = theme.accentHover;
+  const GOLD_MID = theme.accent;
+  const GOLD_D = darkenColor(theme.accent, theme.isLight ? 16 : 34);
+  const GOLD_SOFT = theme.textPrimary;
+  const DIM = theme.textSecondary;
+  const CARD_BORDER = theme.border;
+  const SHADOW = darkenColor(theme.primary, theme.isLight ? 72 : 4);
+
+  return StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent', overflow: 'hidden' },
-  scroll: { paddingBottom: 56 },
+  scroll: { paddingBottom: 110 },
+  glowTop: {
+    position: 'absolute',
+    top: -50,
+    right: -30,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
+  glowBottom: {
+    position: 'absolute',
+    bottom: 120,
+    left: -40,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+  },
 
   topBar: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 18,
     marginTop: 18,
-    marginBottom: 6,
+    marginBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -467,52 +443,53 @@ const styles = StyleSheet.create({
   appName: {
     fontFamily: 'Inter_900Black',
     fontSize: 30,
-    color: GOLD_XL,
-    letterSpacing: 0,
+    color: GOLD_L,
+    letterSpacing: -0.8,
   },
   greeting: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: GOLD_L,
-    letterSpacing: 3,
-    marginTop: 3,
+    color: DIM,
+    letterSpacing: 1.8,
+    marginTop: 4,
+    textTransform: 'uppercase',
   },
   topDateChip: {
     borderRadius: 18,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    backgroundColor: '#120F0B',
+    backgroundColor: rgbaFromHex(theme.panelAlt, 0.92),
     paddingHorizontal: 12,
     paddingVertical: 10,
-    minWidth: 86,
+    minWidth: 92,
     alignItems: 'flex-end',
   },
   topDateDay: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 9,
-    color: GOLD_XL,
-    letterSpacing: 2,
+    color: GOLD_L,
+    letterSpacing: 1.8,
   },
   topDateText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 10,
     color: GOLD_L,
-    letterSpacing: 1.2,
+    letterSpacing: 1,
     marginTop: 3,
   },
 
   heroWrap: {
     marginTop: 10,
-    marginBottom: 24,
+    marginBottom: 22,
   },
   heroSection: {
     minHeight: SCREEN_H * 0.54,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 28,
+    paddingHorizontal: 22,
+    paddingVertical: 26,
     overflow: 'hidden',
-    borderRadius: 32,
+    borderRadius: 34,
     marginHorizontal: 18,
   },
   heroBorder: {
@@ -521,19 +498,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 32,
+    borderRadius: 34,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-  },
-  heroContent: {
-    alignItems: 'center',
   },
   heroTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 18,
   },
   phaseChip: {
     borderRadius: 999,
@@ -544,32 +518,13 @@ const styles = StyleSheet.create({
   phaseChipText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 10,
-    color: GOLD_XL,
-    letterSpacing: 2,
-  },
-  heroEyebrow: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
     color: GOLD_L,
-    letterSpacing: 4,
-  },
-  heroLabel: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 13,
-    color: GOLD_XL,
-    letterSpacing: 4,
-    marginTop: 10,
-  },
-  heroTapHint: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
-    color: GOLD_SOFT,
-    letterSpacing: 2,
-    marginTop: 8,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
   },
   heroStatusPill: {
     borderRadius: 999,
-    backgroundColor: '#17130E',
+    backgroundColor: rgbaFromHex(theme.panelAlt, 0.86),
     borderWidth: 1,
     borderColor: CARD_BORDER,
     paddingHorizontal: 12,
@@ -579,27 +534,40 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: 9,
     color: GOLD_L,
-    letterSpacing: 1.8,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  heroContent: {
+    alignItems: 'center',
+  },
+  heroLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: GOLD_L,
+    letterSpacing: 3.2,
+    marginTop: 18,
+    textTransform: 'uppercase',
   },
   bigNum: {
     fontFamily: 'Inter_900Black',
-    color: GOLD_XL,
+    color: GOLD_L,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: 8,
   },
   heroUnit: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 11,
-    color: GOLD_SOFT,
-    letterSpacing: 3,
-    marginTop: 4,
+    color: GOLD_MID,
+    letterSpacing: 2.6,
+    marginTop: 2,
+    textTransform: 'uppercase',
   },
   heroHint: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 10,
+    fontSize: 11,
     color: GOLD_L,
-    letterSpacing: 1.5,
-    marginTop: 8,
+    letterSpacing: 0.8,
+    marginTop: 10,
     textAlign: 'center',
   },
   heroStatsRow: {
@@ -607,27 +575,28 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 22,
   },
-  heroStatChip: {
-    minWidth: 84,
+  metricCapsule: {
+    minWidth: 88,
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: '#130F0B',
+    backgroundColor: rgbaFromHex(theme.accent, 0.10),
     borderWidth: 1,
     borderColor: CARD_BORDER,
     alignItems: 'center',
   },
-  heroStatValue: {
+  metricValue: {
     fontFamily: 'Inter_900Black',
     fontSize: 20,
-    color: GOLD_XL,
+    color: GOLD_L,
   },
-  heroStatLabel: {
+  metricLabel: {
     fontFamily: 'Inter_400Regular',
     fontSize: 8,
     color: GOLD_L,
-    letterSpacing: 1.8,
+    letterSpacing: 1.6,
     marginTop: 4,
+    textTransform: 'uppercase',
   },
   heroDots: {
     flexDirection: 'row',
@@ -638,99 +607,136 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: GOLD_D + '55',
+    backgroundColor: rgbaFromHex(GOLD_D, 0.33),
   },
   heroDotActive: {
-    backgroundColor: GOLD_XL,
-    width: 20,
+    backgroundColor: GOLD_L,
+    width: 24,
   },
   heroSwipeHint: {
     fontFamily: 'Inter_400Regular',
     fontSize: 9,
     color: GOLD_SOFT,
-    letterSpacing: 1.6,
+    letterSpacing: 1.1,
     marginTop: 14,
+    textTransform: 'uppercase',
   },
-
   heroOrb: {
     position: 'absolute',
     borderRadius: 999,
   },
   heroOrbPrimary: {
-    width: 260,
-    height: 260,
-    top: 56,
-    right: -60,
+    width: 210,
+    height: 210,
+    top: 28,
+    right: -92,
   },
   heroOrbSecondary: {
-    width: 220,
-    height: 220,
-    left: -70,
-    bottom: 18,
+    width: 170,
+    height: 170,
+    left: -88,
+    bottom: -6,
   },
 
   bodySection: {
-    paddingHorizontal: 24,
-    gap: 26,
+    paddingHorizontal: 18,
+    gap: 22,
   },
   nextCard: {
-    backgroundColor: SURFACE + 'D9',
-    borderRadius: 24,
+    backgroundColor: rgbaFromHex(SURFACE, 0.93),
+    borderRadius: 28,
     padding: 20,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    shadowColor: GOLD_D,
+    shadowColor: SHADOW,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.22,
     shadowRadius: 24,
-    elevation: 8,
+    elevation: 10,
+    overflow: 'hidden',
   },
   nextTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
+    gap: 12,
   },
   nextEyebrow: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 10,
     color: GOLD_L,
-    letterSpacing: 3,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+  },
+  nextCtaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    backgroundColor: rgbaFromHex(theme.accent, 0.10),
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   nextCta: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 10,
-    color: GOLD_XL,
-    letterSpacing: 1,
+    color: GOLD_L,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   nextTitle: {
     fontFamily: 'Inter_900Black',
-    fontSize: 28,
-    color: GOLD_XL,
-    lineHeight: 32,
+    fontSize: 30,
+    color: GOLD_L,
+    lineHeight: 34,
+    letterSpacing: -0.6,
   },
   nextDetail: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: GOLD_L,
-    lineHeight: 20,
+    lineHeight: 21,
     marginTop: 10,
+    maxWidth: '88%',
   },
 
   sectionBlock: {
     gap: 12,
   },
+  sectionCard: {
+    backgroundColor: rgbaFromHex(SURFACE, 0.93),
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    padding: 16,
+  },
+  todaySectionCard: {
+    backgroundColor: rgbaFromHex(theme.panelAlt, 0.86),
+  },
+  duoRow: {
+    gap: 14,
+  },
+  duoCard: {
+    minHeight: 210,
+  },
+  sectionHeadRow: {
+    gap: 4,
+  },
   sectionTitle: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 11,
-    color: GOLD_XL,
-    letterSpacing: 3,
+    color: GOLD_L,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
   },
   sectionSubtitle: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 10,
-    color: GOLD_L,
-    letterSpacing: 1.4,
+    fontSize: 11,
+    color: DIM,
+    lineHeight: 16,
   },
   quickGrid: {
     flexDirection: 'row',
@@ -738,42 +744,53 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   quickCard: {
-    width: (SCREEN_W - 58) / 2,
-    backgroundColor: SURFACE + 'CC',
-    borderRadius: 18,
+    width: (SCREEN_W - 46) / 2,
+    backgroundColor: SURFACE_ALT,
+    borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    minHeight: 96,
+    minHeight: 118,
     justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  quickIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    backgroundColor: rgbaFromHex(theme.accent, 0.10),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quickLabel: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 11,
-    color: GOLD_XL,
-    letterSpacing: 1.5,
+    fontFamily: 'Inter_900Black',
+    fontSize: 17,
+    color: GOLD_L,
+    letterSpacing: -0.2,
+    marginTop: 18,
   },
   quickDetail: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 10,
-    color: GOLD_L,
-    letterSpacing: 1,
-    lineHeight: 15,
+    fontSize: 11,
+    color: DIM,
+    letterSpacing: 0.3,
+    lineHeight: 16,
+    marginTop: 6,
   },
 
   todayCard: {
-    backgroundColor: SURFACE + 'CC',
+    backgroundColor: 'transparent',
     borderRadius: 22,
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
     overflow: 'hidden',
+    marginTop: 10,
   },
   todayRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingVertical: 15,
     gap: 16,
   },
   todayDivider: {
@@ -787,24 +804,25 @@ const styles = StyleSheet.create({
   todayLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 11,
-    color: GOLD_XL,
-    letterSpacing: 2,
+    color: GOLD_MID,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   todayNote: {
     fontFamily: 'Inter_400Regular',
     fontSize: 10,
-    color: GOLD_L,
-    letterSpacing: 1,
+    color: DIM,
+    letterSpacing: 0.6,
   },
   todayValueWrap: {
-    width: 110,
+    width: 118,
     alignItems: 'flex-end',
     gap: 8,
   },
   todayValue: {
     fontFamily: 'Inter_900Black',
     fontSize: 24,
-    color: GOLD_XL,
+    color: GOLD_L,
   },
   todayRail: {
     width: '100%',
@@ -816,7 +834,16 @@ const styles = StyleSheet.create({
   todayRailFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: GOLD_XL,
+    backgroundColor: GOLD_L,
+  },
+
+  ringsWrap: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 18,
+  },
+  ringMuted: {
+    opacity: 0.96,
   },
 
   totalsRow: {
@@ -825,48 +852,26 @@ const styles = StyleSheet.create({
   },
   totalCard: {
     flex: 1,
-    backgroundColor: SURFACE + 'CC',
-    borderRadius: 18,
+    backgroundColor: SURFACE_ALT,
+    borderRadius: 22,
     padding: 16,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    minHeight: 116,
+    minHeight: 128,
     justifyContent: 'space-between',
   },
   totalValue: {
     fontFamily: 'Inter_900Black',
-    fontSize: 34,
-    color: GOLD_XL,
+    fontSize: 36,
+    color: GOLD_L,
   },
   totalLabel: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 9,
-    color: GOLD_L,
-    letterSpacing: 1.5,
-    lineHeight: 14,
-  },
-
-  quietSection: {
-    paddingBottom: 20,
-  },
-  quietTitle: {
-    fontFamily: 'Inter_600SemiBold',
     fontSize: 10,
-    color: GOLD_L,
-    letterSpacing: 3,
-  },
-  quietSubtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 10,
-    color: GOLD_D,
-    letterSpacing: 1.2,
-  },
-  ringsWrap: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-  },
-  ringMuted: {
-    opacity: 0.92,
+    color: DIM,
+    letterSpacing: 0.6,
+    lineHeight: 15,
+    textTransform: 'uppercase',
   },
 });
+}

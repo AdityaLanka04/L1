@@ -122,6 +122,18 @@ export async function askAI(userId: string, question: string, chatId?: number) {
   return res.json(); // { response, chat_id, ... }
 }
 
+export async function getSearchHubSuggestions(userId: string, query = '') {
+  const headers = await authHeaders();
+  const res = await fetch(
+    `${API_URL}/agents/searchhub/suggestions?query=${encodeURIComponent(query)}&user_id=${encodeURIComponent(userId)}`,
+    { headers }
+  );
+  if (!res.ok) {
+    await readApiError(res, 'Failed to load suggestions');
+  }
+  return res.json() as Promise<{ success: boolean; suggestions: string[] }>;
+}
+
 // ── Social ────────────────────────────────────────────────────────────
 export async function getFriends(userId: string) {
   const headers = await authHeaders();

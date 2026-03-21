@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
   ActivityIndicator, RefreshControl, Alert, Modal,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -12,16 +11,8 @@ import { AuthUser } from '../../services/auth';
 import { API_URL } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HapticTouchable from '../../components/HapticTouchable';
-
-const GOLD_XL = '#FFF0BC';
-const GOLD_L  = '#E8CC88';
-const GOLD_M  = '#C9A87C';
-const GOLD_D  = '#8A6535';
-const DIM     = '#4A3E2A';
-const SURFACE = '#111111';
-const BORDER  = GOLD_D + '40';
-
-const DIFF_COLOR: Record<string, string> = { beginner: '#6BCB77', intermediate: GOLD_M, advanced: '#C97C7C' };
+import { useAppTheme } from '../../contexts/ThemeContext';
+import { darkenColor, rgbaFromHex } from '../../utils/theme';
 const DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
 const LENGTHS      = ['short', 'medium', 'long'];
 
@@ -48,6 +39,10 @@ async function authHeaders(json = false) {
 }
 
 export default function LearningPathsScreen({ user, onBack }: Props) {
+  const { selectedTheme } = useAppTheme();
+  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const pc = useMemo(() => createPathCardStyles(selectedTheme), [selectedTheme]);
+  const m = useMemo(() => createModalStyles(selectedTheme), [selectedTheme]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   const [paths, setPaths]           = useState<LearningPath[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -61,6 +56,17 @@ export default function LearningPathsScreen({ user, onBack }: Props) {
   const [difficulty, setDiff] = useState('intermediate');
   const [length, setLength]   = useState('medium');
   const [goals, setGoals]     = useState('');
+  const GOLD_XL = selectedTheme.accent;
+  const GOLD_L = selectedTheme.accentHover;
+  const GOLD_M = selectedTheme.accent;
+  const GOLD_D = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 12 : 26);
+  const DIM = selectedTheme.textSecondary;
+  const INK = selectedTheme.isLight ? darkenColor(selectedTheme.accent, 34) : selectedTheme.bgPrimary;
+  const DIFF_COLOR: Record<string, string> = {
+    beginner: selectedTheme.success,
+    intermediate: GOLD_M,
+    advanced: selectedTheme.danger,
+  };
 
   const load = useCallback(async () => {
     try {
@@ -132,16 +138,16 @@ export default function LearningPathsScreen({ user, onBack }: Props) {
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#120E06', '#0A0906', '#080808']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
 
-      <SafeAreaView edges={['top']}>
+      <View>
         {/* Top bar */}
         <View style={s.topBar}>
           <HapticTouchable onPress={onBack} style={s.backBtn} haptic="light">
             <Ionicons name="chevron-back" size={18} color={GOLD_M} />
           </HapticTouchable>
           <HapticTouchable onPress={() => setShowCreate(true)} haptic="medium">
-            <LinearGradient colors={[GOLD_M, GOLD_D]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.cta}>
+            <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={s.cta}>
               <Text style={s.ctaText}>+ generate</Text>
             </LinearGradient>
           </HapticTouchable>
@@ -158,7 +164,7 @@ export default function LearningPathsScreen({ user, onBack }: Props) {
 
         {/* Search */}
         <View style={s.searchWrap}>
-          <LinearGradient colors={[GOLD_D + '60', GOLD_D + '20']} style={s.searchBorder}>
+          <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.16), rgbaFromHex(selectedTheme.panelAlt, 0.98)]} style={s.searchBorder}>
             <View style={s.searchInner}>
               <Ionicons name="search-outline" size={14} color={GOLD_D} />
               <TextInput
@@ -187,7 +193,7 @@ export default function LearningPathsScreen({ user, onBack }: Props) {
             </HapticTouchable>
           ))}
         </View>
-      </SafeAreaView>
+      </View>
 
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -226,7 +232,7 @@ export default function LearningPathsScreen({ user, onBack }: Props) {
                   <View style={pc.progressRow}>
                     <View style={pc.progressTrack}>
                       <LinearGradient
-                        colors={pct >= 100 ? [GOLD_M, GOLD_D] : [GOLD_D + '80', GOLD_D + '40']}
+                        colors={pct >= 100 ? [selectedTheme.accentHover, selectedTheme.accent] : [rgbaFromHex(selectedTheme.accent, 0.46), rgbaFromHex(selectedTheme.accent, 0.18)]}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                         style={[pc.progressFill, { width: `${Math.max(2, pct)}%` as any }]}
                       />
@@ -268,7 +274,7 @@ export default function LearningPathsScreen({ user, onBack }: Props) {
       <Modal visible={showCreate} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCreate(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View style={m.root}>
-            <LinearGradient colors={['#1A1208', '#0A0906']} style={StyleSheet.absoluteFillObject} />
+            <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.6, 1]} style={StyleSheet.absoluteFillObject} />
             <View style={m.header}>
               <Text style={m.title}>generate path</Text>
               <HapticTouchable onPress={() => setShowCreate(false)} haptic="light">
@@ -308,10 +314,10 @@ export default function LearningPathsScreen({ user, onBack }: Props) {
               />
 
               <HapticTouchable style={m.submit} onPress={doGenerate} haptic="medium" disabled={generating}>
-                <LinearGradient colors={[GOLD_M, GOLD_D]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={m.submitGrad}>
+                <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={m.submitGrad}>
                   {generating
-                    ? <><ActivityIndicator color="#0A0908" size="small" /><Text style={m.submitText}>  generating...</Text></>
-                    : <><Ionicons name="sparkles" size={16} color="#0A0908" /><Text style={m.submitText}>  generate path</Text></>
+                    ? <><ActivityIndicator color={INK} size="small" /><Text style={m.submitText}>  generating...</Text></>
+                    : <><Ionicons name="sparkles" size={16} color={INK} /><Text style={m.submitText}>  generate path</Text></>
                   }
                 </LinearGradient>
               </HapticTouchable>
@@ -323,65 +329,87 @@ export default function LearningPathsScreen({ user, onBack }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  root:  { flex: 1 },
-  topBar:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8 },
-  backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: SURFACE + 'CC', borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-  cta:     { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
-  ctaText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#0A0908' },
-  hero:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 14, gap: 14 },
-  heroText:  { gap: 2 },
-  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_XL, letterSpacing: -1 },
-  heroSub:   { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, letterSpacing: 1 },
-  searchWrap:   { paddingHorizontal: 20, marginBottom: 10 },
-  searchBorder: { borderRadius: 14, padding: 1 },
-  searchInner:  { flexDirection: 'row', alignItems: 'center', backgroundColor: '#141008', borderRadius: 13, paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
-  searchInput:  { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 14, color: GOLD_L },
-  tabRow:       { flexDirection: 'row', marginHorizontal: 20, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: GOLD_D + '20' },
-  tabItem:      { flex: 1, alignItems: 'center', paddingBottom: 10, position: 'relative' },
-  tabText:      { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: DIM },
-  tabTextActive: { color: GOLD_XL },
-  tabLine:      { position: 'absolute', bottom: -1, left: '10%', right: '10%', height: 2, backgroundColor: GOLD_M, borderRadius: 1 },
-  list:  { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 60, gap: 10 },
-  empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_D },
-  emptyHint:  { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM, textAlign: 'center', paddingHorizontal: 24 },
-});
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const ACCENT = theme.accent;
+  const ACCENT_DARK = darkenColor(theme.accent, theme.isLight ? 12 : 26);
+  const DIM = theme.textSecondary;
+  const SURFACE = theme.panel;
+  const SURFACE_ALT = theme.panelAlt;
+  const BORDER = theme.borderStrong;
+  const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
+  return StyleSheet.create({
+    root: { flex: 1 },
+    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8 },
+    backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
+    cta: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
+    ctaText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: INK },
+    hero: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 14, gap: 14 },
+    heroText: { gap: 2 },
+    heroTitle: { fontFamily: 'Inter_900Black', fontSize: 30, color: ACCENT, letterSpacing: -1 },
+    heroSub: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, letterSpacing: 1 },
+    searchWrap: { paddingHorizontal: 20, marginBottom: 10 },
+    searchBorder: { borderRadius: 14, padding: 1 },
+    searchInner: { flexDirection: 'row', alignItems: 'center', backgroundColor: SURFACE_ALT, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
+    searchInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.accentHover },
+    tabRow: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: BORDER },
+    tabItem: { flex: 1, alignItems: 'center', paddingBottom: 10, position: 'relative' },
+    tabText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: DIM },
+    tabTextActive: { color: theme.accentHover },
+    tabLine: { position: 'absolute', bottom: -1, left: '10%', right: '10%', height: 2, backgroundColor: ACCENT, borderRadius: 1 },
+    list: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 60, gap: 10 },
+    empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
+    emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: ACCENT_DARK },
+    emptyHint: { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM, textAlign: 'center', paddingHorizontal: 24 },
+  });
+}
 
-const pc = StyleSheet.create({
-  wrap:   { flexDirection: 'row', backgroundColor: SURFACE + 'CC', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: GOLD_D + '20' },
-  accent: { width: 3 },
-  body:   { flex: 1, padding: 14, gap: 8 },
-  topRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  title:  { fontFamily: 'Inter_900Black', fontSize: 15, color: GOLD_XL, lineHeight: 20 },
-  topic:  { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, marginTop: 3 },
-  deleteBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  progressRow:   { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  progressTrack: { flex: 1, height: 3, backgroundColor: GOLD_D + '20', borderRadius: 2, overflow: 'hidden' },
-  progressFill:  { height: '100%', borderRadius: 2 },
-  progressPct:   { fontFamily: 'Inter_700Bold', fontSize: 10, color: GOLD_M, width: 28, textAlign: 'right' },
-  metaRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
-  diffPill: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
-  diffText: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
-  statChip: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  statText: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM },
-  statusPill:     { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: GOLD_D + '20', borderWidth: 1, borderColor: GOLD_D + '35' },
-  statusPillDone: { backgroundColor: GOLD_D + '40', borderColor: GOLD_M + '60' },
-  statusText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM },
-});
+function createPathCardStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const ACCENT = theme.accent;
+  const DIM = theme.textSecondary;
+  const SURFACE = theme.panel;
+  const BORDER = theme.borderStrong;
+  return StyleSheet.create({
+    wrap: { flexDirection: 'row', backgroundColor: rgbaFromHex(SURFACE, 0.92), borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: BORDER },
+    accent: { width: 3 },
+    body: { flex: 1, padding: 14, gap: 8 },
+    topRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+    title: { fontFamily: 'Inter_900Black', fontSize: 15, color: theme.accentHover, lineHeight: 20 },
+    topic: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, marginTop: 3 },
+    deleteBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+    progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    progressTrack: { flex: 1, height: 3, backgroundColor: rgbaFromHex(ACCENT, 0.14), borderRadius: 2, overflow: 'hidden' },
+    progressFill: { height: '100%', borderRadius: 2 },
+    progressPct: { fontFamily: 'Inter_700Bold', fontSize: 10, color: ACCENT, width: 28, textAlign: 'right' },
+    metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
+    diffPill: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
+    diffText: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
+    statChip: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    statText: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM },
+    statusPill: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: rgbaFromHex(ACCENT, 0.12), borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
+    statusPillDone: { backgroundColor: rgbaFromHex(ACCENT, 0.20), borderColor: rgbaFromHex(ACCENT, 0.38) },
+    statusText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM },
+  });
+}
 
-const m = StyleSheet.create({
-  root:   { flex: 1, paddingTop: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingBottom: 20 },
-  title:  { fontFamily: 'Inter_900Black', fontSize: 24, color: GOLD_XL },
-  body:   { paddingHorizontal: 24, gap: 6, paddingBottom: 60 },
-  label:  { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: DIM, letterSpacing: 1, marginTop: 10 },
-  input:  { backgroundColor: '#141008', borderRadius: 12, borderWidth: 1, borderColor: GOLD_D + '35', paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 14, color: GOLD_L, marginTop: 4 },
-  diffRow:       { flexDirection: 'row', gap: 10, marginTop: 4 },
-  diffBtn:       { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: GOLD_D + '30', backgroundColor: '#141008' },
-  diffBtnActive: { borderColor: GOLD_M, backgroundColor: GOLD_D + '25' },
-  diffText:      { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
-  submit:     { marginTop: 24, borderRadius: 14, overflow: 'hidden' },
-  submitGrad: { paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  submitText: { fontFamily: 'Inter_900Black', fontSize: 15, color: '#0A0908' },
-});
+function createModalStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const ACCENT = theme.accent;
+  const DIM = theme.textSecondary;
+  const SURFACE_ALT = theme.panelAlt;
+  const BORDER = theme.borderStrong;
+  const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
+  return StyleSheet.create({
+    root: { flex: 1, paddingTop: 20 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingBottom: 20 },
+    title: { fontFamily: 'Inter_900Black', fontSize: 24, color: ACCENT },
+    body: { paddingHorizontal: 24, gap: 6, paddingBottom: 60 },
+    label: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: DIM, letterSpacing: 1, marginTop: 10 },
+    input: { backgroundColor: SURFACE_ALT, borderRadius: 12, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.accentHover, marginTop: 4 },
+    diffRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    diffBtn: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: BORDER, backgroundColor: SURFACE_ALT },
+    diffBtnActive: { borderColor: rgbaFromHex(ACCENT, 0.34), backgroundColor: rgbaFromHex(ACCENT, 0.14) },
+    diffText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
+    submit: { marginTop: 24, borderRadius: 14, overflow: 'hidden' },
+    submitGrad: { paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+    submitText: { fontFamily: 'Inter_900Black', fontSize: 15, color: INK },
+  });
+}

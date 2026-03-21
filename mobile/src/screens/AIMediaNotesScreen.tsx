@@ -10,19 +10,22 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import HapticTouchable from '../components/HapticTouchable';
 import { AuthUser } from '../services/auth';
+import { useAppTheme } from '../contexts/ThemeContext';
 import { processMediaYouTube, getMediaHistory, saveMediaNotes } from '../services/api';
+import { darkenColor, getDefaultTheme, rgbaFromHex } from '../utils/theme';
 
-const BG      = '#0A0A0A';
-const SURFACE = '#111111';
-const GOLD_XL = '#FFF0BC';
-const GOLD_L  = '#E8CC88';
-const GOLD_M  = '#C9A87C';
-const GOLD_D  = '#8A6535';
-const GOLD_XD = '#5A3F1A';
-const INK     = '#0D0A06';
-const ERR     = '#BF5D5D';
+const DEFAULT_THEME = getDefaultTheme();
+let BG      = DEFAULT_THEME.bgPrimary;
+let SURFACE = DEFAULT_THEME.panel;
+let GOLD_XL = DEFAULT_THEME.accent;
+let GOLD_L  = DEFAULT_THEME.accentHover;
+let GOLD_M  = DEFAULT_THEME.accent;
+let GOLD_D  = darkenColor(DEFAULT_THEME.accent, DEFAULT_THEME.isLight ? 10 : 26);
+let GOLD_XD = darkenColor(DEFAULT_THEME.accent, DEFAULT_THEME.isLight ? 24 : 40);
+let INK     = DEFAULT_THEME.isLight ? darkenColor(DEFAULT_THEME.accent, 45) : darkenColor(DEFAULT_THEME.primary, 2);
+let ERR     = DEFAULT_THEME.danger;
 
-const CARD_BORDER = GOLD_D + '55';
+let CARD_BORDER = DEFAULT_THEME.borderStrong;
 
 const STATUSES = [
   'extracting audio...',
@@ -61,6 +64,19 @@ type AIMediaStackParamList = {
 };
 
 const AIMediaStack = createNativeStackNavigator<AIMediaStackParamList>();
+
+function applyTheme(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  BG = theme.bgPrimary;
+  SURFACE = theme.panel;
+  GOLD_XL = theme.accent;
+  GOLD_L = theme.accentHover;
+  GOLD_M = theme.accent;
+  GOLD_D = darkenColor(theme.accent, theme.isLight ? 10 : 26);
+  GOLD_XD = darkenColor(theme.accent, theme.isLight ? 24 : 40);
+  INK = theme.isLight ? darkenColor(theme.accent, 45) : darkenColor(theme.primary, 2);
+  ERR = theme.danger;
+  CARD_BORDER = theme.borderStrong;
+}
 
 function ProcessingView({ status }: { status: string }) {
   const ring0 = useRef(new Animated.Value(0)).current;
@@ -107,7 +123,8 @@ function ProcessingView({ status }: { status: string }) {
   );
 }
 
-const pr = StyleSheet.create({
+function createProcessingStyles() {
+  return StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   rings:     { width: 200, height: 200, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   ring: {
@@ -128,6 +145,7 @@ const pr = StyleSheet.create({
   status: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: GOLD_XL, letterSpacing: 1, marginBottom: 8 },
   hint:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: GOLD_L, letterSpacing: 1.5 },
 });
+}
 
 // ── Step 1: normalise content → clean markdown ────────────────────────
 function toMarkdown(raw: string): string {
@@ -204,7 +222,7 @@ function Inline({ line, baseStyle }: { line: string; baseStyle: any }) {
   return (
     <Text style={baseStyle}>
       {spans.map((sp, i) => {
-        if (sp.bold)   return <Text key={i} style={{ fontFamily: 'Inter_700Bold',    fontSize: (baseStyle as any).fontSize, color: '#FFFFFF' }}>{sp.text}</Text>;
+        if (sp.bold)   return <Text key={i} style={{ fontFamily: 'Inter_700Bold',    fontSize: (baseStyle as any).fontSize, color: GOLD_XL }}>{sp.text}</Text>;
         if (sp.italic) return <Text key={i} style={{ fontFamily: 'Inter_400Regular', fontSize: (baseStyle as any).fontSize, color: GOLD_L, fontStyle: 'italic' }}>{sp.text}</Text>;
         if (sp.code)   return <Text key={i} style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: GOLD_L, backgroundColor: GOLD_D + '40' }}>{sp.text}</Text>;
         return <Text key={i}>{sp.text}</Text>;
@@ -348,12 +366,13 @@ function MarkdownNote({ content }: { content: string }) {
   );
 }
 
-const md = StyleSheet.create({
+function createMarkdownStyles() {
+  return StyleSheet.create({
   root: { paddingBottom: 48 },
 
-  // H1 — big, white, underlined
+  // H1 — primary accent headline
   h1Wrap: { marginTop: 36, marginBottom: 8 },
-  h1:     { fontFamily: 'Inter_900Black', fontSize: 28, color: '#FFFFFF', lineHeight: 34 },
+  h1:     { fontFamily: 'Inter_900Black', fontSize: 28, color: GOLD_XL, lineHeight: 34 },
   h1Rule: { height: 1.5, backgroundColor: GOLD_D + '70', marginTop: 10 },
 
   // H2 — medium, bright gold
@@ -369,15 +388,16 @@ const md = StyleSheet.create({
   gap: { height: 10 },
 
   // Paragraph — regular body text
-  para: { fontFamily: 'Inter_400Regular', fontSize: 15, color: '#C8BFA8', lineHeight: 26, marginVertical: 2 },
+  para: { fontFamily: 'Inter_400Regular', fontSize: 15, color: GOLD_L, lineHeight: 26, marginVertical: 2 },
 
   // Lists
   listRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 7, paddingRight: 4 },
   dot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: GOLD_M, marginTop: 10, flexShrink: 0 },
   dotSub:   { width: 4, height: 4, borderRadius: 2, backgroundColor: GOLD_D, marginTop: 11, flexShrink: 0 },
-  listText: { fontFamily: 'Inter_400Regular', fontSize: 15, color: '#C8BFA8', lineHeight: 26, flex: 1 },
+  listText: { fontFamily: 'Inter_400Regular', fontSize: 15, color: GOLD_L, lineHeight: 26, flex: 1 },
   num:      { fontFamily: 'Inter_700Bold', fontSize: 14, color: GOLD_M, lineHeight: 26, width: 26, flexShrink: 0 },
 });
+}
 
 function fmtDuration(sec: number) {
   if (!sec) return '';
@@ -711,6 +731,11 @@ function AIMediaResults({
 }
 
 export default function AIMediaNotesScreen({ user, onBack }: Props) {
+  const { selectedTheme } = useAppTheme();
+  applyTheme(selectedTheme);
+  pr = createProcessingStyles();
+  md = createMarkdownStyles();
+  s = createStyles();
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
 
   if (!fontsLoaded) return null;
@@ -767,7 +792,10 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+function createStyles() {
+  const softAccent = rgbaFromHex(GOLD_M, 0.12);
+  const softAccentStrong = rgbaFromHex(GOLD_M, 0.18);
+  return StyleSheet.create({
   safe:      { flex: 1, backgroundColor: BG },
   hubScroll: { paddingHorizontal: 16, paddingBottom: 48, gap: 12 },
 
@@ -807,6 +835,11 @@ const s = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 8,
+    shadowColor: GOLD_M,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    elevation: 5,
   },
   saveChipDone: { backgroundColor: GOLD_D },
   saveChipText: {
@@ -820,11 +853,16 @@ const s = StyleSheet.create({
   modeSwitcher: {
     flexDirection: 'row',
     backgroundColor: SURFACE,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    padding: 4,
+    padding: 5,
     gap: 4,
+    shadowColor: GOLD_M,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
   },
   modeBtn: {
     flex: 1,
@@ -849,7 +887,7 @@ const s = StyleSheet.create({
 
   // Input card (shared)
   inputCard: {
-    borderRadius: 16,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: CARD_BORDER,
     backgroundColor: SURFACE,
@@ -872,10 +910,10 @@ const s = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
     color: GOLD_XL,
-    backgroundColor: BG,
+    backgroundColor: softAccent,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: GOLD_D + '50',
+    borderColor: CARD_BORDER,
     paddingHorizontal: 14,
     paddingVertical: 13,
   },
@@ -936,7 +974,7 @@ const s = StyleSheet.create({
   sectionRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 4 },
   sectionLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_XL, letterSpacing: 3 },
   countBadge:   {
-    backgroundColor: GOLD_D + '25',
+    backgroundColor: softAccent,
     borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -949,8 +987,8 @@ const s = StyleSheet.create({
   emptyBox: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyRing: {
     width: 68, height: 68, borderRadius: 34,
-    backgroundColor: GOLD_D + '15',
-    borderWidth: 1, borderColor: GOLD_D + '35',
+    backgroundColor: softAccent,
+    borderWidth: 1, borderColor: CARD_BORDER,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 4,
   },
@@ -964,7 +1002,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     backgroundColor: SURFACE,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: CARD_BORDER,
     padding: 14,
@@ -978,7 +1016,7 @@ const s = StyleSheet.create({
   },
   histIconBox: {
     width: 36, height: 36, borderRadius: 10,
-    backgroundColor: GOLD_D + '25',
+    backgroundColor: softAccentStrong,
     borderWidth: 1, borderColor: CARD_BORDER,
     alignItems: 'center', justifyContent: 'center',
     zIndex: 1,
@@ -989,7 +1027,7 @@ const s = StyleSheet.create({
   histDate:     { fontFamily: 'Inter_400Regular',  fontSize: 10, color: GOLD_D,  zIndex: 1 },
 
   // Divider
-  divider: { height: 1, backgroundColor: GOLD_D + '30', marginHorizontal: 0 },
+  divider: { height: 1, backgroundColor: CARD_BORDER, marginHorizontal: 0 },
 
   // Tabs
   tabRow: {
@@ -999,7 +1037,7 @@ const s = StyleSheet.create({
     gap: 4,
   },
   tab:           { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10 },
-  tabActive:     { backgroundColor: GOLD_D + '25', borderWidth: 1, borderColor: CARD_BORDER },
+  tabActive:     { backgroundColor: softAccent, borderWidth: 1, borderColor: CARD_BORDER },
   tabText:       { fontFamily: 'Inter_600SemiBold', fontSize: 9,  color: GOLD_D,  letterSpacing: 2.5 },
   tabTextActive: { fontFamily: 'Inter_600SemiBold', fontSize: 9,  color: GOLD_XL, letterSpacing: 2.5 },
 
@@ -1016,7 +1054,7 @@ const s = StyleSheet.create({
   },
   metaBadges: { flexDirection: 'row', gap: 6, marginTop: 8 },
   badge: {
-    backgroundColor: GOLD_D + '25',
+    backgroundColor: softAccent,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -1029,3 +1067,8 @@ const s = StyleSheet.create({
   resultsScroll:  { padding: 20, paddingBottom: 80 },
   transcriptBody: { fontFamily: 'Inter_400Regular', fontSize: 13, color: GOLD_L, lineHeight: 22 },
 });
+}
+
+let pr: ReturnType<typeof createProcessingStyles> = createProcessingStyles();
+let md: ReturnType<typeof createMarkdownStyles> = createMarkdownStyles();
+let s: ReturnType<typeof createStyles> = createStyles();

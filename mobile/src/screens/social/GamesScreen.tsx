@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
@@ -12,21 +12,17 @@ import {
   declineQuizBattle, getFriends,
 } from '../../services/api';
 import HapticTouchable from '../../components/HapticTouchable';
+import { useAppTheme } from '../../contexts/ThemeContext';
+import { darkenColor, rgbaFromHex } from '../../utils/theme';
 
 const { width: SW } = Dimensions.get('window');
-
-const GOLD_XL = '#FFF0BC';
-const GOLD_L  = '#E8CC88';
-const GOLD_M  = '#C9A87C';
-const GOLD_D  = '#8A6535';
-const DIM     = '#4A3E2A';
-const SURFACE = '#111111';
-const BORDER  = GOLD_D + '40';
 
 const SUBJECTS     = ['Mathematics', 'Biology', 'Chemistry', 'Physics', 'History', 'Literature', 'Computer Science', 'Economics'];
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
 
 function DotGrid() {
+  const { selectedTheme } = useAppTheme();
+  const dotColor = rgbaFromHex(selectedTheme.accent, 0.16);
   const dotSpacingX = 24;
   const dotSpacingY = 30;
   const cols = Math.floor((SW - 56) / dotSpacingX);
@@ -44,7 +40,7 @@ function DotGrid() {
               width: 2,
               height: 2,
               borderRadius: 1,
-              backgroundColor: GOLD_D + '28',
+              backgroundColor: dotColor,
             }}
           />
         ))
@@ -54,18 +50,21 @@ function DotGrid() {
 }
 
 function Avatar({ name, size = 40 }: { name: string; size?: number }) {
+  const { selectedTheme } = useAppTheme();
+  const GOLD_L = selectedTheme.accentHover;
+  const CARD = selectedTheme.panelAlt;
   const initials = (name || '?').split(/[\s_]/).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
   return (
     <LinearGradient
-      colors={['#FFD700', '#C9A87C', '#7A5220']}
+      colors={[rgbaFromHex(selectedTheme.accent, 0.28), rgbaFromHex(CARD, 0.98)]}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       style={{ width: size + 3, height: size + 3, borderRadius: (size + 3) / 2, padding: 2, alignItems: 'center', justifyContent: 'center' }}
     >
       <LinearGradient
-        colors={['#2A1C0A', '#1A1206']}
+        colors={[rgbaFromHex(CARD, 0.98), rgbaFromHex(selectedTheme.bgPrimary, 0.98)]}
         style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Text style={{ fontFamily: 'Inter_900Black', fontSize: size * 0.33, color: GOLD_XL }}>{initials}</Text>
+        <Text style={{ fontFamily: 'Inter_900Black', fontSize: size * 0.33, color: GOLD_L }}>{initials}</Text>
       </LinearGradient>
     </LinearGradient>
   );
@@ -74,6 +73,12 @@ function Avatar({ name, size = 40 }: { name: string; size?: number }) {
 type Props = { user: AuthUser; onBack: () => void };
 
 export default function GamesScreen({ user, onBack }: Props) {
+  const { selectedTheme } = useAppTheme();
+  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const card = useMemo(() => createCardStyles(selectedTheme), [selectedTheme]);
+  const vs = useMemo(() => createVersusStyles(selectedTheme), [selectedTheme]);
+  const empty = useMemo(() => createEmptyStyles(selectedTheme), [selectedTheme]);
+  const modal = useMemo(() => createModalStyles(selectedTheme), [selectedTheme]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   const [battles, setBattles]       = useState<any[]>([]);
   const [friends, setFriends]       = useState<any[]>([]);
@@ -87,6 +92,12 @@ export default function GamesScreen({ user, onBack }: Props) {
   const [difficulty, setDifficulty]         = useState('medium');
   const [customSubject, setCustomSubject]   = useState('');
   const [useCustom, setUseCustom]           = useState(false);
+  const GOLD_XL = selectedTheme.accent;
+  const GOLD_L = selectedTheme.accentHover;
+  const GOLD_M = selectedTheme.accent;
+  const GOLD_D = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 12 : 26);
+  const DIM = selectedTheme.textSecondary;
+  const INK = selectedTheme.isLight ? darkenColor(selectedTheme.accent, 34) : selectedTheme.bgPrimary;
 
   const load = useCallback(async () => {
     try {
@@ -141,7 +152,7 @@ export default function GamesScreen({ user, onBack }: Props) {
 
   if (loading) return (
     <View style={{ flex: 1 }}>
-      <LinearGradient colors={['#120E06', '#0A0906', '#080808']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={GOLD_M} size="large" />
       </View>
@@ -150,7 +161,7 @@ export default function GamesScreen({ user, onBack }: Props) {
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#120E06', '#0A0906', '#080808']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
       <DotGrid />
 
 {/* Top bar */}
@@ -159,7 +170,7 @@ export default function GamesScreen({ user, onBack }: Props) {
           <Ionicons name="chevron-back" size={18} color={GOLD_M} />
         </HapticTouchable>
         <HapticTouchable onPress={() => setShowCreate(true)} haptic="medium">
-          <LinearGradient colors={[GOLD_M, GOLD_D]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.cta}>
+          <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={s.cta}>
             <Text style={s.ctaText}>+ challenge</Text>
           </LinearGradient>
         </HapticTouchable>
@@ -167,7 +178,7 @@ export default function GamesScreen({ user, onBack }: Props) {
 
       {/* Hero */}
       <View style={s.hero}>
-        <LinearGradient colors={[GOLD_D + '55', GOLD_D + '18', 'transparent']} style={s.heroGlow}>
+        <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.24), rgbaFromHex(selectedTheme.panelAlt, 0.04), 'transparent']} style={s.heroGlow}>
           <Ionicons name="flash" size={46} color={GOLD_XL} />
         </LinearGradient>
         <Text style={s.heroTitle}>battles</Text>
@@ -200,7 +211,7 @@ export default function GamesScreen({ user, onBack }: Props) {
                   </View>
                   <View style={card.actions}>
                     <HapticTouchable style={{ flex: 1 }} onPress={() => doAccept(b.id)} haptic="success">
-                      <LinearGradient colors={[GOLD_M, GOLD_D]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={card.acceptBtn}>
+                      <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={card.acceptBtn}>
                         <Text style={card.acceptText}>accept battle</Text>
                       </LinearGradient>
                     </HapticTouchable>
@@ -298,13 +309,13 @@ export default function GamesScreen({ user, onBack }: Props) {
         {/* Empty */}
         {battles.length === 0 && (
           <View style={empty.wrap}>
-            <LinearGradient colors={[GOLD_D + '30', GOLD_D + '0A']} style={empty.icon}>
+            <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.14), rgbaFromHex(selectedTheme.panelAlt, 0.04)]} style={empty.icon}>
               <Ionicons name="game-controller-outline" size={44} color={GOLD_D} />
             </LinearGradient>
             <Text style={empty.title}>no battles yet</Text>
             <Text style={empty.hint}>challenge a friend to a quiz battle</Text>
             <HapticTouchable onPress={() => setShowCreate(true)} haptic="medium">
-              <LinearGradient colors={[GOLD_M, GOLD_D]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={empty.btn}>
+              <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={empty.btn}>
                 <Text style={empty.btnText}>start a battle</Text>
               </LinearGradient>
             </HapticTouchable>
@@ -317,7 +328,7 @@ export default function GamesScreen({ user, onBack }: Props) {
       {/* Create Modal */}
       <Modal visible={showCreate} animationType="slide" presentationStyle="pageSheet">
         <View style={{ flex: 1 }}>
-          <LinearGradient colors={['#120E06', '#0A0906', '#080808']} style={StyleSheet.absoluteFillObject} />
+          <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
           <DotGrid />
 
           <View style={modal.header}>
@@ -398,7 +409,7 @@ export default function GamesScreen({ user, onBack }: Props) {
 
             {selectedFriend && (
               <View style={modal.summary}>
-                <LinearGradient colors={[GOLD_D + '30', GOLD_D + '0A']} style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]} />
+                <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.14), rgbaFromHex(selectedTheme.panelAlt, 0.04)]} style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]} />
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <Avatar name={user.username} size={40} />
                   <Text style={modal.vsLabel}>VS</Text>
@@ -412,9 +423,9 @@ export default function GamesScreen({ user, onBack }: Props) {
             )}
 
             <HapticTouchable onPress={doCreate} haptic="medium" style={{ opacity: (creating || !selectedFriend) ? 0.45 : 1 }}>
-              <LinearGradient colors={[GOLD_M, GOLD_D]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={modal.launchBtn}>
+              <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={modal.launchBtn}>
                 {creating
-                  ? <ActivityIndicator color="#0A0908" />
+                  ? <ActivityIndicator color={INK} />
                   : <Text style={modal.launchText}>SEND CHALLENGE</Text>
                 }
               </LinearGradient>
@@ -426,95 +437,110 @@ export default function GamesScreen({ user, onBack }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1 },
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const ACCENT = theme.accent;
+  const ACCENT_DARK = darkenColor(theme.accent, theme.isLight ? 12 : 26);
+  const DIM = theme.textSecondary;
+  const SURFACE = theme.panel;
+  const BORDER = theme.borderStrong;
+  const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
+  return StyleSheet.create({
+    root: { flex: 1 },
+    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+    backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
+    cta: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
+    ctaText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: INK },
+    hero: { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
+    heroGlow: { width: 100, height: 100, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
+    heroTitle: { fontFamily: 'Inter_900Black', fontSize: 42, color: ACCENT, letterSpacing: -2, marginTop: 6 },
+    heroSub: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 1 },
+    divider: { height: 1, marginLeft: 20, marginRight: 20, backgroundColor: BORDER },
+    scroll: { paddingLeft: 20, paddingRight: 20, paddingTop: 16, gap: 8 },
+    section: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: DIM, letterSpacing: 2.5, marginTop: 8, marginBottom: 2 },
+  });
+}
 
-topBar:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: SURFACE + 'CC', borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-  cta:     { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
-  ctaText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#0A0908' },
+function createCardStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const ACCENT = theme.accent;
+  const DIM = theme.textSecondary;
+  const SURFACE = theme.panel;
+  const BORDER = theme.borderStrong;
+  const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
+  return StyleSheet.create({
+    wrap: { flexDirection: 'row', backgroundColor: rgbaFromHex(SURFACE, 0.92), borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: BORDER },
+    accent: { width: 3, backgroundColor: darkenColor(theme.accent, theme.isLight ? 12 : 26) },
+    body: { flex: 1, padding: 14, gap: 12 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    rowOnly: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, paddingTop: 14 },
+    name: { fontFamily: 'Inter_700Bold', fontSize: 14, color: theme.accentHover },
+    meta: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, marginTop: 2 },
+    newBadge: { backgroundColor: rgbaFromHex(ACCENT, 0.14), borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.22) },
+    newBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 9, color: ACCENT },
+    actions: { flexDirection: 'row', gap: 8 },
+    acceptBtn: { borderRadius: 10, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
+    acceptText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: INK },
+    declineBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
+    declineText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: DIM },
+    pendingPill: { backgroundColor: rgbaFromHex(theme.textSecondary, 0.14), borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: rgbaFromHex(theme.textSecondary, 0.22) },
+    pendingText: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: DIM },
+    resultPill: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
+    resultText: { fontFamily: 'Inter_700Bold', fontSize: 9 },
+  });
+}
 
-  hero:      { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
-  heroGlow:  { width: 100, height: 100, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: GOLD_D + '50' },
-  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 42, color: GOLD_XL, letterSpacing: -2, marginTop: 6 },
-  heroSub:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 1 },
+function createVersusStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  return StyleSheet.create({
+    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+    player: { alignItems: 'center', gap: 4 },
+    name: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: theme.accentHover, maxWidth: 80 },
+    score: { fontFamily: 'Inter_900Black', fontSize: 28, color: theme.accent },
+    vsText: { fontFamily: 'Inter_900Black', fontSize: 18, color: darkenColor(theme.accent, theme.isLight ? 12 : 26) },
+    subject: { fontFamily: 'Inter_400Regular', fontSize: 11, color: theme.textSecondary, textAlign: 'center' },
+  });
+}
 
-  divider: { height: 1, marginLeft: 20, marginRight: 20, backgroundColor: GOLD_D + '25' },
+function createEmptyStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
+  return StyleSheet.create({
+    wrap: { alignItems: 'center', paddingTop: 64, gap: 14 },
+    icon: { width: 88, height: 88, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(theme.accent, 0.22) },
+    title: { fontFamily: 'Inter_900Black', fontSize: 18, color: darkenColor(theme.accent, theme.isLight ? 12 : 26) },
+    hint: { fontFamily: 'Inter_400Regular', fontSize: 13, color: theme.textSecondary },
+    btn: { borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
+    btnText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: INK },
+  });
+}
 
-  scroll:   { paddingLeft: 20, paddingRight: 20, paddingTop: 16, gap: 8 },
-  section:  { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: DIM, letterSpacing: 2.5, marginTop: 8, marginBottom: 2 },
-});
-
-const card = StyleSheet.create({
-  wrap:     { flexDirection: 'row', backgroundColor: SURFACE + 'CC', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: GOLD_D + '20' },
-  accent:   { width: 3, backgroundColor: GOLD_D },
-  body:     { flex: 1, padding: 14, gap: 12 },
-  row:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowOnly:  { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, paddingTop: 14 },
-  name:     { fontFamily: 'Inter_700Bold', fontSize: 14, color: GOLD_L },
-  meta:     { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, marginTop: 2 },
-
-  newBadge:     { backgroundColor: GOLD_D + '30', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: BORDER },
-  newBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 9, color: GOLD_M },
-
-  actions:    { flexDirection: 'row', gap: 8 },
-  acceptBtn:  { borderRadius: 10, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
-  acceptText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#0A0908' },
-  declineBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: GOLD_D + '30', alignItems: 'center', justifyContent: 'center' },
-  declineText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: DIM },
-
-  pendingPill: { backgroundColor: DIM + '25', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: DIM + '40' },
-  pendingText: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: DIM },
-  resultPill:  { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
-  resultText:  { fontFamily: 'Inter_700Bold', fontSize: 9 },
-});
-
-const vs = StyleSheet.create({
-  row:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
-  player:  { alignItems: 'center', gap: 4 },
-  name:    { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: GOLD_L, maxWidth: 80 },
-  score:   { fontFamily: 'Inter_900Black', fontSize: 28, color: GOLD_XL },
-  vsText:  { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_D },
-  subject: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, textAlign: 'center' },
-});
-
-const empty = StyleSheet.create({
-  wrap:    { alignItems: 'center', paddingTop: 64, gap: 14 },
-  icon:    { width: 88, height: 88, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: GOLD_D + '40' },
-  title:   { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_D },
-  hint:    { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM },
-  btn:     { borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
-  btnText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#0A0908' },
-});
-
-const modal = StyleSheet.create({
-  header:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20 },
-  title:    { fontFamily: 'Inter_900Black', fontSize: 26, color: GOLD_XL, letterSpacing: -0.5 },
-  sub:      { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, marginTop: 3 },
-  closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: SURFACE + 'CC', borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-  label:    { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: DIM, letterSpacing: 2.5, marginBottom: 10 },
-
-  friendChip:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: SURFACE + '80', borderRadius: 12, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 12, paddingVertical: 8 },
-  friendChipSel: { borderColor: GOLD_D + '70', backgroundColor: GOLD_D + '20' },
-  friendName:    { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
-
-  chipGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  chip:        { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: SURFACE + '80', borderRadius: 8, borderWidth: 1, borderColor: BORDER },
-  chipSel:     { borderColor: GOLD_D + '70', backgroundColor: GOLD_D + '20' },
-  chipText:    { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
-  chipTextSel: { color: GOLD_L },
-  input:       { backgroundColor: SURFACE + '80', borderRadius: 10, borderWidth: 1, borderColor: GOLD_D + '50', paddingHorizontal: 14, paddingVertical: 11, fontFamily: 'Inter_400Regular', fontSize: 14, color: GOLD_L, marginBottom: 20 },
-
-  diffRow:    { flexDirection: 'row', gap: 8, marginBottom: 24 },
-  diffBtn:    { alignItems: 'center', paddingVertical: 12, backgroundColor: SURFACE + '80', borderRadius: 10, borderWidth: 1, borderColor: BORDER },
-  diffBtnSel: { borderColor: GOLD_D + '70', backgroundColor: GOLD_D + '20' },
-  diffText:   { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
-
-  summary:   { borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: GOLD_D + '40', padding: 16, marginBottom: 20 },
-  vsLabel:   { fontFamily: 'Inter_900Black', fontSize: 16, color: GOLD_D },
-  sumTitle:  { fontFamily: 'Inter_700Bold', fontSize: 14, color: GOLD_L },
-  sumMeta:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, marginTop: 2 },
-
-  launchBtn:  { borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
-  launchText: { fontFamily: 'Inter_900Black', fontSize: 15, color: '#0A0908', letterSpacing: 0.5 },
-});
+function createModalStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const ACCENT = theme.accent;
+  const DIM = theme.textSecondary;
+  const SURFACE = theme.panel;
+  const BORDER = theme.borderStrong;
+  const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
+  return StyleSheet.create({
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20 },
+    title: { fontFamily: 'Inter_900Black', fontSize: 26, color: ACCENT, letterSpacing: -0.5 },
+    sub: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, marginTop: 3 },
+    closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
+    label: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: DIM, letterSpacing: 2.5, marginBottom: 10 },
+    friendChip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: rgbaFromHex(SURFACE, 0.84), borderRadius: 12, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 12, paddingVertical: 8 },
+    friendChipSel: { borderColor: rgbaFromHex(ACCENT, 0.34), backgroundColor: rgbaFromHex(ACCENT, 0.14) },
+    friendName: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
+    chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+    chip: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: rgbaFromHex(SURFACE, 0.84), borderRadius: 8, borderWidth: 1, borderColor: BORDER },
+    chipSel: { borderColor: rgbaFromHex(ACCENT, 0.34), backgroundColor: rgbaFromHex(ACCENT, 0.14) },
+    chipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
+    chipTextSel: { color: theme.accentHover },
+    input: { backgroundColor: rgbaFromHex(SURFACE, 0.84), borderRadius: 10, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 11, fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.accentHover, marginBottom: 20 },
+    diffRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+    diffBtn: { alignItems: 'center', paddingVertical: 12, backgroundColor: rgbaFromHex(SURFACE, 0.84), borderRadius: 10, borderWidth: 1, borderColor: BORDER },
+    diffBtnSel: { borderColor: rgbaFromHex(ACCENT, 0.34), backgroundColor: rgbaFromHex(ACCENT, 0.14) },
+    diffText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
+    summary: { borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.22), padding: 16, marginBottom: 20 },
+    vsLabel: { fontFamily: 'Inter_900Black', fontSize: 16, color: darkenColor(theme.accent, theme.isLight ? 12 : 26) },
+    sumTitle: { fontFamily: 'Inter_700Bold', fontSize: 14, color: theme.accentHover },
+    sumMeta: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, marginTop: 2 },
+    launchBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+    launchText: { fontFamily: 'Inter_900Black', fontSize: 15, color: INK, letterSpacing: 0.5 },
+  });
+}

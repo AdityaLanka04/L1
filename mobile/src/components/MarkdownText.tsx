@@ -1,17 +1,13 @@
+import { useMemo, type ReactElement } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
-
-const GOLD_L  = '#FFE8A0';
-const GOLD_M  = '#C9A87C';
-const GOLD_D  = '#7A5C2E';
-const DIM     = '#5A5040';
-const BORDER  = '#1E1E1E';
-const CODE_BG = '#0F0F0F';
+import { useAppTheme } from '../contexts/ThemeContext';
+import { darkenColor, rgbaFromHex } from '../utils/theme';
 
 interface Props { children: string; }
 
 // Split text into inline segments: bold, italic, inline code, plain
-function parseInline(text: string): JSX.Element[] {
-  const parts: JSX.Element[] = [];
+function parseInline(text: string, styles: ReturnType<typeof createStyles>): ReactElement[] {
+  const parts: ReactElement[] = [];
   // Pattern: **bold**, *italic*, `code`
   const re = /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`)/g;
   let last = 0;
@@ -19,24 +15,26 @@ function parseInline(text: string): JSX.Element[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) {
-      parts.push(<Text key={key++} style={s.plain}>{text.slice(last, m.index)}</Text>);
+      parts.push(<Text key={key++} style={styles.plain}>{text.slice(last, m.index)}</Text>);
     }
     if (m[2] !== undefined) {
-      parts.push(<Text key={key++} style={s.bold}>{m[2]}</Text>);
+      parts.push(<Text key={key++} style={styles.bold}>{m[2]}</Text>);
     } else if (m[3] !== undefined) {
-      parts.push(<Text key={key++} style={s.italic}>{m[3]}</Text>);
+      parts.push(<Text key={key++} style={styles.italic}>{m[3]}</Text>);
     } else if (m[4] !== undefined) {
-      parts.push(<Text key={key++} style={s.inlineCode}>{m[4]}</Text>);
+      parts.push(<Text key={key++} style={styles.inlineCode}>{m[4]}</Text>);
     }
     last = m.index + m[0].length;
   }
   if (last < text.length) {
-    parts.push(<Text key={key++} style={s.plain}>{text.slice(last)}</Text>);
+    parts.push(<Text key={key++} style={styles.plain}>{text.slice(last)}</Text>);
   }
-  return parts.length > 0 ? parts : [<Text key={0} style={s.plain}>{text}</Text>];
+  return parts.length > 0 ? parts : [<Text key={0} style={styles.plain}>{text}</Text>];
 }
 
 export default function MarkdownText({ children }: Props) {
+  const { selectedTheme } = useAppTheme();
+  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
   const raw = children ?? '';
 
   // Pre-process LaTeX: $$...$$ → code block, $...$ → inline code
@@ -45,7 +43,7 @@ export default function MarkdownText({ children }: Props) {
     .replace(/\$([^$\n]+)\$/g, (_, eq) => '`' + eq.trim() + '`');
 
   const lines = text.split('\n');
-  const elements: JSX.Element[] = [];
+  const elements: ReactElement[] = [];
   let i = 0;
   let key = 0;
 
@@ -103,7 +101,7 @@ export default function MarkdownText({ children }: Props) {
           {items.map((item, idx) => (
             <View key={idx} style={s.listRow}>
               <Text style={s.bullet}>•</Text>
-              <Text style={s.listText}>{parseInline(item)}</Text>
+              <Text style={s.listText}>{parseInline(item, s)}</Text>
             </View>
           ))}
         </View>
@@ -124,7 +122,7 @@ export default function MarkdownText({ children }: Props) {
           {items.map((item, idx) => (
             <View key={idx} style={s.listRow}>
               <Text style={s.bullet}>{item.n}.</Text>
-              <Text style={s.listText}>{parseInline(item.t)}</Text>
+              <Text style={s.listText}>{parseInline(item.t, s)}</Text>
             </View>
           ))}
         </View>
@@ -136,7 +134,7 @@ export default function MarkdownText({ children }: Props) {
     if (line.startsWith('> ')) {
       elements.push(
         <View key={key++} style={s.blockquote}>
-          <Text style={s.blockquoteText}>{parseInline(line.slice(2))}</Text>
+          <Text style={s.blockquoteText}>{parseInline(line.slice(2), s)}</Text>
         </View>
       );
       i++; continue;
@@ -150,7 +148,7 @@ export default function MarkdownText({ children }: Props) {
 
     // Normal paragraph
     elements.push(
-      <Text key={key++} style={s.para}>{parseInline(line)}</Text>
+      <Text key={key++} style={s.para}>{parseInline(line, s)}</Text>
     );
     i++;
   }
@@ -158,31 +156,37 @@ export default function MarkdownText({ children }: Props) {
   return <View>{elements}</View>;
 }
 
-const s = StyleSheet.create({
-  plain:      { color: GOLD_L, fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22 },
-  bold:       { color: GOLD_L, fontFamily: 'Inter_700Bold', fontSize: 14, lineHeight: 22 },
-  italic:     { color: GOLD_M, fontFamily: 'Inter_400Regular', fontStyle: 'italic', fontSize: 14, lineHeight: 22 },
-  inlineCode: { color: '#FFD580', backgroundColor: '#1A1500', fontFamily: 'Inter_400Regular', fontSize: 13 },
-
-  para: { color: GOLD_L, fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22, marginBottom: 2 },
-
-  h1: { color: GOLD_L, fontFamily: 'Inter_900Black', fontSize: 19, lineHeight: 26, marginTop: 10, marginBottom: 4 },
-  h2: { color: GOLD_L, fontFamily: 'Inter_900Black', fontSize: 16, lineHeight: 24, marginTop: 8, marginBottom: 2 },
-  h3: { color: GOLD_M, fontFamily: 'Inter_600SemiBold', fontSize: 14, lineHeight: 22, marginTop: 6, marginBottom: 2 },
-
-  codeBlock: {
-    backgroundColor: CODE_BG, borderRadius: 10, padding: 12,
-    marginVertical: 6, borderWidth: 1, borderColor: BORDER,
-  },
-  codeText: { color: '#FFD580', fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
-
-  hr: { height: 1, backgroundColor: BORDER, marginVertical: 8 },
-
-  list:    { marginVertical: 4, gap: 4 },
-  listRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  bullet:  { color: GOLD_D, fontFamily: 'Inter_600SemiBold', fontSize: 14, lineHeight: 22, minWidth: 14 },
-  listText:{ flex: 1, color: GOLD_L, fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22 },
-
-  blockquote: { borderLeftWidth: 3, borderLeftColor: GOLD_D, paddingLeft: 10, marginVertical: 4 },
-  blockquoteText: { color: GOLD_M, fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
-});
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const accentDeep = darkenColor(theme.accent, theme.isLight ? 16 : 34);
+  return StyleSheet.create({
+    plain: { color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22 },
+    bold: { color: theme.accentHover, fontFamily: 'Inter_700Bold', fontSize: 14, lineHeight: 22 },
+    italic: { color: theme.accent, fontFamily: 'Inter_400Regular', fontStyle: 'italic', fontSize: 14, lineHeight: 22 },
+    inlineCode: {
+      color: theme.accentHover,
+      backgroundColor: rgbaFromHex(theme.panelAlt, 0.92),
+      fontFamily: 'Inter_400Regular',
+      fontSize: 13,
+    },
+    para: { color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22, marginBottom: 2 },
+    h1: { color: theme.accentHover, fontFamily: 'Inter_900Black', fontSize: 19, lineHeight: 26, marginTop: 10, marginBottom: 4 },
+    h2: { color: theme.accentHover, fontFamily: 'Inter_900Black', fontSize: 16, lineHeight: 24, marginTop: 8, marginBottom: 2 },
+    h3: { color: theme.accent, fontFamily: 'Inter_600SemiBold', fontSize: 14, lineHeight: 22, marginTop: 6, marginBottom: 2 },
+    codeBlock: {
+      backgroundColor: rgbaFromHex(theme.panelAlt, 0.94),
+      borderRadius: 10,
+      padding: 12,
+      marginVertical: 6,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    codeText: { color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
+    hr: { height: 1, backgroundColor: theme.border, marginVertical: 8 },
+    list: { marginVertical: 4, gap: 4 },
+    listRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+    bullet: { color: accentDeep, fontFamily: 'Inter_600SemiBold', fontSize: 14, lineHeight: 22, minWidth: 14 },
+    listText: { flex: 1, color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22 },
+    blockquote: { borderLeftWidth: 3, borderLeftColor: accentDeep, paddingLeft: 10, marginVertical: 4 },
+    blockquoteText: { color: theme.accent, fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
+  });
+}

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,11 +16,10 @@ import MoreScreen from '../screens/MoreScreen';
 import FlashcardsScreen from '../screens/FlashcardsScreen';
 import NotesScreen from '../screens/NotesScreen';
 import AIMediaNotesScreen from '../screens/AIMediaNotesScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import HapticTouchable from '../components/HapticTouchable';
-
-const GOLD = '#C9A87C';
-const BG   = '#0A0A0A';
-const DIM  = '#3A3028';
+import { useAppTheme } from '../contexts/ThemeContext';
+import { darkenColor, rgbaFromHex } from '../utils/theme';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 type RootStackParamList = {
@@ -28,6 +27,7 @@ type RootStackParamList = {
   Flashcards: undefined;
   Notes: undefined;
   AIMedia: undefined;
+  Settings: undefined;
 };
 
 const TABS: { label: string; icon: IoniconsName; activeIcon: IoniconsName }[] = [
@@ -41,8 +41,10 @@ const TABS: { label: string; icon: IoniconsName; activeIcon: IoniconsName }[] = 
 type Props = { user: AuthUser; onLogout: () => void };
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen: 'flashcards' | 'notes' | 'aimedia') => void }) {
+function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen: 'flashcards' | 'notes' | 'aimedia' | 'settings') => void }) {
   const insets = useSafeAreaInsets();
+  const { selectedTheme } = useAppTheme();
+  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
   const [index, setIndex] = useState(2);
   const pager = useRef<PagerView>(null);
 
@@ -54,8 +56,8 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={['#100D07', '#0A0908', '#07080D']}
-        locations={[0, 0.55, 1]}
+        colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]}
+        locations={[0, 0.5, 1]}
         style={StyleSheet.absoluteFillObject}
       />
       <View style={{ flex: 1, paddingTop: insets.top }}>
@@ -74,16 +76,20 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
         <View key="4" style={{ flex: 1 }}><ProfileScreen user={user} onLogout={onLogout} onNavigate={onNavigate} /></View>
       </PagerView>
 
-      <View style={[s.tabBar, { paddingBottom: insets.bottom, height: 62 + insets.bottom }]}>
+      <View style={[s.tabBarWrap, { paddingBottom: insets.bottom ? Math.max(insets.bottom - 2, 6) : 12 }]}>
+        <View style={s.tabBar}>
         {TABS.map((t, i) => {
           const active = index === i;
           return (
-            <HapticTouchable key={t.label} style={s.tab} onPress={() => goTo(i)} activeOpacity={0.7} haptic="selection">
-              <Ionicons name={active ? t.activeIcon : t.icon} size={18} color={active ? GOLD : DIM} />
-              <Text style={[s.tabLabel, { color: active ? GOLD : DIM }]}>{t.label}</Text>
+            <HapticTouchable key={t.label} style={[s.tab, active && s.tabActive]} onPress={() => goTo(i)} activeOpacity={0.78} haptic="selection">
+              <View style={[s.iconWrap, active && s.iconWrapActive]}>
+                <Ionicons name={active ? t.activeIcon : t.icon} size={18} color={active ? selectedTheme.bgPrimary : selectedTheme.textSecondary} />
+              </View>
+              <Text style={[s.tabLabel, { color: active ? selectedTheme.textPrimary : selectedTheme.textSecondary }]}>{t.label}</Text>
             </HapticTouchable>
           );
         })}
+        </View>
       </View>
       </View>
     </View>
@@ -91,6 +97,7 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
 }
 
 export default function TabNavigator({ user, onLogout }: Props) {
+  const { selectedTheme } = useAppTheme();
   return (
     <NavigationIndependentTree>
       <NavigationContainer>
@@ -101,7 +108,7 @@ export default function TabNavigator({ user, onLogout }: Props) {
             gestureEnabled: true,
             fullScreenGestureEnabled: true,
             gestureDirection: 'horizontal',
-            contentStyle: { backgroundColor: BG },
+            contentStyle: { backgroundColor: selectedTheme.bgPrimary },
           }}
         >
           <Stack.Screen name="Main">
@@ -113,6 +120,7 @@ export default function TabNavigator({ user, onLogout }: Props) {
                   if (screen === 'flashcards') navigation.navigate('Flashcards');
                   if (screen === 'notes') navigation.navigate('Notes');
                   if (screen === 'aimedia') navigation.navigate('AIMedia');
+                  if (screen === 'settings') navigation.navigate('Settings');
                 }}
               />
             )}
@@ -132,29 +140,65 @@ export default function TabNavigator({ user, onLogout }: Props) {
               <AIMediaNotesScreen user={user} onBack={() => navigation.goBack()} />
             )}
           </Stack.Screen>
+          <Stack.Screen name="Settings">
+            {({ navigation }) => (
+              <SettingsScreen user={user} onBack={() => navigation.goBack()} />
+            )}
+          </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>
     </NavigationIndependentTree>
   );
 }
 
-const s = StyleSheet.create({
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: BG,
-    borderTopWidth: 1,
-    borderTopColor: '#1A1A1A',
-    paddingTop: 7,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: 4,
-  },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0,
-  },
-});
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const SHADOW = darkenColor(theme.primary, theme.isLight ? 72 : 4);
+  return StyleSheet.create({
+    tabBarWrap: {
+      paddingHorizontal: 14,
+      paddingTop: 10,
+    },
+    tabBar: {
+      flexDirection: 'row',
+      borderWidth: 1,
+      borderColor: rgbaFromHex(theme.borderStrong, theme.isLight ? 0.16 : 0.24),
+      borderRadius: 28,
+      paddingHorizontal: 8,
+      paddingTop: 8,
+      paddingBottom: 8,
+      shadowColor: SHADOW,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: theme.isLight ? 0.08 : 0.16,
+      shadowRadius: 18,
+      elevation: 12,
+      backgroundColor: rgbaFromHex(theme.panelAlt, theme.isLight ? 0.96 : 0.92),
+    },
+    tab: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+      borderRadius: 20,
+      paddingVertical: 4,
+    },
+    tabActive: {
+      backgroundColor: rgbaFromHex(theme.accent, theme.isLight ? 0.1 : 0.12),
+    },
+    iconWrap: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: rgbaFromHex(theme.textPrimary, theme.isLight ? 0.035 : 0.05),
+    },
+    iconWrapActive: {
+      backgroundColor: theme.accent,
+    },
+    tabLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.2,
+    },
+  });
+}

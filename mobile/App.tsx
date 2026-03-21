@@ -6,12 +6,14 @@ import LoginScreen from './src/screens/LoginScreen';
 import TabNavigator from './src/navigation/TabNavigator';
 import { getStoredUser, AuthUser } from './src/services/auth';
 import { startSession, endSession } from './src/services/api';
+import { ThemeProvider, useAppTheme } from './src/contexts/ThemeContext';
 
-export default function App() {
+function AppContent() {
   const [splash, setSplash]   = useState(true);
   const [user, setUser]       = useState<AuthUser | null>(null);
   const sessionId             = useRef<string | null>(null);
   const sessionStart          = useRef<number>(0);
+  const { selectedTheme } = useAppTheme();
 
   useEffect(() => {
     getStoredUser().then(u => setUser(u));
@@ -35,20 +37,30 @@ export default function App() {
 
   if (splash) {
     return (
-      <SafeAreaProvider>
-        <StatusBar style="light" />
+      <>
+        <StatusBar style={selectedTheme.isLight ? 'dark' : 'light'} />
         <SplashScreen onFinish={() => setSplash(false)} />
-      </SafeAreaProvider>
+      </>
     );
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" />
+    <>
+      <StatusBar style={selectedTheme.isLight ? 'dark' : 'light'} />
       {user
         ? <TabNavigator user={user} onLogout={() => setUser(null)} />
         : <LoginScreen onLogin={u => setUser(u)} />
       }
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

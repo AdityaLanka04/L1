@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,26 +6,28 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../../services/auth';
 import { getFriendsLeaderboard, getGlobalLeaderboard } from '../../services/api';
 import HapticTouchable from '../../components/HapticTouchable';
+import { useAppTheme } from '../../contexts/ThemeContext';
+import { darkenColor, lightenColor, rgbaFromHex } from '../../utils/theme';
 
 const { width: SW } = Dimensions.get('window');
 
-const GOLD_XL = '#FFF0BC';
-const GOLD_L  = '#E8CC88';
-const GOLD_M  = '#C9A87C';
-const GOLD_D  = '#8A6535';
-const DIM     = '#4A3E2A';
-const SURFACE = '#111111';
-const BORDER  = GOLD_D + '40';
-
 const MEDAL = {
-  gold:   { ring: '#FFD700', bar: 80, size: 60 },
-  silver: { ring: '#D0D0D0', bar: 58, size: 50 },
-  bronze: { ring: '#CD8B3A', bar: 42, size: 44 },
+  gold:   { bar: 80, size: 60 },
+  silver: { bar: 58, size: 50 },
+  bronze: { bar: 42, size: 44 },
 } as const;
 type MedalKey = keyof typeof MEDAL;
 const MEDALS: MedalKey[] = ['gold', 'silver', 'bronze'];
 
+function getMedalRing(theme: ReturnType<typeof useAppTheme>['selectedTheme'], medal: MedalKey) {
+  if (medal === 'gold') return theme.accentHover;
+  if (medal === 'silver') return lightenColor(theme.accent, theme.isLight ? 26 : 12);
+  return darkenColor(theme.accent, theme.isLight ? 14 : 8);
+}
+
 function DotGrid() {
+  const { selectedTheme } = useAppTheme();
+  const dotColor = rgbaFromHex(selectedTheme.accent, 0.16);
   const dotSpacingX = 24;
   const dotSpacingY = 30;
   const cols = Math.floor((SW - 56) / dotSpacingX);
@@ -43,7 +45,7 @@ function DotGrid() {
               width: 2,
               height: 2,
               borderRadius: 1,
-              backgroundColor: GOLD_D + '28',
+              backgroundColor: dotColor,
             }}
           />
         ))
@@ -53,19 +55,23 @@ function DotGrid() {
 }
 
 function Avatar({ name, size = 44, medal }: { name: string; size?: number; medal?: MedalKey }) {
+  const { selectedTheme } = useAppTheme();
+  const ACCENT_DARK = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 12 : 26);
+  const CARD = selectedTheme.panelAlt;
+  const TEXT = selectedTheme.accentHover;
   const initials = (name || '?').split(/[\s_]/).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
-  const ringColor = medal ? MEDAL[medal].ring : '#C9A87C';
+  const ringColor = medal ? getMedalRing(selectedTheme, medal) : selectedTheme.accent;
   return (
     <LinearGradient
-      colors={[ringColor, GOLD_D]}
+      colors={[ringColor, ACCENT_DARK]}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       style={{ width: size + 4, height: size + 4, borderRadius: (size + 4) / 2, padding: 2.5, alignItems: 'center', justifyContent: 'center' }}
     >
       <LinearGradient
-        colors={['#2A1C0A', '#1A1206']}
+        colors={[rgbaFromHex(CARD, 0.98), rgbaFromHex(selectedTheme.bgPrimary, 0.98)]}
         style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Text style={{ fontFamily: 'Inter_900Black', fontSize: size * 0.33, color: GOLD_XL }}>{initials}</Text>
+        <Text style={{ fontFamily: 'Inter_900Black', fontSize: size * 0.33, color: TEXT }}>{initials}</Text>
       </LinearGradient>
     </LinearGradient>
   );
@@ -74,6 +80,11 @@ function Avatar({ name, size = 44, medal }: { name: string; size?: number; medal
 type Props = { user: AuthUser; onBack: () => void };
 
 export default function LeaderboardScreen({ user, onBack }: Props) {
+  const { selectedTheme } = useAppTheme();
+  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const pod = useMemo(() => createPodStyles(selectedTheme), [selectedTheme]);
+  const row = useMemo(() => createRowStyles(selectedTheme), [selectedTheme]);
+  const empty = useMemo(() => createEmptyStyles(selectedTheme), [selectedTheme]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   const [tab, setTab]               = useState<'global' | 'friends'>('global');
   const [friends, setFriends]       = useState<any[]>([]);
@@ -104,12 +115,17 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
   const dname   = (e: any) => e.username || e.name || '?';
   const dscore  = (e: any) => e.score ?? e.total_points ?? e.points ?? 0;
   const dstreak = (e: any) => e.streak ?? e.current_streak ?? 0;
+  const GOLD_XL = selectedTheme.accent;
+  const GOLD_L = selectedTheme.accentHover;
+  const GOLD_M = selectedTheme.accent;
+  const GOLD_D = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 12 : 26);
+  const DIM = selectedTheme.textSecondary;
 
   if (!fontsLoaded) return null;
 
   if (loading) return (
     <View style={{ flex: 1 }}>
-      <LinearGradient colors={['#120E06', '#0A0906', '#080808']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={GOLD_M} size="large" />
       </View>
@@ -124,7 +140,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#120E06', '#0A0906', '#080808']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
       <DotGrid />
 
 {/* Top bar */}
@@ -136,7 +152,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
 
       {/* Hero */}
       <View style={s.hero}>
-        <LinearGradient colors={[GOLD_D + '55', GOLD_D + '18', 'transparent']} style={s.heroGlow}>
+        <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.24), rgbaFromHex(selectedTheme.panelAlt, 0.04), rgbaFromHex(selectedTheme.bgPrimary, 0)]} style={s.heroGlow}>
           <Ionicons name="trophy" size={46} color={GOLD_XL} />
         </LinearGradient>
         <Text style={s.heroTitle}>leaderboard</Text>
@@ -163,7 +179,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
       >
         {list.length === 0 ? (
           <View style={empty.wrap}>
-            <LinearGradient colors={[GOLD_D + '30', GOLD_D + '0A']} style={empty.icon}>
+            <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.14), rgbaFromHex(selectedTheme.panelAlt, 0.04)]} style={empty.icon}>
               <Ionicons name="trophy-outline" size={40} color={GOLD_D} />
             </LinearGradient>
             <Text style={empty.title}>no rankings yet</Text>
@@ -173,21 +189,22 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
             {/* Podium */}
             {top3.length > 0 && (
               <View style={pod.wrap}>
-                <LinearGradient colors={[GOLD_D + '18', 'transparent']} style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]} />
+                <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.08), rgbaFromHex(selectedTheme.bgPrimary, 0)]} style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]} />
                 {podiumOrder.map(([entry, medal]) => {
                   if (!entry) return null;
                   const m = MEDAL[medal];
+                  const ringColor = getMedalRing(selectedTheme, medal);
                   const label = medal === 'gold' ? '1st' : medal === 'silver' ? '2nd' : '3rd';
                   return (
                     <View key={medal} style={[pod.entry, medal === 'gold' && pod.entryFirst]}>
-                      {medal === 'gold' && <Ionicons name="trophy" size={16} color="#FFD700" style={{ marginBottom: 6 }} />}
+                      {medal === 'gold' && <Ionicons name="trophy" size={16} color={ringColor} style={{ marginBottom: 6 }} />}
                       <Avatar name={dname(entry)} size={m.size} medal={medal} />
-                      <View style={[pod.badge, { borderColor: m.ring + '70', backgroundColor: m.ring + '20' }]}>
-                        <Text style={[pod.badgeText, { color: m.ring }]}>{label}</Text>
+                      <View style={[pod.badge, { borderColor: rgbaFromHex(ringColor, 0.44), backgroundColor: rgbaFromHex(ringColor, 0.12) }]}>
+                        <Text style={[pod.badgeText, { color: ringColor }]}>{label}</Text>
                       </View>
                       <Text style={pod.name} numberOfLines={1}>{dname(entry)}</Text>
                       <Text style={pod.score}>{dscore(entry).toLocaleString()}</Text>
-                      <LinearGradient colors={[m.ring + '35', m.ring + '10']} style={[pod.bar, { height: m.bar, borderTopColor: m.ring + '60' }]} />
+                      <LinearGradient colors={[rgbaFromHex(ringColor, 0.22), rgbaFromHex(ringColor, 0.06)]} style={[pod.bar, { height: m.bar, borderTopColor: rgbaFromHex(ringColor, 0.38) }]} />
                     </View>
                   );
                 })}
@@ -207,7 +224,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
 
                   return (
                     <View key={e.id ?? i} style={[row.wrap, isMe && row.wrapMe]}>
-                      {isMe && <LinearGradient colors={[GOLD_D + '30', GOLD_D + '08']} style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]} />}
+                      {isMe && <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.14), rgbaFromHex(selectedTheme.panelAlt, 0.04)]} style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]} />}
                       <Text style={[row.rank, isMe && { color: GOLD_XL }]}>
                         {rank <= 9 ? `0${rank}` : rank}
                       </Text>
@@ -218,7 +235,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
                         </Text>
                         <View style={row.track}>
                           <LinearGradient
-                            colors={isMe ? [GOLD_M, GOLD_D] : [GOLD_D + '60', GOLD_D + '25']}
+                            colors={isMe ? [selectedTheme.accentHover, selectedTheme.accent] : [rgbaFromHex(selectedTheme.accent, 0.42), rgbaFromHex(selectedTheme.accent, 0.14)]}
                             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                             style={[row.fill, { width: `${Math.max(4, pct * 100)}%` as any }]}
                           />
@@ -230,7 +247,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
                         </Text>
                         {streak > 0 && (
                           <View style={row.streakPill}>
-                            <Ionicons name="flame" size={9} color="#FF8C42" />
+                            <Ionicons name="flame" size={9} color={selectedTheme.warning} />
                             <Text style={row.streakText}>{streak}</Text>
                           </View>
                         )}
@@ -249,52 +266,68 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const ACCENT = theme.accent;
+  const ACCENT_DARK = darkenColor(theme.accent, theme.isLight ? 12 : 26);
+  const DIM = theme.textSecondary;
+  const SURFACE = theme.panel;
+  const BORDER = theme.borderStrong;
+  return StyleSheet.create({
   root: { flex: 1 },
 
-topBar:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  backBtn:   { width: 34, height: 34, borderRadius: 17, backgroundColor: SURFACE + 'CC', borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
 
   hero:      { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
-  heroGlow:  { width: 100, height: 100, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: GOLD_D + '50' },
-  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 38, color: GOLD_XL, letterSpacing: -2, marginTop: 6 },
+  heroGlow:  { width: 100, height: 100, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
+  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 38, color: ACCENT, letterSpacing: -2, marginTop: 6 },
   heroSub:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 0.5 },
 
-  tabRow:       { flexDirection: 'row', paddingLeft: 20, paddingRight: 20, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: GOLD_D + '20' },
+  tabRow:       { flexDirection: 'row', paddingLeft: 20, paddingRight: 20, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
   tabItem:      { flex: 1, alignItems: 'center', paddingBottom: 10, position: 'relative' },
   tabText:      { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
-  tabTextActive: { color: GOLD_XL },
-  tabLine:      { position: 'absolute', bottom: -1, left: '15%', right: '15%', height: 2, backgroundColor: GOLD_M, borderRadius: 1 },
+  tabTextActive: { color: theme.accentHover },
+  tabLine:      { position: 'absolute', bottom: -1, left: '15%', right: '15%', height: 2, backgroundColor: ACCENT, borderRadius: 1 },
 
   scroll: { paddingLeft: 20, paddingRight: 20, paddingTop: 4, gap: 0 },
 });
+}
 
-const pod = StyleSheet.create({
+function createPodStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  return StyleSheet.create({
   wrap:       { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', marginBottom: 24, gap: 4, paddingTop: 20, borderRadius: 20, overflow: 'hidden', position: 'relative' },
   entry:      { flex: 1, alignItems: 'center', gap: 0 },
   entryFirst: {},
   badge:      { borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3, marginTop: 8, marginBottom: 4 },
   badgeText:  { fontFamily: 'Inter_900Black', fontSize: 10 },
-  name:       { fontFamily: 'Inter_700Bold', fontSize: 11, color: GOLD_L, textAlign: 'center', paddingHorizontal: 4 },
-  score:      { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, marginBottom: 8, marginTop: 2 },
+  name:       { fontFamily: 'Inter_700Bold', fontSize: 11, color: theme.accentHover, textAlign: 'center', paddingHorizontal: 4 },
+  score:      { fontFamily: 'Inter_400Regular', fontSize: 10, color: theme.textSecondary, marginBottom: 8, marginTop: 2 },
   bar:        { width: '100%', borderTopWidth: 1.5, borderRadius: 4 },
 });
+}
 
-const row = StyleSheet.create({
-  wrap:    { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: GOLD_D + '20', backgroundColor: SURFACE + '80', overflow: 'hidden', position: 'relative', marginBottom: 6 },
-  wrapMe:  { borderColor: GOLD_D + '55' },
-  rank:    { fontFamily: 'Inter_900Black', fontSize: 13, color: DIM, width: 26, textAlign: 'center' },
-  name:    { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: GOLD_L },
-  track:   { height: 3, backgroundColor: GOLD_D + '20', borderRadius: 2, overflow: 'hidden' },
+function createRowStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const ACCENT = theme.accent;
+  const SURFACE = theme.panel;
+  const BORDER = theme.borderStrong;
+  return StyleSheet.create({
+  wrap:    { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: BORDER, backgroundColor: rgbaFromHex(SURFACE, 0.84), overflow: 'hidden', position: 'relative', marginBottom: 6 },
+  wrapMe:  { borderColor: rgbaFromHex(ACCENT, 0.34) },
+  rank:    { fontFamily: 'Inter_900Black', fontSize: 13, color: theme.textSecondary, width: 26, textAlign: 'center' },
+  name:    { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: theme.accentHover },
+  track:   { height: 3, backgroundColor: rgbaFromHex(ACCENT, 0.14), borderRadius: 2, overflow: 'hidden' },
   fill:    { height: '100%', borderRadius: 2 },
   right:   { alignItems: 'flex-end', gap: 4 },
-  score:   { fontFamily: 'Inter_700Bold', fontSize: 15, color: GOLD_M },
-  streakPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#FF8C4215', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
-  streakText: { fontFamily: 'Inter_700Bold', fontSize: 9, color: '#FF8C42' },
+  score:   { fontFamily: 'Inter_700Bold', fontSize: 15, color: ACCENT },
+  streakPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: rgbaFromHex(theme.warning, 0.12), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
+  streakText: { fontFamily: 'Inter_700Bold', fontSize: 9, color: theme.warning },
 });
+}
 
-const empty = StyleSheet.create({
+function createEmptyStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  return StyleSheet.create({
   wrap:  { alignItems: 'center', paddingTop: 80, gap: 14 },
-  icon:  { width: 88, height: 88, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: GOLD_D + '40' },
-  title: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_D },
+  icon:  { width: 88, height: 88, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(theme.accent, 0.22) },
+  title: { fontFamily: 'Inter_900Black', fontSize: 18, color: darkenColor(theme.accent, theme.isLight ? 12 : 26) },
 });
+}

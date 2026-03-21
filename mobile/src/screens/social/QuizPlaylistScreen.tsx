@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
@@ -9,27 +9,18 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../../services/auth';
 import { getChallenges, createChallenge, joinChallenge, getFriends } from '../../services/api';
 import HapticTouchable from '../../components/HapticTouchable';
-
-const BG      = '#0A0A0A';
-const CARD    = '#111111';
-const GOLD_XL = '#FFF0BC';
-const GOLD_L  = '#E8CC88';
-const GOLD_M  = '#C9A87C';
-const GOLD_D  = '#7A5C2E';
-const DIM     = '#4A4030';
-const BORDER  = '#1E1A12';
+import { useAppTheme } from '../../contexts/ThemeContext';
+import { darkenColor, rgbaFromHex } from '../../utils/theme';
 
 const SUBJECTS  = ['Mathematics', 'Biology', 'Chemistry', 'Physics', 'History', 'Literature', 'CS', 'Economics'];
-const DIFF_META: Record<string, { color: string }> = {
-  easy:   { color: '#4CAF50' },
-  medium: { color: '#C9A87C' },
-  hard:   { color: '#EF5350' },
-};
-
 function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+  const { selectedTheme } = useAppTheme();
+  const GOLD_L = selectedTheme.accentHover;
+  const GOLD_D = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 12 : 26);
+  const CARD = selectedTheme.panelAlt;
   const initials = (name || '?').split(/[\s_]/).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
   return (
-    <LinearGradient colors={[GOLD_D + '70', GOLD_D + '25']} style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: GOLD_D }}>
+    <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.28), rgbaFromHex(CARD, 0.98)]} style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(selectedTheme.accent, 0.28) }}>
       <Text style={{ fontFamily: 'Inter_700Bold', fontSize: size * 0.33, color: GOLD_L }}>{initials}</Text>
     </LinearGradient>
   );
@@ -38,6 +29,8 @@ function Avatar({ name, size = 36 }: { name: string; size?: number }) {
 type Props = { user: AuthUser; onBack: () => void };
 
 export default function QuizPlaylistScreen({ user, onBack }: Props) {
+  const { selectedTheme } = useAppTheme();
+  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   const [challenges, setChallenges]   = useState<any[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -46,6 +39,15 @@ export default function QuizPlaylistScreen({ user, onBack }: Props) {
   const [creating, setCreating]       = useState(false);
   const [joining, setJoining]         = useState<number | null>(null);
   const [tab, setTab]                 = useState<'discover' | 'mine'>('discover');
+  const BG = selectedTheme.bgPrimary;
+  const CARD = selectedTheme.panel;
+  const GOLD_XL = selectedTheme.accent;
+  const GOLD_L = selectedTheme.accentHover;
+  const GOLD_M = selectedTheme.accent;
+  const GOLD_D = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 12 : 26);
+  const DIM = selectedTheme.textSecondary;
+  const BORDER = selectedTheme.borderStrong;
+  const INK = selectedTheme.isLight ? darkenColor(selectedTheme.accent, 34) : selectedTheme.bgPrimary;
 
   // Form
   const [title, setTitle]             = useState('');
@@ -105,7 +107,7 @@ export default function QuizPlaylistScreen({ user, onBack }: Props) {
     return Array.isArray(parts) && parts.some((p: any) => (typeof p === 'string' ? p : p?.username) === user.username);
   };
 
-  const diffColor = (d: string) => DIFF_META[d]?.color ?? GOLD_M;
+  const diffColor = (d: string) => (d === 'easy' ? selectedTheme.success : d === 'hard' ? selectedTheme.danger : selectedTheme.accent);
 
   if (!fontsLoaded) return null;
 
@@ -117,6 +119,7 @@ export default function QuizPlaylistScreen({ user, onBack }: Props) {
 
   return (
     <View style={s.root}>
+      <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
       {/* Header */}
       <View style={s.header}>
         <HapticTouchable onPress={onBack} style={s.backBtn} haptic="light">
@@ -221,9 +224,9 @@ export default function QuizPlaylistScreen({ user, onBack }: Props) {
                   haptic={joined ? 'selection' : 'medium'}
                 >
                   {joining === c.id
-                    ? <ActivityIndicator size="small" color={joined ? GOLD_M : BG} />
+                    ? <ActivityIndicator size="small" color={joined ? GOLD_M : INK} />
                     : <>
-                        <Ionicons name={joined ? 'checkmark-circle' : 'play-circle-outline'} size={14} color={joined ? GOLD_M : BG} />
+                        <Ionicons name={joined ? 'checkmark-circle' : 'play-circle-outline'} size={14} color={joined ? GOLD_M : INK} />
                         <Text style={[s.joinBtnText, joined && { color: GOLD_M }]}>{joined ? 'joined' : 'join challenge'}</Text>
                       </>
                   }
@@ -302,9 +305,9 @@ export default function QuizPlaylistScreen({ user, onBack }: Props) {
               haptic="medium"
             >
               {creating
-                ? <ActivityIndicator color={BG} />
+                ? <ActivityIndicator color={INK} />
                 : <>
-                    <Ionicons name="library-outline" size={15} color={BG} />
+                    <Ionicons name="library-outline" size={15} color={INK} />
                     <Text style={s.launchBtnText}>create challenge</Text>
                   </>
               }
@@ -316,64 +319,69 @@ export default function QuizPlaylistScreen({ user, onBack }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: 'transparent' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, gap: 12 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-  title:  { fontFamily: 'Inter_900Black', fontSize: 22, color: GOLD_XL },
-  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM, marginTop: 2 },
-  createBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: GOLD_D + '40', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: GOLD_D },
-  createBtnText: { fontFamily: 'Inter_700Bold', fontSize: 12, color: GOLD_XL },
-
-  tabs:         { flexDirection: 'row', marginHorizontal: 20, marginBottom: 16, backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER, padding: 3 },
-  tabBtn:       { flex: 1, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 10 },
-  tabBtnActive: { backgroundColor: GOLD_D + '40' },
-  tabLabel:     { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
-  tabLabelActive: { color: GOLD_L },
-
-  scroll: { paddingHorizontal: 20, paddingBottom: 48 },
-
-  card:       { backgroundColor: CARD, borderRadius: 18, borderWidth: 1, borderColor: BORDER, padding: 16, marginBottom: 12, gap: 10 },
-  cardHeader: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  subjectBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, backgroundColor: GOLD_D + '20', borderRadius: 7, borderWidth: 1, borderColor: GOLD_D + '40' },
-  subjectText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, letterSpacing: 0.5 },
-  cardTitle:  { fontFamily: 'Inter_900Black', fontSize: 17, color: GOLD_XL, lineHeight: 22 },
-  cardMeta:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cardCreator: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM },
-  youChip:    { backgroundColor: GOLD_D + '30', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: GOLD_D },
-  youChipText: { fontFamily: 'Inter_700Bold', fontSize: 9, color: GOLD_M },
-  avatarRow:  { flexDirection: 'row', alignItems: 'center', paddingTop: 2 },
-  miniAvatar: { borderRadius: 13, borderWidth: 1.5, borderColor: BG },
-  moreText:   { fontFamily: 'Inter_700Bold', fontSize: 10, color: DIM, marginLeft: 6 },
-  progressWrap: { height: 4, backgroundColor: '#1E1A12', borderRadius: 2, overflow: 'hidden' },
-  progressBar:  { height: '100%', backgroundColor: GOLD_M, borderRadius: 2 },
-  progressText: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, marginTop: 4 },
-
-  joinBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: GOLD_M, borderRadius: 12, paddingVertical: 10 },
-  joinBtnJoined: { backgroundColor: 'transparent', borderWidth: 1, borderColor: GOLD_D },
-  joinBtnText:   { fontFamily: 'Inter_700Bold', fontSize: 13, color: BG },
-  statsRow:      { flexDirection: 'row', gap: 8 },
-  statChip:      { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: GOLD_D + '20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: GOLD_D + '40' },
-  statText:      { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: GOLD_M },
-
-  empty:      { alignItems: 'center', paddingTop: 80, gap: 10 },
-  emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: DIM },
-  emptyHint:  { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM + '80' },
-  emptyBtn:   { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: GOLD_D + '40', borderRadius: 14, paddingHorizontal: 20, paddingVertical: 12, borderWidth: 1, borderColor: GOLD_D, marginTop: 12 },
-  emptyBtnText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: GOLD_XL },
-
-  modal:       { flex: 1, backgroundColor: '#0A0A0A', paddingTop: 20 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 24 },
-  modalTitle:  { fontFamily: 'Inter_900Black', fontSize: 24, color: GOLD_XL },
-  fieldLabel:  { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, letterSpacing: 2, marginBottom: 10 },
-  input:       { backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: GOLD_D, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 14, color: GOLD_L, marginBottom: 24 },
-  chipRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
-  chip:        { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: CARD, borderRadius: 10, borderWidth: 1, borderColor: BORDER },
-  chipActive:  { backgroundColor: GOLD_D + '40', borderColor: GOLD_D },
-  chipText:    { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
-  chipTextActive: { color: GOLD_L },
-  infoBox:     { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: 14, borderWidth: 1, borderColor: GOLD_D + '40', padding: 14, marginBottom: 24 },
-  infoText:    { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM, flex: 1, lineHeight: 18 },
-  launchBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: GOLD_M, borderRadius: 16, paddingVertical: 16 },
-  launchBtnText: { fontFamily: 'Inter_900Black', fontSize: 15, color: BG },
-});
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  const BG = theme.bgPrimary;
+  const CARD = theme.panel;
+  const CARD_ALT = theme.panelAlt;
+  const ACCENT = theme.accent;
+  const ACCENT_HOVER = theme.accentHover;
+  const ACCENT_DARK = darkenColor(theme.accent, theme.isLight ? 12 : 26);
+  const DIM = theme.textSecondary;
+  const BORDER = theme.borderStrong;
+  const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: 'transparent' },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, gap: 12 },
+    backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
+    title: { fontFamily: 'Inter_900Black', fontSize: 22, color: ACCENT },
+    subtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM, marginTop: 2 },
+    createBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: rgbaFromHex(ACCENT, 0.14), borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.28) },
+    createBtnText: { fontFamily: 'Inter_700Bold', fontSize: 12, color: ACCENT_HOVER },
+    tabs: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 16, backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER, padding: 3 },
+    tabBtn: { flex: 1, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 10 },
+    tabBtnActive: { backgroundColor: rgbaFromHex(ACCENT, 0.14) },
+    tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
+    tabLabelActive: { color: ACCENT_HOVER },
+    scroll: { paddingHorizontal: 20, paddingBottom: 48 },
+    card: { backgroundColor: CARD, borderRadius: 18, borderWidth: 1, borderColor: BORDER, padding: 16, marginBottom: 12, gap: 10 },
+    cardHeader: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    subjectBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, backgroundColor: rgbaFromHex(ACCENT, 0.10), borderRadius: 7, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.20) },
+    subjectText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, letterSpacing: 0.5 },
+    cardTitle: { fontFamily: 'Inter_900Black', fontSize: 17, color: ACCENT_HOVER, lineHeight: 22 },
+    cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    cardCreator: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM },
+    youChip: { backgroundColor: rgbaFromHex(ACCENT, 0.14), borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
+    youChipText: { fontFamily: 'Inter_700Bold', fontSize: 9, color: ACCENT },
+    avatarRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 2 },
+    miniAvatar: { borderRadius: 13, borderWidth: 1.5, borderColor: BG },
+    moreText: { fontFamily: 'Inter_700Bold', fontSize: 10, color: DIM, marginLeft: 6 },
+    progressWrap: { height: 4, backgroundColor: rgbaFromHex(ACCENT, 0.12), borderRadius: 2, overflow: 'hidden' },
+    progressBar: { height: '100%', backgroundColor: ACCENT, borderRadius: 2 },
+    progressText: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, marginTop: 4 },
+    joinBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: ACCENT, borderRadius: 12, paddingVertical: 10 },
+    joinBtnJoined: { backgroundColor: 'transparent', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.28) },
+    joinBtnText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: INK },
+    statsRow: { flexDirection: 'row', gap: 8 },
+    statChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: rgbaFromHex(ACCENT, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.22) },
+    statText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: ACCENT },
+    empty: { alignItems: 'center', paddingTop: 80, gap: 10 },
+    emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: DIM },
+    emptyHint: { fontFamily: 'Inter_400Regular', fontSize: 13, color: rgbaFromHex(theme.textSecondary, 0.8) },
+    emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: rgbaFromHex(ACCENT, 0.14), borderRadius: 14, paddingHorizontal: 20, paddingVertical: 12, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.28), marginTop: 12 },
+    emptyBtnText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: ACCENT_HOVER },
+    modal: { flex: 1, backgroundColor: BG, paddingTop: 20 },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 24 },
+    modalTitle: { fontFamily: 'Inter_900Black', fontSize: 24, color: ACCENT },
+    fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, letterSpacing: 2, marginBottom: 10 },
+    input: { backgroundColor: CARD_ALT, borderRadius: 12, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 14, color: ACCENT_HOVER, marginBottom: 24 },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: CARD_ALT, borderRadius: 10, borderWidth: 1, borderColor: BORDER },
+    chipActive: { backgroundColor: rgbaFromHex(ACCENT, 0.14), borderColor: rgbaFromHex(ACCENT, 0.28) },
+    chipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
+    chipTextActive: { color: ACCENT_HOVER },
+    infoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: 14, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.22), padding: 14, marginBottom: 24, backgroundColor: rgbaFromHex(ACCENT, 0.08) },
+    infoText: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM, flex: 1, lineHeight: 18 },
+    launchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: ACCENT, borderRadius: 16, paddingVertical: 16 },
+    launchBtnText: { fontFamily: 'Inter_900Black', fontSize: 15, color: INK },
+  });
+}

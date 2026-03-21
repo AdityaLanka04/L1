@@ -16,6 +16,7 @@ import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../services/auth';
+import { useAppTheme } from '../contexts/ThemeContext';
 import {
   createNote,
   getFolders,
@@ -29,18 +30,20 @@ import {
   updateNote,
 } from '../services/api';
 import HapticTouchable from '../components/HapticTouchable';
+import { darkenColor, getDefaultTheme, rgbaFromHex } from '../utils/theme';
 
-const BG = '#0A0A0A';
-const SURFACE = '#0F0F0F';
-const SURFACE_2 = '#151515';
-const ACCENT = '#C9A87C';
-const GOLD_L = '#E8CC88';
-const GOLD_D = '#8A6535';
-const GOLD_XD = '#5A3F1A';
-const BORDER = '#1A1408';
-const DIM2 = '#4A3E2A';
-const RED = '#BF5D5D';
-const GREEN = '#5DBF7A';
+const DEFAULT_THEME = getDefaultTheme();
+let BG = DEFAULT_THEME.bgPrimary;
+let SURFACE = DEFAULT_THEME.panel;
+let SURFACE_2 = DEFAULT_THEME.panelAlt;
+let ACCENT = DEFAULT_THEME.accent;
+let GOLD_L = DEFAULT_THEME.accentHover;
+let GOLD_D = darkenColor(DEFAULT_THEME.accent, DEFAULT_THEME.isLight ? 10 : 26);
+let GOLD_XD = darkenColor(DEFAULT_THEME.accent, DEFAULT_THEME.isLight ? 26 : 40);
+let BORDER = DEFAULT_THEME.borderStrong;
+let DIM2 = DEFAULT_THEME.textSecondary;
+let RED = DEFAULT_THEME.danger;
+let GREEN = DEFAULT_THEME.success;
 
 type Note = {
   id: number;
@@ -79,6 +82,20 @@ type NotesStackParamList = {
 };
 
 const NotesStack = createNativeStackNavigator<NotesStackParamList>();
+
+function applyTheme(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  BG = theme.bgPrimary;
+  SURFACE = theme.panel;
+  SURFACE_2 = theme.panelAlt;
+  ACCENT = theme.accent;
+  GOLD_L = theme.accentHover;
+  GOLD_D = darkenColor(theme.accent, theme.isLight ? 10 : 26);
+  GOLD_XD = darkenColor(theme.accent, theme.isLight ? 26 : 40);
+  BORDER = theme.borderStrong;
+  DIM2 = theme.textSecondary;
+  RED = theme.danger;
+  GREEN = theme.success;
+}
 
 function stripHtml(html: string) {
   if (!html) return '';
@@ -518,7 +535,7 @@ function NotesHome({
           <Ionicons name="trash-outline" size={18} color={GOLD_D} />
         </HapticTouchable>
         <HapticTouchable onPress={createNewNote} style={[s.headerIconBtn, s.headerIconBtnPrimary]} haptic="medium" disabled={creating}>
-          <Ionicons name="add" size={20} color="#0A0908" />
+          <Ionicons name="add" size={20} color={BG} />
         </HapticTouchable>
       </View>
 
@@ -612,6 +629,9 @@ function NotesHome({
 }
 
 export default function NotesScreen({ user, onBack }: Props) {
+  const { selectedTheme } = useAppTheme();
+  applyTheme(selectedTheme);
+  s = createStyles();
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const [refreshTick, setRefreshTick] = useState(0);
   const [foldersSnapshot, setFoldersSnapshot] = useState<Folder[]>([]);
@@ -677,7 +697,14 @@ export default function NotesScreen({ user, onBack }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+function createStyles() {
+  const softAccent = rgbaFromHex(ACCENT, 0.12);
+  const softAccentBorder = rgbaFromHex(ACCENT, 0.24);
+  const softSuccess = rgbaFromHex(GREEN, 0.12);
+  const softSuccessBorder = rgbaFromHex(GREEN, 0.24);
+  const softDanger = rgbaFromHex(RED, 0.12);
+  const softDangerBorder = rgbaFromHex(RED, 0.24);
+  return StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   header: {
     flexDirection: 'row',
@@ -688,11 +715,11 @@ const s = StyleSheet.create({
     paddingBottom: 12,
     gap: 8,
   },
-  title: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_L },
+  title: { fontFamily: 'Inter_900Black', fontSize: 30, color: ACCENT },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, letterSpacing: 2, marginTop: 2 },
 
   headerIconBtn: {
-    width: 36, height: 36, borderRadius: 12, borderWidth: 1, borderColor: GOLD_XD,
+    width: 36, height: 36, borderRadius: 12, borderWidth: 1, borderColor: softAccentBorder,
     backgroundColor: SURFACE_2, alignItems: 'center', justifyContent: 'center',
   },
   headerIconBtnPrimary: { backgroundColor: ACCENT, borderColor: ACCENT },
@@ -705,8 +732,13 @@ const s = StyleSheet.create({
     borderColor: BORDER,
     overflow: 'hidden',
     marginBottom: 12,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  statCell: { flex: 1, alignItems: 'center', paddingVertical: 12 },
+  statCell: { flex: 1, alignItems: 'center', paddingVertical: 14 },
   statDivider: { borderLeftWidth: 1, borderLeftColor: BORDER },
   statValue: { fontFamily: 'Inter_900Black', fontSize: 18, color: ACCENT },
   statLabel: { fontFamily: 'Inter_400Regular', fontSize: 8, color: DIM2, letterSpacing: 1.5, marginTop: 2 },
@@ -722,6 +754,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     marginBottom: 10,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    elevation: 3,
   },
   searchInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 13, color: GOLD_L },
   filtersRow: { gap: 10, paddingBottom: 6, marginBottom: 4 },
@@ -740,11 +777,16 @@ const s = StyleSheet.create({
   listContent: { padding: 16, gap: 12, paddingBottom: 120, flexGrow: 1 },
   noteCard: {
     backgroundColor: SURFACE,
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: BORDER,
-    padding: 16,
+    padding: 18,
     gap: 10,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 22,
+    elevation: 5,
   },
   noteCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   noteCardTitle: { fontFamily: 'Inter_900Black', fontSize: 16, color: GOLD_L, lineHeight: 22 },
@@ -754,9 +796,9 @@ const s = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: SURFACE_2,
+    backgroundColor: softAccent,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: softAccentBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -784,9 +826,9 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   saveBtn: {
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     backgroundColor: ACCENT,
   },
   saveBtnText: { fontFamily: 'Inter_900Black', fontSize: 11, color: BG, textTransform: 'lowercase' },
@@ -799,7 +841,7 @@ const s = StyleSheet.create({
   folderChips: { gap: 10 },
   titleInput: {
     backgroundColor: SURFACE,
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 16,
@@ -813,7 +855,7 @@ const s = StyleSheet.create({
   contentInput: {
     minHeight: 420,
     backgroundColor: SURFACE,
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 16,
@@ -826,7 +868,7 @@ const s = StyleSheet.create({
 
   trashCard: {
     backgroundColor: SURFACE,
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
@@ -836,21 +878,24 @@ const s = StyleSheet.create({
   trashMeta: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM2, marginTop: 8, letterSpacing: 0.8 },
   trashActions: { justifyContent: 'space-between', gap: 8 },
   restoreBtn: {
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#0D1A10',
+    backgroundColor: softSuccess,
     borderWidth: 1,
-    borderColor: '#1F4A2C',
+    borderColor: softSuccessBorder,
   },
   restoreBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: GREEN, textTransform: 'lowercase' },
   deleteForeverBtn: {
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#1A0D0D',
+    backgroundColor: softDanger,
     borderWidth: 1,
-    borderColor: '#4A1F1F',
+    borderColor: softDangerBorder,
   },
   deleteForeverText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: RED, textTransform: 'lowercase' },
 });
+}
+
+let s: ReturnType<typeof createStyles> = createStyles();
