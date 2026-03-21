@@ -649,20 +649,15 @@ function FlashcardsSets({
           contentContainerStyle={s.listContent}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={(
-            <View style={s.heroCard}>
-              <Text style={s.heroEyebrow}>NEW ON MOBILE</Text>
-              <Text style={s.heroTitle}>Create flashcards here, not just on the web.</Text>
-              <Text style={s.heroBody}>
-                Generate with AI or build your own set. Retrieval and studying still use the same backend endpoints.
-              </Text>
-              <View style={s.heroActions}>
-                <HapticTouchable style={s.primaryCta} onPress={() => onOpenCreate('ai')} activeOpacity={0.88} haptic="medium">
-                  <Text style={s.primaryCtaText}>AI generate</Text>
-                </HapticTouchable>
-                <HapticTouchable style={s.secondaryCta} onPress={() => onOpenCreate('manual')} activeOpacity={0.88} haptic="light">
-                  <Text style={s.secondaryCtaText}>Manual create</Text>
-                </HapticTouchable>
-              </View>
+            <View style={s.createRow}>
+              <HapticTouchable style={s.createBtnPrimary} onPress={() => onOpenCreate('ai')} haptic="medium">
+                <Ionicons name="sparkles" size={15} color="#0A0908" />
+                <Text style={s.createBtnPrimaryText}>AI generate</Text>
+              </HapticTouchable>
+              <HapticTouchable style={s.createBtnSecondary} onPress={() => onOpenCreate('manual')} haptic="light">
+                <Ionicons name="add" size={16} color={GOLD_L} />
+                <Text style={s.createBtnSecondaryText}>manual</Text>
+              </HapticTouchable>
             </View>
           )}
           ListEmptyComponent={(
@@ -811,43 +806,18 @@ const s = StyleSheet.create({
   statLbl: { fontFamily: 'Inter_400Regular', fontSize: 8, color: DIM2, letterSpacing: 1.5, marginTop: 2 },
 
   listContent: { padding: 16, gap: 12, paddingBottom: 120, flexGrow: 1 },
-  heroCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: GOLD_XD,
-    padding: 18,
-    marginBottom: 12,
+  createRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  createBtnPrimary: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 7, backgroundColor: ACCENT, borderRadius: 14, paddingVertical: 13,
   },
-  heroCreateCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: GOLD_XD,
-    padding: 18,
+  createBtnPrimaryText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: INK },
+  createBtnSecondary: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 7, borderRadius: 14, paddingVertical: 13,
+    borderWidth: 1, borderColor: GOLD_XD, backgroundColor: SURFACE,
   },
-  heroEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_D, letterSpacing: 2.2 },
-  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 24, color: GOLD_L, lineHeight: 30, marginTop: 10 },
-  heroBody: { fontFamily: 'Inter_400Regular', fontSize: 13, color: '#B9A489', lineHeight: 20, marginTop: 10 },
-  heroActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  primaryCta: {
-    flex: 1,
-    backgroundColor: ACCENT,
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  primaryCtaText: { fontFamily: 'Inter_900Black', fontSize: 13, color: INK },
-  secondaryCta: {
-    flex: 1,
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: GOLD_D,
-    backgroundColor: SURFACE_2,
-  },
-  secondaryCtaText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: GOLD_L },
+  createBtnSecondaryText: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: GOLD_L },
 
   setCard: { backgroundColor: SURFACE, borderRadius: 20, borderWidth: 1, borderColor: BORDER, padding: 16, gap: 12 },
   setCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },

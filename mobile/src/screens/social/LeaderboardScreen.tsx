@@ -127,27 +127,23 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
       <LinearGradient colors={['#120E06', '#0A0906', '#080808']} style={StyleSheet.absoluteFillObject} />
       <DotGrid />
 
-      {/* Left edge word */}
-      <View style={s.edgeStrip} pointerEvents="none">
-        {'RANKS'.split('').map((ch, i) => (
-          <Text key={i} style={s.edgeLetter}>{ch}</Text>
-        ))}
-      </View>
-
-      {/* Header */}
-      <View style={s.header}>
+{/* Top bar */}
+      <View style={s.topBar}>
         <HapticTouchable onPress={onBack} style={s.backBtn} haptic="light">
           <Ionicons name="chevron-back" size={18} color={GOLD_M} />
         </HapticTouchable>
-        <View style={{ flex: 1 }}>
-          <Text style={s.title}>leaderboard</Text>
-          {myRank && (
-            <Text style={s.subtitle}>your rank <Text style={{ color: GOLD_XL, fontFamily: 'Inter_700Bold' }}>#{myRank.rank ?? myRank}</Text></Text>
-          )}
-        </View>
-        <View style={s.trophyWrap}>
-          <Ionicons name="trophy" size={18} color="#FFD700" />
-        </View>
+      </View>
+
+      {/* Hero */}
+      <View style={s.hero}>
+        <LinearGradient colors={[GOLD_D + '55', GOLD_D + '18', 'transparent']} style={s.heroGlow}>
+          <Ionicons name="trophy" size={46} color={GOLD_XL} />
+        </LinearGradient>
+        <Text style={s.heroTitle}>leaderboard</Text>
+        {myRank && (
+          <Text style={s.heroSub}>you're ranked <Text style={{ color: GOLD_XL, fontFamily: 'Inter_700Bold' }}>#{myRank.rank ?? myRank}</Text></Text>
+        )}
+        {!myRank && <Text style={s.heroSub}>see how you stack up</Text>}
       </View>
 
       {/* Tabs */}
@@ -256,14 +252,13 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
 const s = StyleSheet.create({
   root: { flex: 1 },
 
-  edgeStrip:  { position: 'absolute', left: 0, top: 120, bottom: 0, width: 68, flexDirection: 'column', justifyContent: 'space-evenly', alignItems: 'center', zIndex: 0 },
-  edgeLetter: { fontFamily: 'Inter_900Black', fontSize: 88, color: GOLD_XL, opacity: 0.055 },
-
-  header:    { flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 20, paddingTop: 18, paddingBottom: 10, gap: 10 },
+topBar:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
   backBtn:   { width: 34, height: 34, borderRadius: 17, backgroundColor: SURFACE + 'CC', borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-  title:     { fontFamily: 'Inter_900Black', fontSize: 26, color: GOLD_XL, letterSpacing: -0.5 },
-  subtitle:  { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, marginTop: 2 },
-  trophyWrap: { width: 36, height: 36, borderRadius: 12, backgroundColor: GOLD_D + '25', borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
+
+  hero:      { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
+  heroGlow:  { width: 100, height: 100, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: GOLD_D + '50' },
+  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 38, color: GOLD_XL, letterSpacing: -2, marginTop: 6 },
+  heroSub:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 0.5 },
 
   tabRow:       { flexDirection: 'row', paddingLeft: 20, paddingRight: 20, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: GOLD_D + '20' },
   tabItem:      { flex: 1, alignItems: 'center', paddingBottom: 10, position: 'relative' },

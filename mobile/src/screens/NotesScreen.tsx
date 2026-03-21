@@ -514,7 +514,12 @@ function NotesHome({
           <Text style={s.title}>notes</Text>
           <Text style={s.subtitle}>write · organize · revisit</Text>
         </View>
-        <Ionicons name="document-text-outline" size={22} color={GOLD_D} />
+        <HapticTouchable onPress={onOpenTrash} style={s.headerIconBtn} haptic="selection">
+          <Ionicons name="trash-outline" size={18} color={GOLD_D} />
+        </HapticTouchable>
+        <HapticTouchable onPress={createNewNote} style={[s.headerIconBtn, s.headerIconBtnPrimary]} haptic="medium" disabled={creating}>
+          <Ionicons name="add" size={20} color="#0A0908" />
+        </HapticTouchable>
       </View>
 
       {loading ? (
@@ -527,22 +532,6 @@ function NotesHome({
           contentContainerStyle={s.listContent}
           ListHeaderComponent={(
             <>
-              <View style={s.heroCard}>
-                <Text style={s.heroEyebrow}>MOBILE NOTES</Text>
-                <Text style={s.heroTitle}>Create and manage notes here, not just on the browser.</Text>
-                <Text style={s.heroBody}>
-                  Uses the same note endpoints for create, edit, favorites, trash, and folders, with a phone-sized editor.
-                </Text>
-                <View style={s.heroActions}>
-                  <HapticTouchable style={s.primaryBtn} onPress={createNewNote} haptic="medium" disabled={creating}>
-                    <Text style={s.primaryBtnText}>{creating ? 'creating...' : 'new note'}</Text>
-                  </HapticTouchable>
-                  <HapticTouchable style={s.secondaryBtn} onPress={onOpenTrash} haptic="selection">
-                    <Text style={s.secondaryBtnText}>trash</Text>
-                  </HapticTouchable>
-                </View>
-              </View>
-
               <View style={s.statsStrip}>
                 {[
                   { value: notes.length, label: 'NOTES' },
@@ -697,40 +686,16 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 12,
+    gap: 8,
   },
   title: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_L },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, letterSpacing: 2, marginTop: 2 },
 
-  heroCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: GOLD_XD,
-    padding: 18,
-    marginBottom: 14,
+  headerIconBtn: {
+    width: 36, height: 36, borderRadius: 12, borderWidth: 1, borderColor: GOLD_XD,
+    backgroundColor: SURFACE_2, alignItems: 'center', justifyContent: 'center',
   },
-  heroEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_D, letterSpacing: 2.2 },
-  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 24, color: GOLD_L, lineHeight: 30, marginTop: 10 },
-  heroBody: { fontFamily: 'Inter_400Regular', fontSize: 13, color: '#B9A489', lineHeight: 20, marginTop: 10 },
-  heroActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  primaryBtn: {
-    flex: 1,
-    backgroundColor: ACCENT,
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  primaryBtnText: { fontFamily: 'Inter_900Black', fontSize: 13, color: BG, textTransform: 'lowercase' },
-  secondaryBtn: {
-    width: 96,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: GOLD_D,
-    backgroundColor: SURFACE_2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: GOLD_L, textTransform: 'lowercase' },
+  headerIconBtnPrimary: { backgroundColor: ACCENT, borderColor: ACCENT },
 
   statsStrip: {
     flexDirection: 'row',

@@ -153,19 +153,11 @@ export default function GamesScreen({ user, onBack }: Props) {
       <LinearGradient colors={['#120E06', '#0A0906', '#080808']} style={StyleSheet.absoluteFillObject} />
       <DotGrid />
 
-      {/* Left edge word */}
-      <View style={s.edgeStrip} pointerEvents="none">
-        {'BATTLE'.split('').map((ch, i) => (
-          <Text key={i} style={s.edgeLetter}>{ch}</Text>
-        ))}
-      </View>
-
-      {/* Header */}
-      <View style={s.header}>
+{/* Top bar */}
+      <View style={s.topBar}>
         <HapticTouchable onPress={onBack} style={s.backBtn} haptic="light">
           <Ionicons name="chevron-back" size={18} color={GOLD_M} />
         </HapticTouchable>
-        <Text style={s.title}>battles</Text>
         <HapticTouchable onPress={() => setShowCreate(true)} haptic="medium">
           <LinearGradient colors={[GOLD_M, GOLD_D]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.cta}>
             <Text style={s.ctaText}>+ challenge</Text>
@@ -173,19 +165,13 @@ export default function GamesScreen({ user, onBack }: Props) {
         </HapticTouchable>
       </View>
 
-      {/* Stats strip */}
-      <View style={s.statsStrip}>
-        {[
-          { val: active.length,   lbl: 'active'   },
-          { val: pending.length,  lbl: 'incoming'  },
-          { val: outgoing.length, lbl: 'sent'      },
-          { val: history.length,  lbl: 'completed' },
-        ].map((item, i) => (
-          <View key={i} style={s.statCell}>
-            <Text style={s.statVal}>{item.val}</Text>
-            <Text style={s.statLbl}>{item.lbl}</Text>
-          </View>
-        ))}
+      {/* Hero */}
+      <View style={s.hero}>
+        <LinearGradient colors={[GOLD_D + '55', GOLD_D + '18', 'transparent']} style={s.heroGlow}>
+          <Ionicons name="flash" size={46} color={GOLD_XL} />
+        </LinearGradient>
+        <Text style={s.heroTitle}>battles</Text>
+        <Text style={s.heroSub}>{active.length} active · {pending.length} incoming</Text>
       </View>
 
       <View style={s.divider} />
@@ -443,19 +429,15 @@ export default function GamesScreen({ user, onBack }: Props) {
 const s = StyleSheet.create({
   root: { flex: 1 },
 
-  edgeStrip:  { position: 'absolute', left: 0, top: 108, bottom: 0, width: 68, flexDirection: 'column', justifyContent: 'space-evenly', alignItems: 'center', zIndex: 0 },
-  edgeLetter: { fontFamily: 'Inter_900Black', fontSize: 80, color: GOLD_XL, opacity: 0.055 },
-
-  header:  { flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 20, paddingTop: 18, paddingBottom: 10, gap: 10 },
+topBar:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
   backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: SURFACE + 'CC', borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-  title:   { fontFamily: 'Inter_900Black', fontSize: 26, color: GOLD_XL, flex: 1, letterSpacing: -0.5 },
   cta:     { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
   ctaText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#0A0908' },
 
-  statsStrip: { flexDirection: 'row', paddingLeft: 20, paddingRight: 20, paddingVertical: 12 },
-  statCell:   { flex: 1, alignItems: 'center', gap: 2 },
-  statVal:    { fontFamily: 'Inter_900Black', fontSize: 22, color: GOLD_XL },
-  statLbl:    { fontFamily: 'Inter_400Regular', fontSize: 9, color: DIM, letterSpacing: 1 },
+  hero:      { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
+  heroGlow:  { width: 100, height: 100, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: GOLD_D + '50' },
+  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 42, color: GOLD_XL, letterSpacing: -2, marginTop: 6 },
+  heroSub:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 1 },
 
   divider: { height: 1, marginLeft: 20, marginRight: 20, backgroundColor: GOLD_D + '25' },
 

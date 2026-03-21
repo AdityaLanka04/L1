@@ -188,24 +188,25 @@ export default function FriendsScreen({ user, onBack }: Props) {
       <LinearGradient colors={['#120E06', '#0A0906', '#080808']} style={StyleSheet.absoluteFillObject} />
       <DotGrid />
 
-      {/* Left edge word */}
-      <View style={s.edgeStrip} pointerEvents="none">
-        {'FRIENDS'.split('').map((ch, i) => (
-          <Text key={i} style={s.edgeLetter}>{ch}</Text>
-        ))}
-      </View>
-
-      {/* Header */}
-      <View style={s.header}>
+{/* Top bar */}
+      <View style={s.topBar}>
         <HapticTouchable onPress={onBack} style={s.backBtn} haptic="light">
           <Ionicons name="chevron-back" size={18} color={GOLD_M} />
         </HapticTouchable>
-        <Text style={s.title}>friends</Text>
         {requests.length > 0 && (
           <View style={s.requestBadge}>
-            <Text style={s.requestBadgeText}>{requests.length} new</Text>
+            <Text style={s.requestBadgeText}>{requests.length} pending</Text>
           </View>
         )}
+      </View>
+
+      {/* Hero */}
+      <View style={s.hero}>
+        <LinearGradient colors={[GOLD_D + '55', GOLD_D + '18', 'transparent']} style={s.heroGlow}>
+          <Ionicons name="people" size={46} color={GOLD_XL} />
+        </LinearGradient>
+        <Text style={s.heroTitle}>friends</Text>
+        <Text style={s.heroSub}>{friends.length} connected</Text>
       </View>
 
       {/* Search */}
@@ -412,14 +413,15 @@ export default function FriendsScreen({ user, onBack }: Props) {
 const s = StyleSheet.create({
   root: { flex: 1 },
 
-  edgeStrip:  { position: 'absolute', left: 0, top: 160, bottom: 0, width: 68, flexDirection: 'column', justifyContent: 'space-evenly', alignItems: 'center', zIndex: 0 },
-  edgeLetter: { fontFamily: 'Inter_900Black', fontSize: 68, color: GOLD_XL, opacity: 0.055 },
-
-  header:       { flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 20, paddingTop: 18, paddingBottom: 10, gap: 10 },
+topBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
   backBtn:      { width: 34, height: 34, borderRadius: 17, backgroundColor: SURFACE + 'CC', borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-  title:        { fontFamily: 'Inter_900Black', fontSize: 26, color: GOLD_XL, flex: 1, letterSpacing: -0.5 },
   requestBadge: { backgroundColor: GOLD_D + '30', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: BORDER },
   requestBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 12, color: GOLD_M },
+
+  hero:      { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
+  heroGlow:  { width: 100, height: 100, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: GOLD_D + '50' },
+  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 42, color: GOLD_XL, letterSpacing: -2, marginTop: 6 },
+  heroSub:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 1 },
 
   searchWrap:   { paddingLeft: 20, paddingRight: 20, marginBottom: 14 },
   searchBorder: { borderRadius: 14, padding: 1 },
