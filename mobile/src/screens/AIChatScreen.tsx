@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MarkdownText from '../components/MarkdownText';
 import HapticTouchable from '../components/HapticTouchable';
+import AmbientBubbles from '../components/AmbientBubbles';
 import { AuthUser } from '../services/auth';
 import { createChatSession, askAI, getChatSessions, getChatMessages, getSearchHubSuggestions } from '../services/api';
 import { useAppTheme } from '../contexts/ThemeContext';
@@ -264,6 +265,7 @@ export default function AIChatScreen({ user }: Props) {
   return (
     <SafeAreaView style={s.safe} edges={[]}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFill} />
+      <AmbientBubbles theme={selectedTheme} variant="chat" opacity={0.84} />
       <View style={[s.glowTop, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.08) }]} pointerEvents="none" />
       <View style={[s.glowBottom, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.09) }]} pointerEvents="none" />
 

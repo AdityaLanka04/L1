@@ -16,6 +16,7 @@ import GamesScreen from './social/GamesScreen';
 import QuizPlaylistScreen from './social/QuizPlaylistScreen';
 import PlaylistsScreen from './social/PlaylistsScreen';
 import LearningPathsScreen from './social/LearningPathsScreen';
+import AmbientBubbles from '../components/AmbientBubbles';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
 
@@ -182,6 +183,7 @@ export default function SocialScreen({ user }: Props) {
   return (
     <View style={s.root}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
+      <AmbientBubbles theme={selectedTheme} variant="social" opacity={0.9} />
       <View style={[s.glowTop, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.08) }]} pointerEvents="none" />
 
       <ScrollView

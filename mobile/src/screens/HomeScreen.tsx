@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import RingProgress from '../components/RingProgress';
 import HapticTouchable from '../components/HapticTouchable';
+import AmbientBubbles from '../components/AmbientBubbles';
 import { AuthUser } from '../services/auth';
 import { getEnhancedStats } from '../services/api';
 import { triggerHaptic } from '../utils/haptics';
@@ -245,6 +246,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
+      <AmbientBubbles theme={selectedTheme} variant="home" opacity={0.95} />
       <View style={[styles.glowTop, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.08) }]} pointerEvents="none" />
       <View style={[styles.glowBottom, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.09) }]} pointerEvents="none" />
 

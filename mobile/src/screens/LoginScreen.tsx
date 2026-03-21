@@ -10,6 +10,7 @@ import { makeRedirectUri } from 'expo-auth-session';
 import { signIn, signInWithGoogle, AuthUser } from '../services/auth';
 import { register } from '../services/api';
 import HapticTouchable from '../components/HapticTouchable';
+import AmbientBubbles from '../components/AmbientBubbles';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
 
@@ -116,6 +117,7 @@ export default function LoginScreen({ onLogin }: Props) {
   return (
     <SafeAreaView style={s.safe}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.6, 1]} style={StyleSheet.absoluteFill} />
+      <AmbientBubbles theme={selectedTheme} variant="auth" opacity={1} />
       <View style={s.glowA} />
       <View style={s.glowB} />
       <KeyboardAvoidingView style={s.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>

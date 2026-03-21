@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AmbientBubbles from '../components/AmbientBubbles';
 import { AuthUser } from '../services/auth';
 import { useAppTheme } from '../contexts/ThemeContext';
 import {
@@ -33,6 +34,7 @@ import HapticTouchable from '../components/HapticTouchable';
 import { darkenColor, getDefaultTheme, rgbaFromHex } from '../utils/theme';
 
 const DEFAULT_THEME = getDefaultTheme();
+let CURRENT_THEME = DEFAULT_THEME;
 let BG = DEFAULT_THEME.bgPrimary;
 let SURFACE = DEFAULT_THEME.panel;
 let SURFACE_2 = DEFAULT_THEME.panelAlt;
@@ -84,6 +86,7 @@ type NotesStackParamList = {
 const NotesStack = createNativeStackNavigator<NotesStackParamList>();
 
 function applyTheme(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  CURRENT_THEME = theme;
   BG = theme.bgPrimary;
   SURFACE = theme.panel;
   SURFACE_2 = theme.panelAlt;
@@ -261,6 +264,7 @@ function NoteEditor({
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <AmbientBubbles theme={CURRENT_THEME} variant="notes" opacity={0.82} />
       <KeyboardAvoidingView style={s.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={s.editorHeader}>
           <HapticTouchable onPress={handleBack} style={s.iconBtn} haptic="selection">
@@ -373,6 +377,7 @@ function NotesTrashScreen({
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <AmbientBubbles theme={CURRENT_THEME} variant="notes" opacity={0.82} />
       <View style={s.header}>
         <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
@@ -521,6 +526,7 @@ function NotesHome({
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <AmbientBubbles theme={CURRENT_THEME} variant="notes" opacity={0.82} />
       <View style={s.header}>
         {onBack ? (
           <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
@@ -715,27 +721,27 @@ function createStyles() {
     paddingBottom: 12,
     gap: 8,
   },
-  title: { fontFamily: 'Inter_900Black', fontSize: 30, color: ACCENT },
-  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, letterSpacing: 2, marginTop: 2 },
+  title: { fontFamily: 'Inter_900Black', fontSize: 32, color: GOLD_L, letterSpacing: -0.8 },
+  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM2, letterSpacing: 2.1, marginTop: 4, textTransform: 'uppercase' },
 
   headerIconBtn: {
-    width: 36, height: 36, borderRadius: 12, borderWidth: 1, borderColor: softAccentBorder,
-    backgroundColor: SURFACE_2, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 14, borderWidth: 1, borderColor: softAccentBorder,
+    backgroundColor: rgbaFromHex(SURFACE_2, 0.92), alignItems: 'center', justifyContent: 'center',
   },
   headerIconBtnPrimary: { backgroundColor: ACCENT, borderColor: ACCENT },
 
   statsStrip: {
     flexDirection: 'row',
-    backgroundColor: SURFACE,
-    borderRadius: 18,
+    backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: softAccentBorder,
     overflow: 'hidden',
     marginBottom: 12,
     shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
     elevation: 5,
   },
   statCell: { flex: 1, alignItems: 'center', paddingVertical: 14 },
@@ -747,8 +753,8 @@ function createStyles() {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: SURFACE,
-    borderRadius: 14,
+    backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 14,
@@ -756,8 +762,8 @@ function createStyles() {
     marginBottom: 10,
     shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 18,
+    shadowOpacity: 0.08,
+    shadowRadius: 22,
     elevation: 3,
   },
   searchInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 13, color: GOLD_L },
@@ -776,20 +782,20 @@ function createStyles() {
 
   listContent: { padding: 16, gap: 12, paddingBottom: 120, flexGrow: 1 },
   noteCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 24,
+    backgroundColor: rgbaFromHex(SURFACE, 0.94),
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 18,
     gap: 10,
     shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 22,
+    shadowOpacity: 0.12,
+    shadowRadius: 26,
     elevation: 5,
   },
   noteCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  noteCardTitle: { fontFamily: 'Inter_900Black', fontSize: 16, color: GOLD_L, lineHeight: 22 },
+  noteCardTitle: { fontFamily: 'Inter_900Black', fontSize: 17, color: GOLD_L, lineHeight: 23 },
   noteMetaText: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM2, marginTop: 4, letterSpacing: 0.8 },
   notePreview: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM2, lineHeight: 19 },
   starBtn: {
@@ -840,8 +846,8 @@ function createStyles() {
   sectionCaption: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_D, letterSpacing: 2, marginBottom: 10 },
   folderChips: { gap: 10 },
   titleInput: {
-    backgroundColor: SURFACE,
-    borderRadius: 24,
+    backgroundColor: rgbaFromHex(SURFACE, 0.94),
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 16,
@@ -854,8 +860,8 @@ function createStyles() {
   },
   contentInput: {
     minHeight: 420,
-    backgroundColor: SURFACE,
-    borderRadius: 24,
+    backgroundColor: rgbaFromHex(SURFACE, 0.94),
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 16,

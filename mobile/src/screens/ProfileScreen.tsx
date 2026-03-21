@@ -7,6 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser, signOut } from '../services/auth';
 import { getEnhancedStats } from '../services/api';
 import HapticTouchable from '../components/HapticTouchable';
+import AmbientBubbles from '../components/AmbientBubbles';
 import { triggerHaptic } from '../utils/haptics';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
@@ -92,6 +93,7 @@ export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFill} />
+      <AmbientBubbles theme={selectedTheme} variant="profile" opacity={0.88} />
       <View style={[styles.glow, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.08) }]} pointerEvents="none" />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

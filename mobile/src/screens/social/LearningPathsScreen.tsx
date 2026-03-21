@@ -11,6 +11,7 @@ import { AuthUser } from '../../services/auth';
 import { API_URL } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HapticTouchable from '../../components/HapticTouchable';
+import AmbientBubbles from '../../components/AmbientBubbles';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../../utils/theme';
 const DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
@@ -139,6 +140,7 @@ export default function LearningPathsScreen({ user, onBack }: Props) {
   return (
     <View style={s.root}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
+      <AmbientBubbles theme={selectedTheme} variant="paths" opacity={0.8} />
 
       <View>
         {/* Top bar */}
@@ -339,14 +341,14 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
   return StyleSheet.create({
     root: { flex: 1 },
-    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8 },
+    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 10 },
     backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
     cta: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
     ctaText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: INK },
     hero: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 14, gap: 14 },
     heroText: { gap: 2 },
-    heroTitle: { fontFamily: 'Inter_900Black', fontSize: 30, color: ACCENT, letterSpacing: -1 },
-    heroSub: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, letterSpacing: 1 },
+    heroTitle: { fontFamily: 'Inter_900Black', fontSize: 34, color: theme.accentHover, letterSpacing: -1.2 },
+    heroSub: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, letterSpacing: 1.8, textTransform: 'uppercase' },
     searchWrap: { paddingHorizontal: 20, marginBottom: 10 },
     searchBorder: { borderRadius: 14, padding: 1 },
     searchInner: { flexDirection: 'row', alignItems: 'center', backgroundColor: SURFACE_ALT, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
@@ -369,7 +371,7 @@ function createPathCardStyles(theme: ReturnType<typeof useAppTheme>['selectedThe
   const SURFACE = theme.panel;
   const BORDER = theme.borderStrong;
   return StyleSheet.create({
-    wrap: { flexDirection: 'row', backgroundColor: rgbaFromHex(SURFACE, 0.92), borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: BORDER },
+    wrap: { flexDirection: 'row', backgroundColor: rgbaFromHex(SURFACE, 0.94), borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: BORDER, shadowColor: ACCENT, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 22, elevation: 4 },
     accent: { width: 3 },
     body: { flex: 1, padding: 14, gap: 8 },
     topRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -400,7 +402,7 @@ function createModalStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'
   return StyleSheet.create({
     root: { flex: 1, paddingTop: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingBottom: 20 },
-    title: { fontFamily: 'Inter_900Black', fontSize: 24, color: ACCENT },
+    title: { fontFamily: 'Inter_900Black', fontSize: 24, color: theme.accentHover },
     body: { paddingHorizontal: 24, gap: 6, paddingBottom: 60 },
     label: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: DIM, letterSpacing: 1, marginTop: 10 },
     input: { backgroundColor: SURFACE_ALT, borderRadius: 12, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.accentHover, marginTop: 4 },

@@ -12,6 +12,7 @@ import {
   declineQuizBattle, getFriends,
 } from '../../services/api';
 import HapticTouchable from '../../components/HapticTouchable';
+import AmbientBubbles from '../../components/AmbientBubbles';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../../utils/theme';
 
@@ -162,6 +163,7 @@ export default function GamesScreen({ user, onBack }: Props) {
   return (
     <View style={s.root}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
+      <AmbientBubbles theme={selectedTheme} variant="games" opacity={0.82} />
       <DotGrid />
 
 {/* Top bar */}
@@ -448,11 +450,11 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     root: { flex: 1 },
     topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
     backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-    cta: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
+    cta: { borderRadius: 12, paddingHorizontal: 15, paddingVertical: 10 },
     ctaText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: INK },
     hero: { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
-    heroGlow: { width: 100, height: 100, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
-    heroTitle: { fontFamily: 'Inter_900Black', fontSize: 42, color: ACCENT, letterSpacing: -2, marginTop: 6 },
+    heroGlow: { width: 112, height: 112, borderRadius: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
+    heroTitle: { fontFamily: 'Inter_900Black', fontSize: 44, color: theme.accentHover, letterSpacing: -2.2, marginTop: 8 },
     heroSub: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 1 },
     divider: { height: 1, marginLeft: 20, marginRight: 20, backgroundColor: BORDER },
     scroll: { paddingLeft: 20, paddingRight: 20, paddingTop: 16, gap: 8 },
@@ -467,7 +469,7 @@ function createCardStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']
   const BORDER = theme.borderStrong;
   const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
   return StyleSheet.create({
-    wrap: { flexDirection: 'row', backgroundColor: rgbaFromHex(SURFACE, 0.92), borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: BORDER },
+    wrap: { flexDirection: 'row', backgroundColor: rgbaFromHex(SURFACE, 0.94), borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: BORDER },
     accent: { width: 3, backgroundColor: darkenColor(theme.accent, theme.isLight ? 12 : 26) },
     body: { flex: 1, padding: 14, gap: 12 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -519,7 +521,7 @@ function createModalStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'
   const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
   return StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20 },
-    title: { fontFamily: 'Inter_900Black', fontSize: 26, color: ACCENT, letterSpacing: -0.5 },
+    title: { fontFamily: 'Inter_900Black', fontSize: 26, color: theme.accentHover, letterSpacing: -0.6 },
     sub: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, marginTop: 3 },
     closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
     label: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: DIM, letterSpacing: 2.5, marginBottom: 10 },

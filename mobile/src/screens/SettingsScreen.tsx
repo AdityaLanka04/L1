@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../services/auth';
 import HapticTouchable from '../components/HapticTouchable';
+import AmbientBubbles from '../components/AmbientBubbles';
 import { triggerHaptic } from '../utils/haptics';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex, ThemeMode } from '../utils/theme';
@@ -49,6 +50,7 @@ export default function SettingsScreen({ user, onBack }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFill} />
+      <AmbientBubbles theme={selectedTheme} variant="settings" opacity={0.82} />
       <View style={[styles.glow, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.08) }]} pointerEvents="none" />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

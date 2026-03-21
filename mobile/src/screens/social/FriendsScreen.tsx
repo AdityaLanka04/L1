@@ -13,6 +13,7 @@ import {
   removeFriend, giveKudos,
 } from '../../services/api';
 import HapticTouchable from '../../components/HapticTouchable';
+import AmbientBubbles from '../../components/AmbientBubbles';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../../utils/theme';
 
@@ -184,6 +185,7 @@ export default function FriendsScreen({ user, onBack }: Props) {
   return (
     <View style={s.root}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
+      <AmbientBubbles theme={selectedTheme} variant="friends" opacity={0.82} />
       <DotGrid />
 
 {/* Top bar */}

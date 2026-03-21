@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useFonts, Inter_900Black, Inter_400Regular } from '@expo-google-fonts/inter';
 import { LinearGradient } from 'expo-linear-gradient';
+import AmbientBubbles from '../components/AmbientBubbles';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/theme';
 
@@ -25,6 +26,7 @@ export default function SplashScreen({ onFinish }: Props) {
   return (
     <View style={s.container}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
+      <AmbientBubbles theme={selectedTheme} variant="auth" opacity={0.88} />
       <View style={[s.glow, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.14) }]} />
       <Animated.View style={{ opacity }}>
         <Text style={s.logo}>cerbyl</Text>

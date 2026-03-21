@@ -9,12 +9,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import HapticTouchable from '../components/HapticTouchable';
+import AmbientBubbles from '../components/AmbientBubbles';
 import { AuthUser } from '../services/auth';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { processMediaYouTube, getMediaHistory, saveMediaNotes } from '../services/api';
 import { darkenColor, getDefaultTheme, rgbaFromHex } from '../utils/theme';
 
 const DEFAULT_THEME = getDefaultTheme();
+let CURRENT_THEME = DEFAULT_THEME;
 let BG      = DEFAULT_THEME.bgPrimary;
 let SURFACE = DEFAULT_THEME.panel;
 let GOLD_XL = DEFAULT_THEME.accent;
@@ -66,6 +68,7 @@ type AIMediaStackParamList = {
 const AIMediaStack = createNativeStackNavigator<AIMediaStackParamList>();
 
 function applyTheme(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  CURRENT_THEME = theme;
   BG = theme.bgPrimary;
   SURFACE = theme.panel;
   GOLD_XL = theme.accent;
@@ -435,6 +438,7 @@ function AIMediaHub({
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <AmbientBubbles theme={CURRENT_THEME} variant="media" opacity={0.86} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={s.hubScroll}
@@ -629,6 +633,7 @@ function AIMediaProcessing({
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <AmbientBubbles theme={CURRENT_THEME} variant="media" opacity={0.86} />
       <View style={s.subHeader}>
         <HapticTouchable onPress={() => { cancelRef.current = true; onCancel(); }} style={s.backBtn} haptic="warning">
           <Text style={s.backBtnText}>✕</Text>
@@ -670,6 +675,7 @@ function AIMediaResults({
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <AmbientBubbles theme={CURRENT_THEME} variant="media" opacity={0.86} />
       <View style={s.subHeader}>
         <HapticTouchable onPress={onBack} style={s.backBtn} haptic="selection">
           <Text style={s.backBtnText}>‹</Text>
@@ -809,8 +815,8 @@ function createStyles() {
   },
   backBtn:     { width: 36, alignItems: 'flex-start', justifyContent: 'center' },
   backBtnText: { fontFamily: 'Inter_700Bold', fontSize: 18, color: GOLD_XL, lineHeight: 22 },
-  pageTitle:   { fontFamily: 'Inter_900Black',   fontSize: 26, color: GOLD_XL },
-  pageSubtitle:{ fontFamily: 'Inter_400Regular', fontSize: 10, color: GOLD_L, letterSpacing: 2, marginTop: 3 },
+  pageTitle:   { fontFamily: 'Inter_900Black',   fontSize: 30, color: GOLD_L, letterSpacing: -0.6 },
+  pageSubtitle:{ fontFamily: 'Inter_400Regular', fontSize: 10, color: GOLD_L, letterSpacing: 2.2, marginTop: 4, textTransform: 'uppercase' },
 
   // Sub-screen header
   subHeader: {
@@ -832,13 +838,13 @@ function createStyles() {
   // Save chip
   saveChip: {
     backgroundColor: GOLD_M,
-    borderRadius: 14,
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 8,
     shadowColor: GOLD_M,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
+    shadowOpacity: 0.18,
+    shadowRadius: 22,
     elevation: 5,
   },
   saveChipDone: { backgroundColor: GOLD_D },
@@ -853,15 +859,15 @@ function createStyles() {
   modeSwitcher: {
     flexDirection: 'row',
     backgroundColor: SURFACE,
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: CARD_BORDER,
     padding: 5,
     gap: 4,
     shadowColor: GOLD_M,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
+    shadowOpacity: 0.12,
+    shadowRadius: 22,
     elevation: 4,
   },
   modeBtn: {
@@ -887,7 +893,7 @@ function createStyles() {
 
   // Input card (shared)
   inputCard: {
-    borderRadius: 22,
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: CARD_BORDER,
     backgroundColor: SURFACE,
@@ -895,8 +901,8 @@ function createStyles() {
     position: 'relative',
     shadowColor: GOLD_D,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
     elevation: 8,
   },
   inputCardInner: { padding: 18, gap: 14, zIndex: 1 },
@@ -1002,7 +1008,7 @@ function createStyles() {
     alignItems: 'center',
     gap: 12,
     backgroundColor: SURFACE,
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: CARD_BORDER,
     padding: 14,
@@ -1010,8 +1016,8 @@ function createStyles() {
     position: 'relative',
     shadowColor: GOLD_D,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
     elevation: 4,
   },
   histIconBox: {

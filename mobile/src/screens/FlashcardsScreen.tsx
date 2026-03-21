@@ -17,7 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import PagerView from 'react-native-pager-view';
 import HapticTouchable from '../components/HapticTouchable';
+import AmbientBubbles from '../components/AmbientBubbles';
 import { AuthUser } from '../services/auth';
 import { useAppTheme } from '../contexts/ThemeContext';
 import {
@@ -33,9 +35,12 @@ import { darkenColor, getDefaultTheme, rgbaFromHex } from '../utils/theme';
 const { width: W, height: H } = Dimensions.get('window');
 
 const DEFAULT_THEME = getDefaultTheme();
+let CURRENT_THEME = DEFAULT_THEME;
 let BG = DEFAULT_THEME.bgPrimary;
 let SURFACE = DEFAULT_THEME.panel;
 let SURFACE_2 = DEFAULT_THEME.panelAlt;
+let QUESTION_SURFACE = DEFAULT_THEME.isLight ? DEFAULT_THEME.accent : DEFAULT_THEME.primary;
+let ANSWER_SURFACE = DEFAULT_THEME.isLight ? DEFAULT_THEME.panel : DEFAULT_THEME.accent;
 let ACCENT = DEFAULT_THEME.accent;
 let ACCENT2 = DEFAULT_THEME.accentHover;
 let GOLD_L = DEFAULT_THEME.accentHover;
@@ -45,6 +50,17 @@ let BORDER = DEFAULT_THEME.borderStrong;
 let DIM = DEFAULT_THEME.panelMuted;
 let DIM2 = DEFAULT_THEME.textSecondary;
 let INK = DEFAULT_THEME.isLight ? darkenColor(DEFAULT_THEME.accent, 45) : darkenColor(DEFAULT_THEME.primary, 2);
+let QUESTION_TEXT = DEFAULT_THEME.isLight ? darkenColor(DEFAULT_THEME.primary, 90) : DEFAULT_THEME.accentHover;
+let ANSWER_TEXT = DEFAULT_THEME.isLight ? DEFAULT_THEME.accent : darkenColor(DEFAULT_THEME.primary, 4);
+let QUESTION_CHIP_BG = DEFAULT_THEME.isLight ? rgbaFromHex(DEFAULT_THEME.primary, 0.16) : rgbaFromHex(DEFAULT_THEME.accent, 0.12);
+let QUESTION_CHIP_BORDER = DEFAULT_THEME.isLight ? rgbaFromHex(DEFAULT_THEME.primary, 0.24) : rgbaFromHex(DEFAULT_THEME.accent, 0.28);
+let ANSWER_CHIP_BG = DEFAULT_THEME.isLight ? rgbaFromHex(DEFAULT_THEME.accent, 0.08) : rgbaFromHex(DEFAULT_THEME.primary, 0.16);
+let ANSWER_CHIP_BORDER = DEFAULT_THEME.isLight ? rgbaFromHex(DEFAULT_THEME.accent, 0.2) : rgbaFromHex(DEFAULT_THEME.primary, 0.24);
+let BASE_ACTION_BG = DEFAULT_THEME.isLight ? rgbaFromHex(DEFAULT_THEME.panel, 0.98) : DEFAULT_THEME.accent;
+let BASE_ACTION_TEXT = DEFAULT_THEME.isLight ? DEFAULT_THEME.accent : darkenColor(DEFAULT_THEME.primary, 2);
+let BASE_ACTION_BORDER = DEFAULT_THEME.isLight ? DEFAULT_THEME.borderStrong : DEFAULT_THEME.accentHover;
+let INPUT_BG = DEFAULT_THEME.isLight ? rgbaFromHex(DEFAULT_THEME.panel, 0.98) : DEFAULT_THEME.panelAlt;
+let INPUT_TEXT = DEFAULT_THEME.isLight ? darkenColor(DEFAULT_THEME.primary, 88) : DEFAULT_THEME.accentHover;
 let GREEN = DEFAULT_THEME.success;
 let RED = DEFAULT_THEME.danger;
 
@@ -87,9 +103,12 @@ const difficultyOptions: Difficulty[] = ['easy', 'medium', 'hard'];
 const cardCountOptions = [5, 10, 15, 20];
 
 function applyTheme(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+  CURRENT_THEME = theme;
   BG = theme.bgPrimary;
   SURFACE = theme.panel;
   SURFACE_2 = theme.panelAlt;
+  QUESTION_SURFACE = theme.isLight ? theme.accent : theme.primary;
+  ANSWER_SURFACE = theme.isLight ? theme.panel : theme.accent;
   ACCENT = theme.accent;
   ACCENT2 = theme.accentHover;
   GOLD_L = theme.accentHover;
@@ -99,6 +118,17 @@ function applyTheme(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   DIM = theme.panelMuted;
   DIM2 = theme.textSecondary;
   INK = theme.isLight ? darkenColor(theme.accent, 45) : darkenColor(theme.primary, 2);
+  QUESTION_TEXT = theme.isLight ? darkenColor(theme.primary, 90) : theme.accentHover;
+  ANSWER_TEXT = theme.isLight ? theme.accent : darkenColor(theme.primary, 4);
+  QUESTION_CHIP_BG = theme.isLight ? rgbaFromHex(theme.primary, 0.16) : rgbaFromHex(theme.accent, 0.12);
+  QUESTION_CHIP_BORDER = theme.isLight ? rgbaFromHex(theme.primary, 0.24) : rgbaFromHex(theme.accent, 0.28);
+  ANSWER_CHIP_BG = theme.isLight ? rgbaFromHex(theme.accent, 0.08) : rgbaFromHex(theme.primary, 0.16);
+  ANSWER_CHIP_BORDER = theme.isLight ? rgbaFromHex(theme.accent, 0.2) : rgbaFromHex(theme.primary, 0.24);
+  BASE_ACTION_BG = theme.isLight ? rgbaFromHex(theme.panel, 0.98) : theme.accent;
+  BASE_ACTION_TEXT = theme.isLight ? theme.accent : darkenColor(theme.primary, 2);
+  BASE_ACTION_BORDER = theme.isLight ? theme.borderStrong : theme.accentHover;
+  INPUT_BG = theme.isLight ? rgbaFromHex(theme.panel, 0.98) : theme.panelAlt;
+  INPUT_TEXT = theme.isLight ? darkenColor(theme.primary, 88) : theme.accentHover;
   GREEN = theme.success;
   RED = theme.danger;
 }
@@ -126,6 +156,7 @@ function ResultsView({
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
       <View style={s.studyHeader}>
         <HapticTouchable onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
@@ -172,7 +203,10 @@ function StudyView({
   const [flipped, setFlipped] = useState(false);
   const [stats, setStats] = useState({ correct: 0, incorrect: 0 });
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const pagerRef = useRef<PagerView>(null);
   const card = cards[idx];
+  const progressPct = cards.length > 0 ? ((idx + 1) / cards.length) * 100 : 0;
+  const remaining = Math.max(cards.length - idx - 1, 0);
 
   const doFlip = () => {
     if (!card) return;
@@ -192,7 +226,9 @@ function StudyView({
       if (idx + 1 >= cards.length) {
         Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start(() => onComplete(next));
       } else {
-        setIdx((value) => value + 1);
+        const nextIndex = idx + 1;
+        setIdx(nextIndex);
+        pagerRef.current?.setPage(nextIndex);
         Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
       }
     });
@@ -201,6 +237,7 @@ function StudyView({
   if (!card) {
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
+        <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
         <View style={s.studyHeader}>
           <HapticTouchable onPress={onBack} haptic="selection">
             <Ionicons name="chevron-back" size={22} color={GOLD_L} />
@@ -218,6 +255,7 @@ function StudyView({
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
       <View style={s.studyHeader}>
         <HapticTouchable onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
@@ -226,42 +264,110 @@ function StudyView({
         <Text style={[s.studyCounter, { color: GOLD_D }]}>{idx + 1}/{cards.length}</Text>
       </View>
 
+      <View style={s.studyMetaRow}>
+        <View style={s.studyMetaCard}>
+          <Text style={s.studyMetaLabel}>session flow</Text>
+          <Text style={s.studyMetaValue}>{Math.round(progressPct)}%</Text>
+        </View>
+        <View style={s.studyMetaCard}>
+          <Text style={s.studyMetaLabel}>correct</Text>
+          <Text style={[s.studyMetaValue, { color: GREEN }]}>{stats.correct}</Text>
+        </View>
+        <View style={s.studyMetaCard}>
+          <Text style={s.studyMetaLabel}>left</Text>
+          <Text style={s.studyMetaValue}>{remaining}</Text>
+        </View>
+      </View>
+
       <View style={s.progressBar}>
-        <View style={[s.progressFill, { width: `${(idx / cards.length) * 100}%` as const }]} />
+        <View style={[s.progressFill, { width: `${((idx + 1) / cards.length) * 100}%` as const }]} />
       </View>
 
       <View style={s.cardWrap}>
-        <Animated.View style={{ transform: [{ scaleX: scaleAnim }] }}>
-          <HapticTouchable
-            style={[s.card, flipped && { backgroundColor: ACCENT, borderColor: ACCENT2 }]}
-            onPress={doFlip}
-            activeOpacity={0.95}
-            haptic="light"
-          >
-            <Text style={[s.cardSide, flipped && { color: INK, opacity: 0.5 }]}>
-              {flipped ? 'ANSWER' : 'QUESTION'}
-            </Text>
-            <Text style={[s.cardText, flipped && { color: INK }]}>
-              {flipped ? card.answer : card.question}
-            </Text>
-            {!flipped && <Text style={s.tapHint}>tap to reveal answer</Text>}
-            {flipped && (
-              <View style={s.diffPill}>
-                <Text style={s.diffText}>{card.difficulty?.toUpperCase() ?? 'MEDIUM'}</Text>
+        <View style={s.cardStageGlow} />
+        <PagerView
+          ref={pagerRef}
+          style={s.cardPager}
+          initialPage={0}
+          overScrollMode="never"
+          onPageSelected={(event) => {
+            const nextIndex = event.nativeEvent.position;
+            setIdx(nextIndex);
+            setFlipped(false);
+            scaleAnim.setValue(1);
+          }}
+        >
+          {cards.map((studyCard, pageIndex) => {
+            const isCurrent = pageIndex === idx;
+            const pageFlipped = isCurrent && flipped;
+
+            return (
+              <View key={String(studyCard.id ?? pageIndex)} style={s.cardPagerPage}>
+                <Animated.View
+                  style={{
+                    transform: [
+                      { scaleX: isCurrent ? scaleAnim : 1 },
+                      { scale: isCurrent ? scaleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.985, 1] }) : 1 },
+                    ],
+                  }}
+                >
+                  <HapticTouchable
+                    style={[s.card, pageFlipped && s.cardFlipped]}
+                    onPress={() => {
+                      if (isCurrent) {
+                        doFlip();
+                      }
+                    }}
+                    activeOpacity={1}
+                    haptic="light"
+                  >
+                    <View style={s.cardTopRow}>
+                      <View style={[s.cardSidePill, pageFlipped && s.cardSidePillFlipped]}>
+                        <Text style={[s.cardSide, pageFlipped && s.cardSideFlipped]}>
+                          {pageFlipped ? 'ANSWER' : 'QUESTION'}
+                        </Text>
+                      </View>
+                      <View style={[s.diffPill, pageFlipped && s.diffPillFlipped]}>
+                        <Text style={[s.diffText, pageFlipped && s.diffTextFlipped]}>
+                          {studyCard.difficulty?.toUpperCase() ?? 'MEDIUM'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <ScrollView
+                      style={s.cardBody}
+                      contentContainerStyle={s.cardBodyContent}
+                      showsVerticalScrollIndicator={false}
+                      bounces={false}
+                    >
+                      <Text style={[s.cardText, pageFlipped && s.cardTextFlipped]}>
+                        {pageFlipped ? studyCard.answer : studyCard.question}
+                      </Text>
+                    </ScrollView>
+
+                    <View style={s.cardFooter} />
+                  </HapticTouchable>
+                </Animated.View>
               </View>
-            )}
-          </HapticTouchable>
-        </Animated.View>
+            );
+          })}
+        </PagerView>
       </View>
 
       <View style={s.answerRow}>
         <HapticTouchable style={s.wrongBtn} onPress={() => answer(false)} haptic="warning">
-          <Ionicons name="close" size={30} color={RED} />
+          <View style={s.answerIconWrap}>
+            <Ionicons name="close" size={22} color={RED} />
+          </View>
           <Text style={s.wrongLabel}>incorrect</Text>
+          <Text style={s.answerSubLabel}>needs another pass</Text>
         </HapticTouchable>
         <HapticTouchable style={s.rightBtn} onPress={() => answer(true)} haptic="success">
-          <Ionicons name="checkmark" size={30} color={GREEN} />
+          <View style={s.answerIconWrap}>
+            <Ionicons name="checkmark" size={22} color={GREEN} />
+          </View>
           <Text style={s.rightLabel}>correct</Text>
+          <Text style={s.answerSubLabel}>ready to move on</Text>
         </HapticTouchable>
       </View>
     </SafeAreaView>
@@ -420,6 +526,7 @@ function FlashcardsCreate({
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
       <KeyboardAvoidingView
         style={s.safe}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -456,13 +563,13 @@ function FlashcardsCreate({
               </View>
 
               <View style={s.formCard}>
-                <Text style={s.inputLabel}>topic</Text>
+                <Text style={[s.inputLabel, s.topicInputLabel]}>topic</Text>
                 <TextInput
                   value={topic}
                   onChangeText={setTopic}
                   placeholder="Cell biology, world war 2, derivatives..."
                   placeholderTextColor={DIM2}
-                  style={s.input}
+                  style={[s.input, s.topicInput]}
                 />
 
                 <Text style={s.inputLabel}>card count</Text>
@@ -568,7 +675,7 @@ function FlashcardsCreate({
             haptic="medium"
           >
             {submitting ? (
-              <ActivityIndicator color={INK} />
+              <ActivityIndicator color={BASE_ACTION_TEXT} />
             ) : (
               <>
                 <Text style={s.createSubmitText}>
@@ -633,6 +740,7 @@ function FlashcardsSets({
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
       <View style={s.header}>
         {onBack ? (
           <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
@@ -671,11 +779,11 @@ function FlashcardsSets({
           ListHeaderComponent={(
             <View style={s.createRow}>
               <HapticTouchable style={s.createBtnPrimary} onPress={() => onOpenCreate('ai')} haptic="medium">
-                <Ionicons name="sparkles" size={15} color={INK} />
+                <Ionicons name="sparkles" size={15} color={BASE_ACTION_TEXT} />
                 <Text style={s.createBtnPrimaryText}>AI generate</Text>
               </HapticTouchable>
               <HapticTouchable style={s.createBtnSecondary} onPress={() => onOpenCreate('manual')} haptic="light">
-                <Ionicons name="add" size={16} color={GOLD_L} />
+                <Ionicons name="add" size={16} color={BASE_ACTION_TEXT} />
                 <Text style={s.createBtnSecondaryText}>manual</Text>
               </HapticTouchable>
             </View>
@@ -686,9 +794,9 @@ function FlashcardsSets({
               <Text style={s.emptyHint}>start with AI generate or manual create</Text>
             </View>
           )}
-          renderItem={({ item, index }) => (
+          renderItem={({ item }) => (
             <HapticTouchable
-              style={[s.setCard, index % 2 === 0 && { borderColor: GOLD_XD }]}
+              style={s.setCard}
               onPress={() => startStudy(item)}
               activeOpacity={0.85}
               haptic="light"
@@ -714,7 +822,7 @@ function FlashcardsSets({
               </View>
 
               <View style={s.setCardBottom}>
-                <View style={[s.sourcePill, item.source_type !== 'manual' && { backgroundColor: GOLD_XD }]}>
+                <View style={s.sourcePill}>
                   <Text style={s.sourceText}>{(item.source_type ?? 'manual').replace('_', ' ').toUpperCase()}</Text>
                 </View>
                 <View style={s.studyBtn}>
@@ -828,23 +936,18 @@ function createStyles() {
     paddingTop: 18,
     paddingBottom: 12,
   },
-  title: { fontFamily: 'Inter_900Black', fontSize: 30, color: ACCENT },
-  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, letterSpacing: 3, marginTop: 2 },
+  title: { fontFamily: 'Inter_900Black', fontSize: 32, color: GOLD_L, letterSpacing: -0.8 },
+  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM2, letterSpacing: 2.2, marginTop: 4, textTransform: 'uppercase' },
 
   statsStrip: {
     flexDirection: 'row',
-    backgroundColor: SURFACE,
-    borderRadius: 22,
+    backgroundColor: rgbaFromHex(SURFACE, 0.98),
+    borderRadius: 26,
     borderWidth: 1,
     borderColor: BORDER,
     marginHorizontal: 16,
     marginBottom: 6,
     overflow: 'hidden',
-    shadowColor: ACCENT,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 22,
-    elevation: 6,
   },
   statCell: { flex: 1, alignItems: 'center', paddingVertical: 14 },
   statVal: { fontFamily: 'Inter_900Black', fontSize: 18, color: ACCENT },
@@ -854,33 +957,25 @@ function createStyles() {
   createRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   createBtnPrimary: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 7, backgroundColor: ACCENT, borderRadius: 16, paddingVertical: 14,
-    shadowColor: ACCENT,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
-    elevation: 6,
+    gap: 7, backgroundColor: BASE_ACTION_BG, borderRadius: 18, paddingVertical: 15,
+    borderWidth: 1,
+    borderColor: softAccentBorder,
   },
-  createBtnPrimaryText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: INK },
+  createBtnPrimaryText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: BASE_ACTION_TEXT },
   createBtnSecondary: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 7, borderRadius: 16, paddingVertical: 14,
-    borderWidth: 1, borderColor: softAccentBorder, backgroundColor: SURFACE_2,
+    gap: 7, borderRadius: 18, paddingVertical: 15,
+    borderWidth: 1, borderColor: softAccentBorder, backgroundColor: BASE_ACTION_BG,
   },
-  createBtnSecondaryText: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: GOLD_L },
+  createBtnSecondaryText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: BASE_ACTION_TEXT },
 
   setCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 24,
+    backgroundColor: rgbaFromHex(SURFACE, 0.98),
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: softAccentBorder,
     padding: 18,
     gap: 12,
-    shadowColor: ACCENT,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 6,
   },
   setCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   setTitle: { fontFamily: 'Inter_900Black', fontSize: 17, color: GOLD_L, lineHeight: 22 },
@@ -904,10 +999,10 @@ function createStyles() {
   masteryPct: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_D, width: 36, textAlign: 'right' },
 
   setCardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sourcePill: { backgroundColor: softAccent, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: softAccentBorder },
-  sourceText: { fontFamily: 'Inter_600SemiBold', fontSize: 8, color: GOLD_L, letterSpacing: 1.5 },
-  studyBtn: { backgroundColor: ACCENT, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 8 },
-  studyBtnText: { fontFamily: 'Inter_900Black', fontSize: 12, color: INK },
+  sourcePill: { backgroundColor: BASE_ACTION_BG, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: BASE_ACTION_BORDER },
+  sourceText: { fontFamily: 'Inter_900Black', fontSize: 12, color: BASE_ACTION_TEXT, letterSpacing: 0.4 },
+  studyBtn: { backgroundColor: BASE_ACTION_BG, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 8, borderWidth: 1, borderColor: BASE_ACTION_BORDER },
+  studyBtnText: { fontFamily: 'Inter_900Black', fontSize: 12, color: BASE_ACTION_TEXT },
 
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 50 },
   emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_D },
@@ -922,19 +1017,19 @@ function createStyles() {
 
   createContent: { padding: 16, gap: 14, paddingBottom: 120 },
   heroCreateCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 24,
+    backgroundColor: rgbaFromHex(SURFACE, 0.94),
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: softAccentBorder,
     padding: 18,
     shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 22,
+    shadowOpacity: 0.12,
+    shadowRadius: 26,
     elevation: 5,
   },
-  heroEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_D, letterSpacing: 2.6, marginBottom: 10 },
-  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 22, lineHeight: 28, color: GOLD_L },
+  heroEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_L, letterSpacing: 2, marginBottom: 10 },
+  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 24, lineHeight: 30, color: GOLD_L },
   heroBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 21, color: DIM2, marginTop: 8 },
   modeSwitch: { flexDirection: 'row', gap: 10 },
   optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 },
@@ -950,29 +1045,40 @@ function createStyles() {
   optionPillText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: GOLD_L, textTransform: 'lowercase' },
   optionPillTextActive: { color: INK },
   formCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 24,
+    backgroundColor: rgbaFromHex(SURFACE, 0.94),
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
     shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 22,
+    shadowOpacity: 0.12,
+    shadowRadius: 26,
     elevation: 5,
   },
   inputLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: GOLD_D, letterSpacing: 1.8, textTransform: 'uppercase', marginTop: 14 },
+  topicInputLabel: { color: ACCENT, marginTop: 2 },
   input: {
     marginTop: 10,
-    backgroundColor: SURFACE_2,
+    backgroundColor: INPUT_BG,
     borderWidth: 1,
     borderColor: BORDER,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    color: GOLD_L,
+    color: INPUT_TEXT,
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
+  },
+  topicInput: {
+    backgroundColor: rgbaFromHex(SURFACE, 0.99),
+    borderColor: BASE_ACTION_BORDER,
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 15,
+    color: BASE_ACTION_TEXT,
   },
   inputMultiline: { minHeight: 112 },
   manualCard: {
@@ -1003,8 +1109,10 @@ function createStyles() {
   },
   addCardText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: GOLD_L },
   createSubmitBtn: {
-    backgroundColor: ACCENT,
+    backgroundColor: BASE_ACTION_BG,
     borderRadius: 22,
+    borderWidth: 1,
+    borderColor: BASE_ACTION_BORDER,
     paddingVertical: 18,
     paddingHorizontal: 18,
     alignItems: 'center',
@@ -1017,8 +1125,8 @@ function createStyles() {
     elevation: 8,
   },
   createSubmitBtnDisabled: { opacity: 0.7 },
-  createSubmitText: { fontFamily: 'Inter_900Black', fontSize: 15, color: INK, textTransform: 'lowercase' },
-  createSubmitSubtext: { fontFamily: 'Inter_400Regular', fontSize: 11, color: INK, opacity: 0.7, marginTop: 4, textTransform: 'lowercase' },
+  createSubmitText: { fontFamily: 'Inter_900Black', fontSize: 15, color: BASE_ACTION_TEXT, textTransform: 'lowercase' },
+  createSubmitSubtext: { fontFamily: 'Inter_400Regular', fontSize: 11, color: BASE_ACTION_TEXT, opacity: 0.7, marginTop: 4, textTransform: 'lowercase' },
 
   studyHeader: {
     flexDirection: 'row',
@@ -1030,57 +1138,117 @@ function createStyles() {
   },
   studyTitle: { fontFamily: 'Inter_900Black', fontSize: 15, color: GOLD_L, flex: 1, textAlign: 'center', marginHorizontal: 12 },
   studyCounter: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
+  studyMetaRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 14 },
+  studyMetaCard: {
+    flex: 1,
+    backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  studyMetaLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 8, color: DIM2, letterSpacing: 1.8, textTransform: 'uppercase' },
+  studyMetaValue: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_L, marginTop: 6 },
 
-  progressBar: { height: 2, backgroundColor: DIM, marginHorizontal: 20 },
-  progressFill: { height: '100%', backgroundColor: ACCENT },
+  progressBar: { height: 4, backgroundColor: rgbaFromHex(ACCENT, 0.12), marginHorizontal: 20, borderRadius: 999, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: ACCENT, borderRadius: 999 },
 
   cardWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, marginVertical: 16 },
+  cardPager: { width: W - 40, height: CARD_H },
+  cardPagerPage: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  cardStageGlow: {
+    position: 'absolute',
+    width: W - 88,
+    height: CARD_H - 56,
+    borderRadius: 36,
+    backgroundColor: rgbaFromHex(ACCENT, 0.08),
+  },
   card: {
     width: W - 40,
     height: CARD_H,
-    backgroundColor: SURFACE,
-    borderRadius: 30,
+    backgroundColor: rgbaFromHex(QUESTION_SURFACE, 0.98),
+    borderRadius: 34,
     borderWidth: 1,
-    borderColor: softAccentBorder,
+    borderColor: QUESTION_CHIP_BORDER,
     padding: 26,
     justifyContent: 'space-between',
     shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.12,
-    shadowRadius: 28,
+    shadowOpacity: 0.16,
+    shadowRadius: 30,
     elevation: 10,
   },
-  cardSide: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_D, letterSpacing: 2.5 },
-  cardText: { fontFamily: 'Inter_900Black', fontSize: 20, color: GOLD_L, lineHeight: 28, flex: 1, marginTop: 16 },
-  tapHint: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, textAlign: 'center', letterSpacing: 1 },
-  diffPill: { alignSelf: 'flex-start', backgroundColor: softAccentFill, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: softAccentBorder },
-  diffText: { fontFamily: 'Inter_600SemiBold', fontSize: 8, color: INK, letterSpacing: 1.5 },
+  cardFlipped: { backgroundColor: rgbaFromHex(ANSWER_SURFACE, 0.96), borderColor: ANSWER_CHIP_BORDER },
+  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardSidePill: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, backgroundColor: QUESTION_CHIP_BG, borderWidth: 1, borderColor: QUESTION_CHIP_BORDER },
+  cardSidePillFlipped: { backgroundColor: ANSWER_CHIP_BG, borderColor: ANSWER_CHIP_BORDER },
+  cardSide: { fontFamily: 'Inter_600SemiBold', fontSize: 7, color: QUESTION_TEXT, letterSpacing: 1.7 },
+  cardSideFlipped: { color: ANSWER_TEXT, opacity: 1 },
+  cardBody: { flex: 1, marginTop: 18, marginBottom: 18 },
+  cardBodyContent: { flexGrow: 1, justifyContent: 'center' },
+  cardText: { fontFamily: 'Inter_900Black', fontSize: 23, color: QUESTION_TEXT, lineHeight: 31 },
+  cardTextFlipped: { color: ANSWER_TEXT },
+  cardFooter: { alignItems: 'center' },
+  cardRevealBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    alignSelf: 'stretch',
+    backgroundColor: rgbaFromHex(ACCENT, 0.1),
+    borderWidth: 1,
+    borderColor: softAccentBorder,
+    borderRadius: 16,
+    paddingVertical: 14,
+  },
+  cardRevealBtnFlipped: {
+    backgroundColor: rgbaFromHex(INK, 0.1),
+    borderColor: rgbaFromHex(INK, 0.18),
+  },
+  cardRevealText: { fontFamily: 'Inter_700Bold', fontSize: 12, color: GOLD_L, letterSpacing: 0.8, textTransform: 'uppercase' },
+  diffPill: { alignSelf: 'flex-start', backgroundColor: QUESTION_CHIP_BG, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: QUESTION_CHIP_BORDER },
+  diffPillFlipped: { backgroundColor: ANSWER_CHIP_BG, borderColor: ANSWER_CHIP_BORDER },
+  diffText: { fontFamily: 'Inter_600SemiBold', fontSize: 8, color: QUESTION_TEXT, letterSpacing: 1.4 },
+  diffTextFlipped: { color: ANSWER_TEXT },
 
   answerRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingBottom: 20, paddingTop: 8 },
   wrongBtn: {
     flex: 1,
     backgroundColor: softDanger,
-    borderRadius: 22,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: softDangerBorder,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
-    gap: 5,
+    gap: 6,
   },
   rightBtn: {
     flex: 1,
     backgroundColor: softSuccess,
-    borderRadius: 22,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: softSuccessBorder,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
-    gap: 5,
+    gap: 6,
+  },
+  answerIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: rgbaFromHex(SURFACE, 0.78),
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   wrongLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: RED, letterSpacing: 1 },
   rightLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: GREEN, letterSpacing: 1 },
+  answerSubLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM2 },
 
   resultsWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
   bigPct: { fontFamily: 'Inter_900Black', fontSize: 88, lineHeight: 94 },

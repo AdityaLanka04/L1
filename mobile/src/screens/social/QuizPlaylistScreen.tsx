@@ -9,6 +9,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../../services/auth';
 import { getChallenges, createChallenge, joinChallenge, getFriends } from '../../services/api';
 import HapticTouchable from '../../components/HapticTouchable';
+import AmbientBubbles from '../../components/AmbientBubbles';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../../utils/theme';
 
@@ -120,6 +121,7 @@ export default function QuizPlaylistScreen({ user, onBack }: Props) {
   return (
     <View style={s.root}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
+      <AmbientBubbles theme={selectedTheme} variant="quiz" opacity={0.82} />
       {/* Header */}
       <View style={s.header}>
         <HapticTouchable onPress={onBack} style={s.backBtn} haptic="light">
@@ -331,10 +333,10 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: 'transparent' },
-    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, gap: 12 },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 14, gap: 12 },
     backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-    title: { fontFamily: 'Inter_900Black', fontSize: 22, color: ACCENT },
-    subtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM, marginTop: 2 },
+    title: { fontFamily: 'Inter_900Black', fontSize: 28, color: ACCENT_HOVER, letterSpacing: -0.6 },
+    subtitle: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, marginTop: 4, letterSpacing: 1.8, textTransform: 'uppercase' },
     createBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: rgbaFromHex(ACCENT, 0.14), borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.28) },
     createBtnText: { fontFamily: 'Inter_700Bold', fontSize: 12, color: ACCENT_HOVER },
     tabs: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 16, backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER, padding: 3 },
@@ -343,7 +345,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
     tabLabelActive: { color: ACCENT_HOVER },
     scroll: { paddingHorizontal: 20, paddingBottom: 48 },
-    card: { backgroundColor: CARD, borderRadius: 18, borderWidth: 1, borderColor: BORDER, padding: 16, marginBottom: 12, gap: 10 },
+    card: { backgroundColor: rgbaFromHex(CARD, 0.94), borderRadius: 22, borderWidth: 1, borderColor: BORDER, padding: 18, marginBottom: 12, gap: 12, shadowColor: ACCENT, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 22, elevation: 5 },
     cardHeader: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
     subjectBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, backgroundColor: rgbaFromHex(ACCENT, 0.10), borderRadius: 7, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.20) },
     subjectText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, letterSpacing: 0.5 },
@@ -365,13 +367,13 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     statChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: rgbaFromHex(ACCENT, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.22) },
     statText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: ACCENT },
     empty: { alignItems: 'center', paddingTop: 80, gap: 10 },
-    emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: DIM },
+    emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: ACCENT_HOVER },
     emptyHint: { fontFamily: 'Inter_400Regular', fontSize: 13, color: rgbaFromHex(theme.textSecondary, 0.8) },
     emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: rgbaFromHex(ACCENT, 0.14), borderRadius: 14, paddingHorizontal: 20, paddingVertical: 12, borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.28), marginTop: 12 },
     emptyBtnText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: ACCENT_HOVER },
     modal: { flex: 1, backgroundColor: BG, paddingTop: 20 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 24 },
-    modalTitle: { fontFamily: 'Inter_900Black', fontSize: 24, color: ACCENT },
+    modalTitle: { fontFamily: 'Inter_900Black', fontSize: 24, color: ACCENT_HOVER },
     fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, letterSpacing: 2, marginBottom: 10 },
     input: { backgroundColor: CARD_ALT, borderRadius: 12, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 14, color: ACCENT_HOVER, marginBottom: 24 },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },

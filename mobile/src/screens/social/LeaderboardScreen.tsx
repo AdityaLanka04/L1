@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../../services/auth';
 import { getFriendsLeaderboard, getGlobalLeaderboard } from '../../services/api';
 import HapticTouchable from '../../components/HapticTouchable';
+import AmbientBubbles from '../../components/AmbientBubbles';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, lightenColor, rgbaFromHex } from '../../utils/theme';
 
@@ -141,6 +142,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
   return (
     <View style={s.root}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
+      <AmbientBubbles theme={selectedTheme} variant="leaderboard" opacity={0.84} />
       <DotGrid />
 
 {/* Top bar */}
@@ -279,8 +281,8 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
 
   hero:      { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
-  heroGlow:  { width: 100, height: 100, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
-  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 38, color: ACCENT, letterSpacing: -2, marginTop: 6 },
+  heroGlow:  { width: 112, height: 112, borderRadius: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
+  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 40, color: theme.accentHover, letterSpacing: -2.2, marginTop: 8 },
   heroSub:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 0.5 },
 
   tabRow:       { flexDirection: 'row', paddingLeft: 20, paddingRight: 20, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
