@@ -65,10 +65,11 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
         initialPage={2}
         onPageSelected={e => setIndex(e.nativeEvent.position)}
         overdrag={false}
+        scrollEnabled={index !== 2}
       >
         <View key="0" style={{ flex: 1 }}><AIChatScreen user={user} /></View>
         <View key="1" style={{ flex: 1 }}><MoreScreen user={user} onNavigate={onNavigate} onNavigateToAI={() => goTo(0)} /></View>
-        <View key="2" style={{ flex: 1 }}><HomeScreen user={user} /></View>
+        <View key="2" style={{ flex: 1 }}><HomeScreen user={user} onNavigate={onNavigate} onNavigateToAI={() => goTo(0)} onSwipeLeftPage={() => goTo(3)} onSwipeRightPage={() => goTo(1)} /></View>
         <View key="3" style={{ flex: 1 }}><SocialScreen user={user} /></View>
         <View key="4" style={{ flex: 1 }}><ProfileScreen user={user} onLogout={onLogout} onNavigate={onNavigate} /></View>
       </PagerView>

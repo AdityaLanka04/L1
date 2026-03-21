@@ -207,7 +207,7 @@ export default function AIChatScreen({ user }: Props) {
               }
               return (
                 <View style={[s.bubble, isUser ? s.userBubble : s.aiBubble]}>
-                  {isUser && <LinearGradient colors={[GOLD_D + '60', USER_BG]} style={StyleSheet.absoluteFill} borderRadius={18} />}
+                  {isUser && <LinearGradient colors={[GOLD_D + '60', USER_BG]} style={[StyleSheet.absoluteFill, { borderRadius: 18 }]} />}
                   {isUser ? (
                     <Text style={s.userText}>{item.text}</Text>
                   ) : (
