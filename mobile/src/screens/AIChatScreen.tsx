@@ -22,6 +22,7 @@ const GOLD_D  = '#7A5C2E';
 const DIM     = '#5A5040';
 const BORDER  = '#1E1E1E';
 const USER_BG = '#1A1408';
+const EDGE_SWIPE_WIDTH = 36;
 
 type Msg = { id: string; role: 'user' | 'ai'; text: string };
 type Session = { id: number; title: string; updated_at: string | null };
@@ -74,19 +75,6 @@ export default function AIChatScreen({ user }: Props) {
   const listRef = useRef<FlatList>(null);
   const insets  = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(-280)).current;
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponderCapture: (_, g) => g.dx < -10 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
-      onPanResponderMove: (_, g) => { if (g.dx < 0) slideAnim.setValue(g.dx); },
-      onPanResponderRelease: (_, g) => {
-        if (g.dx < -60 || g.vx < -0.5) {
-          Animated.timing(slideAnim, { toValue: -280, duration: 220, useNativeDriver: true }).start(() => setSidebarOpen(false));
-        } else {
-          Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 100, friction: 14 }).start();
-        }
-      },
-    })
-  ).current;
 
   const openSidebar = useCallback(() => {
     setSidebarOpen(true);
@@ -101,6 +89,31 @@ export default function AIChatScreen({ user }: Props) {
   const closeSidebar = useCallback(() => {
     Animated.timing(slideAnim, { toValue: -280, duration: 220, useNativeDriver: true }).start(() => setSidebarOpen(false));
   }, []);
+
+  const closePanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (_, g) => g.dx < -10 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      onPanResponderMove: (_, g) => { if (g.dx < 0) slideAnim.setValue(g.dx); },
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -60 || g.vx < -0.5) {
+          Animated.timing(slideAnim, { toValue: -280, duration: 220, useNativeDriver: true }).start(() => setSidebarOpen(false));
+        } else {
+          Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 100, friction: 14 }).start();
+        }
+      },
+    })
+  ).current;
+
+  const openPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderRelease: (_, g) => {
+        if (g.dx > 60 || g.vx > 0.5) openSidebar();
+      },
+    })
+  ).current;
 
   const loadSession = useCallback(async (session: Session) => {
     closeSidebar();
@@ -157,11 +170,6 @@ export default function AIChatScreen({ user }: Props) {
     <SafeAreaView style={s.safe} edges={[]}>
       {/* Subtle background */}
       <LinearGradient colors={['#0A0A0A', '#0F0D05', '#0A0A0A']} style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={['transparent', GOLD_D + '18', 'transparent']}
-        start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-        style={StyleSheet.absoluteFill}
-      />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={insets.top}>
 
         {/* Header */}
@@ -170,7 +178,7 @@ export default function AIChatScreen({ user }: Props) {
             <Ionicons name="menu-outline" size={22} color={DIM} />
           </HapticTouchable>
           <View style={s.headerCenter}>
-            <Text style={s.headerTitle}>cerbyl</Text>
+            <Text style={s.headerTitle}>ai</Text>
             <View style={s.onlineDot} />
           </View>
           <HapticTouchable onPress={newChat} activeOpacity={0.7} style={s.headerBtn} haptic="light">
@@ -181,7 +189,6 @@ export default function AIChatScreen({ user }: Props) {
         {/* Empty state */}
         {isEmpty ? (
           <View style={s.emptyWrap}>
-            <LinearGradient colors={[GOLD_D + '40', GOLD_D + '10', 'transparent']} style={s.emptyGlow} />
             <Text style={s.emptyTitle}>ask anything</Text>
             <Text style={s.emptySub}>your ai tutor is ready</Text>
           </View>
@@ -236,6 +243,14 @@ export default function AIChatScreen({ user }: Props) {
         </View>
 
       </KeyboardAvoidingView>
+      {!sidebarOpen && (
+        <View
+          collapsable={false}
+          style={s.edgeSwipeZone}
+          pointerEvents="box-only"
+          {...openPanResponder.panHandlers}
+        />
+      )}
 
       {/* Sidebar overlay */}
       {sidebarOpen && (
@@ -243,7 +258,7 @@ export default function AIChatScreen({ user }: Props) {
           <SafeAreaProvider>
             <View style={s.overlay}>
               <HapticTouchable style={StyleSheet.absoluteFill} onPress={closeSidebar} activeOpacity={1} haptic="none" />
-              <Animated.View style={[s.sidebar, { transform: [{ translateX: slideAnim }] }]} {...panResponder.panHandlers}>
+              <Animated.View style={[s.sidebar, { transform: [{ translateX: slideAnim }] }]} {...closePanResponder.panHandlers}>
                 <LinearGradient colors={['#1E1608', '#131008', '#0A0A0A']} style={StyleSheet.absoluteFill} />
                 <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
                   <View style={s.sidebarHeader}>
@@ -298,6 +313,15 @@ export default function AIChatScreen({ user }: Props) {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent', overflow: 'hidden' },
+  edgeSwipeZone: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: EDGE_SWIPE_WIDTH,
+    backgroundColor: 'transparent',
+    zIndex: 3,
+  },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -306,11 +330,10 @@ const s = StyleSheet.create({
   },
   headerBtn: { width: 36, alignItems: 'center' },
   headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle: { fontFamily: 'Inter_900Black', fontSize: 16, color: GOLD_M },
+  headerTitle: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_M },
   onlineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#6BCB77' },
 
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  emptyGlow: { position: 'absolute', top: '15%', width: 300, height: 300, borderRadius: 150 },
   emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 32, color: GOLD_L, marginBottom: 8 },
   emptySub: { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM, letterSpacing: 2 },
 

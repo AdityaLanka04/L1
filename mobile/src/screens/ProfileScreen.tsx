@@ -11,6 +11,7 @@ import { triggerHaptic } from '../utils/haptics';
 
 const BG = '#0A0A0A';
 const CARD = '#111111';
+const GOLD_XL = '#FFF0BC';
 const GOLD_LIGHT = '#FFE8A0';
 const GOLD_MID = '#C9A87C';
 const GOLD_DARK = '#7A5C2E';
@@ -89,21 +90,14 @@ export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <LinearGradient colors={['#0A0A0A', '#0F0D05', '#0A0A0A']} style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={['transparent', GOLD_DARK + '20', 'transparent']}
-        start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        colors={[GOLD_DARK + '15', 'transparent', 'transparent']}
-        start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 0.4 }}
-        style={StyleSheet.absoluteFill}
-      />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         <View style={styles.topBar}>
-          <Text style={styles.pageTitle}>profile</Text>
-          <Ionicons name="settings-outline" size={18} color={DIM} />
+          <View>
+            <Text style={styles.pageTitle}>profile</Text>
+            <Text style={styles.pageSubtitle}>your account</Text>
+          </View>
+          <Ionicons name="settings-outline" size={20} color={GOLD_XL} />
         </View>
 
         <View style={styles.avatarSection}>
@@ -180,8 +174,9 @@ export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent', overflow: 'hidden' },
   scroll: { paddingHorizontal: 24, paddingBottom: 48 },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 28 },
-  pageTitle: { fontFamily: 'Inter_900Black', fontSize: 16, color: GOLD_MID, letterSpacing: 0 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 18, marginBottom: 6 },
+  pageTitle: { fontFamily: 'Inter_900Black', fontSize: 30, lineHeight: 32, color: GOLD_XL, letterSpacing: 0 },
+  pageSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: GOLD_LIGHT, letterSpacing: 3, marginTop: 3 },
   avatarSection: { alignItems: 'center', marginBottom: 28 },
   avatarCircle: { width: 88, height: 88, borderRadius: 44, borderWidth: 1.5, borderColor: GOLD_DARK, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   avatarInitials: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_LIGHT },

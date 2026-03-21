@@ -33,7 +33,7 @@ type RootStackParamList = {
 const TABS: { label: string; icon: IoniconsName; activeIcon: IoniconsName }[] = [
   { label: 'ai',      icon: 'sparkles-outline', activeIcon: 'sparkles' },
   { label: 'explore', icon: 'grid-outline',      activeIcon: 'grid'    },
-  { label: 'home',    icon: 'home-outline',      activeIcon: 'home'    },
+  { label: 'cerbyl',  icon: 'home-outline',      activeIcon: 'home'    },
   { label: 'social',  icon: 'people-outline',    activeIcon: 'people'  },
   { label: 'profile', icon: 'person-outline',    activeIcon: 'person'  },
 ];
@@ -64,7 +64,7 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
         style={{ flex: 1 }}
         initialPage={2}
         onPageSelected={e => setIndex(e.nativeEvent.position)}
-        overdrag
+        overdrag={false}
       >
         <View key="0" style={{ flex: 1 }}><AIChatScreen user={user} /></View>
         <View key="1" style={{ flex: 1 }}><MoreScreen user={user} onNavigate={onNavigate} onNavigateToAI={() => goTo(0)} /></View>
@@ -73,7 +73,7 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
         <View key="4" style={{ flex: 1 }}><ProfileScreen user={user} onLogout={onLogout} onNavigate={onNavigate} /></View>
       </PagerView>
 
-      <View style={[s.tabBar, { paddingBottom: insets.bottom, height: 54 + insets.bottom }]}>
+      <View style={[s.tabBar, { paddingBottom: insets.bottom, height: 62 + insets.bottom }]}>
         {TABS.map((t, i) => {
           const active = index === i;
           return (
@@ -149,11 +149,11 @@ const s = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    gap: 2,
+    gap: 4,
   },
   tabLabel: {
-    fontFamily: 'monospace',
-    fontSize: 8,
-    letterSpacing: 0.3,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0,
   },
 });

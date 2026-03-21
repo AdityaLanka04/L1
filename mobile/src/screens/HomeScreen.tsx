@@ -18,7 +18,6 @@ const GOLD_DARK = '#7A5C2E';
 const GOLD_D    = '#8A6535';
 
 const CARD_BORDER = GOLD_D + '55';
-const TOP_GLOW    = GOLD_D + '28';
 
 type Props = { user: AuthUser };
 
@@ -66,16 +65,6 @@ export default function HomeScreen({ user }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <LinearGradient colors={['#0A0A0A', '#0F0D05', '#0A0A0A']} style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={['transparent', GOLD_DARK + '20', 'transparent']}
-        start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        colors={[GOLD_DARK + '10', 'transparent', 'transparent']}
-        start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 0.4 }}
-        style={StyleSheet.absoluteFill}
-      />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -115,7 +104,6 @@ export default function HomeScreen({ user }: Props) {
               { val: stats?.totalNotes        ?? '—', lbl: 'NOTES' },
             ].map(item => (
               <View key={item.lbl} style={styles.activityCard}>
-                <LinearGradient colors={[TOP_GLOW, 'transparent']} style={styles.cardGlow} pointerEvents="none" />
                 <Text style={styles.activityValue}>{item.val}</Text>
                 <Text style={styles.activityLabel}>{item.lbl}</Text>
               </View>
@@ -133,23 +121,21 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 24, paddingBottom: 48 },
 
   topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 4,
+    marginTop: 18,
+    marginBottom: 6,
   },
   appName: {
     fontFamily: 'Inter_900Black',
-    fontSize: 16,
+    fontSize: 30,
     color: GOLD_XL,
     letterSpacing: 0,
   },
   greeting: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 12,
+    fontSize: 11,
     color: GOLD_L,
-    letterSpacing: 1,
+    letterSpacing: 3,
+    marginTop: 3,
   },
 
   streakSection: {
@@ -167,9 +153,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_900Black',
     color: GOLD_XL,
     textAlign: 'center',
-    textShadowColor: GOLD_MID + '55',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 50,
   },
 
   weeklyHeader: {
@@ -218,19 +201,10 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  cardGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    zIndex: 0,
-  },
   activityValue: {
     fontFamily: 'Inter_900Black',
     fontSize: 24,
     color: GOLD_XL,
-    zIndex: 1,
   },
   activityLabel: {
     fontFamily: 'Inter_400Regular',
@@ -238,6 +212,5 @@ const styles = StyleSheet.create({
     color: GOLD_L,
     letterSpacing: 1.5,
     marginTop: 4,
-    zIndex: 1,
   },
 });

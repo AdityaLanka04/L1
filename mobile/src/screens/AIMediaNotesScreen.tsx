@@ -23,7 +23,6 @@ const INK     = '#0D0A06';
 const ERR     = '#BF5D5D';
 
 const CARD_BORDER = GOLD_D + '55';
-const TOP_GLOW    = GOLD_D + '28';
 
 const STATUSES = [
   'extracting audio...',
@@ -62,16 +61,6 @@ type AIMediaStackParamList = {
 };
 
 const AIMediaStack = createNativeStackNavigator<AIMediaStackParamList>();
-
-function CardGlow() {
-  return (
-    <LinearGradient
-      colors={[TOP_GLOW, 'transparent']}
-      style={s.cardGlow}
-      pointerEvents="none"
-    />
-  );
-}
 
 function ProcessingView({ status }: { status: string }) {
   const ring0 = useRef(new Animated.Value(0)).current;
@@ -469,7 +458,6 @@ function AIMediaHub({
 
           {mode === 'youtube' && (
             <View style={s.inputCard}>
-              <CardGlow />
               <View style={s.inputCardInner}>
                 <Text style={s.inputCardLabel}>YOUTUBE URL</Text>
 
@@ -513,7 +501,6 @@ function AIMediaHub({
 
           {mode === 'record' && (
             <View style={s.inputCard}>
-              <CardGlow />
               <View style={s.recordInner}>
                 <Text style={s.inputCardLabel}>AUDIO RECORDING</Text>
                 <Text style={s.recordHint}>
@@ -557,7 +544,6 @@ function AIMediaHub({
           ) : (
             history.slice(0, 8).map(item => (
               <HapticTouchable key={item.id} style={s.histRow} activeOpacity={0.8} haptic="light">
-                <CardGlow />
                 <View style={s.histIconBox}>
                   <Text style={s.histIconText}>N</Text>
                 </View>
@@ -784,13 +770,6 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
 const s = StyleSheet.create({
   safe:      { flex: 1, backgroundColor: BG },
   hubScroll: { paddingHorizontal: 16, paddingBottom: 48, gap: 12 },
-
-  cardGlow: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    height: 72,
-    zIndex: 0,
-  },
 
   // Header
   header: {

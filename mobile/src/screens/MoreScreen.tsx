@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AuthUser } from '../services/auth';
 import { getEnhancedStats, getFlashcardStatistics, getWeeklyProgress } from '../services/api';
 import HapticTouchable from '../components/HapticTouchable';
@@ -20,22 +19,11 @@ const GOLD_D  = '#8A6535';
 const DIM2    = '#4A3E2A';
 
 const CARD_BORDER = GOLD_D + '55';
-const TOP_GLOW    = GOLD_D + '28';
 
 const BAR_MAX_H = 72;
 
 type DayData = { day: string; ai_chats: number; notes: number; flashcards: number };
 type Props   = { user: AuthUser; onNavigate?: (screen: 'flashcards' | 'notes' | 'aimedia') => void; onNavigateToAI?: () => void };
-
-function CardGlow() {
-  return (
-    <LinearGradient
-      colors={[TOP_GLOW, 'transparent']}
-      style={s.cardGlow}
-      pointerEvents="none"
-    />
-  );
-}
 
 export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) {
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
@@ -76,9 +64,133 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
           <Text style={s.subtitle}>your learning universe</Text>
         </View>
 
+        {/* ── AI Chats | Notes ── */}
+        <View style={s.row}>
+
+          <HapticTouchable style={[s.card, s.halfCard]} onPress={() => onNavigateToAI?.()} activeOpacity={0.75} haptic="selection">
+            <View style={s.cardInner}>
+              <Text style={s.cardLabel}>AI CHATS</Text>
+              <Text style={s.cardStat}>{totalChats}</Text>
+              <Text style={s.cardUnit}>SESSIONS</Text>
+              <View style={s.cardDivider} />
+              <Text style={s.cardHint}>open chat</Text>
+            </View>
+          </HapticTouchable>
+
+          <HapticTouchable style={[s.card, s.halfCard]} onPress={() => onNavigate?.('notes')} activeOpacity={0.75} haptic="selection">
+            <View style={s.cardInner}>
+              <Text style={s.cardLabel}>NOTES</Text>
+              <Text style={s.cardStat}>{totalNotes}</Text>
+              <Text style={s.cardUnit}>CREATED</Text>
+              <View style={s.cardDivider} />
+              <Text style={s.cardHint}>open notes</Text>
+            </View>
+          </HapticTouchable>
+
+        </View>
+
+        {/* ── AI Media Notes ── */}
+        <HapticTouchable style={[s.card, s.full, s.featureTile]} onPress={() => onNavigate?.('aimedia')} activeOpacity={0.75} haptic="medium">
+          <View style={s.featureInner}>
+            <View style={s.featureTopRow}>
+              <Text style={s.featureEyebrow}>AI-POWERED TRANSCRIPTION</Text>
+              <View style={s.featureBadge}><Text style={s.featureBadgeText}>NEW</Text></View>
+            </View>
+            <Text style={s.featureTitle}>media notes</Text>
+            <View style={s.cardDivider} />
+            <View style={s.statsRow}>
+              {[
+                { val: 'YT',  lbl: 'YOUTUBE' },
+                { val: 'AI',  lbl: 'NOTES'   },
+                { val: '∞',   lbl: 'TOPICS'  },
+              ].map((item, i) => (
+                <View key={i} style={s.statCell}>
+                  {i > 0 && <View style={s.statSep} />}
+                  <View style={s.stat}>
+                    <Text style={s.statVal}>{item.val}</Text>
+                    <Text style={s.statLbl}>{item.lbl}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        </HapticTouchable>
+
+        {/* ── Flashcards ── */}
+        <HapticTouchable style={[s.card, s.full]} onPress={() => onNavigate?.('flashcards')} activeOpacity={0.75} haptic="medium">
+          <View style={s.inner}>
+            <View style={s.topRow}>
+              <Text style={s.cardLabel}>FLASHCARDS</Text>
+              <Text style={s.cardChevron}>›</Text>
+            </View>
+            <View style={s.fcGrid}>
+              {[
+                { val: fcTotal,    lbl: 'TOTAL CARDS' },
+                { val: fcSets,     lbl: 'SETS'        },
+                { val: fcMastered, lbl: 'MASTERED'    },
+                { val: fcAccuracy, lbl: 'ACCURACY'    },
+              ].map((item, i) => (
+                <View key={i} style={[s.fcCell, {
+                  borderTopWidth:  i >= 2 ? 1 : 0,
+                  borderLeftWidth: i % 2 === 1 ? 1 : 0,
+                  borderColor:     GOLD_D + '25',
+                }]}>
+                  <Text style={s.fcNum}>{item.val}</Text>
+                  <Text style={s.fcLbl}>{item.lbl}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </HapticTouchable>
+
+        {/* ── Quiz Hub ── */}
+        <View style={[s.card, s.full, s.featureTile]}>
+          <View style={s.featureInner}>
+            <View style={s.featureTopRow}>
+              <Text style={s.featureEyebrow}>CHALLENGE YOURSELF</Text>
+              <View style={s.featureBadge}><Text style={s.featureBadgeText}>HUB</Text></View>
+            </View>
+            <Text style={s.featureTitle}>quiz hub</Text>
+            <View style={s.cardDivider} />
+            <View style={s.statsRow}>
+              {[
+                { val: String(totalQuizzes), lbl: 'COMPLETED' },
+                { val: '∞',                  lbl: 'TOPICS'    },
+                { val: 'AI',                 lbl: 'POWERED'   },
+              ].map((item, i) => (
+                <View key={i} style={s.statCell}>
+                  {i > 0 && <View style={s.statSep} />}
+                  <View style={s.stat}>
+                    <Text style={s.statVal}>{item.val}</Text>
+                    <Text style={s.statLbl}>{item.lbl}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* ── Bottom row: SearchHub | Slides ── */}
+        <View style={s.row}>
+          <View style={[s.card, { flex: 1, height: 110 }]}>
+            <View style={s.cardInner}>
+              <Text style={s.cardLabel}>SEARCHHUB</Text>
+              <Text style={s.bottomStat}>∞</Text>
+              <Text style={s.bottomLbl}>explore topics</Text>
+            </View>
+          </View>
+
+          <View style={[s.card, { flex: 1, height: 110 }]}>
+            <View style={s.cardInner}>
+              <Text style={s.cardLabel}>SLIDES</Text>
+              <Text style={s.bottomStat}>AI</Text>
+              <Text style={s.bottomLbl}>generated decks</Text>
+            </View>
+          </View>
+        </View>
+
         {/* ── Weekly activity graph ── */}
         <View style={[s.card, s.full, { height: 270 }]}>
-          <CardGlow />
           <View style={s.inner}>
             <View style={s.topRow}>
               <Text style={s.cardLabel}>THIS WEEK</Text>
@@ -123,138 +235,6 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
           </View>
         </View>
 
-        {/* ── AI Chats | Notes ── */}
-        <View style={s.row}>
-
-          <HapticTouchable style={[s.card, s.halfCard]} onPress={() => onNavigateToAI?.()} activeOpacity={0.75} haptic="selection">
-            <CardGlow />
-            <View style={s.cardInner}>
-              <Text style={s.cardLabel}>AI CHATS</Text>
-              <Text style={s.cardStat}>{totalChats}</Text>
-              <Text style={s.cardUnit}>SESSIONS</Text>
-              <View style={s.cardDivider} />
-              <Text style={s.cardHint}>open chat</Text>
-            </View>
-          </HapticTouchable>
-
-          <HapticTouchable style={[s.card, s.halfCard]} onPress={() => onNavigate?.('notes')} activeOpacity={0.75} haptic="selection">
-            <CardGlow />
-            <View style={s.cardInner}>
-              <Text style={s.cardLabel}>NOTES</Text>
-              <Text style={s.cardStat}>{totalNotes}</Text>
-              <Text style={s.cardUnit}>CREATED</Text>
-              <View style={s.cardDivider} />
-              <Text style={s.cardHint}>open notes</Text>
-            </View>
-          </HapticTouchable>
-
-        </View>
-
-        {/* ── AI Media Notes ── */}
-        <HapticTouchable style={[s.card, s.full, s.featureTile]} onPress={() => onNavigate?.('aimedia')} activeOpacity={0.75} haptic="medium">
-          <CardGlow />
-          <View style={s.featureInner}>
-            <View style={s.featureTopRow}>
-              <Text style={s.featureEyebrow}>AI-POWERED TRANSCRIPTION</Text>
-              <View style={s.featureBadge}><Text style={s.featureBadgeText}>NEW</Text></View>
-            </View>
-            <Text style={s.featureTitle}>media notes</Text>
-            <View style={s.cardDivider} />
-            <View style={s.statsRow}>
-              {[
-                { val: 'YT',  lbl: 'YOUTUBE' },
-                { val: 'AI',  lbl: 'NOTES'   },
-                { val: '∞',   lbl: 'TOPICS'  },
-              ].map((item, i) => (
-                <View key={i} style={s.statCell}>
-                  {i > 0 && <View style={s.statSep} />}
-                  <View style={s.stat}>
-                    <Text style={s.statVal}>{item.val}</Text>
-                    <Text style={s.statLbl}>{item.lbl}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        </HapticTouchable>
-
-        {/* ── Flashcards ── */}
-        <HapticTouchable style={[s.card, s.full]} onPress={() => onNavigate?.('flashcards')} activeOpacity={0.75} haptic="medium">
-          <CardGlow />
-          <View style={s.inner}>
-            <View style={s.topRow}>
-              <Text style={s.cardLabel}>FLASHCARDS</Text>
-              <Text style={s.cardChevron}>›</Text>
-            </View>
-            <View style={s.fcGrid}>
-              {[
-                { val: fcTotal,    lbl: 'TOTAL CARDS' },
-                { val: fcSets,     lbl: 'SETS'        },
-                { val: fcMastered, lbl: 'MASTERED'    },
-                { val: fcAccuracy, lbl: 'ACCURACY'    },
-              ].map((item, i) => (
-                <View key={i} style={[s.fcCell, {
-                  borderTopWidth:  i >= 2 ? 1 : 0,
-                  borderLeftWidth: i % 2 === 1 ? 1 : 0,
-                  borderColor:     GOLD_D + '25',
-                }]}>
-                  <Text style={s.fcNum}>{item.val}</Text>
-                  <Text style={s.fcLbl}>{item.lbl}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </HapticTouchable>
-
-        {/* ── Quiz Hub ── */}
-        <View style={[s.card, s.full, s.featureTile]}>
-          <CardGlow />
-          <View style={s.featureInner}>
-            <View style={s.featureTopRow}>
-              <Text style={s.featureEyebrow}>CHALLENGE YOURSELF</Text>
-              <View style={s.featureBadge}><Text style={s.featureBadgeText}>HUB</Text></View>
-            </View>
-            <Text style={s.featureTitle}>quiz hub</Text>
-            <View style={s.cardDivider} />
-            <View style={s.statsRow}>
-              {[
-                { val: String(totalQuizzes), lbl: 'COMPLETED' },
-                { val: '∞',                  lbl: 'TOPICS'    },
-                { val: 'AI',                 lbl: 'POWERED'   },
-              ].map((item, i) => (
-                <View key={i} style={s.statCell}>
-                  {i > 0 && <View style={s.statSep} />}
-                  <View style={s.stat}>
-                    <Text style={s.statVal}>{item.val}</Text>
-                    <Text style={s.statLbl}>{item.lbl}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-
-        {/* ── Bottom row: SearchHub | Slides ── */}
-        <View style={s.row}>
-          <View style={[s.card, { flex: 1, height: 110 }]}>
-            <CardGlow />
-            <View style={s.cardInner}>
-              <Text style={s.cardLabel}>SEARCHHUB</Text>
-              <Text style={s.bottomStat}>∞</Text>
-              <Text style={s.bottomLbl}>explore topics</Text>
-            </View>
-          </View>
-
-          <View style={[s.card, { flex: 1, height: 110 }]}>
-            <CardGlow />
-            <View style={s.cardInner}>
-              <Text style={s.cardLabel}>SLIDES</Text>
-              <Text style={s.bottomStat}>AI</Text>
-              <Text style={s.bottomLbl}>generated decks</Text>
-            </View>
-          </View>
-        </View>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -279,15 +259,6 @@ const s = StyleSheet.create({
     elevation: 8,
     position: 'relative',
   },
-  cardGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 72,
-    zIndex: 0,
-  },
-
   inner:    { flex: 1, padding: 16, justifyContent: 'space-between', zIndex: 1 },
   topRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
