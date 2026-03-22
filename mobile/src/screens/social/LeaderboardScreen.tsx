@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthUser } from '../../services/auth';
@@ -9,8 +9,7 @@ import HapticTouchable from '../../components/HapticTouchable';
 import AmbientBubbles from '../../components/AmbientBubbles';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, lightenColor, rgbaFromHex } from '../../utils/theme';
-
-const { width: SW } = Dimensions.get('window');
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 
 const MEDAL = {
   gold:   { bar: 80, size: 60 },
@@ -28,10 +27,11 @@ function getMedalRing(theme: ReturnType<typeof useAppTheme>['selectedTheme'], me
 
 function DotGrid() {
   const { selectedTheme } = useAppTheme();
+  const { width } = useResponsiveLayout();
   const dotColor = rgbaFromHex(selectedTheme.accent, 0.16);
   const dotSpacingX = 24;
   const dotSpacingY = 30;
-  const cols = Math.floor((SW - 56) / dotSpacingX);
+  const cols = Math.floor((width - 56) / dotSpacingX);
   const rows = 28;
   return (
     <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
@@ -82,7 +82,8 @@ type Props = { user: AuthUser; onBack: () => void };
 
 export default function LeaderboardScreen({ user, onBack }: Props) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const pod = useMemo(() => createPodStyles(selectedTheme), [selectedTheme]);
   const row = useMemo(() => createRowStyles(selectedTheme), [selectedTheme]);
   const empty = useMemo(() => createEmptyStyles(selectedTheme), [selectedTheme]);
@@ -268,7 +269,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const ACCENT = theme.accent;
   const ACCENT_DARK = darkenColor(theme.accent, theme.isLight ? 12 : 26);
   const DIM = theme.textSecondary;
@@ -277,21 +278,21 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   return StyleSheet.create({
   root: { flex: 1 },
 
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  topBar: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
   backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
 
-  hero:      { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
+  hero:      { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
   heroGlow:  { width: 112, height: 112, borderRadius: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
   heroTitle: { fontFamily: 'Inter_900Black', fontSize: 40, color: theme.accentHover, letterSpacing: -2.2, marginTop: 8 },
   heroSub:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 0.5 },
 
-  tabRow:       { flexDirection: 'row', paddingLeft: 20, paddingRight: 20, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
+  tabRow:       { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', paddingLeft: 20, paddingRight: 20, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
   tabItem:      { flex: 1, alignItems: 'center', paddingBottom: 10, position: 'relative' },
   tabText:      { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
   tabTextActive: { color: theme.accentHover },
   tabLine:      { position: 'absolute', bottom: -1, left: '15%', right: '15%', height: 2, backgroundColor: ACCENT, borderRadius: 1 },
 
-  scroll: { paddingLeft: 20, paddingRight: 20, paddingTop: 4, gap: 0 },
+  scroll: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingLeft: 20, paddingRight: 20, paddingTop: 4, gap: 0 },
 });
 }
 

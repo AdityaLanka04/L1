@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
-  RefreshControl, TextInput, Modal, Alert, Dimensions,
+  RefreshControl, TextInput, Modal, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -15,18 +15,18 @@ import HapticTouchable from '../../components/HapticTouchable';
 import AmbientBubbles from '../../components/AmbientBubbles';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../../utils/theme';
-
-const { width: SW } = Dimensions.get('window');
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 
 const SUBJECTS     = ['Mathematics', 'Biology', 'Chemistry', 'Physics', 'History', 'Literature', 'Computer Science', 'Economics'];
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
 
 function DotGrid() {
   const { selectedTheme } = useAppTheme();
+  const { width } = useResponsiveLayout();
   const dotColor = rgbaFromHex(selectedTheme.accent, 0.16);
   const dotSpacingX = 24;
   const dotSpacingY = 30;
-  const cols = Math.floor((SW - 56) / dotSpacingX);
+  const cols = Math.floor((width - 56) / dotSpacingX);
   const rows = 28;
   return (
     <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
@@ -75,7 +75,8 @@ type Props = { user: AuthUser; onBack: () => void };
 
 export default function GamesScreen({ user, onBack }: Props) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const card = useMemo(() => createCardStyles(selectedTheme), [selectedTheme]);
   const vs = useMemo(() => createVersusStyles(selectedTheme), [selectedTheme]);
   const empty = useMemo(() => createEmptyStyles(selectedTheme), [selectedTheme]);
@@ -343,7 +344,7 @@ export default function GamesScreen({ user, onBack }: Props) {
             </HapticTouchable>
           </View>
 
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={{ width: '100%', maxWidth: Math.min(layout.contentMaxWidth, 680), alignSelf: 'center', paddingHorizontal: 20, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
 
             <Text style={modal.label}>OPPONENT</Text>
             {friends.length === 0 ? (
@@ -439,7 +440,7 @@ export default function GamesScreen({ user, onBack }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const ACCENT = theme.accent;
   const ACCENT_DARK = darkenColor(theme.accent, theme.isLight ? 12 : 26);
   const DIM = theme.textSecondary;
@@ -448,16 +449,16 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
   return StyleSheet.create({
     root: { flex: 1 },
-    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+    topBar: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
     backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
     cta: { borderRadius: 12, paddingHorizontal: 15, paddingVertical: 10 },
     ctaText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: INK },
-    hero: { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
+    hero: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
     heroGlow: { width: 112, height: 112, borderRadius: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
     heroTitle: { fontFamily: 'Inter_900Black', fontSize: 44, color: theme.accentHover, letterSpacing: -2.2, marginTop: 8 },
     heroSub: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 1 },
-    divider: { height: 1, marginLeft: 20, marginRight: 20, backgroundColor: BORDER },
-    scroll: { paddingLeft: 20, paddingRight: 20, paddingTop: 16, gap: 8 },
+    divider: { height: 1, width: '100%', maxWidth: layout.contentMaxWidth - 40, alignSelf: 'center', marginLeft: 20, marginRight: 20, backgroundColor: BORDER },
+    scroll: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingLeft: 20, paddingRight: 20, paddingTop: 16, gap: 8 },
     section: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: DIM, letterSpacing: 2.5, marginTop: 8, marginBottom: 2 },
   });
 }

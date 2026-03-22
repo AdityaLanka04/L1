@@ -13,6 +13,7 @@ import HapticTouchable from '../components/HapticTouchable';
 import AmbientBubbles from '../components/AmbientBubbles';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -23,7 +24,8 @@ type Props = { onLogin: (user: AuthUser) => void };
 
 export default function LoginScreen({ onLogin }: Props) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const [mode, setMode] = useState<'login' | 'register'>('login');
 
@@ -116,88 +118,97 @@ export default function LoginScreen({ onLogin }: Props) {
 
   return (
     <SafeAreaView style={s.safe}>
-      <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.6, 1]} style={StyleSheet.absoluteFill} />
-      <AmbientBubbles theme={selectedTheme} variant="auth" opacity={1} />
-      <View style={s.glowA} />
-      <View style={s.glowB} />
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.6, 1]} style={StyleSheet.absoluteFill} />
+        <AmbientBubbles theme={selectedTheme} variant="auth" opacity={1} />
+        <View style={s.glowA} />
+        <View style={s.glowB} />
+      </View>
       <KeyboardAvoidingView style={s.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <View style={s.top}>
-            <View style={s.heroBadge}>
-              <Text style={s.heroBadgeText}>AI study operating system</Text>
-            </View>
-            <Text style={s.brand}>cerbyl</Text>
-            <Text style={s.sub}>A cleaner, calmer way to learn with chat, notes, flashcards, and guided study flows.</Text>
-          </View>
-
-          <View style={s.panel}>
-            <View style={s.tabs}>
-              <HapticTouchable style={[s.tab, mode === 'login' && s.tabActive]} onPress={() => switchMode('login')} haptic="selection">
-                <Text style={[s.tabText, mode === 'login' && s.tabTextActive]}>sign in</Text>
-              </HapticTouchable>
-              <HapticTouchable style={[s.tab, mode === 'register' && s.tabActive]} onPress={() => switchMode('register')} haptic="selection">
-                <Text style={[s.tabText, mode === 'register' && s.tabTextActive]}>create account</Text>
-              </HapticTouchable>
+        <ScrollView
+          style={s.scrollView}
+          contentContainerStyle={s.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
+        >
+          <View style={s.content}>
+            <View style={s.top}>
+              <View style={s.heroBadge}>
+                <Text style={s.heroBadgeText}>AI study operating system</Text>
+              </View>
+              <Text style={s.brand}>cerbyl</Text>
+              <Text style={s.sub}>A cleaner, calmer way to learn with chat, notes, flashcards, and guided study flows.</Text>
             </View>
 
-            {success ? <Text style={s.success}>{success}</Text> : null}
-            {error ? <Text style={s.error}>{error}</Text> : null}
+            <View style={s.panel}>
+              <View style={s.tabs}>
+                <HapticTouchable style={[s.tab, mode === 'login' && s.tabActive]} onPress={() => switchMode('login')} haptic="selection">
+                  <Text style={[s.tabText, mode === 'login' && s.tabTextActive]}>sign in</Text>
+                </HapticTouchable>
+                <HapticTouchable style={[s.tab, mode === 'register' && s.tabActive]} onPress={() => switchMode('register')} haptic="selection">
+                  <Text style={[s.tabText, mode === 'register' && s.tabTextActive]}>create account</Text>
+                </HapticTouchable>
+              </View>
 
-            <View style={s.form}>
-              {mode === 'login' ? (
-                <>
-                  <Text style={s.label}>username or email</Text>
-                  <TextInput style={s.input} value={username} onChangeText={setUsername} placeholder="enter username" placeholderTextColor={selectedTheme.textSecondary} autoCapitalize="none" autoCorrect={false} />
+              {success ? <Text style={s.success}>{success}</Text> : null}
+              {error ? <Text style={s.error}>{error}</Text> : null}
 
-                  <Text style={[s.label, s.spacedLabel]}>password</Text>
-                  <TextInput style={s.input} value={password} onChangeText={setPassword} placeholder="enter password" placeholderTextColor={selectedTheme.textSecondary} secureTextEntry />
+              <View style={s.form}>
+                {mode === 'login' ? (
+                  <>
+                    <Text style={s.label}>username or email</Text>
+                    <TextInput style={s.input} value={username} onChangeText={setUsername} placeholder="enter username" placeholderTextColor={selectedTheme.textSecondary} autoCapitalize="none" autoCorrect={false} />
 
-                  <HapticTouchable style={s.btnWrap} onPress={handleLogin} activeOpacity={0.88} disabled={loading} haptic="medium">
-                    <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={s.btn}>
-                      {loading ? <ActivityIndicator color={selectedTheme.bgPrimary} /> : <Text style={s.btnText}>sign in</Text>}
-                    </LinearGradient>
-                  </HapticTouchable>
+                    <Text style={[s.label, s.spacedLabel]}>password</Text>
+                    <TextInput style={s.input} value={password} onChangeText={setPassword} placeholder="enter password" placeholderTextColor={selectedTheme.textSecondary} secureTextEntry />
 
-                  <View style={s.dividerRow}>
-                    <View style={s.dividerLine} />
-                    <Text style={s.dividerText}>or continue</Text>
-                    <View style={s.dividerLine} />
-                  </View>
+                    <HapticTouchable style={s.btnWrap} onPress={handleLogin} activeOpacity={0.88} disabled={loading} haptic="medium">
+                      <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={s.btn}>
+                        {loading ? <ActivityIndicator color={selectedTheme.bgPrimary} /> : <Text style={s.btnText}>sign in</Text>}
+                      </LinearGradient>
+                    </HapticTouchable>
 
-                  <HapticTouchable style={s.googleBtn} onPress={() => { setError(''); promptAsync(); }} activeOpacity={0.88} disabled={loading || !request} haptic="medium">
-                    <Text style={s.googleIcon}>G</Text>
-                    <Text style={s.googleText}>continue with google</Text>
-                  </HapticTouchable>
-                </>
-              ) : (
-                <>
-                  <View style={s.row}>
-                    <View style={s.half}>
-                      <Text style={s.label}>first name</Text>
-                      <TextInput style={s.input} value={regFirstName} onChangeText={setRegFirstName} placeholder="first" placeholderTextColor={selectedTheme.textSecondary} autoCapitalize="words" />
+                    <View style={s.dividerRow}>
+                      <View style={s.dividerLine} />
+                      <Text style={s.dividerText}>or continue</Text>
+                      <View style={s.dividerLine} />
                     </View>
-                    <View style={s.half}>
-                      <Text style={s.label}>last name</Text>
-                      <TextInput style={s.input} value={regLastName} onChangeText={setRegLastName} placeholder="last" placeholderTextColor={selectedTheme.textSecondary} autoCapitalize="words" />
+
+                    <HapticTouchable style={s.googleBtn} onPress={() => { setError(''); promptAsync(); }} activeOpacity={0.88} disabled={loading || !request} haptic="medium">
+                      <Text style={s.googleIcon}>G</Text>
+                      <Text style={s.googleText}>continue with google</Text>
+                    </HapticTouchable>
+                  </>
+                ) : (
+                  <>
+                    <View style={s.row}>
+                      <View style={s.half}>
+                        <Text style={s.label}>first name</Text>
+                        <TextInput style={s.input} value={regFirstName} onChangeText={setRegFirstName} placeholder="first" placeholderTextColor={selectedTheme.textSecondary} autoCapitalize="words" />
+                      </View>
+                      <View style={s.half}>
+                        <Text style={s.label}>last name</Text>
+                        <TextInput style={s.input} value={regLastName} onChangeText={setRegLastName} placeholder="last" placeholderTextColor={selectedTheme.textSecondary} autoCapitalize="words" />
+                      </View>
                     </View>
-                  </View>
 
-                  <Text style={[s.label, s.spacedLabel]}>email</Text>
-                  <TextInput style={s.input} value={regEmail} onChangeText={setRegEmail} placeholder="you@example.com" placeholderTextColor={selectedTheme.textSecondary} autoCapitalize="none" keyboardType="email-address" />
+                    <Text style={[s.label, s.spacedLabel]}>email</Text>
+                    <TextInput style={s.input} value={regEmail} onChangeText={setRegEmail} placeholder="you@example.com" placeholderTextColor={selectedTheme.textSecondary} autoCapitalize="none" keyboardType="email-address" />
 
-                  <Text style={[s.label, s.spacedLabel]}>username</Text>
-                  <TextInput style={s.input} value={regUsername} onChangeText={setRegUsername} placeholder="choose a username" placeholderTextColor={selectedTheme.textSecondary} autoCapitalize="none" autoCorrect={false} />
+                    <Text style={[s.label, s.spacedLabel]}>username</Text>
+                    <TextInput style={s.input} value={regUsername} onChangeText={setRegUsername} placeholder="choose a username" placeholderTextColor={selectedTheme.textSecondary} autoCapitalize="none" autoCorrect={false} />
 
-                  <Text style={[s.label, s.spacedLabel]}>password</Text>
-                  <TextInput style={s.input} value={regPassword} onChangeText={setRegPassword} placeholder="min 6 characters" placeholderTextColor={selectedTheme.textSecondary} secureTextEntry />
+                    <Text style={[s.label, s.spacedLabel]}>password</Text>
+                    <TextInput style={s.input} value={regPassword} onChangeText={setRegPassword} placeholder="min 6 characters" placeholderTextColor={selectedTheme.textSecondary} secureTextEntry />
 
-                  <HapticTouchable style={s.btnWrap} onPress={handleRegister} activeOpacity={0.88} disabled={loading} haptic="medium">
-                    <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={s.btn}>
-                      {loading ? <ActivityIndicator color={selectedTheme.bgPrimary} /> : <Text style={s.btnText}>create account</Text>}
-                    </LinearGradient>
-                  </HapticTouchable>
-                </>
-              )}
+                    <HapticTouchable style={s.btnWrap} onPress={handleRegister} activeOpacity={0.88} disabled={loading} haptic="medium">
+                      <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={s.btn}>
+                        {loading ? <ActivityIndicator color={selectedTheme.bgPrimary} /> : <Text style={s.btnText}>create account</Text>}
+                      </LinearGradient>
+                    </HapticTouchable>
+                  </>
+                )}
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -206,12 +217,23 @@ export default function LoginScreen({ onLogin }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
 const SHADOW = darkenColor(theme.primary, theme.isLight ? 72 : 4);
 return StyleSheet.create({
   safe:    { flex: 1, backgroundColor: theme.bgPrimary },
   kav:     { flex: 1 },
-  scroll:  { paddingHorizontal: 24, paddingVertical: 28, flexGrow: 1, justifyContent: 'center' },
+  scrollView: { flex: 1 },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 28,
+  },
+  content: {
+    width: '100%',
+    maxWidth: Math.min(layout.contentMaxWidth, 560),
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+  },
 
   glowA: {
     position: 'absolute',
@@ -246,6 +268,7 @@ return StyleSheet.create({
   sub:   { fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textSecondary, lineHeight: 22, textAlign: 'center', marginTop: 10, maxWidth: 320 },
 
   panel: {
+    width: '100%',
     backgroundColor: rgbaFromHex(theme.panel, 0.92),
     borderRadius: 28,
     borderWidth: 1,
@@ -264,7 +287,7 @@ return StyleSheet.create({
   tabTextActive: { color: theme.accent },
 
   form: {},
-  row:  { flexDirection: 'row', gap: 12 },
+  row:  { flexDirection: layout.width < 420 ? 'column' : 'row', gap: 12 },
   half: { flex: 1 },
 
   label: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: theme.textSecondary, letterSpacing: 1.7, marginBottom: 8, textTransform: 'uppercase' },

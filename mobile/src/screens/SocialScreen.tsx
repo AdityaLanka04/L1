@@ -19,6 +19,7 @@ import LearningPathsScreen from './social/LearningPathsScreen';
 import AmbientBubbles from '../components/AmbientBubbles';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 const PAD = 18;
 
@@ -38,7 +39,8 @@ type Props = { user: AuthUser };
 
 function MetricChip({ label, value }: { label: string; value: string }) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   return (
     <View style={s.metricChip}>
       <Text style={s.metricValue}>{value}</Text>
@@ -108,7 +110,8 @@ function activityIcon(item: any): React.ComponentProps<typeof Ionicons>['name'] 
 
 export default function SocialScreen({ user }: Props) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const insets = useSafeAreaInsets();
   const [screen, setScreen] = useState<Section | null>(null);
@@ -334,7 +337,7 @@ export default function SocialScreen({ user }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const BG = theme.bgPrimary;
   const SURFACE = theme.panel;
   const SURFACE_ALT = theme.panelAlt;
@@ -346,7 +349,14 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   const BORDER_STRONG = theme.borderStrong;
   return StyleSheet.create({
   root: { flex: 1, backgroundColor: BG },
-  scroll: { paddingHorizontal: PAD, paddingTop: 18, gap: 14 },
+  scroll: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: PAD,
+    paddingTop: 18,
+    gap: 14,
+  },
   glowTop: {
     position: 'absolute',
     top: -40,
@@ -397,7 +407,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     padding: 22,
     overflow: 'hidden',
   },
-  heroTopRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 14 },
+  heroTopRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 14, alignItems: 'flex-start' },
   heroEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_L, letterSpacing: 1.8, textTransform: 'uppercase' },
   heroTitle: { fontFamily: 'Inter_900Black', fontSize: 26, lineHeight: 30, color: GOLD_L, marginTop: 10, maxWidth: '78%' },
   heroBody: { fontFamily: 'Inter_400Regular', fontSize: 14, color: GOLD_M, lineHeight: 21, marginTop: 14 },
@@ -414,8 +424,9 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   },
   heroRankValue: { fontFamily: 'Inter_900Black', fontSize: 24, color: GOLD_L },
   heroRankLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, letterSpacing: 1.5, textTransform: 'uppercase', marginTop: 2 },
-  metricRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  metricRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 },
   metricChip: {
+    minWidth: layout.twoColumn ? 120 : 0,
     flex: 1,
     borderRadius: 18,
     borderWidth: 1,

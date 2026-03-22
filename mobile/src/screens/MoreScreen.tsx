@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,8 +10,7 @@ import HapticTouchable from '../components/HapticTouchable';
 import AmbientBubbles from '../components/AmbientBubbles';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
-
-const { width } = Dimensions.get('window');
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 const PAD = 18;
 
 const BAR_MAX_H = 82;
@@ -57,7 +56,8 @@ function QuickTile({
 
 export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   const [stats, setStats] = useState<any>(null);
   const [fcStats, setFcStats] = useState<any>(null);
@@ -239,7 +239,7 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const BG = theme.bgPrimary;
   const SURFACE = theme.panel;
   const SURFACE_ALT = theme.panelAlt;
@@ -250,11 +250,18 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   const BORDER = theme.border;
   return StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-  scroll: { paddingHorizontal: PAD, paddingBottom: 120, gap: 14 },
+  scroll: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: PAD,
+    paddingBottom: 120,
+    gap: 14,
+  },
   glow: {
     position: 'absolute',
     top: -30,
-    left: width * 0.45,
+    left: layout.width * 0.45,
     width: 180,
     height: 180,
     borderRadius: 90,
@@ -272,8 +279,9 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   heroEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_L, textTransform: 'uppercase', letterSpacing: 1.8 },
   heroTitle: { fontFamily: 'Inter_900Black', fontSize: 28, lineHeight: 32, color: GOLD_L, marginTop: 10 },
   heroText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, color: GOLD_M, marginTop: 12 },
-  heroStats: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  heroStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 },
   heroStat: {
+    minWidth: layout.twoColumn ? 120 : 0,
     flex: 1,
     borderRadius: 18,
     borderWidth: 1,
@@ -334,8 +342,9 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   featurePillText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_M, textTransform: 'uppercase' },
   featureTitle: { fontFamily: 'Inter_900Black', fontSize: 26, color: GOLD_L, marginTop: 14 },
   featureBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, color: GOLD_M, marginTop: 10, maxWidth: '88%' },
-  featureMetaRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  featureMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 },
   featureMeta: {
+    minWidth: layout.twoColumn ? 92 : 0,
     flex: 1,
     borderRadius: 16,
     borderWidth: 1,
@@ -358,7 +367,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   cardTitle: { fontFamily: 'Inter_900Black', fontSize: 22, color: GOLD_L, marginTop: 4 },
   flashGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   flashCell: {
-    width: '47%',
+    width: layout.threeColumn ? '23.5%' : '47%',
     borderRadius: 18,
     borderWidth: 1,
     borderColor: BORDER,
@@ -375,14 +384,14 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     backgroundColor: SURFACE,
     padding: 18,
   },
-  chartLegend: { flexDirection: 'row', gap: 12, marginBottom: 18 },
+  chartLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 18 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, textTransform: 'uppercase' },
   chartArea: { height: 164, justifyContent: 'flex-end', position: 'relative' },
   gridLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: BORDER },
   barsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 132 },
-  barGroup: { width: 28, alignItems: 'center' },
+  barGroup: { flex: 1, alignItems: 'center' },
   barCluster: { height: BAR_MAX_H + 12, flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
   bar: { width: 6, borderRadius: 6 },
   dayLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: DIM, marginTop: 10, textTransform: 'uppercase' },

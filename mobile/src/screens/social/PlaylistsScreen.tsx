@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
   ActivityIndicator, RefreshControl, Alert, Modal,
-  KeyboardAvoidingView, Platform, Switch, Dimensions,
+  KeyboardAvoidingView, Platform, Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
@@ -14,8 +14,7 @@ import HapticTouchable from '../../components/HapticTouchable';
 import AmbientBubbles from '../../components/AmbientBubbles';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../../utils/theme';
-
-const { width: SW } = Dimensions.get('window');
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 
 const CATEGORIES = ['Mathematics','Physics','Chemistry','Biology','Computer Science','History','Literature','Languages','Business','Art','Music'];
 const DIFFICULTIES = ['beginner','intermediate','advanced'];
@@ -44,7 +43,8 @@ async function authHeaders() {
 
 export default function PlaylistsScreen({ user, onBack }: Props) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const pc = useMemo(() => createPlaylistCardStyles(selectedTheme), [selectedTheme]);
   const m = useMemo(() => createModalStyles(selectedTheme), [selectedTheme]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
@@ -362,7 +362,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const ACCENT = theme.accent;
   const ACCENT_HOVER = theme.accentHover;
   const ACCENT_DARK = darkenColor(theme.accent, theme.isLight ? 12 : 26);
@@ -373,19 +373,19 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
   return StyleSheet.create({
     root: { flex: 1 },
-    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 10 },
+    topBar: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 10 },
     backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
     cta: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
     ctaText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: INK },
-    hero: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 14, gap: 14 },
+    hero: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 14, gap: 14 },
     heroText: { gap: 2 },
     heroTitle: { fontFamily: 'Inter_900Black', fontSize: 34, color: ACCENT_HOVER, letterSpacing: -1.2 },
     heroSub: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, letterSpacing: 1.8, textTransform: 'uppercase' },
-    searchWrap: { paddingHorizontal: 20, marginBottom: 10 },
+    searchWrap: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingHorizontal: 20, marginBottom: 10 },
     searchBorder: { borderRadius: 14, padding: 1 },
     searchInner: { flexDirection: 'row', alignItems: 'center', backgroundColor: SURFACE_ALT, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
     searchInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 14, color: ACCENT_HOVER },
-    tabRow: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: BORDER },
+    tabRow: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', marginHorizontal: 20, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: BORDER },
     tabItem: { flex: 1, alignItems: 'center', paddingBottom: 10, position: 'relative' },
     tabText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: DIM },
     tabTextActive: { color: ACCENT_HOVER },
@@ -395,7 +395,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     chipActive: { backgroundColor: rgbaFromHex(ACCENT, 0.16), borderColor: rgbaFromHex(ACCENT, 0.34) },
     chipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: DIM },
     chipTextActive: { color: ACCENT_HOVER },
-    list: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 60, gap: 10 },
+    list: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 4, paddingBottom: 60, gap: 10 },
     empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
     emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: ACCENT_DARK },
     emptyHint: { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM },

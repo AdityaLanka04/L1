@@ -15,8 +15,9 @@ import { AuthUser } from '../services/auth';
 import { createChatSession, askAI, getChatSessions, getChatMessages, getSearchHubSuggestions } from '../services/api';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
-const EDGE_SWIPE_WIDTH = 36;
+const EDGE_SWIPE_WIDTH = 20;
 
 type Msg = { id: string; role: 'user' | 'ai'; text: string };
 type Session = { id: number; title: string; updated_at: string | null };
@@ -125,7 +126,10 @@ function preprocessText(text: string): string {
 
 export default function AIChatScreen({ user }: Props) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const enableEdgeSwipe = !layout.isTablet;
+  const sidebarWidth = Math.min(layout.width * (layout.isLandscape ? 0.42 : 0.82), 360);
+  const s = useMemo(() => createStyles(selectedTheme, layout, sidebarWidth), [selectedTheme, layout, sidebarWidth]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -137,7 +141,11 @@ export default function AIChatScreen({ user }: Props) {
   const [starterPrompts, setStarterPrompts] = useState<string[]>(DEFAULT_PROMPTS);
   const listRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(-300)).current;
+  const slideAnim = useRef(new Animated.Value(-sidebarWidth)).current;
+
+  useEffect(() => {
+    slideAnim.setValue(sidebarOpen ? 0 : -sidebarWidth);
+  }, [sidebarOpen, sidebarWidth, slideAnim]);
 
   const openSidebar = useCallback(() => {
     setSidebarOpen(true);
@@ -147,13 +155,13 @@ export default function AIChatScreen({ user }: Props) {
       .then((data) => setSessions(Array.isArray(data?.sessions) ? data.sessions : []))
       .catch(() => setSessions([]))
       .finally(() => setSessionsLoading(false));
-  }, [slideAnim, user.username]);
+  }, [sidebarWidth, slideAnim, user.username]);
 
   const closeSidebar = useCallback(() => {
-    Animated.timing(slideAnim, { toValue: -300, duration: 220, useNativeDriver: true }).start(() => setSidebarOpen(false));
-  }, [slideAnim]);
+    Animated.timing(slideAnim, { toValue: -sidebarWidth, duration: 220, useNativeDriver: true }).start(() => setSidebarOpen(false));
+  }, [sidebarWidth, slideAnim]);
 
-  const closePanResponder = useRef(
+  const closePanResponder = useMemo(() => (
     PanResponder.create({
       onMoveShouldSetPanResponderCapture: (_, gesture) => gesture.dx < -10 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 2,
       onPanResponderMove: (_, gesture) => {
@@ -161,24 +169,27 @@ export default function AIChatScreen({ user }: Props) {
       },
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dx < -60 || gesture.vx < -0.5) {
-          Animated.timing(slideAnim, { toValue: -300, duration: 220, useNativeDriver: true }).start(() => setSidebarOpen(false));
+          Animated.timing(slideAnim, { toValue: -sidebarWidth, duration: 220, useNativeDriver: true }).start(() => setSidebarOpen(false));
         } else {
           Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 100, friction: 14 }).start();
         }
       },
     })
-  ).current;
+  ), [sidebarWidth, slideAnim]);
 
-  const openPanResponder = useRef(
+  const openPanResponder = useMemo(() => (
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > Math.abs(gesture.dy),
-      onPanResponderTerminationRequest: () => false,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        enableEdgeSwipe && gesture.dx > 14 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
+      onMoveShouldSetPanResponderCapture: (_, gesture) =>
+        enableEdgeSwipe && gesture.dx > 14 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
+      onPanResponderTerminationRequest: () => true,
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dx > 60 || gesture.vx > 0.5) openSidebar();
       },
     })
-  ).current;
+  ), [enableEdgeSwipe, openSidebar]);
 
   const loadSession = useCallback(async (session: Session) => {
     closeSidebar();
@@ -376,7 +387,7 @@ export default function AIChatScreen({ user }: Props) {
         </View>
       </KeyboardAvoidingView>
 
-      {!sidebarOpen ? (
+      {!sidebarOpen && enableEdgeSwipe ? (
         <View collapsable={false} style={s.edgeSwipeZone} pointerEvents="box-only" {...openPanResponder.panHandlers} />
       ) : null}
 
@@ -440,7 +451,11 @@ export default function AIChatScreen({ user }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(
+  theme: ReturnType<typeof useAppTheme>['selectedTheme'],
+  layout: ReturnType<typeof useResponsiveLayout>,
+  sidebarWidth: number
+) {
   const CARD = theme.panel;
   const CARD_ALT = theme.panelAlt;
   const GOLD_XL = theme.textPrimary;
@@ -481,6 +496,9 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   },
 
   header: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -510,13 +528,21 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   headerTitle: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_L, letterSpacing: -0.8 },
   onlineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: GOLD_M },
 
-  emptyScroll: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 24 },
+  emptyScroll: {
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 24,
+  },
   emptyHero: {
     borderRadius: 32,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 22,
-    minHeight: 360,
+    minHeight: layout.isLandscape ? 300 : 360,
     overflow: 'hidden',
   },
   emptyEyebrow: {
@@ -543,6 +569,8 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     maxWidth: '88%',
   },
   promptGrid: {
+    flexDirection: layout.twoColumn ? 'row' : 'column',
+    flexWrap: 'wrap',
     gap: 10,
     marginTop: 28,
   },
@@ -550,6 +578,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    width: layout.twoColumn ? '48.5%' : '100%',
     borderWidth: 1,
     borderColor: BORDER,
     backgroundColor: CARD_ALT,
@@ -564,9 +593,17 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     flex: 1,
   },
 
-  list: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 18, gap: 14 },
-  aiRow: { alignSelf: 'stretch', maxWidth: '92%' },
-  userRow: { alignSelf: 'flex-end', maxWidth: '88%', alignItems: 'flex-end' },
+  list: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 18,
+    gap: 14,
+  },
+  aiRow: { alignSelf: 'stretch', maxWidth: layout.isLandscape ? '82%' : '92%' },
+  userRow: { alignSelf: 'flex-end', maxWidth: layout.isLandscape ? '72%' : '88%', alignItems: 'flex-end' },
   messageRole: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 9,
@@ -597,6 +634,9 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   userText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22, color: GOLD_XL },
 
   composerWrap: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     paddingHorizontal: 14,
     paddingTop: 10,
   },
@@ -630,7 +670,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
 
   overlay: { flex: 1, flexDirection: 'row' },
   sidebar: {
-    width: 300,
+    width: sidebarWidth,
     height: '100%',
     borderRightWidth: 1,
     borderRightColor: rgbaFromHex(GOLD_D, 0.31),

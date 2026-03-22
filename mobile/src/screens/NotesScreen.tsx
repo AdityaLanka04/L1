@@ -32,8 +32,10 @@ import {
 } from '../services/api';
 import HapticTouchable from '../components/HapticTouchable';
 import { darkenColor, getDefaultTheme, rgbaFromHex } from '../utils/theme';
+import { getResponsiveLayout, useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 const DEFAULT_THEME = getDefaultTheme();
+const DEFAULT_LAYOUT = getResponsiveLayout(393, 852);
 let CURRENT_THEME = DEFAULT_THEME;
 let BG = DEFAULT_THEME.bgPrimary;
 let SURFACE = DEFAULT_THEME.panel;
@@ -636,8 +638,9 @@ function NotesHome({
 
 export default function NotesScreen({ user, onBack }: Props) {
   const { selectedTheme } = useAppTheme();
+  const layout = useResponsiveLayout();
   applyTheme(selectedTheme);
-  s = createStyles();
+  s = createStyles(layout);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const [refreshTick, setRefreshTick] = useState(0);
   const [foldersSnapshot, setFoldersSnapshot] = useState<Folder[]>([]);
@@ -703,7 +706,7 @@ export default function NotesScreen({ user, onBack }: Props) {
   );
 }
 
-function createStyles() {
+function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
   const softAccent = rgbaFromHex(ACCENT, 0.12);
   const softAccentBorder = rgbaFromHex(ACCENT, 0.24);
   const softSuccess = rgbaFromHex(GREEN, 0.12);
@@ -713,6 +716,9 @@ function createStyles() {
   return StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   header: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -731,6 +737,7 @@ function createStyles() {
   headerIconBtnPrimary: { backgroundColor: ACCENT, borderColor: ACCENT },
 
   statsStrip: {
+    width: '100%',
     flexDirection: 'row',
     backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
     borderRadius: 22,
@@ -780,7 +787,15 @@ function createStyles() {
   filterChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: GOLD_L, textTransform: 'lowercase' },
   filterChipTextActive: { color: BG },
 
-  listContent: { padding: 16, gap: 12, paddingBottom: 120, flexGrow: 1 },
+  listContent: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: 16,
+    gap: 12,
+    paddingBottom: 120,
+    flexGrow: 1,
+  },
   noteCard: {
     backgroundColor: rgbaFromHex(SURFACE, 0.94),
     borderRadius: 28,
@@ -814,6 +829,9 @@ function createStyles() {
   emptyHint: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM2, textAlign: 'center', letterSpacing: 1 },
 
   editorHeader: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -838,7 +856,13 @@ function createStyles() {
     backgroundColor: ACCENT,
   },
   saveBtnText: { fontFamily: 'Inter_900Black', fontSize: 11, color: BG, textTransform: 'lowercase' },
-  editorScroll: { padding: 16, paddingBottom: 80 },
+  editorScroll: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: 16,
+    paddingBottom: 80,
+  },
   editorMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   editorMetaText: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, letterSpacing: 0.8 },
   trashText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: RED, textTransform: 'lowercase' },
@@ -859,7 +883,7 @@ function createStyles() {
     marginBottom: 12,
   },
   contentInput: {
-    minHeight: 420,
+    minHeight: layout.isLandscape ? 320 : 420,
     backgroundColor: rgbaFromHex(SURFACE, 0.94),
     borderRadius: 28,
     borderWidth: 1,
@@ -904,4 +928,4 @@ function createStyles() {
 });
 }
 
-let s: ReturnType<typeof createStyles> = createStyles();
+let s: ReturnType<typeof createStyles> = createStyles(DEFAULT_LAYOUT);

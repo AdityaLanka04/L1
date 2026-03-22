@@ -14,6 +14,7 @@ import HapticTouchable from '../../components/HapticTouchable';
 import AmbientBubbles from '../../components/AmbientBubbles';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../../utils/theme';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 const DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
 const LENGTHS      = ['short', 'medium', 'long'];
 
@@ -41,9 +42,10 @@ async function authHeaders(json = false) {
 
 export default function LearningPathsScreen({ user, onBack }: Props) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const pc = useMemo(() => createPathCardStyles(selectedTheme), [selectedTheme]);
-  const m = useMemo(() => createModalStyles(selectedTheme), [selectedTheme]);
+  const m = useMemo(() => createModalStyles(selectedTheme, layout), [selectedTheme, layout]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   const [paths, setPaths]           = useState<LearningPath[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -331,7 +333,7 @@ export default function LearningPathsScreen({ user, onBack }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const ACCENT = theme.accent;
   const ACCENT_DARK = darkenColor(theme.accent, theme.isLight ? 12 : 26);
   const DIM = theme.textSecondary;
@@ -341,24 +343,60 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
   return StyleSheet.create({
     root: { flex: 1 },
-    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 10 },
+    topBar: {
+      width: '100%',
+      maxWidth: layout.contentMaxWidth,
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 10,
+    },
     backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
     cta: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
     ctaText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: INK },
-    hero: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 14, gap: 14 },
+    hero: {
+      width: '100%',
+      maxWidth: layout.contentMaxWidth,
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+      gap: 14,
+    },
     heroText: { gap: 2 },
     heroTitle: { fontFamily: 'Inter_900Black', fontSize: 34, color: theme.accentHover, letterSpacing: -1.2 },
     heroSub: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, letterSpacing: 1.8, textTransform: 'uppercase' },
-    searchWrap: { paddingHorizontal: 20, marginBottom: 10 },
+    searchWrap: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingHorizontal: 20, marginBottom: 10 },
     searchBorder: { borderRadius: 14, padding: 1 },
     searchInner: { flexDirection: 'row', alignItems: 'center', backgroundColor: SURFACE_ALT, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
     searchInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.accentHover },
-    tabRow: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: BORDER },
+    tabRow: {
+      width: '100%',
+      maxWidth: layout.contentMaxWidth,
+      alignSelf: 'center',
+      flexDirection: 'row',
+      marginHorizontal: 20,
+      marginBottom: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: BORDER,
+    },
     tabItem: { flex: 1, alignItems: 'center', paddingBottom: 10, position: 'relative' },
     tabText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: DIM },
     tabTextActive: { color: theme.accentHover },
     tabLine: { position: 'absolute', bottom: -1, left: '10%', right: '10%', height: 2, backgroundColor: ACCENT, borderRadius: 1 },
-    list: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 60, gap: 10 },
+    list: {
+      width: '100%',
+      maxWidth: layout.contentMaxWidth,
+      alignSelf: 'center',
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 60,
+      gap: 10,
+    },
     empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
     emptyTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: ACCENT_DARK },
     emptyHint: { fontFamily: 'Inter_400Regular', fontSize: 13, color: DIM, textAlign: 'center', paddingHorizontal: 24 },
@@ -393,7 +431,7 @@ function createPathCardStyles(theme: ReturnType<typeof useAppTheme>['selectedThe
   });
 }
 
-function createModalStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createModalStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const ACCENT = theme.accent;
   const DIM = theme.textSecondary;
   const SURFACE_ALT = theme.panelAlt;
@@ -401,9 +439,25 @@ function createModalStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'
   const INK = theme.isLight ? darkenColor(theme.accent, 34) : theme.bgPrimary;
   return StyleSheet.create({
     root: { flex: 1, paddingTop: 20 },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingBottom: 20 },
+    header: {
+      width: '100%',
+      maxWidth: Math.min(layout.contentMaxWidth, 680),
+      alignSelf: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingBottom: 20,
+    },
     title: { fontFamily: 'Inter_900Black', fontSize: 24, color: theme.accentHover },
-    body: { paddingHorizontal: 24, gap: 6, paddingBottom: 60 },
+    body: {
+      width: '100%',
+      maxWidth: Math.min(layout.contentMaxWidth, 680),
+      alignSelf: 'center',
+      paddingHorizontal: 24,
+      gap: 6,
+      paddingBottom: 60,
+    },
     label: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: DIM, letterSpacing: 1, marginTop: 10 },
     input: { backgroundColor: SURFACE_ALT, borderRadius: 12, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.accentHover, marginTop: 4 },
     diffRow: { flexDirection: 'row', gap: 10, marginTop: 4 },

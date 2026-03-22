@@ -5,13 +5,13 @@ import {
   StyleSheet,
   FlatList,
   Animated,
-  Dimensions,
   ActivityIndicator,
   Alert,
   TextInput,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  GestureResponderEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
@@ -30,12 +30,14 @@ import {
   getFlashcardsInSet,
   getFlashcardStatistics,
 } from '../services/api';
+import { triggerHaptic } from '../utils/haptics';
 import { darkenColor, getDefaultTheme, rgbaFromHex } from '../utils/theme';
-
-const { width: W, height: H } = Dimensions.get('window');
+import { getResponsiveLayout, useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 const DEFAULT_THEME = getDefaultTheme();
+const DEFAULT_LAYOUT = getResponsiveLayout(393, 852);
 let CURRENT_THEME = DEFAULT_THEME;
+let CURRENT_LAYOUT = DEFAULT_LAYOUT;
 let BG = DEFAULT_THEME.bgPrimary;
 let SURFACE = DEFAULT_THEME.panel;
 let SURFACE_2 = DEFAULT_THEME.panelAlt;
@@ -199,11 +201,14 @@ function StudyView({
   onBack: () => void;
   onComplete: (stats: { correct: number; incorrect: number }) => void;
 }) {
+  const layout = useResponsiveLayout();
+  const useLandscapeLayout = layout.isLandscape && layout.width >= 700;
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [stats, setStats] = useState({ correct: 0, incorrect: 0 });
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pagerRef = useRef<PagerView>(null);
+  const cardTouchRef = useRef({ startX: 0, startY: 0, moved: false });
   const card = cards[idx];
   const progressPct = cards.length > 0 ? ((idx + 1) / cards.length) * 100 : 0;
   const remaining = Math.max(cards.length - idx - 1, 0);
@@ -234,6 +239,29 @@ function StudyView({
     });
   };
 
+  const handleCardTouchStart = (event: GestureResponderEvent) => {
+    cardTouchRef.current = {
+      startX: event.nativeEvent.pageX,
+      startY: event.nativeEvent.pageY,
+      moved: false,
+    };
+  };
+
+  const handleCardTouchMove = (event: GestureResponderEvent) => {
+    const deltaX = Math.abs(event.nativeEvent.pageX - cardTouchRef.current.startX);
+    const deltaY = Math.abs(event.nativeEvent.pageY - cardTouchRef.current.startY);
+    if (deltaX > 8 || deltaY > 8) {
+      cardTouchRef.current.moved = true;
+    }
+  };
+
+  const handleCardTouchEnd = () => {
+    if (!cardTouchRef.current.moved) {
+      triggerHaptic('light');
+      doFlip();
+    }
+  };
+
   if (!card) {
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
@@ -253,6 +281,123 @@ function StudyView({
     );
   }
 
+  const cardViewport = (
+    <View style={[s.cardWrap, useLandscapeLayout && s.cardWrapLandscape]}>
+      <View style={s.cardStageGlow} />
+      <PagerView
+        ref={pagerRef}
+        style={s.cardPager}
+        initialPage={0}
+        overScrollMode="never"
+        onPageSelected={(event) => {
+          const nextIndex = event.nativeEvent.position;
+          setIdx(nextIndex);
+          setFlipped(false);
+          scaleAnim.setValue(1);
+        }}
+      >
+        {cards.map((studyCard, pageIndex) => {
+          const isCurrent = pageIndex === idx;
+          const pageFlipped = isCurrent && flipped;
+
+          return (
+            <View key={String(studyCard.id ?? pageIndex)} style={s.cardPagerPage}>
+              <Animated.View
+                style={{
+                  ...s.cardAnimatedWrap,
+                  transform: [
+                    { scaleX: isCurrent ? scaleAnim : 1 },
+                    { scale: isCurrent ? scaleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.985, 1] }) : 1 },
+                  ],
+                }}
+              >
+                <View
+                  style={[s.card, pageFlipped && s.cardFlipped]}
+                  onTouchStart={handleCardTouchStart}
+                  onTouchMove={handleCardTouchMove}
+                  onTouchEnd={handleCardTouchEnd}
+                >
+                  <View style={s.cardTopRow}>
+                    <View style={[s.cardSidePill, pageFlipped && s.cardSidePillFlipped]}>
+                      <Text style={[s.cardSide, pageFlipped && s.cardSideFlipped]}>
+                        {pageFlipped ? 'ANSWER' : 'QUESTION'}
+                      </Text>
+                    </View>
+                    <View style={[s.diffPill, pageFlipped && s.diffPillFlipped]}>
+                      <Text style={[s.diffText, pageFlipped && s.diffTextFlipped]}>
+                        {studyCard.difficulty?.toUpperCase() ?? 'MEDIUM'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <ScrollView
+                    style={s.cardBody}
+                    contentContainerStyle={[s.cardBodyContent, useLandscapeLayout && s.cardBodyContentLandscape]}
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
+                    nestedScrollEnabled
+                  >
+                    <Text style={[s.cardText, pageFlipped && s.cardTextFlipped]}>
+                      {pageFlipped ? studyCard.answer : studyCard.question}
+                    </Text>
+                  </ScrollView>
+
+                  <View style={s.cardFooter}>
+                    <Text style={[s.cardHintText, pageFlipped && s.cardHintTextFlipped]}>
+                      tap anywhere on the card to {pageFlipped ? 'show question' : 'reveal answer'}
+                    </Text>
+                  </View>
+                </View>
+              </Animated.View>
+            </View>
+          );
+        })}
+      </PagerView>
+    </View>
+  );
+
+  const sidebarStats = (
+    <View style={[s.studyMetaRow, useLandscapeLayout && s.studyMetaRowLandscape]}>
+      {!useLandscapeLayout ? (
+        <View style={s.studyMetaCard}>
+          <Text style={s.studyMetaLabel}>session flow</Text>
+          <Text style={s.studyMetaValue}>{Math.round(progressPct)}%</Text>
+        </View>
+      ) : null}
+      <View style={[s.studyMetaCard, useLandscapeLayout && s.studyMetaCardLandscape]}>
+        <Text style={[s.studyMetaLabel, useLandscapeLayout && s.studyMetaLabelLandscape]}>correct</Text>
+        <Text style={[s.studyMetaValue, useLandscapeLayout && s.studyMetaValueLandscape, { color: GREEN }]}>{stats.correct}</Text>
+      </View>
+      <View style={[s.studyMetaCard, useLandscapeLayout && s.studyMetaCardLandscape]}>
+        <Text style={[s.studyMetaLabel, useLandscapeLayout && s.studyMetaLabelLandscape]}>left</Text>
+        <Text style={[s.studyMetaValue, useLandscapeLayout && s.studyMetaValueLandscape]}>{remaining}</Text>
+      </View>
+    </View>
+  );
+
+  const answerActions = (
+    <View style={[s.answerRow, useLandscapeLayout && s.answerRowLandscape]}>
+      <HapticTouchable style={[s.wrongBtn, useLandscapeLayout && s.answerBtnLandscape]} onPress={() => answer(false)} haptic="warning">
+        {!useLandscapeLayout ? (
+          <View style={[s.answerIconWrap, useLandscapeLayout && s.answerIconWrapLandscape]}>
+            <Ionicons name="close" size={22} color={RED} />
+          </View>
+        ) : null}
+        <Text style={s.wrongLabel}>incorrect</Text>
+        {!useLandscapeLayout ? <Text style={s.answerSubLabel}>needs another pass</Text> : null}
+      </HapticTouchable>
+      <HapticTouchable style={[s.rightBtn, useLandscapeLayout && s.answerBtnLandscape]} onPress={() => answer(true)} haptic="success">
+        {!useLandscapeLayout ? (
+          <View style={[s.answerIconWrap, useLandscapeLayout && s.answerIconWrapLandscape]}>
+            <Ionicons name="checkmark" size={22} color={GREEN} />
+          </View>
+        ) : null}
+        <Text style={s.rightLabel}>correct</Text>
+        {!useLandscapeLayout ? <Text style={s.answerSubLabel}>ready to move on</Text> : null}
+      </HapticTouchable>
+    </View>
+  );
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
@@ -264,112 +409,26 @@ function StudyView({
         <Text style={[s.studyCounter, { color: GOLD_D }]}>{idx + 1}/{cards.length}</Text>
       </View>
 
-      <View style={s.studyMetaRow}>
-        <View style={s.studyMetaCard}>
-          <Text style={s.studyMetaLabel}>session flow</Text>
-          <Text style={s.studyMetaValue}>{Math.round(progressPct)}%</Text>
-        </View>
-        <View style={s.studyMetaCard}>
-          <Text style={s.studyMetaLabel}>correct</Text>
-          <Text style={[s.studyMetaValue, { color: GREEN }]}>{stats.correct}</Text>
-        </View>
-        <View style={s.studyMetaCard}>
-          <Text style={s.studyMetaLabel}>left</Text>
-          <Text style={s.studyMetaValue}>{remaining}</Text>
-        </View>
-      </View>
-
-      <View style={s.progressBar}>
-        <View style={[s.progressFill, { width: `${((idx + 1) / cards.length) * 100}%` as const }]} />
-      </View>
-
-      <View style={s.cardWrap}>
-        <View style={s.cardStageGlow} />
-        <PagerView
-          ref={pagerRef}
-          style={s.cardPager}
-          initialPage={0}
-          overScrollMode="never"
-          onPageSelected={(event) => {
-            const nextIndex = event.nativeEvent.position;
-            setIdx(nextIndex);
-            setFlipped(false);
-            scaleAnim.setValue(1);
-          }}
-        >
-          {cards.map((studyCard, pageIndex) => {
-            const isCurrent = pageIndex === idx;
-            const pageFlipped = isCurrent && flipped;
-
-            return (
-              <View key={String(studyCard.id ?? pageIndex)} style={s.cardPagerPage}>
-                <Animated.View
-                  style={{
-                    transform: [
-                      { scaleX: isCurrent ? scaleAnim : 1 },
-                      { scale: isCurrent ? scaleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.985, 1] }) : 1 },
-                    ],
-                  }}
-                >
-                  <HapticTouchable
-                    style={[s.card, pageFlipped && s.cardFlipped]}
-                    onPress={() => {
-                      if (isCurrent) {
-                        doFlip();
-                      }
-                    }}
-                    activeOpacity={1}
-                    haptic="light"
-                  >
-                    <View style={s.cardTopRow}>
-                      <View style={[s.cardSidePill, pageFlipped && s.cardSidePillFlipped]}>
-                        <Text style={[s.cardSide, pageFlipped && s.cardSideFlipped]}>
-                          {pageFlipped ? 'ANSWER' : 'QUESTION'}
-                        </Text>
-                      </View>
-                      <View style={[s.diffPill, pageFlipped && s.diffPillFlipped]}>
-                        <Text style={[s.diffText, pageFlipped && s.diffTextFlipped]}>
-                          {studyCard.difficulty?.toUpperCase() ?? 'MEDIUM'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <ScrollView
-                      style={s.cardBody}
-                      contentContainerStyle={s.cardBodyContent}
-                      showsVerticalScrollIndicator={false}
-                      bounces={false}
-                    >
-                      <Text style={[s.cardText, pageFlipped && s.cardTextFlipped]}>
-                        {pageFlipped ? studyCard.answer : studyCard.question}
-                      </Text>
-                    </ScrollView>
-
-                    <View style={s.cardFooter} />
-                  </HapticTouchable>
-                </Animated.View>
-              </View>
-            );
-          })}
-        </PagerView>
-      </View>
-
-      <View style={s.answerRow}>
-        <HapticTouchable style={s.wrongBtn} onPress={() => answer(false)} haptic="warning">
-          <View style={s.answerIconWrap}>
-            <Ionicons name="close" size={22} color={RED} />
+      {useLandscapeLayout ? (
+        <View style={s.studyLandscapeBody}>
+          <View style={s.studyCardColumn}>
+            {cardViewport}
           </View>
-          <Text style={s.wrongLabel}>incorrect</Text>
-          <Text style={s.answerSubLabel}>needs another pass</Text>
-        </HapticTouchable>
-        <HapticTouchable style={s.rightBtn} onPress={() => answer(true)} haptic="success">
-          <View style={s.answerIconWrap}>
-            <Ionicons name="checkmark" size={22} color={GREEN} />
+          <View style={s.studySidebar}>
+            {sidebarStats}
+            {answerActions}
           </View>
-          <Text style={s.rightLabel}>correct</Text>
-          <Text style={s.answerSubLabel}>ready to move on</Text>
-        </HapticTouchable>
-      </View>
+        </View>
+      ) : (
+        <>
+          {sidebarStats}
+          <View style={s.progressBar}>
+            <View style={[s.progressFill, { width: `${((idx + 1) / cards.length) * 100}%` as const }]} />
+          </View>
+          {cardViewport}
+          {answerActions}
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -846,8 +905,10 @@ function FlashcardsSets({
 
 export default function FlashcardsScreen({ user, onBack }: Props) {
   const { selectedTheme } = useAppTheme();
+  const layout = useResponsiveLayout();
+  CURRENT_LAYOUT = layout;
   applyTheme(selectedTheme);
-  s = createStyles();
+  s = createStyles(layout);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   const [refreshTick, setRefreshTick] = useState(0);
 
@@ -916,9 +977,7 @@ export default function FlashcardsScreen({ user, onBack }: Props) {
   );
 }
 
-const CARD_H = H * 0.46;
-
-function createStyles() {
+function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
   const softAccent = rgbaFromHex(ACCENT, 0.12);
   const softAccentBorder = rgbaFromHex(ACCENT, 0.26);
   const softAccentFill = rgbaFromHex(ACCENT, 0.18);
@@ -926,9 +985,20 @@ function createStyles() {
   const softDangerBorder = rgbaFromHex(RED, 0.26);
   const softSuccess = rgbaFromHex(GREEN, 0.12);
   const softSuccessBorder = rgbaFromHex(GREEN, 0.26);
+  const useLandscapeStudyLayout = layout.isLandscape && layout.width >= 700;
+  const studyBodyWidth = Math.min(layout.contentMaxWidth, layout.width - 40);
+  const studySidebarWidth = useLandscapeStudyLayout ? Math.min(Math.max(studyBodyWidth * 0.25, 180), 240) : 0;
+  const studyCardWidth = useLandscapeStudyLayout ? studyBodyWidth - studySidebarWidth - 16 : studyBodyWidth - 40;
+  const cardWidth = Math.max(280, Math.min(studyCardWidth, useLandscapeStudyLayout ? layout.width * 0.75 : layout.width - 40));
+  const cardHeight = useLandscapeStudyLayout
+    ? Math.max(240, Math.min(layout.height - 132, Math.round(cardWidth * 0.9)))
+    : Math.max(260, Math.min(layout.height - 300, 520));
   return StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   header: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -940,6 +1010,9 @@ function createStyles() {
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM2, letterSpacing: 2.2, marginTop: 4, textTransform: 'uppercase' },
 
   statsStrip: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     flexDirection: 'row',
     backgroundColor: rgbaFromHex(SURFACE, 0.98),
     borderRadius: 26,
@@ -953,7 +1026,15 @@ function createStyles() {
   statVal: { fontFamily: 'Inter_900Black', fontSize: 18, color: ACCENT },
   statLbl: { fontFamily: 'Inter_400Regular', fontSize: 8, color: DIM2, letterSpacing: 1.5, marginTop: 2 },
 
-  listContent: { padding: 16, gap: 12, paddingBottom: 120, flexGrow: 1 },
+  listContent: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: 16,
+    gap: 12,
+    paddingBottom: 120,
+    flexGrow: 1,
+  },
   createRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   createBtnPrimary: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -1015,7 +1096,14 @@ function createStyles() {
     alignItems: 'center',
   },
 
-  createContent: { padding: 16, gap: 14, paddingBottom: 120 },
+  createContent: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: 16,
+    gap: 14,
+    paddingBottom: 120,
+  },
   heroCreateCard: {
     backgroundColor: rgbaFromHex(SURFACE, 0.94),
     borderRadius: 28,
@@ -1129,6 +1217,9 @@ function createStyles() {
   createSubmitSubtext: { fontFamily: 'Inter_400Regular', fontSize: 11, color: BASE_ACTION_TEXT, opacity: 0.7, marginTop: 4, textTransform: 'lowercase' },
 
   studyHeader: {
+    width: '100%',
+    maxWidth: Math.min(layout.contentMaxWidth, 820),
+    alignSelf: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1138,7 +1229,24 @@ function createStyles() {
   },
   studyTitle: { fontFamily: 'Inter_900Black', fontSize: 15, color: GOLD_L, flex: 1, textAlign: 'center', marginHorizontal: 12 },
   studyCounter: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
-  studyMetaRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 14 },
+  studyMetaRow: {
+    width: '100%',
+    maxWidth: Math.min(layout.contentMaxWidth, 820),
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 14,
+  },
+  studyMetaRowLandscape: {
+    maxWidth: studySidebarWidth,
+    flexDirection: 'column',
+    alignSelf: 'stretch',
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 10,
+  },
   studyMetaCard: {
     flex: 1,
     backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
@@ -1149,25 +1257,90 @@ function createStyles() {
     paddingHorizontal: 12,
     alignItems: 'center',
   },
+  studyMetaCardLandscape: {
+    flex: 0,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'flex-start',
+    minHeight: 0,
+  },
   studyMetaLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 8, color: DIM2, letterSpacing: 1.8, textTransform: 'uppercase' },
+  studyMetaLabelLandscape: { fontSize: 9, letterSpacing: 1.2 },
   studyMetaValue: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_L, marginTop: 6 },
+  studyMetaValueLandscape: { fontSize: 16, marginTop: 4 },
 
-  progressBar: { height: 4, backgroundColor: rgbaFromHex(ACCENT, 0.12), marginHorizontal: 20, borderRadius: 999, overflow: 'hidden' },
+  progressBar: {
+    width: '100%',
+    maxWidth: Math.min(layout.contentMaxWidth - 40, 780),
+    alignSelf: 'center',
+    height: 4,
+    backgroundColor: rgbaFromHex(ACCENT, 0.12),
+    marginHorizontal: 20,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
   progressFill: { height: '100%', backgroundColor: ACCENT, borderRadius: 999 },
 
-  cardWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, marginVertical: 16 },
-  cardPager: { width: W - 40, height: CARD_H },
+  studyLandscapeBody: {
+    flex: 1,
+    width: '100%',
+    maxWidth: studyBodyWidth,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 16,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  studyCardColumn: {
+    width: cardWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  studySidebar: {
+    width: studySidebarWidth,
+    justifyContent: 'flex-start',
+    gap: 10,
+    marginTop: -28,
+  },
+  cardWrap: {
+    flex: 1,
+    width: '100%',
+    maxWidth: Math.min(layout.contentMaxWidth, 820),
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
+    minHeight: 220,
+  },
+  cardWrapLandscape: {
+    flex: 0,
+    width: cardWidth,
+    maxWidth: cardWidth,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    minHeight: cardHeight,
+  },
+  cardPager: { width: cardWidth, height: useLandscapeStudyLayout ? cardHeight : '100%' },
   cardPagerPage: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  cardAnimatedWrap: {
+    width: cardWidth,
+    height: useLandscapeStudyLayout ? cardHeight : '100%',
+  },
   cardStageGlow: {
     position: 'absolute',
-    width: W - 88,
-    height: CARD_H - 56,
+    width: Math.max(cardWidth - 48, 240),
+    height: useLandscapeStudyLayout ? Math.max(cardHeight - 42, 220) : '82%',
     borderRadius: 36,
     backgroundColor: rgbaFromHex(ACCENT, 0.08),
   },
   card: {
-    width: W - 40,
-    height: CARD_H,
+    width: cardWidth,
+    height: useLandscapeStudyLayout ? cardHeight : '100%',
     backgroundColor: rgbaFromHex(QUESTION_SURFACE, 0.98),
     borderRadius: 34,
     borderWidth: 1,
@@ -1188,32 +1361,46 @@ function createStyles() {
   cardSideFlipped: { color: ANSWER_TEXT, opacity: 1 },
   cardBody: { flex: 1, marginTop: 18, marginBottom: 18 },
   cardBodyContent: { flexGrow: 1, justifyContent: 'center' },
+  cardBodyContentLandscape: {
+    justifyContent: 'flex-start',
+    paddingBottom: 18,
+  },
   cardText: { fontFamily: 'Inter_900Black', fontSize: 23, color: QUESTION_TEXT, lineHeight: 31 },
   cardTextFlipped: { color: ANSWER_TEXT },
   cardFooter: { alignItems: 'center' },
-  cardRevealBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    alignSelf: 'stretch',
-    backgroundColor: rgbaFromHex(ACCENT, 0.1),
-    borderWidth: 1,
-    borderColor: softAccentBorder,
-    borderRadius: 16,
-    paddingVertical: 14,
+  cardHintText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 10,
+    color: GOLD_D,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
-  cardRevealBtnFlipped: {
-    backgroundColor: rgbaFromHex(INK, 0.1),
-    borderColor: rgbaFromHex(INK, 0.18),
-  },
-  cardRevealText: { fontFamily: 'Inter_700Bold', fontSize: 12, color: GOLD_L, letterSpacing: 0.8, textTransform: 'uppercase' },
+  cardHintTextFlipped: { color: ANSWER_TEXT },
   diffPill: { alignSelf: 'flex-start', backgroundColor: QUESTION_CHIP_BG, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: QUESTION_CHIP_BORDER },
   diffPillFlipped: { backgroundColor: ANSWER_CHIP_BG, borderColor: ANSWER_CHIP_BORDER },
   diffText: { fontFamily: 'Inter_600SemiBold', fontSize: 8, color: QUESTION_TEXT, letterSpacing: 1.4 },
   diffTextFlipped: { color: ANSWER_TEXT },
 
-  answerRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingBottom: 20, paddingTop: 8 },
+  answerRow: {
+    width: '100%',
+    maxWidth: Math.min(layout.contentMaxWidth, 820),
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 8,
+  },
+  answerRowLandscape: {
+    maxWidth: studySidebarWidth,
+    alignSelf: 'stretch',
+    flexDirection: 'column',
+    gap: 8,
+    paddingHorizontal: 0,
+    paddingBottom: 0,
+    paddingTop: 0,
+  },
   wrongBtn: {
     flex: 1,
     backgroundColor: softDanger,
@@ -1224,6 +1411,11 @@ function createStyles() {
     justifyContent: 'center',
     paddingVertical: 18,
     gap: 6,
+  },
+  answerBtnLandscape: {
+    flex: 0,
+    minHeight: 88,
+    paddingVertical: 10,
   },
   rightBtn: {
     flex: 1,
@@ -1246,11 +1438,24 @@ function createStyles() {
     borderWidth: 1,
     borderColor: BORDER,
   },
+  answerIconWrapLandscape: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
   wrongLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: RED, letterSpacing: 1 },
   rightLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: GREEN, letterSpacing: 1 },
   answerSubLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM2 },
 
-  resultsWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
+  resultsWrap: {
+    flex: 1,
+    width: '100%',
+    maxWidth: Math.min(layout.contentMaxWidth, 460),
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
   bigPct: { fontFamily: 'Inter_900Black', fontSize: 88, lineHeight: 94 },
   resultsLabel: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM2, letterSpacing: 3, marginBottom: 8 },
   resultsRow: {
@@ -1280,4 +1485,4 @@ function createStyles() {
 });
 }
 
-let s: ReturnType<typeof createStyles> = createStyles();
+let s: ReturnType<typeof createStyles> = createStyles(DEFAULT_LAYOUT);

@@ -10,6 +10,7 @@ import AmbientBubbles from '../components/AmbientBubbles';
 import { triggerHaptic } from '../utils/haptics';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex, ThemeMode } from '../utils/theme';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 type Props = {
   user: AuthUser;
@@ -19,7 +20,8 @@ type Props = {
 export default function SettingsScreen({ user, onBack }: Props) {
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const { selectedTheme, selectedThemeId, customTheme, themes, colorPalette, primaryPalette, changeTheme, applyCustomColors } = useAppTheme();
-  const styles = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const styles = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const [pushEnabled, setPushEnabled] = useState(true);
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [activeTab, setActiveTab] = useState<'presets' | 'custom'>('presets');
@@ -244,10 +246,16 @@ export default function SettingsScreen({ user, onBack }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: theme.bgPrimary },
-    scroll: { paddingHorizontal: 18, paddingBottom: 80 },
+    scroll: {
+      width: '100%',
+      maxWidth: layout.contentMaxWidth,
+      alignSelf: 'center',
+      paddingHorizontal: 18,
+      paddingBottom: 80,
+    },
     glow: {
       position: 'absolute',
       top: -20,
@@ -332,7 +340,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
       gap: 10,
     },
     presetBtn: {
-      width: '47%',
+      width: layout.threeColumn ? '31.8%' : '47%',
       borderRadius: 16,
       borderWidth: 1,
       borderColor: theme.border,
@@ -392,7 +400,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
       gap: 10,
     },
     swatchBtn: {
-      width: '22%',
+      width: layout.threeColumn ? '18%' : layout.twoColumn ? '22%' : '30%',
       borderRadius: 16,
       borderWidth: 1,
       borderColor: theme.border,

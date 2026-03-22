@@ -14,8 +14,10 @@ import { AuthUser } from '../services/auth';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { processMediaYouTube, getMediaHistory, saveMediaNotes } from '../services/api';
 import { darkenColor, getDefaultTheme, rgbaFromHex } from '../utils/theme';
+import { getResponsiveLayout, useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 const DEFAULT_THEME = getDefaultTheme();
+const DEFAULT_LAYOUT = getResponsiveLayout(393, 852);
 let CURRENT_THEME = DEFAULT_THEME;
 let BG      = DEFAULT_THEME.bgPrimary;
 let SURFACE = DEFAULT_THEME.panel;
@@ -738,10 +740,11 @@ function AIMediaResults({
 
 export default function AIMediaNotesScreen({ user, onBack }: Props) {
   const { selectedTheme } = useAppTheme();
+  const layout = useResponsiveLayout();
   applyTheme(selectedTheme);
   pr = createProcessingStyles();
   md = createMarkdownStyles();
-  s = createStyles();
+  s = createStyles(layout);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
 
   if (!fontsLoaded) return null;
@@ -798,15 +801,23 @@ export default function AIMediaNotesScreen({ user, onBack }: Props) {
   );
 }
 
-function createStyles() {
+function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
   const softAccent = rgbaFromHex(GOLD_M, 0.12);
   const softAccentStrong = rgbaFromHex(GOLD_M, 0.18);
   return StyleSheet.create({
   safe:      { flex: 1, backgroundColor: BG },
-  hubScroll: { paddingHorizontal: 16, paddingBottom: 48, gap: 12 },
+  hubScroll: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 48,
+    gap: 12,
+  },
 
   // Header
   header: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 18,
@@ -820,6 +831,9 @@ function createStyles() {
 
   // Sub-screen header
   subHeader: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1049,6 +1063,9 @@ function createStyles() {
 
   // Results meta
   metaStrip: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     paddingHorizontal: 18,
     paddingBottom: 14,
   },
@@ -1070,11 +1087,17 @@ function createStyles() {
   badgeText: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_L, letterSpacing: 1 },
 
   // Note content
-  resultsScroll:  { padding: 20, paddingBottom: 80 },
+  resultsScroll:  {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: 20,
+    paddingBottom: 80,
+  },
   transcriptBody: { fontFamily: 'Inter_400Regular', fontSize: 13, color: GOLD_L, lineHeight: 22 },
 });
 }
 
 let pr: ReturnType<typeof createProcessingStyles> = createProcessingStyles();
 let md: ReturnType<typeof createMarkdownStyles> = createMarkdownStyles();
-let s: ReturnType<typeof createStyles> = createStyles();
+let s: ReturnType<typeof createStyles> = createStyles(DEFAULT_LAYOUT);

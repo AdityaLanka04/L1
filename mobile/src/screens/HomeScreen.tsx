@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator, Animated, PanResponder, Easing } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, PanResponder, Easing } from 'react-native';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,8 +12,7 @@ import { getEnhancedStats } from '../services/api';
 import { triggerHaptic } from '../utils/haptics';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
-
-const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 const AnimatedView = Animated.createAnimatedComponent(View);
 
 type HomeTarget = 'flashcards' | 'notes' | 'aimedia';
@@ -38,7 +37,8 @@ type Stats = {
 
 function MetricCapsule({ label, value }: { label: string; value: string }) {
   const { selectedTheme } = useAppTheme();
-  const styles = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const styles = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   return (
     <View style={styles.metricCapsule}>
       <Text style={styles.metricValue}>{value}</Text>
@@ -49,7 +49,9 @@ function MetricCapsule({ label, value }: { label: string; value: string }) {
 
 export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLeftPage, onSwipeRightPage }: Props) {
   const { selectedTheme } = useAppTheme();
-  const styles = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const styles = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
+  const canSwipeBetweenPages = !layout.sideRailTabs;
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const [stats, setStats] = useState<Stats | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
@@ -57,15 +59,16 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
   const heroAnimating = useRef(false);
   const cycleHeroRef = useRef<() => void>(() => {});
 
-  const pageSwipeResponder = useRef(
+  const pageSwipeResponder = useMemo(() => (
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+        canSwipeBetweenPages && Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
       onMoveShouldSetPanResponderCapture: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+        canSwipeBetweenPages && Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
       onPanResponderRelease: (_, gestureState) => {
+        if (!canSwipeBetweenPages) return;
         if (Math.abs(gestureState.dx) < 36 || Math.abs(gestureState.dx) <= Math.abs(gestureState.dy)) return;
         if (gestureState.dx < 0) {
           onSwipeLeftPage?.();
@@ -75,22 +78,23 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
       },
       onPanResponderTerminationRequest: () => false,
     })
-  ).current;
+  ), [canSwipeBetweenPages, onSwipeLeftPage, onSwipeRightPage]);
 
-  const heroSwipeResponder = useRef(
+  const heroSwipeResponder = useMemo(() => (
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 18 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+      onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 18 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
       onPanResponderRelease: (_, gestureState) => {
-        const isTap = Math.abs(gestureState.dx) < 10 && Math.abs(gestureState.dy) < 10;
         const isSwipe = Math.abs(gestureState.dx) > 34 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-        if (isTap || isSwipe) cycleHeroRef.current();
+        if (isSwipe) cycleHeroRef.current();
       },
-      onShouldBlockNativeResponder: () => true,
+      onShouldBlockNativeResponder: () => false,
     })
-  ).current;
+  ), []);
 
   useEffect(() => {
     getEnhancedStats(user.username).then((data) => setStats(data)).catch(() => {});
@@ -129,7 +133,11 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
   ] as const;
 
   const hero = heroSlides[heroIndex];
-  const heroFontSize = Math.min(240, Math.floor((SCREEN_W * 0.75) / Math.max(hero.value.length * 0.62, 1)));
+  const heroValueMaxWidth = Math.max(220, Math.min(layout.width - 72, layout.contentMaxWidth - 44));
+  const heroFontSize = Math.min(
+    layout.isLandscape ? 184 : 156,
+    Math.floor((heroValueMaxWidth * (layout.isLandscape ? 0.54 : 0.84)) / Math.max(hero.value.length * 0.72, 1))
+  );
 
   const nextAction =
     streak === 0
@@ -251,7 +259,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
       <View style={[styles.glowBottom, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.09) }]} pointerEvents="none" />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false} alwaysBounceVertical={false}>
-        <View style={styles.topBar} {...pageSwipeResponder.panHandlers}>
+        <View style={styles.topBar} {...(canSwipeBetweenPages ? pageSwipeResponder.panHandlers : {})}>
           <View>
             <Text style={styles.appName}>cerbyl</Text>
             <Text style={styles.greeting}>{greeting}, {firstName}</Text>
@@ -263,7 +271,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
         </View>
 
         <View style={styles.heroWrap}>
-          <View {...heroSwipeResponder.panHandlers}>
+          <HapticTouchable activeOpacity={1} onPress={cycleHero} haptic="selection" {...heroSwipeResponder.panHandlers}>
             <View style={styles.heroSection}>
               <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.10), rgbaFromHex(selectedTheme.panel, 0.985), rgbaFromHex(selectedTheme.bgPrimary, 0.995)]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
               <View style={styles.heroBorder} />
@@ -303,10 +311,10 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
                 </AnimatedView>
               )}
             </View>
-          </View>
+          </HapticTouchable>
         </View>
 
-        <View style={styles.bodySection} {...pageSwipeResponder.panHandlers}>
+        <View style={styles.bodySection} {...(canSwipeBetweenPages ? pageSwipeResponder.panHandlers : {})}>
           <HapticTouchable style={styles.nextCard} onPress={handleNextAction} activeOpacity={0.9} haptic="medium">
             <LinearGradient colors={[rgbaFromHex(selectedTheme.accentHover, 0.05), rgbaFromHex(selectedTheme.accentHover, 0.015), rgbaFromHex(selectedTheme.bgPrimary, 0)]} style={StyleSheet.absoluteFillObject} />
             <View style={styles.nextTopRow}>
@@ -402,7 +410,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const SURFACE = theme.panel;
   const SURFACE_ALT = theme.panelAlt;
   const GOLD_XL = theme.textPrimary;
@@ -413,10 +421,20 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   const DIM = theme.textSecondary;
   const CARD_BORDER = theme.border;
   const SHADOW = darkenColor(theme.primary, theme.isLight ? 72 : 4);
+  const horizontalPadding = 18;
+  const cardGap = 10;
+  const bodyInnerWidth = Math.max(layout.contentMaxWidth - horizontalPadding * 2, 280);
+  const heroMinHeight = layout.isLandscape
+    ? Math.min(360, Math.max(260, layout.height * 0.66))
+    : Math.min(320, Math.max(244, layout.height * 0.42));
+  const quickColumns = layout.width >= 700 ? 4 : 2;
+  const quickCardWidth = (bodyInnerWidth - cardGap * (quickColumns - 1)) / quickColumns;
+  const totalColumns = layout.width >= 700 ? 3 : 2;
+  const totalCardWidth = (bodyInnerWidth - cardGap * (totalColumns - 1)) / totalColumns;
 
   return StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent', overflow: 'hidden' },
-  scroll: { paddingBottom: 110 },
+  scroll: { paddingBottom: layout.isLandscape ? 92 : 110 },
   glowTop: {
     position: 'absolute',
     top: -50,
@@ -435,7 +453,10 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   },
 
   topBar: {
-    paddingHorizontal: 18,
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: horizontalPadding,
     marginTop: 18,
     marginBottom: 8,
     flexDirection: 'row',
@@ -481,18 +502,21 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   },
 
   heroWrap: {
-    marginTop: 10,
-    marginBottom: 22,
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 18,
   },
   heroSection: {
-    minHeight: SCREEN_H * 0.54,
+    minHeight: heroMinHeight,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 22,
-    paddingVertical: 26,
+    paddingHorizontal: layout.isLandscape ? 24 : 20,
+    paddingVertical: layout.isLandscape ? 22 : 18,
     overflow: 'hidden',
     borderRadius: 34,
-    marginHorizontal: 18,
+    marginHorizontal: horizontalPadding,
   },
   heroBorder: {
     position: 'absolute',
@@ -509,7 +533,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 18,
+    marginBottom: layout.isLandscape ? 16 : 12,
   },
   phaseChip: {
     borderRadius: 999,
@@ -544,10 +568,10 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   },
   heroLabel: {
     fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
+    fontSize: layout.isLandscape ? 13 : 12,
     color: GOLD_L,
-    letterSpacing: 3.2,
-    marginTop: 18,
+    letterSpacing: layout.isLandscape ? 2.8 : 2.2,
+    marginTop: layout.isLandscape ? 14 : 10,
     textTransform: 'uppercase',
   },
   bigNum: {
@@ -558,7 +582,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   },
   heroUnit: {
     fontFamily: 'Inter_600SemiBold',
-    fontSize: 11,
+    fontSize: 10,
     color: GOLD_MID,
     letterSpacing: 2.6,
     marginTop: 2,
@@ -566,7 +590,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   },
   heroHint: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 11,
+    fontSize: 10,
     color: GOLD_L,
     letterSpacing: 0.8,
     marginTop: 10,
@@ -574,14 +598,16 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   },
   heroStatsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: 10,
-    marginTop: 22,
+    marginTop: 16,
   },
   metricCapsule: {
-    minWidth: 88,
+    minWidth: layout.isLandscape ? 82 : 76,
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: rgbaFromHex(theme.accent, 0.10),
     borderWidth: 1,
     borderColor: CARD_BORDER,
@@ -589,7 +615,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   },
   metricValue: {
     fontFamily: 'Inter_900Black',
-    fontSize: 20,
+    fontSize: 18,
     color: GOLD_L,
   },
   metricLabel: {
@@ -603,7 +629,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   heroDots: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 18,
+    marginTop: 14,
   },
   heroDot: {
     width: 7,
@@ -620,7 +646,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     fontSize: 9,
     color: GOLD_SOFT,
     letterSpacing: 1.1,
-    marginTop: 14,
+    marginTop: 10,
     textTransform: 'uppercase',
   },
   heroOrb: {
@@ -641,7 +667,10 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   },
 
   bodySection: {
-    paddingHorizontal: 18,
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: horizontalPadding,
     gap: 22,
   },
   nextCard: {
@@ -719,10 +748,12 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     backgroundColor: rgbaFromHex(theme.panelAlt, 0.86),
   },
   duoRow: {
+    flexDirection: layout.width >= 760 ? 'row' : 'column',
     gap: 14,
   },
   duoCard: {
-    minHeight: 210,
+    minHeight: layout.width >= 760 ? 210 : 0,
+    flex: layout.width >= 760 ? 1 : undefined,
   },
   sectionHeadRow: {
     gap: 4,
@@ -743,17 +774,17 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   quickGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: cardGap,
   },
   quickCard: {
-    width: (SCREEN_W - 46) / 2,
+    width: quickCardWidth,
     backgroundColor: SURFACE_ALT,
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    minHeight: 118,
+    minHeight: layout.width >= 700 ? 118 : 110,
     justifyContent: 'space-between',
     overflow: 'hidden',
   },
@@ -817,7 +848,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     letterSpacing: 0.6,
   },
   todayValueWrap: {
-    width: 118,
+    width: layout.isLandscape ? 132 : 118,
     alignItems: 'flex-end',
     gap: 8,
   },
@@ -841,7 +872,9 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
 
   ringsWrap: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: layout.width >= 760 ? 'space-between' : 'space-around',
+    flexWrap: layout.width < 360 ? 'wrap' : 'nowrap',
+    gap: layout.width < 360 ? 12 : 0,
     paddingTop: 18,
   },
   ringMuted: {
@@ -850,10 +883,11 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
 
   totalsRow: {
     flexDirection: 'row',
-    gap: 10,
+    flexWrap: 'wrap',
+    gap: cardGap,
   },
   totalCard: {
-    flex: 1,
+    width: totalCardWidth,
     backgroundColor: SURFACE_ALT,
     borderRadius: 22,
     padding: 16,

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
-  ActivityIndicator, RefreshControl, Alert, Dimensions,
+  ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,8 +16,7 @@ import HapticTouchable from '../../components/HapticTouchable';
 import AmbientBubbles from '../../components/AmbientBubbles';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../../utils/theme';
-
-const { width: SW } = Dimensions.get('window');
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 
 function activityColor(type = '', theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   if (type.includes('quiz'))  return theme.accent;
@@ -36,9 +35,10 @@ function activityIcon(type = ''): React.ComponentProps<typeof Ionicons>['name'] 
 
 function DotGrid() {
   const { selectedTheme } = useAppTheme();
+  const { width } = useResponsiveLayout();
   const dotSpacingX = 24;
   const dotSpacingY = 30;
-  const cols = Math.floor((SW - 56) / dotSpacingX);
+  const cols = Math.floor((width - 56) / dotSpacingX);
   const rows = 28;
   return (
     <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
@@ -87,7 +87,8 @@ type Props = { user: AuthUser; onBack: () => void };
 
 export default function FriendsScreen({ user, onBack }: Props) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const fc = useMemo(() => createFriendCardStyles(selectedTheme), [selectedTheme]);
   const rq = useMemo(() => createRequestStyles(selectedTheme), [selectedTheme]);
   const af = useMemo(() => createActivityStyles(selectedTheme), [selectedTheme]);
@@ -410,25 +411,25 @@ export default function FriendsScreen({ user, onBack }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const ACCENT_DARK = darkenColor(theme.accent, theme.isLight ? 10 : 26);
   const SURFACE = theme.panel;
   const SURFACE_ALT = theme.panelAlt;
   return StyleSheet.create({
     root: { flex: 1 },
-    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+    topBar: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
     backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.88), borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' },
     requestBadge: { backgroundColor: rgbaFromHex(ACCENT_DARK, 0.14), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: theme.borderStrong },
     requestBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 12, color: theme.accent },
-    hero: { alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
+    hero: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
     heroGlow: { width: 100, height: 100, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT_DARK, 0.3) },
     heroTitle: { fontFamily: 'Inter_900Black', fontSize: 42, color: theme.accentHover, letterSpacing: -2, marginTop: 6 },
     heroSub: { fontFamily: 'Inter_400Regular', fontSize: 11, color: theme.textSecondary, letterSpacing: 1 },
-    searchWrap: { paddingLeft: 20, paddingRight: 20, marginBottom: 14 },
+    searchWrap: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingLeft: 20, paddingRight: 20, marginBottom: 14 },
     searchBorder: { borderRadius: 14, padding: 1 },
     searchInner: { flexDirection: 'row', alignItems: 'center', backgroundColor: rgbaFromHex(SURFACE_ALT, 0.94), borderRadius: 13, paddingHorizontal: 12, paddingVertical: 11, gap: 10 },
     searchInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.accentHover },
-    resultsSheet: { marginLeft: 20, marginRight: 20, backgroundColor: rgbaFromHex(SURFACE, 0.94), borderRadius: 14, borderWidth: 1, borderColor: theme.borderStrong, marginBottom: 12, overflow: 'hidden' },
+    resultsSheet: { width: '100%', maxWidth: layout.contentMaxWidth - 40, alignSelf: 'center', marginLeft: 20, marginRight: 20, backgroundColor: rgbaFromHex(SURFACE, 0.94), borderRadius: 14, borderWidth: 1, borderColor: theme.borderStrong, marginBottom: 12, overflow: 'hidden' },
     resultRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 11, gap: 10 },
     resultDivider: { borderBottomWidth: 1, borderBottomColor: theme.border },
     resultName: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: theme.accentHover },
@@ -436,12 +437,12 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     addChip: { backgroundColor: rgbaFromHex(ACCENT_DARK, 0.14), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: theme.borderStrong },
     addChipSent: { backgroundColor: 'transparent', borderColor: theme.border },
     addChipText: { fontFamily: 'Inter_700Bold', fontSize: 12, color: theme.accentHover },
-    tabRow: { flexDirection: 'row', paddingLeft: 20, paddingRight: 20, marginBottom: 14, borderBottomWidth: 1, borderBottomColor: theme.border },
+    tabRow: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', paddingLeft: 20, paddingRight: 20, marginBottom: 14, borderBottomWidth: 1, borderBottomColor: theme.border },
     tabItem: { flex: 1, alignItems: 'center', paddingBottom: 10, position: 'relative' },
     tabText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: theme.textSecondary },
     tabTextActive: { color: theme.accentHover },
     tabLine: { position: 'absolute', bottom: -1, left: '10%', right: '10%', height: 2, backgroundColor: theme.accent, borderRadius: 1 },
-    list: { paddingLeft: 20, paddingRight: 20, gap: 8, paddingBottom: 48 },
+    list: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingLeft: 20, paddingRight: 20, gap: 8, paddingBottom: 48 },
   });
 }
 

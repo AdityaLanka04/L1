@@ -20,6 +20,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import HapticTouchable from '../components/HapticTouchable';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 type RootStackParamList = {
@@ -44,7 +45,9 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen: 'flashcards' | 'notes' | 'aimedia' | 'settings') => void }) {
   const insets = useSafeAreaInsets();
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const useSideRail = layout.sideRailTabs;
+  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const [index, setIndex] = useState(2);
   const pager = useRef<PagerView>(null);
 
@@ -60,37 +63,59 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
         locations={[0, 0.5, 1]}
         style={StyleSheet.absoluteFillObject}
       />
-      <View style={{ flex: 1, paddingTop: insets.top }}>
-      <PagerView
-        ref={pager}
-        style={{ flex: 1 }}
-        initialPage={2}
-        onPageSelected={e => setIndex(e.nativeEvent.position)}
-        overdrag={false}
-        scrollEnabled={index !== 2}
-      >
-        <View key="0" style={{ flex: 1 }}><AIChatScreen user={user} /></View>
-        <View key="1" style={{ flex: 1 }}><MoreScreen user={user} onNavigate={onNavigate} onNavigateToAI={() => goTo(0)} /></View>
-        <View key="2" style={{ flex: 1 }}><HomeScreen user={user} onNavigate={onNavigate} onNavigateToAI={() => goTo(0)} onSwipeLeftPage={() => goTo(3)} onSwipeRightPage={() => goTo(1)} /></View>
-        <View key="3" style={{ flex: 1 }}><SocialScreen user={user} /></View>
-        <View key="4" style={{ flex: 1 }}><ProfileScreen user={user} onLogout={onLogout} onNavigate={onNavigate} /></View>
-      </PagerView>
+      <View style={[s.shell, useSideRail && { paddingLeft: insets.left, paddingRight: insets.right }]}>
+        {useSideRail ? (
+          <View style={[s.sideRailWrap, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 14) }]}>
+            <View style={[s.tabBar, s.tabBarRail]}>
+              {TABS.map((t, i) => {
+                const active = index === i;
+                return (
+                  <HapticTouchable key={t.label} style={[s.tab, s.tabRail, active && s.tabActive]} onPress={() => goTo(i)} activeOpacity={0.78} haptic="selection">
+                    <View style={[s.iconWrap, active && s.iconWrapActive]}>
+                      <Ionicons name={active ? t.activeIcon : t.icon} size={18} color={active ? selectedTheme.bgPrimary : selectedTheme.textSecondary} />
+                    </View>
+                    <Text style={[s.tabLabel, s.tabLabelRail, { color: active ? selectedTheme.textPrimary : selectedTheme.textSecondary }]}>{t.label}</Text>
+                  </HapticTouchable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
 
-      <View style={[s.tabBarWrap, { paddingBottom: insets.bottom ? Math.max(insets.bottom - 2, 6) : 12 }]}>
-        <View style={s.tabBar}>
-        {TABS.map((t, i) => {
-          const active = index === i;
-          return (
-            <HapticTouchable key={t.label} style={[s.tab, active && s.tabActive]} onPress={() => goTo(i)} activeOpacity={0.78} haptic="selection">
-              <View style={[s.iconWrap, active && s.iconWrapActive]}>
-                <Ionicons name={active ? t.activeIcon : t.icon} size={18} color={active ? selectedTheme.bgPrimary : selectedTheme.textSecondary} />
+        <View style={[s.contentWrap, { paddingTop: insets.top }]}>
+          <PagerView
+            ref={pager}
+            style={{ flex: 1 }}
+            initialPage={2}
+            onPageSelected={e => setIndex(e.nativeEvent.position)}
+            overdrag={false}
+            scrollEnabled={index !== 2}
+          >
+            <View key="0" style={{ flex: 1 }}><AIChatScreen user={user} /></View>
+            <View key="1" style={{ flex: 1 }}><MoreScreen user={user} onNavigate={onNavigate} onNavigateToAI={() => goTo(0)} /></View>
+            <View key="2" style={{ flex: 1 }}><HomeScreen user={user} onNavigate={onNavigate} onNavigateToAI={() => goTo(0)} onSwipeLeftPage={() => goTo(3)} onSwipeRightPage={() => goTo(1)} /></View>
+            <View key="3" style={{ flex: 1 }}><SocialScreen user={user} /></View>
+            <View key="4" style={{ flex: 1 }}><ProfileScreen user={user} onLogout={onLogout} onNavigate={onNavigate} /></View>
+          </PagerView>
+
+          {!useSideRail ? (
+            <View style={[s.tabBarWrap, { paddingBottom: insets.bottom ? Math.max(insets.bottom - 2, 6) : 12 }]}>
+              <View style={s.tabBar}>
+                {TABS.map((t, i) => {
+                  const active = index === i;
+                  return (
+                    <HapticTouchable key={t.label} style={[s.tab, active && s.tabActive]} onPress={() => goTo(i)} activeOpacity={0.78} haptic="selection">
+                      <View style={[s.iconWrap, active && s.iconWrapActive]}>
+                        <Ionicons name={active ? t.activeIcon : t.icon} size={18} color={active ? selectedTheme.bgPrimary : selectedTheme.textSecondary} />
+                      </View>
+                      <Text style={[s.tabLabel, { color: active ? selectedTheme.textPrimary : selectedTheme.textSecondary }]}>{t.label}</Text>
+                    </HapticTouchable>
+                  );
+                })}
               </View>
-              <Text style={[s.tabLabel, { color: active ? selectedTheme.textPrimary : selectedTheme.textSecondary }]}>{t.label}</Text>
-            </HapticTouchable>
-          );
-        })}
+            </View>
+          ) : null}
         </View>
-      </View>
       </View>
     </View>
   );
@@ -151,9 +176,20 @@ export default function TabNavigator({ user, onLogout }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const SHADOW = darkenColor(theme.primary, theme.isLight ? 72 : 4);
   return StyleSheet.create({
+    shell: {
+      flex: 1,
+      flexDirection: layout.sideRailTabs ? 'row' : 'column',
+    },
+    sideRailWrap: {
+      width: 116,
+      paddingHorizontal: 14,
+    },
+    contentWrap: {
+      flex: 1,
+    },
     tabBarWrap: {
       paddingHorizontal: 14,
       paddingTop: 10,
@@ -173,6 +209,15 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
       elevation: 12,
       backgroundColor: rgbaFromHex(theme.panelAlt, theme.isLight ? 0.96 : 0.92),
     },
+    tabBarRail: {
+      flex: 1,
+      flexDirection: 'column',
+      justifyContent: 'center',
+      gap: 8,
+      borderRadius: 32,
+      paddingHorizontal: 10,
+      paddingVertical: 12,
+    },
     tab: {
       flex: 1,
       alignItems: 'center',
@@ -180,6 +225,11 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
       gap: 5,
       borderRadius: 20,
       paddingVertical: 4,
+    },
+    tabRail: {
+      flex: 0,
+      minHeight: 74,
+      gap: 8,
     },
     tabActive: {
       backgroundColor: rgbaFromHex(theme.accent, theme.isLight ? 0.1 : 0.12),
@@ -199,6 +249,9 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
       fontSize: 10,
       fontWeight: '700',
       letterSpacing: 0.2,
+    },
+    tabLabelRail: {
+      fontSize: 11,
     },
   });
 }

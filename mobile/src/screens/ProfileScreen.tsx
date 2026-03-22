@@ -11,6 +11,7 @@ import AmbientBubbles from '../components/AmbientBubbles';
 import { triggerHaptic } from '../utils/haptics';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 type Props = {
   user: AuthUser;
@@ -20,7 +21,8 @@ type Props = {
 
 function StatChip({ value, label }: { value: string; label: string }) {
   const { selectedTheme } = useAppTheme();
-  const styles = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const styles = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   return (
     <View style={styles.statChip}>
       <Text style={styles.statChipValue}>{value}</Text>
@@ -31,7 +33,8 @@ function StatChip({ value, label }: { value: string; label: string }) {
 
 export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
   const { selectedTheme } = useAppTheme();
-  const styles = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const layout = useResponsiveLayout();
+  const styles = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const [stats, setStats] = useState<any>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -189,7 +192,7 @@ export default function ProfileScreen({ user, onLogout, onNavigate }: Props) {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
   const CARD = theme.panel;
   const CARD_ALT = theme.panelAlt;
   const GOLD_XL = theme.textPrimary;
@@ -200,7 +203,13 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   const BORDER = theme.border;
   return StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent', overflow: 'hidden' },
-  scroll: { paddingHorizontal: 18, paddingBottom: 120 },
+  scroll: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: 18,
+    paddingBottom: 120,
+  },
   glow: {
     position: 'absolute',
     top: -20,
@@ -245,8 +254,9 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   userName: { fontFamily: 'Inter_900Black', fontSize: 24, color: GOLD_LIGHT, letterSpacing: -0.4 },
   userHandle: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM, letterSpacing: 0.2, marginTop: 5 },
   heroText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, color: GOLD_MID, marginTop: 18 },
-  statRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 },
   statChip: {
+    minWidth: layout.twoColumn ? 120 : 0,
     flex: 1,
     borderRadius: 18,
     borderWidth: 1,
