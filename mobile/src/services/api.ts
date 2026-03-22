@@ -278,6 +278,8 @@ export async function createNote(payload: {
   userId: string;
   title: string;
   content?: string;
+  folderId?: number | null;
+  customFont?: string;
 }) {
   const headers = await authHeaders();
   const res = await fetch(`${API_URL}/create_note`, {
@@ -287,6 +289,8 @@ export async function createNote(payload: {
       user_id: payload.userId,
       title: payload.title,
       content: payload.content ?? '',
+      folder_id: payload.folderId ?? null,
+      custom_font: payload.customFont ?? 'Inter',
     }),
   });
 
@@ -301,6 +305,7 @@ export async function updateNote(payload: {
   noteId: number;
   title: string;
   content: string;
+  customFont?: string;
 }) {
   const headers = await authHeaders();
   const res = await fetch(`${API_URL}/update_note`, {
@@ -310,6 +315,7 @@ export async function updateNote(payload: {
       note_id: payload.noteId,
       title: payload.title,
       content: payload.content,
+      custom_font: payload.customFont ?? 'Inter',
     }),
   });
 
@@ -405,6 +411,31 @@ export async function getFolders(userId: string) {
   return res.json();
 }
 
+export async function createFolder(payload: {
+  userId: string;
+  name: string;
+  color?: string;
+  parentId?: number | null;
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/create_folder`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: payload.userId,
+      name: payload.name,
+      color: payload.color ?? '#D7B38C',
+      parent_id: payload.parentId ?? null,
+    }),
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to create folder');
+  }
+
+  return res.json();
+}
+
 export async function moveNoteToFolder(payload: {
   noteId: number;
   folderId: number | null;
@@ -421,6 +452,128 @@ export async function moveNoteToFolder(payload: {
 
   if (!res.ok) {
     await readApiError(res, 'Failed to move note');
+  }
+
+  return res.json();
+}
+
+export async function convertChatSessionsToNote(payload: {
+  userId: string;
+  sessionIds: number[];
+  title?: string;
+}) {
+  const headers = await authHeaders();
+  const sessions = Array.isArray(payload.sessionIds) ? payload.sessionIds : [];
+
+  if (!sessions.length) {
+    throw new Error('Select at least one chat session');
+  }
+
+  const sections: string[] = [];
+  for (const sessionId of sessions) {
+    const body = new FormData();
+    body.append('chat_id', String(sessionId));
+    body.append('user_id', payload.userId);
+
+    const res = await fetch(`${API_URL}/convert_chat_to_note_content/`, {
+      method: 'POST',
+      headers,
+      body,
+    });
+
+    if (!res.ok) {
+      await readApiError(res, `Failed to convert chat session ${sessionId}`);
+    }
+
+    const data = await res.json();
+    if (data?.content) {
+      sections.push(sessions.length === 1 ? data.content : `# Chat Session ${sections.length + 1}\n\n${data.content}`);
+    }
+  }
+
+  if (!sections.length) {
+    throw new Error('No chat content returned');
+  }
+
+  return createNote({
+    userId: payload.userId,
+    title: payload.title ?? (sessions.length > 1 ? `Chat Notes (${sessions.length} Sessions)` : 'Chat Notes'),
+    content: sections.join('\n\n'),
+  });
+}
+
+export async function convertNotesToFlashcards(payload: {
+  noteIds: number[];
+  cardCount?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/import_export/notes_to_flashcards`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      note_ids: payload.noteIds,
+      card_count: payload.cardCount ?? 10,
+      difficulty: payload.difficulty ?? 'medium',
+    }),
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to convert notes to flashcards');
+  }
+
+  return res.json();
+}
+
+export async function convertNotesToQuestions(payload: {
+  noteIds: number[];
+  questionCount?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/import_export/notes_to_questions`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      note_ids: payload.noteIds,
+      question_count: payload.questionCount ?? 10,
+      difficulty: payload.difficulty ?? 'medium',
+    }),
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to convert notes to questions');
+  }
+
+  return res.json();
+}
+
+export async function invokeNotesAgent(payload: {
+  userId: string;
+  action: string;
+  content?: string;
+  topic?: string;
+  tone?: string;
+  depth?: string;
+  context?: string;
+}) {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/agents/notes`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: payload.userId,
+      action: payload.action,
+      content: payload.content ?? '',
+      topic: payload.topic ?? '',
+      tone: payload.tone ?? 'professional',
+      depth: payload.depth ?? 'standard',
+      context: payload.context ?? '',
+    }),
+  });
+
+  if (!res.ok) {
+    await readApiError(res, 'Failed to process AI note request');
   }
 
   return res.json();

@@ -16,11 +16,14 @@ class NoteCreate(BaseModel):
     user_id: str
     title: str = "New Note"
     content: str = ""
+    folder_id: Optional[int] = None
+    custom_font: Optional[str] = "Inter"
 
 class NoteUpdate(BaseModel):
     note_id: int
     title: str
     content: str
+    custom_font: Optional[str] = None
 
 class FolderCreate(BaseModel):
     user_id: str
@@ -122,7 +125,13 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    new_note = models.Note(user_id=user.id, title=note_data.title, content=note_data.content)
+    new_note = models.Note(
+        user_id=user.id,
+        title=note_data.title,
+        content=note_data.content,
+        folder_id=note_data.folder_id,
+        custom_font=note_data.custom_font or "Inter",
+    )
     db.add(new_note)
     db.commit()
     db.refresh(new_note)
@@ -164,6 +173,7 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         "id": new_note.id,
         "title": new_note.title,
         "content": new_note.content,
+        "custom_font": getattr(new_note, "custom_font", "Inter"),
         "user_id": user.id,
         "created_at": new_note.created_at.isoformat() + "Z",
         "updated_at": new_note.updated_at.isoformat() + "Z",
@@ -182,6 +192,8 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db), current_us
 
     note.title = note_data.title
     note.content = note_data.content
+    if note_data.custom_font:
+        note.custom_font = note_data.custom_font
     note.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(note)
@@ -217,6 +229,7 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db), current_us
         "title": note.title,
         "content": note.content,
         "updated_at": note.updated_at.isoformat() + "Z",
+        "custom_font": getattr(note, "custom_font", "Inter"),
         "status": "success",
     }
 
