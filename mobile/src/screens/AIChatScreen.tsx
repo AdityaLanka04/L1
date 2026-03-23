@@ -286,11 +286,11 @@ export default function AIChatScreen({ user }: Props) {
             <Ionicons name="menu-outline" size={20} color={selectedTheme.textPrimary} />
           </HapticTouchable>
           <View style={s.headerCenter}>
-            <Text style={s.headerEyebrow}>conversation studio</Text>
             <View style={s.headerTitleRow}>
               <Text style={s.headerTitle}>ai</Text>
               <View style={s.onlineDot} />
             </View>
+            <Text style={s.headerEyebrow}>conversation studio</Text>
           </View>
           <HapticTouchable onPress={newChat} activeOpacity={0.8} style={s.headerBtn} haptic="light">
             <Ionicons name="add-outline" size={20} color={selectedTheme.textPrimary} />
@@ -503,7 +503,7 @@ function createStyles(
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 18,
-    paddingTop: 14,
+    paddingTop: 18,
     paddingBottom: 12,
   },
   headerBtn: {

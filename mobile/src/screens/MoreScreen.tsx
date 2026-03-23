@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import CalendarScreen from './CalendarScreen';
+import ActivityTimelineScreen from './ActivityTimelineScreen';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
@@ -62,6 +64,7 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
   const [stats, setStats] = useState<any>(null);
   const [fcStats, setFcStats] = useState<any>(null);
   const [weekly, setWeekly] = useState<DayData[]>([]);
+  const [subScreen, setSubScreen] = useState<'calendar' | 'activity' | null>(null);
 
   useEffect(() => {
     getEnhancedStats(user.username).then(setStats).catch(() => {});
@@ -74,6 +77,9 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
   }, [user.username]);
 
   if (!fontsLoaded) return null;
+
+  if (subScreen === 'calendar') return <CalendarScreen user={user} onBack={() => setSubScreen(null)} />;
+  if (subScreen === 'activity') return <ActivityTimelineScreen user={user} onBack={() => setSubScreen(null)} />;
 
   const totalChats = stats?.totalChatSessions ?? stats?.total_chat_sessions ?? 0;
   const totalNotes = stats?.totalNotes ?? stats?.total_notes ?? 0;
@@ -99,26 +105,81 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
           <Text style={s.subtitle}>your learning toolkit, refined</Text>
         </View>
 
-        <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.10), rgbaFromHex(selectedTheme.panel, 0.985), rgbaFromHex(selectedTheme.bgPrimary, 0.995)]} locations={[0, 0.62, 1]} style={s.heroCard}>
-          <Text style={s.heroEyebrow}>workspace overview</Text>
-          <Text style={s.heroTitle}>Everything you need for focused study, in one calm system.</Text>
-          <Text style={s.heroText}>
-            {totalChats} AI chats, {totalNotes} notes, and {fcTotal} flashcards are already in motion.
-          </Text>
-          <View style={s.heroStats}>
+        {/* Weekly graph */}
+        <View style={s.chartCard}>
+          <View style={s.chartLegend}>
             {[
-              { label: 'chat', value: String(totalChats) },
-              { label: 'notes', value: String(totalNotes) },
-              { label: 'quizzes', value: String(totalQuizzes) },
+              { color: selectedTheme.textPrimary, label: 'AI' },
+              { color: selectedTheme.accentHover, label: 'cards' },
+              { color: darkenColor(selectedTheme.accent, selectedTheme.isLight ? 16 : 34), label: 'notes' },
             ].map((item) => (
-              <View key={item.label} style={s.heroStat}>
-                <Text style={s.heroStatValue}>{item.value}</Text>
-                <Text style={s.heroStatLabel}>{item.label}</Text>
+              <View key={item.label} style={s.legendItem}>
+                <View style={[s.legendDot, { backgroundColor: item.color }]} />
+                <Text style={s.legendText}>{item.label}</Text>
               </View>
             ))}
           </View>
-        </LinearGradient>
+          <View style={s.chartArea}>
+            {[0.33, 0.66, 1].map((pct) => (
+              <View key={pct} style={[s.gridLine, { bottom: pct * BAR_MAX_H + 18 }]} />
+            ))}
+            <View style={s.barsRow}>
+              {(weekly.length ? weekly : Array(7).fill({ day: '?', ai_chats: 0, notes: 0, flashcards: 0 })).map((day: DayData, index: number) => {
+                const aiH = Math.max(3, (day.ai_chats / maxVal) * BAR_MAX_H);
+                const cardsH = Math.max(3, (day.flashcards / maxVal) * BAR_MAX_H);
+                const notesH = Math.max(3, (day.notes / maxVal) * BAR_MAX_H);
+                return (
+                  <View key={`${day.day}-${index}`} style={s.barGroup}>
+                    <View style={s.barCluster}>
+                      <View style={[s.bar, { height: aiH, backgroundColor: selectedTheme.textPrimary }]} />
+                      <View style={[s.bar, { height: cardsH, backgroundColor: selectedTheme.accentHover }]} />
+                      <View style={[s.bar, { height: notesH, backgroundColor: darkenColor(selectedTheme.accent, selectedTheme.isLight ? 16 : 34) }]} />
+                    </View>
+                    <Text style={s.dayLabel}>{day.day ? day.day[0] : '?'}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        </View>
 
+        {/* Weekly totals strip */}
+        <View style={s.statsStrip}>
+          {[
+            { label: 'CHATS', value: String(totalChats) },
+            { label: 'NOTES', value: String(totalNotes) },
+            { label: 'CARDS', value: String(fcTotal) },
+            { label: 'QUIZZES', value: String(totalQuizzes) },
+          ].map((item, i) => (
+            <View key={item.label} style={[s.stripCell, i > 0 && s.stripDivider]}>
+              <Text style={s.stripVal}>{item.value}</Text>
+              <Text style={s.stripLbl}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={s.grid}>
+          <QuickTile
+            title="calendar"
+            subtitle="activity heatmap"
+            icon="calendar-outline"
+            accent={selectedTheme.accentHover}
+            styles={s}
+            textColor={selectedTheme.accentHover}
+            onPress={() => setSubScreen('calendar')}
+          />
+          <QuickTile
+            title="timeline"
+            subtitle="all your events"
+            icon="time-outline"
+            accent={selectedTheme.accentHover}
+            styles={s}
+            textColor={selectedTheme.accentHover}
+            onPress={() => setSubScreen('activity')}
+          />
+        </View>
+
+        {/* Core tools */}
         <View style={s.sectionRow}>
           <Text style={s.sectionTitle}>core tools</Text>
           <Text style={s.sectionMeta}>jump directly into work</Text>
@@ -138,13 +199,14 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
             title="notes"
             subtitle="capture what matters"
             icon="document-text-outline"
-            accent={selectedTheme.accent}
+            accent={selectedTheme.accentHover}
             styles={s}
-            textColor={selectedTheme.accent}
+            textColor={selectedTheme.accentHover}
             onPress={() => onNavigate?.('notes')}
           />
         </View>
 
+        {/* AI media notes */}
         <HapticTouchable style={s.featureCard} onPress={() => onNavigate?.('aimedia')} haptic="medium" activeOpacity={0.88}>
           <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.09), rgbaFromHex(selectedTheme.panel, 0.985), rgbaFromHex(selectedTheme.bgPrimary, 0.995)]} locations={[0, 0.65, 1]} style={StyleSheet.absoluteFillObject} />
           <View style={s.featureTop}>
@@ -169,71 +231,41 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
           </View>
         </HapticTouchable>
 
+        {/* Flashcard card */}
         <HapticTouchable style={s.flashcardCard} onPress={() => onNavigate?.('flashcards')} haptic="medium" activeOpacity={0.88}>
-          <View style={s.flashHeader}>
-            <View>
-              <Text style={s.cardEyebrow}>flashcards</Text>
-              <Text style={s.cardTitle}>Review system</Text>
+          <LinearGradient colors={[rgbaFromHex(selectedTheme.accentHover, 0.13), rgbaFromHex(selectedTheme.panel, 0.98), 'transparent']} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFillObject} />
+          <View style={s.fcTop}>
+            <View style={s.fcIconWrap}>
+              <Ionicons name="layers" size={22} color={selectedTheme.accentHover} />
             </View>
-            <Ionicons name="arrow-forward" size={18} color={selectedTheme.accentHover} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.fcTitle}>flashcards</Text>
+              <Text style={s.fcSub}>spaced repetition · active recall</Text>
+            </View>
+            <View style={s.fcBadge}>
+              <Text style={s.fcBadgeText}>{fcSets} sets</Text>
+            </View>
           </View>
-          <View style={s.flashGrid}>
+          <View style={s.fcStatsRow}>
             {[
-              { value: String(fcTotal), label: 'cards' },
-              { value: String(fcSets), label: 'sets' },
-              { value: String(fcMastered), label: 'mastered' },
-              { value: fcAccuracy, label: 'accuracy' },
+              { value: String(fcTotal), label: 'cards', icon: 'copy-outline' as const },
+              { value: String(fcMastered), label: 'mastered', icon: 'checkmark-circle-outline' as const },
+              { value: fcAccuracy, label: 'accuracy', icon: 'stats-chart-outline' as const },
             ].map((item) => (
-              <View key={item.label} style={s.flashCell}>
-                <Text style={s.flashValue}>{item.value}</Text>
-                <Text style={s.flashLabel}>{item.label}</Text>
+              <View key={item.label} style={s.fcStat}>
+                <Ionicons name={item.icon} size={13} color={selectedTheme.accentHover} style={{ marginBottom: 6 }} />
+                <Text style={s.fcStatVal}>{item.value}</Text>
+                <Text style={s.fcStatLbl}>{item.label}</Text>
               </View>
             ))}
+          </View>
+          <View style={s.fcProgressWrap}>
+            <View style={s.fcProgressTrack}>
+              <View style={[s.fcProgressFill, { width: `${Math.min(100, fcTotal > 0 ? (fcMastered / fcTotal) * 100 : 0)}%` }]} />
+            </View>
+            <Text style={s.fcProgressLabel}>{fcTotal > 0 ? Math.round((fcMastered / fcTotal) * 100) : 0}% mastered</Text>
           </View>
         </HapticTouchable>
-
-        <View style={s.sectionRow}>
-          <Text style={s.sectionTitle}>weekly tempo</Text>
-          <Text style={s.sectionMeta}>how the week is unfolding</Text>
-        </View>
-
-        <View style={s.chartCard}>
-          <View style={s.chartLegend}>
-            {[
-              { color: selectedTheme.textPrimary, label: 'AI' },
-              { color: selectedTheme.accentHover, label: 'cards' },
-              { color: darkenColor(selectedTheme.accent, selectedTheme.isLight ? 16 : 34), label: 'notes' },
-            ].map((item) => (
-              <View key={item.label} style={s.legendItem}>
-                <View style={[s.legendDot, { backgroundColor: item.color }]} />
-                <Text style={s.legendText}>{item.label}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={s.chartArea}>
-            {[0.33, 0.66, 1].map((pct) => (
-              <View key={pct} style={[s.gridLine, { bottom: pct * BAR_MAX_H + 18 }]} />
-            ))}
-            <View style={s.barsRow}>
-              {(weekly.length ? weekly : Array(7).fill({ day: '?', ai_chats: 0, notes: 0, flashcards: 0 })).map((day: DayData, index: number) => {
-                const aiH = Math.max(3, (day.ai_chats / maxVal) * BAR_MAX_H);
-                const cardsH = Math.max(3, (day.flashcards / maxVal) * BAR_MAX_H);
-                const notesH = Math.max(3, (day.notes / maxVal) * BAR_MAX_H);
-                return (
-                  <View key={`${day.day}-${index}`} style={s.barGroup}>
-                    <View style={s.barCluster}>
-                      <View style={[s.bar, { height: aiH, backgroundColor: selectedTheme.textPrimary }]} />
-                      <View style={[s.bar, { height: cardsH, backgroundColor: selectedTheme.accentHover }]} />
-                      <View style={[s.bar, { height: notesH, backgroundColor: darkenColor(selectedTheme.accent, selectedTheme.isLight ? 16 : 34) }]} />
-                    </View>
-                    <Text style={s.dayLabel}>{day.day ? day.day[0] : '?'}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -254,9 +286,9 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
     width: '100%',
     maxWidth: layout.contentMaxWidth,
     alignSelf: 'center',
-    paddingHorizontal: PAD,
+    paddingHorizontal: 8,
     paddingBottom: 120,
-    gap: 14,
+    gap: 10,
   },
   glow: {
     position: 'absolute',
@@ -266,7 +298,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
     height: 180,
     borderRadius: 90,
   },
-  header: { marginTop: 18, marginBottom: 4 },
+  header: { marginTop: 18, marginBottom: 2, paddingHorizontal: 6 },
   title: { fontFamily: 'Inter_900Black', fontSize: 30, color: GOLD_L, letterSpacing: -0.8 },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 1.6, marginTop: 4, textTransform: 'uppercase' },
   heroCard: {
@@ -377,12 +409,86 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
   },
   flashValue: { fontFamily: 'Inter_900Black', fontSize: 20, color: GOLD_L },
   flashLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, textTransform: 'uppercase', letterSpacing: 1.1, marginTop: 5 },
+  statsStrip: {
+    flexDirection: 'row',
+    backgroundColor: rgbaFromHex(SURFACE, 0.98),
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: BORDER,
+    overflow: 'hidden',
+  },
+  stripCell: { flex: 1, alignItems: 'center', paddingVertical: 14 },
+  stripDivider: { borderLeftWidth: 1, borderLeftColor: BORDER },
+  stripVal: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_L },
+  stripLbl: { fontFamily: 'Inter_400Regular', fontSize: 8, color: DIM, letterSpacing: 1.5, marginTop: 2 },
+  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  sectionTitle: { fontFamily: 'Inter_900Black', fontSize: 16, color: GOLD_L },
+  sectionMeta: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM },
+  grid: { flexDirection: 'row', gap: 12 },
+  quickTile: {
+    flex: 1, minHeight: 140, borderRadius: 22, borderWidth: 1,
+    borderColor: BORDER, backgroundColor: SURFACE_ALT, padding: 16, overflow: 'hidden',
+  },
+  quickGlow: { ...StyleSheet.absoluteFillObject },
+  quickIcon: {
+    width: 34, height: 34, borderRadius: 17, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
+  },
+  badge: {
+    position: 'absolute', top: 14, right: 14, borderRadius: 999,
+    backgroundColor: rgbaFromHex(theme.accent, 0.12), paddingHorizontal: 8, paddingVertical: 4,
+  },
+  badgeText: { fontFamily: 'Inter_600SemiBold', fontSize: 9, color: GOLD_L, textTransform: 'uppercase' },
+  quickTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_L },
+  quickSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18, color: DIM, marginTop: 6 },
+  featureCard: {
+    borderRadius: 26, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: SURFACE, padding: 18, overflow: 'hidden',
+  },
+  featureTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  featureEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_L, textTransform: 'uppercase', letterSpacing: 1.8 },
+  featurePill: { borderRadius: 999, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: rgbaFromHex(theme.accent, 0.10) },
+  featurePillText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_M, textTransform: 'uppercase' },
+  featureTitle: { fontFamily: 'Inter_900Black', fontSize: 24, color: GOLD_L, marginTop: 12 },
+  featureBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, color: GOLD_M, marginTop: 8, maxWidth: '90%' },
+  featureMetaRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
+  featureMeta: {
+    flex: 1, borderRadius: 14, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: rgbaFromHex(SURFACE_ALT, 0.88), paddingVertical: 10, alignItems: 'center',
+  },
+  featureMetaValue: { fontFamily: 'Inter_900Black', fontSize: 16, color: GOLD_L },
+  featureMetaLabel: { fontFamily: 'Inter_400Regular', fontSize: 9, color: DIM, marginTop: 3, textTransform: 'uppercase', letterSpacing: 1.2 },
+  flashcardCard: {
+    borderRadius: 26, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: SURFACE, padding: 18, gap: 16, overflow: 'hidden',
+  },
+  fcTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  fcIconWrap: {
+    width: 44, height: 44, borderRadius: 14, borderWidth: 1,
+    borderColor: rgbaFromHex(GOLD_L, 0.3), backgroundColor: rgbaFromHex(GOLD_L, 0.08),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  fcTitle: { fontFamily: 'Inter_900Black', fontSize: 20, color: GOLD_L, letterSpacing: -0.4 },
+  fcSub: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM, marginTop: 3, letterSpacing: 0.3 },
+  fcBadge: { borderRadius: 999, borderWidth: 1, borderColor: rgbaFromHex(GOLD_L, 0.25), backgroundColor: rgbaFromHex(GOLD_L, 0.07), paddingHorizontal: 10, paddingVertical: 5 },
+  fcBadgeText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_L },
+  fcStatsRow: { flexDirection: 'row', gap: 10 },
+  fcStat: { flex: 1, backgroundColor: rgbaFromHex(GOLD_L, 0.06), borderRadius: 16, borderWidth: 1, borderColor: rgbaFromHex(GOLD_L, 0.12), paddingVertical: 14, alignItems: 'center' },
+  fcStatVal: { fontFamily: 'Inter_900Black', fontSize: 18, color: GOLD_L },
+  fcStatLbl: { fontFamily: 'Inter_400Regular', fontSize: 9, color: DIM, textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 3 },
+  fcProgressWrap: { gap: 6 },
+  fcProgressTrack: { height: 4, borderRadius: 2, backgroundColor: rgbaFromHex(GOLD_L, 0.12), overflow: 'hidden' },
+  fcProgressFill: { height: '100%', borderRadius: 2, backgroundColor: GOLD_L },
+  fcProgressLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM },
+  flashHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardEyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_M, textTransform: 'uppercase', letterSpacing: 1.6 },
+  cardTitle: { fontFamily: 'Inter_900Black', fontSize: 22, color: GOLD_L, marginTop: 4 },
   chartCard: {
-    borderRadius: 28,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: BORDER,
     backgroundColor: SURFACE,
-    padding: 18,
+    padding: 14,
   },
   chartLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 18 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },

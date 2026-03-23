@@ -17,10 +17,9 @@ const MEDAL = {
   bronze: { bar: 42, size: 44 },
 } as const;
 type MedalKey = keyof typeof MEDAL;
-const MEDALS: MedalKey[] = ['gold', 'silver', 'bronze'];
 
 function getMedalRing(theme: ReturnType<typeof useAppTheme>['selectedTheme'], medal: MedalKey) {
-  if (medal === 'gold') return theme.accentHover;
+  if (medal === 'gold')   return theme.accentHover;
   if (medal === 'silver') return lightenColor(theme.accent, theme.isLight ? 26 : 12);
   return darkenColor(theme.accent, theme.isLight ? 14 : 8);
 }
@@ -43,9 +42,7 @@ function DotGrid() {
               position: 'absolute',
               left: 56 + c * dotSpacingX,
               top: r * dotSpacingY,
-              width: 2,
-              height: 2,
-              borderRadius: 1,
+              width: 2, height: 2, borderRadius: 1,
               backgroundColor: dotColor,
             }}
           />
@@ -83,11 +80,12 @@ type Props = { user: AuthUser; onBack: () => void };
 export default function LeaderboardScreen({ user, onBack }: Props) {
   const { selectedTheme } = useAppTheme();
   const layout = useResponsiveLayout();
-  const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
-  const pod = useMemo(() => createPodStyles(selectedTheme), [selectedTheme]);
-  const row = useMemo(() => createRowStyles(selectedTheme), [selectedTheme]);
+  const s    = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
+  const pod  = useMemo(() => createPodStyles(selectedTheme), [selectedTheme]);
+  const row  = useMemo(() => createRowStyles(selectedTheme), [selectedTheme]);
   const empty = useMemo(() => createEmptyStyles(selectedTheme), [selectedTheme]);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
+
   const [tab, setTab]               = useState<'global' | 'friends'>('global');
   const [friends, setFriends]       = useState<any[]>([]);
   const [global, setGlobal]         = useState<any[]>([]);
@@ -97,7 +95,10 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
 
   const load = useCallback(async () => {
     try {
-      const [fr, gl] = await Promise.all([getFriendsLeaderboard(user.username), getGlobalLeaderboard(50)]);
+      const [fr, gl] = await Promise.all([
+        getFriendsLeaderboard(user.username),
+        getGlobalLeaderboard(50),
+      ]);
       const fList = fr?.leaderboard ?? [];
       setFriends(fList);
       setMyRank(fr?.current_user_rank ?? fList.find((e: any) => e.is_current_user));
@@ -111,17 +112,18 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
   useEffect(() => { load(); }, [load]);
   const onRefresh = () => { setRefreshing(true); load(); };
 
-  const list    = tab === 'friends' ? friends : global;
-  const top3    = list.slice(0, 3);
-  const rest    = list.slice(3);
-  const dname   = (e: any) => e.username || e.name || '?';
-  const dscore  = (e: any) => e.score ?? e.total_points ?? e.points ?? 0;
-  const dstreak = (e: any) => e.streak ?? e.current_streak ?? 0;
+  const list   = tab === 'friends' ? friends : global;
+  const top3   = list.slice(0, 3);
+  const rest   = list.slice(3);
+  const dname  = (e: any) => e.username || e.name || '?';
+  const dscore = (e: any) => e.score ?? e.total_points ?? e.points ?? 0;
+  const dstreak= (e: any) => e.streak ?? e.current_streak ?? 0;
+
   const GOLD_XL = selectedTheme.accent;
-  const GOLD_L = selectedTheme.accentHover;
-  const GOLD_M = selectedTheme.accent;
-  const GOLD_D = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 12 : 26);
-  const DIM = selectedTheme.textSecondary;
+  const GOLD_L  = selectedTheme.accentHover;
+  const GOLD_M  = selectedTheme.accent;
+  const GOLD_D  = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 12 : 26);
+  const DIM     = selectedTheme.textSecondary;
 
   if (!fontsLoaded) return null;
 
@@ -146,7 +148,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
       <AmbientBubbles theme={selectedTheme} variant="leaderboard" opacity={0.84} />
       <DotGrid />
 
-{/* Top bar */}
+      {/* Top bar */}
       <View style={s.topBar}>
         <HapticTouchable onPress={onBack} style={s.backBtn} haptic="light">
           <Ionicons name="chevron-back" size={18} color={GOLD_M} />
@@ -159,10 +161,10 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
           <Ionicons name="trophy" size={46} color={GOLD_XL} />
         </LinearGradient>
         <Text style={s.heroTitle}>leaderboard</Text>
-        {myRank && (
-          <Text style={s.heroSub}>you're ranked <Text style={{ color: GOLD_XL, fontFamily: 'Inter_700Bold' }}>#{myRank.rank ?? myRank}</Text></Text>
-        )}
-        {!myRank && <Text style={s.heroSub}>see how you stack up</Text>}
+        {myRank
+          ? <Text style={s.heroSub}>you're ranked <Text style={{ color: GOLD_XL, fontFamily: 'Inter_700Bold' }}>#{myRank.rank ?? myRank}</Text></Text>
+          : <Text style={s.heroSub}>see how you stack up</Text>
+        }
       </View>
 
       {/* Tabs */}
@@ -224,7 +226,6 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
                   const streak  = dstreak(e);
                   const maxScore = dscore(list[0]) || 1;
                   const pct     = Math.min(1, score / maxScore);
-
                   return (
                     <View key={e.id ?? i} style={[row.wrap, isMe && row.wrapMe]}>
                       {isMe && <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.14), rgbaFromHex(selectedTheme.panelAlt, 0.04)]} style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]} />}
@@ -262,7 +263,6 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
             )}
           </>
         )}
-
         <View style={{ height: 48 }} />
       </ScrollView>
     </View>
@@ -270,67 +270,63 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
 }
 
 function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
-  const ACCENT = theme.accent;
+  const ACCENT      = theme.accent;
   const ACCENT_DARK = darkenColor(theme.accent, theme.isLight ? 12 : 26);
-  const DIM = theme.textSecondary;
-  const SURFACE = theme.panel;
-  const BORDER = theme.borderStrong;
+  const DIM         = theme.textSecondary;
+  const SURFACE     = theme.panel;
+  const BORDER      = theme.borderStrong;
   return StyleSheet.create({
-  root: { flex: 1 },
-
-  topBar: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-
-  hero:      { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
-  heroGlow:  { width: 112, height: 112, borderRadius: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
-  heroTitle: { fontFamily: 'Inter_900Black', fontSize: 40, color: theme.accentHover, letterSpacing: -2.2, marginTop: 8 },
-  heroSub:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 0.5 },
-
-  tabRow:       { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', paddingLeft: 20, paddingRight: 20, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
-  tabItem:      { flex: 1, alignItems: 'center', paddingBottom: 10, position: 'relative' },
-  tabText:      { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
-  tabTextActive: { color: theme.accentHover },
-  tabLine:      { position: 'absolute', bottom: -1, left: '15%', right: '15%', height: 2, backgroundColor: ACCENT, borderRadius: 1 },
-
-  scroll: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingLeft: 20, paddingRight: 20, paddingTop: 4, gap: 0 },
-});
+    root: { flex: 1 },
+    topBar: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+    backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: rgbaFromHex(SURFACE, 0.92), borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
+    hero:      { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', alignItems: 'center', paddingTop: 12, paddingBottom: 24, gap: 8 },
+    heroGlow:  { width: 112, height: 112, borderRadius: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(ACCENT, 0.24) },
+    heroTitle: { fontFamily: 'Inter_900Black', fontSize: 40, color: theme.accentHover, letterSpacing: -2.2, marginTop: 8 },
+    heroSub:   { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM, letterSpacing: 0.5 },
+    tabRow:        { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', paddingLeft: 20, paddingRight: 20, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
+    tabItem:       { flex: 1, alignItems: 'center', paddingBottom: 10, position: 'relative' },
+    tabText:       { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: DIM },
+    tabTextActive: { color: theme.accentHover },
+    tabLine:       { position: 'absolute', bottom: -1, left: '15%', right: '15%', height: 2, backgroundColor: ACCENT, borderRadius: 1 },
+    scroll: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingLeft: 20, paddingRight: 20, paddingTop: 4, gap: 0 },
+  });
 }
 
 function createPodStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   return StyleSheet.create({
-  wrap:       { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', marginBottom: 24, gap: 4, paddingTop: 20, borderRadius: 20, overflow: 'hidden', position: 'relative' },
-  entry:      { flex: 1, alignItems: 'center', gap: 0 },
-  entryFirst: {},
-  badge:      { borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3, marginTop: 8, marginBottom: 4 },
-  badgeText:  { fontFamily: 'Inter_900Black', fontSize: 10 },
-  name:       { fontFamily: 'Inter_700Bold', fontSize: 11, color: theme.accentHover, textAlign: 'center', paddingHorizontal: 4 },
-  score:      { fontFamily: 'Inter_400Regular', fontSize: 10, color: theme.textSecondary, marginBottom: 8, marginTop: 2 },
-  bar:        { width: '100%', borderTopWidth: 1.5, borderRadius: 4 },
-});
+    wrap:       { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', marginBottom: 24, gap: 4, paddingTop: 20, borderRadius: 20, overflow: 'hidden', position: 'relative' },
+    entry:      { flex: 1, alignItems: 'center', gap: 0 },
+    entryFirst: {},
+    badge:      { borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3, marginTop: 8, marginBottom: 4 },
+    badgeText:  { fontFamily: 'Inter_900Black', fontSize: 10 },
+    name:       { fontFamily: 'Inter_700Bold', fontSize: 11, color: theme.accentHover, textAlign: 'center', paddingHorizontal: 4 },
+    score:      { fontFamily: 'Inter_400Regular', fontSize: 10, color: theme.textSecondary, marginBottom: 8, marginTop: 2 },
+    bar:        { width: '100%', borderTopWidth: 1.5, borderRadius: 4 },
+  });
 }
 
 function createRowStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
-  const ACCENT = theme.accent;
+  const ACCENT  = theme.accent;
   const SURFACE = theme.panel;
-  const BORDER = theme.borderStrong;
+  const BORDER  = theme.borderStrong;
   return StyleSheet.create({
-  wrap:    { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: BORDER, backgroundColor: rgbaFromHex(SURFACE, 0.84), overflow: 'hidden', position: 'relative', marginBottom: 6 },
-  wrapMe:  { borderColor: rgbaFromHex(ACCENT, 0.34) },
-  rank:    { fontFamily: 'Inter_900Black', fontSize: 13, color: theme.textSecondary, width: 26, textAlign: 'center' },
-  name:    { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: theme.accentHover },
-  track:   { height: 3, backgroundColor: rgbaFromHex(ACCENT, 0.14), borderRadius: 2, overflow: 'hidden' },
-  fill:    { height: '100%', borderRadius: 2 },
-  right:   { alignItems: 'flex-end', gap: 4 },
-  score:   { fontFamily: 'Inter_700Bold', fontSize: 15, color: ACCENT },
-  streakPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: rgbaFromHex(theme.warning, 0.12), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
-  streakText: { fontFamily: 'Inter_700Bold', fontSize: 9, color: theme.warning },
-});
+    wrap:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: BORDER, backgroundColor: rgbaFromHex(SURFACE, 0.84), overflow: 'hidden', position: 'relative', marginBottom: 6 },
+    wrapMe:     { borderColor: rgbaFromHex(ACCENT, 0.34) },
+    rank:       { fontFamily: 'Inter_900Black', fontSize: 13, color: theme.textSecondary, width: 26, textAlign: 'center' },
+    name:       { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: theme.accentHover },
+    track:      { height: 3, backgroundColor: rgbaFromHex(ACCENT, 0.14), borderRadius: 2, overflow: 'hidden' },
+    fill:       { height: '100%', borderRadius: 2 },
+    right:      { alignItems: 'flex-end', gap: 4 },
+    score:      { fontFamily: 'Inter_700Bold', fontSize: 15, color: ACCENT },
+    streakPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: rgbaFromHex(theme.warning, 0.12), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
+    streakText: { fontFamily: 'Inter_700Bold', fontSize: 9, color: theme.warning },
+  });
 }
 
 function createEmptyStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
   return StyleSheet.create({
-  wrap:  { alignItems: 'center', paddingTop: 80, gap: 14 },
-  icon:  { width: 88, height: 88, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(theme.accent, 0.22) },
-  title: { fontFamily: 'Inter_900Black', fontSize: 18, color: darkenColor(theme.accent, theme.isLight ? 12 : 26) },
-});
+    wrap:  { alignItems: 'center', paddingTop: 80, gap: 14 },
+    icon:  { width: 88, height: 88, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: rgbaFromHex(theme.accent, 0.22) },
+    title: { fontFamily: 'Inter_900Black', fontSize: 18, color: darkenColor(theme.accent, theme.isLight ? 12 : 26) },
+  });
 }

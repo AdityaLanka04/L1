@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, PanResponder, Easing } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, PanResponder, Easing, useWindowDimensions } from 'react-native';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,7 +8,7 @@ import RingProgress from '../components/RingProgress';
 import HapticTouchable from '../components/HapticTouchable';
 import AmbientBubbles from '../components/AmbientBubbles';
 import { AuthUser } from '../services/auth';
-import { getEnhancedStats } from '../services/api';
+import { getEnhancedStats, getFriendActivityFeed } from '../services/api';
 import { triggerHaptic } from '../utils/haptics';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
@@ -38,7 +38,8 @@ type Stats = {
 function MetricCapsule({ label, value }: { label: string; value: string }) {
   const { selectedTheme } = useAppTheme();
   const layout = useResponsiveLayout();
-  const styles = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
+  const { height: windowHeight } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(selectedTheme, layout, windowHeight), [selectedTheme, layout, windowHeight]);
   return (
     <View style={styles.metricCapsule}>
       <Text style={styles.metricValue}>{value}</Text>
@@ -50,10 +51,12 @@ function MetricCapsule({ label, value }: { label: string; value: string }) {
 export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLeftPage, onSwipeRightPage }: Props) {
   const { selectedTheme } = useAppTheme();
   const layout = useResponsiveLayout();
-  const styles = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
+  const { height: windowHeight } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(selectedTheme, layout, windowHeight), [selectedTheme, layout, windowHeight]);
   const canSwipeBetweenPages = !layout.sideRailTabs;
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const [stats, setStats] = useState<Stats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [heroIndex, setHeroIndex] = useState(0);
   const heroSwap = useRef(new Animated.Value(1)).current;
   const heroAnimating = useRef(false);
@@ -98,6 +101,10 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
 
   useEffect(() => {
     getEnhancedStats(user.username).then((data) => setStats(data)).catch(() => {});
+    getFriendActivityFeed(user.username).then((data) => {
+      const list = Array.isArray(data) ? data : data?.activities ?? data?.feed ?? [];
+      setRecentActivity(list.slice(0, 4));
+    }).catch(() => {});
   }, [user.username]);
 
   const streak = stats?.streak ?? 0;
@@ -259,7 +266,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
       <View style={[styles.glowBottom, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.09) }]} pointerEvents="none" />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false} alwaysBounceVertical={false}>
-        <View style={styles.topBar} {...(canSwipeBetweenPages ? pageSwipeResponder.panHandlers : {})}>
+        <View style={styles.topBar}>
           <View>
             <Text style={styles.appName}>cerbyl</Text>
             <Text style={styles.greeting}>{greeting}, {firstName}</Text>
@@ -271,21 +278,10 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
         </View>
 
         <View style={styles.heroWrap}>
-          <HapticTouchable activeOpacity={1} onPress={cycleHero} haptic="selection" {...heroSwipeResponder.panHandlers}>
-            <View style={styles.heroSection}>
+          <HapticTouchable activeOpacity={1} onPress={cycleHero} haptic="selection">
+            <View style={styles.heroSection} {...heroSwipeResponder.panHandlers}>
               <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.10), rgbaFromHex(selectedTheme.panel, 0.985), rgbaFromHex(selectedTheme.bgPrimary, 0.995)]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
               <View style={styles.heroBorder} />
-              <View style={[styles.heroOrb, styles.heroOrbPrimary, { backgroundColor: rgbaFromHex(hero.accent, 0.08) }]} />
-              <View style={[styles.heroOrb, styles.heroOrbSecondary, { backgroundColor: rgbaFromHex(darkenColor(selectedTheme.accent, selectedTheme.isLight ? 16 : 34), 0.14) }]} />
-
-              <View style={styles.heroTopRow}>
-                <View style={[styles.phaseChip, { borderColor: rgbaFromHex(hero.accent, 0.33), backgroundColor: rgbaFromHex(selectedTheme.panelAlt, 0.86) }]}>
-                  <Text style={styles.phaseChipText}>{hero.eyebrow}</Text>
-                </View>
-                <View style={styles.heroStatusPill}>
-                  <Text style={styles.heroStatusText}>{momentumLabel}</Text>
-                </View>
-              </View>
 
               {stats === null ? (
                 <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 40 }} />
@@ -314,38 +310,51 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
           </HapticTouchable>
         </View>
 
-        <View style={styles.bodySection} {...(canSwipeBetweenPages ? pageSwipeResponder.panHandlers : {})}>
-          <HapticTouchable style={styles.nextCard} onPress={handleNextAction} activeOpacity={0.9} haptic="medium">
-            <LinearGradient colors={[rgbaFromHex(selectedTheme.accentHover, 0.05), rgbaFromHex(selectedTheme.accentHover, 0.015), rgbaFromHex(selectedTheme.bgPrimary, 0)]} style={StyleSheet.absoluteFillObject} />
-            <View style={styles.nextTopRow}>
-              <Text style={styles.nextEyebrow}>{nextAction.eyebrow}</Text>
-              <View style={styles.nextCtaPill}>
-                <Ionicons name={nextAction.icon} size={13} color={selectedTheme.textPrimary} />
-                <Text style={styles.nextCta}>{nextAction.cta}</Text>
-              </View>
+        {recentActivity.length > 0 && (
+          <View style={styles.activitySection}>
+            <View style={styles.activityHeader}>
+              <Text style={styles.activityHeadTitle}>recent activity</Text>
+              <Text style={styles.activityHeadMeta}>what happened lately</Text>
             </View>
-            <Text style={styles.nextTitle}>{nextAction.title}</Text>
-            <Text style={styles.nextDetail}>{nextAction.detail}</Text>
-          </HapticTouchable>
-
-          <View style={styles.sectionBlock}>
-            <View style={styles.sectionHeadRow}>
-              <Text style={styles.sectionTitle}>quick launch</Text>
-              <Text style={styles.sectionSubtitle}>favorite tools on standby</Text>
-            </View>
-            <View style={styles.quickGrid}>
-              {quickActions.map((item) => (
-                <HapticTouchable key={item.label} style={styles.quickCard} onPress={item.action} activeOpacity={0.88} haptic="selection">
-                  <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.05), rgbaFromHex(selectedTheme.bgPrimary, 0)]} style={StyleSheet.absoluteFillObject} />
-                  <View style={styles.quickIconWrap}>
-                    <Ionicons name={item.icon} size={18} color={selectedTheme.textPrimary} />
+            <View style={styles.timelineWrap}>
+              {recentActivity.map((item: any, idx: number) => {
+                const type = String(item?.activity_type || item?.type || '').toLowerCase();
+                const actor = item?.username || item?.user_username || item?.friend_username || user.first_name || user.username;
+                const subject = item?.title || item?.subject || item?.content_title || item?.topic || '';
+                const icon: React.ComponentProps<typeof Ionicons>['name'] =
+                  type.includes('quiz') ? 'trophy-outline' :
+                  type.includes('flash') ? 'layers-outline' :
+                  type.includes('note') ? 'document-text-outline' :
+                  type.includes('chat') ? 'sparkles-outline' :
+                  'pulse-outline';
+                const label =
+                  type.includes('quiz') ? 'quiz completed' :
+                  type.includes('flash') ? 'flashcard session' :
+                  type.includes('note') ? 'note saved' :
+                  type.includes('chat') ? 'ai chat' :
+                  'activity';
+                const isLast = idx === recentActivity.length - 1;
+                return (
+                  <View key={item.id ?? idx} style={styles.timelineItem}>
+                    <View style={styles.timelineLeft}>
+                      <View style={styles.timelineDot}>
+                        <Ionicons name={icon} size={12} color={selectedTheme.accentHover} />
+                      </View>
+                      {!isLast && <View style={styles.timelineLine} />}
+                    </View>
+                    <View style={[styles.timelineCard, isLast && { marginBottom: 0 }]}>
+                      <Text style={styles.timelineLabel}>{label}</Text>
+                      {subject ? <Text style={styles.timelineSubject} numberOfLines={1}>{subject}</Text> : null}
+                      <Text style={styles.timelineActor}>{actor}</Text>
+                    </View>
                   </View>
-                  <Text style={styles.quickLabel}>{item.label}</Text>
-                  <Text style={styles.quickDetail}>{item.detail}</Text>
-                </HapticTouchable>
-              ))}
+                );
+              })}
             </View>
           </View>
+        )}
+
+        <View style={styles.bodySection}>
 
           <View style={styles.duoRow}>
             <View style={[styles.sectionCard, styles.todaySectionCard, styles.duoCard]}>
@@ -410,7 +419,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], layout: ReturnType<typeof useResponsiveLayout>, windowHeight: number) {
   const SURFACE = theme.panel;
   const SURFACE_ALT = theme.panelAlt;
   const GOLD_XL = theme.textPrimary;
@@ -421,12 +430,12 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
   const DIM = theme.textSecondary;
   const CARD_BORDER = theme.border;
   const SHADOW = darkenColor(theme.primary, theme.isLight ? 72 : 4);
-  const horizontalPadding = 18;
+  const horizontalPadding = 6;
   const cardGap = 10;
   const bodyInnerWidth = Math.max(layout.contentMaxWidth - horizontalPadding * 2, 280);
   const heroMinHeight = layout.isLandscape
-    ? Math.min(360, Math.max(260, layout.height * 0.66))
-    : Math.min(320, Math.max(244, layout.height * 0.42));
+    ? Math.min(500, Math.max(360, layout.height * 0.80))
+    : Math.min(520, Math.max(380, layout.height * 0.62));
   const quickColumns = layout.width >= 700 ? 4 : 2;
   const quickCardWidth = (bodyInnerWidth - cardGap * (quickColumns - 1)) / quickColumns;
   const totalColumns = layout.width >= 700 ? 3 : 2;
@@ -461,7 +470,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
     marginBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
   },
   appName: {
     fontFamily: 'Inter_900Black',
@@ -478,45 +487,41 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
     textTransform: 'uppercase',
   },
   topDateChip: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    backgroundColor: rgbaFromHex(theme.panelAlt, 0.92),
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    minWidth: 92,
     alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   topDateDay: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 9,
+    fontFamily: 'Inter_900Black',
+    fontSize: 11,
     color: GOLD_L,
-    letterSpacing: 1.8,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   topDateText: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 10,
-    color: GOLD_L,
-    letterSpacing: 1,
-    marginTop: 3,
+    fontSize: 12,
+    color: DIM,
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
 
   heroWrap: {
     width: '100%',
     maxWidth: layout.contentMaxWidth,
     alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 18,
+    marginTop: 4,
+    marginBottom: 8,
   },
   heroSection: {
     minHeight: heroMinHeight,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: layout.isLandscape ? 24 : 20,
-    paddingVertical: layout.isLandscape ? 22 : 18,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
     overflow: 'hidden',
     borderRadius: 34,
-    marginHorizontal: horizontalPadding,
+    marginHorizontal: 4,
+    backgroundColor: rgbaFromHex(SURFACE, 0.96),
   },
   heroBorder: {
     position: 'absolute',
@@ -675,16 +680,15 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
   },
   nextCard: {
     backgroundColor: rgbaFromHex(SURFACE, 0.93),
-    borderRadius: 28,
-    padding: 20,
-    borderWidth: 1,
+    borderRadius: 0,
+    padding: 14,
+    paddingTop: 36,
+    borderBottomWidth: 1,
     borderColor: CARD_BORDER,
-    shadowColor: SHADOW,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.22,
-    shadowRadius: 24,
-    elevation: 10,
+    height: windowHeight,
+    width: '100%',
     overflow: 'hidden',
+    justifyContent: 'center',
   },
   nextTopRow: {
     flexDirection: 'row',
@@ -908,6 +912,77 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
     letterSpacing: 0.6,
     lineHeight: 15,
     textTransform: 'uppercase',
+  },
+
+  activitySection: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: horizontalPadding,
+    gap: 10,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  activityHeadTitle: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 15,
+    color: GOLD_L,
+    letterSpacing: -0.3,
+  },
+  activityHeadMeta: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 10,
+    color: DIM,
+  },
+  timelineWrap: { gap: 0 },
+  timelineItem: { flexDirection: 'row', gap: 12 },
+  timelineLeft: { alignItems: 'center', width: 28 },
+  timelineDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: rgbaFromHex(theme.accentHover, 0.12),
+    borderWidth: 1,
+    borderColor: rgbaFromHex(theme.accentHover, 0.25),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timelineLine: {
+    flex: 1,
+    width: 1,
+    backgroundColor: CARD_BORDER,
+    marginVertical: 4,
+  },
+  timelineCard: {
+    flex: 1,
+    backgroundColor: rgbaFromHex(SURFACE, 0.7),
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    padding: 12,
+    marginBottom: 8,
+    gap: 3,
+  },
+  timelineLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 11,
+    color: GOLD_L,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  timelineSubject: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 14,
+    color: GOLD_L,
+    letterSpacing: -0.2,
+  },
+  timelineActor: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+    color: DIM,
   },
 });
 }

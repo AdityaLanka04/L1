@@ -89,7 +89,7 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
             initialPage={2}
             onPageSelected={e => setIndex(e.nativeEvent.position)}
             overdrag={false}
-            scrollEnabled={index !== 2}
+            scrollEnabled={true}
           >
             <View key="0" style={{ flex: 1 }}><AIChatScreen user={user} /></View>
             <View key="1" style={{ flex: 1 }}><MoreScreen user={user} onNavigate={onNavigate} onNavigateToAI={() => goTo(0)} /></View>
@@ -196,6 +196,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
     },
     tabBar: {
       flexDirection: 'row',
+      alignItems: 'center',
       borderWidth: 1,
       borderColor: rgbaFromHex(theme.borderStrong, theme.isLight ? 0.16 : 0.24),
       borderRadius: 28,
