@@ -34,6 +34,7 @@ import {
   createFolder,
   createNote,
   convertChatSessionsToNote,
+  convertChatSessionsToNoteContent,
   convertNotesToFlashcards,
   convertNotesToQuestions,
   getChatSessions,
@@ -356,6 +357,31 @@ function QuickActionCard({
   );
 }
 
+function CompactActionTile({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  return (
+    <HapticTouchable style={s.compactActionTile} onPress={onPress} activeOpacity={0.88} haptic="light">
+      <View style={s.compactActionIconWrap}>
+        <Ionicons name={icon} size={16} color={ACCENT} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={s.compactActionTitle}>{title}</Text>
+        <Text style={s.compactActionSubtitle} numberOfLines={2}>{subtitle}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={GOLD_D} />
+    </HapticTouchable>
+  );
+}
+
 function ModalShell({
   visible,
   title,
@@ -420,12 +446,16 @@ function NoteEditor({
   const [blocks, setBlocks] = useState<NoteCanvasBlock[]>(createInitialBlocks);
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
   const [folderId, setFolderId] = useState<number | null>(note.folder_id);
+  const [folderOptions, setFolderOptions] = useState<Folder[]>(folders);
   const [customFont, setCustomFont] = useState(note.custom_font || 'Inter');
   const [editingCanvasBlockId, setEditingCanvasBlockId] = useState<string | null>(null);
   const [showCanvasModal, setShowCanvasModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [folderBusy, setFolderBusy] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [editorDrawer, setEditorDrawer] = useState<'insert' | 'organize' | 'more' | null>(null);
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiAction, setAiAction] = useState<AiAction>('improve');
   const [aiTone, setAiTone] = useState('professional');
@@ -434,6 +464,24 @@ function NoteEditor({
   const [aiSuggestion, setAiSuggestion] = useState('');
   const [showPropertiesModal, setShowPropertiesModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateTab, setTemplateTab] = useState<TemplateTab>('built-in');
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
+  const [showTemplateForm, setShowTemplateForm] = useState(false);
+  const [templateDraft, setTemplateDraft] = useState({ name: '', description: '', content: '' });
+  const [showChatImport, setShowChatImport] = useState(false);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
+  const [chatImportMode, setChatImportMode] = useState<'append' | 'replace'>('append');
+  const [importingChat, setImportingChat] = useState(false);
+  const [showConvert, setShowConvert] = useState(false);
+  const [convertTarget, setConvertTarget] = useState<ConvertTarget>('flashcards');
+  const [convertDifficulty, setConvertDifficulty] = useState<Difficulty>('medium');
+  const [convertCount, setConvertCount] = useState(10);
+  const [converting, setConverting] = useState(false);
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [folderCreating, setFolderCreating] = useState(false);
   const [pageProperties, setPageProperties] = useState<PageProperty[]>(createDefaultPageProperties);
   const [newPropertyName, setNewPropertyName] = useState('');
   const [newPropertyType, setNewPropertyType] = useState<PagePropertyType>('text');
@@ -446,10 +494,19 @@ function NoteEditor({
     .filter((block) => block.type === 'text')
     .map((block) => block.content)
     .join('\n\n');
+  const plainCombinedText = stripHtml(combinedTextContent);
   const activeCanvasBlock =
     editingCanvasBlockId
       ? blocks.find((block) => block.type === 'canvas' && block.id === editingCanvasBlockId)
       : null;
+  const wordCount = plainCombinedText ? plainCombinedText.split(/\s+/).filter(Boolean).length : 0;
+  const charCount = plainCombinedText.length;
+  const textBlockCount = blocks.filter((block) => block.type === 'text').length;
+  const canvasBlockCount = blocks.filter((block) => block.type === 'canvas').length;
+
+  useEffect(() => {
+    setFolderOptions(folders);
+  }, [folders]);
 
   useEffect(() => {
     AsyncStorage.getItem(pagePropertiesKey(user.username, note.id))
@@ -471,6 +528,30 @@ function NoteEditor({
   useEffect(() => {
     AsyncStorage.setItem(pagePropertiesKey(user.username, note.id), JSON.stringify(pageProperties)).catch(() => {});
   }, [note.id, pageProperties, user.username]);
+
+  useEffect(() => {
+    AsyncStorage.getItem(CUSTOM_TEMPLATE_KEY)
+      .then((raw) => {
+        if (!raw) {
+          setCustomTemplates([]);
+          return;
+        }
+        try {
+          const parsed = JSON.parse(raw);
+          setCustomTemplates(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setCustomTemplates([]);
+        }
+      })
+      .catch(() => setCustomTemplates([]));
+  }, []);
+
+  useEffect(() => {
+    if (!showChatImport) return;
+    getChatSessions(user.username)
+      .then((data) => setChatSessions(data?.sessions ?? []))
+      .catch(() => setChatSessions([]));
+  }, [showChatImport, user.username]);
 
   const normalizeBlocks = (nextBlocks: NoteCanvasBlock[]) => {
     const normalized: NoteCanvasBlock[] = [];
@@ -543,6 +624,167 @@ function NoteEditor({
 
   const deletePageProperty = (propertyId: string) => {
     setPageProperties((current) => current.filter((property) => property.id !== propertyId));
+  };
+
+  const saveEditorCustomTemplates = async (templates: CustomTemplate[]) => {
+    setCustomTemplates(templates);
+    await AsyncStorage.setItem(CUSTOM_TEMPLATE_KEY, JSON.stringify(templates));
+  };
+
+  const handleSaveCurrentTemplate = async () => {
+    if (!templateDraft.name.trim()) {
+      Alert.alert('Template name required', 'Add a name before saving this template.');
+      return;
+    }
+
+    const content = buildNoteContentFromBlocks(blocks);
+    if (!stripHtml(getPlainNoteText(content)).trim()) {
+      Alert.alert('No content', 'Write something before saving it as a template.');
+      return;
+    }
+
+    const nextTemplate: CustomTemplate = {
+      id: `custom-${Date.now()}`,
+      name: templateDraft.name.trim(),
+      description: templateDraft.description.trim() || 'Saved from note editor',
+      content,
+      category: 'custom',
+      createdAt: new Date().toISOString(),
+    };
+    const nextTemplates = [...customTemplates, nextTemplate];
+    await saveEditorCustomTemplates(nextTemplates);
+    setTemplateDraft({ name: '', description: '', content: '' });
+    setShowTemplateForm(false);
+    setTemplateTab('custom');
+  };
+
+  const handleDeleteEditorTemplate = (templateId: string) => {
+    Alert.alert('Delete template?', 'This custom template will be removed.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const next = customTemplates.filter((template) => template.id !== templateId);
+          await saveEditorCustomTemplates(next);
+        },
+      },
+    ]);
+  };
+
+  const appendTextToBlocks = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    updateBlocks((current) => {
+      const next = current.slice();
+      for (let index = next.length - 1; index >= 0; index -= 1) {
+        const block = next[index];
+        if (block?.type === 'text') {
+          next[index] = {
+            ...block,
+            content: block.content.trim() ? `${block.content.trim()}\n\n${trimmed}` : trimmed,
+          };
+          return next;
+        }
+      }
+      next.push(createTextBlock(trimmed));
+      return next;
+    });
+  };
+
+  const replaceNoteWithText = (text: string) => {
+    const trimmed = text.trim();
+    updateBlocks(() => [createTextBlock(trimmed)]);
+  };
+
+  const applyTemplateContent = (template: NoteTemplate, mode: 'append' | 'replace') => {
+    const filled = applyTemplateVariables(template, user.username);
+    if (mode === 'replace') {
+      replaceNoteWithText(filled);
+      setTitle((current) => current.trim() ? current : template.name);
+    } else {
+      appendTextToBlocks(filled);
+    }
+    setShowTemplates(false);
+  };
+
+  const handleImportChatIntoNote = async () => {
+    if (!selectedSessions.length || importingChat) return;
+    setImportingChat(true);
+    try {
+      const converted = await convertChatSessionsToNoteContent({
+        userId: user.username,
+        sessionIds: selectedSessions,
+      });
+      if (chatImportMode === 'replace') {
+        replaceNoteWithText(converted.content);
+        setTitle((current) => current.trim() ? current : converted.title);
+      } else {
+        appendTextToBlocks(converted.content);
+      }
+      setShowChatImport(false);
+      setSelectedSessions([]);
+      setChatImportMode('append');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to import chats';
+      Alert.alert('Import failed', message);
+    } finally {
+      setImportingChat(false);
+    }
+  };
+
+  const handleConvertCurrentNote = async () => {
+    if (converting) return;
+    setConverting(true);
+    try {
+      if (convertTarget === 'flashcards') {
+        const data = await convertNotesToFlashcards({
+          noteIds: [note.id],
+          cardCount: convertCount,
+          difficulty: convertDifficulty,
+        });
+        Alert.alert('Flashcards created', `${data?.card_count ?? convertCount} cards are ready in Flashcards.`);
+      } else {
+        const data = await convertNotesToQuestions({
+          noteIds: [note.id],
+          questionCount: convertCount,
+          difficulty: convertDifficulty,
+        });
+        Alert.alert('Questions created', `${data?.question_count ?? convertCount} questions were generated from this note.`);
+      }
+      setShowConvert(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to convert note';
+      Alert.alert('Convert failed', message);
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const handleCreateEditorFolder = async () => {
+    const name = newFolderName.trim();
+    if (!name || folderCreating) return;
+    setFolderCreating(true);
+    try {
+      const created = await createFolder({ userId: user.username, name });
+      const nextFolder: Folder = {
+        id: created.id,
+        name: created.name ?? name,
+        color: created.color ?? '#D7B38C',
+        note_count: created.note_count ?? 0,
+        parent_id: created.parent_id ?? null,
+        created_at: created.created_at,
+      };
+      setFolderOptions((current) => [...current, nextFolder]);
+      setNewFolderName('');
+      setShowFolderModal(false);
+      await handleMoveFolder(nextFolder.id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create folder';
+      Alert.alert('Folder failed', message);
+    } finally {
+      setFolderCreating(false);
+    }
   };
 
   const save = async () => {
@@ -744,28 +986,24 @@ function NoteEditor({
     <SafeAreaView style={s.safe} edges={['top']}>
       <AmbientBubbles theme={CURRENT_THEME} variant="notes" opacity={0.82} />
       <KeyboardAvoidingView style={s.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={s.editorHeader}>
+        <View style={[s.editorHeader, focusMode && s.editorHeaderFocused]}>
           <HapticTouchable onPress={handleBack} style={s.iconBtn} haptic="selection">
             <Ionicons name="chevron-back" size={22} color={GOLD_L} />
           </HapticTouchable>
-          <Text style={s.editorHeaderTitle} numberOfLines={1}>
-            {title.trim() ? title.toLowerCase() : 'untitled note'}
-          </Text>
+          <View style={s.editorHeaderTitleStack}>
+            <Text style={s.editorHeaderTitle} numberOfLines={1}>
+              {title.trim() ? title.toLowerCase() : 'untitled note'}
+            </Text>
+            <Text style={s.editorHeaderSubtitle} numberOfLines={1}>
+              {previewMode ? 'preview mode' : dirty ? 'unsaved changes' : `updated ${formatDate(baseNote.updated_at)}`}
+            </Text>
+          </View>
           <View style={s.editorActions}>
-            <HapticTouchable onPress={() => setShowPropertiesModal(true)} style={s.iconBtn} haptic="selection">
-              <Ionicons name="options-outline" size={18} color={GOLD_D} />
+            <HapticTouchable onPress={() => setPreviewMode((current) => !current)} style={s.iconBtn} haptic="selection">
+              <Ionicons name={previewMode ? 'create-outline' : 'eye-outline'} size={18} color={previewMode ? ACCENT : GOLD_D} />
             </HapticTouchable>
-            <HapticTouchable onPress={() => openNewCanvasAfter(blocks.length - 1)} style={s.iconBtn} haptic="selection">
-              <Ionicons name="brush-outline" size={18} color={hasCanvasPayload(buildNoteContentFromBlocks(blocks)) ? ACCENT : GOLD_D} />
-            </HapticTouchable>
-            <HapticTouchable onPress={() => setShowAiModal(true)} style={s.iconBtn} haptic="selection">
-              <Ionicons name="sparkles-outline" size={18} color={ACCENT} />
-            </HapticTouchable>
-            <HapticTouchable onPress={() => setShowExportModal(true)} style={s.iconBtn} haptic="selection">
-              <Ionicons name="share-social-outline" size={18} color={ACCENT} />
-            </HapticTouchable>
-            <HapticTouchable onPress={handleFavorite} style={s.iconBtn} haptic="selection">
-              <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={19} color={isFavorite ? ACCENT : GOLD_D} />
+            <HapticTouchable onPress={() => setEditorDrawer((current) => (current === 'more' ? null : 'more'))} style={s.iconBtn} haptic="selection">
+              <Ionicons name="ellipsis-horizontal" size={18} color={GOLD_D} />
             </HapticTouchable>
             <HapticTouchable onPress={save} style={s.saveBtn} haptic="success" disabled={saving}>
               <Text style={s.saveBtnText}>{saving ? 'saving' : dirty ? 'save' : 'saved'}</Text>
@@ -773,127 +1011,516 @@ function NoteEditor({
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={s.editorScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={s.editorMetaRow}>
-            <Text style={s.editorMetaText}>updated {formatDate(baseNote.updated_at)}</Text>
-            <HapticTouchable onPress={handleTrash} haptic="warning">
-              <Text style={s.trashText}>move to trash</Text>
-            </HapticTouchable>
-          </View>
-
-          <View style={s.folderSection}>
-            <Text style={s.sectionCaption}>folder</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.folderChips}>
-              <FilterChip label="root" active={folderId == null} onPress={() => handleMoveFolder(null)} />
-              {folders.map((folder) => (
-                <FilterChip
-                  key={folder.id}
-                  label={folder.name}
-                  active={folderId === folder.id}
-                  onPress={() => handleMoveFolder(folder.id)}
-                />
-              ))}
-            </ScrollView>
-          </View>
-
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Untitled Note"
-            placeholderTextColor={DIM2}
-            style={[s.titleInput, { fontFamily: resolveNoteFont(customFont, 'title') }]}
-          />
-
-          <View style={s.fontSection}>
-            <Text style={s.sectionCaption}>font</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.fontChips}>
-              {NOTE_FONT_OPTIONS.map((font) => (
-                <HapticTouchable
-                  key={font}
-                  style={[s.fontChip, customFont === font && s.fontChipActive]}
-                  onPress={() => setCustomFont(font)}
-                  haptic="selection"
-                >
-                  <Text style={[s.fontChipText, customFont === font && s.fontChipTextActive, { fontFamily: resolveNoteFont(font, 'body') }]}>
-                    {font}
+        <ScrollView
+          contentContainerStyle={[s.editorScroll, focusMode && s.editorScrollFocused]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {!focusMode ? (
+            <View style={s.editorDeck}>
+              <View style={s.editorDeckTop}>
+                <View style={s.editorDeckCopy}>
+                  <Text style={s.workspaceEyebrow}>editor</Text>
+                  <Text style={s.editorDeckTitle}>keep the page clean</Text>
+                  <Text style={s.editorDeckSubtitle}>
+                    Browser note tools are here, but tucked behind drawers so writing stays fast.
                   </Text>
+                </View>
+                <View style={s.editorStatsRow}>
+                  <View style={s.editorStatPill}>
+                    <Text style={s.editorStatValue}>{wordCount}</Text>
+                    <Text style={s.editorStatLabel}>words</Text>
+                  </View>
+                  <View style={s.editorStatPill}>
+                    <Text style={s.editorStatValue}>{canvasBlockCount}</Text>
+                    <Text style={s.editorStatLabel}>canvas</Text>
+                  </View>
+                  <View style={s.editorStatPill}>
+                    <Text style={s.editorStatValue}>{pageProperties.length}</Text>
+                    <Text style={s.editorStatLabel}>props</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={s.editorMetaRow}>
+                <Text style={s.editorMetaText}>updated {formatDate(baseNote.updated_at)}</Text>
+                <Text style={s.editorMetaText}>
+                  {folderOptions.find((folder) => folder.id === folderId)?.name ?? 'root'} · {customFont}
+                </Text>
+              </View>
+
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Untitled Note"
+                placeholderTextColor={DIM2}
+                style={[s.titleInput, { fontFamily: resolveNoteFont(customFont, 'title') }]}
+              />
+
+              <View style={s.editorPrimaryActions}>
+                <HapticTouchable style={s.editorPrimaryBtn} onPress={() => setShowAiModal(true)} haptic="selection">
+                  <Ionicons name="sparkles-outline" size={16} color={ACCENT} />
+                  <Text style={s.editorPrimaryBtnText}>ai assist</Text>
                 </HapticTouchable>
-              ))}
-            </ScrollView>
-          </View>
+                <HapticTouchable style={s.editorPrimaryBtn} onPress={() => openNewCanvasAfter(blocks.length - 1)} haptic="selection">
+                  <Ionicons name="brush-outline" size={16} color={hasCanvasPayload(buildNoteContentFromBlocks(blocks)) ? ACCENT : GOLD_D} />
+                  <Text style={s.editorPrimaryBtnText}>canvas</Text>
+                </HapticTouchable>
+                <HapticTouchable style={s.editorPrimaryBtn} onPress={handleFavorite} haptic="selection">
+                  <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={16} color={isFavorite ? ACCENT : GOLD_D} />
+                  <Text style={s.editorPrimaryBtnText}>{isFavorite ? 'starred' : 'favorite'}</Text>
+                </HapticTouchable>
+                <HapticTouchable style={s.editorPrimaryBtn} onPress={() => setFocusMode(true)} haptic="selection">
+                  <Ionicons name="expand-outline" size={16} color={GOLD_D} />
+                  <Text style={s.editorPrimaryBtnText}>focus</Text>
+                </HapticTouchable>
+              </View>
 
-          <View style={s.inlineComposer}>
-            <View style={s.inlineInsertRow}>
-              <HapticTouchable style={s.inlineInsertBtn} onPress={() => insertTextAfter(-1)} haptic="selection">
-                <Ionicons name="text-outline" size={15} color={ACCENT} />
-                <Text style={s.inlineInsertBtnText}>text</Text>
-              </HapticTouchable>
-              <HapticTouchable style={s.inlineInsertBtn} onPress={() => openNewCanvasAfter(-1)} haptic="selection">
-                <Ionicons name="brush-outline" size={15} color={ACCENT} />
-                <Text style={s.inlineInsertBtnText}>canvas</Text>
-              </HapticTouchable>
-            </View>
+              <View style={s.editorDrawerTabs}>
+                {([
+                  ['insert', 'add'],
+                  ['organize', 'organize'],
+                  ['more', 'more'],
+                ] as const).map(([value, label]) => (
+                  <HapticTouchable
+                    key={value}
+                    style={[s.editorDrawerTab, editorDrawer === value && s.editorDrawerTabActive]}
+                    onPress={() => setEditorDrawer((current) => (current === value ? null : value))}
+                    haptic="selection"
+                  >
+                    <Text style={[s.editorDrawerTabText, editorDrawer === value && s.editorDrawerTabTextActive]}>{label}</Text>
+                  </HapticTouchable>
+                ))}
+              </View>
 
-            {blocks.map((block, index) => (
-              <View key={block.id} style={s.inlineBlockWrap}>
-                {block.type === 'text' ? (
-                  <View style={s.inlineTextBlock}>
-                    <TextInput
-                      value={block.content}
-                      onChangeText={(value) => updateTextBlock(block.id, value)}
-                      placeholder={index === 0 ? 'Start writing your note...' : 'Continue writing...'}
-                      placeholderTextColor={DIM2}
-                      style={[s.inlineTextInput, { fontFamily: resolveNoteFont(customFont, 'body') }]}
-                      multiline
-                      textAlignVertical="top"
+              {editorDrawer === 'insert' ? (
+                <View style={s.editorDrawerCard}>
+                  <View style={s.editorDrawerGrid}>
+                    <CompactActionTile icon="text-outline" title="text block" subtitle="drop in another writing section" onPress={() => insertTextAfter(blocks.length - 1)} />
+                    <CompactActionTile icon="brush-outline" title="canvas block" subtitle="insert an inline sketch board" onPress={() => openNewCanvasAfter(blocks.length - 1)} />
+                    <CompactActionTile icon="document-text-outline" title="templates" subtitle="apply built-in or custom note layouts" onPress={() => setShowTemplates(true)} />
+                    <CompactActionTile icon="chatbox-ellipses-outline" title="from chat" subtitle="append or replace from AI chat sessions" onPress={() => setShowChatImport(true)} />
+                  </View>
+                </View>
+              ) : null}
+
+              {editorDrawer === 'organize' ? (
+                <View style={s.editorDrawerCard}>
+                  <View style={s.editorDrawerSectionHeader}>
+                    <Text style={s.sectionCaption}>folder</Text>
+                    <HapticTouchable style={s.editorMiniTextBtn} onPress={() => setShowFolderModal(true)} haptic="selection">
+                      <Text style={s.editorMiniTextBtnLabel}>new folder</Text>
+                    </HapticTouchable>
+                  </View>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.folderChips}>
+                    <FilterChip label="root" active={folderId == null} onPress={() => handleMoveFolder(null)} />
+                    {folderOptions.map((folder) => (
+                      <FilterChip
+                        key={folder.id}
+                        label={folder.name}
+                        active={folderId === folder.id}
+                        onPress={() => handleMoveFolder(folder.id)}
+                      />
+                    ))}
+                  </ScrollView>
+
+                  <Text style={s.sectionCaption}>font</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.fontChips}>
+                    {NOTE_FONT_OPTIONS.map((font) => (
+                      <HapticTouchable
+                        key={font}
+                        style={[s.fontChip, customFont === font && s.fontChipActive]}
+                        onPress={() => setCustomFont(font)}
+                        haptic="selection"
+                      >
+                        <Text style={[s.fontChipText, customFont === font && s.fontChipTextActive, { fontFamily: resolveNoteFont(font, 'body') }]}>
+                          {font}
+                        </Text>
+                      </HapticTouchable>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
+
+              {editorDrawer === 'more' ? (
+                <View style={s.editorDrawerCard}>
+                  <View style={s.editorDrawerGrid}>
+                    <CompactActionTile icon="options-outline" title="page properties" subtitle="manage status, metadata, and custom fields" onPress={() => setShowPropertiesModal(true)} />
+                    <CompactActionTile icon="share-social-outline" title="export" subtitle="share note text with properties included" onPress={() => setShowExportModal(true)} />
+                    <CompactActionTile icon="shuffle-outline" title="convert" subtitle="send this note to flashcards or questions" onPress={() => setShowConvert(true)} />
+                    <CompactActionTile
+                      icon="bookmark-outline"
+                      title="save template"
+                      subtitle="store this note as a reusable template"
+                      onPress={() => {
+                        setTemplateDraft((current) => ({ ...current, name: current.name || (title.trim() || 'New Template') }));
+                        setShowTemplates(true);
+                        setTemplateTab('custom');
+                        setShowTemplateForm(true);
+                      }}
                     />
                   </View>
+                  <View style={s.editorSecondaryRow}>
+                    <HapticTouchable style={[s.secondaryBtn, s.editorUtilityBtn]} onPress={() => setPreviewMode((current) => !current)} haptic="selection">
+                      <Text style={s.secondaryBtnText}>{previewMode ? 'back to edit' : 'preview note'}</Text>
+                    </HapticTouchable>
+                    <HapticTouchable style={[s.secondaryBtn, s.editorUtilityBtn]} onPress={handleTrash} haptic="warning">
+                      <Text style={[s.secondaryBtnText, { color: RED }]}>move to trash</Text>
+                    </HapticTouchable>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          ) : (
+            <View style={s.focusBanner}>
+              <Text style={s.focusBannerTitle}>focus mode</Text>
+              <HapticTouchable onPress={() => setFocusMode(false)} haptic="selection">
+                <Text style={s.focusBannerAction}>show tools</Text>
+              </HapticTouchable>
+            </View>
+          )}
+
+          {focusMode ? (
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Untitled Note"
+              placeholderTextColor={DIM2}
+              style={[s.titleInput, s.titleInputFocused, { fontFamily: resolveNoteFont(customFont, 'title') }]}
+            />
+          ) : null}
+
+          {previewMode ? (
+            <View style={s.previewComposer}>
+              {blocks.map((block) => (
+                block.type === 'text' ? (
+                  <View key={block.id} style={s.previewTextBlock}>
+                    <Text style={[s.previewText, { fontFamily: resolveNoteFont(customFont, 'body') }]}>
+                      {block.content.trim() || ' '}
+                    </Text>
+                  </View>
                 ) : (
-                  <View style={s.inlineCanvasBlock}>
+                  <View key={block.id} style={s.inlineCanvasBlock}>
                     <View style={s.inlineCanvasHeader}>
                       <View>
                         <Text style={s.sectionCaption}>canvas</Text>
                         <Text style={s.canvasSubtext}>inline sketch block</Text>
                       </View>
-                      <View style={s.inlineCanvasActions}>
-                        <HapticTouchable
-                          style={s.inlineMiniBtn}
-                          onPress={() => {
-                            setEditingCanvasBlockId(block.id);
-                            setShowCanvasModal(true);
-                          }}
-                          haptic="selection"
-                        >
-                          <Ionicons name="create-outline" size={16} color={ACCENT} />
-                        </HapticTouchable>
-                        <HapticTouchable
-                          style={s.inlineMiniBtn}
-                          onPress={() => removeCanvasBlock(block.id)}
-                          haptic="warning"
-                        >
-                          <Ionicons name="trash-outline" size={16} color={RED} />
-                        </HapticTouchable>
-                      </View>
                     </View>
                     <CanvasPreview canvasData={block.canvasData} theme={CURRENT_THEME} />
                   </View>
-                )}
-
-                <View style={s.inlineInsertRow}>
-                  <HapticTouchable style={s.inlineInsertBtn} onPress={() => insertTextAfter(index)} haptic="selection">
-                    <Ionicons name="text-outline" size={15} color={ACCENT} />
-                    <Text style={s.inlineInsertBtnText}>text</Text>
-                  </HapticTouchable>
-                  <HapticTouchable style={s.inlineInsertBtn} onPress={() => openNewCanvasAfter(index)} haptic="selection">
-                    <Ionicons name="brush-outline" size={15} color={ACCENT} />
-                    <Text style={s.inlineInsertBtnText}>canvas</Text>
-                  </HapticTouchable>
-                </View>
+                )
+              ))}
+            </View>
+          ) : (
+            <View style={s.inlineComposer}>
+              <View style={s.inlineInsertRow}>
+                <HapticTouchable style={s.inlineInsertBtn} onPress={() => insertTextAfter(-1)} haptic="selection">
+                  <Ionicons name="text-outline" size={15} color={ACCENT} />
+                  <Text style={s.inlineInsertBtnText}>text</Text>
+                </HapticTouchable>
+                <HapticTouchable style={s.inlineInsertBtn} onPress={() => openNewCanvasAfter(-1)} haptic="selection">
+                  <Ionicons name="brush-outline" size={15} color={ACCENT} />
+                  <Text style={s.inlineInsertBtnText}>canvas</Text>
+                </HapticTouchable>
               </View>
-            ))}
+
+              {blocks.map((block, index) => (
+                <View key={block.id} style={s.inlineBlockWrap}>
+                  {block.type === 'text' ? (
+                    <View style={s.inlineTextBlock}>
+                      <TextInput
+                        value={block.content}
+                        onChangeText={(value) => updateTextBlock(block.id, value)}
+                        placeholder={index === 0 ? 'Start writing your note...' : 'Continue writing...'}
+                        placeholderTextColor={DIM2}
+                        style={[s.inlineTextInput, { fontFamily: resolveNoteFont(customFont, 'body') }]}
+                        multiline
+                        textAlignVertical="top"
+                      />
+                    </View>
+                  ) : (
+                    <View style={s.inlineCanvasBlock}>
+                      <View style={s.inlineCanvasHeader}>
+                        <View>
+                          <Text style={s.sectionCaption}>canvas</Text>
+                          <Text style={s.canvasSubtext}>inline sketch block</Text>
+                        </View>
+                        <View style={s.inlineCanvasActions}>
+                          <HapticTouchable
+                            style={s.inlineMiniBtn}
+                            onPress={() => {
+                              setEditingCanvasBlockId(block.id);
+                              setShowCanvasModal(true);
+                            }}
+                            haptic="selection"
+                          >
+                            <Ionicons name="create-outline" size={16} color={ACCENT} />
+                          </HapticTouchable>
+                          <HapticTouchable
+                            style={s.inlineMiniBtn}
+                            onPress={() => removeCanvasBlock(block.id)}
+                            haptic="warning"
+                          >
+                            <Ionicons name="trash-outline" size={16} color={RED} />
+                          </HapticTouchable>
+                        </View>
+                      </View>
+                      <CanvasPreview canvasData={block.canvasData} theme={CURRENT_THEME} />
+                    </View>
+                  )}
+
+                  <View style={s.inlineInsertRow}>
+                    <HapticTouchable style={s.inlineInsertBtn} onPress={() => insertTextAfter(index)} haptic="selection">
+                      <Ionicons name="text-outline" size={15} color={ACCENT} />
+                      <Text style={s.inlineInsertBtnText}>text</Text>
+                    </HapticTouchable>
+                    <HapticTouchable style={s.inlineInsertBtn} onPress={() => openNewCanvasAfter(index)} haptic="selection">
+                      <Ionicons name="brush-outline" size={15} color={ACCENT} />
+                      <Text style={s.inlineInsertBtnText}>canvas</Text>
+                    </HapticTouchable>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <View style={s.editorFooterBar}>
+            <Text style={s.editorFooterText}>{wordCount} words</Text>
+            <Text style={s.editorFooterDot}>·</Text>
+            <Text style={s.editorFooterText}>{charCount} chars</Text>
+            <Text style={s.editorFooterDot}>·</Text>
+            <Text style={s.editorFooterText}>{textBlockCount} text</Text>
+            <Text style={s.editorFooterDot}>·</Text>
+            <Text style={s.editorFooterText}>{canvasBlockCount} canvas</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ModalShell
+        visible={showTemplates}
+        title="Templates"
+        subtitle="Browser note templates inside the editor"
+        onClose={() => {
+          setShowTemplates(false);
+          setShowTemplateForm(false);
+        }}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={s.modalBody}>
+            <View style={s.templateTabs}>
+              <HapticTouchable style={[s.tabBtn, templateTab === 'built-in' && s.tabBtnActive]} onPress={() => setTemplateTab('built-in')} haptic="selection">
+                <Text style={[s.tabBtnText, templateTab === 'built-in' && s.tabBtnTextActive]}>built-in</Text>
+              </HapticTouchable>
+              <HapticTouchable style={[s.tabBtn, templateTab === 'custom' && s.tabBtnActive]} onPress={() => setTemplateTab('custom')} haptic="selection">
+                <Text style={[s.tabBtnText, templateTab === 'custom' && s.tabBtnTextActive]}>custom</Text>
+              </HapticTouchable>
+            </View>
+
+            {templateTab === 'custom' ? (
+              <>
+                <HapticTouchable
+                  style={s.dashedCard}
+                  onPress={() => {
+                    setShowTemplateForm((current) => !current);
+                    setTemplateDraft((current) => ({
+                      ...current,
+                      name: current.name || (title.trim() || 'New Template'),
+                    }));
+                  }}
+                  haptic="selection"
+                >
+                  <Text style={s.dashedCardTitle}>{showTemplateForm ? 'hide template form' : 'save current note as template'}</Text>
+                  <Text style={s.dashedCardText}>store this editor state as a reusable note pattern</Text>
+                </HapticTouchable>
+
+                {showTemplateForm ? (
+                  <View style={s.formCard}>
+                    <TextInput
+                      value={templateDraft.name}
+                      onChangeText={(value) => setTemplateDraft((current) => ({ ...current, name: value }))}
+                      placeholder="template name"
+                      placeholderTextColor={DIM2}
+                      style={s.modalInput}
+                    />
+                    <TextInput
+                      value={templateDraft.description}
+                      onChangeText={(value) => setTemplateDraft((current) => ({ ...current, description: value }))}
+                      placeholder="short description"
+                      placeholderTextColor={DIM2}
+                      style={s.modalInput}
+                    />
+                    <HapticTouchable style={s.primaryBtn} onPress={handleSaveCurrentTemplate} haptic="medium">
+                      <Text style={s.primaryBtnText}>save template</Text>
+                    </HapticTouchable>
+                  </View>
+                ) : null}
+
+                {customTemplates.map((template) => (
+                  <View key={template.id} style={s.templateCard}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.templateName}>{template.name}</Text>
+                      <Text style={s.templateDesc}>{template.description || 'Custom template'}</Text>
+                    </View>
+                    <View style={s.templateActions}>
+                      <HapticTouchable style={s.templateUseBtn} onPress={() => applyTemplateContent(template, 'append')} haptic="selection">
+                        <Text style={s.templateUseBtnText}>append</Text>
+                      </HapticTouchable>
+                      <HapticTouchable style={s.templateUseBtn} onPress={() => applyTemplateContent(template, 'replace')} haptic="selection">
+                        <Text style={s.templateUseBtnText}>replace</Text>
+                      </HapticTouchable>
+                      <HapticTouchable style={s.templateDeleteBtn} onPress={() => handleDeleteEditorTemplate(template.id)} haptic="warning">
+                        <Ionicons name="trash-outline" size={16} color={RED} />
+                      </HapticTouchable>
+                    </View>
+                  </View>
+                ))}
+              </>
+            ) : (
+              BUILT_IN_NOTE_TEMPLATES.map((template) => (
+                <View key={template.id} style={s.templateCard}>
+                  <View style={s.templateIconWrap}>
+                    <Ionicons name="document-text-outline" size={18} color={ACCENT} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.templateName}>{template.name}</Text>
+                    <Text style={s.templateDesc}>{template.description}</Text>
+                  </View>
+                  <View style={s.templateActions}>
+                    <HapticTouchable style={s.templateUseBtn} onPress={() => applyTemplateContent(template, 'append')} haptic="selection">
+                      <Text style={s.templateUseBtnText}>append</Text>
+                    </HapticTouchable>
+                    <HapticTouchable style={s.templateUseBtn} onPress={() => applyTemplateContent(template, 'replace')} haptic="selection">
+                      <Text style={s.templateUseBtnText}>replace</Text>
+                    </HapticTouchable>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </ModalShell>
+
+      <ModalShell
+        visible={showChatImport}
+        title="From Chat"
+        subtitle="Import browser chat notes into the current editor"
+        onClose={() => setShowChatImport(false)}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={s.modalBody}>
+            <Text style={s.modalSectionLabel}>insert mode</Text>
+            <View style={s.templateTabs}>
+              <HapticTouchable style={[s.tabBtn, chatImportMode === 'append' && s.tabBtnActive]} onPress={() => setChatImportMode('append')} haptic="selection">
+                <Text style={[s.tabBtnText, chatImportMode === 'append' && s.tabBtnTextActive]}>append</Text>
+              </HapticTouchable>
+              <HapticTouchable style={[s.tabBtn, chatImportMode === 'replace' && s.tabBtnActive]} onPress={() => setChatImportMode('replace')} haptic="selection">
+                <Text style={[s.tabBtnText, chatImportMode === 'replace' && s.tabBtnTextActive]}>replace</Text>
+              </HapticTouchable>
+            </View>
+
+            <Text style={s.modalSectionLabel}>chat sessions</Text>
+            {chatSessions.length === 0 ? (
+              <View style={s.emptyModalState}>
+                <Text style={s.emptyTitle}>no chats found</Text>
+                <Text style={s.emptyHint}>start a chat first, then import it here</Text>
+              </View>
+            ) : (
+              chatSessions.map((session) => {
+                const selected = selectedSessions.includes(session.id);
+                return (
+                  <HapticTouchable
+                    key={session.id}
+                    style={[s.selectRow, selected && s.selectRowActive]}
+                    onPress={() => setSelectedSessions((current) => (
+                      current.includes(session.id) ? current.filter((id) => id !== session.id) : [...current, session.id]
+                    ))}
+                    haptic="selection"
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.selectRowTitle}>{session.title || 'Untitled Session'}</Text>
+                      <Text style={s.selectRowMeta}>{formatDate(session.updated_at)}</Text>
+                    </View>
+                    <Ionicons name={selected ? 'checkbox' : 'square-outline'} size={20} color={selected ? ACCENT : GOLD_D} />
+                  </HapticTouchable>
+                );
+              })
+            )}
+
+            <View style={s.rowActions}>
+              <HapticTouchable style={[s.secondaryBtn, { flex: 1 }]} onPress={() => setShowChatImport(false)} haptic="selection">
+                <Text style={s.secondaryBtnText}>close</Text>
+              </HapticTouchable>
+              <HapticTouchable style={[s.primaryBtn, { flex: 1 }]} onPress={handleImportChatIntoNote} haptic="medium" disabled={importingChat || !selectedSessions.length}>
+                <Text style={s.primaryBtnText}>{importingChat ? 'importing...' : 'import chats'}</Text>
+              </HapticTouchable>
+            </View>
+          </View>
+        </ScrollView>
+      </ModalShell>
+
+      <ModalShell
+        visible={showConvert}
+        title="Convert Note"
+        subtitle="Turn this note into flashcards or questions"
+        onClose={() => setShowConvert(false)}
+      >
+        <View style={s.modalBody}>
+          <Text style={s.modalSectionLabel}>destination</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.inlineChips}>
+            <FilterChip label="flashcards" active={convertTarget === 'flashcards'} onPress={() => setConvertTarget('flashcards')} />
+            <FilterChip label="questions" active={convertTarget === 'questions'} onPress={() => setConvertTarget('questions')} />
+          </ScrollView>
+
+          <Text style={s.modalSectionLabel}>difficulty</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.inlineChips}>
+            {(['easy', 'medium', 'hard'] as Difficulty[]).map((difficulty) => (
+              <FilterChip key={difficulty} label={difficulty} active={convertDifficulty === difficulty} onPress={() => setConvertDifficulty(difficulty)} />
+            ))}
+          </ScrollView>
+
+          <Text style={s.modalSectionLabel}>{convertTarget === 'flashcards' ? 'card count' : 'question count'}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.inlineChips}>
+            {[5, 10, 15, 20].map((count) => (
+              <FilterChip key={count} label={String(count)} active={convertCount === count} onPress={() => setConvertCount(count)} />
+            ))}
+          </ScrollView>
+
+          <View style={s.rowActions}>
+            <HapticTouchable style={[s.secondaryBtn, { flex: 1 }]} onPress={() => setShowConvert(false)} haptic="selection">
+              <Text style={s.secondaryBtnText}>close</Text>
+            </HapticTouchable>
+            <HapticTouchable style={[s.primaryBtn, { flex: 1 }]} onPress={handleConvertCurrentNote} haptic="medium" disabled={converting}>
+              <Text style={s.primaryBtnText}>{converting ? 'converting...' : 'convert'}</Text>
+            </HapticTouchable>
+          </View>
+        </View>
+      </ModalShell>
+
+      <ModalShell
+        visible={showFolderModal}
+        title="New Folder"
+        subtitle="Create a folder and move this note into it"
+        onClose={() => setShowFolderModal(false)}
+      >
+        <View style={s.modalBody}>
+          <TextInput
+            value={newFolderName}
+            onChangeText={setNewFolderName}
+            placeholder="folder name"
+            placeholderTextColor={DIM2}
+            style={s.modalInput}
+          />
+          <View style={s.rowActions}>
+            <HapticTouchable style={[s.secondaryBtn, { flex: 1 }]} onPress={() => setShowFolderModal(false)} haptic="selection">
+              <Text style={s.secondaryBtnText}>cancel</Text>
+            </HapticTouchable>
+            <HapticTouchable style={[s.primaryBtn, { flex: 1 }]} onPress={handleCreateEditorFolder} haptic="medium" disabled={folderCreating}>
+              <Text style={s.primaryBtnText}>{folderCreating ? 'creating...' : 'create folder'}</Text>
+            </HapticTouchable>
+          </View>
+        </View>
+      </ModalShell>
 
       <ModalShell
         visible={showAiModal}
@@ -1228,6 +1855,7 @@ function NotesHome({
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterValue>('all');
+  const [expandedHomePanel, setExpandedHomePanel] = useState<'filters' | 'more' | null>(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [showRecentlyViewed, setShowRecentlyViewed] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState<RecentNote[]>([]);
@@ -1615,8 +2243,7 @@ function NotesHome({
 
   const quickActions = [
     { key: 'advanced', icon: 'filter-outline' as const, title: 'Advanced Search', subtitle: 'folders, dates, regex, history', onPress: () => setShowAdvancedSearch(true) },
-    { key: 'recent', icon: 'time-outline' as const, title: 'Recent', subtitle: 'jump back into viewed notes', onPress: () => setShowRecentlyViewed(true) },
-    { key: 'smart', icon: 'sparkles-outline' as const, title: 'Smart Folders', subtitle: 'ai-style auto grouping', onPress: () => setShowSmartFolders(true) },
+    { key: 'smart', icon: 'sparkles-outline' as const, title: 'Smart Folders', subtitle: 'ai-style note grouping', onPress: () => setShowSmartFolders(true) },
     { key: 'templates', icon: 'document-text-outline' as const, title: 'Templates', subtitle: 'start from note layouts', onPress: () => setShowTemplates(true) },
     { key: 'chat', icon: 'chatbox-ellipses-outline' as const, title: 'From Chat', subtitle: 'turn chats into notes', onPress: () => setShowChatImport(true) },
     {
@@ -1630,6 +2257,8 @@ function NotesHome({
       },
     },
     { key: 'media', icon: 'videocam-outline' as const, title: 'Media Notes', subtitle: 'youtube and transcript notes', onPress: onOpenMedia },
+    { key: 'folders', icon: 'folder-open-outline' as const, title: 'New Folder', subtitle: 'organize note collections', onPress: () => setShowFolderModal(true) },
+    { key: 'trash', icon: 'trash-outline' as const, title: 'Trash', subtitle: 'restore or delete removed notes', onPress: onOpenTrash },
   ];
 
   const filterChips = [
@@ -1670,73 +2299,84 @@ function NotesHome({
     />,
   ];
 
+  const compactFilterChips = [
+    <FilterChip key="all-compact" label="all" active={filter === 'all'} onPress={() => setFilter('all')} icon="albums-outline" />,
+    <FilterChip key="favorites-compact" label="favorites" active={filter === 'favorites'} onPress={() => setFilter('favorites')} icon="star-outline" />,
+    ...(smartFolderName
+      ? [<FilterChip key="smart-folder-compact" label={smartFolderName} active onPress={clearSmartFolder} icon="sparkles-outline" />]
+      : []),
+    ...(filter !== 'all' && filter !== 'favorites' && !smartFolderName
+      ? [<FilterChip key="current-filter" label={activeFilterLabel} active onPress={() => setExpandedHomePanel('filters')} icon="options-outline" />]
+      : []),
+  ];
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <AmbientBubbles theme={CURRENT_THEME} variant="notes" opacity={0.82} />
       {layout.isTablet ? (
-        <View style={s.header}>
-          {onBack ? (
-            <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
-              <Ionicons name="chevron-back" size={22} color={GOLD_L} />
-            </HapticTouchable>
-          ) : null}
-          <View style={s.headerTitleWrap}>
-            <Text style={s.title}>notes</Text>
-            <Text style={s.subtitle}>search · recent · smart folders · templates · imports</Text>
+        <View style={s.compactHeader}>
+          <View style={s.compactHeaderMain}>
+            {onBack ? (
+              <HapticTouchable onPress={onBack} style={s.compactBackBtn} haptic="selection">
+                <Ionicons name="chevron-back" size={20} color={GOLD_L} />
+              </HapticTouchable>
+            ) : null}
+            <View style={s.compactHeaderTitleWrap}>
+              <Text style={s.compactTitle}>notes</Text>
+              <Text style={s.compactSubtitle}>
+                {notes.length} note{notes.length === 1 ? '' : 's'} · {activeFilterLabel}
+              </Text>
+            </View>
           </View>
-          <View style={s.headerActionsRow}>
-            <HapticTouchable onPress={() => setShowAdvancedSearch(true)} style={s.headerIconBtn} haptic="selection">
-              <Ionicons name="filter-outline" size={17} color={GOLD_D} />
-            </HapticTouchable>
-            <HapticTouchable onPress={() => setShowRecentlyViewed(true)} style={s.headerIconBtn} haptic="selection">
+          <View style={s.compactHeaderActions}>
+            <HapticTouchable onPress={() => setShowRecentlyViewed(true)} style={s.compactIconBtn} haptic="selection">
               <Ionicons name="time-outline" size={17} color={GOLD_D} />
             </HapticTouchable>
-            <HapticTouchable onPress={() => setShowFolderModal(true)} style={s.headerIconBtn} haptic="selection">
+            <HapticTouchable onPress={() => setShowFolderModal(true)} style={s.compactIconBtn} haptic="selection">
               <Ionicons name="folder-open-outline" size={17} color={GOLD_D} />
             </HapticTouchable>
-            <HapticTouchable onPress={onOpenTrash} style={s.headerIconBtn} haptic="selection">
-              <Ionicons name="trash-outline" size={18} color={GOLD_D} />
+            <HapticTouchable onPress={onOpenTrash} style={s.compactIconBtn} haptic="selection">
+              <Ionicons name="trash-outline" size={17} color={GOLD_D} />
             </HapticTouchable>
-            <HapticTouchable onPress={() => createNewNote()} style={[s.headerIconBtn, s.headerIconBtnPrimary]} haptic="medium" disabled={creating}>
-              <Ionicons name="add" size={20} color={BG} />
+            <HapticTouchable onPress={() => createNewNote()} style={s.compactPrimaryBtn} haptic="medium" disabled={creating}>
+              <Ionicons name="add" size={18} color={BG} />
+              <Text style={s.compactPrimaryBtnText}>{creating ? 'creating' : 'new'}</Text>
             </HapticTouchable>
           </View>
         </View>
       ) : (
-        <View style={s.mobileHeader}>
-          <View style={s.mobileHeaderTopRow}>
-            <View style={s.mobileHeaderTitleRow}>
+        <View style={s.phoneHeader}>
+          <View style={s.phoneHeaderTopRow}>
+            <View style={s.phoneHeaderMain}>
               {onBack ? (
-                <HapticTouchable onPress={onBack} style={s.mobileBackBtn} haptic="selection">
+                <HapticTouchable onPress={onBack} style={s.phoneBackBtn} haptic="selection">
                   <Ionicons name="chevron-back" size={20} color={GOLD_L} />
                 </HapticTouchable>
               ) : null}
-              <View style={s.mobileHeaderTitleWrap}>
-                <Text style={s.mobileTitle}>notes</Text>
-                <Text style={s.mobileSubtitle}>capture · search · sketch</Text>
+              <View style={s.phoneHeaderTitleWrap}>
+                <Text style={s.phoneHeaderTitle}>notes</Text>
+                <Text style={s.phoneHeaderSubtitle}>
+                  {notes.length} note{notes.length === 1 ? '' : 's'} · {activeFilterLabel}
+                </Text>
               </View>
             </View>
-            <HapticTouchable onPress={() => createNewNote()} style={s.mobileCreateBtn} haptic="medium" disabled={creating}>
+            <HapticTouchable onPress={() => createNewNote()} style={s.phoneNewBtn} haptic="medium" disabled={creating}>
               <Ionicons name="add" size={18} color={BG} />
-              <Text style={s.mobileCreateBtnText}>{creating ? '...' : 'new'}</Text>
+              <Text style={s.phoneNewBtnText}>{creating ? '...' : 'new'}</Text>
             </HapticTouchable>
           </View>
-          <View style={s.mobileHeaderActions}>
-            <HapticTouchable onPress={() => setShowAdvancedSearch(true)} style={s.mobileActionPill} haptic="selection">
-              <Ionicons name="filter-outline" size={15} color={GOLD_D} />
-              <Text style={s.mobileActionPillText}>search</Text>
+          <View style={s.phoneHeaderToolRow}>
+            <HapticTouchable onPress={() => setShowRecentlyViewed(true)} style={s.phoneToolBtn} haptic="selection">
+              <Ionicons name="time-outline" size={16} color={GOLD_D} />
+              <Text style={s.phoneToolBtnText}>recent</Text>
             </HapticTouchable>
-            <HapticTouchable onPress={() => setShowRecentlyViewed(true)} style={s.mobileActionPill} haptic="selection">
-              <Ionicons name="time-outline" size={15} color={GOLD_D} />
-              <Text style={s.mobileActionPillText}>recent</Text>
+            <HapticTouchable onPress={() => setShowFolderModal(true)} style={s.phoneToolBtn} haptic="selection">
+              <Ionicons name="folder-open-outline" size={16} color={GOLD_D} />
+              <Text style={s.phoneToolBtnText}>folders</Text>
             </HapticTouchable>
-            <HapticTouchable onPress={() => setShowFolderModal(true)} style={s.mobileActionPill} haptic="selection">
-              <Ionicons name="folder-open-outline" size={15} color={GOLD_D} />
-              <Text style={s.mobileActionPillText}>folders</Text>
-            </HapticTouchable>
-            <HapticTouchable onPress={onOpenTrash} style={s.mobileActionPill} haptic="selection">
-              <Ionicons name="trash-outline" size={15} color={GOLD_D} />
-              <Text style={s.mobileActionPillText}>trash</Text>
+            <HapticTouchable onPress={onOpenTrash} style={s.phoneToolBtn} haptic="selection">
+              <Ionicons name="trash-outline" size={16} color={GOLD_D} />
+              <Text style={s.phoneToolBtnText}>trash</Text>
             </HapticTouchable>
           </View>
         </View>
@@ -1755,124 +2395,162 @@ function NotesHome({
           columnWrapperStyle={notesGridColumns > 1 ? s.noteGridRow : undefined}
           ListHeaderComponent={(
             <View style={s.homeHeaderContent}>
-              <View style={s.heroSection}>
-                <View style={s.heroCard}>
-                  <View style={s.heroEyebrowRow}>
-                    <Text style={s.heroEyebrow}>notes library</Text>
-                    <View style={s.heroBadge}>
-                      <Text style={s.heroBadgeText}>{search.trim() ? 'searching' : activeFilterLabel}</Text>
+              <View style={layout.isTablet ? s.workspacePanel : s.phoneWorkspacePanel}>
+                {layout.isTablet ? (
+                  <View style={s.workspaceTopRow}>
+                    <View style={s.workspaceTitleBlock}>
+                      <Text style={s.workspaceEyebrow}>workspace</Text>
+                      <Text style={s.workspaceTitle}>your notes</Text>
+                      <Text style={s.workspaceCaption}>
+                        {search.trim()
+                          ? `${filteredNotes.length} result${filteredNotes.length === 1 ? '' : 's'} for “${search.trim()}”.`
+                          : `${notes.length} note${notes.length === 1 ? '' : 's'} across ${folders.length} folder${folders.length === 1 ? '' : 's'}.`}
+                      </Text>
                     </View>
-                  </View>
-                  <Text style={s.heroTitle}>capture, sketch, and organize everything in one place</Text>
-                  <Text style={s.heroBody}>
-                    {search.trim()
-                      ? `${filteredNotes.length} result${filteredNotes.length === 1 ? '' : 's'} for “${search.trim()}”.`
-                      : `${notes.length} note${notes.length === 1 ? '' : 's'} across ${folders.length} folder${folders.length === 1 ? '' : 's'}, built for quick capture on phone and iPad.`}
-                  </Text>
-                  <View style={s.heroMetricsRow}>
-                    <View style={s.heroMetricPill}>
-                      <Text style={s.heroMetricValue}>{notes.length}</Text>
-                      <Text style={s.heroMetricLabel}>notes</Text>
-                    </View>
-                    <View style={s.heroMetricPill}>
-                      <Text style={s.heroMetricValue}>{favoriteCount}</Text>
-                      <Text style={s.heroMetricLabel}>favorites</Text>
-                    </View>
-                    <View style={s.heroMetricPill}>
-                      <Text style={s.heroMetricValue}>{canvasCount}</Text>
-                      <Text style={s.heroMetricLabel}>canvas</Text>
-                    </View>
-                  </View>
-                  <View style={s.heroActionsRow}>
-                    <HapticTouchable style={s.heroPrimaryBtn} onPress={() => createNewNote()} haptic="medium" disabled={creating}>
-                      <Ionicons name="add-outline" size={16} color={BG} />
-                      <Text style={s.heroPrimaryBtnText}>{creating ? 'creating...' : 'new note'}</Text>
-                    </HapticTouchable>
-                    <HapticTouchable style={s.heroSecondaryBtn} onPress={() => setShowTemplates(true)} haptic="selection">
-                      <Ionicons name="document-text-outline" size={16} color={GOLD_L} />
-                      <Text style={s.heroSecondaryBtnText}>templates</Text>
-                    </HapticTouchable>
-                  </View>
-                </View>
-
-                <View style={s.heroSideColumn}>
-                  <View style={s.statsStrip}>
-                    {[
-                      { value: notes.length, label: 'NOTES' },
-                      { value: favoriteCount, label: 'FAVORITES' },
-                      { value: folders.length, label: 'FOLDERS' },
-                    ].map((item, index) => (
-                      <View key={item.label} style={[s.statCell, index > 0 && s.statDivider]}>
-                        <Text style={s.statValue}>{item.value}</Text>
-                        <Text style={s.statLabel}>{item.label}</Text>
+                    <View style={s.workspaceStatStrip}>
+                      <View style={s.workspaceStatPill}>
+                        <Text style={s.workspaceStatValue}>{filteredNotes.length}</Text>
+                        <Text style={s.workspaceStatLabel}>{search.trim() ? 'results' : 'visible'}</Text>
                       </View>
-                    ))}
-                  </View>
-
-                  <View style={s.searchPanel}>
-                    <View style={s.searchWrap}>
-                      <Ionicons name="search-outline" size={15} color={GOLD_D} />
-                      <TextInput
-                        style={s.searchInput}
-                        placeholder="search notes..."
-                        placeholderTextColor={DIM2}
-                        value={search}
-                        onChangeText={setSearch}
-                      />
-                      {!!search && (
-                        <HapticTouchable onPress={() => setSearch('')} haptic="selection">
-                          <Ionicons name="close-circle" size={16} color={GOLD_D} />
-                        </HapticTouchable>
-                      )}
+                      <View style={s.workspaceStatPill}>
+                        <Text style={s.workspaceStatValue}>{favoriteCount}</Text>
+                        <Text style={s.workspaceStatLabel}>starred</Text>
+                      </View>
+                      <View style={s.workspaceStatPill}>
+                        <Text style={s.workspaceStatValue}>{canvasCount}</Text>
+                        <Text style={s.workspaceStatLabel}>canvas</Text>
+                      </View>
                     </View>
+                  </View>
+                ) : (
+                  <View style={s.phoneWorkspaceIntro}>
+                    <Text style={s.workspaceEyebrow}>workspace</Text>
+                    <Text style={s.phoneWorkspaceTitle}>your notes</Text>
+                    <Text style={s.phoneWorkspaceCaption}>
+                      {search.trim()
+                        ? `${filteredNotes.length} result${filteredNotes.length === 1 ? '' : 's'} for “${search.trim()}”.`
+                        : `${notes.length} notes ready to search, organize, and open fast.`}
+                    </Text>
+                  </View>
+                )}
 
-                    {layout.isTablet ? (
-                      <View style={s.filtersWrap}>{filterChips}</View>
-                    ) : (
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersRow}>
-                        {filterChips}
-                      </ScrollView>
+                <View style={layout.isTablet ? s.workspaceSearchRow : s.phoneWorkspaceSearchRow}>
+                  <View style={[s.searchWrap, s.searchWrapDense]}>
+                    <Ionicons name="search-outline" size={15} color={GOLD_D} />
+                    <TextInput
+                      style={s.searchInput}
+                      placeholder="search notes..."
+                      placeholderTextColor={DIM2}
+                      value={search}
+                      onChangeText={setSearch}
+                    />
+                    {!!search && (
+                      <HapticTouchable onPress={() => setSearch('')} haptic="selection">
+                        <Ionicons name="close-circle" size={16} color={GOLD_D} />
+                      </HapticTouchable>
                     )}
                   </View>
+                  <HapticTouchable style={layout.isTablet ? s.workspaceMiniBtn : s.phoneAdvancedBtn} onPress={() => setShowAdvancedSearch(true)} haptic="selection">
+                    <Ionicons name="scan-outline" size={15} color={GOLD_D} />
+                    <Text style={layout.isTablet ? s.workspaceMiniBtnText : s.phoneAdvancedBtnText}>advanced</Text>
+                  </HapticTouchable>
                 </View>
+
+                {!layout.isTablet ? (
+                  <View style={s.phoneWorkspaceStatRow}>
+                    <View style={s.phoneWorkspaceStatPill}>
+                      <Text style={s.phoneWorkspaceStatValue}>{filteredNotes.length}</Text>
+                      <Text style={s.phoneWorkspaceStatLabel}>{search.trim() ? 'results' : 'visible'}</Text>
+                    </View>
+                    <View style={s.phoneWorkspaceStatPill}>
+                      <Text style={s.phoneWorkspaceStatValue}>{favoriteCount}</Text>
+                      <Text style={s.phoneWorkspaceStatLabel}>starred</Text>
+                    </View>
+                    <View style={s.phoneWorkspaceStatPill}>
+                      <Text style={s.phoneWorkspaceStatValue}>{canvasCount}</Text>
+                      <Text style={s.phoneWorkspaceStatLabel}>canvas</Text>
+                    </View>
+                  </View>
+                ) : null}
+
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersRow}>
+                  {compactFilterChips}
+                </ScrollView>
+
+                <View style={layout.isTablet ? s.workspaceActionRow : s.phoneWorkspaceActionGrid}>
+                  <HapticTouchable style={layout.isTablet ? s.workspaceActionBtn : s.phoneWorkspaceActionBtn} onPress={() => setShowTemplates(true)} haptic="selection">
+                    <Ionicons name="document-text-outline" size={16} color={GOLD_D} />
+                    <Text style={layout.isTablet ? s.workspaceActionBtnText : s.phoneWorkspaceActionBtnText}>templates</Text>
+                  </HapticTouchable>
+                  <HapticTouchable style={layout.isTablet ? s.workspaceActionBtn : s.phoneWorkspaceActionBtn} onPress={() => setShowRecentlyViewed(true)} haptic="selection">
+                    <Ionicons name="time-outline" size={16} color={GOLD_D} />
+                    <Text style={layout.isTablet ? s.workspaceActionBtnText : s.phoneWorkspaceActionBtnText}>recent</Text>
+                  </HapticTouchable>
+                  <HapticTouchable
+                    style={[
+                      layout.isTablet ? s.workspaceActionBtn : s.phoneWorkspaceActionBtn,
+                      layout.isTablet ? expandedHomePanel === 'filters' && s.workspaceActionBtnActive : expandedHomePanel === 'filters' && s.phoneWorkspaceActionBtnActive,
+                    ]}
+                    onPress={() => setExpandedHomePanel((current) => (current === 'filters' ? null : 'filters'))}
+                    haptic="selection"
+                  >
+                    <Ionicons name="options-outline" size={16} color={expandedHomePanel === 'filters' ? BG : GOLD_D} />
+                    <Text style={[
+                      layout.isTablet ? s.workspaceActionBtnText : s.phoneWorkspaceActionBtnText,
+                      expandedHomePanel === 'filters' && (layout.isTablet ? s.workspaceActionBtnTextActive : s.phoneWorkspaceActionBtnTextActive),
+                    ]}>filters</Text>
+                  </HapticTouchable>
+                  <HapticTouchable
+                    style={[
+                      layout.isTablet ? s.workspaceActionBtn : s.phoneWorkspaceActionBtn,
+                      layout.isTablet ? expandedHomePanel === 'more' && s.workspaceActionBtnActive : expandedHomePanel === 'more' && s.phoneWorkspaceActionBtnActive,
+                    ]}
+                    onPress={() => setExpandedHomePanel((current) => (current === 'more' ? null : 'more'))}
+                    haptic="selection"
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={16} color={expandedHomePanel === 'more' ? BG : GOLD_D} />
+                    <Text style={[
+                      layout.isTablet ? s.workspaceActionBtnText : s.phoneWorkspaceActionBtnText,
+                      expandedHomePanel === 'more' && (layout.isTablet ? s.workspaceActionBtnTextActive : s.phoneWorkspaceActionBtnTextActive),
+                    ]}>more</Text>
+                  </HapticTouchable>
+                </View>
+
+                {expandedHomePanel === 'filters' ? (
+                  <View style={s.expandPanel}>
+                    <View style={s.expandPanelHeader}>
+                      <Text style={s.expandPanelTitle}>library filters</Text>
+                      <Text style={s.expandPanelMeta}>focus the list without crowding the main screen</Text>
+                    </View>
+                    <View style={s.expandPanelBody}>{filterChips}</View>
+                  </View>
+                ) : null}
+
+                {expandedHomePanel === 'more' ? (
+                  <View style={s.expandPanel}>
+                    <View style={s.expandPanelHeader}>
+                      <Text style={s.expandPanelTitle}>more actions</Text>
+                      <Text style={s.expandPanelMeta}>imports, smart tools, conversion, and organization</Text>
+                    </View>
+                    <View style={s.compactActionGrid}>
+                      {quickActions.map((action) => (
+                        <CompactActionTile
+                          key={action.key}
+                          icon={action.icon}
+                          title={action.title}
+                          subtitle={action.subtitle}
+                          onPress={action.onPress}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
               </View>
 
-              <View style={s.notesSectionHeader}>
-                <View>
-                  <Text style={s.notesSectionEyebrow}>workspace</Text>
-                  <Text style={s.notesSectionTitle}>quick actions</Text>
-                </View>
-              </View>
-
-              {layout.isTablet ? (
-                <View style={s.quickActionsGrid}>
-                  {quickActions.map((action) => (
-                    <QuickActionCard
-                      key={action.key}
-                      icon={action.icon}
-                      title={action.title}
-                      subtitle={action.subtitle}
-                      onPress={action.onPress}
-                    />
-                  ))}
-                </View>
-              ) : (
-                <View style={s.quickActionsGridPhone}>
-                  {quickActions.map((action) => (
-                    <QuickActionCard
-                      key={action.key}
-                      icon={action.icon}
-                      title={action.title}
-                      subtitle={action.subtitle}
-                      onPress={action.onPress}
-                    />
-                  ))}
-                </View>
-              )}
               <View style={s.notesSectionHeader}>
                 <View>
                   <Text style={s.notesSectionEyebrow}>library</Text>
-                  <Text style={s.notesSectionTitle}>
+                  <Text style={s.notesSectionTitleMinimal}>
                     {search.trim() ? `${filteredNotes.length} result${filteredNotes.length === 1 ? '' : 's'}` : activeFilterLabel}
                   </Text>
                 </View>
@@ -2416,6 +3094,424 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
 
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: BG },
+    compactHeader: {
+      width: '100%',
+      maxWidth: layout.contentMaxWidth,
+      alignSelf: 'center',
+      flexDirection: layout.isTablet ? 'row' : 'column',
+      alignItems: layout.isTablet ? 'center' : 'stretch',
+      justifyContent: 'space-between',
+      paddingHorizontal: layout.screenPadding,
+      paddingTop: layout.isTablet ? 16 : 10,
+      paddingBottom: 10,
+      gap: 12,
+      backgroundColor: rgbaFromHex(SURFACE, 0.96),
+      borderBottomWidth: 1,
+      borderBottomColor: BORDER,
+    },
+    compactHeaderMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1,
+      minWidth: 0,
+    },
+    compactBackBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      borderWidth: 1,
+      borderColor: softAccentBorder,
+    },
+    compactHeaderTitleWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
+    compactTitle: {
+      fontFamily: 'Inter_900Black',
+      fontSize: layout.isTablet ? 30 : 28,
+      color: GOLD_L,
+      letterSpacing: -0.8,
+      textTransform: 'lowercase',
+    },
+    compactSubtitle: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 11,
+      color: DIM2,
+      marginTop: 2,
+      textTransform: 'lowercase',
+    },
+    compactHeaderActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    compactIconBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: BORDER,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    compactPrimaryBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderRadius: 16,
+      backgroundColor: ACCENT,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    compactPrimaryBtnText: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 12,
+      color: BG,
+      textTransform: 'lowercase',
+    },
+    phoneHeader: {
+      width: '100%',
+      maxWidth: layout.contentMaxWidth,
+      alignSelf: 'center',
+      paddingHorizontal: layout.screenPadding,
+      paddingTop: 10,
+      paddingBottom: 10,
+      gap: 8,
+      backgroundColor: rgbaFromHex(SURFACE, 0.96),
+      borderBottomWidth: 1,
+      borderBottomColor: BORDER,
+    },
+    phoneHeaderTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    phoneHeaderMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+      minWidth: 0,
+    },
+    phoneBackBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      borderWidth: 1,
+      borderColor: softAccentBorder,
+    },
+    phoneHeaderTitleWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
+    phoneHeaderTitle: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 27,
+      color: GOLD_L,
+      letterSpacing: -0.8,
+      textTransform: 'lowercase',
+    },
+    phoneHeaderSubtitle: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 11,
+      color: DIM2,
+      marginTop: 2,
+      textTransform: 'lowercase',
+    },
+    phoneNewBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+      borderRadius: 18,
+      backgroundColor: ACCENT,
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      minWidth: 82,
+    },
+    phoneNewBtnText: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 12,
+      color: BG,
+      textTransform: 'lowercase',
+    },
+    phoneHeaderToolRow: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    phoneToolBtn: {
+      width: '31.8%',
+      minWidth: 94,
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: BORDER,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+    },
+    phoneToolBtnText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 10,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+      textAlign: 'center',
+    },
+    workspacePanel: {
+      gap: 12,
+      backgroundColor: rgbaFromHex(SURFACE, 0.96),
+      borderRadius: 26,
+      borderWidth: 1,
+      borderColor: BORDER,
+      padding: layout.isTablet ? 16 : 14,
+      shadowColor: ACCENT,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.07,
+      shadowRadius: 20,
+      elevation: 3,
+    },
+    phoneWorkspacePanel: {
+      gap: 14,
+      backgroundColor: rgbaFromHex(SURFACE, 0.96),
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: BORDER,
+      padding: 14,
+    },
+    phoneWorkspaceIntro: {
+      gap: 4,
+    },
+    phoneWorkspaceTitle: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 22,
+      color: GOLD_L,
+      letterSpacing: -0.5,
+      textTransform: 'lowercase',
+    },
+    phoneWorkspaceCaption: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 12,
+      lineHeight: 18,
+      color: DIM2,
+    },
+    workspaceTopRow: {
+      flexDirection: layout.twoColumn ? 'row' : 'column',
+      alignItems: layout.twoColumn ? 'center' : 'flex-start',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    workspaceTitleBlock: {
+      flex: 1,
+      minWidth: 0,
+      gap: 4,
+    },
+    workspaceEyebrow: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 10,
+      color: GOLD_D,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+    },
+    workspaceTitle: {
+      fontFamily: 'Inter_900Black',
+      fontSize: layout.isTablet ? 24 : 22,
+      color: GOLD_L,
+      letterSpacing: -0.6,
+      textTransform: 'lowercase',
+    },
+    workspaceCaption: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 12,
+      lineHeight: 18,
+      color: DIM2,
+    },
+    workspaceStatStrip: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    workspaceStatPill: {
+      minWidth: layout.isTablet ? 88 : 74,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: rgbaFromHex(ACCENT, 0.16),
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      gap: 2,
+    },
+    workspaceStatValue: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 15,
+      color: ACCENT,
+    },
+    workspaceStatLabel: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 10,
+      color: DIM2,
+      textTransform: 'lowercase',
+    },
+    workspaceSearchRow: {
+      flexDirection: layout.twoColumn ? 'row' : 'column',
+      gap: 10,
+      alignItems: 'stretch',
+    },
+    phoneWorkspaceSearchRow: {
+      flexDirection: layout.isLandscape ? 'row' : 'column',
+      gap: 10,
+      alignItems: 'stretch',
+    },
+    searchWrapDense: {
+      flex: 1,
+    },
+    workspaceMiniBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: BORDER,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      minWidth: layout.twoColumn ? 120 : undefined,
+    },
+    workspaceMiniBtnText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 11,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    phoneAdvancedBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: BORDER,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      alignSelf: layout.isLandscape ? 'stretch' : 'flex-start',
+      minWidth: layout.isLandscape ? 128 : undefined,
+    },
+    phoneAdvancedBtnText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 11,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    phoneWorkspaceStatRow: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    phoneWorkspaceStatPill: {
+      width: '31.8%',
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: rgbaFromHex(ACCENT, 0.16),
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 2,
+    },
+    phoneWorkspaceStatValue: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 15,
+      color: ACCENT,
+    },
+    phoneWorkspaceStatLabel: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 10,
+      color: DIM2,
+      textTransform: 'lowercase',
+    },
+    workspaceActionRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    phoneWorkspaceActionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      justifyContent: 'space-between',
+    },
+    workspaceActionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: BORDER,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      minWidth: layout.isTablet ? 108 : undefined,
+      flexGrow: layout.isTablet ? 0 : 1,
+    },
+    workspaceActionBtnActive: {
+      backgroundColor: ACCENT,
+      borderColor: ACCENT,
+    },
+    workspaceActionBtnText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 11,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    workspaceActionBtnTextActive: {
+      color: BG,
+    },
+    phoneWorkspaceActionBtn: {
+      width: '48.2%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: BORDER,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      paddingHorizontal: 10,
+      paddingVertical: 12,
+      minHeight: 48,
+    },
+    phoneWorkspaceActionBtnActive: {
+      backgroundColor: ACCENT,
+      borderColor: ACCENT,
+    },
+    phoneWorkspaceActionBtnText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 11,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    phoneWorkspaceActionBtnTextActive: {
+      color: BG,
+    },
     header: {
       width: '100%',
       maxWidth: layout.contentMaxWidth,
@@ -2540,6 +3636,143 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
     headerIconBtnPrimary: { backgroundColor: ACCENT, borderColor: ACCENT },
 
     homeHeaderContent: { gap: 14, paddingBottom: 4 },
+    commandDeck: {
+      gap: 10,
+      backgroundColor: rgbaFromHex(SURFACE, 0.95),
+      borderRadius: 30,
+      borderWidth: 1,
+      borderColor: BORDER,
+      padding: layout.isTablet ? 16 : 14,
+    },
+    searchCard: {
+      gap: 10,
+    },
+    commandSummaryRow: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    commandSummaryPill: {
+      minWidth: 76,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: rgbaFromHex(ACCENT, 0.18),
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.94),
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    commandSummaryValue: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 17,
+      color: ACCENT,
+    },
+    commandSummaryLabel: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 10,
+      color: DIM2,
+      textTransform: 'lowercase',
+      marginTop: 2,
+    },
+    commandBar: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    commandBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: BORDER,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      minWidth: layout.isTablet ? 112 : 0,
+      flexGrow: layout.isTablet ? 0 : 1,
+    },
+    commandBtnActive: {
+      backgroundColor: ACCENT,
+      borderColor: ACCENT,
+    },
+    commandBtnText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 11,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    commandBtnTextActive: {
+      color: BG,
+    },
+    expandPanel: {
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: rgbaFromHex(ACCENT, 0.18),
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.88),
+      padding: 12,
+      gap: 10,
+    },
+    expandPanelHeader: {
+      gap: 3,
+    },
+    expandPanelTitle: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 14,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    expandPanelMeta: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 11,
+      color: DIM2,
+      lineHeight: 16,
+    },
+    expandPanelBody: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    compactActionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    compactActionTile: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      width: layout.twoColumn ? '48.8%' : '100%',
+      backgroundColor: rgbaFromHex(SURFACE, 0.94),
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: BORDER,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+    },
+    compactActionIconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: softAccent,
+      borderWidth: 1,
+      borderColor: softAccentBorder,
+    },
+    compactActionTitle: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 13,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    compactActionSubtitle: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 11,
+      color: DIM2,
+      lineHeight: 16,
+      marginTop: 2,
+    },
     heroSection: {
       flexDirection: layout.twoColumn ? 'row' : 'column',
       gap: 12,
@@ -2675,7 +3908,7 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       alignItems: 'flex-end',
       justifyContent: 'space-between',
       gap: 12,
-      marginTop: 4,
+      marginTop: 2,
     },
     notesSectionEyebrow: {
       fontFamily: 'Inter_700Bold',
@@ -2690,6 +3923,13 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       fontSize: 21,
       color: GOLD_L,
       letterSpacing: -0.5,
+      textTransform: 'lowercase',
+    },
+    notesSectionTitleMinimal: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 19,
+      color: GOLD_L,
+      letterSpacing: -0.4,
       textTransform: 'lowercase',
     },
     notesSectionMeta: {
@@ -2814,18 +4054,18 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
     noteCard: {
       flex: 1,
       backgroundColor: rgbaFromHex(SURFACE, 0.94),
-      borderRadius: 28,
+      borderRadius: 22,
       borderWidth: 1,
       borderColor: BORDER,
-      padding: 18,
-      gap: 10,
+      padding: 16,
+      gap: 9,
       marginBottom: 12,
       minHeight: layout.isTablet ? 200 : undefined,
       shadowColor: ACCENT,
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.12,
-      shadowRadius: 26,
-      elevation: 5,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.08,
+      shadowRadius: 16,
+      elevation: 3,
     },
     noteCardGrid: {
       minWidth: 0,
@@ -2872,9 +4112,9 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       color: ACCENT,
       textTransform: 'lowercase',
     },
-    noteCardTitle: { fontFamily: 'Inter_900Black', fontSize: 17, color: GOLD_L, lineHeight: 23 },
+    noteCardTitle: { fontFamily: 'Inter_900Black', fontSize: 16, color: GOLD_L, lineHeight: 22 },
     noteMetaText: { fontFamily: 'Inter_400Regular', fontSize: 10, color: DIM2, marginTop: 4, letterSpacing: 0.8 },
-    notePreview: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM2, lineHeight: 19 },
+    notePreview: { fontFamily: 'Inter_400Regular', fontSize: 12, color: DIM2, lineHeight: 18 },
     noteCardFooter: {
       marginTop: 'auto',
       paddingTop: 2,
@@ -2887,9 +4127,9 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       width: 30,
       height: 30,
       borderRadius: 15,
-      backgroundColor: softAccent,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.94),
       borderWidth: 1,
-      borderColor: softAccentBorder,
+      borderColor: BORDER,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -2931,24 +4171,48 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 16,
-      paddingTop: 14,
+      paddingTop: 12,
       paddingBottom: 12,
       borderBottomWidth: 1,
       borderBottomColor: BORDER,
+      gap: 10,
+      backgroundColor: rgbaFromHex(SURFACE, 0.96),
     },
-    editorHeaderTitle: { flex: 1, fontFamily: 'Inter_900Black', fontSize: 14, color: GOLD_L, textAlign: 'center', marginHorizontal: 12 },
+    editorHeaderFocused: {
+      borderBottomColor: softAccentBorder,
+    },
+    editorHeaderTitleStack: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    editorHeaderTitle: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 15,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    editorHeaderSubtitle: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 10,
+      color: DIM2,
+      textTransform: 'lowercase',
+    },
     editorActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     iconBtn: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      borderWidth: 1,
+      borderColor: BORDER,
     },
     saveBtn: {
-      borderRadius: 14,
+      borderRadius: 16,
       paddingHorizontal: 14,
-      paddingVertical: 9,
+      paddingVertical: 10,
       backgroundColor: ACCENT,
     },
     saveBtnText: { fontFamily: 'Inter_900Black', fontSize: 11, color: BG, textTransform: 'lowercase' },
@@ -2959,12 +4223,170 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       padding: 16,
       paddingBottom: 80,
     },
-    editorMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+    editorScrollFocused: {
+      paddingTop: 12,
+    },
+    editorDeck: {
+      gap: 14,
+      backgroundColor: rgbaFromHex(SURFACE, 0.96),
+      borderRadius: 28,
+      borderWidth: 1,
+      borderColor: BORDER,
+      padding: layout.isTablet ? 18 : 16,
+      marginBottom: 16,
+      shadowColor: ACCENT,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.06,
+      shadowRadius: 20,
+      elevation: 3,
+    },
+    editorDeckTop: {
+      flexDirection: layout.isTablet ? 'row' : 'column',
+      alignItems: layout.isTablet ? 'center' : 'flex-start',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    editorDeckCopy: {
+      flex: 1,
+      minWidth: 0,
+      gap: 4,
+    },
+    editorDeckTitle: {
+      fontFamily: 'Inter_900Black',
+      fontSize: layout.isTablet ? 24 : 22,
+      color: GOLD_L,
+      letterSpacing: -0.5,
+      textTransform: 'lowercase',
+    },
+    editorDeckSubtitle: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 12,
+      color: DIM2,
+      lineHeight: 18,
+    },
+    editorStatsRow: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    editorStatPill: {
+      minWidth: 82,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: rgbaFromHex(ACCENT, 0.16),
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      alignItems: 'center',
+      gap: 2,
+    },
+    editorStatValue: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 15,
+      color: ACCENT,
+    },
+    editorStatLabel: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 10,
+      color: DIM2,
+      textTransform: 'lowercase',
+    },
+    editorMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
     editorMetaText: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, letterSpacing: 0.8 },
     trashText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: RED, textTransform: 'lowercase' },
     folderSection: { marginBottom: 16 },
     fontSection: { marginBottom: 14 },
     sectionCaption: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: GOLD_D, letterSpacing: 2, marginBottom: 10, textTransform: 'uppercase' },
+    editorPrimaryActions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    editorPrimaryBtn: {
+      width: layout.isTablet ? '24%' : '48.2%',
+      minHeight: 46,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: BORDER,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
+      paddingHorizontal: 10,
+      paddingVertical: 11,
+    },
+    editorPrimaryBtnText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 11,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    editorDrawerTabs: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    editorDrawerTab: {
+      flex: 1,
+      borderRadius: 16,
+      paddingVertical: 11,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: BORDER,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.9),
+    },
+    editorDrawerTabActive: {
+      backgroundColor: ACCENT,
+      borderColor: ACCENT,
+    },
+    editorDrawerTabText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 11,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    editorDrawerTabTextActive: {
+      color: BG,
+    },
+    editorDrawerCard: {
+      gap: 12,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: softAccentBorder,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.94),
+      padding: 14,
+    },
+    editorDrawerGrid: {
+      gap: 10,
+    },
+    editorDrawerSectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    editorMiniTextBtn: {
+      borderRadius: 14,
+      backgroundColor: softAccent,
+      borderWidth: 1,
+      borderColor: softAccentBorder,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    editorMiniTextBtnLabel: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 11,
+      color: ACCENT,
+      textTransform: 'lowercase',
+    },
+    editorSecondaryRow: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    editorUtilityBtn: {
+      flex: 1,
+    },
     folderChips: { gap: 10 },
     fontChips: { gap: 10, paddingRight: 6 },
     fontChip: {
@@ -3079,6 +4501,9 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       color: GOLD_L,
       marginBottom: 12,
     },
+    titleInputFocused: {
+      marginBottom: 16,
+    },
     contentInput: {
       minHeight: layout.isLandscape ? 320 : 420,
       backgroundColor: rgbaFromHex(SURFACE, 0.94),
@@ -3091,6 +4516,67 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       fontSize: 15,
       lineHeight: 24,
       color: GOLD_L,
+    },
+    focusBanner: {
+      marginBottom: 14,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: softAccentBorder,
+      backgroundColor: softAccent,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    focusBannerTitle: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 13,
+      color: GOLD_L,
+      textTransform: 'lowercase',
+    },
+    focusBannerAction: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 12,
+      color: ACCENT,
+      textTransform: 'lowercase',
+    },
+    previewComposer: {
+      gap: 12,
+    },
+    previewTextBlock: {
+      backgroundColor: rgbaFromHex(SURFACE, 0.94),
+      borderRadius: 26,
+      borderWidth: 1,
+      borderColor: BORDER,
+      paddingHorizontal: 18,
+      paddingVertical: 16,
+    },
+    previewText: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 15,
+      lineHeight: 25,
+      color: GOLD_L,
+    },
+    editorFooterBar: {
+      marginTop: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    editorFooterText: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 11,
+      color: DIM2,
+      textTransform: 'lowercase',
+    },
+    editorFooterDot: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 11,
+      color: DIM2,
     },
 
     trashCard: {

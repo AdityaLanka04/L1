@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react
 import {
   LayoutChangeEvent,
   Modal,
-  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +9,17 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {
+  Canvas as SkiaCanvas,
+  Circle as SkiaCircle,
+  Group as SkiaGroup,
+  Line as SkiaLine,
+  Path as SkiaPath,
+  RoundedRect as SkiaRoundedRect,
+  vec,
+} from '@shopify/react-native-skia';
 import Svg, { Circle, G, Line, Path, Polygon, Rect, Text as SvgText } from 'react-native-svg';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import HapticTouchable from './HapticTouchable';
@@ -51,7 +61,9 @@ type Props = {
 
 type ToolMode =
   | 'select'
-  | 'draw'
+  | 'pen'
+  | 'marker'
+  | 'highlighter'
   | 'eraser'
   | 'rectangle'
   | 'circle'
@@ -61,7 +73,8 @@ type ToolMode =
   | 'sticky';
 
 type DrawStyle = 'pen' | 'marker' | 'highlighter';
-type BackgroundPattern = 'none' | 'dots' | 'lines' | 'cross' | 'diagonal';
+type BackgroundPattern = 'none' | 'dots' | 'lines';
+type ActivePanel = 'style' | 'page' | null;
 
 type DragState =
   | {
@@ -73,7 +86,7 @@ type DragState =
   | {
       mode: 'shape';
       start: CanvasPoint;
-      tool: ToolMode;
+      tool: Extract<ToolMode, 'rectangle' | 'circle' | 'line' | 'arrow'>;
     }
   | {
       mode: 'erase';
@@ -82,7 +95,7 @@ type DragState =
 
 const COLORS = [
   '#171717',
-  '#3b3b3b',
+  '#334155',
   '#1d4ed8',
   '#0284c7',
   '#0f766e',
@@ -91,26 +104,18 @@ const COLORS = [
   '#ea580c',
   '#dc2626',
   '#9333ea',
-  '#64748b',
 ] as const;
 
-const STICKY_COLORS = [
-  '#fff2a8',
-  '#ffdca8',
-  '#ffc9b8',
-  '#ffd0de',
-  '#ead5ff',
-  '#dbeafe',
-  '#ccfbf1',
-  '#dcfce7',
-] as const;
-
-const STROKE_WIDTHS = [1, 2, 4, 6, 10];
-const FONT_SIZES = [14, 18, 24, 32];
+const STICKY_COLORS = ['#fff3a8', '#ffe1a8', '#ffd1bd', '#ffd8e6', '#eadbff', '#dbeafe', '#ccfbf1'] as const;
+const STROKE_WIDTHS = [2, 4, 6, 10, 16];
+const FONT_SIZES = [16, 20, 26, 34];
+const FILL_COLORS = ['transparent', '#171717', '#1d4ed8', '#0284c7', '#0f766e', '#dc2626', '#9333ea'] as const;
 
 const TOOLS: Array<{ value: ToolMode; label: string; icon: ComponentProps<typeof Ionicons>['name'] }> = [
   { value: 'select', label: 'select', icon: 'scan-outline' },
-  { value: 'draw', label: 'draw', icon: 'brush-outline' },
+  { value: 'pen', label: 'pen', icon: 'pencil-outline' },
+  { value: 'marker', label: 'marker', icon: 'brush-outline' },
+  { value: 'highlighter', label: 'glow', icon: 'color-wand-outline' },
   { value: 'eraser', label: 'erase', icon: 'remove-outline' },
   { value: 'rectangle', label: 'rect', icon: 'square-outline' },
   { value: 'circle', label: 'circle', icon: 'ellipse-outline' },
@@ -129,15 +134,21 @@ function cloneElements(elements: CanvasElement[]) {
   });
 }
 
+function toolToDrawStyle(tool: ToolMode): DrawStyle {
+  if (tool === 'marker') return 'marker';
+  if (tool === 'highlighter') return 'highlighter';
+  return 'pen';
+}
+
 function normalizeOpacity(drawStyle: DrawStyle, opacity: number) {
-  if (drawStyle === 'marker') return Math.min(opacity, 0.7);
-  if (drawStyle === 'highlighter') return Math.min(opacity, 0.32);
+  if (drawStyle === 'marker') return Math.min(opacity, 0.72);
+  if (drawStyle === 'highlighter') return Math.min(opacity, 0.26);
   return opacity;
 }
 
 function effectiveStrokeWidth(drawStyle: DrawStyle, strokeWidth: number) {
-  if (drawStyle === 'marker') return Math.max(strokeWidth, 6);
-  if (drawStyle === 'highlighter') return Math.max(strokeWidth, 14);
+  if (drawStyle === 'marker') return Math.max(strokeWidth, 8);
+  if (drawStyle === 'highlighter') return Math.max(strokeWidth, 16);
   return strokeWidth;
 }
 
@@ -199,7 +210,7 @@ function getBounds(element: CanvasElement) {
     const minY = Math.min(...ys);
     const maxX = Math.max(...xs);
     const maxY = Math.max(...ys);
-    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    return { x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) };
   }
 
   if (element.type === 'rectangle' || element.type === 'sticky') {
@@ -219,8 +230,8 @@ function getBounds(element: CanvasElement) {
     return {
       x: Math.min(element.x1, element.x2),
       y: Math.min(element.y1, element.y2),
-      width: Math.abs(element.x2 - element.x1),
-      height: Math.abs(element.y2 - element.y1),
+      width: Math.max(1, Math.abs(element.x2 - element.x1)),
+      height: Math.max(1, Math.abs(element.y2 - element.y1)),
     };
   }
 
@@ -231,7 +242,7 @@ function getBounds(element: CanvasElement) {
       x: element.x,
       y: element.y - element.fontSize,
       width: Math.max(120, widest * element.fontSize * 0.55),
-      height: Math.max(element.fontSize * 1.5, lines.length * element.fontSize * 1.2),
+      height: Math.max(element.fontSize * 1.5, lines.length * element.fontSize * 1.22),
     };
   }
 
@@ -262,7 +273,7 @@ function isPointInsideElement(point: CanvasPoint, element: CanvasElement) {
       x: element.x1 + t * dx,
       y: element.y1 + t * dy,
     };
-    return distance(point, projected) <= 12;
+    return distance(point, projected) <= 14;
   }
 
   const bounds = getBounds(element);
@@ -273,9 +284,11 @@ function moveElement(element: CanvasElement, dx: number, dy: number): CanvasElem
   if (element.type === 'draw') {
     return { ...element, points: element.points.map((point) => ({ x: point.x + dx, y: point.y + dy })) };
   }
+
   if (element.type === 'rectangle' || element.type === 'circle' || element.type === 'text' || element.type === 'sticky') {
     return { ...element, x: element.x + dx, y: element.y + dy } as CanvasElement;
   }
+
   return {
     ...element,
     x1: element.x1 + dx,
@@ -285,58 +298,8 @@ function moveElement(element: CanvasElement, dx: number, dy: number): CanvasElem
   };
 }
 
-function renderArrowHead(element: CanvasLineElement) {
-  const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1);
-  const arrowLength = 16;
-  const p1 = {
-    x: element.x2 - arrowLength * Math.cos(angle - Math.PI / 6),
-    y: element.y2 - arrowLength * Math.sin(angle - Math.PI / 6),
-  };
-  const p2 = {
-    x: element.x2 - arrowLength * Math.cos(angle + Math.PI / 6),
-    y: element.y2 - arrowLength * Math.sin(angle + Math.PI / 6),
-  };
-  return `${element.x2},${element.y2} ${p1.x},${p1.y} ${p2.x},${p2.y}`;
-}
-
-function renderPattern(pattern: BackgroundPattern, width: number, height: number, color: string) {
-  if (pattern === 'none') return null;
-
-  if (pattern === 'dots') {
-    return Array.from({ length: Math.ceil(width / 26) }).flatMap((_, xIndex) =>
-      Array.from({ length: Math.ceil(height / 26) }).map((__, yIndex) => (
-        <Circle key={`dot-${xIndex}-${yIndex}`} cx={xIndex * 26 + 13} cy={yIndex * 26 + 13} r={1.1} fill={color} />
-      ))
-    );
-  }
-
-  if (pattern === 'lines') {
-    return Array.from({ length: Math.ceil(height / 30) }).map((_, index) => (
-      <Line key={`line-${index}`} x1={0} y1={index * 30} x2={width} y2={index * 30} stroke={color} strokeWidth={1} />
-    ));
-  }
-
-  if (pattern === 'cross') {
-    return (
-      <>
-        {Array.from({ length: Math.ceil(width / 30) }).map((_, index) => (
-          <Line key={`cross-v-${index}`} x1={index * 30} y1={0} x2={index * 30} y2={height} stroke={color} strokeWidth={1} />
-        ))}
-        {Array.from({ length: Math.ceil(height / 30) }).map((_, index) => (
-          <Line key={`cross-h-${index}`} x1={0} y1={index * 30} x2={width} y2={index * 30} stroke={color} strokeWidth={1} />
-        ))}
-      </>
-    );
-  }
-
-  return Array.from({ length: Math.ceil((width + height) / 42) }).map((_, index) => {
-    const x = index * 28 - height;
-    return <Line key={`diag-${index}`} x1={x} y1={height} x2={x + height} y2={0} stroke={color} strokeWidth={1} />;
-  });
-}
-
 function createShapePreview(
-  tool: ToolMode,
+  tool: Extract<ToolMode, 'rectangle' | 'circle' | 'line' | 'arrow'>,
   start: CanvasPoint,
   end: CanvasPoint,
   color: string,
@@ -377,21 +340,17 @@ function createShapePreview(
     };
   }
 
-  if (tool === 'line' || tool === 'arrow') {
-    return {
-      id: 'preview',
-      type: tool,
-      x1: start.x,
-      y1: start.y,
-      x2: end.x,
-      y2: end.y,
-      color,
-      strokeWidth,
-      opacity,
-    };
-  }
-
-  return null;
+  return {
+    id: 'preview',
+    type: tool,
+    x1: start.x,
+    y1: start.y,
+    x2: end.x,
+    y2: end.y,
+    color,
+    strokeWidth,
+    opacity,
+  };
 }
 
 function recognizeShape(points: CanvasPoint[]) {
@@ -453,6 +412,36 @@ function recognizeShape(points: CanvasPoint[]) {
   };
 }
 
+function renderSvgArrowHead(element: CanvasLineElement) {
+  const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1);
+  const arrowLength = 16;
+  const p1 = {
+    x: element.x2 - arrowLength * Math.cos(angle - Math.PI / 6),
+    y: element.y2 - arrowLength * Math.sin(angle - Math.PI / 6),
+  };
+  const p2 = {
+    x: element.x2 - arrowLength * Math.cos(angle + Math.PI / 6),
+    y: element.y2 - arrowLength * Math.sin(angle + Math.PI / 6),
+  };
+  return `${element.x2},${element.y2} ${p1.x},${p1.y} ${p2.x},${p2.y}`;
+}
+
+function renderPattern(pattern: BackgroundPattern, width: number, height: number, color: string) {
+  if (pattern === 'none') return null;
+
+  if (pattern === 'dots') {
+    return Array.from({ length: Math.ceil(width / 26) }).flatMap((_, xIndex) =>
+      Array.from({ length: Math.ceil(height / 26) }).map((__, yIndex) => (
+        <Circle key={`dot-${xIndex}-${yIndex}`} cx={xIndex * 26 + 13} cy={yIndex * 26 + 13} r={1.1} fill={color} />
+      ))
+    );
+  }
+
+  return Array.from({ length: Math.ceil(height / 30) }).map((_, index) => (
+    <Line key={`line-${index}`} x1={0} y1={index * 30} x2={width} y2={index * 30} stroke={color} strokeWidth={1} />
+  ));
+}
+
 function renderTextElement(
   text: string,
   x: number,
@@ -479,7 +468,7 @@ function renderTextElement(
   ));
 }
 
-function renderElement(element: CanvasElement, selected: boolean) {
+function renderSvgElement(element: CanvasElement, selected = false) {
   const selectionColor = '#f0b465';
 
   if (element.type === 'draw') {
@@ -557,7 +546,7 @@ function renderElement(element: CanvasElement, selected: boolean) {
           strokeWidth={selected ? element.strokeWidth + 1 : element.strokeWidth}
           strokeLinecap="round"
         />
-        <Polygon points={renderArrowHead(element)} fill={selected ? selectionColor : element.color} />
+        <Polygon points={renderSvgArrowHead(element)} fill={selected ? selectionColor : element.color} />
       </G>
     );
   }
@@ -578,11 +567,7 @@ function renderElement(element: CanvasElement, selected: boolean) {
     );
   }
 
-  if (element.type !== 'sticky') {
-    return null;
-  }
-
-  return (
+  return element.type === 'sticky' ? (
     <G key={String(element.id)} opacity={element.opacity ?? 1}>
       <Rect
         x={element.x}
@@ -596,7 +581,120 @@ function renderElement(element: CanvasElement, selected: boolean) {
       />
       {renderTextElement(element.text || 'Sticky note', element.x + 16, element.y + 28, '#2d2d2d', 14, element.fontFamily, 1)}
     </G>
+  ) : null;
+}
+
+function renderSkiaPattern(pattern: BackgroundPattern, width: number, height: number, color: string) {
+  if (pattern === 'none') return null;
+
+  if (pattern === 'dots') {
+    return Array.from({ length: Math.ceil(width / 26) }).flatMap((_, xIndex) =>
+      Array.from({ length: Math.ceil(height / 26) }).map((__, yIndex) => (
+        <SkiaCircle key={`dot-${xIndex}-${yIndex}`} cx={xIndex * 26 + 13} cy={yIndex * 26 + 13} r={1.1} color={color} />
+      ))
+    );
+  }
+
+  return Array.from({ length: Math.ceil(height / 30) }).map((_, index) => (
+    <SkiaLine key={`line-${index}`} p1={vec(0, index * 30)} p2={vec(width, index * 30)} color={color} strokeWidth={1} />
+  ));
+}
+
+function renderSkiaGrid(width: number, height: number, color: string) {
+  return (
+    <>
+      {Array.from({ length: Math.ceil(width / 30) }).map((_, index) => (
+        <SkiaLine key={`grid-v-${index}`} p1={vec(index * 30, 0)} p2={vec(index * 30, height)} color={color} strokeWidth={1} />
+      ))}
+      {Array.from({ length: Math.ceil(height / 30) }).map((_, index) => (
+        <SkiaLine key={`grid-h-${index}`} p1={vec(0, index * 30)} p2={vec(width, index * 30)} color={color} strokeWidth={1} />
+      ))}
+    </>
   );
+}
+
+function renderSkiaArrowHead(element: CanvasLineElement, color: string, opacity = 1) {
+  const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1);
+  const arrowLength = 16;
+  const p1 = {
+    x: element.x2 - arrowLength * Math.cos(angle - Math.PI / 6),
+    y: element.y2 - arrowLength * Math.sin(angle - Math.PI / 6),
+  };
+  const p2 = {
+    x: element.x2 - arrowLength * Math.cos(angle + Math.PI / 6),
+    y: element.y2 - arrowLength * Math.sin(angle + Math.PI / 6),
+  };
+
+  return (
+    <SkiaPath
+      path={`M ${element.x2} ${element.y2} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`}
+      color={color}
+      opacity={opacity}
+    />
+  );
+}
+
+function renderSkiaElement(element: CanvasElement) {
+  if (element.type === 'draw') {
+    return (
+      <SkiaPath
+        key={String(element.id)}
+        path={pathFromPoints(element.points)}
+        color={element.color}
+        style="stroke"
+        strokeWidth={element.strokeWidth}
+        strokeCap="round"
+        strokeJoin="round"
+        opacity={element.opacity ?? 1}
+      />
+    );
+  }
+
+  if (element.type === 'rectangle') {
+    return (
+      <SkiaGroup key={String(element.id)} opacity={element.opacity ?? 1}>
+        {element.fillColor && element.fillColor !== 'transparent' ? (
+          <SkiaRoundedRect x={element.x} y={element.y} width={element.width} height={element.height} r={18} color={element.fillColor} />
+        ) : null}
+        <SkiaRoundedRect x={element.x} y={element.y} width={element.width} height={element.height} r={18} color={element.color} style="stroke" strokeWidth={element.strokeWidth} />
+      </SkiaGroup>
+    );
+  }
+
+  if (element.type === 'circle') {
+    return (
+      <SkiaGroup key={String(element.id)} opacity={element.opacity ?? 1}>
+        {element.fillColor && element.fillColor !== 'transparent' ? (
+          <SkiaCircle cx={element.x} cy={element.y} r={element.radius} color={element.fillColor} />
+        ) : null}
+        <SkiaCircle cx={element.x} cy={element.y} r={element.radius} color={element.color} style="stroke" strokeWidth={element.strokeWidth} />
+      </SkiaGroup>
+    );
+  }
+
+  if (element.type === 'line') {
+    return (
+      <SkiaLine
+        key={String(element.id)}
+        p1={vec(element.x1, element.y1)}
+        p2={vec(element.x2, element.y2)}
+        color={element.color}
+        strokeWidth={element.strokeWidth}
+        opacity={element.opacity ?? 1}
+      />
+    );
+  }
+
+  if (element.type === 'arrow') {
+    return (
+      <SkiaGroup key={String(element.id)} opacity={element.opacity ?? 1}>
+        <SkiaLine p1={vec(element.x1, element.y1)} p2={vec(element.x2, element.y2)} color={element.color} strokeWidth={element.strokeWidth} />
+        {renderSkiaArrowHead(element, element.color, element.opacity ?? 1)}
+      </SkiaGroup>
+    );
+  }
+
+  return null;
 }
 
 export function CanvasPreview({
@@ -625,7 +723,7 @@ export function CanvasPreview({
     >
       <Svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
         {renderPattern('lines', width, height, lineColor)}
-        {elements.map((element) => renderElement(element, false))}
+        {elements.map((element) => renderSvgElement(element))}
       </Svg>
       {elements.length === 0 ? (
         <View style={previewStyles.empty}>
@@ -639,27 +737,27 @@ export function CanvasPreview({
 
 export default function CanvasNoteModal({ visible, initialData, theme, onClose, onSave }: Props) {
   const layout = useResponsiveLayout();
+  const insets = useSafeAreaInsets();
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
-  const [tool, setTool] = useState<ToolMode>('draw');
-  const [drawStyle, setDrawStyle] = useState<DrawStyle>('pen');
+  const [tool, setTool] = useState<ToolMode>('pen');
   const [color, setColor] = useState<string>(COLORS[0]);
-  const [fillColor, setFillColor] = useState('transparent');
-  const [strokeWidth, setStrokeWidth] = useState(2);
-  const [fontSize, setFontSize] = useState(18);
+  const [fillColor, setFillColor] = useState<string>('transparent');
+  const [strokeWidth, setStrokeWidth] = useState(4);
+  const [fontSize, setFontSize] = useState(20);
   const [fontFamily, setFontFamily] = useState('Inter');
   const [opacity, setOpacity] = useState(1);
-  const [backgroundPattern, setBackgroundPattern] = useState<BackgroundPattern>('dots');
+  const [backgroundPattern, setBackgroundPattern] = useState<BackgroundPattern>('lines');
   const [showGrid, setShowGrid] = useState(false);
-  const [snapToGrid, setSnapToGrid] = useState(false);
   const [smoothDrawing, setSmoothDrawing] = useState(true);
   const [shapeRecognition, setShapeRecognition] = useState(true);
-  const [canvasSize, setCanvasSize] = useState({ width: 360, height: 580 });
+  const [canvasSize, setCanvasSize] = useState({ width: 360, height: 520 });
   const [currentStroke, setCurrentStroke] = useState<CanvasDrawElement | null>(null);
   const [previewShape, setPreviewShape] = useState<CanvasElement | null>(null);
   const [history, setHistory] = useState<CanvasElement[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [showTextModal, setShowTextModal] = useState(false);
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const [textDraft, setTextDraft] = useState('');
   const [textTarget, setTextTarget] = useState<{
     mode: 'create' | 'edit';
@@ -669,10 +767,16 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
   } | null>(null);
 
   const elementsRef = useRef<CanvasElement[]>([]);
+  const draftElementsRef = useRef<CanvasElement[] | null>(null);
   const strokeRef = useRef<CanvasDrawElement | null>(null);
+  const previewShapeRef = useRef<CanvasElement | null>(null);
   const dragRef = useRef<DragState>(null);
   const historyRef = useRef<CanvasElement[][]>([[]]);
   const historyIndexRef = useRef(0);
+  const frameRef = useRef<number | null>(null);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const canvasSizeRef = useRef({ width: 360, height: 520 });
+  const viewportHeightRef = useRef(520);
 
   const selectedElement = selectedId != null ? elements.find((element) => element.id === selectedId) ?? null : null;
   const canUndo = historyIndex > 0;
@@ -681,6 +785,23 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
   const selectedIsText = selectedElement?.type === 'text';
   const selectedIsSticky = selectedElement?.type === 'sticky';
   const selectedIsDraw = selectedElement?.type === 'draw';
+  const toolbarBorder = rgbaFromHex(theme.borderStrong, theme.isLight ? 0.88 : 0.84);
+  const softAccent = rgbaFromHex(theme.accent, theme.isLight ? 0.1 : 0.16);
+  const paperInk = rgbaFromHex(theme.textSecondary, theme.isLight ? 0.1 : 0.16);
+  const navTop = insets.top + (layout.isLandscape ? 8 : 12);
+  const navHeight = layout.isLandscape ? 58 : 64;
+  const hudTop = navTop + navHeight + 10;
+  const dockBottom = Math.max(insets.bottom, layout.isLandscape ? 10 : 12);
+  const dockHeight = layout.isLandscape ? 74 : 82;
+  const trayHeight = activePanel ? (layout.isLandscape ? 132 : 184) : 0;
+  const stageBottomInset = dockBottom + dockHeight + trayHeight + 10;
+  const stageMinHeight = layout.isTablet
+    ? Math.max(560, layout.height - (activePanel ? 250 : 164))
+    : Math.max(320, layout.height - (activePanel ? 330 : 208));
+
+  useEffect(() => {
+    canvasSizeRef.current = canvasSize;
+  }, [canvasSize]);
 
   useEffect(() => {
     if (!visible) return;
@@ -688,29 +809,41 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
     const nextHistory = [cloneElements(nextElements)];
     setElements(nextElements);
     elementsRef.current = nextElements;
+    draftElementsRef.current = null;
+    strokeRef.current = null;
+    previewShapeRef.current = null;
+    dragRef.current = null;
     setSelectedId(null);
-    setTool('draw');
-    setDrawStyle('pen');
+    setTool('pen');
     setColor(COLORS[0]);
     setFillColor('transparent');
-    setStrokeWidth(2);
-    setFontSize(18);
+    setStrokeWidth(4);
+    setFontSize(20);
     setFontFamily('Inter');
     setOpacity(1);
-    setBackgroundPattern('dots');
+    setBackgroundPattern('lines');
     setShowGrid(false);
-    setSnapToGrid(false);
     setSmoothDrawing(true);
     setShapeRecognition(true);
+    setCanvasSize((current) => ({ width: current.width, height: stageMinHeight }));
+    canvasSizeRef.current = { width: canvasSizeRef.current.width, height: stageMinHeight };
+    viewportHeightRef.current = stageMinHeight;
+    setActivePanel(null);
     setCurrentStroke(null);
     setPreviewShape(null);
-    strokeRef.current = null;
-    dragRef.current = null;
     historyRef.current = nextHistory;
     historyIndexRef.current = 0;
     setHistory(nextHistory);
     setHistoryIndex(0);
   }, [initialData, visible]);
+
+  useEffect(() => {
+    return () => {
+      if (frameRef.current != null) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedElement) return;
@@ -728,15 +861,13 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
     if (selectedElement.type === 'rectangle' || selectedElement.type === 'circle') {
       setFillColor(selectedElement.fillColor || 'transparent');
     }
-    if (selectedElement.type === 'draw') {
-      setDrawStyle(selectedElement.drawStyle || 'pen');
-    }
     if (selectedElement.type === 'text') {
       setFontSize(selectedElement.fontSize);
       setFontFamily(normalizeNoteFont(selectedElement.fontFamily));
     }
     if (selectedElement.type === 'sticky') {
       setFontFamily(normalizeNoteFont(selectedElement.fontFamily));
+      setColor(selectedElement.color);
     }
   }, [selectedElement]);
 
@@ -744,6 +875,12 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
     const cloned = cloneElements(nextElements);
     setElements(cloned);
     elementsRef.current = cloned;
+    draftElementsRef.current = null;
+    previewShapeRef.current = null;
+    if (frameRef.current != null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
     if (!addHistory) return;
     const nextHistory = [...historyRef.current.slice(0, historyIndexRef.current + 1), cloneElements(cloned)];
     historyRef.current = nextHistory;
@@ -757,15 +894,44 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
     commitElements(elementsRef.current.map((element) => (element.id === selectedId ? updater(element) : element)));
   };
 
-  const toCanvasPoint = (x: number, y: number): CanvasPoint => {
-    let point = { x, y };
-    if (showGrid && snapToGrid) {
-      point = {
-        x: Math.round(point.x / 30) * 30,
-        y: Math.round(point.y / 30) * 30,
-      };
+  const scheduleVisualSync = () => {
+    if (frameRef.current != null) return;
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+      setElements(cloneElements(draftElementsRef.current ?? elementsRef.current));
+      setCurrentStroke(strokeRef.current ? { ...strokeRef.current, points: [...strokeRef.current.points] } : null);
+      setPreviewShape(previewShapeRef.current ? ({ ...previewShapeRef.current } as CanvasElement) : null);
+    });
+  };
+
+  const ensureCanvasHeight = (bottomY: number) => {
+    const current = canvasSizeRef.current;
+    const viewportHeight = viewportHeightRef.current;
+    const targetHeight = Math.max(stageMinHeight, viewportHeight, Math.ceil((bottomY + 220) / 240) * 240);
+    if (targetHeight <= current.height) return;
+    const next = { width: current.width, height: targetHeight };
+    canvasSizeRef.current = next;
+    setCanvasSize(next);
+  };
+
+  const maybeExtendCanvasNear = (point: CanvasPoint) => {
+    if (point.y > canvasSizeRef.current.height - 140) {
+      ensureCanvasHeight(point.y);
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, point.y - viewportHeightRef.current * 0.55),
+        animated: false,
+      });
     }
-    return point;
+  };
+
+  const onCanvasLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    if (width > 0 && height > 0) {
+      viewportHeightRef.current = height;
+      const next = { width, height: Math.max(canvasSizeRef.current.height, height, stageMinHeight) };
+      canvasSizeRef.current = next;
+      setCanvasSize(next);
+    }
   };
 
   const handleUndo = () => {
@@ -798,10 +964,7 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
 
   const handleDuplicate = () => {
     if (!selectedElement) return;
-    const dx = 24;
-    const dy = 24;
-    const nextId = `${selectedElement.type}-${Date.now()}`;
-    const duplicate = moveElement({ ...selectedElement, id: nextId } as CanvasElement, dx, dy);
+    const duplicate = moveElement({ ...selectedElement, id: `${selectedElement.type}-${Date.now()}` } as CanvasElement, 24, 24);
     commitElements([...elementsRef.current, duplicate]);
     setSelectedId(duplicate.id);
   };
@@ -837,11 +1000,12 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
       commitElements(elementsRef.current.map((element) => {
         if (element.id !== textTarget.id) return element;
         if (element.type === 'text' || element.type === 'sticky') {
-          return { ...element, text: textDraft, fontFamily: normalizeNoteFont(fontFamily) };
+          return { ...element, text: textDraft || (element.type === 'text' ? 'Text' : 'Sticky note'), fontFamily: normalizeNoteFont(fontFamily) };
         }
         return element;
       }));
     } else if (textTarget.point) {
+      ensureCanvasHeight(textTarget.point.y + (textTarget.tool === 'sticky' ? 220 : 120));
       const nextElement: CanvasElement =
         textTarget.tool === 'text'
           ? {
@@ -860,8 +1024,8 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
               type: 'sticky',
               x: textTarget.point.x,
               y: textTarget.point.y,
-              width: 220,
-              height: 160,
+              width: layout.isTablet ? 240 : 200,
+              height: layout.isTablet ? 180 : 150,
               text: textDraft || 'Sticky note',
               color: STICKY_COLORS.includes(color as (typeof STICKY_COLORS)[number]) ? color : STICKY_COLORS[0],
               fontFamily: normalizeNoteFont(fontFamily),
@@ -882,657 +1046,686 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
     onSave(canvasData, previewData);
   };
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (event) => {
-          const point = toCanvasPoint(event.nativeEvent.locationX, event.nativeEvent.locationY);
-          const hit = [...elementsRef.current].reverse().find((element) => isPointInsideElement(point, element));
+  const handleGestureStart = (x: number, y: number) => {
+    const point = { x, y };
+    maybeExtendCanvasNear(point);
+    const hit = [...elementsRef.current].reverse().find((element) => isPointInsideElement(point, element));
 
-          if (tool === 'select') {
-            if (hit) {
-              setSelectedId(hit.id);
-              dragRef.current = {
-                mode: 'move',
-                start: point,
-                selectedId: hit.id,
-                originElement: hit,
-              };
-            } else {
-              setSelectedId(null);
-              dragRef.current = null;
-            }
-            return;
-          }
-
-          if (tool === 'eraser') {
-            dragRef.current = { mode: 'erase' };
-            const remaining = elementsRef.current.filter((element) => !isPointInsideElement(point, element));
-            if (remaining.length !== elementsRef.current.length) {
-              elementsRef.current = remaining;
-              setElements(cloneElements(remaining));
-              setSelectedId(null);
-            }
-            return;
-          }
-
-          if (tool === 'text' || tool === 'sticky') {
-            openTextEditor(tool, 'create', point);
-            return;
-          }
-
-          if (tool === 'draw') {
-            const nextStroke: CanvasDrawElement = {
-              id: `draw-${Date.now()}`,
-              type: 'draw',
-              points: [point],
-              color,
-              strokeWidth: effectiveStrokeWidth(drawStyle, strokeWidth),
-              opacity: normalizeOpacity(drawStyle, opacity),
-              drawStyle,
-            };
-            strokeRef.current = nextStroke;
-            setCurrentStroke(nextStroke);
-            return;
-          }
-
-          dragRef.current = { mode: 'shape', start: point, tool };
-          setPreviewShape(createShapePreview(tool, point, point, color, strokeWidth, fillColor, opacity));
-        },
-        onPanResponderMove: (event) => {
-          const point = toCanvasPoint(event.nativeEvent.locationX, event.nativeEvent.locationY);
-          const active = dragRef.current;
-
-          if (tool === 'draw' && strokeRef.current && !active) {
-            const current = strokeRef.current;
-            if (distance(current.points[current.points.length - 1], point) >= 1) {
-              current.points.push(point);
-              setCurrentStroke({ ...current, points: [...current.points] });
-            }
-            return;
-          }
-
-          if (!active) return;
-
-          if (active.mode === 'move') {
-            const dx = point.x - active.start.x;
-            const dy = point.y - active.start.y;
-            setElements(elementsRef.current.map((element) => (
-              element.id === active.selectedId ? moveElement(active.originElement, dx, dy) : element
-            )));
-            return;
-          }
-
-          if (active.mode === 'erase') {
-            const remaining = elementsRef.current.filter((element) => !isPointInsideElement(point, element));
-            if (remaining.length !== elementsRef.current.length) {
-              elementsRef.current = remaining;
-              setElements(cloneElements(remaining));
-            }
-            return;
-          }
-
-          if (active.mode === 'shape') {
-            setPreviewShape(createShapePreview(active.tool, active.start, point, color, strokeWidth, fillColor, opacity));
-            return;
-          }
-        },
-        onPanResponderRelease: (event) => {
-          const point = toCanvasPoint(event.nativeEvent.locationX, event.nativeEvent.locationY);
-          const active = dragRef.current;
-
-          if (tool === 'draw' && strokeRef.current) {
-            let points = simplifyStrokePoints(strokeRef.current.points, 1.6);
-            if (smoothDrawing) points = smoothPath(points);
-
-            if (points.length > 1) {
-              if (shapeRecognition) {
-                const recognized = recognizeShape(points);
-                if (recognized) {
-                  const recognizedElement: CanvasElement =
-                    recognized.type === 'line'
-                      ? {
-                          id: `line-${Date.now()}`,
-                          type: 'line',
-                          x1: recognized.x1,
-                          y1: recognized.y1,
-                          x2: recognized.x2,
-                          y2: recognized.y2,
-                          color,
-                          strokeWidth,
-                          opacity,
-                        }
-                      : recognized.type === 'circle'
-                        ? {
-                            id: `circle-${Date.now()}`,
-                            type: 'circle',
-                            x: recognized.x,
-                            y: recognized.y,
-                            radius: recognized.radius,
-                            color,
-                            strokeWidth,
-                            fillColor,
-                            opacity,
-                          }
-                        : {
-                            id: `rectangle-${Date.now()}`,
-                            type: 'rectangle',
-                            x: recognized.x,
-                            y: recognized.y,
-                            width: recognized.width,
-                            height: recognized.height,
-                            color,
-                            strokeWidth,
-                            fillColor,
-                            opacity,
-                          };
-                  commitElements([...elementsRef.current, recognizedElement]);
-                  setSelectedId(recognizedElement.id);
-                } else {
-                  const nextStroke = { ...strokeRef.current, points };
-                  commitElements([...elementsRef.current, nextStroke]);
-                  setSelectedId(nextStroke.id);
-                }
-              } else {
-                const nextStroke = { ...strokeRef.current, points };
-                commitElements([...elementsRef.current, nextStroke]);
-                setSelectedId(nextStroke.id);
-              }
-            }
-
-            strokeRef.current = null;
-            setCurrentStroke(null);
-          } else if (active?.mode === 'move') {
-            const dx = point.x - active.start.x;
-            const dy = point.y - active.start.y;
-            commitElements(elementsRef.current.map((element) => (
-              element.id === active.selectedId ? moveElement(active.originElement, dx, dy) : element
-            )));
-          } else if (active?.mode === 'erase') {
-            commitElements(elementsRef.current);
-          } else if (active?.mode === 'shape' && previewShape) {
-            const valid =
-              (previewShape.type === 'rectangle' && previewShape.width > 4 && previewShape.height > 4) ||
-              (previewShape.type === 'circle' && previewShape.radius > 4) ||
-              ((previewShape.type === 'line' || previewShape.type === 'arrow') &&
-                (Math.abs(previewShape.x2 - previewShape.x1) > 4 || Math.abs(previewShape.y2 - previewShape.y1) > 4));
-            if (valid) {
-              const nextElement = { ...previewShape, id: `${previewShape.type}-${Date.now()}` } as CanvasElement;
-              commitElements([...elementsRef.current, nextElement]);
-              setSelectedId(nextElement.id);
-            }
-            setPreviewShape(null);
-          }
-
-          dragRef.current = null;
-        },
-        onPanResponderTerminate: () => {
-          dragRef.current = null;
-          strokeRef.current = null;
-          setCurrentStroke(null);
-          setPreviewShape(null);
-        },
-      }),
-    [color, drawStyle, fillColor, opacity, previewShape, shapeRecognition, showGrid, smoothDrawing, snapToGrid, strokeWidth, tool]
-  );
-
-  const onCanvasLayout = (event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout;
-    if (width > 0 && height > 0) {
-      setCanvasSize({ width, height });
+    if (tool === 'select') {
+      if (hit) {
+        setSelectedId(hit.id);
+        dragRef.current = {
+          mode: 'move',
+          start: point,
+          selectedId: hit.id,
+          originElement: hit,
+        };
+      } else {
+        setSelectedId(null);
+        dragRef.current = null;
+      }
+      return;
     }
+
+    if (tool === 'eraser') {
+      dragRef.current = { mode: 'erase' };
+      const remaining = elementsRef.current.filter((element) => !isPointInsideElement(point, element));
+      if (remaining.length !== elementsRef.current.length) {
+        draftElementsRef.current = remaining;
+        setSelectedId(null);
+        scheduleVisualSync();
+      }
+      return;
+    }
+
+    if (tool === 'text' || tool === 'sticky') {
+      openTextEditor(tool, 'create', point);
+      return;
+    }
+
+    if (tool === 'pen' || tool === 'marker' || tool === 'highlighter') {
+      const drawStyle = toolToDrawStyle(tool);
+      strokeRef.current = {
+        id: `draw-${Date.now()}`,
+        type: 'draw',
+        points: [point],
+        color,
+        strokeWidth: effectiveStrokeWidth(drawStyle, strokeWidth),
+        opacity: normalizeOpacity(drawStyle, opacity),
+        drawStyle,
+      };
+      scheduleVisualSync();
+      return;
+    }
+
+    dragRef.current = { mode: 'shape', start: point, tool };
+    previewShapeRef.current = createShapePreview(tool, point, point, color, strokeWidth, fillColor, opacity);
+    scheduleVisualSync();
   };
 
-  const toolbarBorder = rgbaFromHex(theme.borderStrong, theme.isLight ? 0.88 : 0.84);
-  const softAccent = rgbaFromHex(theme.accent, theme.isLight ? 0.1 : 0.16);
-  const paperInk = rgbaFromHex(theme.textSecondary, theme.isLight ? 0.1 : 0.16);
-  const showSideDock = layout.isTablet && layout.isLandscape;
-  const useWrappedToolbar = layout.isTablet;
-  const dockWidth = layout.threeColumn ? 372 : 334;
-  const minimumStageHeight = showSideDock ? Math.max(520, layout.height - 210) : layout.isTablet ? 520 : 340;
+  const handleGestureMove = (x: number, y: number) => {
+    const point = { x, y };
+    maybeExtendCanvasNear(point);
+    const active = dragRef.current;
+
+    if ((tool === 'pen' || tool === 'marker' || tool === 'highlighter') && strokeRef.current && !active) {
+      const current = strokeRef.current;
+      if (distance(current.points[current.points.length - 1], point) >= 1) {
+        current.points.push(point);
+        scheduleVisualSync();
+      }
+      return;
+    }
+
+    if (!active) return;
+
+    if (active.mode === 'move') {
+      const dx = point.x - active.start.x;
+      const dy = point.y - active.start.y;
+      draftElementsRef.current = elementsRef.current.map((element) => (
+        element.id === active.selectedId ? moveElement(active.originElement, dx, dy) : element
+      ));
+      scheduleVisualSync();
+      return;
+    }
+
+    if (active.mode === 'erase') {
+      const source = draftElementsRef.current ?? elementsRef.current;
+      const remaining = source.filter((element) => !isPointInsideElement(point, element));
+      if (remaining.length !== source.length) {
+        draftElementsRef.current = remaining;
+        scheduleVisualSync();
+      }
+      return;
+    }
+
+    previewShapeRef.current = createShapePreview(active.tool, active.start, point, color, strokeWidth, fillColor, opacity);
+    scheduleVisualSync();
+  };
+
+  const handleGestureEnd = (x: number, y: number) => {
+    const point = { x, y };
+    maybeExtendCanvasNear(point);
+    const active = dragRef.current;
+
+    if ((tool === 'pen' || tool === 'marker' || tool === 'highlighter') && strokeRef.current) {
+      const drawStyle = strokeRef.current.drawStyle || 'pen';
+      let points = simplifyStrokePoints(strokeRef.current.points, 1.6);
+      if (smoothDrawing) points = smoothPath(points);
+
+      if (points.length > 1) {
+        if (shapeRecognition && drawStyle === 'pen') {
+          const recognized = recognizeShape(points);
+          if (recognized) {
+            const recognizedElement: CanvasElement =
+              recognized.type === 'line'
+                ? {
+                    id: `line-${Date.now()}`,
+                    type: 'line',
+                    x1: recognized.x1,
+                    y1: recognized.y1,
+                    x2: recognized.x2,
+                    y2: recognized.y2,
+                    color,
+                    strokeWidth,
+                    opacity,
+                  }
+                : recognized.type === 'circle'
+                  ? {
+                      id: `circle-${Date.now()}`,
+                      type: 'circle',
+                      x: recognized.x,
+                      y: recognized.y,
+                      radius: recognized.radius,
+                      color,
+                      strokeWidth,
+                      fillColor,
+                      opacity,
+                    }
+                  : {
+                      id: `rectangle-${Date.now()}`,
+                      type: 'rectangle',
+                      x: recognized.x,
+                      y: recognized.y,
+                      width: recognized.width,
+                      height: recognized.height,
+                      color,
+                      strokeWidth,
+                      fillColor,
+                      opacity,
+                    };
+            commitElements([...elementsRef.current, recognizedElement]);
+            setSelectedId(recognizedElement.id);
+          } else {
+            const nextStroke = { ...strokeRef.current, points };
+            commitElements([...elementsRef.current, nextStroke]);
+            setSelectedId(nextStroke.id);
+          }
+        } else {
+          const nextStroke = { ...strokeRef.current, points };
+          commitElements([...elementsRef.current, nextStroke]);
+          setSelectedId(nextStroke.id);
+        }
+      }
+
+      strokeRef.current = null;
+      setCurrentStroke(null);
+    } else if (active?.mode === 'move') {
+      commitElements(draftElementsRef.current ?? elementsRef.current);
+    } else if (active?.mode === 'erase') {
+      commitElements(draftElementsRef.current ?? elementsRef.current);
+    } else if (active?.mode === 'shape' && previewShapeRef.current) {
+      const nextPreview = previewShapeRef.current;
+      const valid =
+        (nextPreview.type === 'rectangle' && nextPreview.width > 4 && nextPreview.height > 4) ||
+        (nextPreview.type === 'circle' && nextPreview.radius > 4) ||
+        ((nextPreview.type === 'line' || nextPreview.type === 'arrow') &&
+          (Math.abs(nextPreview.x2 - nextPreview.x1) > 4 || Math.abs(nextPreview.y2 - nextPreview.y1) > 4));
+      if (valid) {
+        const nextElement = { ...nextPreview, id: `${nextPreview.type}-${Date.now()}` } as CanvasElement;
+        commitElements([...elementsRef.current, nextElement]);
+        setSelectedId(nextElement.id);
+      }
+      previewShapeRef.current = null;
+      setPreviewShape(null);
+    }
+
+    draftElementsRef.current = null;
+    dragRef.current = null;
+  };
+
+  const handleGestureCancel = () => {
+    draftElementsRef.current = null;
+    strokeRef.current = null;
+    previewShapeRef.current = null;
+    dragRef.current = null;
+    setCurrentStroke(null);
+    setPreviewShape(null);
+  };
+
+  const stageGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .runOnJS(true)
+        .minDistance(0)
+        .onBegin((event) => {
+          handleGestureStart(event.x, event.y);
+        })
+        .onUpdate((event) => {
+          handleGestureMove(event.x, event.y);
+        })
+        .onFinalize((event) => {
+          handleGestureEnd(event.x, event.y);
+        })
+        .onTouchesCancelled(() => {
+          handleGestureCancel();
+        }),
+    [tool, color, fillColor, strokeWidth, opacity, smoothDrawing, shapeRecognition]
+  );
+
+  const currentToolLabel = TOOLS.find((item) => item.value === tool)?.label ?? 'canvas';
+  const isDrawingTool = tool === 'pen' || tool === 'marker' || tool === 'highlighter';
+  const showFillControls = tool === 'rectangle' || tool === 'circle' || selectedIsShape;
+  const showFontControls = tool === 'text' || tool === 'sticky' || selectedIsText || selectedIsSticky;
+  const colorOptions = tool === 'sticky' || selectedIsSticky ? STICKY_COLORS : COLORS;
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
-      <View style={[styles.root, { backgroundColor: theme.bgPrimary }]}>
-        <View style={[styles.header, { borderBottomColor: toolbarBorder }]}>
-          <HapticTouchable onPress={onClose} style={styles.headerBtn} haptic="selection">
-            <Ionicons name="chevron-back" size={22} color={theme.accentHover} />
-          </HapticTouchable>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.headerTitle, { color: theme.accentHover }]}>canvas</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>rebuilt for reliable drawing, writing, and moving</Text>
+      <SafeAreaView style={[styles.root, { backgroundColor: theme.bgPrimary }]} edges={[]}>
+        <View style={[styles.stageArea, { paddingBottom: stageBottomInset }]}>
+          <View style={[styles.stageShell, { borderColor: toolbarBorder, backgroundColor: '#fffdf8' }]}>
+            <ScrollView
+              ref={scrollRef}
+              style={styles.stageScroll}
+              contentContainerStyle={styles.stageScrollContent}
+              onLayout={onCanvasLayout}
+              scrollEnabled={tool === 'select'}
+              showsVerticalScrollIndicator={false}
+              bounces
+            >
+              <GestureDetector gesture={stageGesture}>
+                <View style={[styles.stageViewport, { minHeight: stageMinHeight, height: canvasSize.height }]}>
+                  <SkiaCanvas style={StyleSheet.absoluteFill}>
+                    <SkiaRoundedRect x={0} y={0} width={canvasSize.width} height={canvasSize.height} r={30} color="#fffdf8" />
+                    {renderSkiaPattern(backgroundPattern, canvasSize.width, canvasSize.height, paperInk)}
+                    {showGrid ? renderSkiaGrid(canvasSize.width, canvasSize.height, rgbaFromHex(theme.textSecondary, 0.08)) : null}
+                    {elements.map((element) => renderSkiaElement(element))}
+                    {previewShape ? renderSkiaElement(previewShape) : null}
+                    {currentStroke ? renderSkiaElement(currentStroke) : null}
+                  </SkiaCanvas>
+
+                  <View pointerEvents="none" style={styles.overlay}>
+                    {elements.map((element) => {
+                      if (element.type === 'text') {
+                        const bounds = getBounds(element);
+                        return (
+                          <View
+                            key={`text-${String(element.id)}`}
+                            style={[
+                              styles.textOverlay,
+                              {
+                                left: bounds.x,
+                                top: bounds.y,
+                                width: bounds.width,
+                                opacity: element.opacity ?? 1,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={{
+                                color: element.color,
+                                fontSize: element.fontSize,
+                                lineHeight: element.fontSize * 1.22,
+                                fontFamily: resolveNoteFont(element.fontFamily, 'body'),
+                                fontWeight: '600',
+                              }}
+                            >
+                              {element.text}
+                            </Text>
+                          </View>
+                        );
+                      }
+
+                      if (element.type === 'sticky') {
+                        return (
+                          <View
+                            key={`sticky-${String(element.id)}`}
+                            style={[
+                              styles.stickyOverlay,
+                              {
+                                left: element.x,
+                                top: element.y,
+                                width: element.width,
+                                height: element.height,
+                                backgroundColor: element.color,
+                                opacity: element.opacity ?? 1,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={{
+                                color: '#2d2d2d',
+                                fontSize: 14,
+                                lineHeight: 18,
+                                fontFamily: resolveNoteFont(element.fontFamily, 'body'),
+                                fontWeight: '600',
+                              }}
+                            >
+                              {element.text || 'Sticky note'}
+                            </Text>
+                          </View>
+                        );
+                      }
+
+                      return null;
+                    })}
+
+                    {selectedElement ? (() => {
+                      const bounds = getBounds(selectedElement);
+                      return (
+                        <View
+                          style={[
+                            styles.selectionFrame,
+                            {
+                              left: bounds.x - 8,
+                              top: bounds.y - 8,
+                              width: Math.max(20, bounds.width + 16),
+                              height: Math.max(20, bounds.height + 16),
+                            },
+                          ]}
+                        />
+                      );
+                    })() : null}
+                  </View>
+                </View>
+              </GestureDetector>
+            </ScrollView>
+
+            <View pointerEvents="box-none" style={[styles.stageTopRow, { top: hudTop }]}>
+              <View style={[styles.stageBadge, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panel, 0.9) }]}>
+                <Text style={[styles.stageBadgeText, { color: theme.accentHover }]}>
+                  {elements.length} item{elements.length === 1 ? '' : 's'}
+                </Text>
+              </View>
+              <View style={styles.stageActions}>
+                <HapticTouchable style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleUndo} disabled={!canUndo} haptic="selection">
+                  <Ionicons name="arrow-undo-outline" size={17} color={canUndo ? theme.accentHover : theme.textSecondary} />
+                </HapticTouchable>
+                <HapticTouchable style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleRedo} disabled={!canRedo} haptic="selection">
+                  <Ionicons name="arrow-redo-outline" size={17} color={canRedo ? theme.accentHover : theme.textSecondary} />
+                </HapticTouchable>
+                <HapticTouchable style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleDuplicate} disabled={!selectedElement} haptic="selection">
+                  <Ionicons name="duplicate-outline" size={17} color={selectedElement ? theme.accentHover : theme.textSecondary} />
+                </HapticTouchable>
+                <HapticTouchable style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleDelete} disabled={!selectedElement} haptic="warning">
+                  <Ionicons name="trash-outline" size={17} color={selectedElement ? theme.danger : theme.textSecondary} />
+                </HapticTouchable>
+              </View>
+            </View>
           </View>
-          <HapticTouchable style={[styles.headerSaveBtn, { backgroundColor: theme.accent }]} onPress={saveCanvas} haptic="success">
-            <Text style={[styles.headerSaveText, { color: theme.bgPrimary }]}>save</Text>
-          </HapticTouchable>
         </View>
 
-        <View style={styles.workspace}>
-          <View style={[styles.toolbarCard, useWrappedToolbar && styles.toolbarCardWide, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panel, 0.96) }]}>
-            {useWrappedToolbar ? (
-              <View style={styles.toolGrid}>
-                {TOOLS.map((toolDef) => {
-                  const active = toolDef.value === tool;
-                  return (
-                    <HapticTouchable
-                      key={toolDef.value}
-                      style={[
-                        styles.toolChip,
-                        styles.toolChipWide,
-                        {
-                          borderColor: active ? theme.accent : toolbarBorder,
-                          backgroundColor: active ? theme.accent : rgbaFromHex(theme.panelAlt, 0.96),
-                        },
-                      ]}
-                      onPress={() => setTool(toolDef.value)}
-                      haptic="selection"
-                    >
-                      <Ionicons name={toolDef.icon} size={16} color={active ? theme.bgPrimary : theme.accentHover} />
-                      <Text style={[styles.toolChipText, { color: active ? theme.bgPrimary : theme.accentHover }]}>{toolDef.label}</Text>
-                    </HapticTouchable>
-                  );
-                })}
-              </View>
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolRow}>
-                {TOOLS.map((toolDef) => {
-                  const active = toolDef.value === tool;
-                  return (
-                    <HapticTouchable
-                      key={toolDef.value}
-                      style={[
-                        styles.toolChip,
-                        {
-                          borderColor: active ? theme.accent : toolbarBorder,
-                          backgroundColor: active ? theme.accent : rgbaFromHex(theme.panelAlt, 0.96),
-                        },
-                      ]}
-                      onPress={() => setTool(toolDef.value)}
-                      haptic="selection"
-                    >
-                      <Ionicons name={toolDef.icon} size={16} color={active ? theme.bgPrimary : theme.accentHover} />
-                      <Text style={[styles.toolChipText, { color: active ? theme.bgPrimary : theme.accentHover }]}>{toolDef.label}</Text>
-                    </HapticTouchable>
-                  );
-                })}
-              </ScrollView>
-            )}
+        <View pointerEvents="box-none" style={styles.navOverlay}>
+          <View
+            style={[
+              styles.navShell,
+              {
+                top: navTop,
+                left: layout.isTablet ? 18 : 12,
+                right: layout.isTablet ? 18 : 12,
+                borderColor: toolbarBorder,
+                backgroundColor: rgbaFromHex(theme.panel, 0.9),
+              },
+            ]}
+          >
+            <HapticTouchable onPress={onClose} style={[styles.navBtn, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panelAlt, 0.9) }]} haptic="selection">
+              <Ionicons name="chevron-back" size={20} color={theme.accentHover} />
+            </HapticTouchable>
+
+            <View style={[styles.navCenterCard, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.bgPrimary, 0.74) }]}>
+              <Text style={[styles.navTitle, { color: theme.accentHover }]}>canvas</Text>
+              <Text style={[styles.navSubtitle, { color: theme.textSecondary }]}>
+                {selectedElement ? `${selectedElement.type} selected` : currentToolLabel}
+              </Text>
+            </View>
+
+            <HapticTouchable style={[styles.navPrimaryBtn, { backgroundColor: theme.accent }]} onPress={saveCanvas} haptic="success">
+              <Text style={[styles.navPrimaryBtnText, { color: theme.bgPrimary }]}>{layout.isLandscape ? 'save' : 'done'}</Text>
+            </HapticTouchable>
           </View>
+        </View>
 
-          <View style={[styles.canvasBody, showSideDock && styles.canvasBodyWide]}>
-            <View style={[styles.stageWrap, showSideDock && styles.stageWrapWide]}>
-              <View
-                style={[
-                  styles.stageCard,
-                  showSideDock && styles.stageCardWide,
-                  { borderColor: toolbarBorder, backgroundColor: '#fffdf8', minHeight: minimumStageHeight },
-                ]}
-                onLayout={onCanvasLayout}
-              >
-                <View style={styles.stageMetaRow}>
-                  <View style={[styles.stageBadge, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panel, 0.9) }]}>
-                    <Text style={[styles.stageBadgeText, { color: theme.accentHover }]}>
-                      {selectedElement ? `${selectedElement.type} selected` : `${elements.length} item${elements.length === 1 ? '' : 's'}`}
-                    </Text>
-                  </View>
-                  <View style={styles.inlineActionRow}>
-                    <HapticTouchable style={[styles.inlineIconBtn, { borderColor: toolbarBorder }]} onPress={handleUndo} disabled={!canUndo} haptic="selection">
-                      <Ionicons name="arrow-undo-outline" size={18} color={canUndo ? theme.accentHover : theme.textSecondary} />
-                    </HapticTouchable>
-                    <HapticTouchable style={[styles.inlineIconBtn, { borderColor: toolbarBorder }]} onPress={handleRedo} disabled={!canRedo} haptic="selection">
-                      <Ionicons name="arrow-redo-outline" size={18} color={canRedo ? theme.accentHover : theme.textSecondary} />
-                    </HapticTouchable>
-                  </View>
-                </View>
+        <View
+          style={[
+            styles.bottomPanel,
+            {
+              left: layout.isTablet ? 16 : 10,
+              right: layout.isTablet ? 16 : 10,
+              bottom: dockBottom,
+            },
+          ]}
+        >
+          {activePanel ? (
+            <View style={[styles.traySurface, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panel, 0.98) }]}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inspectorRow}>
+                {activePanel === 'style' ? (
+                  <>
+                    <View style={styles.inspectorGroup}>
+                      <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>color</Text>
+                      <View style={styles.swatchRow}>
+                        {colorOptions.map((preset) => {
+                          const active = color === preset;
+                          return (
+                            <HapticTouchable
+                              key={preset}
+                              style={[styles.colorDot, { backgroundColor: preset, borderColor: active ? theme.accentHover : toolbarBorder }]}
+                              onPress={() => {
+                                setColor(preset);
+                                if (selectedId != null) {
+                                  patchSelected((element) => ('color' in element ? { ...element, color: preset } : element));
+                                }
+                              }}
+                              haptic="selection"
+                            >
+                              {active ? <Ionicons name="checkmark" size={13} color="#fff" /> : null}
+                            </HapticTouchable>
+                          );
+                        })}
+                      </View>
+                    </View>
 
-                <View style={[styles.stageTouchArea, showSideDock && styles.stageTouchAreaWide]} {...panResponder.panHandlers}>
-                  <Svg width="100%" height="100%" viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`}>
-                    <Rect x={0} y={0} width={canvasSize.width} height={canvasSize.height} fill="#fffdf8" />
-                    {renderPattern(backgroundPattern, canvasSize.width, canvasSize.height, paperInk)}
-                    {showGrid ? (
-                      <>
-                        {Array.from({ length: Math.ceil(canvasSize.width / 30) }).map((_, index) => (
-                          <Line key={`grid-v-${index}`} x1={index * 30} y1={0} x2={index * 30} y2={canvasSize.height} stroke={rgbaFromHex(theme.textSecondary, 0.08)} strokeWidth={1} />
-                        ))}
-                        {Array.from({ length: Math.ceil(canvasSize.height / 30) }).map((_, index) => (
-                          <Line key={`grid-h-${index}`} x1={0} y1={index * 30} x2={canvasSize.width} y2={index * 30} stroke={rgbaFromHex(theme.textSecondary, 0.08)} strokeWidth={1} />
-                        ))}
-                      </>
+                    {(isDrawingTool || selectedIsDraw || selectedIsShape || tool === 'line' || tool === 'arrow') ? (
+                      <View style={styles.inspectorGroup}>
+                        <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>width</Text>
+                        <View style={styles.widthRow}>
+                          {STROKE_WIDTHS.map((width) => (
+                            <HapticTouchable
+                              key={width}
+                              style={[
+                                styles.widthChip,
+                                {
+                                  borderColor: strokeWidth === width ? theme.accent : toolbarBorder,
+                                  backgroundColor: strokeWidth === width ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                                },
+                              ]}
+                              onPress={() => {
+                                setStrokeWidth(width);
+                                if (selectedId != null) {
+                                  patchSelected((element) => {
+                                    if (element.type === 'draw') {
+                                      return { ...element, strokeWidth: effectiveStrokeWidth(element.drawStyle || 'pen', width) };
+                                    }
+                                    if (element.type === 'rectangle' || element.type === 'circle' || element.type === 'line' || element.type === 'arrow') {
+                                      return { ...element, strokeWidth: width };
+                                    }
+                                    return element;
+                                  });
+                                }
+                              }}
+                              haptic="selection"
+                            >
+                              <View style={{ width: 26, height: Math.max(2, width), borderRadius: width / 2, backgroundColor: theme.accentHover }} />
+                            </HapticTouchable>
+                          ))}
+                        </View>
+                      </View>
                     ) : null}
 
-                    {elements.map((element) => (
-                      <G key={String(element.id)}>
-                        {renderElement(element, selectedId === element.id)}
-                        {selectedId === element.id ? (() => {
-                          const bounds = getBounds(element);
-                          return (
-                            <Rect
-                              x={bounds.x - 8}
-                              y={bounds.y - 8}
-                              width={Math.max(20, bounds.width + 16)}
-                              height={Math.max(20, bounds.height + 16)}
-                              fill="none"
-                              stroke="#f0b465"
-                              strokeWidth={1.5}
-                              strokeDasharray="6 4"
-                              rx={14}
-                            />
-                          );
-                        })() : null}
-                      </G>
-                    ))}
+                    {showFillControls ? (
+                      <View style={styles.inspectorGroup}>
+                        <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>fill</Text>
+                        <View style={styles.swatchRow}>
+                          {FILL_COLORS.map((preset) => {
+                            const active = fillColor === preset;
+                            return (
+                              <HapticTouchable
+                                key={preset}
+                                style={[
+                                  styles.colorDot,
+                                  {
+                                    backgroundColor: preset === 'transparent' ? '#ffffff' : preset,
+                                    borderColor: active ? theme.accentHover : toolbarBorder,
+                                  },
+                                ]}
+                                onPress={() => {
+                                  setFillColor(preset);
+                                  if (selectedId != null) {
+                                    patchSelected((element) => (
+                                      element.type === 'rectangle' || element.type === 'circle'
+                                        ? { ...element, fillColor: preset }
+                                        : element
+                                    ));
+                                  }
+                                }}
+                                haptic="selection"
+                              >
+                                {preset === 'transparent' ? <Ionicons name="close" size={13} color={theme.danger} /> : active ? <Ionicons name="checkmark" size={13} color="#fff" /> : null}
+                              </HapticTouchable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    ) : null}
 
-                    {previewShape ? renderElement(previewShape, true) : null}
-                    {currentStroke ? renderElement(currentStroke, false) : null}
-                  </Svg>
-                </View>
-              </View>
-            </View>
+                    {showFontControls ? (
+                      <>
+                        <View style={styles.inspectorGroup}>
+                          <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>font</Text>
+                          <View style={styles.fontRow}>
+                            {NOTE_FONT_OPTIONS.map((font) => (
+                              <HapticTouchable
+                                key={font}
+                                style={[
+                                  styles.fontChip,
+                                  {
+                                    borderColor: fontFamily === font ? theme.accent : toolbarBorder,
+                                    backgroundColor: fontFamily === font ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                                  },
+                                ]}
+                                onPress={() => {
+                                  setFontFamily(font);
+                                  if (selectedId != null) {
+                                    patchSelected((element) => (
+                                      element.type === 'text' || element.type === 'sticky'
+                                        ? { ...element, fontFamily: font }
+                                        : element
+                                    ));
+                                  }
+                                }}
+                                haptic="selection"
+                              >
+                                <Text style={[styles.fontChipText, { color: theme.accentHover, fontFamily: resolveNoteFont(font, 'body') }]}>{font}</Text>
+                              </HapticTouchable>
+                            ))}
+                          </View>
+                        </View>
 
-            <View
-              style={[
-                styles.dockCard,
-                showSideDock ? styles.dockCardSide : styles.dockCardBottom,
-                { borderTopColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panel, 0.98), width: showSideDock ? dockWidth : undefined, borderLeftColor: toolbarBorder },
-              ]}
-            >
-              <ScrollView contentContainerStyle={styles.dockContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.propertyGroup}>
-              <Text style={[styles.sectionLabel, { color: theme.accentHover }]}>actions</Text>
-              <View style={styles.inlineActionRow}>
-                <HapticTouchable style={[styles.actionChip, { borderColor: toolbarBorder, backgroundColor: softAccent }]} onPress={handleDuplicate} disabled={!selectedElement} haptic="selection">
-                  <Ionicons name="duplicate-outline" size={16} color={selectedElement ? theme.accentHover : theme.textSecondary} />
-                  <Text style={[styles.actionChipText, { color: selectedElement ? theme.accentHover : theme.textSecondary }]}>duplicate</Text>
-                </HapticTouchable>
-                <HapticTouchable style={[styles.actionChip, { borderColor: toolbarBorder, backgroundColor: softAccent }]} onPress={handleDelete} disabled={!selectedElement} haptic="warning">
-                  <Ionicons name="trash-outline" size={16} color={selectedElement ? theme.danger : theme.textSecondary} />
-                  <Text style={[styles.actionChipText, { color: selectedElement ? theme.danger : theme.textSecondary }]}>delete</Text>
-                </HapticTouchable>
-                <HapticTouchable style={[styles.actionChip, { borderColor: toolbarBorder, backgroundColor: softAccent }]} onPress={handleClear} disabled={!elements.length} haptic="warning">
-                  <Ionicons name="close-circle-outline" size={16} color={elements.length ? theme.danger : theme.textSecondary} />
-                  <Text style={[styles.actionChipText, { color: elements.length ? theme.danger : theme.textSecondary }]}>clear</Text>
-                </HapticTouchable>
-                {(selectedIsText || selectedIsSticky) ? (
-                  <HapticTouchable
-                    style={[styles.actionChip, { borderColor: theme.accent, backgroundColor: rgbaFromHex(theme.accent, 0.16) }]}
-                    onPress={() => openTextEditor(selectedIsSticky ? 'sticky' : 'text', 'edit', undefined, selectedElement?.id, selectedElement?.text ?? '')}
-                    haptic="selection"
-                  >
-                    <Ionicons name="create-outline" size={16} color={theme.accentHover} />
-                    <Text style={[styles.actionChipText, { color: theme.accentHover }]}>edit text</Text>
-                  </HapticTouchable>
-                ) : null}
-              </View>
-            </View>
-
-            <View style={styles.propertyGroup}>
-              <Text style={[styles.sectionLabel, { color: theme.accentHover }]}>color</Text>
-              <View style={styles.paletteWrap}>
-                {(tool === 'sticky' || selectedIsSticky ? STICKY_COLORS : COLORS).map((preset) => {
-                  const active = color === preset;
-                  return (
-                    <HapticTouchable
-                      key={preset}
-                      style={[styles.colorDot, { backgroundColor: preset, borderColor: active ? theme.accentHover : toolbarBorder }]}
-                      onPress={() => {
-                        setColor(preset);
-                        if (selectedId != null) {
-                          patchSelected((element) => ('color' in element ? { ...element, color: preset } : element));
-                        }
-                      }}
-                      haptic="selection"
-                    >
-                      {active ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
-                    </HapticTouchable>
-                  );
-                })}
-              </View>
-            </View>
-
-            <View style={styles.propertyGroup}>
-              <Text style={[styles.sectionLabel, { color: theme.accentHover }]}>stroke</Text>
-              <View style={styles.strokeWrap}>
-                {STROKE_WIDTHS.map((width) => (
-                  <HapticTouchable
-                    key={width}
-                    style={[
-                      styles.strokeChip,
-                      {
-                        borderColor: strokeWidth === width ? theme.accent : toolbarBorder,
-                        backgroundColor: strokeWidth === width ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
-                      },
-                    ]}
-                    onPress={() => {
-                      setStrokeWidth(width);
-                      if (selectedId != null) {
-                        patchSelected((element) => {
-                          if (element.type === 'draw') {
-                            return { ...element, strokeWidth: effectiveStrokeWidth(drawStyle, width) };
-                          }
-                          if (
-                            element.type === 'rectangle' ||
-                            element.type === 'circle' ||
-                            element.type === 'line' ||
-                            element.type === 'arrow'
-                          ) {
-                            return { ...element, strokeWidth: width };
-                          }
-                          return element;
-                        });
-                      }
-                    }}
-                    haptic="selection"
-                  >
-                    <View style={{ width: 28, height: Math.max(2, width), borderRadius: width / 2, backgroundColor: theme.accentHover }} />
-                  </HapticTouchable>
-                ))}
-              </View>
-            </View>
-
-            {(tool === 'draw' || selectedIsDraw) ? (
-              <View style={styles.propertyGroup}>
-                <Text style={[styles.sectionLabel, { color: theme.accentHover }]}>draw style</Text>
-                <View style={styles.inlineActionRow}>
-                  {(['pen', 'marker', 'highlighter'] as DrawStyle[]).map((value) => (
-                    <HapticTouchable
-                      key={value}
-                      style={[
-                        styles.actionChip,
-                        {
-                          borderColor: drawStyle === value ? theme.accent : toolbarBorder,
-                          backgroundColor: drawStyle === value ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
-                        },
-                      ]}
-                      onPress={() => setDrawStyle(value)}
-                      haptic="selection"
-                    >
-                      <Text style={[styles.actionChipText, { color: theme.accentHover }]}>{value}</Text>
-                    </HapticTouchable>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {(tool === 'rectangle' || tool === 'circle' || selectedIsShape) ? (
-              <View style={styles.propertyGroup}>
-                <Text style={[styles.sectionLabel, { color: theme.accentHover }]}>fill</Text>
-                <View style={styles.paletteWrap}>
-                  <HapticTouchable
-                    style={[styles.colorDot, { backgroundColor: '#ffffff', borderColor: fillColor === 'transparent' ? theme.accentHover : toolbarBorder }]}
-                    onPress={() => {
-                      setFillColor('transparent');
-                      if (selectedId != null) {
-                        patchSelected((element) => (
-                          element.type === 'rectangle' || element.type === 'circle'
-                            ? { ...element, fillColor: 'transparent' }
-                            : element
-                        ));
-                      }
-                    }}
-                    haptic="selection"
-                  >
-                    <Ionicons name="close" size={14} color={theme.danger} />
-                  </HapticTouchable>
-                  {COLORS.map((preset) => (
-                    <HapticTouchable
-                      key={`fill-${preset}`}
-                      style={[styles.colorDot, { backgroundColor: preset, borderColor: fillColor === preset ? theme.accentHover : toolbarBorder }]}
-                      onPress={() => {
-                        setFillColor(preset);
-                        if (selectedId != null) {
-                          patchSelected((element) => (
-                            element.type === 'rectangle' || element.type === 'circle'
-                              ? { ...element, fillColor: preset }
-                              : element
-                          ));
-                        }
-                      }}
-                      haptic="selection"
-                    />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {(tool === 'text' || selectedIsText || tool === 'sticky' || selectedIsSticky) ? (
-              <View style={styles.propertyGroup}>
-                <Text style={[styles.sectionLabel, { color: theme.accentHover }]}>font</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inlineActionRow}>
-                  {NOTE_FONT_OPTIONS.map((font) => (
-                    <HapticTouchable
-                      key={font}
-                      style={[
-                        styles.actionChip,
-                        {
-                          borderColor: fontFamily === font ? theme.accent : toolbarBorder,
-                          backgroundColor: fontFamily === font ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
-                        },
-                      ]}
-                      onPress={() => {
-                        setFontFamily(font);
-                        if (selectedId != null) {
-                          patchSelected((element) => (
-                            element.type === 'text' || element.type === 'sticky'
-                              ? { ...element, fontFamily: font }
-                              : element
-                          ));
-                        }
-                      }}
-                      haptic="selection"
-                    >
-                      <Text style={[styles.actionChipText, { color: theme.accentHover, fontFamily: resolveNoteFont(font, 'body') }]}>{font}</Text>
-                    </HapticTouchable>
-                  ))}
-                </ScrollView>
-                {(tool === 'text' || selectedIsText) ? (
-                  <View style={styles.inlineActionRow}>
-                    {FONT_SIZES.map((size) => (
-                      <HapticTouchable
-                        key={size}
-                        style={[
-                          styles.actionChip,
-                          {
-                            borderColor: fontSize === size ? theme.accent : toolbarBorder,
-                            backgroundColor: fontSize === size ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
-                          },
-                        ]}
-                        onPress={() => {
-                          setFontSize(size);
-                          if (selectedId != null) {
-                            patchSelected((element) => (
-                              element.type === 'text' ? { ...element, fontSize: size } : element
-                            ));
-                          }
-                        }}
-                        haptic="selection"
-                      >
-                        <Text style={[styles.actionChipText, { color: theme.accentHover }]}>{size}</Text>
-                      </HapticTouchable>
-                    ))}
+                        {tool === 'text' || selectedIsText ? (
+                          <View style={styles.inspectorGroup}>
+                            <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>size</Text>
+                            <View style={styles.widthRow}>
+                              {FONT_SIZES.map((size) => (
+                                <HapticTouchable
+                                  key={size}
+                                  style={[
+                                    styles.sizeChip,
+                                    {
+                                      borderColor: fontSize === size ? theme.accent : toolbarBorder,
+                                      backgroundColor: fontSize === size ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                                    },
+                                  ]}
+                                  onPress={() => {
+                                    setFontSize(size);
+                                    if (selectedId != null) {
+                                      patchSelected((element) => (element.type === 'text' ? { ...element, fontSize: size } : element));
+                                    }
+                                  }}
+                                  haptic="selection"
+                                >
+                                  <Text style={[styles.sizeChipText, { color: theme.accentHover }]}>{size}</Text>
+                                </HapticTouchable>
+                              ))}
+                            </View>
+                          </View>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </>
+                ) : (
+                  <View style={styles.inspectorGroup}>
+                    <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>page</Text>
+                    <View style={styles.toggleRow}>
+                      {([
+                        ['grid', showGrid, () => setShowGrid((value) => !value)],
+                        ['smooth', smoothDrawing, () => setSmoothDrawing((value) => !value)],
+                        ['recognize', shapeRecognition, () => setShapeRecognition((value) => !value)],
+                      ] as const).map(([label, active, onPress]) => (
+                        <HapticTouchable
+                          key={label}
+                          style={[
+                            styles.toggleChip,
+                            {
+                              borderColor: active ? theme.accent : toolbarBorder,
+                              backgroundColor: active ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                            },
+                          ]}
+                          onPress={onPress}
+                          haptic="selection"
+                        >
+                          <Text style={[styles.toggleChipText, { color: theme.accentHover }]}>{label}</Text>
+                        </HapticTouchable>
+                      ))}
+                      {(['lines', 'dots', 'none'] as BackgroundPattern[]).map((pattern) => (
+                        <HapticTouchable
+                          key={pattern}
+                          style={[
+                            styles.toggleChip,
+                            {
+                              borderColor: backgroundPattern === pattern ? theme.accent : toolbarBorder,
+                              backgroundColor: backgroundPattern === pattern ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                            },
+                          ]}
+                          onPress={() => setBackgroundPattern(pattern)}
+                          haptic="selection"
+                        >
+                          <Text style={[styles.toggleChipText, { color: theme.accentHover }]}>{pattern}</Text>
+                        </HapticTouchable>
+                      ))}
+                    </View>
                   </View>
-                ) : null}
-              </View>
-            ) : null}
-
-            <View style={styles.propertyGroup}>
-              <Text style={[styles.sectionLabel, { color: theme.accentHover }]}>opacity</Text>
-              <View style={styles.inlineActionRow}>
-                {[0.25, 0.5, 0.75, 1].map((value) => (
-                  <HapticTouchable
-                    key={String(value)}
-                    style={[
-                      styles.actionChip,
-                      {
-                        borderColor: opacity === value ? theme.accent : toolbarBorder,
-                        backgroundColor: opacity === value ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
-                      },
-                    ]}
-                    onPress={() => {
-                      setOpacity(value);
-                      if (selectedId != null) {
-                        patchSelected((element) => (
-                          element.type === 'draw'
-                            ? { ...element, opacity: normalizeOpacity(drawStyle, value) }
-                            : { ...element, opacity: value }
-                        ));
-                      }
-                    }}
-                    haptic="selection"
-                  >
-                    <Text style={[styles.actionChipText, { color: theme.accentHover }]}>{Math.round(value * 100)}%</Text>
-                  </HapticTouchable>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.propertyGroup}>
-              <Text style={[styles.sectionLabel, { color: theme.accentHover }]}>canvas</Text>
-              <View style={styles.inlineActionRow}>
-                {[
-                  ['grid', showGrid, () => setShowGrid((value) => !value)],
-                  ['snap', snapToGrid, () => setSnapToGrid((value) => !value)],
-                  ['smooth', smoothDrawing, () => setSmoothDrawing((value) => !value)],
-                  ['shape detect', shapeRecognition, () => setShapeRecognition((value) => !value)],
-                ].map(([label, active, onPress]) => (
-                  <HapticTouchable
-                    key={String(label)}
-                    style={[
-                      styles.actionChip,
-                      {
-                        borderColor: active ? theme.accent : toolbarBorder,
-                        backgroundColor: active ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
-                      },
-                    ]}
-                    onPress={onPress as () => void}
-                    haptic="selection"
-                  >
-                    <Text style={[styles.actionChipText, { color: theme.accentHover }]}>{label as string}</Text>
-                  </HapticTouchable>
-                ))}
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inlineActionRow}>
-                {(['dots', 'lines', 'cross', 'diagonal', 'none'] as BackgroundPattern[]).map((pattern) => (
-                  <HapticTouchable
-                    key={pattern}
-                    style={[
-                      styles.actionChip,
-                      {
-                        borderColor: backgroundPattern === pattern ? theme.accent : toolbarBorder,
-                        backgroundColor: backgroundPattern === pattern ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
-                      },
-                    ]}
-                    onPress={() => setBackgroundPattern(pattern)}
-                    haptic="selection"
-                  >
-                    <Text style={[styles.actionChipText, { color: theme.accentHover }]}>{pattern}</Text>
-                  </HapticTouchable>
-                ))}
+                )}
               </ScrollView>
             </View>
+          ) : null}
+
+          <View style={[styles.toolbarRail, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panel, 0.96) }]}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={[styles.toolbarRow, layout.isTablet && styles.toolbarRowCentered]}
+            >
+              <HapticTouchable
+                style={[
+                  styles.utilityBtn,
+                  {
+                    borderColor: activePanel === 'style' ? theme.accent : toolbarBorder,
+                    backgroundColor: activePanel === 'style' ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                  },
+                ]}
+                onPress={() => setActivePanel((panel) => (panel === 'style' ? null : 'style'))}
+                haptic="selection"
+              >
+                <Ionicons name="color-palette-outline" size={18} color={theme.accentHover} />
+                <Text style={[styles.utilityBtnText, { color: theme.accentHover }]}>style</Text>
+              </HapticTouchable>
+
+              <HapticTouchable
+                style={[
+                  styles.utilityBtn,
+                  {
+                    borderColor: activePanel === 'page' ? theme.accent : toolbarBorder,
+                    backgroundColor: activePanel === 'page' ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                  },
+                ]}
+                onPress={() => setActivePanel((panel) => (panel === 'page' ? null : 'page'))}
+                haptic="selection"
+              >
+                <Ionicons name="options-outline" size={18} color={theme.accentHover} />
+                <Text style={[styles.utilityBtnText, { color: theme.accentHover }]}>page</Text>
+              </HapticTouchable>
+
+              {selectedElement?.type === 'text' || selectedElement?.type === 'sticky' ? (
+                <HapticTouchable
+                  style={[styles.utilityBtn, { borderColor: toolbarBorder, backgroundColor: softAccent }]}
+                  onPress={() => openTextEditor(selectedElement.type, 'edit', undefined, selectedElement.id, selectedElement.text)}
+                  haptic="selection"
+                >
+                  <Ionicons name="create-outline" size={18} color={theme.accentHover} />
+                  <Text style={[styles.utilityBtnText, { color: theme.accentHover }]}>edit</Text>
+                </HapticTouchable>
+              ) : null}
+
+              {TOOLS.map((item) => {
+                const active = tool === item.value;
+                return (
+                  <HapticTouchable
+                    key={item.value}
+                    style={[
+                      styles.toolBtn,
+                      {
+                        borderColor: active ? theme.accent : toolbarBorder,
+                        backgroundColor: active ? theme.accent : rgbaFromHex(theme.panelAlt, 0.96),
+                      },
+                    ]}
+                    onPress={() => setTool(item.value)}
+                    haptic="selection"
+                  >
+                    <Ionicons name={item.icon} size={18} color={active ? theme.bgPrimary : theme.accentHover} />
+                    <Text style={[styles.toolBtnText, { color: active ? theme.bgPrimary : theme.accentHover }]}>{item.label}</Text>
+                  </HapticTouchable>
+                );
+              })} 
             </ScrollView>
-            </View>
           </View>
         </View>
 
@@ -1560,24 +1753,6 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
                   },
                 ]}
               />
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inlineActionRow}>
-                {NOTE_FONT_OPTIONS.map((font) => (
-                  <HapticTouchable
-                    key={`modal-${font}`}
-                    style={[
-                      styles.actionChip,
-                      {
-                        borderColor: fontFamily === font ? theme.accent : toolbarBorder,
-                        backgroundColor: fontFamily === font ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
-                      },
-                    ]}
-                    onPress={() => setFontFamily(font)}
-                    haptic="selection"
-                  >
-                    <Text style={[styles.actionChipText, { color: theme.accentHover, fontFamily: resolveNoteFont(font, 'body') }]}>{font}</Text>
-                  </HapticTouchable>
-                ))}
-              </ScrollView>
               <View style={styles.textModalActions}>
                 <HapticTouchable style={[styles.textModalBtnSecondary, { borderColor: toolbarBorder, backgroundColor: theme.panelAlt }]} onPress={closeTextModal} haptic="selection">
                   <Text style={[styles.textModalBtnSecondaryText, { color: theme.accentHover }]}>cancel</Text>
@@ -1589,7 +1764,7 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
             </View>
           </View>
         </Modal>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -1619,196 +1794,180 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  header: {
+  navOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 30,
+  },
+  navShell: {
+    position: 'absolute',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
+    gap: 10,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    zIndex: 31,
+    elevation: 8,
   },
-  headerBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  navBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: -0.6,
-    textTransform: 'lowercase',
-  },
-  headerSubtitle: {
-    marginTop: 2,
-    fontSize: 11,
-    fontWeight: '500',
-    textTransform: 'lowercase',
-  },
-  headerSaveBtn: {
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-  },
-  headerSaveText: {
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'lowercase',
-  },
-  toolbarCard: {
-    marginHorizontal: 12,
-    marginTop: 12,
-    borderRadius: 24,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  toolbarCardWide: {
-    overflow: 'visible',
-  },
-  toolRow: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  toolGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  toolChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  navCenterCard: {
+    flex: 1,
+    minWidth: 0,
     borderRadius: 18,
     borderWidth: 1,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  toolChipWide: {
-    minWidth: 114,
+    paddingVertical: 9,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  toolChipText: {
-    fontSize: 12,
-    fontWeight: '800',
+  navTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.5,
     textTransform: 'lowercase',
   },
-  workspace: {
+  navSubtitle: {
+    marginTop: 1,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'lowercase',
+  },
+  navPrimaryBtn: {
+    minWidth: 68,
+    height: 42,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navPrimaryBtnText: {
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'lowercase',
+  },
+  stageArea: {
     flex: 1,
+    paddingHorizontal: 6,
+    paddingTop: 6,
   },
-  canvasBody: {
+  stageShell: {
     flex: 1,
-  },
-  canvasBodyWide: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-  },
-  stageWrap: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
-  stageWrapWide: {
-    paddingRight: 10,
-    paddingBottom: 12,
-  },
-  stageCard: {
-    flex: 1,
-    borderRadius: 34,
+    borderRadius: 32,
     borderWidth: 1,
     overflow: 'hidden',
-    padding: 10,
+    position: 'relative',
   },
-  stageCardWide: {
-    padding: 12,
+  stageScroll: {
+    flex: 1,
   },
-  stageMetaRow: {
+  stageScrollContent: {
+    flexGrow: 1,
+  },
+  stageTopRow: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    zIndex: 20,
+    elevation: 6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 10,
+    gap: 12,
   },
   stageBadge: {
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   stageBadgeText: {
     fontSize: 11,
     fontWeight: '800',
     textTransform: 'lowercase',
   },
-  stageTouchArea: {
-    flex: 1,
-    borderRadius: 28,
-    overflow: 'hidden',
-  },
-  stageTouchAreaWide: {
-    minHeight: 420,
-  },
-  inlineActionRow: {
+  stageActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
-  inlineIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
+  iconChip: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.36)',
+    backgroundColor: 'rgba(255,255,255,0.72)',
   },
-  dockCard: {
-    minHeight: 230,
+  stageViewport: {
+    flex: 1,
+    borderRadius: 32,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  dockCardBottom: {
-    borderTopWidth: 1,
-    maxHeight: 290,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
   },
-  dockCardSide: {
-    borderLeftWidth: 1,
+  textOverlay: {
+    position: 'absolute',
   },
-  dockContent: {
+  stickyOverlay: {
+    position: 'absolute',
+    borderRadius: 18,
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 22,
-    gap: 14,
-  },
-  propertyGroup: {
-    gap: 10,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'lowercase',
-  },
-  actionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    borderRadius: 16,
+    paddingVertical: 14,
     borderWidth: 1,
+    borderColor: 'rgba(23,23,23,0.12)',
+    justifyContent: 'flex-start',
+  },
+  selectionFrame: {
+    position: 'absolute',
+    borderWidth: 1.5,
+    borderColor: '#f0b465',
+    borderStyle: 'dashed',
+    borderRadius: 14,
+  },
+  bottomPanel: {
+    position: 'absolute',
+    gap: 10,
+    zIndex: 25,
+    elevation: 7,
+  },
+  traySurface: {
+    borderWidth: 1,
+    borderRadius: 26,
+    paddingTop: 10,
+    paddingBottom: 10,
+    overflow: 'hidden',
+  },
+  inspectorRow: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 12,
+    alignItems: 'flex-start',
   },
-  actionChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'lowercase',
-  },
-  paletteWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  inspectorGroup: {
     gap: 8,
+    minWidth: 120,
+  },
+  inspectorLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
+  },
+  swatchRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+    maxWidth: 320,
   },
   colorDot: {
     width: 32,
@@ -1818,18 +1977,110 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  strokeWrap: {
+  widthRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
+    flexWrap: 'wrap',
   },
-  strokeChip: {
-    width: 48,
+  widthChip: {
+    width: 46,
     height: 38,
     borderRadius: 16,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  fontRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+    maxWidth: 420,
+  },
+  fontChip: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  fontChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sizeChip: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  sizeChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+    maxWidth: 380,
+  },
+  toggleChip: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  toggleChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'lowercase',
+  },
+  toolbarRail: {
+    borderWidth: 1,
+    borderRadius: 28,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 10,
+    overflow: 'hidden',
+  },
+  toolbarRow: {
+    gap: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  toolbarRowCentered: {
+    minWidth: '100%',
+    justifyContent: 'center',
+  },
+  toolBtn: {
+    minWidth: 64,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  toolBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'lowercase',
+  },
+  utilityBtn: {
+    minWidth: 64,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  utilityBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'lowercase',
   },
   textModalRoot: {
     flex: 1,
@@ -1847,17 +2098,19 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   textModalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
+    letterSpacing: -0.4,
     textTransform: 'lowercase',
   },
   textModalInput: {
-    minHeight: 132,
+    minHeight: 140,
+    borderRadius: 20,
     borderWidth: 1,
-    borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    fontSize: 15,
+    fontSize: 16,
+    lineHeight: 22,
     textAlignVertical: 'top',
   },
   textModalActions: {
@@ -1870,6 +2123,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   textModalBtnSecondaryText: {
     fontSize: 12,
@@ -1881,10 +2135,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   textModalBtnPrimaryText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '900',
     textTransform: 'lowercase',
   },
 });
