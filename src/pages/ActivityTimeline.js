@@ -363,10 +363,34 @@ const ActivityTimeline = () => {
             color: '#93c5fd',
             data: chat
           });
-      });
+        });
       }
 
-      allActivities.sort((a, b) => a.timestamp - b.timestamp);
+      try {
+        const quizRes = await fetch(`${API_URL}/get_quiz_history?user_id=${userName}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (quizRes.ok) {
+          const quizzes = await quizRes.json();
+          (Array.isArray(quizzes) ? quizzes : quizzes.sessions || []).forEach(quiz => {
+            allActivities.push({
+              id: `quiz-${quiz.id}`,
+              type: 'quiz',
+              title: quiz.title || 'Quiz Session',
+              content: quiz.total_questions
+                ? `${quiz.correct_answers ?? 0}/${quiz.total_questions} correct · ${quiz.score ?? 0}%`
+                : 'quiz completed',
+              timestamp: new Date(quiz.completed_at || quiz.created_at),
+              color: '#f9a8d4',
+              data: quiz
+            });
+          });
+        }
+      } catch (e) {
+        console.error('Error loading quiz history:', e); // silenced
+      }
+
+      allActivities.sort((a, b) => b.timestamp - a.timestamp);
       setActivities(allActivities);
     } catch (error) {
       console.error('Error loading activities:', error);

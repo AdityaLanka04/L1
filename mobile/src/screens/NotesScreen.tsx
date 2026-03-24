@@ -1704,40 +1704,14 @@ function NotesHome({
         </View>
       ) : (
         <View style={s.mobileHeader}>
-          <View style={s.mobileHeaderTopRow}>
-            <View style={s.mobileHeaderTitleRow}>
-              {onBack ? (
-                <HapticTouchable onPress={onBack} style={s.mobileBackBtn} haptic="selection">
-                  <Ionicons name="chevron-back" size={20} color={GOLD_L} />
-                </HapticTouchable>
-              ) : null}
-              <View style={s.mobileHeaderTitleWrap}>
-                <Text style={s.mobileTitle}>notes</Text>
-                <Text style={s.mobileSubtitle}>capture · search · sketch</Text>
-              </View>
-            </View>
-            <HapticTouchable onPress={() => createNewNote()} style={s.mobileCreateBtn} haptic="medium" disabled={creating}>
-              <Ionicons name="add" size={18} color={BG} />
-              <Text style={s.mobileCreateBtnText}>{creating ? '...' : 'new'}</Text>
+          {onBack ? (
+            <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
+              <Ionicons name="chevron-back" size={22} color={GOLD_L} />
             </HapticTouchable>
-          </View>
-          <View style={s.mobileHeaderActions}>
-            <HapticTouchable onPress={() => setShowAdvancedSearch(true)} style={s.mobileActionPill} haptic="selection">
-              <Ionicons name="filter-outline" size={15} color={GOLD_D} />
-              <Text style={s.mobileActionPillText}>search</Text>
-            </HapticTouchable>
-            <HapticTouchable onPress={() => setShowRecentlyViewed(true)} style={s.mobileActionPill} haptic="selection">
-              <Ionicons name="time-outline" size={15} color={GOLD_D} />
-              <Text style={s.mobileActionPillText}>recent</Text>
-            </HapticTouchable>
-            <HapticTouchable onPress={() => setShowFolderModal(true)} style={s.mobileActionPill} haptic="selection">
-              <Ionicons name="folder-open-outline" size={15} color={GOLD_D} />
-              <Text style={s.mobileActionPillText}>folders</Text>
-            </HapticTouchable>
-            <HapticTouchable onPress={onOpenTrash} style={s.mobileActionPill} haptic="selection">
-              <Ionicons name="trash-outline" size={15} color={GOLD_D} />
-              <Text style={s.mobileActionPillText}>trash</Text>
-            </HapticTouchable>
+          ) : null}
+          <View style={{ flex: 1 }}>
+            <Text style={s.mobileTitle}>notes</Text>
+            <Text style={s.mobileSubtitle} numberOfLines={1}>capture · sketch · organize</Text>
           </View>
         </View>
       )}
@@ -1754,134 +1728,58 @@ function NotesHome({
           numColumns={notesGridColumns}
           columnWrapperStyle={notesGridColumns > 1 ? s.noteGridRow : undefined}
           ListHeaderComponent={(
-            <View style={s.homeHeaderContent}>
-              <View style={s.heroSection}>
-                <View style={s.heroCard}>
-                  <View style={s.heroEyebrowRow}>
-                    <Text style={s.heroEyebrow}>notes library</Text>
-                    <View style={s.heroBadge}>
-                      <Text style={s.heroBadgeText}>{search.trim() ? 'searching' : activeFilterLabel}</Text>
+            <View style={s.listHeader}>
+              {/* Workspace — quick action grid */}
+              <Text style={s.sectionLabel}>workspace</Text>
+              <View style={s.actionsGrid}>
+                {quickActions.map((action) => (
+                  <HapticTouchable key={action.key} style={s.actionPill} onPress={action.onPress} haptic="selection">
+                    <View style={s.actionPillIcon}>
+                      <Ionicons name={action.icon} size={16} color={ACCENT} />
                     </View>
-                  </View>
-                  <Text style={s.heroTitle}>capture, sketch, and organize everything in one place</Text>
-                  <Text style={s.heroBody}>
-                    {search.trim()
-                      ? `${filteredNotes.length} result${filteredNotes.length === 1 ? '' : 's'} for “${search.trim()}”.`
-                      : `${notes.length} note${notes.length === 1 ? '' : 's'} across ${folders.length} folder${folders.length === 1 ? '' : 's'}, built for quick capture on phone and iPad.`}
-                  </Text>
-                  <View style={s.heroMetricsRow}>
-                    <View style={s.heroMetricPill}>
-                      <Text style={s.heroMetricValue}>{notes.length}</Text>
-                      <Text style={s.heroMetricLabel}>notes</Text>
-                    </View>
-                    <View style={s.heroMetricPill}>
-                      <Text style={s.heroMetricValue}>{favoriteCount}</Text>
-                      <Text style={s.heroMetricLabel}>favorites</Text>
-                    </View>
-                    <View style={s.heroMetricPill}>
-                      <Text style={s.heroMetricValue}>{canvasCount}</Text>
-                      <Text style={s.heroMetricLabel}>canvas</Text>
-                    </View>
-                  </View>
-                  <View style={s.heroActionsRow}>
-                    <HapticTouchable style={s.heroPrimaryBtn} onPress={() => createNewNote()} haptic="medium" disabled={creating}>
-                      <Ionicons name="add-outline" size={16} color={BG} />
-                      <Text style={s.heroPrimaryBtnText}>{creating ? 'creating...' : 'new note'}</Text>
-                    </HapticTouchable>
-                    <HapticTouchable style={s.heroSecondaryBtn} onPress={() => setShowTemplates(true)} haptic="selection">
-                      <Ionicons name="document-text-outline" size={16} color={GOLD_L} />
-                      <Text style={s.heroSecondaryBtnText}>templates</Text>
-                    </HapticTouchable>
-                  </View>
-                </View>
-
-                <View style={s.heroSideColumn}>
-                  <View style={s.statsStrip}>
-                    {[
-                      { value: notes.length, label: 'NOTES' },
-                      { value: favoriteCount, label: 'FAVORITES' },
-                      { value: folders.length, label: 'FOLDERS' },
-                    ].map((item, index) => (
-                      <View key={item.label} style={[s.statCell, index > 0 && s.statDivider]}>
-                        <Text style={s.statValue}>{item.value}</Text>
-                        <Text style={s.statLabel}>{item.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  <View style={s.searchPanel}>
-                    <View style={s.searchWrap}>
-                      <Ionicons name="search-outline" size={15} color={GOLD_D} />
-                      <TextInput
-                        style={s.searchInput}
-                        placeholder="search notes..."
-                        placeholderTextColor={DIM2}
-                        value={search}
-                        onChangeText={setSearch}
-                      />
-                      {!!search && (
-                        <HapticTouchable onPress={() => setSearch('')} haptic="selection">
-                          <Ionicons name="close-circle" size={16} color={GOLD_D} />
-                        </HapticTouchable>
-                      )}
-                    </View>
-
-                    {layout.isTablet ? (
-                      <View style={s.filtersWrap}>{filterChips}</View>
-                    ) : (
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersRow}>
-                        {filterChips}
-                      </ScrollView>
-                    )}
-                  </View>
-                </View>
+                    <Text style={s.actionPillText}>{action.title}</Text>
+                    <Ionicons name="chevron-forward" size={13} color={GOLD_D} style={{ marginLeft: 'auto' }} />
+                  </HapticTouchable>
+                ))}
               </View>
 
-              <View style={s.notesSectionHeader}>
+              {/* Library header */}
+              <View style={s.libHeader}>
                 <View>
-                  <Text style={s.notesSectionEyebrow}>workspace</Text>
-                  <Text style={s.notesSectionTitle}>quick actions</Text>
+                  <Text style={s.sectionEyebrow}>library</Text>
+                  {search.trim() ? (
+                    <Text style={s.sectionTitle}>{filteredNotes.length} result{filteredNotes.length === 1 ? '' : 's'}</Text>
+                  ) : null}
                 </View>
+                <Text style={s.libMeta}>{search.trim() ? 'clear search to reset' : 'sorted by latest'}</Text>
               </View>
 
-              {layout.isTablet ? (
-                <View style={s.quickActionsGrid}>
-                  {quickActions.map((action) => (
-                    <QuickActionCard
-                      key={action.key}
-                      icon={action.icon}
-                      title={action.title}
-                      subtitle={action.subtitle}
-                      onPress={action.onPress}
-                    />
-                  ))}
+              {/* Search + new */}
+              <View style={s.searchRow}>
+                <View style={s.searchBar}>
+                  <Ionicons name="search-outline" size={15} color={GOLD_D} />
+                  <TextInput
+                    style={s.searchInput}
+                    placeholder="search notes..."
+                    placeholderTextColor={DIM2}
+                    value={search}
+                    onChangeText={setSearch}
+                  />
+                  {!!search && (
+                    <HapticTouchable onPress={() => setSearch('')} haptic="selection">
+                      <Ionicons name="close-circle" size={16} color={GOLD_D} />
+                    </HapticTouchable>
+                  )}
                 </View>
-              ) : (
-                <View style={s.quickActionsGridPhone}>
-                  {quickActions.map((action) => (
-                    <QuickActionCard
-                      key={action.key}
-                      icon={action.icon}
-                      title={action.title}
-                      subtitle={action.subtitle}
-                      onPress={action.onPress}
-                    />
-                  ))}
-                </View>
-              )}
-              <View style={s.notesSectionHeader}>
-                <View>
-                  <Text style={s.notesSectionEyebrow}>library</Text>
-                  <Text style={s.notesSectionTitle}>
-                    {search.trim() ? `${filteredNotes.length} result${filteredNotes.length === 1 ? '' : 's'}` : activeFilterLabel}
-                  </Text>
-                </View>
-                {!search.trim() ? (
-                  <Text style={s.notesSectionMeta}>sorted by latest activity</Text>
-                ) : (
-                  <Text style={s.notesSectionMeta}>clear search to see the full library</Text>
-                )}
+                <HapticTouchable style={s.searchNewBtn} onPress={() => createNewNote()} haptic="medium" disabled={creating}>
+                  <Ionicons name="add" size={20} color={BG} />
+                </HapticTouchable>
               </View>
+
+              {/* Filters */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersRow}>
+                {filterChips}
+              </ScrollView>
             </View>
           )}
           ListEmptyComponent={(
@@ -1932,7 +1830,7 @@ function NotesHome({
                 </Text>
                 <View style={s.noteCardFooter}>
                   <Text style={s.noteMetaText}>{item.is_favorite ? 'starred note' : 'tap to open and edit'}</Text>
-                  <Ionicons name="arrow-forward-outline" size={16} color={ACCENT} />
+                  <Ionicons name="chevron-forward" size={16} color={ACCENT} />
                 </View>
               </HapticTouchable>
             );
@@ -2433,90 +2331,26 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       width: '100%',
       maxWidth: layout.contentMaxWidth,
       alignSelf: 'center',
-      paddingHorizontal: layout.screenPadding,
-      paddingTop: 14,
-      paddingBottom: 10,
-      gap: 12,
-    },
-    mobileHeaderTopRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: 12,
-    },
-    mobileHeaderTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      flex: 1,
-      minWidth: 0,
-    },
-    mobileBackBtn: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
-      borderWidth: 1,
-      borderColor: softAccentBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    mobileHeaderTitleWrap: {
-      flex: 1,
-      minWidth: 0,
+      paddingHorizontal: 20,
+      paddingTop: 18,
+      paddingBottom: 12,
     },
     mobileTitle: {
       fontFamily: 'Inter_900Black',
-      fontSize: 28,
+      fontSize: 32,
       color: GOLD_L,
       letterSpacing: -0.8,
-      textTransform: 'lowercase',
     },
     mobileSubtitle: {
       fontFamily: 'Inter_400Regular',
       fontSize: 10,
       color: DIM2,
-      letterSpacing: 1.6,
+      letterSpacing: 2.2,
+      marginTop: 4,
       textTransform: 'uppercase',
-      marginTop: 2,
-    },
-    mobileCreateBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      borderRadius: 16,
-      backgroundColor: ACCENT,
-      paddingHorizontal: 14,
-      paddingVertical: 11,
-    },
-    mobileCreateBtnText: {
-      fontFamily: 'Inter_900Black',
-      fontSize: 12,
-      color: BG,
-      textTransform: 'lowercase',
-    },
-    mobileHeaderActions: {
-      flexDirection: 'row',
-      gap: 8,
-    },
-    mobileActionPill: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: BORDER,
-      backgroundColor: rgbaFromHex(SURFACE, 0.94),
-      paddingVertical: 10,
-      paddingHorizontal: 8,
-    },
-    mobileActionPillText: {
-      fontFamily: 'Inter_700Bold',
-      fontSize: 11,
-      color: GOLD_L,
-      textTransform: 'lowercase',
     },
     headerActionsRow: {
       flexDirection: 'row',
@@ -2539,109 +2373,103 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
     },
     headerIconBtnPrimary: { backgroundColor: ACCENT, borderColor: ACCENT },
 
-    homeHeaderContent: { gap: 14, paddingBottom: 4 },
-    heroSection: {
-      flexDirection: layout.twoColumn ? 'row' : 'column',
-      gap: 12,
-      alignItems: 'stretch',
-    },
+    listHeader: { gap: 12, paddingBottom: 4 },
     heroCard: {
-      flex: layout.twoColumn ? 1.2 : undefined,
-      borderRadius: 30,
+      borderRadius: 24,
       borderWidth: 1,
-      borderColor: rgbaFromHex(ACCENT, 0.18),
-      backgroundColor: rgbaFromHex(SURFACE, 0.96),
-      padding: layout.isTablet ? 24 : 18,
-      gap: layout.isTablet ? 14 : 12,
+      borderColor: rgbaFromHex(ACCENT, 0.2),
+      backgroundColor: rgbaFromHex(SURFACE, 0.97),
+      padding: layout.isTablet ? 22 : 16,
+      gap: 14,
       shadowColor: ACCENT,
-      shadowOffset: { width: 0, height: 14 },
-      shadowOpacity: 0.14,
-      shadowRadius: 30,
-      elevation: 7,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.13,
+      shadowRadius: 24,
+      elevation: 6,
     },
-    heroEyebrowRow: {
+    heroRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
-      gap: 12,
-      flexWrap: 'wrap',
+      gap: 10,
     },
     heroEyebrow: {
       fontFamily: 'Inter_700Bold',
-      fontSize: 11,
+      fontSize: 10,
       color: GOLD_D,
       letterSpacing: 1.8,
       textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    heroTitle: {
+      fontFamily: 'Inter_900Black',
+      fontSize: layout.isTablet ? 32 : 26,
+      lineHeight: layout.isTablet ? 38 : 30,
+      color: GOLD_L,
+      letterSpacing: -1,
+      textTransform: 'lowercase',
     },
     heroBadge: {
       borderRadius: 999,
       borderWidth: 1,
       borderColor: softAccentBorder,
       backgroundColor: softAccent,
-      paddingHorizontal: 12,
-      paddingVertical: 7,
+      paddingHorizontal: 11,
+      paddingVertical: 6,
+      marginTop: 4,
     },
     heroBadgeText: {
       fontFamily: 'Inter_700Bold',
-      fontSize: 11,
-      color: ACCENT,
-      textTransform: 'lowercase',
-    },
-    heroTitle: {
-      fontFamily: 'Inter_900Black',
-      fontSize: layout.isTablet ? 28 : 21,
-      lineHeight: layout.isTablet ? 34 : 27,
-      color: GOLD_L,
-      letterSpacing: -0.9,
-      textTransform: 'lowercase',
-    },
-    heroBody: {
-      fontFamily: 'Inter_400Regular',
-      fontSize: 13,
-      lineHeight: 20,
-      color: DIM2,
-    },
-    heroMetricsRow: {
-      flexDirection: 'row',
-      gap: 10,
-      flexWrap: 'wrap',
-    },
-    heroMetricPill: {
-      minWidth: layout.isTablet ? 104 : 86,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: softAccentBorder,
-      backgroundColor: rgbaFromHex(SURFACE_2, 0.94),
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      gap: 4,
-    },
-    heroMetricValue: {
-      fontFamily: 'Inter_900Black',
-      fontSize: 22,
-      color: ACCENT,
-      letterSpacing: -0.6,
-    },
-    heroMetricLabel: {
-      fontFamily: 'Inter_600SemiBold',
       fontSize: 10,
-      color: DIM2,
-      letterSpacing: 1.1,
-      textTransform: 'uppercase',
+      color: ACCENT,
+      textTransform: 'lowercase',
     },
-    heroActionsRow: {
-      flexDirection: 'row',
-      gap: 10,
-      flexWrap: 'wrap',
-    },
-    heroPrimaryBtn: {
+    heroStatsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      borderRadius: 18,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.9),
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: softAccentBorder,
+      overflow: 'hidden',
+    },
+    heroStat: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: 12,
+    },
+    heroStatNum: {
+      fontFamily: 'Inter_900Black',
+      fontSize: 20,
+      color: ACCENT,
+      letterSpacing: -0.5,
+    },
+    heroStatLbl: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 9,
+      color: DIM2,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      marginTop: 2,
+    },
+    heroStatDiv: {
+      width: 1,
+      height: 32,
+      backgroundColor: BORDER,
+    },
+    heroBtnRow: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    heroPrimaryBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 7,
+      borderRadius: 14,
       backgroundColor: ACCENT,
-      paddingHorizontal: 16,
-      paddingVertical: 13,
+      paddingVertical: 12,
     },
     heroPrimaryBtnText: {
       fontFamily: 'Inter_900Black',
@@ -2649,35 +2477,96 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       color: BG,
       textTransform: 'lowercase',
     },
-    heroSecondaryBtn: {
+    heroSecBtn: {
+      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      borderRadius: 18,
+      justifyContent: 'center',
+      gap: 7,
+      borderRadius: 14,
       borderWidth: 1,
       borderColor: BORDER,
-      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
-      paddingHorizontal: 16,
-      paddingVertical: 13,
+      backgroundColor: rgbaFromHex(SURFACE_2, 0.9),
+      paddingVertical: 12,
     },
-    heroSecondaryBtnText: {
+    heroSecBtnText: {
       fontFamily: 'Inter_700Bold',
       fontSize: 12,
       color: GOLD_L,
       textTransform: 'lowercase',
     },
-    heroSideColumn: {
-      flex: 1,
-      gap: 12,
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
     },
-    notesSectionHeader: {
+    searchBar: {
+      flex: 1,
+      height: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: rgbaFromHex(SURFACE, 0.96),
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: BORDER,
+      paddingHorizontal: 14,
+    },
+    searchNewBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: ACCENT,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sectionLabel: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 10,
+      color: GOLD_D,
+      letterSpacing: 1.8,
+      textTransform: 'uppercase',
+      marginTop: 4,
+      marginBottom: -2,
+    },
+    actionsGrid: {
+      gap: 8,
+    },
+    actionPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: rgbaFromHex(SURFACE, 0.97),
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: BORDER,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+    },
+    actionPillIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: softAccent,
+      borderWidth: 1,
+      borderColor: softAccentBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    actionPillText: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 14,
+      color: GOLD_L,
+      flex: 1,
+    },
+    libHeader: {
       flexDirection: 'row',
       alignItems: 'flex-end',
       justifyContent: 'space-between',
       gap: 12,
-      marginTop: 4,
+      marginTop: 6,
     },
-    notesSectionEyebrow: {
+    sectionEyebrow: {
       fontFamily: 'Inter_700Bold',
       fontSize: 10,
       color: GOLD_D,
@@ -2685,89 +2574,18 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       textTransform: 'uppercase',
       marginBottom: 4,
     },
-    notesSectionTitle: {
+    sectionTitle: {
       fontFamily: 'Inter_900Black',
       fontSize: 21,
       color: GOLD_L,
       letterSpacing: -0.5,
       textTransform: 'lowercase',
     },
-    notesSectionMeta: {
+    libMeta: {
       fontFamily: 'Inter_400Regular',
       fontSize: 11,
       color: DIM2,
-      textAlign: 'right',
-      lineHeight: 16,
     },
-    quickActionsRow: { gap: 12, paddingBottom: 2, paddingRight: 8 },
-    quickActionsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
-    },
-    quickActionsGridPhone: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
-    },
-    quickActionCard: {
-      width: layout.isTablet ? (layout.threeColumn ? '23.5%' : '48.6%') : '48%',
-      minWidth: 0,
-      backgroundColor: rgbaFromHex(SURFACE, 0.95),
-      borderRadius: 24,
-      borderWidth: 1,
-      borderColor: BORDER,
-      padding: layout.isTablet ? 16 : 14,
-      gap: 8,
-    },
-    quickActionIconWrap: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: softAccent,
-      borderWidth: 1,
-      borderColor: softAccentBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    quickActionTitle: { fontFamily: 'Inter_700Bold', fontSize: 14, color: GOLD_L },
-    quickActionSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, color: DIM2, lineHeight: 16 },
-
-    librarySummaryRow: {
-      flexDirection: layout.twoColumn ? 'row' : 'column',
-      alignItems: 'stretch',
-      gap: 12,
-    },
-    statsStrip: {
-      width: layout.twoColumn ? undefined : '100%',
-      flex: layout.twoColumn ? 0.95 : undefined,
-      flexDirection: 'row',
-      backgroundColor: rgbaFromHex(SURFACE_2, 0.92),
-      borderRadius: 22,
-      borderWidth: 1,
-      borderColor: softAccentBorder,
-      overflow: 'hidden',
-      marginBottom: layout.isTablet ? 12 : 0,
-      shadowColor: ACCENT,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.1,
-      shadowRadius: 24,
-      elevation: 5,
-    },
-    searchPanel: {
-      flex: 1.4,
-      gap: 10,
-      borderRadius: 24,
-      borderWidth: 1,
-      borderColor: BORDER,
-      backgroundColor: rgbaFromHex(SURFACE, 0.94),
-      padding: layout.isTablet ? 14 : 12,
-    },
-    statCell: { flex: 1, alignItems: 'center', paddingVertical: 14 },
-    statDivider: { borderLeftWidth: 1, borderLeftColor: BORDER },
-    statValue: { fontFamily: 'Inter_900Black', fontSize: 18, color: ACCENT },
-    statLabel: { fontFamily: 'Inter_400Regular', fontSize: 8, color: DIM2, letterSpacing: 1.5, marginTop: 2 },
-
     searchWrap: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -2802,7 +2620,7 @@ function createStyles(layout: ReturnType<typeof useResponsiveLayout>) {
       width: '100%',
       maxWidth: layout.contentMaxWidth,
       alignSelf: 'center',
-      paddingHorizontal: layout.screenPadding,
+      paddingHorizontal: layout.isTablet ? layout.screenPadding : 10,
       paddingTop: 10,
       paddingBottom: 120,
       flexGrow: 1,
