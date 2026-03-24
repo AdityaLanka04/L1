@@ -105,6 +105,102 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
           <Text style={s.subtitle}>your learning toolkit, refined</Text>
         </View>
 
+        {/* Core tools */}
+        <View style={s.sectionRow}>
+          <Text style={s.sectionTitle}>core tools</Text>
+          <Text style={s.sectionMeta}>jump directly into work</Text>
+        </View>
+
+        <View style={s.grid}>
+          <QuickTile
+            title="AI chat"
+            subtitle="think, ask, iterate"
+            icon="sparkles-outline"
+            accent={selectedTheme.accentHover}
+            styles={s}
+            textColor={selectedTheme.accentHover}
+            onPress={() => onNavigateToAI?.()}
+          />
+          <QuickTile
+            title="notes"
+            subtitle="capture what matters"
+            icon="document-text-outline"
+            accent={selectedTheme.accentHover}
+            styles={s}
+            textColor={selectedTheme.accentHover}
+            onPress={() => onNavigate?.('notes')}
+          />
+        </View>
+
+        {/* AI media notes */}
+        <HapticTouchable style={s.featureCard} onPress={() => onNavigate?.('aimedia')} haptic="medium" activeOpacity={0.88}>
+          <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.09), rgbaFromHex(selectedTheme.panel, 0.985), rgbaFromHex(selectedTheme.bgPrimary, 0.995)]} locations={[0, 0.65, 1]} style={StyleSheet.absoluteFillObject} />
+          <View style={s.featureTop}>
+            <Text style={s.featureEyebrow}>signature flow</Text>
+            <View style={s.featurePill}>
+              <Text style={s.featurePillText}>media</Text>
+            </View>
+          </View>
+          <Text style={s.featureTitle}>AI media notes</Text>
+          <Text style={s.featureBody}>Turn lectures, videos, and long-form content into clean notes without losing momentum.</Text>
+          <View style={s.featureMetaRow}>
+            {[
+              { value: 'YT', label: 'video' },
+              { value: 'AI', label: 'summary' },
+              { value: '∞', label: 'topics' },
+            ].map((item) => (
+              <View key={item.label} style={s.featureMeta}>
+                <Text style={s.featureMetaValue}>{item.value}</Text>
+                <Text style={s.featureMetaLabel}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+        </HapticTouchable>
+
+        {/* Flashcard card */}
+        <HapticTouchable style={s.flashcardCard} onPress={() => onNavigate?.('flashcards')} haptic="medium" activeOpacity={0.88}>
+          <LinearGradient
+            colors={[
+              rgbaFromHex(selectedTheme.accentHover, 0.09),
+              rgbaFromHex(selectedTheme.panel, 0.985),
+              rgbaFromHex(selectedTheme.bgPrimary, 0.995),
+            ]}
+            locations={[0, 0.65, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <View style={s.fcTop}>
+            <View style={s.fcIconWrap}>
+              <Ionicons name="layers" size={22} color={selectedTheme.accentHover} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.fcTitle}>flashcards</Text>
+              <Text style={s.fcSub}>spaced repetition · active recall</Text>
+            </View>
+            <View style={s.fcBadge}>
+              <Text style={s.fcBadgeText}>{fcSets} sets</Text>
+            </View>
+          </View>
+          <View style={s.fcStatsRow}>
+            {[
+              { value: String(fcTotal), label: 'cards', icon: 'copy-outline' as const },
+              { value: String(fcMastered), label: 'mastered', icon: 'checkmark-circle-outline' as const },
+              { value: fcAccuracy, label: 'accuracy', icon: 'stats-chart-outline' as const },
+            ].map((item) => (
+              <View key={item.label} style={s.fcStat}>
+                <Ionicons name={item.icon} size={13} color={selectedTheme.accentHover} style={{ marginBottom: 6 }} />
+                <Text style={s.fcStatVal}>{item.value}</Text>
+                <Text style={s.fcStatLbl}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={s.fcProgressWrap}>
+            <View style={s.fcProgressTrack}>
+              <View style={[s.fcProgressFill, { width: `${Math.min(100, fcTotal > 0 ? (fcMastered / fcTotal) * 100 : 0)}%` }]} />
+            </View>
+            <Text style={s.fcProgressLabel}>{fcTotal > 0 ? Math.round((fcMastered / fcTotal) * 100) : 0}% mastered</Text>
+          </View>
+        </HapticTouchable>
+
         {/* Weekly graph */}
         <View style={s.chartCard}>
           <View style={s.chartLegend}>
@@ -178,94 +274,6 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
             onPress={() => setSubScreen('activity')}
           />
         </View>
-
-        {/* Core tools */}
-        <View style={s.sectionRow}>
-          <Text style={s.sectionTitle}>core tools</Text>
-          <Text style={s.sectionMeta}>jump directly into work</Text>
-        </View>
-
-        <View style={s.grid}>
-          <QuickTile
-            title="AI chat"
-            subtitle="think, ask, iterate"
-            icon="sparkles-outline"
-            accent={selectedTheme.accentHover}
-            styles={s}
-            textColor={selectedTheme.accentHover}
-            onPress={() => onNavigateToAI?.()}
-          />
-          <QuickTile
-            title="notes"
-            subtitle="capture what matters"
-            icon="document-text-outline"
-            accent={selectedTheme.accentHover}
-            styles={s}
-            textColor={selectedTheme.accentHover}
-            onPress={() => onNavigate?.('notes')}
-          />
-        </View>
-
-        {/* AI media notes */}
-        <HapticTouchable style={s.featureCard} onPress={() => onNavigate?.('aimedia')} haptic="medium" activeOpacity={0.88}>
-          <LinearGradient colors={[rgbaFromHex(selectedTheme.accent, 0.09), rgbaFromHex(selectedTheme.panel, 0.985), rgbaFromHex(selectedTheme.bgPrimary, 0.995)]} locations={[0, 0.65, 1]} style={StyleSheet.absoluteFillObject} />
-          <View style={s.featureTop}>
-            <Text style={s.featureEyebrow}>signature flow</Text>
-            <View style={s.featurePill}>
-              <Text style={s.featurePillText}>media</Text>
-            </View>
-          </View>
-          <Text style={s.featureTitle}>AI media notes</Text>
-          <Text style={s.featureBody}>Turn lectures, videos, and long-form content into clean notes without losing momentum.</Text>
-          <View style={s.featureMetaRow}>
-            {[
-              { value: 'YT', label: 'video' },
-              { value: 'AI', label: 'summary' },
-              { value: '∞', label: 'topics' },
-            ].map((item) => (
-              <View key={item.label} style={s.featureMeta}>
-                <Text style={s.featureMetaValue}>{item.value}</Text>
-                <Text style={s.featureMetaLabel}>{item.label}</Text>
-              </View>
-            ))}
-          </View>
-        </HapticTouchable>
-
-        {/* Flashcard card */}
-        <HapticTouchable style={s.flashcardCard} onPress={() => onNavigate?.('flashcards')} haptic="medium" activeOpacity={0.88}>
-          <LinearGradient colors={[rgbaFromHex(selectedTheme.accentHover, 0.13), rgbaFromHex(selectedTheme.panel, 0.98), 'transparent']} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFillObject} />
-          <View style={s.fcTop}>
-            <View style={s.fcIconWrap}>
-              <Ionicons name="layers" size={22} color={selectedTheme.accentHover} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.fcTitle}>flashcards</Text>
-              <Text style={s.fcSub}>spaced repetition · active recall</Text>
-            </View>
-            <View style={s.fcBadge}>
-              <Text style={s.fcBadgeText}>{fcSets} sets</Text>
-            </View>
-          </View>
-          <View style={s.fcStatsRow}>
-            {[
-              { value: String(fcTotal), label: 'cards', icon: 'copy-outline' as const },
-              { value: String(fcMastered), label: 'mastered', icon: 'checkmark-circle-outline' as const },
-              { value: fcAccuracy, label: 'accuracy', icon: 'stats-chart-outline' as const },
-            ].map((item) => (
-              <View key={item.label} style={s.fcStat}>
-                <Ionicons name={item.icon} size={13} color={selectedTheme.accentHover} style={{ marginBottom: 6 }} />
-                <Text style={s.fcStatVal}>{item.value}</Text>
-                <Text style={s.fcStatLbl}>{item.label}</Text>
-              </View>
-            ))}
-          </View>
-          <View style={s.fcProgressWrap}>
-            <View style={s.fcProgressTrack}>
-              <View style={[s.fcProgressFill, { width: `${Math.min(100, fcTotal > 0 ? (fcMastered / fcTotal) * 100 : 0)}%` }]} />
-            </View>
-            <Text style={s.fcProgressLabel}>{fcTotal > 0 ? Math.round((fcMastered / fcTotal) * 100) : 0}% mastered</Text>
-          </View>
-        </HapticTouchable>
       </ScrollView>
     </SafeAreaView>
   );

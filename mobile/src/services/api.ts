@@ -457,10 +457,9 @@ export async function moveNoteToFolder(payload: {
   return res.json();
 }
 
-export async function convertChatSessionsToNote(payload: {
+export async function convertChatSessionsToNoteContent(payload: {
   userId: string;
   sessionIds: number[];
-  title?: string;
 }) {
   const headers = await authHeaders();
   const sessions = Array.isArray(payload.sessionIds) ? payload.sessionIds : [];
@@ -495,10 +494,26 @@ export async function convertChatSessionsToNote(payload: {
     throw new Error('No chat content returned');
   }
 
+  return {
+    title: sessions.length > 1 ? `Chat Notes (${sessions.length} Sessions)` : 'Chat Notes',
+    content: sections.join('\n\n'),
+  };
+}
+
+export async function convertChatSessionsToNote(payload: {
+  userId: string;
+  sessionIds: number[];
+  title?: string;
+}) {
+  const converted = await convertChatSessionsToNoteContent({
+    userId: payload.userId,
+    sessionIds: payload.sessionIds,
+  });
+
   return createNote({
     userId: payload.userId,
-    title: payload.title ?? (sessions.length > 1 ? `Chat Notes (${sessions.length} Sessions)` : 'Chat Notes'),
-    content: sections.join('\n\n'),
+    title: payload.title ?? converted.title,
+    content: converted.content,
   });
 }
 

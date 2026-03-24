@@ -203,117 +203,6 @@ export default function SocialScreen({ user }: Props) {
           <View style={s.loadingWrap}><ActivityIndicator color={accentM} size="large" /></View>
         ) : (
           <>
-            {/* ══ LEADERBOARD PODIUM — same design as leaderboard page ══ */}
-            <SectionRow label="leaderboard" cta={() => setScreen('leaderboard')} ctaLabel="full board" />
-            <View style={s.podiumCard}>
-              <LinearGradient
-                colors={[rgbaFromHex(accent, 0.08), rgbaFromHex(selectedTheme.bgPrimary, 0)]}
-                style={[StyleSheet.absoluteFillObject, { borderRadius: 22 }]}
-              />
-              {/* Podium: 2nd · 1st · 3rd — same visual as LeaderboardScreen */}
-              <View style={s.podiumRow}>
-                {podium.map((entry, pi) => {
-                  const medalKey  = pi === 0 ? 'silver' : pi === 1 ? 'gold' : 'bronze';
-                  const rankNum   = pi === 0 ? 2 : pi === 1 ? 1 : 3;
-                  const isGold    = rankNum === 1;
-                  const isEmpty   = !entry;
-                  const name      = isEmpty ? '—' : (entry.username ?? entry.name ?? '?');
-                  const pts       = isEmpty ? 0 : (entry.score ?? entry.total_points ?? entry.points ?? 0);
-                  const isMe      = !isEmpty && (entry.is_current_user || name === user.username);
-                  // Medal ring colours — exact same logic as LeaderboardScreen
-                  const ringColor = rankNum === 1
-                    ? accent
-                    : rankNum === 2
-                    ? lightenColor(accentM, selectedTheme.isLight ? 26 : 12)
-                    : darkenColor(accentM, selectedTheme.isLight ? 14 : 8);
-                  const barH    = rankNum === 1 ? 72 : rankNum === 2 ? 52 : 38;
-                  const avaSize = rankNum === 1 ? 56 : rankNum === 2 ? 46 : 40;
-                  const label   = rankNum === 1 ? '1st' : rankNum === 2 ? '2nd' : '3rd';
-
-                  return (
-                    <View key={pi} style={s.podiumCol}>
-                      {/* Trophy above #1 */}
-                      {isGold && (
-                        <Ionicons name="trophy" size={16} color={isEmpty ? selectedTheme.textSecondary : ringColor} style={{ marginBottom: 6 }} />
-                      )}
-
-                      {/* Avatar — gradient ring just like LeaderboardScreen */}
-                      {isEmpty ? (
-                        <View style={[s.podEmptyAvatar, { width: avaSize + 4, height: avaSize + 4, borderRadius: (avaSize + 4) / 2 }]}>
-                          <Ionicons name="person-outline" size={avaSize * 0.38} color={selectedTheme.textSecondary} />
-                        </View>
-                      ) : (
-                        <LinearGradient
-                          colors={[ringColor, darkenColor(ringColor, selectedTheme.isLight ? 18 : 10)]}
-                          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                          style={{ width: avaSize + 4, height: avaSize + 4, borderRadius: (avaSize + 4) / 2, padding: 2.5, alignItems: 'center', justifyContent: 'center' }}
-                        >
-                          <LinearGradient
-                            colors={[rgbaFromHex(selectedTheme.panelAlt, 0.98), rgbaFromHex(selectedTheme.bgPrimary, 0.98)]}
-                            style={{ width: avaSize, height: avaSize, borderRadius: avaSize / 2, alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            <Text style={{ fontFamily: 'Inter_900Black', fontSize: avaSize * 0.33, color: ringColor }}>
-                              {inits(name)}
-                            </Text>
-                          </LinearGradient>
-                        </LinearGradient>
-                      )}
-
-                      {/* Medal badge */}
-                      <View style={[s.medalBadge, {
-                        borderColor: rgbaFromHex(isEmpty ? selectedTheme.textSecondary : ringColor, isEmpty ? 0.2 : 0.44),
-                        backgroundColor: rgbaFromHex(isEmpty ? selectedTheme.textSecondary : ringColor, isEmpty ? 0.05 : 0.12),
-                      }]}>
-                        <Text style={[s.medalTxt, { color: isEmpty ? selectedTheme.textSecondary : ringColor }]}>{label}</Text>
-                      </View>
-
-                      <Text style={[s.podName, { color: isEmpty ? selectedTheme.textSecondary : isGold ? accent : isMe ? accent : selectedTheme.textPrimary }]} numberOfLines={1}>
-                        {name}
-                      </Text>
-                      {!isEmpty && <Text style={s.podPts}>{pts.toLocaleString()}</Text>}
-
-                      {/* Bottom bar — same as LeaderboardScreen pod.bar */}
-                      <LinearGradient
-                        colors={isEmpty
-                          ? [rgbaFromHex(selectedTheme.textSecondary, 0.1), rgbaFromHex(selectedTheme.textSecondary, 0.03)]
-                          : [accent, rgbaFromHex(accentM, 0.35)]}
-                        style={[s.podBar, { height: barH, borderTopColor: isEmpty ? rgbaFromHex(selectedTheme.textSecondary, 0.15) : accent }]}
-                      />
-                    </View>
-                  );
-                })}
-              </View>
-
-              {/* Remaining entries #4–#6 */}
-              {data.lbEntries.slice(3).map((entry: any, ei: number) => {
-                const rank  = entry.rank ?? ei + 4;
-                const name  = entry.username ?? entry.name ?? `#${rank}`;
-                const pts   = entry.score ?? entry.total_points ?? entry.points ?? 0;
-                const isMe  = entry.is_current_user || name === user.username;
-                const maxPts = (data.lbEntries[0]?.score ?? data.lbEntries[0]?.total_points ?? 1);
-                const pct   = Math.max(0.04, Math.min(1, pts / maxPts));
-                return (
-                  <View key={ei} style={[s.lbRow, isMe && s.lbRowMe]}>
-                    {isMe && <LinearGradient colors={[rgbaFromHex(accentM, 0.12), 'transparent']} style={[StyleSheet.absoluteFillObject, { borderRadius: 13 }]} />}
-                    <Text style={[s.lbRank, isMe && { color: accent }]}>{rank <= 9 ? `0${rank}` : rank}</Text>
-                    <View style={{ flex: 1, gap: 4 }}>
-                      <Text style={[s.lbName, isMe && { color: accent }]} numberOfLines={1}>{name}{isMe ? '  (you)' : ''}</Text>
-                      <View style={s.lbTrack}>
-                        <LinearGradient
-                          colors={isMe ? [accent, accentM] : [rgbaFromHex(accentM, 0.42), rgbaFromHex(accentM, 0.14)]}
-                          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                          style={[s.lbFill, { width: `${Math.round(pct * 100)}%` as any }]}
-                        />
-                      </View>
-                    </View>
-                    <Text style={[s.lbPts, isMe && { color: accent, fontFamily: 'Inter_900Black' }]}>
-                      {pts >= 1000 ? `${(pts / 1000).toFixed(1)}k` : pts}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-
             {/* ══ IDENTITY STRIP — rank · friends · battles ══ */}
             <LinearGradient
               colors={[rgbaFromHex(accent, 0.2), rgbaFromHex(accentM, 0.08), rgbaFromHex(selectedTheme.panel, 0.97)]}
@@ -433,6 +322,109 @@ export default function SocialScreen({ user }: Props) {
                 </View>
               ));
             })()}
+
+            {/* ══ LEADERBOARD PODIUM — same design as leaderboard page ══ */}
+            <SectionRow label="leaderboard" cta={() => setScreen('leaderboard')} ctaLabel="full board" />
+            <View style={s.podiumCard}>
+              <LinearGradient
+                colors={[rgbaFromHex(accent, 0.08), rgbaFromHex(selectedTheme.bgPrimary, 0)]}
+                style={[StyleSheet.absoluteFillObject, { borderRadius: 22 }]}
+              />
+              <View style={s.podiumRow}>
+                {podium.map((entry, pi) => {
+                  const rankNum   = pi === 0 ? 2 : pi === 1 ? 1 : 3;
+                  const isGold    = rankNum === 1;
+                  const isEmpty   = !entry;
+                  const name      = isEmpty ? '—' : (entry.username ?? entry.name ?? '?');
+                  const pts       = isEmpty ? 0 : (entry.score ?? entry.total_points ?? entry.points ?? 0);
+                  const isMe      = !isEmpty && (entry.is_current_user || name === user.username);
+                  const ringColor = rankNum === 1
+                    ? accent
+                    : rankNum === 2
+                    ? lightenColor(accentM, selectedTheme.isLight ? 26 : 12)
+                    : darkenColor(accentM, selectedTheme.isLight ? 14 : 8);
+                  const barH    = rankNum === 1 ? 72 : rankNum === 2 ? 52 : 38;
+                  const avaSize = rankNum === 1 ? 56 : rankNum === 2 ? 46 : 40;
+                  const label   = rankNum === 1 ? '1st' : rankNum === 2 ? '2nd' : '3rd';
+
+                  return (
+                    <View key={pi} style={s.podiumCol}>
+                      {isGold && (
+                        <Ionicons name="trophy" size={16} color={isEmpty ? selectedTheme.textSecondary : ringColor} style={{ marginBottom: 6 }} />
+                      )}
+
+                      {isEmpty ? (
+                        <View style={[s.podEmptyAvatar, { width: avaSize + 4, height: avaSize + 4, borderRadius: (avaSize + 4) / 2 }]}>
+                          <Ionicons name="person-outline" size={avaSize * 0.38} color={selectedTheme.textSecondary} />
+                        </View>
+                      ) : (
+                        <LinearGradient
+                          colors={[ringColor, darkenColor(ringColor, selectedTheme.isLight ? 18 : 10)]}
+                          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                          style={{ width: avaSize + 4, height: avaSize + 4, borderRadius: (avaSize + 4) / 2, padding: 2.5, alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <LinearGradient
+                            colors={[rgbaFromHex(selectedTheme.panelAlt, 0.98), rgbaFromHex(selectedTheme.bgPrimary, 0.98)]}
+                            style={{ width: avaSize, height: avaSize, borderRadius: avaSize / 2, alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Text style={{ fontFamily: 'Inter_900Black', fontSize: avaSize * 0.33, color: ringColor }}>
+                              {inits(name)}
+                            </Text>
+                          </LinearGradient>
+                        </LinearGradient>
+                      )}
+
+                      <View style={[s.medalBadge, {
+                        borderColor: rgbaFromHex(isEmpty ? selectedTheme.textSecondary : ringColor, isEmpty ? 0.2 : 0.44),
+                        backgroundColor: rgbaFromHex(isEmpty ? selectedTheme.textSecondary : ringColor, isEmpty ? 0.05 : 0.12),
+                      }]}>
+                        <Text style={[s.medalTxt, { color: isEmpty ? selectedTheme.textSecondary : ringColor }]}>{label}</Text>
+                      </View>
+
+                      <Text style={[s.podName, { color: isEmpty ? selectedTheme.textSecondary : isGold ? accent : isMe ? accent : selectedTheme.textPrimary }]} numberOfLines={1}>
+                        {name}
+                      </Text>
+                      {!isEmpty && <Text style={s.podPts}>{pts.toLocaleString()}</Text>}
+
+                      <LinearGradient
+                        colors={isEmpty
+                          ? [rgbaFromHex(selectedTheme.textSecondary, 0.1), rgbaFromHex(selectedTheme.textSecondary, 0.03)]
+                          : [accent, rgbaFromHex(accentM, 0.35)]}
+                        style={[s.podBar, { height: barH, borderTopColor: isEmpty ? rgbaFromHex(selectedTheme.textSecondary, 0.15) : accent }]}
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+
+              {data.lbEntries.slice(3).map((entry: any, ei: number) => {
+                const rank  = entry.rank ?? ei + 4;
+                const name  = entry.username ?? entry.name ?? `#${rank}`;
+                const pts   = entry.score ?? entry.total_points ?? entry.points ?? 0;
+                const isMe  = entry.is_current_user || name === user.username;
+                const maxPts = (data.lbEntries[0]?.score ?? data.lbEntries[0]?.total_points ?? 1);
+                const pct   = Math.max(0.04, Math.min(1, pts / maxPts));
+                return (
+                  <View key={ei} style={[s.lbRow, isMe && s.lbRowMe]}>
+                    {isMe && <LinearGradient colors={[rgbaFromHex(accentM, 0.12), 'transparent']} style={[StyleSheet.absoluteFillObject, { borderRadius: 13 }]} />}
+                    <Text style={[s.lbRank, isMe && { color: accent }]}>{rank <= 9 ? `0${rank}` : rank}</Text>
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text style={[s.lbName, isMe && { color: accent }]} numberOfLines={1}>{name}{isMe ? '  (you)' : ''}</Text>
+                      <View style={s.lbTrack}>
+                        <LinearGradient
+                          colors={isMe ? [accent, accentM] : [rgbaFromHex(accentM, 0.42), rgbaFromHex(accentM, 0.14)]}
+                          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                          style={[s.lbFill, { width: `${Math.round(pct * 100)}%` as any }]}
+                        />
+                      </View>
+                    </View>
+                    <Text style={[s.lbPts, isMe && { color: accent, fontFamily: 'Inter_900Black' }]}>
+                      {pts >= 1000 ? `${(pts / 1000).toFixed(1)}k` : pts}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
           </>
         )}
       </ScrollView>
