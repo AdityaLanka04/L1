@@ -130,10 +130,6 @@ const Dashboard = () => {
       return;
     }
     
-    if (token && username) {
-      sessionStorage.setItem('safetyAccepted', 'true');
-    }
-
     if (username) setUserName(username);
 
     if (profile) {

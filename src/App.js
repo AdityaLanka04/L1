@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from './pages/Dashboard';
 import AIChat from './pages/AIChat';
 import Homepage from './pages/Homepage';
-import SafetyLogin from './pages/SafetyLogin';
 import LearningReviewHub from './pages/LearningReviewHub';
 import Social from './pages/Social';
 import SharedPage from './pages/SharedPage';
@@ -57,7 +56,6 @@ import AdminAnalytics from './pages/AdminAnalytics';
 import ContextHub from './pages/ContextHub';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
-import SafetyProtectedRoute from './components/SafetyProtectedRoute';
 import GlobalNavSidebar from './components/GlobalNavSidebar';
 import { useGlobalNav } from './hooks/useGlobalNav';
 import GlobalNotifications from './components/GlobalNotifications';
@@ -89,10 +87,10 @@ function App() {
               />
             )}
             <Routes>
-              <Route path="/" element={<SafetyLogin />} />
-              <Route path="/search-hub" element={<SafetyProtectedRoute><SearchHub /></SafetyProtectedRoute>} />
-              <Route path="/login" element={<SafetyProtectedRoute><Login /></SafetyProtectedRoute>} />
-              <Route path="/register" element={<SafetyProtectedRoute><Register /></SafetyProtectedRoute>} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/search-hub" element={<ProtectedRoute><SearchHub /></ProtectedRoute>} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               <Route path="/homepage" element={<ProtectedRoute><Homepage /></ProtectedRoute>} />
               <Route path="/profile-quiz" element={<ProtectedRoute><ProfileQuiz /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

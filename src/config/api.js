@@ -19,8 +19,7 @@ export const apiRequest = async (endpoint, options = {}) => {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('userProfile');
-    sessionStorage.removeItem('safetyAccepted');
-    window.location.href = '/login';
+window.location.href = '/login';
     throw new Error('Session expired. Please login again.');
   }
 

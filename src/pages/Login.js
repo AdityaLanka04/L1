@@ -14,12 +14,6 @@ function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const safetyAccepted = sessionStorage.getItem('safetyAccepted');
-    if (!safetyAccepted) {
-      navigate('/', { replace: true });
-    }
-  }, [navigate]);
 
   const checkAndRedirect = async (username) => {
     try {
@@ -107,7 +101,6 @@ function Login() {
         googleUser: true
       }));
       
-      sessionStorage.setItem('safetyAccepted', 'true');
       sessionStorage.setItem('justLoggedIn', 'true');
 
       await checkAndRedirect(userData.email);
@@ -148,7 +141,6 @@ function Login() {
       localStorage.setItem('token', token);
       localStorage.setItem('username', username);
       
-      sessionStorage.setItem('safetyAccepted', 'true');
       sessionStorage.setItem('justLoggedIn', 'true');
       
       await checkAndRedirect(username);

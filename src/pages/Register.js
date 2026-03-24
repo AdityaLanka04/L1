@@ -19,12 +19,6 @@ function Register() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const safetyAccepted = sessionStorage.getItem('safetyAccepted');
-    if (!safetyAccepted) {
-      navigate('/', { replace: true });
-    }
-  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -60,7 +54,6 @@ function Register() {
         googleUser: true
       }));
       
-      sessionStorage.setItem('safetyAccepted', 'true');
       sessionStorage.setItem('justLoggedIn', 'true');
       navigate('/profile-quiz');
     } catch (error) {
