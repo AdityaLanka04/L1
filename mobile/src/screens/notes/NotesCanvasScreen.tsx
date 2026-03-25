@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import {
+  Alert,
   LayoutChangeEvent,
   Modal,
   Pressable,
@@ -22,22 +23,27 @@ import {
 } from '@shopify/react-native-skia';
 import Svg, { Circle, G, Line, Path, Polygon, Rect, Text as SvgText } from 'react-native-svg';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import HapticTouchable from './HapticTouchable';
-import { NOTE_FONT_OPTIONS, normalizeNoteFont, resolveNoteFont } from '../constants/noteFonts';
-import { rgbaFromHex } from '../utils/theme';
-import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import HapticTouchable from '../../components/HapticTouchable';
+import { NOTE_FONT_OPTIONS, normalizeNoteFont, resolveNoteFont } from '../../constants/noteFonts';
+import { rgbaFromHex } from '../../utils/theme';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import {
+  buildNoteContentFromBlocks,
   type CanvasDrawElement,
   type CanvasElement,
   type CanvasLineElement,
   type CanvasPoint,
+  createCanvasBlock,
   createCanvasPreviewDataUrl,
   distance,
   parseCanvasElements,
   pathFromPoints,
   serializeCanvasElements,
   simplifyStrokePoints,
-} from '../utils/noteCanvas';
+} from '../../utils/noteCanvas';
+import { createNote } from '../../services/api';
+import { useAppTheme } from '../../contexts/ThemeContext';
+import type { NotesRootProps } from './NotesShared';
 
 type ThemeColors = {
   bgPrimary: string;
@@ -51,17 +57,20 @@ type ThemeColors = {
   isLight: boolean;
 };
 
-type Props = {
-  visible: boolean;
+type Props = NotesRootProps & {
+  onBack: () => void;
+  onSaved: (payload?: { canvasData: string; previewData: string }) => void;
   initialData?: string;
-  theme: ThemeColors;
-  onClose: () => void;
-  onSave: (canvasData: string, previewData: string) => void;
+  mode?: 'note' | 'attachment';
 };
 
 type ToolMode =
   | 'select'
+  | 'pencil'
   | 'pen'
+  | 'fountain'
+  | 'brush'
+  | 'crayon'
   | 'marker'
   | 'highlighter'
   | 'eraser'
@@ -72,9 +81,11 @@ type ToolMode =
   | 'text'
   | 'sticky';
 
-type DrawStyle = 'pen' | 'marker' | 'highlighter';
+type DrawStyle = 'pen' | 'pencil' | 'fountain' | 'brush' | 'crayon' | 'marker' | 'highlighter';
+type DrawToolMode = Extract<ToolMode, 'pencil' | 'pen' | 'fountain' | 'brush' | 'crayon' | 'marker' | 'highlighter'>;
 type BackgroundPattern = 'none' | 'dots' | 'lines';
 type ActivePanel = 'style' | 'page' | null;
+type EraserMode = 'all' | 'ink' | 'objects';
 
 type DragState =
   | {
@@ -110,10 +121,25 @@ const STICKY_COLORS = ['#fff3a8', '#ffe1a8', '#ffd1bd', '#ffd8e6', '#eadbff', '#
 const STROKE_WIDTHS = [2, 4, 6, 10, 16];
 const FONT_SIZES = [16, 20, 26, 34];
 const FILL_COLORS = ['transparent', '#171717', '#1d4ed8', '#0284c7', '#0f766e', '#dc2626', '#9333ea'] as const;
+const OPACITY_LEVELS = [0.2, 0.35, 0.5, 0.7, 0.9, 1] as const;
+
+const DRAW_PRESETS: Array<{ value: DrawToolMode; label: string; icon: ComponentProps<typeof Ionicons>['name'] }> = [
+  { value: 'pencil', label: 'pencil', icon: 'pencil-outline' },
+  { value: 'pen', label: 'pen', icon: 'create-outline' },
+  { value: 'fountain', label: 'fountain', icon: 'color-fill-outline' },
+  { value: 'brush', label: 'brush', icon: 'brush-outline' },
+  { value: 'crayon', label: 'crayon', icon: 'color-palette-outline' },
+  { value: 'marker', label: 'marker', icon: 'duplicate-outline' },
+  { value: 'highlighter', label: 'glow', icon: 'color-wand-outline' },
+];
 
 const TOOLS: Array<{ value: ToolMode; label: string; icon: ComponentProps<typeof Ionicons>['name'] }> = [
   { value: 'select', label: 'select', icon: 'scan-outline' },
-  { value: 'pen', label: 'pen', icon: 'pencil-outline' },
+  { value: 'pencil', label: 'pencil', icon: 'pencil-outline' },
+  { value: 'pen', label: 'pen', icon: 'create-outline' },
+  { value: 'fountain', label: 'fountain', icon: 'color-fill-outline' },
+  { value: 'brush', label: 'brush', icon: 'brush-outline' },
+  { value: 'crayon', label: 'crayon', icon: 'color-palette-outline' },
   { value: 'marker', label: 'marker', icon: 'brush-outline' },
   { value: 'highlighter', label: 'glow', icon: 'color-wand-outline' },
   { value: 'eraser', label: 'erase', icon: 'remove-outline' },
@@ -125,6 +151,10 @@ const TOOLS: Array<{ value: ToolMode; label: string; icon: ComponentProps<typeof
   { value: 'sticky', label: 'sticky', icon: 'document-text-outline' },
 ];
 
+function isDrawTool(tool: ToolMode): tool is DrawToolMode {
+  return DRAW_PRESETS.some((preset) => preset.value === tool);
+}
+
 function cloneElements(elements: CanvasElement[]) {
   return elements.map((element) => {
     if (element.type === 'draw') {
@@ -135,21 +165,61 @@ function cloneElements(elements: CanvasElement[]) {
 }
 
 function toolToDrawStyle(tool: ToolMode): DrawStyle {
+  if (tool === 'pencil') return 'pencil';
   if (tool === 'marker') return 'marker';
   if (tool === 'highlighter') return 'highlighter';
+  if (tool === 'fountain') return 'fountain';
+  if (tool === 'brush') return 'brush';
+  if (tool === 'crayon') return 'crayon';
   return 'pen';
 }
 
 function normalizeOpacity(drawStyle: DrawStyle, opacity: number) {
+  if (drawStyle === 'pencil') return Math.min(opacity, 0.7);
+  if (drawStyle === 'fountain') return Math.min(opacity, 0.94);
+  if (drawStyle === 'brush') return Math.min(opacity, 0.88);
+  if (drawStyle === 'crayon') return Math.min(opacity, 0.62);
   if (drawStyle === 'marker') return Math.min(opacity, 0.72);
   if (drawStyle === 'highlighter') return Math.min(opacity, 0.26);
   return opacity;
 }
 
 function effectiveStrokeWidth(drawStyle: DrawStyle, strokeWidth: number) {
+  if (drawStyle === 'pencil') return Math.max(1, strokeWidth * 0.7);
+  if (drawStyle === 'fountain') return Math.max(strokeWidth, 3);
+  if (drawStyle === 'brush') return Math.max(strokeWidth, 10);
+  if (drawStyle === 'crayon') return Math.max(strokeWidth, 6);
   if (drawStyle === 'marker') return Math.max(strokeWidth, 8);
   if (drawStyle === 'highlighter') return Math.max(strokeWidth, 16);
   return strokeWidth;
+}
+
+function getDrawLayers(drawStyle: DrawStyle | undefined, strokeWidth: number, opacity = 1) {
+  switch (drawStyle) {
+    case 'pencil':
+      return [
+        { strokeWidth: Math.max(1, strokeWidth * 1.25), opacity: Math.min(opacity * 0.18, 0.18) },
+        { strokeWidth: Math.max(1, strokeWidth * 0.82), opacity: Math.min(opacity * 0.86, 0.86) },
+      ];
+    case 'fountain':
+      return [
+        { strokeWidth: Math.max(1, strokeWidth * 1.45), opacity: Math.min(opacity * 0.18, 0.18) },
+        { strokeWidth: Math.max(1, strokeWidth * 0.9), opacity },
+      ];
+    case 'brush':
+      return [
+        { strokeWidth: Math.max(2, strokeWidth * 1.9), opacity: Math.min(opacity * 0.2, 0.22) },
+        { strokeWidth: Math.max(2, strokeWidth * 1.3), opacity: Math.min(opacity * 0.72, 0.72) },
+        { strokeWidth, opacity },
+      ];
+    case 'crayon':
+      return [
+        { strokeWidth: Math.max(2, strokeWidth * 1.4), opacity: Math.min(opacity * 0.22, 0.22) },
+        { strokeWidth: Math.max(1, strokeWidth), opacity: Math.min(opacity * 0.8, 0.8) },
+      ];
+    default:
+      return [{ strokeWidth, opacity }];
+  }
 }
 
 function smoothPath(points: CanvasPoint[]) {
@@ -278,6 +348,12 @@ function isPointInsideElement(point: CanvasPoint, element: CanvasElement) {
 
   const bounds = getBounds(element);
   return point.x >= bounds.x && point.x <= bounds.x + bounds.width && point.y >= bounds.y && point.y <= bounds.y + bounds.height;
+}
+
+function matchesEraserMode(element: CanvasElement, eraserMode: EraserMode) {
+  if (eraserMode === 'all') return true;
+  if (eraserMode === 'ink') return element.type === 'draw';
+  return element.type !== 'draw';
 }
 
 function moveElement(element: CanvasElement, dx: number, dy: number): CanvasElement {
@@ -472,17 +548,22 @@ function renderSvgElement(element: CanvasElement, selected = false) {
   const selectionColor = '#f0b465';
 
   if (element.type === 'draw') {
+    const layers = getDrawLayers(element.drawStyle, element.strokeWidth, element.opacity ?? 1);
     return (
-      <Path
-        key={String(element.id)}
-        d={pathFromPoints(element.points)}
-        fill="none"
-        stroke={selected ? selectionColor : element.color}
-        strokeWidth={selected ? element.strokeWidth + 1 : element.strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={element.opacity ?? 1}
-      />
+      <G key={String(element.id)}>
+        {layers.map((layer, index) => (
+          <Path
+            key={`${String(element.id)}-${index}`}
+            d={pathFromPoints(element.points)}
+            fill="none"
+            stroke={selected ? selectionColor : element.color}
+            strokeWidth={selected ? layer.strokeWidth + 1 : layer.strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={layer.opacity}
+          />
+        ))}
+      </G>
     );
   }
 
@@ -636,17 +717,22 @@ function renderSkiaArrowHead(element: CanvasLineElement, color: string, opacity 
 
 function renderSkiaElement(element: CanvasElement) {
   if (element.type === 'draw') {
+    const layers = getDrawLayers(element.drawStyle, element.strokeWidth, element.opacity ?? 1);
     return (
-      <SkiaPath
-        key={String(element.id)}
-        path={pathFromPoints(element.points)}
-        color={element.color}
-        style="stroke"
-        strokeWidth={element.strokeWidth}
-        strokeCap="round"
-        strokeJoin="round"
-        opacity={element.opacity ?? 1}
-      />
+      <SkiaGroup key={String(element.id)}>
+        {layers.map((layer, index) => (
+          <SkiaPath
+            key={`${String(element.id)}-${index}`}
+            path={pathFromPoints(element.points)}
+            color={element.color}
+            style="stroke"
+            strokeWidth={layer.strokeWidth}
+            strokeCap="round"
+            strokeJoin="round"
+            opacity={layer.opacity}
+          />
+        ))}
+      </SkiaGroup>
     );
   }
 
@@ -735,7 +821,9 @@ export function CanvasPreview({
   );
 }
 
-export default function CanvasNoteModal({ visible, initialData, theme, onClose, onSave }: Props) {
+export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, mode = 'note' }: Props) {
+  const { selectedTheme } = useAppTheme();
+  const theme: ThemeColors = selectedTheme;
   const layout = useResponsiveLayout();
   const insets = useSafeAreaInsets();
   const [elements, setElements] = useState<CanvasElement[]>([]);
@@ -758,6 +846,8 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
   const [historyIndex, setHistoryIndex] = useState(0);
   const [showTextModal, setShowTextModal] = useState(false);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+  const [eraserMode, setEraserMode] = useState<EraserMode>('all');
+  const [saving, setSaving] = useState(false);
   const [textDraft, setTextDraft] = useState('');
   const [textTarget, setTextTarget] = useState<{
     mode: 'create' | 'edit';
@@ -782,9 +872,12 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
   const selectedIsShape = selectedElement?.type === 'rectangle' || selectedElement?.type === 'circle';
+  const selectedIsLinear = selectedElement?.type === 'line' || selectedElement?.type === 'arrow';
   const selectedIsText = selectedElement?.type === 'text';
   const selectedIsSticky = selectedElement?.type === 'sticky';
   const selectedIsDraw = selectedElement?.type === 'draw';
+  const isDrawingTool = isDrawTool(tool);
+  const activeDrawStyle = selectedElement?.type === 'draw' ? selectedElement.drawStyle || 'pen' : toolToDrawStyle(tool);
   const toolbarBorder = rgbaFromHex(theme.borderStrong, theme.isLight ? 0.88 : 0.84);
   const softAccent = rgbaFromHex(theme.accent, theme.isLight ? 0.1 : 0.16);
   const paperInk = rgbaFromHex(theme.textSecondary, theme.isLight ? 0.1 : 0.16);
@@ -804,7 +897,6 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
   }, [canvasSize]);
 
   useEffect(() => {
-    if (!visible) return;
     const nextElements = cloneElements(parseCanvasElements(initialData));
     const nextHistory = [cloneElements(nextElements)];
     setElements(nextElements);
@@ -825,6 +917,7 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
     setShowGrid(false);
     setSmoothDrawing(true);
     setShapeRecognition(true);
+    setEraserMode('all');
     setCanvasSize((current) => ({ width: current.width, height: stageMinHeight }));
     canvasSizeRef.current = { width: canvasSizeRef.current.width, height: stageMinHeight };
     viewportHeightRef.current = stageMinHeight;
@@ -835,7 +928,17 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
     historyIndexRef.current = 0;
     setHistory(nextHistory);
     setHistoryIndex(0);
-  }, [initialData, visible]);
+  }, [initialData]);
+
+  useEffect(() => {
+    viewportHeightRef.current = Math.max(viewportHeightRef.current, stageMinHeight);
+    setCanvasSize((current) => {
+      if (current.height >= stageMinHeight) return current;
+      const next = { width: current.width, height: stageMinHeight };
+      canvasSizeRef.current = next;
+      return next;
+    });
+  }, [stageMinHeight]);
 
   useEffect(() => {
     return () => {
@@ -1040,10 +1143,33 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
     closeTextModal();
   };
 
-  const saveCanvas = () => {
+  const saveCanvas = async () => {
     const canvasData = serializeCanvasElements(elementsRef.current);
     const previewData = createCanvasPreviewDataUrl(canvasData, Math.max(320, canvasSize.width), Math.max(220, canvasSize.height));
-    onSave(canvasData, previewData);
+
+    if (mode === 'attachment') {
+      onSaved({ canvasData, previewData });
+      return;
+    }
+
+    const content = buildNoteContentFromBlocks([
+      createCanvasBlock(canvasData, previewData || undefined),
+    ]);
+
+    try {
+      setSaving(true);
+      await createNote({
+        userId: user.username,
+        title: 'Canvas sketch',
+        content,
+      });
+      onSaved();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save canvas note';
+      Alert.alert('Save failed', message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleGestureStart = (x: number, y: number) => {
@@ -1069,7 +1195,7 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
 
     if (tool === 'eraser') {
       dragRef.current = { mode: 'erase' };
-      const remaining = elementsRef.current.filter((element) => !isPointInsideElement(point, element));
+      const remaining = elementsRef.current.filter((element) => !(matchesEraserMode(element, eraserMode) && isPointInsideElement(point, element)));
       if (remaining.length !== elementsRef.current.length) {
         draftElementsRef.current = remaining;
         setSelectedId(null);
@@ -1083,7 +1209,7 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
       return;
     }
 
-    if (tool === 'pen' || tool === 'marker' || tool === 'highlighter') {
+    if (isDrawTool(tool)) {
       const drawStyle = toolToDrawStyle(tool);
       strokeRef.current = {
         id: `draw-${Date.now()}`,
@@ -1108,7 +1234,7 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
     maybeExtendCanvasNear(point);
     const active = dragRef.current;
 
-    if ((tool === 'pen' || tool === 'marker' || tool === 'highlighter') && strokeRef.current && !active) {
+    if (isDrawTool(tool) && strokeRef.current && !active) {
       const current = strokeRef.current;
       if (distance(current.points[current.points.length - 1], point) >= 1) {
         current.points.push(point);
@@ -1131,7 +1257,7 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
 
     if (active.mode === 'erase') {
       const source = draftElementsRef.current ?? elementsRef.current;
-      const remaining = source.filter((element) => !isPointInsideElement(point, element));
+      const remaining = source.filter((element) => !(matchesEraserMode(element, eraserMode) && isPointInsideElement(point, element)));
       if (remaining.length !== source.length) {
         draftElementsRef.current = remaining;
         scheduleVisualSync();
@@ -1148,7 +1274,7 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
     maybeExtendCanvasNear(point);
     const active = dragRef.current;
 
-    if ((tool === 'pen' || tool === 'marker' || tool === 'highlighter') && strokeRef.current) {
+    if (isDrawTool(tool) && strokeRef.current) {
       const drawStyle = strokeRef.current.drawStyle || 'pen';
       let points = simplifyStrokePoints(strokeRef.current.points, 1.6);
       if (smoothDrawing) points = smoothPath(points);
@@ -1260,18 +1386,18 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
         .onTouchesCancelled(() => {
           handleGestureCancel();
         }),
-    [tool, color, fillColor, strokeWidth, opacity, smoothDrawing, shapeRecognition]
+    [tool, color, fillColor, strokeWidth, opacity, smoothDrawing, shapeRecognition, eraserMode]
   );
 
   const currentToolLabel = TOOLS.find((item) => item.value === tool)?.label ?? 'canvas';
-  const isDrawingTool = tool === 'pen' || tool === 'marker' || tool === 'highlighter';
   const showFillControls = tool === 'rectangle' || tool === 'circle' || selectedIsShape;
   const showFontControls = tool === 'text' || tool === 'sticky' || selectedIsText || selectedIsSticky;
+  const showOpacityControls =
+    isDrawingTool || selectedIsDraw || selectedIsShape || selectedIsLinear || tool === 'text' || tool === 'sticky' || selectedIsText || selectedIsSticky;
   const colorOptions = tool === 'sticky' || selectedIsSticky ? STICKY_COLORS : COLORS;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.root, { backgroundColor: theme.bgPrimary }]} edges={[]}>
+    <SafeAreaView style={[styles.root, { backgroundColor: theme.bgPrimary }]} edges={[]}>
         <View style={[styles.stageArea, { paddingBottom: stageBottomInset }]}>
           <View style={[styles.stageShell, { borderColor: toolbarBorder, backgroundColor: '#fffdf8' }]}>
             <ScrollView
@@ -1418,19 +1544,19 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
               },
             ]}
           >
-            <HapticTouchable onPress={onClose} style={[styles.navBtn, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panelAlt, 0.9) }]} haptic="selection">
+            <HapticTouchable onPress={onBack} style={[styles.navBtn, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panelAlt, 0.9) }]} haptic="selection">
               <Ionicons name="chevron-back" size={20} color={theme.accentHover} />
             </HapticTouchable>
 
             <View style={[styles.navCenterCard, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.bgPrimary, 0.74) }]}>
-              <Text style={[styles.navTitle, { color: theme.accentHover }]}>canvas</Text>
+              <Text style={[styles.navTitle, { color: theme.accentHover }]}>canvas studio</Text>
               <Text style={[styles.navSubtitle, { color: theme.textSecondary }]}>
                 {selectedElement ? `${selectedElement.type} selected` : currentToolLabel}
               </Text>
             </View>
 
-            <HapticTouchable style={[styles.navPrimaryBtn, { backgroundColor: theme.accent }]} onPress={saveCanvas} haptic="success">
-              <Text style={[styles.navPrimaryBtnText, { color: theme.bgPrimary }]}>{layout.isLandscape ? 'save' : 'done'}</Text>
+            <HapticTouchable style={[styles.navPrimaryBtn, { backgroundColor: theme.accent, opacity: saving ? 0.7 : 1 }]} onPress={saveCanvas} haptic="success" disabled={saving}>
+              <Text style={[styles.navPrimaryBtnText, { color: theme.bgPrimary }]}>{saving ? 'saving' : layout.isLandscape ? 'save' : 'done'}</Text>
             </HapticTouchable>
           </View>
         </View>
@@ -1447,9 +1573,43 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
         >
           {activePanel ? (
             <View style={[styles.traySurface, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panel, 0.98) }]}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inspectorRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.inspectorRow}
+                keyboardShouldPersistTaps="handled"
+                directionalLockEnabled
+              >
                 {activePanel === 'style' ? (
                   <>
+                    {tool === 'eraser' ? (
+                      <View style={styles.inspectorGroup}>
+                        <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>erase</Text>
+                        <View style={styles.toggleRow}>
+                          {([
+                            ['all', 'all layers'],
+                            ['ink', 'ink only'],
+                            ['objects', 'objects'],
+                          ] as const).map(([mode, label]) => (
+                            <HapticTouchable
+                              key={mode}
+                              style={[
+                                styles.toggleChip,
+                                {
+                                  borderColor: eraserMode === mode ? theme.accent : toolbarBorder,
+                                  backgroundColor: eraserMode === mode ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                                },
+                              ]}
+                              onPress={() => setEraserMode(mode)}
+                              haptic="selection"
+                            >
+                              <Text style={[styles.toggleChipText, { color: theme.accentHover }]}>{label}</Text>
+                            </HapticTouchable>
+                          ))}
+                        </View>
+                      </View>
+                    ) : null}
+
                     <View style={styles.inspectorGroup}>
                       <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>color</Text>
                       <View style={styles.swatchRow}>
@@ -1540,6 +1700,52 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
                                 haptic="selection"
                               >
                                 {preset === 'transparent' ? <Ionicons name="close" size={13} color={theme.danger} /> : active ? <Ionicons name="checkmark" size={13} color="#fff" /> : null}
+                              </HapticTouchable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    ) : null}
+
+                    {showOpacityControls ? (
+                      <View style={styles.inspectorGroup}>
+                        <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>opacity</Text>
+                        <View style={styles.widthRow}>
+                          {OPACITY_LEVELS.map((level) => {
+                            const resolvedLevel = selectedElement?.type === 'draw' ? normalizeOpacity(activeDrawStyle, level) : level;
+                            const active = Math.abs(opacity - resolvedLevel) < 0.05;
+                            return (
+                              <HapticTouchable
+                                key={String(level)}
+                                style={[
+                                  styles.sizeChip,
+                                  {
+                                    borderColor: active ? theme.accent : toolbarBorder,
+                                    backgroundColor: active ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                                  },
+                                ]}
+                                onPress={() => {
+                                  const nextOpacity = selectedElement?.type === 'draw' || isDrawingTool
+                                    ? normalizeOpacity(activeDrawStyle, level)
+                                    : level;
+                                  setOpacity(nextOpacity);
+                                  if (selectedId != null) {
+                                    patchSelected((element) => {
+                                      if ('opacity' in element) {
+                                        return {
+                                          ...element,
+                                          opacity: element.type === 'draw'
+                                            ? normalizeOpacity(element.drawStyle || activeDrawStyle, level)
+                                            : level,
+                                        };
+                                      }
+                                      return element;
+                                    });
+                                  }
+                                }}
+                                haptic="selection"
+                              >
+                                <Text style={[styles.sizeChipText, { color: theme.accentHover }]}>{Math.round(level * 100)}%</Text>
                               </HapticTouchable>
                             );
                           })}
@@ -1663,6 +1869,8 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={[styles.toolbarRow, layout.isTablet && styles.toolbarRowCentered]}
+              keyboardShouldPersistTaps="handled"
+              directionalLockEnabled
             >
               <HapticTouchable
                 style={[
@@ -1704,7 +1912,6 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
                   <Text style={[styles.utilityBtnText, { color: theme.accentHover }]}>edit</Text>
                 </HapticTouchable>
               ) : null}
-
               {TOOLS.map((item) => {
                 const active = tool === item.value;
                 return (
@@ -1724,7 +1931,7 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
                     <Text style={[styles.toolBtnText, { color: active ? theme.bgPrimary : theme.accentHover }]}>{item.label}</Text>
                   </HapticTouchable>
                 );
-              })} 
+              })}
             </ScrollView>
           </View>
         </View>
@@ -1765,7 +1972,6 @@ export default function CanvasNoteModal({ visible, initialData, theme, onClose, 
           </View>
         </Modal>
       </SafeAreaView>
-    </Modal>
   );
 }
 

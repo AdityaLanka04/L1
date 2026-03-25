@@ -12,7 +12,7 @@ export type CanvasDrawElement = {
   color: string;
   strokeWidth: number;
   opacity?: number;
-  drawStyle?: 'pen' | 'marker' | 'highlighter';
+  drawStyle?: 'pen' | 'pencil' | 'fountain' | 'brush' | 'crayon' | 'marker' | 'highlighter';
 };
 
 export type CanvasRectangleElement = {
@@ -167,6 +167,7 @@ function sanitizeCanvasElement(element: any): CanvasElement | null {
   const id = element.id ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   if (element.type === 'draw') {
+    const allowedDrawStyles = new Set(['pen', 'pencil', 'fountain', 'brush', 'crayon', 'marker', 'highlighter']);
     const points = Array.isArray(element.points) ? element.points.map(sanitizePoint).filter(Boolean) : [];
     if (!points.length) return null;
     return {
@@ -176,7 +177,7 @@ function sanitizeCanvasElement(element: any): CanvasElement | null {
       color: typeof element.color === 'string' ? element.color : '#111827',
       strokeWidth: typeof element.strokeWidth === 'number' ? element.strokeWidth : 2,
       opacity: typeof element.opacity === 'number' ? element.opacity : 1,
-      drawStyle: element.drawStyle === 'marker' || element.drawStyle === 'highlighter' ? element.drawStyle : 'pen',
+      drawStyle: typeof element.drawStyle === 'string' && allowedDrawStyles.has(element.drawStyle) ? element.drawStyle : 'pen',
     };
   }
 
