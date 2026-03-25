@@ -15,6 +15,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import {
   Canvas as SkiaCanvas,
   Circle as SkiaCircle,
+  DashPathEffect,
   Group as SkiaGroup,
   Line as SkiaLine,
   Path as SkiaPath,
@@ -32,12 +33,18 @@ import {
   type CanvasDrawElement,
   type CanvasElement,
   type CanvasLineElement,
+  type CanvasPolygonKind,
   type CanvasPoint,
+  type CanvasStrokePattern,
   createCanvasBlock,
   createCanvasPreviewDataUrl,
   distance,
+  getClosedPathFromPoints,
+  getDrawStylePaths,
+  getPolygonPoints,
+  getStrokeDashArray,
+  getStrokeDashIntervals,
   parseCanvasElements,
-  pathFromPoints,
   serializeCanvasElements,
   simplifyStrokePoints,
 } from '../../utils/noteCanvas';
@@ -73,17 +80,25 @@ type ToolMode =
   | 'crayon'
   | 'marker'
   | 'highlighter'
+  | 'charcoal'
+  | 'calligraphy'
+  | 'spray'
+  | 'chalk'
   | 'eraser'
   | 'rectangle'
   | 'circle'
   | 'line'
   | 'arrow'
+  | 'triangle'
+  | 'diamond'
+  | 'star'
   | 'text'
   | 'sticky';
 
-type DrawStyle = 'pen' | 'pencil' | 'fountain' | 'brush' | 'crayon' | 'marker' | 'highlighter';
-type DrawToolMode = Extract<ToolMode, 'pencil' | 'pen' | 'fountain' | 'brush' | 'crayon' | 'marker' | 'highlighter'>;
-type BackgroundPattern = 'none' | 'dots' | 'lines';
+type DrawStyle = 'pen' | 'pencil' | 'fountain' | 'brush' | 'crayon' | 'marker' | 'highlighter' | 'charcoal' | 'calligraphy' | 'spray' | 'chalk';
+type DrawToolMode = Extract<ToolMode, 'pencil' | 'pen' | 'fountain' | 'brush' | 'crayon' | 'marker' | 'highlighter' | 'charcoal' | 'calligraphy' | 'spray' | 'chalk'>;
+type ShapeToolMode = Extract<ToolMode, 'rectangle' | 'circle' | 'line' | 'arrow' | 'triangle' | 'diamond' | 'star'>;
+type BackgroundPattern = 'none' | 'dots' | 'lines' | 'graph';
 type ActivePanel = 'style' | 'page' | null;
 type EraserMode = 'all' | 'ink' | 'objects';
 
@@ -97,7 +112,7 @@ type DragState =
   | {
       mode: 'shape';
       start: CanvasPoint;
-      tool: Extract<ToolMode, 'rectangle' | 'circle' | 'line' | 'arrow'>;
+      tool: ShapeToolMode;
     }
   | {
       mode: 'erase';
@@ -106,22 +121,32 @@ type DragState =
 
 const COLORS = [
   '#171717',
+  '#475569',
+  '#64748b',
+  '#0f172a',
   '#334155',
+  '#1e40af',
   '#1d4ed8',
   '#0284c7',
+  '#0ea5e9',
   '#0f766e',
   '#15803d',
+  '#22c55e',
   '#ca8a04',
+  '#f59e0b',
   '#ea580c',
   '#dc2626',
+  '#ef4444',
   '#9333ea',
+  '#db2777',
 ] as const;
 
 const STICKY_COLORS = ['#fff3a8', '#ffe1a8', '#ffd1bd', '#ffd8e6', '#eadbff', '#dbeafe', '#ccfbf1'] as const;
-const STROKE_WIDTHS = [2, 4, 6, 10, 16];
+const STROKE_WIDTHS = [1, 2, 4, 6, 10, 16, 24];
 const FONT_SIZES = [16, 20, 26, 34];
-const FILL_COLORS = ['transparent', '#171717', '#1d4ed8', '#0284c7', '#0f766e', '#dc2626', '#9333ea'] as const;
+const FILL_COLORS = ['transparent', '#171717', '#475569', '#1d4ed8', '#0284c7', '#0f766e', '#22c55e', '#f59e0b', '#dc2626', '#9333ea'] as const;
 const OPACITY_LEVELS = [0.2, 0.35, 0.5, 0.7, 0.9, 1] as const;
+const STROKE_PATTERNS: CanvasStrokePattern[] = ['solid', 'dashed', 'dotted'];
 
 const DRAW_PRESETS: Array<{ value: DrawToolMode; label: string; icon: ComponentProps<typeof Ionicons>['name'] }> = [
   { value: 'pencil', label: 'pencil', icon: 'pencil-outline' },
@@ -130,7 +155,11 @@ const DRAW_PRESETS: Array<{ value: DrawToolMode; label: string; icon: ComponentP
   { value: 'brush', label: 'brush', icon: 'brush-outline' },
   { value: 'crayon', label: 'crayon', icon: 'color-palette-outline' },
   { value: 'marker', label: 'marker', icon: 'duplicate-outline' },
-  { value: 'highlighter', label: 'glow', icon: 'color-wand-outline' },
+  { value: 'highlighter', label: 'highlight', icon: 'color-wand-outline' },
+  { value: 'charcoal', label: 'charcoal', icon: 'flame-outline' },
+  { value: 'calligraphy', label: 'calligraphy', icon: 'leaf-outline' },
+  { value: 'spray', label: 'spray', icon: 'sparkles-outline' },
+  { value: 'chalk', label: 'chalk', icon: 'apps-outline' },
 ];
 
 const TOOLS: Array<{ value: ToolMode; label: string; icon: ComponentProps<typeof Ionicons>['name'] }> = [
@@ -141,18 +170,35 @@ const TOOLS: Array<{ value: ToolMode; label: string; icon: ComponentProps<typeof
   { value: 'brush', label: 'brush', icon: 'brush-outline' },
   { value: 'crayon', label: 'crayon', icon: 'color-palette-outline' },
   { value: 'marker', label: 'marker', icon: 'brush-outline' },
-  { value: 'highlighter', label: 'glow', icon: 'color-wand-outline' },
+  { value: 'highlighter', label: 'highlight', icon: 'color-wand-outline' },
+  { value: 'charcoal', label: 'charcoal', icon: 'flame-outline' },
+  { value: 'calligraphy', label: 'calligraphy', icon: 'leaf-outline' },
+  { value: 'spray', label: 'spray', icon: 'sparkles-outline' },
+  { value: 'chalk', label: 'chalk', icon: 'apps-outline' },
   { value: 'eraser', label: 'erase', icon: 'remove-outline' },
   { value: 'rectangle', label: 'rect', icon: 'square-outline' },
   { value: 'circle', label: 'circle', icon: 'ellipse-outline' },
   { value: 'line', label: 'line', icon: 'remove-outline' },
   { value: 'arrow', label: 'arrow', icon: 'arrow-forward-outline' },
+  { value: 'triangle', label: 'triangle', icon: 'triangle-outline' },
+  { value: 'diamond', label: 'diamond', icon: 'diamond-outline' },
+  { value: 'star', label: 'star', icon: 'star-outline' },
   { value: 'text', label: 'text', icon: 'text-outline' },
   { value: 'sticky', label: 'sticky', icon: 'document-text-outline' },
 ];
 
 function isDrawTool(tool: ToolMode): tool is DrawToolMode {
   return DRAW_PRESETS.some((preset) => preset.value === tool);
+}
+
+function isPolygonTool(tool: ToolMode): tool is Extract<ToolMode, 'triangle' | 'diamond' | 'star'> {
+  return tool === 'triangle' || tool === 'diamond' || tool === 'star';
+}
+
+function shapeToolToPolygonKind(tool: Extract<ToolMode, 'triangle' | 'diamond' | 'star'>): CanvasPolygonKind {
+  if (tool === 'diamond') return 'diamond';
+  if (tool === 'star') return 'star';
+  return 'triangle';
 }
 
 function cloneElements(elements: CanvasElement[]) {
@@ -171,6 +217,10 @@ function toolToDrawStyle(tool: ToolMode): DrawStyle {
   if (tool === 'fountain') return 'fountain';
   if (tool === 'brush') return 'brush';
   if (tool === 'crayon') return 'crayon';
+  if (tool === 'charcoal') return 'charcoal';
+  if (tool === 'calligraphy') return 'calligraphy';
+  if (tool === 'spray') return 'spray';
+  if (tool === 'chalk') return 'chalk';
   return 'pen';
 }
 
@@ -181,6 +231,10 @@ function normalizeOpacity(drawStyle: DrawStyle, opacity: number) {
   if (drawStyle === 'crayon') return Math.min(opacity, 0.62);
   if (drawStyle === 'marker') return Math.min(opacity, 0.72);
   if (drawStyle === 'highlighter') return Math.min(opacity, 0.26);
+  if (drawStyle === 'charcoal') return Math.min(opacity, 0.76);
+  if (drawStyle === 'calligraphy') return Math.min(opacity, 0.94);
+  if (drawStyle === 'spray') return Math.min(opacity, 0.42);
+  if (drawStyle === 'chalk') return Math.min(opacity, 0.84);
   return opacity;
 }
 
@@ -191,35 +245,11 @@ function effectiveStrokeWidth(drawStyle: DrawStyle, strokeWidth: number) {
   if (drawStyle === 'crayon') return Math.max(strokeWidth, 6);
   if (drawStyle === 'marker') return Math.max(strokeWidth, 8);
   if (drawStyle === 'highlighter') return Math.max(strokeWidth, 16);
+  if (drawStyle === 'charcoal') return Math.max(strokeWidth, 8);
+  if (drawStyle === 'calligraphy') return Math.max(strokeWidth, 7);
+  if (drawStyle === 'spray') return Math.max(1, strokeWidth * 0.9);
+  if (drawStyle === 'chalk') return Math.max(strokeWidth, 7);
   return strokeWidth;
-}
-
-function getDrawLayers(drawStyle: DrawStyle | undefined, strokeWidth: number, opacity = 1) {
-  switch (drawStyle) {
-    case 'pencil':
-      return [
-        { strokeWidth: Math.max(1, strokeWidth * 1.25), opacity: Math.min(opacity * 0.18, 0.18) },
-        { strokeWidth: Math.max(1, strokeWidth * 0.82), opacity: Math.min(opacity * 0.86, 0.86) },
-      ];
-    case 'fountain':
-      return [
-        { strokeWidth: Math.max(1, strokeWidth * 1.45), opacity: Math.min(opacity * 0.18, 0.18) },
-        { strokeWidth: Math.max(1, strokeWidth * 0.9), opacity },
-      ];
-    case 'brush':
-      return [
-        { strokeWidth: Math.max(2, strokeWidth * 1.9), opacity: Math.min(opacity * 0.2, 0.22) },
-        { strokeWidth: Math.max(2, strokeWidth * 1.3), opacity: Math.min(opacity * 0.72, 0.72) },
-        { strokeWidth, opacity },
-      ];
-    case 'crayon':
-      return [
-        { strokeWidth: Math.max(2, strokeWidth * 1.4), opacity: Math.min(opacity * 0.22, 0.22) },
-        { strokeWidth: Math.max(1, strokeWidth), opacity: Math.min(opacity * 0.8, 0.8) },
-      ];
-    default:
-      return [{ strokeWidth, opacity }];
-  }
 }
 
 function smoothPath(points: CanvasPoint[]) {
@@ -272,6 +302,39 @@ function pointToLineDistance(point: CanvasPoint, start: CanvasPoint, end: Canvas
   return numerator / length;
 }
 
+function isPointInPolygon(point: CanvasPoint, vertices: CanvasPoint[]) {
+  let inside = false;
+  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i, i += 1) {
+    const xi = vertices[i].x;
+    const yi = vertices[i].y;
+    const xj = vertices[j].x;
+    const yj = vertices[j].y;
+    const intersects = yi > point.y !== yj > point.y && point.x < ((xj - xi) * (point.y - yi)) / ((yj - yi) || 1e-6) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function getArrowHeadPoints(element: CanvasLineElement) {
+  const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1);
+  const arrowLength = 16;
+  const p1 = {
+    x: element.x2 - arrowLength * Math.cos(angle - Math.PI / 6),
+    y: element.y2 - arrowLength * Math.sin(angle - Math.PI / 6),
+  };
+  const p2 = {
+    x: element.x2 - arrowLength * Math.cos(angle + Math.PI / 6),
+    y: element.y2 - arrowLength * Math.sin(angle + Math.PI / 6),
+  };
+
+  return [p1, { x: element.x2, y: element.y2 }, p2];
+}
+
+function renderSkiaDashEffect(pattern: CanvasStrokePattern | undefined, strokeWidth: number) {
+  const intervals = getStrokeDashIntervals(pattern || 'solid', strokeWidth);
+  return intervals ? <DashPathEffect intervals={intervals} /> : null;
+}
+
 function getBounds(element: CanvasElement) {
   if (element.type === 'draw') {
     const xs = element.points.map((point) => point.x);
@@ -283,7 +346,7 @@ function getBounds(element: CanvasElement) {
     return { x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) };
   }
 
-  if (element.type === 'rectangle' || element.type === 'sticky') {
+  if (element.type === 'rectangle' || element.type === 'sticky' || element.type === 'polygon') {
     return { x: element.x, y: element.y, width: element.width, height: element.height };
   }
 
@@ -328,6 +391,11 @@ function isPointInsideElement(point: CanvasPoint, element: CanvasElement) {
     return point.x >= element.x && point.x <= element.x + element.width && point.y >= element.y && point.y <= element.y + element.height;
   }
 
+  if (element.type === 'polygon') {
+    const polygonPoints = getPolygonPoints(element.polygonKind, element.x, element.y, element.width, element.height);
+    return isPointInPolygon(point, polygonPoints);
+  }
+
   if (element.type === 'circle') {
     return distance(point, { x: element.x, y: element.y }) <= element.radius;
   }
@@ -361,7 +429,7 @@ function moveElement(element: CanvasElement, dx: number, dy: number): CanvasElem
     return { ...element, points: element.points.map((point) => ({ x: point.x + dx, y: point.y + dy })) };
   }
 
-  if (element.type === 'rectangle' || element.type === 'circle' || element.type === 'text' || element.type === 'sticky') {
+  if (element.type === 'rectangle' || element.type === 'circle' || element.type === 'text' || element.type === 'sticky' || element.type === 'polygon') {
     return { ...element, x: element.x + dx, y: element.y + dy } as CanvasElement;
   }
 
@@ -375,11 +443,12 @@ function moveElement(element: CanvasElement, dx: number, dy: number): CanvasElem
 }
 
 function createShapePreview(
-  tool: Extract<ToolMode, 'rectangle' | 'circle' | 'line' | 'arrow'>,
+  tool: ShapeToolMode,
   start: CanvasPoint,
   end: CanvasPoint,
   color: string,
   strokeWidth: number,
+  strokePattern: CanvasStrokePattern,
   fillColor: string,
   opacity: number
 ): CanvasElement | null {
@@ -393,6 +462,7 @@ function createShapePreview(
       height: Math.abs(end.y - start.y),
       color,
       strokeWidth,
+      strokePattern,
       fillColor,
       opacity,
     };
@@ -411,6 +481,24 @@ function createShapePreview(
       radius: Math.max(Math.abs(end.x - start.x), Math.abs(end.y - start.y)) / 2,
       color,
       strokeWidth,
+      strokePattern,
+      fillColor,
+      opacity,
+    };
+  }
+
+  if (isPolygonTool(tool)) {
+    return {
+      id: 'preview',
+      type: 'polygon',
+      polygonKind: shapeToolToPolygonKind(tool),
+      x: Math.min(start.x, end.x),
+      y: Math.min(start.y, end.y),
+      width: Math.abs(end.x - start.x),
+      height: Math.abs(end.y - start.y),
+      color,
+      strokeWidth,
+      strokePattern,
       fillColor,
       opacity,
     };
@@ -425,6 +513,7 @@ function createShapePreview(
     y2: end.y,
     color,
     strokeWidth,
+    strokePattern,
     opacity,
   };
 }
@@ -489,17 +578,7 @@ function recognizeShape(points: CanvasPoint[]) {
 }
 
 function renderSvgArrowHead(element: CanvasLineElement) {
-  const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1);
-  const arrowLength = 16;
-  const p1 = {
-    x: element.x2 - arrowLength * Math.cos(angle - Math.PI / 6),
-    y: element.y2 - arrowLength * Math.sin(angle - Math.PI / 6),
-  };
-  const p2 = {
-    x: element.x2 - arrowLength * Math.cos(angle + Math.PI / 6),
-    y: element.y2 - arrowLength * Math.sin(angle + Math.PI / 6),
-  };
-  return `${element.x2},${element.y2} ${p1.x},${p1.y} ${p2.x},${p2.y}`;
+  return getArrowHeadPoints(element).map((point) => `${point.x},${point.y}`).join(' ');
 }
 
 function renderPattern(pattern: BackgroundPattern, width: number, height: number, color: string) {
@@ -510,6 +589,19 @@ function renderPattern(pattern: BackgroundPattern, width: number, height: number
       Array.from({ length: Math.ceil(height / 26) }).map((__, yIndex) => (
         <Circle key={`dot-${xIndex}-${yIndex}`} cx={xIndex * 26 + 13} cy={yIndex * 26 + 13} r={1.1} fill={color} />
       ))
+    );
+  }
+
+  if (pattern === 'graph') {
+    return (
+      <>
+        {Array.from({ length: Math.ceil(width / 28) }).map((_, index) => (
+          <Line key={`graph-v-${index}`} x1={index * 28} y1={0} x2={index * 28} y2={height} stroke={color} strokeWidth={1} />
+        ))}
+        {Array.from({ length: Math.ceil(height / 28) }).map((_, index) => (
+          <Line key={`graph-h-${index}`} x1={0} y1={index * 28} x2={width} y2={index * 28} stroke={color} strokeWidth={1} />
+        ))}
+      </>
     );
   }
 
@@ -548,18 +640,14 @@ function renderSvgElement(element: CanvasElement, selected = false) {
   const selectionColor = '#f0b465';
 
   if (element.type === 'draw') {
-    const layers = getDrawLayers(element.drawStyle, element.strokeWidth, element.opacity ?? 1);
+    const layers = getDrawStylePaths(element.points, element.drawStyle || 'pen', element.strokeWidth, element.opacity ?? 1);
     return (
       <G key={String(element.id)}>
         {layers.map((layer, index) => (
           <Path
             key={`${String(element.id)}-${index}`}
-            d={pathFromPoints(element.points)}
-            fill="none"
-            stroke={selected ? selectionColor : element.color}
-            strokeWidth={selected ? layer.strokeWidth + 1 : layer.strokeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            d={layer.path}
+            fill={selected ? selectionColor : element.color}
             opacity={layer.opacity}
           />
         ))}
@@ -568,6 +656,7 @@ function renderSvgElement(element: CanvasElement, selected = false) {
   }
 
   if (element.type === 'rectangle') {
+    const dashArray = getStrokeDashArray(element.strokePattern || 'solid', element.strokeWidth);
     return (
       <Rect
         key={String(element.id)}
@@ -579,12 +668,14 @@ function renderSvgElement(element: CanvasElement, selected = false) {
         fill={element.fillColor && element.fillColor !== 'transparent' ? element.fillColor : 'transparent'}
         stroke={selected ? selectionColor : element.color}
         strokeWidth={selected ? element.strokeWidth + 1 : element.strokeWidth}
+        strokeDasharray={dashArray}
         opacity={element.opacity ?? 1}
       />
     );
   }
 
   if (element.type === 'circle') {
+    const dashArray = getStrokeDashArray(element.strokePattern || 'solid', element.strokeWidth);
     return (
       <Circle
         key={String(element.id)}
@@ -594,12 +685,14 @@ function renderSvgElement(element: CanvasElement, selected = false) {
         fill={element.fillColor && element.fillColor !== 'transparent' ? element.fillColor : 'transparent'}
         stroke={selected ? selectionColor : element.color}
         strokeWidth={selected ? element.strokeWidth + 1 : element.strokeWidth}
+        strokeDasharray={dashArray}
         opacity={element.opacity ?? 1}
       />
     );
   }
 
   if (element.type === 'line') {
+    const dashArray = getStrokeDashArray(element.strokePattern || 'solid', element.strokeWidth);
     return (
       <Line
         key={String(element.id)}
@@ -610,12 +703,14 @@ function renderSvgElement(element: CanvasElement, selected = false) {
         stroke={selected ? selectionColor : element.color}
         strokeWidth={selected ? element.strokeWidth + 1 : element.strokeWidth}
         strokeLinecap="round"
+        strokeDasharray={dashArray}
         opacity={element.opacity ?? 1}
       />
     );
   }
 
   if (element.type === 'arrow') {
+    const dashArray = getStrokeDashArray(element.strokePattern || 'solid', element.strokeWidth);
     return (
       <G key={String(element.id)} opacity={element.opacity ?? 1}>
         <Line
@@ -626,9 +721,28 @@ function renderSvgElement(element: CanvasElement, selected = false) {
           stroke={selected ? selectionColor : element.color}
           strokeWidth={selected ? element.strokeWidth + 1 : element.strokeWidth}
           strokeLinecap="round"
+          strokeDasharray={dashArray}
         />
         <Polygon points={renderSvgArrowHead(element)} fill={selected ? selectionColor : element.color} />
       </G>
+    );
+  }
+
+  if (element.type === 'polygon') {
+    const dashArray = getStrokeDashArray(element.strokePattern || 'solid', element.strokeWidth);
+    const points = getPolygonPoints(element.polygonKind, element.x, element.y, element.width, element.height)
+      .map((point) => `${point.x},${point.y}`)
+      .join(' ');
+    return (
+      <Polygon
+        key={String(element.id)}
+        points={points}
+        fill={element.fillColor && element.fillColor !== 'transparent' ? element.fillColor : 'transparent'}
+        stroke={selected ? selectionColor : element.color}
+        strokeWidth={selected ? element.strokeWidth + 1 : element.strokeWidth}
+        strokeDasharray={dashArray}
+        opacity={element.opacity ?? 1}
+      />
     );
   }
 
@@ -676,6 +790,10 @@ function renderSkiaPattern(pattern: BackgroundPattern, width: number, height: nu
     );
   }
 
+  if (pattern === 'graph') {
+    return renderSkiaGrid(width, height, color);
+  }
+
   return Array.from({ length: Math.ceil(height / 30) }).map((_, index) => (
     <SkiaLine key={`line-${index}`} p1={vec(0, index * 30)} p2={vec(width, index * 30)} color={color} strokeWidth={1} />
   ));
@@ -695,20 +813,11 @@ function renderSkiaGrid(width: number, height: number, color: string) {
 }
 
 function renderSkiaArrowHead(element: CanvasLineElement, color: string, opacity = 1) {
-  const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1);
-  const arrowLength = 16;
-  const p1 = {
-    x: element.x2 - arrowLength * Math.cos(angle - Math.PI / 6),
-    y: element.y2 - arrowLength * Math.sin(angle - Math.PI / 6),
-  };
-  const p2 = {
-    x: element.x2 - arrowLength * Math.cos(angle + Math.PI / 6),
-    y: element.y2 - arrowLength * Math.sin(angle + Math.PI / 6),
-  };
+  const [p1, tip, p2] = getArrowHeadPoints(element);
 
   return (
     <SkiaPath
-      path={`M ${element.x2} ${element.y2} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`}
+      path={`M ${tip.x} ${tip.y} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`}
       color={color}
       opacity={opacity}
     />
@@ -717,18 +826,15 @@ function renderSkiaArrowHead(element: CanvasLineElement, color: string, opacity 
 
 function renderSkiaElement(element: CanvasElement) {
   if (element.type === 'draw') {
-    const layers = getDrawLayers(element.drawStyle, element.strokeWidth, element.opacity ?? 1);
+    const layers = getDrawStylePaths(element.points, element.drawStyle || 'pen', element.strokeWidth, element.opacity ?? 1);
     return (
       <SkiaGroup key={String(element.id)}>
         {layers.map((layer, index) => (
           <SkiaPath
             key={`${String(element.id)}-${index}`}
-            path={pathFromPoints(element.points)}
+            path={layer.path}
             color={element.color}
-            style="stroke"
-            strokeWidth={layer.strokeWidth}
-            strokeCap="round"
-            strokeJoin="round"
+            style="fill"
             opacity={layer.opacity}
           />
         ))}
@@ -742,7 +848,9 @@ function renderSkiaElement(element: CanvasElement) {
         {element.fillColor && element.fillColor !== 'transparent' ? (
           <SkiaRoundedRect x={element.x} y={element.y} width={element.width} height={element.height} r={18} color={element.fillColor} />
         ) : null}
-        <SkiaRoundedRect x={element.x} y={element.y} width={element.width} height={element.height} r={18} color={element.color} style="stroke" strokeWidth={element.strokeWidth} />
+        <SkiaRoundedRect x={element.x} y={element.y} width={element.width} height={element.height} r={18} color={element.color} style="stroke" strokeWidth={element.strokeWidth}>
+          {renderSkiaDashEffect(element.strokePattern, element.strokeWidth)}
+        </SkiaRoundedRect>
       </SkiaGroup>
     );
   }
@@ -753,7 +861,9 @@ function renderSkiaElement(element: CanvasElement) {
         {element.fillColor && element.fillColor !== 'transparent' ? (
           <SkiaCircle cx={element.x} cy={element.y} r={element.radius} color={element.fillColor} />
         ) : null}
-        <SkiaCircle cx={element.x} cy={element.y} r={element.radius} color={element.color} style="stroke" strokeWidth={element.strokeWidth} />
+        <SkiaCircle cx={element.x} cy={element.y} r={element.radius} color={element.color} style="stroke" strokeWidth={element.strokeWidth}>
+          {renderSkiaDashEffect(element.strokePattern, element.strokeWidth)}
+        </SkiaCircle>
       </SkiaGroup>
     );
   }
@@ -767,15 +877,33 @@ function renderSkiaElement(element: CanvasElement) {
         color={element.color}
         strokeWidth={element.strokeWidth}
         opacity={element.opacity ?? 1}
-      />
+      >
+        {renderSkiaDashEffect(element.strokePattern, element.strokeWidth)}
+      </SkiaLine>
     );
   }
 
   if (element.type === 'arrow') {
     return (
       <SkiaGroup key={String(element.id)} opacity={element.opacity ?? 1}>
-        <SkiaLine p1={vec(element.x1, element.y1)} p2={vec(element.x2, element.y2)} color={element.color} strokeWidth={element.strokeWidth} />
+        <SkiaLine p1={vec(element.x1, element.y1)} p2={vec(element.x2, element.y2)} color={element.color} strokeWidth={element.strokeWidth}>
+          {renderSkiaDashEffect(element.strokePattern, element.strokeWidth)}
+        </SkiaLine>
         {renderSkiaArrowHead(element, element.color, element.opacity ?? 1)}
+      </SkiaGroup>
+    );
+  }
+
+  if (element.type === 'polygon') {
+    const path = getClosedPathFromPoints(getPolygonPoints(element.polygonKind, element.x, element.y, element.width, element.height));
+    return (
+      <SkiaGroup key={String(element.id)} opacity={element.opacity ?? 1}>
+        {element.fillColor && element.fillColor !== 'transparent' ? (
+          <SkiaPath path={path} color={element.fillColor} style="fill" />
+        ) : null}
+        <SkiaPath path={path} color={element.color} style="stroke" strokeWidth={element.strokeWidth}>
+          {renderSkiaDashEffect(element.strokePattern, element.strokeWidth)}
+        </SkiaPath>
       </SkiaGroup>
     );
   }
@@ -835,6 +963,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
   const [fontSize, setFontSize] = useState(20);
   const [fontFamily, setFontFamily] = useState('Inter');
   const [opacity, setOpacity] = useState(1);
+  const [strokePattern, setStrokePattern] = useState<CanvasStrokePattern>('solid');
   const [backgroundPattern, setBackgroundPattern] = useState<BackgroundPattern>('lines');
   const [showGrid, setShowGrid] = useState(false);
   const [smoothDrawing, setSmoothDrawing] = useState(true);
@@ -871,7 +1000,8 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
   const selectedElement = selectedId != null ? elements.find((element) => element.id === selectedId) ?? null : null;
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
-  const selectedIsShape = selectedElement?.type === 'rectangle' || selectedElement?.type === 'circle';
+  const selectedIsShape =
+    selectedElement?.type === 'rectangle' || selectedElement?.type === 'circle' || selectedElement?.type === 'polygon';
   const selectedIsLinear = selectedElement?.type === 'line' || selectedElement?.type === 'arrow';
   const selectedIsText = selectedElement?.type === 'text';
   const selectedIsSticky = selectedElement?.type === 'sticky';
@@ -913,6 +1043,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
     setFontSize(20);
     setFontFamily('Inter');
     setOpacity(1);
+    setStrokePattern('solid');
     setBackgroundPattern('lines');
     setShowGrid(false);
     setSmoothDrawing(true);
@@ -957,12 +1088,22 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
       selectedElement.type === 'circle' ||
       selectedElement.type === 'line' ||
       selectedElement.type === 'arrow' ||
+      selectedElement.type === 'polygon' ||
       selectedElement.type === 'draw'
     ) {
       setStrokeWidth(selectedElement.strokeWidth);
     }
-    if (selectedElement.type === 'rectangle' || selectedElement.type === 'circle') {
+    if (selectedElement.type === 'rectangle' || selectedElement.type === 'circle' || selectedElement.type === 'polygon') {
       setFillColor(selectedElement.fillColor || 'transparent');
+    }
+    if (
+      selectedElement.type === 'rectangle' ||
+      selectedElement.type === 'circle' ||
+      selectedElement.type === 'line' ||
+      selectedElement.type === 'arrow' ||
+      selectedElement.type === 'polygon'
+    ) {
+      setStrokePattern(selectedElement.strokePattern || 'solid');
     }
     if (selectedElement.type === 'text') {
       setFontSize(selectedElement.fontSize);
@@ -1076,6 +1217,20 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
     if (!elementsRef.current.length) return;
     commitElements([]);
     setSelectedId(null);
+  };
+
+  const handleBringToFront = () => {
+    if (selectedId == null) return;
+    const target = elementsRef.current.find((element) => element.id === selectedId);
+    if (!target) return;
+    commitElements([...elementsRef.current.filter((element) => element.id !== selectedId), target]);
+  };
+
+  const handleSendToBack = () => {
+    if (selectedId == null) return;
+    const target = elementsRef.current.find((element) => element.id === selectedId);
+    if (!target) return;
+    commitElements([target, ...elementsRef.current.filter((element) => element.id !== selectedId)]);
   };
 
   const openTextEditor = (
@@ -1225,7 +1380,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
     }
 
     dragRef.current = { mode: 'shape', start: point, tool };
-    previewShapeRef.current = createShapePreview(tool, point, point, color, strokeWidth, fillColor, opacity);
+    previewShapeRef.current = createShapePreview(tool, point, point, color, strokeWidth, strokePattern, fillColor, opacity);
     scheduleVisualSync();
   };
 
@@ -1265,7 +1420,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
       return;
     }
 
-    previewShapeRef.current = createShapePreview(active.tool, active.start, point, color, strokeWidth, fillColor, opacity);
+    previewShapeRef.current = createShapePreview(active.tool, active.start, point, color, strokeWidth, strokePattern, fillColor, opacity);
     scheduleVisualSync();
   };
 
@@ -1294,6 +1449,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                     y2: recognized.y2,
                     color,
                     strokeWidth,
+                    strokePattern,
                     opacity,
                   }
                 : recognized.type === 'circle'
@@ -1305,6 +1461,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                       radius: recognized.radius,
                       color,
                       strokeWidth,
+                      strokePattern,
                       fillColor,
                       opacity,
                     }
@@ -1317,6 +1474,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                       height: recognized.height,
                       color,
                       strokeWidth,
+                      strokePattern,
                       fillColor,
                       opacity,
                     };
@@ -1345,6 +1503,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
       const valid =
         (nextPreview.type === 'rectangle' && nextPreview.width > 4 && nextPreview.height > 4) ||
         (nextPreview.type === 'circle' && nextPreview.radius > 4) ||
+        (nextPreview.type === 'polygon' && nextPreview.width > 8 && nextPreview.height > 8) ||
         ((nextPreview.type === 'line' || nextPreview.type === 'arrow') &&
           (Math.abs(nextPreview.x2 - nextPreview.x1) > 4 || Math.abs(nextPreview.y2 - nextPreview.y1) > 4));
       if (valid) {
@@ -1386,14 +1545,36 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
         .onTouchesCancelled(() => {
           handleGestureCancel();
         }),
-    [tool, color, fillColor, strokeWidth, opacity, smoothDrawing, shapeRecognition, eraserMode]
+    [tool, color, fillColor, strokeWidth, strokePattern, opacity, smoothDrawing, shapeRecognition, eraserMode]
   );
 
   const currentToolLabel = TOOLS.find((item) => item.value === tool)?.label ?? 'canvas';
-  const showFillControls = tool === 'rectangle' || tool === 'circle' || selectedIsShape;
+  const showFillControls = tool === 'rectangle' || tool === 'circle' || isPolygonTool(tool) || selectedIsShape;
   const showFontControls = tool === 'text' || tool === 'sticky' || selectedIsText || selectedIsSticky;
+  const showStrokeWidthControls =
+    isDrawingTool || selectedIsDraw || selectedIsShape || selectedIsLinear || tool === 'line' || tool === 'arrow' || isPolygonTool(tool);
   const showOpacityControls =
-    isDrawingTool || selectedIsDraw || selectedIsShape || selectedIsLinear || tool === 'text' || tool === 'sticky' || selectedIsText || selectedIsSticky;
+    isDrawingTool ||
+    selectedIsDraw ||
+    selectedIsShape ||
+    selectedIsLinear ||
+    tool === 'rectangle' ||
+    tool === 'circle' ||
+    tool === 'line' ||
+    tool === 'arrow' ||
+    isPolygonTool(tool) ||
+    tool === 'text' ||
+    tool === 'sticky' ||
+    selectedIsText ||
+    selectedIsSticky;
+  const showStrokePatternControls =
+    tool === 'rectangle' ||
+    tool === 'circle' ||
+    tool === 'line' ||
+    tool === 'arrow' ||
+    isPolygonTool(tool) ||
+    selectedIsShape ||
+    selectedIsLinear;
   const colorOptions = tool === 'sticky' || selectedIsSticky ? STICKY_COLORS : COLORS;
 
   return (
@@ -1634,7 +1815,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                       </View>
                     </View>
 
-                    {(isDrawingTool || selectedIsDraw || selectedIsShape || tool === 'line' || tool === 'arrow') ? (
+                    {showStrokeWidthControls ? (
                       <View style={styles.inspectorGroup}>
                         <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>width</Text>
                         <View style={styles.widthRow}>
@@ -1655,7 +1836,13 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                                     if (element.type === 'draw') {
                                       return { ...element, strokeWidth: effectiveStrokeWidth(element.drawStyle || 'pen', width) };
                                     }
-                                    if (element.type === 'rectangle' || element.type === 'circle' || element.type === 'line' || element.type === 'arrow') {
+                                    if (
+                                      element.type === 'rectangle' ||
+                                      element.type === 'circle' ||
+                                      element.type === 'line' ||
+                                      element.type === 'arrow' ||
+                                      element.type === 'polygon'
+                                    ) {
                                       return { ...element, strokeWidth: width };
                                     }
                                     return element;
@@ -1665,6 +1852,43 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                               haptic="selection"
                             >
                               <View style={{ width: 26, height: Math.max(2, width), borderRadius: width / 2, backgroundColor: theme.accentHover }} />
+                            </HapticTouchable>
+                          ))}
+                        </View>
+                      </View>
+                    ) : null}
+
+                    {showStrokePatternControls ? (
+                      <View style={styles.inspectorGroup}>
+                        <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>pattern</Text>
+                        <View style={styles.toggleRow}>
+                          {STROKE_PATTERNS.map((pattern) => (
+                            <HapticTouchable
+                              key={pattern}
+                              style={[
+                                styles.toggleChip,
+                                {
+                                  borderColor: strokePattern === pattern ? theme.accent : toolbarBorder,
+                                  backgroundColor: strokePattern === pattern ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                                },
+                              ]}
+                              onPress={() => {
+                                setStrokePattern(pattern);
+                                if (selectedId != null) {
+                                  patchSelected((element) => (
+                                    element.type === 'rectangle' ||
+                                    element.type === 'circle' ||
+                                    element.type === 'line' ||
+                                    element.type === 'arrow' ||
+                                    element.type === 'polygon'
+                                      ? { ...element, strokePattern: pattern }
+                                      : element
+                                  ));
+                                }
+                              }}
+                              haptic="selection"
+                            >
+                              <Text style={[styles.toggleChipText, { color: theme.accentHover }]}>{pattern}</Text>
                             </HapticTouchable>
                           ))}
                         </View>
@@ -1691,7 +1915,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                                   setFillColor(preset);
                                   if (selectedId != null) {
                                     patchSelected((element) => (
-                                      element.type === 'rectangle' || element.type === 'circle'
+                                      element.type === 'rectangle' || element.type === 'circle' || element.type === 'polygon'
                                         ? { ...element, fillColor: preset }
                                         : element
                                     ));
@@ -1816,49 +2040,93 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                         ) : null}
                       </>
                     ) : null}
+
+                    {selectedElement ? (
+                      <View style={styles.inspectorGroup}>
+                        <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>layer</Text>
+                        <View style={styles.toggleRow}>
+                          <HapticTouchable
+                            style={[styles.toggleChip, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panelAlt, 0.96) }]}
+                            onPress={handleSendToBack}
+                            haptic="selection"
+                          >
+                            <Text style={[styles.toggleChipText, { color: theme.accentHover }]}>send back</Text>
+                          </HapticTouchable>
+                          <HapticTouchable
+                            style={[styles.toggleChip, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panelAlt, 0.96) }]}
+                            onPress={handleBringToFront}
+                            haptic="selection"
+                          >
+                            <Text style={[styles.toggleChipText, { color: theme.accentHover }]}>bring front</Text>
+                          </HapticTouchable>
+                        </View>
+                      </View>
+                    ) : null}
                   </>
                 ) : (
-                  <View style={styles.inspectorGroup}>
-                    <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>page</Text>
-                    <View style={styles.toggleRow}>
-                      {([
-                        ['grid', showGrid, () => setShowGrid((value) => !value)],
-                        ['smooth', smoothDrawing, () => setSmoothDrawing((value) => !value)],
-                        ['recognize', shapeRecognition, () => setShapeRecognition((value) => !value)],
-                      ] as const).map(([label, active, onPress]) => (
-                        <HapticTouchable
-                          key={label}
-                          style={[
-                            styles.toggleChip,
-                            {
-                              borderColor: active ? theme.accent : toolbarBorder,
-                              backgroundColor: active ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
-                            },
-                          ]}
-                          onPress={onPress}
-                          haptic="selection"
-                        >
-                          <Text style={[styles.toggleChipText, { color: theme.accentHover }]}>{label}</Text>
-                        </HapticTouchable>
-                      ))}
-                      {(['lines', 'dots', 'none'] as BackgroundPattern[]).map((pattern) => (
-                        <HapticTouchable
-                          key={pattern}
-                          style={[
-                            styles.toggleChip,
-                            {
-                              borderColor: backgroundPattern === pattern ? theme.accent : toolbarBorder,
-                              backgroundColor: backgroundPattern === pattern ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
-                            },
-                          ]}
-                          onPress={() => setBackgroundPattern(pattern)}
-                          haptic="selection"
-                        >
-                          <Text style={[styles.toggleChipText, { color: theme.accentHover }]}>{pattern}</Text>
-                        </HapticTouchable>
-                      ))}
+                  <>
+                    <View style={styles.inspectorGroup}>
+                      <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>page</Text>
+                      <View style={styles.toggleRow}>
+                        {([
+                          ['grid', showGrid, () => setShowGrid((value) => !value)],
+                          ['smooth', smoothDrawing, () => setSmoothDrawing((value) => !value)],
+                          ['recognize', shapeRecognition, () => setShapeRecognition((value) => !value)],
+                        ] as const).map(([label, active, onPress]) => (
+                          <HapticTouchable
+                            key={label}
+                            style={[
+                              styles.toggleChip,
+                              {
+                                borderColor: active ? theme.accent : toolbarBorder,
+                                backgroundColor: active ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                              },
+                            ]}
+                            onPress={onPress}
+                            haptic="selection"
+                          >
+                            <Text style={[styles.toggleChipText, { color: theme.accentHover }]}>{label}</Text>
+                          </HapticTouchable>
+                        ))}
+                      </View>
                     </View>
-                  </View>
+
+                    <View style={styles.inspectorGroup}>
+                      <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>paper</Text>
+                      <View style={styles.toggleRow}>
+                        {(['lines', 'dots', 'graph', 'none'] as BackgroundPattern[]).map((pattern) => (
+                          <HapticTouchable
+                            key={pattern}
+                            style={[
+                              styles.toggleChip,
+                              {
+                                borderColor: backgroundPattern === pattern ? theme.accent : toolbarBorder,
+                                backgroundColor: backgroundPattern === pattern ? softAccent : rgbaFromHex(theme.panelAlt, 0.96),
+                              },
+                            ]}
+                            onPress={() => setBackgroundPattern(pattern)}
+                            haptic="selection"
+                          >
+                            <Text style={[styles.toggleChipText, { color: theme.accentHover }]}>{pattern}</Text>
+                          </HapticTouchable>
+                        ))}
+                      </View>
+                    </View>
+
+                    <View style={styles.inspectorGroup}>
+                      <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>actions</Text>
+                      <View style={styles.toggleRow}>
+                        <HapticTouchable
+                          style={[styles.toggleChip, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panelAlt, 0.96), opacity: elements.length ? 1 : 0.6 }]}
+                          onPress={handleClear}
+                          disabled={!elements.length}
+                          haptic="warning"
+                        >
+                          <Text style={[styles.toggleChipText, { color: elements.length ? theme.danger : theme.textSecondary }]}>clear canvas</Text>
+                        </HapticTouchable>
+                      </View>
+                    </View>
+                  </>
                 )}
               </ScrollView>
             </View>
