@@ -2088,6 +2088,8 @@ class ContextDocument(Base):
     source_url   = Column(String(500), nullable=True)
     source_name  = Column(String(200), nullable=True)
     license      = Column(String(80), nullable=True)
+    curriculum   = Column(String(20), nullable=True)
+    source_type  = Column(String(40), nullable=True)
     created_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

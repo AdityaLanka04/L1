@@ -193,6 +193,8 @@ def add_document_chunks(
     license: str = "",
     replace_existing: bool = False,
     chunk_pages: list[dict] | None = None,
+    curriculum: str = "",
+    source_type: str = "",
 ) -> int:
     """
     Embed and store text chunks into the appropriate ChromaDB collection(s).
@@ -261,6 +263,8 @@ def add_document_chunks(
                 "source_url": source_url[:300] if source_url else "",
                 "source_name": source_name[:120] if source_name else "",
                 "license": license[:60] if license else "",
+                "curriculum": curriculum[:20] if curriculum else "",
+                "source_type": source_type[:40] if source_type else "",
                 "timestamp": timestamp,
             }
             if chunk_pages and i < len(chunk_pages):
@@ -305,6 +309,7 @@ def search_context(
     top_k: int = 5,
     subject: Optional[str] = None,
     grade_level: Optional[str] = None,
+    curriculum: Optional[str] = None,
 ) -> list[dict]:
     """
     Semantic search across user's private docs and optionally the shared HS curriculum.
@@ -324,7 +329,7 @@ def search_context(
         return []
 
     # --- Cache: search results ---
-    _cache_kwargs = dict(use_hs=use_hs, top_k=top_k, subject=subject or "", grade_level=grade_level or "")
+    _cache_kwargs = dict(use_hs=use_hs, top_k=top_k, subject=subject or "", grade_level=grade_level or "", curriculum=curriculum or "")
     cached = redis_cache.get_search(query, user_id, **_cache_kwargs)
     if cached is not None:
         return cached
@@ -406,11 +411,15 @@ def search_context(
 
     _fetch_from(_user_docs_name(user_id), "private", n_multiplier=2)
     if use_hs:
-        hs_where = {}
+        hs_where: dict = {}
         if subject_filter:
             hs_where["subject"] = subject_filter
         if grade_filter:
             hs_where["grade_level"] = grade_filter
+        if curriculum:
+            hs_where["curriculum"] = curriculum.strip().lower()[:20]
+        if len(hs_where) > 1:
+            hs_where = {"$and": [{k: v} for k, v in hs_where.items()]}
         _fetch_from(HS_CURRICULUM_COLLECTION, "hs", where=hs_where or None, n_multiplier=4)
 
     def _score(item: dict) -> float:
@@ -501,15 +510,78 @@ def list_hs_subjects() -> list[dict]:
         for meta in metas:
             subj = meta.get("subject", "General") or "General"
             grade = meta.get("grade_level", "") or ""
-            key = f"{subj}|{grade}"
+            curric = meta.get("curriculum", "") or ""
+            key = f"{subj}|{grade}|{curric}"
             if key not in subject_map:
-                subject_map[key] = {"subject": subj, "grade_level": grade, "doc_count": 0}
+                subject_map[key] = {
+                    "subject": subj,
+                    "grade_level": grade,
+                    "curriculum": curric,
+                    "doc_count": 0,
+                }
             subject_map[key]["doc_count"] += 1
 
-        return sorted(subject_map.values(), key=lambda x: x["subject"])
+        return sorted(subject_map.values(), key=lambda x: (x["curriculum"], x["subject"]))
     except Exception as e:
         logger.warning(f"list_hs_subjects failed: {e}")
         return []
+
+
+def get_hs_stats() -> dict:
+    """
+    Return aggregate stats about the hs_curriculum collection.
+
+    Returns:
+        {
+            "total_chunks": int,
+            "total_docs": int,
+            "by_curriculum": {"us": int, "uk": int, ...},
+            "by_subject": {"Biology": int, ...},
+            "by_source_type": {"openstax": int, "gcse_aqa": int, ...},
+        }
+    """
+    if not available():
+        return {}
+    try:
+        col = _get_collection(HS_CURRICULUM_COLLECTION)
+        total_chunks = col.count()
+        if total_chunks == 0:
+            return {
+                "total_chunks": 0,
+                "total_docs": 0,
+                "by_curriculum": {},
+                "by_subject": {},
+                "by_source_type": {},
+            }
+
+        all_results = col.get(
+            where={"chunk_index": "0"},
+            include=["metadatas"],
+        )
+        metas = all_results.get("metadatas", [])
+
+        by_curriculum: dict[str, int] = {}
+        by_subject: dict[str, int] = {}
+        by_source: dict[str, int] = {}
+
+        for meta in metas:
+            curric = meta.get("curriculum", "unknown") or "unknown"
+            subj = meta.get("subject", "General") or "General"
+            src = meta.get("source_type", "user") or "user"
+            by_curriculum[curric] = by_curriculum.get(curric, 0) + 1
+            by_subject[subj] = by_subject.get(subj, 0) + 1
+            by_source[src] = by_source.get(src, 0) + 1
+
+        return {
+            "total_chunks": total_chunks,
+            "total_docs": len(metas),
+            "by_curriculum": dict(sorted(by_curriculum.items())),
+            "by_subject": dict(sorted(by_subject.items())),
+            "by_source_type": dict(sorted(by_source.items())),
+        }
+    except Exception as e:
+        logger.warning(f"get_hs_stats failed: {e}")
+        return {}
 
 def delete_document(user_id: str, doc_id: str, is_admin: bool = False):
     """

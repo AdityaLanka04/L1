@@ -246,6 +246,8 @@ def _run_postgres_migration():
         {
             "source_name": "VARCHAR(200)",
             "license": "VARCHAR(80)",
+            "curriculum": "VARCHAR(20)",
+            "source_type": "VARCHAR(40)",
         },
     )
 

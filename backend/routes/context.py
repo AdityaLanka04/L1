@@ -818,7 +818,7 @@ def get_hs_subjects(
 
     Returns:
     {
-        "subjects": [{"subject": str, "grade_level": str, "doc_count": int}],
+        "subjects": [{"subject": str, "grade_level": str, "curriculum": str, "doc_count": int}],
         "total": int
     }
     """
@@ -828,3 +828,27 @@ def get_hs_subjects(
     except Exception as e:
         logger.warning(f"get_hs_subjects failed: {e}")
         return {"subjects": [], "total": 0}
+
+
+@router.get("/hs/stats")
+def get_hs_stats(
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Admin-facing aggregate stats for the shared hs_curriculum collection.
+
+    Returns:
+    {
+        "total_chunks": int,
+        "total_docs": int,
+        "by_curriculum": {"us": int, "uk": int},
+        "by_subject": {"Biology": int, ...},
+        "by_source_type": {"openstax": int, "gcse_aqa": int, ...}
+    }
+    """
+    try:
+        stats = context_store.get_hs_stats()
+        return stats
+    except Exception as e:
+        logger.warning(f"get_hs_stats failed: {e}")
+        return {}

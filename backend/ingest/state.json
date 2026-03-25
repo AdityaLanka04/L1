@@ -1,0 +1,179 @@
+{
+  "biology-2e": {
+    "success": true,
+    "doc_id": "6dc0356b-c316-5745-9220-80777fa240fb",
+    "chunk_count": 7075,
+    "ingested_at": "2026-03-25T06:42:14.348185+00:00"
+  },
+  "chemistry-2e": {
+    "success": true,
+    "doc_id": "5a02e003-aaaa-580b-b8d6-7d6df68b5a86",
+    "chunk_count": 4570,
+    "ingested_at": "2026-03-25T06:48:10.498122+00:00"
+  },
+  "college-algebra-2e": {
+    "success": true,
+    "doc_id": "ad1a8409-f193-5b97-802d-d2e8456d565e",
+    "chunk_count": 2262,
+    "ingested_at": "2026-03-25T06:50:11.745447+00:00"
+  },
+  "algebra-and-trigonometry-2e": {
+    "success": false,
+    "error": "Download failed: Download failed after 3 attempts for http://www.stitz-zeager.com/szpct04082013.pdf: Client error '404 Not Found' for url 'https://www.stitz-zeager.com/szpct04082013.pdf'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404",
+    "attempted_at": "2026-03-25T06:50:16.317991+00:00"
+  },
+  "precalculus-2e": {
+    "success": false,
+    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/precalculus-2e. Check the page manually and add direct_url to the catalog entry.",
+    "attempted_at": "2026-03-25T06:50:16.858218+00:00"
+  },
+  "calculus-volume-1": {
+    "success": true,
+    "doc_id": "0377be9a-b180-5411-8741-51c7b58cb97a",
+    "chunk_count": 2560,
+    "ingested_at": "2026-03-25T06:53:12.704395+00:00"
+  },
+  "calculus-volume-2": {
+    "success": true,
+    "doc_id": "6c02dbea-a8df-5ca6-a0c0-84a13800d6f5",
+    "chunk_count": 1801,
+    "ingested_at": "2026-03-25T06:58:08.586042+00:00"
+  },
+  "introductory-statistics": {
+    "success": true,
+    "doc_id": "cbeaad30-d148-58c5-9dac-95d5e95cbad7",
+    "chunk_count": 3154,
+    "ingested_at": "2026-03-25T07:00:56.722085+00:00"
+  },
+  "us-history": {
+    "success": false,
+    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/us-history. Check the page manually and add direct_url to the catalog entry.",
+    "attempted_at": "2026-03-25T07:00:57.522124+00:00"
+  },
+  "world-history-volume-1": {
+    "success": false,
+    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-1. Check the page manually and add direct_url to the catalog entry.",
+    "attempted_at": "2026-03-25T07:00:58.075402+00:00"
+  },
+  "world-history-volume-2": {
+    "success": false,
+    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-2. Check the page manually and add direct_url to the catalog entry.",
+    "attempted_at": "2026-03-25T07:00:58.754257+00:00"
+  },
+  "psychology-2e": {
+    "success": true,
+    "doc_id": "4e8de6c2-1239-5425-8f19-0a6959c3d2ee",
+    "chunk_count": 3455,
+    "ingested_at": "2026-03-25T07:03:52.514940+00:00"
+  },
+  "sociology-3e": {
+    "success": false,
+    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/introduction-sociology-3e. Check the page manually and add direct_url to the catalog entry.",
+    "attempted_at": "2026-03-25T05:16:29.681043+00:00"
+  },
+  "principles-economics-3e": {
+    "success": false,
+    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/principles-economics-3e. Check the page manually and add direct_url to the catalog entry.",
+    "attempted_at": "2026-03-25T05:16:30.261207+00:00"
+  },
+  "anatomy-and-physiology": {
+    "success": false,
+    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/anatomy-and-physiology. Check the page manually and add direct_url to the catalog entry.",
+    "attempted_at": "2026-03-25T05:16:30.884084+00:00"
+  },
+  "college-physics-2e": {
+    "success": false,
+    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/college-physics-2e. Check the page manually and add direct_url to the catalog entry.",
+    "attempted_at": "2026-03-25T05:16:31.470764+00:00"
+  },
+  "aqa-gcse-biology-8461": {
+    "success": true,
+    "doc_id": "43e616ff-3fd0-5c98-8ea8-2e1e34a75930",
+    "chunk_count": 353,
+    "ingested_at": "2026-03-25T05:16:48.526903+00:00"
+  },
+  "aqa-gcse-chemistry-8462": {
+    "success": true,
+    "doc_id": "02b64a90-a714-5afc-bd7b-84d470b45ef6",
+    "chunk_count": 367,
+    "ingested_at": "2026-03-25T05:17:17.935417+00:00"
+  },
+  "aqa-gcse-physics-8463": {
+    "success": true,
+    "doc_id": "1cd5baff-bd82-5169-b6e1-65d3156ce8c8",
+    "chunk_count": 360,
+    "ingested_at": "2026-03-25T05:18:03.047272+00:00"
+  },
+  "aqa-gcse-maths-8300": {
+    "success": true,
+    "doc_id": "53a7048f-f2b8-5090-92d4-24c1ea7b6cec",
+    "chunk_count": 117,
+    "ingested_at": "2026-03-25T05:18:24.677068+00:00"
+  },
+  "aqa-gcse-english-language-8700": {
+    "success": true,
+    "doc_id": "7bf6aa2c-b56b-5deb-83d1-2ba0617c5638",
+    "chunk_count": 80,
+    "ingested_at": "2026-03-25T05:18:38.988494+00:00"
+  },
+  "aqa-gcse-geography-8035": {
+    "success": true,
+    "doc_id": "1ce044e9-a22f-51a5-99bd-32efc92be1c1",
+    "chunk_count": 115,
+    "ingested_at": "2026-03-25T05:18:58.719129+00:00"
+  },
+  "aqa-gcse-history-8145": {
+    "success": true,
+    "doc_id": "64771624-5b55-53d9-bbc4-b2ed87463d25",
+    "chunk_count": 204,
+    "ingested_at": "2026-03-25T05:19:25.490910+00:00"
+  },
+  "aqa-gcse-economics-8136": {
+    "success": true,
+    "doc_id": "cc46ec88-449d-500a-912e-30cbbe2f1f98",
+    "chunk_count": 92,
+    "ingested_at": "2026-03-25T05:19:39.935178+00:00"
+  },
+  "aqa-gcse-psychology-8182": {
+    "success": true,
+    "doc_id": "2bae0f19-999a-5c94-afcd-48aa14f9e1ff",
+    "chunk_count": 72,
+    "ingested_at": "2026-03-25T05:19:52.710784+00:00"
+  },
+  "aqa-alevel-biology-7402": {
+    "success": true,
+    "doc_id": "87843415-d388-5a8f-8c7d-6b46607aa017",
+    "chunk_count": 253,
+    "ingested_at": "2026-03-25T05:20:16.895740+00:00"
+  },
+  "aqa-alevel-chemistry-7405": {
+    "success": true,
+    "doc_id": "39d3aefe-231e-5a64-aff7-f6f71cee620b",
+    "chunk_count": 308,
+    "ingested_at": "2026-03-25T05:20:48.509155+00:00"
+  },
+  "aqa-alevel-physics-7408": {
+    "success": true,
+    "doc_id": "60b33d50-759c-5991-95a1-a26b477410a1",
+    "chunk_count": 266,
+    "ingested_at": "2026-03-25T05:21:23.687180+00:00"
+  },
+  "aqa-alevel-maths-7357": {
+    "success": true,
+    "doc_id": "93948d5a-012e-50dd-b301-a01d456d8c91",
+    "chunk_count": 126,
+    "ingested_at": "2026-03-25T05:21:57.366380+00:00"
+  },
+  "aqa-alevel-economics-7136": {
+    "success": true,
+    "doc_id": "77f71445-1e3c-5968-b926-6ce02d20966f",
+    "chunk_count": 218,
+    "ingested_at": "2026-03-25T05:22:30.860811+00:00"
+  },
+  "aqa-alevel-psychology-7182": {
+    "success": true,
+    "doc_id": "09e6f835-b5fb-5d4e-82cc-81014cebb975",
+    "chunk_count": 126,
+    "ingested_at": "2026-03-25T05:22:51.274434+00:00"
+  }
+}
