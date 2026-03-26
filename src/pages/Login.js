@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { signInWithPopup } from 'firebase/auth';
@@ -150,164 +150,91 @@ function Login() {
     setLoading(false);
   };
 
-  const renderCircleDots = (count, radius, speed = 'medium') => {
-    const dots = [];
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * 2 * Math.PI;
-      const x = radius * Math.cos(angle);
-      const y = radius * Math.sin(angle);
-      dots.push(
-        <div
-          key={i}
-          className={`lg-pattern-dot ${speed}`}
-          style={{
-            left: `${50 + (x / radius) * 50}%`,
-            top: `${50 + (y / radius) * 50}%`,
-          }}
-        />
-      );
-    }
-    return dots;
-  };
-
-  const renderLineDots = (count, speed = 'medium') => {
-    const dots = [];
-    for (let i = 0; i < count; i++) {
-      dots.push(
-        <div
-          key={i}
-          className={`lg-pattern-dot ${speed}`}
-          style={{
-            left: `${(i / (count - 1)) * 100}%`,
-            top: '50%',
-          }}
-        />
-      );
-    }
-    return dots;
-  };
-
-  const renderSquareDots = (count, speed = 'medium') => {
-    const dots = [];
-    const perSide = Math.floor(count / 4);
-    
-    for (let i = 0; i < perSide; i++) {
-      const progress = i / (perSide - 1);
-      dots.push(<div key={`top-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: `${progress * 100}%`, top: '0%' }} />);
-      dots.push(<div key={`right-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: '100%', top: `${progress * 100}%` }} />);
-      dots.push(<div key={`bottom-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: `${(1 - progress) * 100}%`, top: '100%' }} />);
-      dots.push(<div key={`left-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: '0%', top: `${(1 - progress) * 100}%` }} />);
-    }
-    
-    return dots;
-  };
-
-  const renderTriangleDots = (count, speed = 'medium') => {
-    const dots = [];
-    const perSide = Math.floor(count / 3);
-    
-    for (let i = 0; i < perSide; i++) {
-      const progress = i / (perSide - 1);
-      dots.push(<div key={`side1-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: `${50 + progress * 50}%`, top: `${100 - progress * 100}%` }} />);
-      dots.push(<div key={`side2-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: `${50 - progress * 50}%`, top: `${100 - progress * 100}%` }} />);
-      dots.push(<div key={`base-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: `${progress * 100}%`, top: '100%' }} />);
-    }
-    
-    return dots;
-  };
-
-  const renderArcDots = (count, speed = 'medium') => {
-    const dots = [];
-    for (let i = 0; i < count; i++) {
-      const angle = (i / (count - 1)) * Math.PI;
-      const x = 50 + 50 * Math.cos(angle);
-      const y = 100 - 100 * Math.sin(angle);
-      dots.push(
-        <div
-          key={i}
-          className={`lg-pattern-dot ${speed}`}
-          style={{
-            left: `${x}%`,
-            top: `${y}%`,
-          }}
-        />
-      );
-    }
-    return dots;
-  };
-
   return (
     <>
       {(loading || googleLoading) && <LoadingSpinner />}
       <div className="lg-page">
-        <div className="lg-geometric-dots">
-          <div className="lg-dot-pattern lg-circle-1">
-            {renderCircleDots(14, 100, 'slow')}
-          </div>
-          <div className="lg-dot-pattern lg-circle-2">
-            {renderCircleDots(12, 90, 'fast')}
-          </div>
-          <div className="lg-dot-pattern lg-circle-3">
-            {renderCircleDots(10, 75, 'medium')}
-          </div>
-          <div className="lg-dot-pattern lg-circle-4">
-            {renderCircleDots(13, 95, 'slow')}
-          </div>
-          <div className="lg-dot-pattern lg-circle-5">
-            {renderCircleDots(9, 65, 'fast')}
-          </div>
-          <div className="lg-dot-pattern lg-circle-6">
-            {renderCircleDots(8, 50, 'medium')}
-          </div>
-          <div className="lg-dot-pattern lg-line-1">
-            {renderLineDots(9, 'slow')}
-          </div>
-          <div className="lg-dot-pattern lg-line-2">
-            {renderLineDots(7, 'fast')}
-          </div>
-          <div className="lg-dot-pattern lg-line-3">
-            {renderLineDots(6, 'medium')}
-          </div>
-          <div className="lg-dot-pattern lg-square-1">
-            {renderSquareDots(12, 'medium')}
-          </div>
-          <div className="lg-dot-pattern lg-square-2">
-            {renderSquareDots(10, 'fast')}
-          </div>
-          <div className="lg-dot-pattern lg-triangle-1">
-            {renderTriangleDots(12, 'slow')}
-          </div>
-          <div className="lg-dot-pattern lg-arc-1">
-            {renderArcDots(11, 'fast')}
-          </div>
-        </div>
-
         <div className="lg-left">
           <div className="lg-glow-orb-1"></div>
           <div className="lg-glow-orb-2"></div>
-          
-          <div className="lg-brand-graphic">
-            <div className="lg-concentric-ring-1"></div>
-            <div className="lg-concentric-ring-2"></div>
-            <div className="lg-concentric-ring-3"></div>
-            <div className="lg-brand-bar-top"></div>
-            <div className="lg-brand-circle"></div>
-            <div className="lg-brand-bar-bottom"></div>
-            <div className="lg-brand-text-overlay">
-              <div className="lg-brand-name">
-                <img src="/logo.svg" alt="" style={{ height: '32px', marginRight: '10px', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
-                cerbyl
-              </div>
-              <div className="lg-brand-tagline">Learning, Unified</div>
-            </div>
-          </div>
 
-          <div className="lg-brand-description">
-            <div className="lg-description-label">Our Philosophy</div>
-            <div className="lg-description-text">
-              Cerbyl merges AI with learning science. Education adapts to you through 
-              personalized pathways and intelligent tutoring.
+          <div className="lg-brand-panel">
+            <div className="lg-brand-panel-top">
+              <div className="lg-brand-label">AI Learning Workspace</div>
+              <div className="lg-brand-badge">Built for modern students</div>
             </div>
+
+            <div className="lg-brand-name-row">
+              <div className="lg-brand-name-block">
+                <div className="lg-brand-name">cerbyl</div>
+                <div className="lg-brand-tagline">Learning, Unified</div>
+              </div>
+            </div>
+
+            <div className="lg-brand-about-block">
+              <div className="lg-brand-about-label">The Problem</div>
+              <div className="lg-brand-description">
+                Students do not struggle because resources are scarce. They struggle because every
+                tool they use exists in isolation. Nothing connects the dots, nothing remembers them,
+                and nothing adapts to them.
+              </div>
+            </div>
+
+            <div className="lg-brand-about-block">
+              <div className="lg-brand-about-label">Why Cerbyl</div>
+              <div className="lg-brand-description">
+                Built by two college students who lived this problem firsthand, Cerbyl is an
+                AI-powered learning platform with a centralized student profile at its core.
+                Every quiz, note, weak concept, and study session feeds that profile so every
+                feature already knows the student using it.
+              </div>
+            </div>
+
+            <div className="lg-brand-podcast-block">
+              <div className="lg-brand-about-label">What It Enables</div>
+              <div className="lg-brand-description">
+                Flashcards target weak spots. The AI tutor meets students at their level.
+                Knowledge roadmaps fill specific gaps instead of generic ones. The platform centers on
+                six core experiences: adaptive AI tutoring, auto-generated flashcards, quiz generation,
+                visual knowledge roadmaps, live quiz battles, and on-demand podcasts for learning anywhere.
+              </div>
+            </div>
+
+            <div className="lg-brand-feature-list">
+              <div className="lg-brand-feature-item">
+                <div className="lg-brand-feature-title">Personalized Profile</div>
+                <div className="lg-brand-feature-text">
+                  Cerbyl keeps a centralized student profile so tutoring, flashcards, quizzes,
+                  and roadmaps can adapt to each learner instead of treating every student the same.
+                </div>
+              </div>
+              <div className="lg-brand-feature-item">
+                <div className="lg-brand-feature-title">Infrastructure</div>
+                <div className="lg-brand-feature-text">
+                  A custom multi-model routing system picks the right LLM for each task, backed by
+                  containerized infrastructure and real-time WebSocket support.
+                </div>
+              </div>
+              <div className="lg-brand-feature-item">
+                <div className="lg-brand-feature-title">Why Google Cloud</div>
+                <div className="lg-brand-feature-text">
+                  Google Cloud credits would directly fund LLM inference capacity, real-time
+                  multiplayer infrastructure, and database scaling as the user base grows.
+                </div>
+              </div>
+              <div className="lg-brand-feature-item">
+                <div className="lg-brand-feature-title">Live Product</div>
+                <div className="lg-brand-feature-text">
+                  Cerbyl is already live at cerbyl.com and focused on delivering a personalized
+                  learning experience that previously required a private tutor.
+                </div>
+              </div>
+            </div>
+
+            <div className="lg-description-founders">
+              Co-founded by <span>Aditya Lanka</span> and <span>Parthav Elangovan</span>
+            </div>
+
           </div>
         </div>
 
