@@ -51,7 +51,7 @@ def _is_ai_activity(tool_name: str, action: str, metadata: dict) -> bool:
 
 def check_admin(x_user_id: Optional[str] = Header(None)):
     """Check if user is admin by resolving the header value to a DB user and checking email."""
-    ADMIN_EMAILS = ['aditya.s.lanka@gmail.com']
+    ADMIN_EMAILS = ['aditya.s.lanka@gmail.com', 'asphar057@gmail.com']
 
     if not x_user_id:
         raise HTTPException(status_code=403, detail='Admin access required')

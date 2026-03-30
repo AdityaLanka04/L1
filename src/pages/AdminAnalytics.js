@@ -12,7 +12,7 @@ import {
 import './AdminAnalytics.css';
 import { API_URL } from '../config';
 
-const ADMIN_EMAILS = ['aditya.s.lanka@gmail.com'];
+const ADMIN_EMAILS = ['aditya.s.lanka@gmail.com', 'asphar057@gmail.com'];
 
 const formatNumber = (value) => {
   const safe = Number.isFinite(value) ? value : 0;

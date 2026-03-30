@@ -111,7 +111,7 @@ const GlobalNavSidebar = ({ isOpen, onClose }) => {
         { path: '/customize-dashboard', label: 'Customize', icon: Settings, description: 'Personalize dashboard' },
       ]
     },
-    ...(userEmail === 'aditya.s.lanka@gmail.com' ? [{
+    ...(['aditya.s.lanka@gmail.com', 'asphar057@gmail.com'].includes(userEmail) ? [{
       id: 'admin',
       title: 'Admin',
       icon: BarChart3,

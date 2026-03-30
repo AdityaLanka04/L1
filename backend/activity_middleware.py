@@ -10,45 +10,63 @@ from deps import SECRET_KEY, ALGORITHM
 
 logger = logging.getLogger(__name__)
 
-ENDPOINT_TOOL_MAP = {
-    '/api/chat': 'ai_chat',
-    '/api/save_chat_message': 'ai_chat',
-    '/api/send_message': 'ai_chat',
-    '/api/rename_chat': 'ai_chat',
-    '/api/flashcards': 'flashcards',
-    '/api/generate_flashcards': 'flashcards_ai',
-    '/api/convert_to_flashcards': 'flashcards_ai',
-    '/api/notes': 'notes',
-    '/api/save_note': 'notes',
-    '/api/generate_notes': 'notes_ai',
-    '/api/convert_to_notes': 'notes_ai',
-    '/api/quiz': 'quiz',
-    '/api/generate_quiz': 'quiz_ai',
-    '/api/question_bank': 'question_bank',
-    '/api/generate_questions': 'question_bank_ai',
-    '/api/slide_explorer': 'slide_explorer',
-    '/api/analyze_slides': 'slide_explorer_ai',
-    '/api/media_notes': 'media_notes',
-    '/api/process_media': 'media_notes_ai',
-    '/api/upload_media': 'media_notes',
-    '/api/learning_paths': 'learning_paths',
-    '/api/generate_learning_path': 'learning_path_ai',
-    '/api/weakness': 'weakness_analysis',
-    '/api/analyze_weakness': 'weakness_ai',
-    '/api/study_insights': 'study_insights',
-    '/api/get_comprehensive_profile': 'profile',
-    '/api/update_profile': 'profile',
-}
+ENDPOINT_TOOL_RULES = [
+    # Chat
+    ('/api/save_chat_message', 'ai_chat'),
+    ('/api/send_message', 'ai_chat'),
+    ('/api/rename_chat', 'ai_chat'),
+    ('/api/chat', 'ai_chat'),
+    # Flashcards / notes / quiz / questions
+    ('/api/generate_flashcards', 'flashcards_ai'),
+    ('/api/convert_to_flashcards', 'flashcards_ai'),
+    ('/api/flashcards', 'flashcards'),
+    ('/api/generate_notes', 'notes_ai'),
+    ('/api/convert_to_notes', 'notes_ai'),
+    ('/api/save_note', 'notes'),
+    ('/api/notes', 'notes'),
+    ('/api/generate_quiz', 'quiz_ai'),
+    ('/api/quiz', 'quiz'),
+    ('/api/generate_questions', 'question_bank_ai'),
+    ('/api/question_bank', 'question_bank'),
+    # Slide explorer and media notes
+    ('/api/analyze_slide/', 'slide_explorer_ai'),
+    ('/api/analyze_slides', 'slide_explorer_ai'),
+    ('/api/slide_explorer', 'slide_explorer'),
+    ('/api/media/process', 'media_notes_ai'),
+    ('/api/media/regenerate-notes', 'media_notes_ai'),
+    ('/api/media/generate-title', 'media_notes_ai'),
+    ('/api/process_media', 'media_notes_ai'),
+    ('/api/transcribe_audio/', 'media_notes_ai'),
+    # Podcast flows
+    ('/api/media/podcast/mcq/start', 'podcast_ai'),
+    ('/api/media/podcast/start', 'podcast_ai'),
+    ('/api/media/podcast/ask', 'podcast_ai'),
+    ('/api/media/podcast/', 'podcast'),
+    ('/api/media/', 'media_notes'),
+    ('/api/media_notes', 'media_notes'),
+    ('/api/upload_media', 'media_notes'),
+    # Learning paths
+    ('/api/learning-paths/generate', 'learning_path_ai'),
+    ('/api/learning-paths/', 'learning_paths'),
+    ('/api/learning_paths', 'learning_paths'),
+    ('/api/generate_learning_path', 'learning_path_ai'),
+    # Remaining legacy mappings
+    ('/api/weakness', 'weakness_analysis'),
+    ('/api/analyze_weakness', 'weakness_ai'),
+    ('/api/study_insights', 'study_insights'),
+    ('/api/get_comprehensive_profile', 'profile'),
+    ('/api/update_profile', 'profile'),
+]
 
 
 def get_tool_name(path: str) -> str:
-    for endpoint, tool in ENDPOINT_TOOL_MAP.items():
-        if endpoint in path:
+    for endpoint, tool in ENDPOINT_TOOL_RULES:
+        if path.startswith(endpoint):
             return tool
     cleaned = path.replace('/api/', '').strip('/')
     if not cleaned:
         return 'other'
-    segment = cleaned.split('/')[0]
+    segment = cleaned.split('/')[0].replace('-', '_')
     ai_hints = ('generate', 'analyze', 'analysis', 'summarize', 'summary', 'recommend', 'suggest', 'ai')
     if any(hint in path for hint in ai_hints):
         if segment.endswith('_ai'):

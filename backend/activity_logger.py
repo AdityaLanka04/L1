@@ -9,6 +9,7 @@ import json
 from datetime import datetime
 import os
 from typing import Optional
+from activity_context import get_activity_context
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
 
@@ -85,6 +86,8 @@ def log_ai_tokens(
         total_tokens: Total tokens used
         model: AI model name (optional)
     """
+    ctx = get_activity_context() or {}
+
     base_metadata = {
         'prompt_tokens': prompt_tokens,
         'completion_tokens': completion_tokens,
@@ -92,9 +95,16 @@ def log_ai_tokens(
         'token_source': 'model_usage',
         'event_type': 'ai_usage'
     }
+    if ctx.get('endpoint'):
+        base_metadata['endpoint'] = ctx.get('endpoint')
+    if ctx.get('method'):
+        base_metadata['method'] = ctx.get('method')
+    if ctx.get('action'):
+        base_metadata['source_action'] = ctx.get('action')
     if metadata:
         base_metadata.update(metadata)
-    return log_activity(user_id, tool_name, 'ai_generate', total_tokens, base_metadata)
+    effective_tool_name = tool_name or ctx.get('tool_name') or 'ai_unknown'
+    return log_activity(user_id, effective_tool_name, 'ai_generate', total_tokens, base_metadata)
 
 def get_user_token_usage(user_id, days=30):
     """Get total tokens used by user in last N days"""

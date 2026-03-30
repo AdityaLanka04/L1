@@ -1,0 +1,4076 @@
+{
+  "success": true,
+  "transcript": "[Applause] [Music] [Applause] Offer a,000. Offer offer 1,540. Offer 1,500 and a2. In 2007, Warren Buffett made a million dollar bet on the dumbest investment strategy imaginable. Buy all stocks according to their size and do absolutely nothing for 10 years. In 2017, he won by a landslide and continues to win to this day. Index funds overall have delivered a result that has been better than Wall Street professionals. This leads to the key question of this video. How can nothing beat the smartest traders on earth? If money is evil, then that building is held. To understand this paradox, we need to go deeper into the world. Buffett bet against 90 for 3,000. 90 for 3,000. Fill or kill. An ongoing war between humans and machines over every penny. Their methods shrouded in secrecy, treated like a dark art. And I did one thing there that was quite good because I can't tell you what it was. It's all classified. Which leads to a key question. Are these traders parasites stealing from average people or are they more like bees providing a hidden service? I used to think they were parasites until I became one myself. It began during one wild night I'll never forget during the crypto bubble of 2017. That's when I realized I had it all backwards and finally understood Buffett's bet. I had been following Bitcoin since the early days when it was just a curiosity for geeks and libertarians holding a few coins for fun. But by 2017, Bitcoin had broken a thousand and then 2,000. A milestone that made me realize money was about to flow into this market like never before. So, I started joining these tiny new exchanges just to mess around. That's when something strange happened. I saw Bitcoin priced at $1,850 on one exchange, but it was trading at $2,000 everywhere else. So, I placed what's called a market order, basically saying buy $100 worth at whatever the current price is. But my order just hung there. Nothing happened. I refreshed. Then I noticed there were no recent trades for the last few hours. I looked into something called the order book. This is the heart of how every exchange works. Think of the order book like jars at different price levels. Each jar represents people willing to trade at that exact price with what's called a limit order. There are buyside jars, people wanting to buy Bitcoin with dollars, and sellside jars, people wanting to sell Bitcoin for dollars. The fuller the jar, the more depth the market has at that price. In a normal active market, an order book usually looks like this. Some people willing to trade right near the current price, but much more willing to buy at cheaper prices or sell at much more expensive ones. So, when someone places a market order for $100 of Bitcoin, it automatically gets matched to the best available limit order on the sell side. If my $100 is bigger than what's in the cheapest jar, it simply moves up to the next jar and so on until my order is filled. That's the price I get. But what I saw in this order book was shocking. The sell side was completely empty. Nobody had Bitcoin for sale at any price on this exchange. So, I did an experiment. I moved some Bitcoin from my wallet onto this exchange and posted a small amount to sell and not at $2,000 where it was trading everywhere. I put it at $2,500 and it sold instantly. My Bitcoin vanished and $250 appeared in my account instead of the $200 it should have been worth. So, I kept selling it at a higher and higher price. No matter what price I set, it automatically sold because there were so many market buy orders lined up to execute and they would pay any price available. And at that moment, my limit sell orders were the only orders on the sell side. I was the market and had it cornered by accident. And almost as a joke, I posted one Bitcoin for $10,000 and it sold immediately. I emailed a friend at 2 a.m. to explain, my hands shaking. Once I ran out of Bitcoin, I rushed to buy more Bitcoin on a major exchange and try to repeat this gold mine. I waited nervously for the 15-minute transfer it took my new Bitcoin to arrive. But by the time it arrived, everything had changed. Other sellers had discovered this exchange and filled the sellside jars with reasonable prices. And what was strange is when I tried to post a better sell order, almost instantly a new order appeared, undercutting me by 1 cent. I tried again and it jumped in front of me. Competition had arrived. These were automated market makers who constantly post limit orders near the current price. That's when it started to hit me. My lost opportunity was the average person's gain. The more market makers competing in an exchange, the less slippage there is. Meaning when you place a market order, the price barely moves and you get what you would expect. This perfectly mirrors the block order problem from the stock market in the 1980s. When a pension fund wanted to buy, say, $50 million worth of IBM stock, that massive order would move the price up to 8% because there wasn't enough depth to absorb it smoothly. Market makers solved this by constantly posting orders near the price level, reducing slippage from several percent down to just a fraction of a percent, even for large trades. Just like I discovered how traders compete to find fair prices, there's another market where competition really matters. The news. When the same story gets reported differently across outlets, how do you know what's really happening? Ground News shows you how every major story is being covered across the political spectrum. So, I got my viewers 40% off the same unlimited access Vantage plan at groundnews.com/aotp or click the link in the description. That's just $5 a month, about the cost of a coffee. Take this recent story about Apple potentially acquiring Perplexity AI for 14 billion. Some outlets frame it as Apple's urgent AI catchup strategy, while others call it risky overspending on an unproven technology. Ground News reveals who's funding each outlet, their political bias, and how reliable they actually are. When making videos, I need to understand all sides to make sure my arguments are defensible, which is why I have ground news as part of my news diet. Go to groundnews.com/aotp or scan the QR code or click the link in the description to get this offer. But how do these automatic trading algorithms work exactly? I figured it out when I started noticing something else. As more exchanges popped up, the same coin was trading at wildly different prices across different platforms. It seemed like you could just buy it in one place and sell it in the other to make a risk-free profit of $100. So, it began. I wrote to a programmer friend. The crypto market is special, very special. We have big money, $5 billion traded a day in a market with almost no big players from the trading sector. It's all hackers and geeks. The prices in a panic can be 20% different between exchanges. I realized you could trade profitable loops through multiple currencies. You'd start with US dollars, buy Bitcoin, trade from Bitcoin to Ethereum, and then Ethereum back to US dollars. And if those exchange rates didn't multiply to exactly one, you'd make a profit. So my thought was, let's build a bot to scan all possible trading paths across all the exchanges. our bot would search for circular routes where when you multiplied all the exchange rates together, you got a number higher than one. And these profitable paths existed because different buyell demand on various exchanges would cause the prices to drift slightly out of sync as we saw before. And so on the first day of trading, the bot found a path between two exchanges. And trading $200 through this loop netted us an $8.50 profit in a second. For a short while, we had our own money-making machine, constantly scanning for prices that didn't make mathematical sense. And when we traded a path, the opportunity would disappear. And like before, the easy money didn't last. As paths with large profit percentages were discovered by others, they would beat us to it, leaving us with paths that only had a tiny profit margin. Professional firms with deeper pockets and faster algorithms arrived. Again, competition actually made the markets fairer for the average person. They were providing a service of information sharing, connecting previously isolated exchanges and assuring that when news broke affecting Bitcoin's value in one place, it would instantly spread to every exchange on Earth. What I stumbled into with a few cryptocurrencies happens today across the entire global financial system. Paul is checking Chicago prices at the same time he's trading in New York. Every bit of information could give him a critical advantage. Buy 300 and 90 or better right now. 90 for 300. This leads to a powerful idea. We can view all of these trading opportunities called arbitrage. No matter the strategy as a geometric relationship. Consider the price of Bitcoin on two exchanges A and B. If Bitcoin costs the same on both exchanges, we're on this diagonal line where prices are equal. No arbitrage opportunity exists. Think of this line as a no profit surface. But if exchange B shows a higher price, we move off this line. That's a profit opportunity. Buy low and then sell high. Every arbitrage trade pushes the current market point back towards the no profit surface. And as you add more currencies and exchanges like my bot, you can see this in higher dimensions using planes and other shapes. Anytime the current market prices drift off these surfaces, there's profit to be made. Traders get paid to push the market point back to where it mathematically must be. But once you eliminate most of these mathematical opportunities, where do traders look for more profit? That's where things get really interesting. The next type considers where prices should be in the future. Think of this as future arbitrage. This kind of trading is statistical in nature since the future is never certain, even if it's likely, where we move from these sharp noit surfaces to fuzzy ones. And predicting prices can happen over any time period, whether decades, days, or micros secondsonds. This brings us back to the master Warren Buffett. He credits everything he knows to Ben Graham, who in 1949 wrote the intelligent investor, the book on every investor's bookshelf. Graham taught to do research to find a company's true value, focus on earnings, growth, future profit potential. If that future seems likely and the current price doesn't reflect it, then you buy now and wait for it to unfold. But after you buy, you need to ignore the daily stock movements. Graham compared this to a crazy person he called Mr. Market. Mr. Market knocks on your door every single day with a new price for your shares. Sometimes he's wildly excited about what he has to offer. Sometimes he's deeply depressed. As Graham put it, often Mr. market lets his enthusiasm or fears run away with him and the value he proposes seems to you a little short of silly. So a perfect example of this process was Coca-Cola in the8s. While most investors saw Coca-Cola as a mature American soda company, Buffett saw a wildfire about to ignite globally. The spark was already visible. Americans consumed about 300 Cokes per year, but in China it was three. India less than one. But these numbers were starting to climb rapidly as those markets opened up. Buffett understood Coke was not just selling sugar water. It was selling an American lifestyle. Buffett loved the CEO with an ambitious plan to make Coke available everywhere on Earth to make it the world's drink. [Music] Furnish it with love. Grow apple trees and honey bees and snow white turtle. And so his research made this an obvious bet. By 1994, he put 35% of their fund, 1.3 billion, into this soda company. Wall Street thought it was crazy. Mr. Market would not have agreed. By 1998, reality caught up with his prediction. Coke sales exploded globally and his investment had grown to 20 billion, his most profitable investment ever. But here's the key point. This kind of long-term predictive trading only works because of the traders making trades based on much shorter term predictions. Those who inject information second by second. These are exactly the traders Graham warned Buffett to ignore. But what that point misses is how crucial short-term traders are. Without them, Buffett's trades wouldn't work. Which brings us to one of the greatest living traders, Mr. Market himself, Paul Tudtor Jones. Offer 370. 370. Offer 370. Yeah. Into the phone. Hey, hey, listen, Vinnie. Don't offer that. Sell 540. Market. Sell 540 market. This is the kind of trading where rubber really meets the road. It's where new information actually gets injected into the market prices as traders react moment by moment to the world. It's more chaotic because it's reflecting reality itself. It that's what makes it so exciting. Every day is something new and every day is providing new information every day, every hour. OPEC has basically come to an agreement whereby they're going to have a 7% production cut. And my whole feeling is is that anytime that you try to get 13 people to agree to anything and I have a chance to take a position on it, well, they're going to have to, you know, wild horses couldn't keep me from from betting against them succeeding in that. When economic data comes out, when earnings surprise, when geopolitical events happen, you've heard nothing else on OPAC. No, I got you. Thank you, Paul. Yeah. If prices didn't make sense, Paul Tudtor Jones was there within seconds injecting that new information into prices. Ask him how much he saw. Give me a number. Tell him more behind it. Do it. Do it. Do it. There's more behind you. Do not ever leave this phone. You get someone get the other broker to come and run the orders in. Do not leave this phone. All right. And so at every moment, there's always new information waiting to be injected into prices. That's a great That's great. They have an agreement between 13 people, but two of them said they won't agree, which happened to be two of the five biggest producers in the world. That was tough to figure out, wasn't it? And the market doesn't care who does the research, whether you're managing billions or trading from your bedroom. New bets that have been listed in the prediction market. So, uh, the perfect example was the recent Pope selection where a trader Domer was trading on prediction markets like Kelshi. And because of the secrecy and closed-d dooror nature of this selection, he saw that betting markets had two clear favorites that made sense. But he felt the pricing was mostly nonsense. And so when the white smoked appeared after just four ballots signaling they made a decision, the favorites on the betting market spiked to 85%. But Domer had spotted a key bias. There was a widely held belief that Americans could not be elected pope. and he found Robert Prevost at 200 to one odds which didn't make any sense to him. So he bought it and minutes later that American walked out as Pope. This is stunning. It is an American man. Again a great great surprise. The market paid him handsomely for bringing research to an information starved market. Anyone can be the bee. Which leads us to the final evolution, computerized future arbitrage, where machines operate in fractions of a second across all stocks, looking for patterns and how groups of stocks move together. The correlations here are phenomenal. That's incredible. Gary Bombberger at Morgan Stanley pioneered the idea in the 80s with what's now called statistical arbitrage. He focused on companies that were nearly identical. Take Coke and Pepsi. they naturally move together since they serve the same market with similar products. And instead of a sharp mathematical line we saw with currency arbitrage, this created a fuzzy corridor where these pairs usually traded together. And when something disrupted that relationship, like when Coke launched New Coke in 1985 and consumers revolted, crashing Coke's price while Pepsi celebrated, Bombberger's strategy would kick in. his algorithm would buy the beaten down Coke and sell the celebrating Pepsi, betting their relationship would normalize back to the usual region. This reveals something important about how information flows through markets. When Coke posts strong sales and jumps 10%. Statistical arbitrageers immediately ask, \"If Coke's worth more, why shouldn't Pepsi be worth more, too?\" They're like messengers, making sure relevant information doesn't get trapped in one stock. They spread it to every company that should be affected. De Shaw took this idea and scaled it dramatically across thousands of stocks and they traded all of them at the same time. And soon computers were detecting far more complex relationships. For example, all bank stocks tend to move together and this looks like a fuzzy tube through their price space. And it goes much deeper. For example, when Coca-Cola announces strong earnings, the news cascades through Pepsi, but then other beverage companies and then restaurants, sugar suppliers. Algorithms learn to map these real world connections as curved surfaces, which showed how entire groups of stocks naturally move together. They're all interrelated. You know, the whole world is simply nothing but a big flowchart for capital. Which leads us to the most successful trader in history, Jim Simons and his legendary secretive medallion fund, the envy of the world. Simons came to finance indirectly. His mathematical thesis was on measuring geometric distortions, detecting when points deviated from where they should be on complex surfaces. The boundary is a surface or a higher dimensional surface. I showed it to Churn and he said, \"Well, you did it in three dimensions, but it should be doable in all dimensions.\" Okay. Years later, he realized markets were just another geometric system. Prices tended to follow shapes based on realworld constraints. When prices moved off their correct surface or region, he would calculate the exact trades needed to profit from their inevitable drift back. So Renaissance took a radically different approach from de Shaw and others. Is it true that you never hired people from the investment industry? Never. [Laughter] Well, I like to say that you can teach a physicist finance, but you can't teach a finance person physics. Simons took a purely mathematical approach pattern detection without any assumptions. Well, I mean, think of a stock. It's a time series. You know, it has a value every day. It goes up, it goes down. It's a has a time series. You can you can analyze time series uh mathematically and uh especially if you have hundreds or thousands of these time series. And in looking at the patterns of prices, I could see that there was something we could study here that there were maybe some ways to predict prices and the models got better and better and finally the models replaced the fundamental stuff. They use machine learning to ingest everything. Prices, news, weather, economic data, satellite imagery, other sources we don't know about. And their computers discovered hundreds of complex surfaces that prices gravitated towards. So a trade in this world would take the form of a computer outputting what to hold across all stocks. thousands of precise portfolio instructions, each representing a tiny statistical edge based on where prices were expected to move in the short term. He gave a simple example where in New York, the weather would predict whether the markets would open slightly up or down. Often these relationships would only exist briefly before disappearing. Relationships so subtle that even Simon's team couldn't explain why they worked. The beauty was no one else was trading these surfaces because they couldn't see them. This was the ultimate computerized bee, rapidly incorporating information from every corner of the world and spreading it through market prices. And so all traders from the most advanced to people making wild bets in their bedroom. They all push prices towards what's fair at any moment. You can see it as a living hive. And today the information war has reached the speed of light. Orders are executed in micros secondsonds and trading algorithms react in real time to the world. A great example is in 2013 someone hacked the AP news account and a single fake tweet about an explosion in the White House moved the entire market 136 billion in seconds which then snapped back when algorithms realized it was fake. All right, this is going to say everything. PNG is now down 25%. That's true. If that stock is there, you just go and buy it. Okay, now it's a fast market. It's a fast market. The market was down 900 points. We're now down. The arms race for information has gone upstream. Hedge funds buy satellite imagery to count cars in Walmart parking lots before earnings. Citadel pays Robin Hood for order flow to see trades before they hit the market. And so finally, let's step back and remember Warren Buffett's original bet. He wagered that doing nothing would beat all the sophisticated trading. How is that possibly true? In the 1960s, a young economist named William Sharp was studying portfolio theory when he had a revolutionary insight. His one big idea was to look at all traders collectively as one entity. First, realize that every investor is essentially voting with their money on what the market should look like by putting their dollars into some combination of stocks, whether it's all in one stock or spread across hundreds. And so, if you pause time at any moment and add up what everyone has their money in, you actually get a single collective portfolio, which Sharp called the market portfolio. And if you simply buy this market portfolio, you capture something remarkable. the collective result of everyone's wisdom. And so while traders pay to constantly change or reallocate their portfolio, deciding what to own and how much to own, to the market portfolio holder, it's just different slices of the pie growing and shrinking as they exchange value with each other. Market portfolio holders get this ongoing reallocation for free. It's like a living organism, always evolving to perfectly match the state of the world at each moment. And Sharp's big insight is the market portfolio is the average of everyone's holdings. So, it must deliver average performance. But since it pays no fees, and everyone else does for every trade, it automatically beats the average after cost and gets better and better over time because costs eat away at traders profits. And John Bogle turned this insight into the index fund in 1976. A way for anyone to own the whole market by holding all 500 stocks in the S&P 500 in proportion to their market value. And so your holdings get automatically updated every time new information gets injected to the market. The results were stunning. Since 1976, Bogle's original index fund has beat roughly 90% of funds. Jack Bogle has probably done more for the American investor than any man in the country. Jack, would you stand up? It wouldn't have happened without him. The truth is it was not in the interest of invest investment industry of Wall Street. It was not in their interest actually to have the development of an index fund of the index fund because it brought down fees dramatically. And this is why Warren Buffett could make that bet against his own life's work. He understood every time you make a trade, you have a chance of being wrong. And active investors have to keep guessing. They're like running a marathon and might fall when they're wrong. I personally gone bankrupt. I lost everything I had and had to borrow from friends three times in nine years that I've been in the business where I'd go sit in the park and just sit there and just go, I can't believe this. You know, this this is the end. This is the end of my life. The index fund never falls. It just keeps creeping forward in the race. And since fees don't slow it down, it gradually drifts towards the front of the race. And so once you invest in the index, you literally have every trader on earth working for your money 24/7. That's why Buffett's bet continues to win. It's the most important idea in finance. Imagine yourself back on March 11th of 1942 that at that time uh you had invested $10,000 in effect bought the S&P 500. I want you to think how much money you might have now. And now that you've got a number in your head, let's go to the next slide and we'll get the answer. You'd have $51 million and you wouldn't have had to do anything. You wouldn't have to understand accounting. You basically just had to make one investment decision in your life. It turns out the secret to winning in the most sophisticated game on earth is refusing to play. If you'd follow that, of course you're there's one problem, buddy. your your friendly stock broker would have starved to death. Thank you so much for watching this video. If you would like to stay up to date on new videos and projects I have coming, please join my email list. I have something coming up I think you'll be interested in. [Music]",
+  "segments": [
+    {
+      "start": 0.23,
+      "end": 0.99,
+      "duration": 0.76,
+      "text": "[Applause]"
+    },
+    {
+      "start": 0.48,
+      "end": 1.76,
+      "duration": 1.28,
+      "text": "[Music]"
+    },
+    {
+      "start": 0.99,
+      "end": 5.04,
+      "duration": 4.05,
+      "text": "[Applause]"
+    },
+    {
+      "start": 1.76,
+      "end": 7.68,
+      "duration": 5.92,
+      "text": "Offer a,000. Offer offer 1,540. Offer"
+    },
+    {
+      "start": 5.04,
+      "end": 9.519,
+      "duration": 4.479,
+      "text": "1,500 and a2. In 2007, Warren Buffett"
+    },
+    {
+      "start": 7.68,
+      "end": 12.0,
+      "duration": 4.32,
+      "text": "made a million dollar bet on the dumbest"
+    },
+    {
+      "start": 9.519,
+      "end": 14.16,
+      "duration": 4.641,
+      "text": "investment strategy imaginable. Buy all"
+    },
+    {
+      "start": 12.0,
+      "end": 17.119,
+      "duration": 5.119,
+      "text": "stocks according to their size and do"
+    },
+    {
+      "start": 14.16,
+      "end": 19.759999999999998,
+      "duration": 5.6,
+      "text": "absolutely nothing for 10 years. In"
+    },
+    {
+      "start": 17.119,
+      "end": 22.0,
+      "duration": 4.881,
+      "text": "2017, he won by a landslide and"
+    },
+    {
+      "start": 19.76,
+      "end": 24.080000000000002,
+      "duration": 4.32,
+      "text": "continues to win to this day. Index"
+    },
+    {
+      "start": 22.0,
+      "end": 26.8,
+      "duration": 4.8,
+      "text": "funds overall"
+    },
+    {
+      "start": 24.08,
+      "end": 29.198999999999998,
+      "duration": 5.119,
+      "text": "have delivered a result that has been"
+    },
+    {
+      "start": 26.8,
+      "end": 31.279,
+      "duration": 4.479,
+      "text": "better than Wall Street professionals."
+    },
+    {
+      "start": 29.199,
+      "end": 34.399,
+      "duration": 5.2,
+      "text": "This leads to the key question of this"
+    },
+    {
+      "start": 31.279,
+      "end": 38.04,
+      "duration": 6.761,
+      "text": "video. How can nothing beat the smartest"
+    },
+    {
+      "start": 34.399,
+      "end": 38.04,
+      "duration": 3.641,
+      "text": "traders on earth?"
+    },
+    {
+      "start": 38.64,
+      "end": 43.120000000000005,
+      "duration": 4.48,
+      "text": "If money is evil, then that building is"
+    },
+    {
+      "start": 41.04,
+      "end": 44.559,
+      "duration": 3.519,
+      "text": "held. To understand this paradox, we"
+    },
+    {
+      "start": 43.12,
+      "end": 48.16,
+      "duration": 5.04,
+      "text": "need to go deeper into the world."
+    },
+    {
+      "start": 44.559,
+      "end": 50.879,
+      "duration": 6.32,
+      "text": "Buffett bet against 90 for 3,000."
+    },
+    {
+      "start": 48.16,
+      "end": 53.038999999999994,
+      "duration": 4.879,
+      "text": "90 for 3,000. Fill or kill. An ongoing"
+    },
+    {
+      "start": 50.879,
+      "end": 54.96,
+      "duration": 4.081,
+      "text": "war between humans and machines over"
+    },
+    {
+      "start": 53.039,
+      "end": 56.96,
+      "duration": 3.921,
+      "text": "every penny."
+    },
+    {
+      "start": 54.96,
+      "end": 59.120000000000005,
+      "duration": 4.16,
+      "text": "Their methods shrouded in secrecy,"
+    },
+    {
+      "start": 56.96,
+      "end": 60.8,
+      "duration": 3.84,
+      "text": "treated like a dark art. And I did one"
+    },
+    {
+      "start": 59.12,
+      "end": 62.64,
+      "duration": 3.52,
+      "text": "thing there that was quite good because"
+    },
+    {
+      "start": 60.8,
+      "end": 64.15899999999999,
+      "duration": 3.359,
+      "text": "I can't tell you what it was. It's all"
+    },
+    {
+      "start": 62.64,
+      "end": 66.479,
+      "duration": 3.839,
+      "text": "classified. Which leads to a key"
+    },
+    {
+      "start": 64.159,
+      "end": 69.04,
+      "duration": 4.881,
+      "text": "question. Are these traders parasites"
+    },
+    {
+      "start": 66.479,
+      "end": 71.119,
+      "duration": 4.64,
+      "text": "stealing from average people or are they"
+    },
+    {
+      "start": 69.04,
+      "end": 73.76,
+      "duration": 4.72,
+      "text": "more like bees providing a hidden"
+    },
+    {
+      "start": 71.119,
+      "end": 76.56,
+      "duration": 5.441,
+      "text": "service? I used to think they were"
+    },
+    {
+      "start": 73.76,
+      "end": 78.479,
+      "duration": 4.719,
+      "text": "parasites until I became one myself. It"
+    },
+    {
+      "start": 76.56,
+      "end": 82.4,
+      "duration": 5.84,
+      "text": "began during one wild night I'll never"
+    },
+    {
+      "start": 78.479,
+      "end": 84.08,
+      "duration": 5.601,
+      "text": "forget during the crypto bubble of 2017."
+    },
+    {
+      "start": 82.4,
+      "end": 85.84,
+      "duration": 3.44,
+      "text": "That's when I realized I had it all"
+    },
+    {
+      "start": 84.08,
+      "end": 88.15899999999999,
+      "duration": 4.079,
+      "text": "backwards and finally understood"
+    },
+    {
+      "start": 85.84,
+      "end": 89.84,
+      "duration": 4.0,
+      "text": "Buffett's bet. I had been following"
+    },
+    {
+      "start": 88.159,
+      "end": 91.43900000000001,
+      "duration": 3.28,
+      "text": "Bitcoin since the early days when it was"
+    },
+    {
+      "start": 89.84,
+      "end": 93.43900000000001,
+      "duration": 3.599,
+      "text": "just a curiosity for geeks and"
+    },
+    {
+      "start": 91.439,
+      "end": 96.79899999999999,
+      "duration": 5.36,
+      "text": "libertarians holding a few coins for"
+    },
+    {
+      "start": 93.439,
+      "end": 99.19999999999999,
+      "duration": 5.761,
+      "text": "fun. But by 2017, Bitcoin had broken a"
+    },
+    {
+      "start": 96.799,
+      "end": 101.52000000000001,
+      "duration": 4.721,
+      "text": "thousand and then 2,000. A milestone"
+    },
+    {
+      "start": 99.2,
+      "end": 103.84,
+      "duration": 4.64,
+      "text": "that made me realize money was about to"
+    },
+    {
+      "start": 101.52,
+      "end": 105.759,
+      "duration": 4.239,
+      "text": "flow into this market like never before."
+    },
+    {
+      "start": 103.84,
+      "end": 108.56,
+      "duration": 4.72,
+      "text": "So, I started joining these tiny new"
+    },
+    {
+      "start": 105.759,
+      "end": 110.96,
+      "duration": 5.201,
+      "text": "exchanges just to mess around. That's"
+    },
+    {
+      "start": 108.56,
+      "end": 113.759,
+      "duration": 5.199,
+      "text": "when something strange happened. I saw"
+    },
+    {
+      "start": 110.96,
+      "end": 115.759,
+      "duration": 4.799,
+      "text": "Bitcoin priced at $1,850"
+    },
+    {
+      "start": 113.759,
+      "end": 118.32,
+      "duration": 4.561,
+      "text": "on one exchange, but it was trading at"
+    },
+    {
+      "start": 115.759,
+      "end": 120.07900000000001,
+      "duration": 4.32,
+      "text": "$2,000 everywhere else. So, I placed"
+    },
+    {
+      "start": 118.32,
+      "end": 122.88,
+      "duration": 4.56,
+      "text": "what's called a market order, basically"
+    },
+    {
+      "start": 120.079,
+      "end": 125.75899999999999,
+      "duration": 5.68,
+      "text": "saying buy $100 worth at whatever the"
+    },
+    {
+      "start": 122.88,
+      "end": 128.319,
+      "duration": 5.439,
+      "text": "current price is. But my order just hung"
+    },
+    {
+      "start": 125.759,
+      "end": 130.0,
+      "duration": 4.241,
+      "text": "there. Nothing happened. I refreshed."
+    },
+    {
+      "start": 128.319,
+      "end": 132.72,
+      "duration": 4.401,
+      "text": "Then I noticed there were no recent"
+    },
+    {
+      "start": 130.0,
+      "end": 134.48,
+      "duration": 4.48,
+      "text": "trades for the last few hours. I looked"
+    },
+    {
+      "start": 132.72,
+      "end": 136.64,
+      "duration": 3.92,
+      "text": "into something called the order book."
+    },
+    {
+      "start": 134.48,
+      "end": 139.2,
+      "duration": 4.72,
+      "text": "This is the heart of how every exchange"
+    },
+    {
+      "start": 136.64,
+      "end": 141.51999999999998,
+      "duration": 4.88,
+      "text": "works. Think of the order book like jars"
+    },
+    {
+      "start": 139.2,
+      "end": 143.35999999999999,
+      "duration": 4.16,
+      "text": "at different price levels. Each jar"
+    },
+    {
+      "start": 141.52,
+      "end": 145.68,
+      "duration": 4.16,
+      "text": "represents people willing to trade at"
+    },
+    {
+      "start": 143.36,
+      "end": 148.48000000000002,
+      "duration": 5.12,
+      "text": "that exact price with what's called a"
+    },
+    {
+      "start": 145.68,
+      "end": 150.72,
+      "duration": 5.04,
+      "text": "limit order. There are buyside jars,"
+    },
+    {
+      "start": 148.48,
+      "end": 153.599,
+      "duration": 5.119,
+      "text": "people wanting to buy Bitcoin with"
+    },
+    {
+      "start": 150.72,
+      "end": 155.84,
+      "duration": 5.12,
+      "text": "dollars, and sellside jars, people"
+    },
+    {
+      "start": 153.599,
+      "end": 158.23899999999998,
+      "duration": 4.64,
+      "text": "wanting to sell Bitcoin for dollars. The"
+    },
+    {
+      "start": 155.84,
+      "end": 161.04,
+      "duration": 5.2,
+      "text": "fuller the jar, the more depth the"
+    },
+    {
+      "start": 158.239,
+      "end": 163.59900000000002,
+      "duration": 5.36,
+      "text": "market has at that price. In a normal"
+    },
+    {
+      "start": 161.04,
+      "end": 165.35999999999999,
+      "duration": 4.32,
+      "text": "active market, an order book usually"
+    },
+    {
+      "start": 163.599,
+      "end": 167.599,
+      "duration": 4.0,
+      "text": "looks like this. Some people willing to"
+    },
+    {
+      "start": 165.36,
+      "end": 169.68,
+      "duration": 4.32,
+      "text": "trade right near the current price, but"
+    },
+    {
+      "start": 167.599,
+      "end": 171.83999999999997,
+      "duration": 4.241,
+      "text": "much more willing to buy at cheaper"
+    },
+    {
+      "start": 169.68,
+      "end": 174.239,
+      "duration": 4.559,
+      "text": "prices or sell at much more expensive"
+    },
+    {
+      "start": 171.84,
+      "end": 176.64000000000001,
+      "duration": 4.8,
+      "text": "ones. So, when someone places a market"
+    },
+    {
+      "start": 174.239,
+      "end": 178.72,
+      "duration": 4.481,
+      "text": "order for $100 of Bitcoin, it"
+    },
+    {
+      "start": 176.64,
+      "end": 181.27999999999997,
+      "duration": 4.64,
+      "text": "automatically gets matched to the best"
+    },
+    {
+      "start": 178.72,
+      "end": 183.76,
+      "duration": 5.04,
+      "text": "available limit order on the sell side."
+    },
+    {
+      "start": 181.28,
+      "end": 186.239,
+      "duration": 4.959,
+      "text": "If my $100 is bigger than what's in the"
+    },
+    {
+      "start": 183.76,
+      "end": 188.239,
+      "duration": 4.479,
+      "text": "cheapest jar, it simply moves up to the"
+    },
+    {
+      "start": 186.239,
+      "end": 190.8,
+      "duration": 4.561,
+      "text": "next jar and so on until my order is"
+    },
+    {
+      "start": 188.239,
+      "end": 193.20000000000002,
+      "duration": 4.961,
+      "text": "filled. That's the price I get. But what"
+    },
+    {
+      "start": 190.8,
+      "end": 195.92000000000002,
+      "duration": 5.12,
+      "text": "I saw in this order book was shocking."
+    },
+    {
+      "start": 193.2,
+      "end": 198.79999999999998,
+      "duration": 5.6,
+      "text": "The sell side was completely empty."
+    },
+    {
+      "start": 195.92,
+      "end": 201.28,
+      "duration": 5.36,
+      "text": "Nobody had Bitcoin for sale at any price"
+    },
+    {
+      "start": 198.8,
+      "end": 203.36,
+      "duration": 4.56,
+      "text": "on this exchange. So, I did an"
+    },
+    {
+      "start": 201.28,
+      "end": 205.68,
+      "duration": 4.4,
+      "text": "experiment. I moved some Bitcoin from my"
+    },
+    {
+      "start": 203.36,
+      "end": 208.87900000000002,
+      "duration": 5.519,
+      "text": "wallet onto this exchange and posted a"
+    },
+    {
+      "start": 205.68,
+      "end": 210.799,
+      "duration": 5.119,
+      "text": "small amount to sell and not at $2,000"
+    },
+    {
+      "start": 208.879,
+      "end": 212.959,
+      "duration": 4.08,
+      "text": "where it was trading everywhere. I put"
+    },
+    {
+      "start": 210.799,
+      "end": 215.36,
+      "duration": 4.561,
+      "text": "it at $2,500"
+    },
+    {
+      "start": 212.959,
+      "end": 218.159,
+      "duration": 5.2,
+      "text": "and it sold instantly. My Bitcoin"
+    },
+    {
+      "start": 215.36,
+      "end": 219.76000000000002,
+      "duration": 4.4,
+      "text": "vanished and $250 appeared in my account"
+    },
+    {
+      "start": 218.159,
+      "end": 222.319,
+      "duration": 4.16,
+      "text": "instead of the $200 it should have been"
+    },
+    {
+      "start": 219.76,
+      "end": 224.64,
+      "duration": 4.88,
+      "text": "worth. So, I kept selling it at a higher"
+    },
+    {
+      "start": 222.319,
+      "end": 226.879,
+      "duration": 4.56,
+      "text": "and higher price. No matter what price I"
+    },
+    {
+      "start": 224.64,
+      "end": 229.27999999999997,
+      "duration": 4.64,
+      "text": "set, it automatically sold because there"
+    },
+    {
+      "start": 226.879,
+      "end": 232.07999999999998,
+      "duration": 5.201,
+      "text": "were so many market buy orders lined up"
+    },
+    {
+      "start": 229.28,
+      "end": 234.879,
+      "duration": 5.599,
+      "text": "to execute and they would pay any price"
+    },
+    {
+      "start": 232.08,
+      "end": 237.36,
+      "duration": 5.28,
+      "text": "available. And at that moment, my limit"
+    },
+    {
+      "start": 234.879,
+      "end": 240.39999999999998,
+      "duration": 5.521,
+      "text": "sell orders were the only orders on the"
+    },
+    {
+      "start": 237.36,
+      "end": 243.04000000000002,
+      "duration": 5.68,
+      "text": "sell side. I was the market and had it"
+    },
+    {
+      "start": 240.4,
+      "end": 246.239,
+      "duration": 5.839,
+      "text": "cornered by accident. And almost as a"
+    },
+    {
+      "start": 243.04,
+      "end": 248.64,
+      "duration": 5.6,
+      "text": "joke, I posted one Bitcoin for $10,000"
+    },
+    {
+      "start": 246.239,
+      "end": 250.799,
+      "duration": 4.56,
+      "text": "and it sold immediately. I emailed a"
+    },
+    {
+      "start": 248.64,
+      "end": 253.2,
+      "duration": 4.56,
+      "text": "friend at 2 a.m. to explain, my hands"
+    },
+    {
+      "start": 250.799,
+      "end": 255.20000000000002,
+      "duration": 4.401,
+      "text": "shaking. Once I ran out of Bitcoin, I"
+    },
+    {
+      "start": 253.2,
+      "end": 256.959,
+      "duration": 3.759,
+      "text": "rushed to buy more Bitcoin on a major"
+    },
+    {
+      "start": 255.2,
+      "end": 258.71999999999997,
+      "duration": 3.52,
+      "text": "exchange and try to repeat this gold"
+    },
+    {
+      "start": 256.959,
+      "end": 260.56,
+      "duration": 3.601,
+      "text": "mine. I waited nervously for the"
+    },
+    {
+      "start": 258.72,
+      "end": 263.199,
+      "duration": 4.479,
+      "text": "15-minute transfer it took my new"
+    },
+    {
+      "start": 260.56,
+      "end": 265.52,
+      "duration": 4.96,
+      "text": "Bitcoin to arrive. But by the time it"
+    },
+    {
+      "start": 263.199,
+      "end": 267.759,
+      "duration": 4.56,
+      "text": "arrived, everything had changed. Other"
+    },
+    {
+      "start": 265.52,
+      "end": 270.08,
+      "duration": 4.56,
+      "text": "sellers had discovered this exchange and"
+    },
+    {
+      "start": 267.759,
+      "end": 272.32,
+      "duration": 4.561,
+      "text": "filled the sellside jars with reasonable"
+    },
+    {
+      "start": 270.08,
+      "end": 275.19899999999996,
+      "duration": 5.119,
+      "text": "prices. And what was strange is when I"
+    },
+    {
+      "start": 272.32,
+      "end": 277.59999999999997,
+      "duration": 5.28,
+      "text": "tried to post a better sell order,"
+    },
+    {
+      "start": 275.199,
+      "end": 280.08000000000004,
+      "duration": 4.881,
+      "text": "almost instantly a new order appeared,"
+    },
+    {
+      "start": 277.6,
+      "end": 281.68,
+      "duration": 4.08,
+      "text": "undercutting me by 1 cent. I tried again"
+    },
+    {
+      "start": 280.08,
+      "end": 283.52,
+      "duration": 3.44,
+      "text": "and it jumped in front of me."
+    },
+    {
+      "start": 281.68,
+      "end": 285.919,
+      "duration": 4.239,
+      "text": "Competition had arrived. These were"
+    },
+    {
+      "start": 283.52,
+      "end": 287.75899999999996,
+      "duration": 4.239,
+      "text": "automated market makers who constantly"
+    },
+    {
+      "start": 285.919,
+      "end": 290.15999999999997,
+      "duration": 4.241,
+      "text": "post limit orders near the current"
+    },
+    {
+      "start": 287.759,
+      "end": 292.56,
+      "duration": 4.801,
+      "text": "price. That's when it started to hit me."
+    },
+    {
+      "start": 290.16,
+      "end": 294.96000000000004,
+      "duration": 4.8,
+      "text": "My lost opportunity was the average"
+    },
+    {
+      "start": 292.56,
+      "end": 297.28000000000003,
+      "duration": 4.72,
+      "text": "person's gain. The more market makers"
+    },
+    {
+      "start": 294.96,
+      "end": 298.96,
+      "duration": 4.0,
+      "text": "competing in an exchange, the less"
+    },
+    {
+      "start": 297.28,
+      "end": 301.28,
+      "duration": 4.0,
+      "text": "slippage there is. Meaning when you"
+    },
+    {
+      "start": 298.96,
+      "end": 303.75899999999996,
+      "duration": 4.799,
+      "text": "place a market order, the price barely"
+    },
+    {
+      "start": 301.28,
+      "end": 306.0,
+      "duration": 4.72,
+      "text": "moves and you get what you would expect."
+    },
+    {
+      "start": 303.759,
+      "end": 307.84000000000003,
+      "duration": 4.081,
+      "text": "This perfectly mirrors the block order"
+    },
+    {
+      "start": 306.0,
+      "end": 310.479,
+      "duration": 4.479,
+      "text": "problem from the stock market in the"
+    },
+    {
+      "start": 307.84,
+      "end": 313.19899999999996,
+      "duration": 5.359,
+      "text": "1980s. When a pension fund wanted to"
+    },
+    {
+      "start": 310.479,
+      "end": 316.08,
+      "duration": 5.601,
+      "text": "buy, say, $50 million worth of IBM"
+    },
+    {
+      "start": 313.199,
+      "end": 319.039,
+      "duration": 5.84,
+      "text": "stock, that massive order would move the"
+    },
+    {
+      "start": 316.08,
+      "end": 321.919,
+      "duration": 5.839,
+      "text": "price up to 8% because there wasn't"
+    },
+    {
+      "start": 319.039,
+      "end": 324.24,
+      "duration": 5.201,
+      "text": "enough depth to absorb it smoothly."
+    },
+    {
+      "start": 321.919,
+      "end": 326.88,
+      "duration": 4.961,
+      "text": "Market makers solved this by constantly"
+    },
+    {
+      "start": 324.24,
+      "end": 329.199,
+      "duration": 4.959,
+      "text": "posting orders near the price level,"
+    },
+    {
+      "start": 326.88,
+      "end": 331.28,
+      "duration": 4.4,
+      "text": "reducing slippage from several percent"
+    },
+    {
+      "start": 329.199,
+      "end": 334.08000000000004,
+      "duration": 4.881,
+      "text": "down to just a fraction of a percent,"
+    },
+    {
+      "start": 331.28,
+      "end": 335.59999999999997,
+      "duration": 4.32,
+      "text": "even for large trades. Just like I"
+    },
+    {
+      "start": 334.08,
+      "end": 337.039,
+      "duration": 2.959,
+      "text": "discovered how traders compete to find"
+    },
+    {
+      "start": 335.6,
+      "end": 338.72,
+      "duration": 3.12,
+      "text": "fair prices, there's another market"
+    },
+    {
+      "start": 337.039,
+      "end": 340.8,
+      "duration": 3.761,
+      "text": "where competition really matters. The"
+    },
+    {
+      "start": 338.72,
+      "end": 342.24,
+      "duration": 3.52,
+      "text": "news. When the same story gets reported"
+    },
+    {
+      "start": 340.8,
+      "end": 343.759,
+      "duration": 2.959,
+      "text": "differently across outlets, how do you"
+    },
+    {
+      "start": 342.24,
+      "end": 345.759,
+      "duration": 3.519,
+      "text": "know what's really happening? Ground"
+    },
+    {
+      "start": 343.759,
+      "end": 347.199,
+      "duration": 3.44,
+      "text": "News shows you how every major story is"
+    },
+    {
+      "start": 345.759,
+      "end": 349.68,
+      "duration": 3.921,
+      "text": "being covered across the political"
+    },
+    {
+      "start": 347.199,
+      "end": 352.08000000000004,
+      "duration": 4.881,
+      "text": "spectrum. So, I got my viewers 40% off"
+    },
+    {
+      "start": 349.68,
+      "end": 355.40000000000003,
+      "duration": 5.72,
+      "text": "the same unlimited access Vantage plan"
+    },
+    {
+      "start": 352.08,
+      "end": 355.4,
+      "duration": 3.32,
+      "text": "at groundnews.com/aotp"
+    },
+    {
+      "start": 355.759,
+      "end": 359.36,
+      "duration": 3.601,
+      "text": "or click the link in the description."
+    },
+    {
+      "start": 357.52,
+      "end": 361.19899999999996,
+      "duration": 3.679,
+      "text": "That's just $5 a month, about the cost"
+    },
+    {
+      "start": 359.36,
+      "end": 363.039,
+      "duration": 3.679,
+      "text": "of a coffee. Take this recent story"
+    },
+    {
+      "start": 361.199,
+      "end": 365.6,
+      "duration": 4.401,
+      "text": "about Apple potentially acquiring"
+    },
+    {
+      "start": 363.039,
+      "end": 368.24,
+      "duration": 5.201,
+      "text": "Perplexity AI for 14 billion. Some"
+    },
+    {
+      "start": 365.6,
+      "end": 370.319,
+      "duration": 4.719,
+      "text": "outlets frame it as Apple's urgent AI"
+    },
+    {
+      "start": 368.24,
+      "end": 372.24,
+      "duration": 4.0,
+      "text": "catchup strategy, while others call it"
+    },
+    {
+      "start": 370.319,
+      "end": 374.0,
+      "duration": 3.681,
+      "text": "risky overspending on an unproven"
+    },
+    {
+      "start": 372.24,
+      "end": 375.6,
+      "duration": 3.36,
+      "text": "technology. Ground News reveals who's"
+    },
+    {
+      "start": 374.0,
+      "end": 377.199,
+      "duration": 3.199,
+      "text": "funding each outlet, their political"
+    },
+    {
+      "start": 375.6,
+      "end": 379.199,
+      "duration": 3.599,
+      "text": "bias, and how reliable they actually"
+    },
+    {
+      "start": 377.199,
+      "end": 381.039,
+      "duration": 3.84,
+      "text": "are. When making videos, I need to"
+    },
+    {
+      "start": 379.199,
+      "end": 382.88,
+      "duration": 3.681,
+      "text": "understand all sides to make sure my"
+    },
+    {
+      "start": 381.039,
+      "end": 384.24,
+      "duration": 3.201,
+      "text": "arguments are defensible, which is why I"
+    },
+    {
+      "start": 382.88,
+      "end": 387.6,
+      "duration": 4.72,
+      "text": "have ground news as part of my news"
+    },
+    {
+      "start": 384.24,
+      "end": 389.919,
+      "duration": 5.679,
+      "text": "diet. Go to groundnews.com/aotp"
+    },
+    {
+      "start": 387.6,
+      "end": 392.0,
+      "duration": 4.4,
+      "text": "or scan the QR code or click the link in"
+    },
+    {
+      "start": 389.919,
+      "end": 393.35999999999996,
+      "duration": 3.441,
+      "text": "the description to get this offer. But"
+    },
+    {
+      "start": 392.0,
+      "end": 395.759,
+      "duration": 3.759,
+      "text": "how do these automatic trading"
+    },
+    {
+      "start": 393.36,
+      "end": 397.44,
+      "duration": 4.08,
+      "text": "algorithms work exactly? I figured it"
+    },
+    {
+      "start": 395.759,
+      "end": 400.319,
+      "duration": 4.56,
+      "text": "out when I started noticing something"
+    },
+    {
+      "start": 397.44,
+      "end": 402.24,
+      "duration": 4.8,
+      "text": "else. As more exchanges popped up, the"
+    },
+    {
+      "start": 400.319,
+      "end": 403.84000000000003,
+      "duration": 3.521,
+      "text": "same coin was trading at wildly"
+    },
+    {
+      "start": 402.24,
+      "end": 405.919,
+      "duration": 3.679,
+      "text": "different prices across different"
+    },
+    {
+      "start": 403.84,
+      "end": 407.919,
+      "duration": 4.079,
+      "text": "platforms. It seemed like you could just"
+    },
+    {
+      "start": 405.919,
+      "end": 409.919,
+      "duration": 4.0,
+      "text": "buy it in one place and sell it in the"
+    },
+    {
+      "start": 407.919,
+      "end": 412.4,
+      "duration": 4.481,
+      "text": "other to make a risk-free profit of"
+    },
+    {
+      "start": 409.919,
+      "end": 414.31899999999996,
+      "duration": 4.4,
+      "text": "$100. So, it began. I wrote to a"
+    },
+    {
+      "start": 412.4,
+      "end": 416.56,
+      "duration": 4.16,
+      "text": "programmer friend. The crypto market is"
+    },
+    {
+      "start": 414.319,
+      "end": 419.03900000000004,
+      "duration": 4.72,
+      "text": "special, very special. We have big"
+    },
+    {
+      "start": 416.56,
+      "end": 420.56,
+      "duration": 4.0,
+      "text": "money, $5 billion traded a day in a"
+    },
+    {
+      "start": 419.039,
+      "end": 422.4,
+      "duration": 3.361,
+      "text": "market with almost no big players from"
+    },
+    {
+      "start": 420.56,
+      "end": 425.28000000000003,
+      "duration": 4.72,
+      "text": "the trading sector. It's all hackers and"
+    },
+    {
+      "start": 422.4,
+      "end": 427.75899999999996,
+      "duration": 5.359,
+      "text": "geeks. The prices in a panic can be 20%"
+    },
+    {
+      "start": 425.28,
+      "end": 430.31899999999996,
+      "duration": 5.039,
+      "text": "different between exchanges. I realized"
+    },
+    {
+      "start": 427.759,
+      "end": 432.96000000000004,
+      "duration": 5.201,
+      "text": "you could trade profitable loops through"
+    },
+    {
+      "start": 430.319,
+      "end": 435.44,
+      "duration": 5.121,
+      "text": "multiple currencies. You'd start with US"
+    },
+    {
+      "start": 432.96,
+      "end": 437.52,
+      "duration": 4.56,
+      "text": "dollars, buy Bitcoin, trade from Bitcoin"
+    },
+    {
+      "start": 435.44,
+      "end": 439.84,
+      "duration": 4.4,
+      "text": "to Ethereum, and then Ethereum back to"
+    },
+    {
+      "start": 437.52,
+      "end": 442.15999999999997,
+      "duration": 4.64,
+      "text": "US dollars. And if those exchange rates"
+    },
+    {
+      "start": 439.84,
+      "end": 444.56,
+      "duration": 4.72,
+      "text": "didn't multiply to exactly one, you'd"
+    },
+    {
+      "start": 442.16,
+      "end": 447.199,
+      "duration": 5.039,
+      "text": "make a profit. So my thought was, let's"
+    },
+    {
+      "start": 444.56,
+      "end": 450.639,
+      "duration": 6.079,
+      "text": "build a bot to scan all possible trading"
+    },
+    {
+      "start": 447.199,
+      "end": 452.479,
+      "duration": 5.28,
+      "text": "paths across all the exchanges. our bot"
+    },
+    {
+      "start": 450.639,
+      "end": 454.16,
+      "duration": 3.521,
+      "text": "would search for circular routes where"
+    },
+    {
+      "start": 452.479,
+      "end": 455.919,
+      "duration": 3.44,
+      "text": "when you multiplied all the exchange"
+    },
+    {
+      "start": 454.16,
+      "end": 458.8,
+      "duration": 4.64,
+      "text": "rates together, you got a number higher"
+    },
+    {
+      "start": 455.919,
+      "end": 461.28,
+      "duration": 5.361,
+      "text": "than one. And these profitable paths"
+    },
+    {
+      "start": 458.8,
+      "end": 463.36,
+      "duration": 4.56,
+      "text": "existed because different buyell demand"
+    },
+    {
+      "start": 461.28,
+      "end": 465.599,
+      "duration": 4.319,
+      "text": "on various exchanges would cause the"
+    },
+    {
+      "start": 463.36,
+      "end": 467.68,
+      "duration": 4.32,
+      "text": "prices to drift slightly out of sync as"
+    },
+    {
+      "start": 465.599,
+      "end": 470.08,
+      "duration": 4.481,
+      "text": "we saw before. And so on the first day"
+    },
+    {
+      "start": 467.68,
+      "end": 473.12,
+      "duration": 5.44,
+      "text": "of trading, the bot found a path between"
+    },
+    {
+      "start": 470.08,
+      "end": 476.71999999999997,
+      "duration": 6.64,
+      "text": "two exchanges. And trading $200 through"
+    },
+    {
+      "start": 473.12,
+      "end": 479.28000000000003,
+      "duration": 6.16,
+      "text": "this loop netted us an $8.50 profit in a"
+    },
+    {
+      "start": 476.72,
+      "end": 481.28000000000003,
+      "duration": 4.56,
+      "text": "second. For a short while, we had our"
+    },
+    {
+      "start": 479.28,
+      "end": 483.11999999999995,
+      "duration": 3.84,
+      "text": "own money-making machine, constantly"
+    },
+    {
+      "start": 481.28,
+      "end": 485.67999999999995,
+      "duration": 4.4,
+      "text": "scanning for prices that didn't make"
+    },
+    {
+      "start": 483.12,
+      "end": 487.84000000000003,
+      "duration": 4.72,
+      "text": "mathematical sense. And when we traded a"
+    },
+    {
+      "start": 485.68,
+      "end": 489.599,
+      "duration": 3.919,
+      "text": "path, the opportunity would disappear."
+    },
+    {
+      "start": 487.84,
+      "end": 492.4,
+      "duration": 4.56,
+      "text": "And like before, the easy money didn't"
+    },
+    {
+      "start": 489.599,
+      "end": 494.08,
+      "duration": 4.481,
+      "text": "last. As paths with large profit"
+    },
+    {
+      "start": 492.4,
+      "end": 495.75899999999996,
+      "duration": 3.359,
+      "text": "percentages were discovered by others,"
+    },
+    {
+      "start": 494.08,
+      "end": 497.84,
+      "duration": 3.76,
+      "text": "they would beat us to it, leaving us"
+    },
+    {
+      "start": 495.759,
+      "end": 500.0,
+      "duration": 4.241,
+      "text": "with paths that only had a tiny profit"
+    },
+    {
+      "start": 497.84,
+      "end": 502.79999999999995,
+      "duration": 4.96,
+      "text": "margin. Professional firms with deeper"
+    },
+    {
+      "start": 500.0,
+      "end": 505.12,
+      "duration": 5.12,
+      "text": "pockets and faster algorithms arrived."
+    },
+    {
+      "start": 502.8,
+      "end": 507.199,
+      "duration": 4.399,
+      "text": "Again, competition actually made the"
+    },
+    {
+      "start": 505.12,
+      "end": 508.879,
+      "duration": 3.759,
+      "text": "markets fairer for the average person."
+    },
+    {
+      "start": 507.199,
+      "end": 510.639,
+      "duration": 3.44,
+      "text": "They were providing a service of"
+    },
+    {
+      "start": 508.879,
+      "end": 512.719,
+      "duration": 3.84,
+      "text": "information sharing, connecting"
+    },
+    {
+      "start": 510.639,
+      "end": 514.719,
+      "duration": 4.08,
+      "text": "previously isolated exchanges and"
+    },
+    {
+      "start": 512.719,
+      "end": 516.9590000000001,
+      "duration": 4.24,
+      "text": "assuring that when news broke affecting"
+    },
+    {
+      "start": 514.719,
+      "end": 519.0390000000001,
+      "duration": 4.32,
+      "text": "Bitcoin's value in one place, it would"
+    },
+    {
+      "start": 516.959,
+      "end": 521.279,
+      "duration": 4.32,
+      "text": "instantly spread to every exchange on"
+    },
+    {
+      "start": 519.039,
+      "end": 523.12,
+      "duration": 4.081,
+      "text": "Earth. What I stumbled into with a few"
+    },
+    {
+      "start": 521.279,
+      "end": 525.519,
+      "duration": 4.24,
+      "text": "cryptocurrencies happens today across"
+    },
+    {
+      "start": 523.12,
+      "end": 527.519,
+      "duration": 4.399,
+      "text": "the entire global financial system. Paul"
+    },
+    {
+      "start": 525.519,
+      "end": 530.0,
+      "duration": 4.481,
+      "text": "is checking Chicago prices at the same"
+    },
+    {
+      "start": 527.519,
+      "end": 531.839,
+      "duration": 4.32,
+      "text": "time he's trading in New York. Every bit"
+    },
+    {
+      "start": 530.0,
+      "end": 533.76,
+      "duration": 3.76,
+      "text": "of information could give him a critical"
+    },
+    {
+      "start": 531.839,
+      "end": 537.36,
+      "duration": 5.521,
+      "text": "advantage. Buy 300 and 90 or better"
+    },
+    {
+      "start": 533.76,
+      "end": 539.279,
+      "duration": 5.519,
+      "text": "right now. 90 for 300. This leads to a"
+    },
+    {
+      "start": 537.36,
+      "end": 541.92,
+      "duration": 4.56,
+      "text": "powerful idea. We can view all of these"
+    },
+    {
+      "start": 539.279,
+      "end": 545.04,
+      "duration": 5.761,
+      "text": "trading opportunities called arbitrage."
+    },
+    {
+      "start": 541.92,
+      "end": 547.279,
+      "duration": 5.359,
+      "text": "No matter the strategy as a geometric"
+    },
+    {
+      "start": 545.04,
+      "end": 550.24,
+      "duration": 5.2,
+      "text": "relationship. Consider the price of"
+    },
+    {
+      "start": 547.279,
+      "end": 552.08,
+      "duration": 4.801,
+      "text": "Bitcoin on two exchanges A and B. If"
+    },
+    {
+      "start": 550.24,
+      "end": 554.16,
+      "duration": 3.92,
+      "text": "Bitcoin costs the same on both"
+    },
+    {
+      "start": 552.08,
+      "end": 556.72,
+      "duration": 4.64,
+      "text": "exchanges, we're on this diagonal line"
+    },
+    {
+      "start": 554.16,
+      "end": 559.4399999999999,
+      "duration": 5.28,
+      "text": "where prices are equal. No arbitrage"
+    },
+    {
+      "start": 556.72,
+      "end": 562.9590000000001,
+      "duration": 6.239,
+      "text": "opportunity exists. Think of this line"
+    },
+    {
+      "start": 559.44,
+      "end": 565.519,
+      "duration": 6.079,
+      "text": "as a no profit surface. But if exchange"
+    },
+    {
+      "start": 562.959,
+      "end": 568.7199999999999,
+      "duration": 5.761,
+      "text": "B shows a higher price, we move off this"
+    },
+    {
+      "start": 565.519,
+      "end": 572.0,
+      "duration": 6.481,
+      "text": "line. That's a profit opportunity. Buy"
+    },
+    {
+      "start": 568.72,
+      "end": 574.48,
+      "duration": 5.76,
+      "text": "low and then sell high. Every arbitrage"
+    },
+    {
+      "start": 572.0,
+      "end": 577.12,
+      "duration": 5.12,
+      "text": "trade pushes the current market point"
+    },
+    {
+      "start": 574.48,
+      "end": 579.6,
+      "duration": 5.12,
+      "text": "back towards the no profit surface. And"
+    },
+    {
+      "start": 577.12,
+      "end": 581.6,
+      "duration": 4.48,
+      "text": "as you add more currencies and exchanges"
+    },
+    {
+      "start": 579.6,
+      "end": 583.6,
+      "duration": 4.0,
+      "text": "like my bot, you can see this in higher"
+    },
+    {
+      "start": 581.6,
+      "end": 585.6,
+      "duration": 4.0,
+      "text": "dimensions using planes and other"
+    },
+    {
+      "start": 583.6,
+      "end": 588.16,
+      "duration": 4.56,
+      "text": "shapes. Anytime the current market"
+    },
+    {
+      "start": 585.6,
+      "end": 590.9590000000001,
+      "duration": 5.359,
+      "text": "prices drift off these surfaces, there's"
+    },
+    {
+      "start": 588.16,
+      "end": 593.04,
+      "duration": 4.88,
+      "text": "profit to be made. Traders get paid to"
+    },
+    {
+      "start": 590.959,
+      "end": 595.4399999999999,
+      "duration": 4.481,
+      "text": "push the market point back to where it"
+    },
+    {
+      "start": 593.04,
+      "end": 597.12,
+      "duration": 4.08,
+      "text": "mathematically must be. But once you"
+    },
+    {
+      "start": 595.44,
+      "end": 599.2790000000001,
+      "duration": 3.839,
+      "text": "eliminate most of these mathematical"
+    },
+    {
+      "start": 597.12,
+      "end": 601.12,
+      "duration": 4.0,
+      "text": "opportunities, where do traders look for"
+    },
+    {
+      "start": 599.279,
+      "end": 603.04,
+      "duration": 3.761,
+      "text": "more profit? That's where things get"
+    },
+    {
+      "start": 601.12,
+      "end": 605.44,
+      "duration": 4.32,
+      "text": "really interesting. The next type"
+    },
+    {
+      "start": 603.04,
+      "end": 607.12,
+      "duration": 4.08,
+      "text": "considers where prices should be in the"
+    },
+    {
+      "start": 605.44,
+      "end": 609.519,
+      "duration": 4.079,
+      "text": "future. Think of this as future"
+    },
+    {
+      "start": 607.12,
+      "end": 611.519,
+      "duration": 4.399,
+      "text": "arbitrage. This kind of trading is"
+    },
+    {
+      "start": 609.519,
+      "end": 613.839,
+      "duration": 4.32,
+      "text": "statistical in nature since the future"
+    },
+    {
+      "start": 611.519,
+      "end": 616.16,
+      "duration": 4.641,
+      "text": "is never certain, even if it's likely,"
+    },
+    {
+      "start": 613.839,
+      "end": 619.839,
+      "duration": 6.0,
+      "text": "where we move from these sharp noit"
+    },
+    {
+      "start": 616.16,
+      "end": 622.16,
+      "duration": 6.0,
+      "text": "surfaces to fuzzy ones."
+    },
+    {
+      "start": 619.839,
+      "end": 624.6400000000001,
+      "duration": 4.801,
+      "text": "And predicting prices can happen over"
+    },
+    {
+      "start": 622.16,
+      "end": 627.04,
+      "duration": 4.88,
+      "text": "any time period, whether decades, days,"
+    },
+    {
+      "start": 624.64,
+      "end": 629.4399999999999,
+      "duration": 4.8,
+      "text": "or micros secondsonds. This brings us"
+    },
+    {
+      "start": 627.04,
+      "end": 631.1999999999999,
+      "duration": 4.16,
+      "text": "back to the master Warren Buffett. He"
+    },
+    {
+      "start": 629.44,
+      "end": 633.44,
+      "duration": 4.0,
+      "text": "credits everything he knows to Ben"
+    },
+    {
+      "start": 631.2,
+      "end": 636.0790000000001,
+      "duration": 4.879,
+      "text": "Graham, who in 1949 wrote the"
+    },
+    {
+      "start": 633.44,
+      "end": 638.8000000000001,
+      "duration": 5.36,
+      "text": "intelligent investor, the book on every"
+    },
+    {
+      "start": 636.079,
+      "end": 640.959,
+      "duration": 4.88,
+      "text": "investor's bookshelf. Graham taught to"
+    },
+    {
+      "start": 638.8,
+      "end": 643.76,
+      "duration": 4.96,
+      "text": "do research to find a company's true"
+    },
+    {
+      "start": 640.959,
+      "end": 646.16,
+      "duration": 5.201,
+      "text": "value, focus on earnings, growth, future"
+    },
+    {
+      "start": 643.76,
+      "end": 647.6,
+      "duration": 3.84,
+      "text": "profit potential. If that future seems"
+    },
+    {
+      "start": 646.16,
+      "end": 649.8389999999999,
+      "duration": 3.679,
+      "text": "likely and the current price doesn't"
+    },
+    {
+      "start": 647.6,
+      "end": 652.48,
+      "duration": 4.88,
+      "text": "reflect it, then you buy now and wait"
+    },
+    {
+      "start": 649.839,
+      "end": 654.399,
+      "duration": 4.56,
+      "text": "for it to unfold. But after you buy, you"
+    },
+    {
+      "start": 652.48,
+      "end": 657.2,
+      "duration": 4.72,
+      "text": "need to ignore the daily stock"
+    },
+    {
+      "start": 654.399,
+      "end": 660.88,
+      "duration": 6.481,
+      "text": "movements. Graham compared this to a"
+    },
+    {
+      "start": 657.2,
+      "end": 662.88,
+      "duration": 5.68,
+      "text": "crazy person he called Mr. Market. Mr."
+    },
+    {
+      "start": 660.88,
+      "end": 665.04,
+      "duration": 4.16,
+      "text": "Market knocks on your door every single"
+    },
+    {
+      "start": 662.88,
+      "end": 667.36,
+      "duration": 4.48,
+      "text": "day with a new price for your shares."
+    },
+    {
+      "start": 665.04,
+      "end": 670.7199999999999,
+      "duration": 5.68,
+      "text": "Sometimes he's wildly excited about what"
+    },
+    {
+      "start": 667.36,
+      "end": 673.44,
+      "duration": 6.08,
+      "text": "he has to offer. Sometimes he's deeply"
+    },
+    {
+      "start": 670.72,
+      "end": 675.839,
+      "duration": 5.119,
+      "text": "depressed. As Graham put it, often Mr."
+    },
+    {
+      "start": 673.44,
+      "end": 678.1600000000001,
+      "duration": 4.72,
+      "text": "market lets his enthusiasm or fears run"
+    },
+    {
+      "start": 675.839,
+      "end": 682.1600000000001,
+      "duration": 6.321,
+      "text": "away with him and the value he proposes"
+    },
+    {
+      "start": 678.16,
+      "end": 685.36,
+      "duration": 7.2,
+      "text": "seems to you a little short of silly."
+    },
+    {
+      "start": 682.16,
+      "end": 688.24,
+      "duration": 6.08,
+      "text": "So a perfect example of this process was"
+    },
+    {
+      "start": 685.36,
+      "end": 691.2,
+      "duration": 5.84,
+      "text": "Coca-Cola in the8s. While most investors"
+    },
+    {
+      "start": 688.24,
+      "end": 694.0,
+      "duration": 5.76,
+      "text": "saw Coca-Cola as a mature American soda"
+    },
+    {
+      "start": 691.2,
+      "end": 696.1600000000001,
+      "duration": 4.96,
+      "text": "company, Buffett saw a wildfire about to"
+    },
+    {
+      "start": 694.0,
+      "end": 698.64,
+      "duration": 4.64,
+      "text": "ignite globally. The spark was already"
+    },
+    {
+      "start": 696.16,
+      "end": 701.1999999999999,
+      "duration": 5.04,
+      "text": "visible. Americans consumed about 300"
+    },
+    {
+      "start": 698.64,
+      "end": 703.8389999999999,
+      "duration": 5.199,
+      "text": "Cokes per year, but in China it was"
+    },
+    {
+      "start": 701.2,
+      "end": 706.24,
+      "duration": 5.04,
+      "text": "three. India less than one. But these"
+    },
+    {
+      "start": 703.839,
+      "end": 708.399,
+      "duration": 4.56,
+      "text": "numbers were starting to climb rapidly"
+    },
+    {
+      "start": 706.24,
+      "end": 710.32,
+      "duration": 4.08,
+      "text": "as those markets opened up. Buffett"
+    },
+    {
+      "start": 708.399,
+      "end": 712.399,
+      "duration": 4.0,
+      "text": "understood Coke was not just selling"
+    },
+    {
+      "start": 710.32,
+      "end": 715.12,
+      "duration": 4.8,
+      "text": "sugar water. It was selling an American"
+    },
+    {
+      "start": 712.399,
+      "end": 717.44,
+      "duration": 5.041,
+      "text": "lifestyle. Buffett loved the CEO with an"
+    },
+    {
+      "start": 715.12,
+      "end": 719.36,
+      "duration": 4.24,
+      "text": "ambitious plan to make Coke available"
+    },
+    {
+      "start": 717.44,
+      "end": 721.1500000000001,
+      "duration": 3.71,
+      "text": "everywhere on Earth to make it the"
+    },
+    {
+      "start": 719.36,
+      "end": 723.44,
+      "duration": 4.08,
+      "text": "world's drink."
+    },
+    {
+      "start": 721.15,
+      "end": 728.3199999999999,
+      "duration": 7.17,
+      "text": "[Music]"
+    },
+    {
+      "start": 723.44,
+      "end": 733.7600000000001,
+      "duration": 10.32,
+      "text": "Furnish it with love. Grow apple trees"
+    },
+    {
+      "start": 728.32,
+      "end": 736.0,
+      "duration": 7.68,
+      "text": "and honey bees and snow white turtle."
+    },
+    {
+      "start": 733.76,
+      "end": 740.48,
+      "duration": 6.72,
+      "text": "And so his research made this an obvious"
+    },
+    {
+      "start": 736.0,
+      "end": 743.04,
+      "duration": 7.04,
+      "text": "bet. By 1994, he put 35% of their fund,"
+    },
+    {
+      "start": 740.48,
+      "end": 745.519,
+      "duration": 5.039,
+      "text": "1.3 billion, into this soda company."
+    },
+    {
+      "start": 743.04,
+      "end": 748.56,
+      "duration": 5.52,
+      "text": "Wall Street thought it was crazy. Mr."
+    },
+    {
+      "start": 745.519,
+      "end": 750.399,
+      "duration": 4.88,
+      "text": "Market would not have agreed. By 1998,"
+    },
+    {
+      "start": 748.56,
+      "end": 752.4799999999999,
+      "duration": 3.92,
+      "text": "reality caught up with his prediction."
+    },
+    {
+      "start": 750.399,
+      "end": 755.279,
+      "duration": 4.88,
+      "text": "Coke sales exploded globally and his"
+    },
+    {
+      "start": 752.48,
+      "end": 760.2,
+      "duration": 7.72,
+      "text": "investment had grown to 20 billion, his"
+    },
+    {
+      "start": 755.279,
+      "end": 760.2,
+      "duration": 4.921,
+      "text": "most profitable investment ever."
+    },
+    {
+      "start": 760.639,
+      "end": 765.36,
+      "duration": 4.721,
+      "text": "But here's the key point. This kind of"
+    },
+    {
+      "start": 762.48,
+      "end": 767.9200000000001,
+      "duration": 5.44,
+      "text": "long-term predictive trading only works"
+    },
+    {
+      "start": 765.36,
+      "end": 770.639,
+      "duration": 5.279,
+      "text": "because of the traders making trades"
+    },
+    {
+      "start": 767.92,
+      "end": 773.1999999999999,
+      "duration": 5.28,
+      "text": "based on much shorter term predictions."
+    },
+    {
+      "start": 770.639,
+      "end": 775.44,
+      "duration": 4.801,
+      "text": "Those who inject information second by"
+    },
+    {
+      "start": 773.2,
+      "end": 777.839,
+      "duration": 4.639,
+      "text": "second. These are exactly the traders"
+    },
+    {
+      "start": 775.44,
+      "end": 780.1600000000001,
+      "duration": 4.72,
+      "text": "Graham warned Buffett to ignore. But"
+    },
+    {
+      "start": 777.839,
+      "end": 782.72,
+      "duration": 4.881,
+      "text": "what that point misses is how crucial"
+    },
+    {
+      "start": 780.16,
+      "end": 784.7199999999999,
+      "duration": 4.56,
+      "text": "short-term traders are. Without them,"
+    },
+    {
+      "start": 782.72,
+      "end": 786.399,
+      "duration": 3.679,
+      "text": "Buffett's trades wouldn't work. Which"
+    },
+    {
+      "start": 784.72,
+      "end": 789.44,
+      "duration": 4.72,
+      "text": "brings us to one of the greatest living"
+    },
+    {
+      "start": 786.399,
+      "end": 792.399,
+      "duration": 6.0,
+      "text": "traders, Mr. Market himself, Paul Tudtor"
+    },
+    {
+      "start": 789.44,
+      "end": 797.519,
+      "duration": 8.079,
+      "text": "Jones. Offer 370."
+    },
+    {
+      "start": 792.399,
+      "end": 799.279,
+      "duration": 6.88,
+      "text": "370. Offer 370. Yeah. Into the phone."
+    },
+    {
+      "start": 797.519,
+      "end": 802.5600000000001,
+      "duration": 5.041,
+      "text": "Hey, hey, listen, Vinnie. Don't offer"
+    },
+    {
+      "start": 799.279,
+      "end": 804.48,
+      "duration": 5.201,
+      "text": "that. Sell 540. Market. Sell 540 market."
+    },
+    {
+      "start": 802.56,
+      "end": 806.959,
+      "duration": 4.399,
+      "text": "This is the kind of trading where rubber"
+    },
+    {
+      "start": 804.48,
+      "end": 809.2,
+      "duration": 4.72,
+      "text": "really meets the road. It's where new"
+    },
+    {
+      "start": 806.959,
+      "end": 811.3599999999999,
+      "duration": 4.401,
+      "text": "information actually gets injected into"
+    },
+    {
+      "start": 809.2,
+      "end": 813.6,
+      "duration": 4.4,
+      "text": "the market prices as traders react"
+    },
+    {
+      "start": 811.36,
+      "end": 816.0,
+      "duration": 4.64,
+      "text": "moment by moment to the world. It's more"
+    },
+    {
+      "start": 813.6,
+      "end": 818.16,
+      "duration": 4.56,
+      "text": "chaotic because it's reflecting reality"
+    },
+    {
+      "start": 816.0,
+      "end": 820.079,
+      "duration": 4.079,
+      "text": "itself. It that's what makes it so"
+    },
+    {
+      "start": 818.16,
+      "end": 821.8389999999999,
+      "duration": 3.679,
+      "text": "exciting. Every day is something new and"
+    },
+    {
+      "start": 820.079,
+      "end": 824.7199999999999,
+      "duration": 4.641,
+      "text": "every day is providing new information"
+    },
+    {
+      "start": 821.839,
+      "end": 826.72,
+      "duration": 4.881,
+      "text": "every day, every hour. OPEC has"
+    },
+    {
+      "start": 824.72,
+      "end": 828.48,
+      "duration": 3.76,
+      "text": "basically come to an agreement whereby"
+    },
+    {
+      "start": 826.72,
+      "end": 832.32,
+      "duration": 5.6,
+      "text": "they're going to have a 7% production"
+    },
+    {
+      "start": 828.48,
+      "end": 835.6800000000001,
+      "duration": 7.2,
+      "text": "cut. And my whole feeling is is that"
+    },
+    {
+      "start": 832.32,
+      "end": 837.6800000000001,
+      "duration": 5.36,
+      "text": "anytime that you try to get 13 people to"
+    },
+    {
+      "start": 835.68,
+      "end": 840.079,
+      "duration": 4.399,
+      "text": "agree to anything and I have a chance to"
+    },
+    {
+      "start": 837.68,
+      "end": 841.92,
+      "duration": 4.24,
+      "text": "take a position on it, well, they're"
+    },
+    {
+      "start": 840.079,
+      "end": 843.3599999999999,
+      "duration": 3.281,
+      "text": "going to have to, you know, wild horses"
+    },
+    {
+      "start": 841.92,
+      "end": 845.519,
+      "duration": 3.599,
+      "text": "couldn't keep me from from betting"
+    },
+    {
+      "start": 843.36,
+      "end": 848.0,
+      "duration": 4.64,
+      "text": "against them succeeding in that. When"
+    },
+    {
+      "start": 845.519,
+      "end": 850.399,
+      "duration": 4.88,
+      "text": "economic data comes out, when earnings"
+    },
+    {
+      "start": 848.0,
+      "end": 852.079,
+      "duration": 4.079,
+      "text": "surprise, when geopolitical events"
+    },
+    {
+      "start": 850.399,
+      "end": 855.44,
+      "duration": 5.041,
+      "text": "happen, you've heard nothing else on"
+    },
+    {
+      "start": 852.079,
+      "end": 858.0,
+      "duration": 5.921,
+      "text": "OPAC. No, I got you. Thank you, Paul."
+    },
+    {
+      "start": 855.44,
+      "end": 860.48,
+      "duration": 5.04,
+      "text": "Yeah. If prices didn't make sense, Paul"
+    },
+    {
+      "start": 858.0,
+      "end": 862.32,
+      "duration": 4.32,
+      "text": "Tudtor Jones was there within seconds"
+    },
+    {
+      "start": 860.48,
+      "end": 864.24,
+      "duration": 3.76,
+      "text": "injecting that new information into"
+    },
+    {
+      "start": 862.32,
+      "end": 865.9200000000001,
+      "duration": 3.6,
+      "text": "prices. Ask him how much he saw. Give me"
+    },
+    {
+      "start": 864.24,
+      "end": 867.36,
+      "duration": 3.12,
+      "text": "a number. Tell him more behind it. Do"
+    },
+    {
+      "start": 865.92,
+      "end": 870.7199999999999,
+      "duration": 4.8,
+      "text": "it. Do it. Do it. There's more behind"
+    },
+    {
+      "start": 867.36,
+      "end": 872.8000000000001,
+      "duration": 5.44,
+      "text": "you. Do not ever leave this phone. You"
+    },
+    {
+      "start": 870.72,
+      "end": 874.88,
+      "duration": 4.16,
+      "text": "get someone get the other broker to come"
+    },
+    {
+      "start": 872.8,
+      "end": 876.7199999999999,
+      "duration": 3.92,
+      "text": "and run the orders in. Do not leave this"
+    },
+    {
+      "start": 874.88,
+      "end": 878.72,
+      "duration": 3.84,
+      "text": "phone. All right. And so at every"
+    },
+    {
+      "start": 876.72,
+      "end": 880.9590000000001,
+      "duration": 4.239,
+      "text": "moment, there's always new information"
+    },
+    {
+      "start": 878.72,
+      "end": 882.639,
+      "duration": 3.919,
+      "text": "waiting to be injected into prices."
+    },
+    {
+      "start": 880.959,
+      "end": 884.3199999999999,
+      "duration": 3.361,
+      "text": "That's a great That's great. They have"
+    },
+    {
+      "start": 882.639,
+      "end": 885.519,
+      "duration": 2.88,
+      "text": "an agreement between 13 people, but two"
+    },
+    {
+      "start": 884.32,
+      "end": 886.8000000000001,
+      "duration": 2.48,
+      "text": "of them said they won't agree, which"
+    },
+    {
+      "start": 885.519,
+      "end": 889.04,
+      "duration": 3.521,
+      "text": "happened to be two of the five biggest"
+    },
+    {
+      "start": 886.8,
+      "end": 891.3599999999999,
+      "duration": 4.56,
+      "text": "producers in the world."
+    },
+    {
+      "start": 889.04,
+      "end": 893.36,
+      "duration": 4.32,
+      "text": "That was tough to figure out, wasn't it?"
+    },
+    {
+      "start": 891.36,
+      "end": 894.9590000000001,
+      "duration": 3.599,
+      "text": "And the market doesn't care who does the"
+    },
+    {
+      "start": 893.36,
+      "end": 896.9590000000001,
+      "duration": 3.599,
+      "text": "research, whether you're managing"
+    },
+    {
+      "start": 894.959,
+      "end": 898.56,
+      "duration": 3.601,
+      "text": "billions or trading from your bedroom."
+    },
+    {
+      "start": 896.959,
+      "end": 900.7199999999999,
+      "duration": 3.761,
+      "text": "New bets that have been listed in the"
+    },
+    {
+      "start": 898.56,
+      "end": 902.8,
+      "duration": 4.24,
+      "text": "prediction market. So, uh, the perfect"
+    },
+    {
+      "start": 900.72,
+      "end": 905.76,
+      "duration": 5.04,
+      "text": "example was the recent Pope selection"
+    },
+    {
+      "start": 902.8,
+      "end": 908.079,
+      "duration": 5.279,
+      "text": "where a trader Domer was trading on"
+    },
+    {
+      "start": 905.76,
+      "end": 909.92,
+      "duration": 4.16,
+      "text": "prediction markets like Kelshi. And"
+    },
+    {
+      "start": 908.079,
+      "end": 912.399,
+      "duration": 4.32,
+      "text": "because of the secrecy and closed-d"
+    },
+    {
+      "start": 909.92,
+      "end": 914.4799999999999,
+      "duration": 4.56,
+      "text": "dooror nature of this selection, he saw"
+    },
+    {
+      "start": 912.399,
+      "end": 916.959,
+      "duration": 4.56,
+      "text": "that betting markets had two clear"
+    },
+    {
+      "start": 914.48,
+      "end": 919.6800000000001,
+      "duration": 5.2,
+      "text": "favorites that made sense. But he felt"
+    },
+    {
+      "start": 916.959,
+      "end": 921.5189999999999,
+      "duration": 4.56,
+      "text": "the pricing was mostly nonsense. And so"
+    },
+    {
+      "start": 919.68,
+      "end": 923.519,
+      "duration": 3.839,
+      "text": "when the white smoked appeared after"
+    },
+    {
+      "start": 921.519,
+      "end": 925.44,
+      "duration": 3.921,
+      "text": "just four ballots signaling they made a"
+    },
+    {
+      "start": 923.519,
+      "end": 928.639,
+      "duration": 5.12,
+      "text": "decision, the favorites on the betting"
+    },
+    {
+      "start": 925.44,
+      "end": 931.0400000000001,
+      "duration": 5.6,
+      "text": "market spiked to 85%. But Domer had"
+    },
+    {
+      "start": 928.639,
+      "end": 933.279,
+      "duration": 4.64,
+      "text": "spotted a key bias. There was a widely"
+    },
+    {
+      "start": 931.04,
+      "end": 936.0,
+      "duration": 4.96,
+      "text": "held belief that Americans could not be"
+    },
+    {
+      "start": 933.279,
+      "end": 939.4399999999999,
+      "duration": 6.161,
+      "text": "elected pope. and he found Robert"
+    },
+    {
+      "start": 936.0,
+      "end": 944.12,
+      "duration": 8.12,
+      "text": "Prevost at 200 to one odds which didn't"
+    },
+    {
+      "start": 939.44,
+      "end": 944.12,
+      "duration": 4.68,
+      "text": "make any sense to him. So he bought it"
+    },
+    {
+      "start": 945.12,
+      "end": 950.16,
+      "duration": 5.04,
+      "text": "and minutes later that American walked"
+    },
+    {
+      "start": 947.279,
+      "end": 953.04,
+      "duration": 5.761,
+      "text": "out as Pope. This is stunning. It is an"
+    },
+    {
+      "start": 950.16,
+      "end": 955.04,
+      "duration": 4.88,
+      "text": "American man. Again a great great"
+    },
+    {
+      "start": 953.04,
+      "end": 957.36,
+      "duration": 4.32,
+      "text": "surprise. The market paid him handsomely"
+    },
+    {
+      "start": 955.04,
+      "end": 961.8389999999999,
+      "duration": 6.799,
+      "text": "for bringing research to an information"
+    },
+    {
+      "start": 957.36,
+      "end": 963.839,
+      "duration": 6.479,
+      "text": "starved market. Anyone can be the bee."
+    },
+    {
+      "start": 961.839,
+      "end": 966.8000000000001,
+      "duration": 4.961,
+      "text": "Which leads us to the final evolution,"
+    },
+    {
+      "start": 963.839,
+      "end": 968.639,
+      "duration": 4.8,
+      "text": "computerized future arbitrage, where"
+    },
+    {
+      "start": 966.8,
+      "end": 971.12,
+      "duration": 4.32,
+      "text": "machines operate in fractions of a"
+    },
+    {
+      "start": 968.639,
+      "end": 974.16,
+      "duration": 5.521,
+      "text": "second across all stocks, looking for"
+    },
+    {
+      "start": 971.12,
+      "end": 976.24,
+      "duration": 5.12,
+      "text": "patterns and how groups of stocks move"
+    },
+    {
+      "start": 974.16,
+      "end": 978.959,
+      "duration": 4.799,
+      "text": "together. The correlations here are"
+    },
+    {
+      "start": 976.24,
+      "end": 982.0,
+      "duration": 5.76,
+      "text": "phenomenal. That's incredible. Gary"
+    },
+    {
+      "start": 978.959,
+      "end": 984.2399999999999,
+      "duration": 5.281,
+      "text": "Bombberger at Morgan Stanley pioneered"
+    },
+    {
+      "start": 982.0,
+      "end": 987.04,
+      "duration": 5.04,
+      "text": "the idea in the 80s with what's now"
+    },
+    {
+      "start": 984.24,
+      "end": 989.519,
+      "duration": 5.279,
+      "text": "called statistical arbitrage. He focused"
+    },
+    {
+      "start": 987.04,
+      "end": 992.639,
+      "duration": 5.599,
+      "text": "on companies that were nearly identical."
+    },
+    {
+      "start": 989.519,
+      "end": 994.72,
+      "duration": 5.201,
+      "text": "Take Coke and Pepsi. they naturally move"
+    },
+    {
+      "start": 992.639,
+      "end": 996.88,
+      "duration": 4.241,
+      "text": "together since they serve the same"
+    },
+    {
+      "start": 994.72,
+      "end": 999.12,
+      "duration": 4.4,
+      "text": "market with similar products. And"
+    },
+    {
+      "start": 996.88,
+      "end": 1000.959,
+      "duration": 4.079,
+      "text": "instead of a sharp mathematical line we"
+    },
+    {
+      "start": 999.12,
+      "end": 1003.04,
+      "duration": 3.92,
+      "text": "saw with currency arbitrage, this"
+    },
+    {
+      "start": 1000.959,
+      "end": 1006.2399999999999,
+      "duration": 5.281,
+      "text": "created a fuzzy corridor where these"
+    },
+    {
+      "start": 1003.04,
+      "end": 1008.3199999999999,
+      "duration": 5.28,
+      "text": "pairs usually traded together. And when"
+    },
+    {
+      "start": 1006.24,
+      "end": 1011.279,
+      "duration": 5.039,
+      "text": "something disrupted that relationship,"
+    },
+    {
+      "start": 1008.32,
+      "end": 1013.519,
+      "duration": 5.199,
+      "text": "like when Coke launched New Coke in 1985"
+    },
+    {
+      "start": 1011.279,
+      "end": 1015.759,
+      "duration": 4.48,
+      "text": "and consumers revolted, crashing Coke's"
+    },
+    {
+      "start": 1013.519,
+      "end": 1018.32,
+      "duration": 4.801,
+      "text": "price while Pepsi celebrated,"
+    },
+    {
+      "start": 1015.759,
+      "end": 1020.5600000000001,
+      "duration": 4.801,
+      "text": "Bombberger's strategy would kick in. his"
+    },
+    {
+      "start": 1018.32,
+      "end": 1022.88,
+      "duration": 4.56,
+      "text": "algorithm would buy the beaten down Coke"
+    },
+    {
+      "start": 1020.56,
+      "end": 1025.1989999999998,
+      "duration": 4.639,
+      "text": "and sell the celebrating Pepsi, betting"
+    },
+    {
+      "start": 1022.88,
+      "end": 1027.76,
+      "duration": 4.88,
+      "text": "their relationship would normalize back"
+    },
+    {
+      "start": 1025.199,
+      "end": 1028.959,
+      "duration": 3.76,
+      "text": "to the usual region. This reveals"
+    },
+    {
+      "start": 1027.76,
+      "end": 1031.199,
+      "duration": 3.439,
+      "text": "something important about how"
+    },
+    {
+      "start": 1028.959,
+      "end": 1034.48,
+      "duration": 5.521,
+      "text": "information flows through markets. When"
+    },
+    {
+      "start": 1031.199,
+      "end": 1036.559,
+      "duration": 5.36,
+      "text": "Coke posts strong sales and jumps 10%."
+    },
+    {
+      "start": 1034.48,
+      "end": 1038.64,
+      "duration": 4.16,
+      "text": "Statistical arbitrageers immediately"
+    },
+    {
+      "start": 1036.559,
+      "end": 1040.559,
+      "duration": 4.0,
+      "text": "ask, \"If Coke's worth more, why"
+    },
+    {
+      "start": 1038.64,
+      "end": 1042.3190000000002,
+      "duration": 3.679,
+      "text": "shouldn't Pepsi be worth more, too?\""
+    },
+    {
+      "start": 1040.559,
+      "end": 1044.319,
+      "duration": 3.76,
+      "text": "They're like messengers, making sure"
+    },
+    {
+      "start": 1042.319,
+      "end": 1046.8799999999999,
+      "duration": 4.561,
+      "text": "relevant information doesn't get trapped"
+    },
+    {
+      "start": 1044.319,
+      "end": 1049.6789999999999,
+      "duration": 5.36,
+      "text": "in one stock. They spread it to every"
+    },
+    {
+      "start": 1046.88,
+      "end": 1051.2,
+      "duration": 4.32,
+      "text": "company that should be affected. De Shaw"
+    },
+    {
+      "start": 1049.679,
+      "end": 1053.44,
+      "duration": 3.761,
+      "text": "took this idea and scaled it"
+    },
+    {
+      "start": 1051.2,
+      "end": 1055.3600000000001,
+      "duration": 4.16,
+      "text": "dramatically across thousands of stocks"
+    },
+    {
+      "start": 1053.44,
+      "end": 1057.44,
+      "duration": 4.0,
+      "text": "and they traded all of them at the same"
+    },
+    {
+      "start": 1055.36,
+      "end": 1059.6789999999999,
+      "duration": 4.319,
+      "text": "time. And soon computers were detecting"
+    },
+    {
+      "start": 1057.44,
+      "end": 1061.76,
+      "duration": 4.32,
+      "text": "far more complex relationships. For"
+    },
+    {
+      "start": 1059.679,
+      "end": 1063.679,
+      "duration": 4.0,
+      "text": "example, all bank stocks tend to move"
+    },
+    {
+      "start": 1061.76,
+      "end": 1066.0,
+      "duration": 4.24,
+      "text": "together and this looks like a fuzzy"
+    },
+    {
+      "start": 1063.679,
+      "end": 1068.0,
+      "duration": 4.321,
+      "text": "tube through their price space. And it"
+    },
+    {
+      "start": 1066.0,
+      "end": 1070.4,
+      "duration": 4.4,
+      "text": "goes much deeper. For example, when"
+    },
+    {
+      "start": 1068.0,
+      "end": 1073.36,
+      "duration": 5.36,
+      "text": "Coca-Cola announces strong earnings, the"
+    },
+    {
+      "start": 1070.4,
+      "end": 1075.1200000000001,
+      "duration": 4.72,
+      "text": "news cascades through Pepsi, but then"
+    },
+    {
+      "start": 1073.36,
+      "end": 1077.9189999999999,
+      "duration": 4.559,
+      "text": "other beverage companies and then"
+    },
+    {
+      "start": 1075.12,
+      "end": 1079.76,
+      "duration": 4.64,
+      "text": "restaurants, sugar suppliers. Algorithms"
+    },
+    {
+      "start": 1077.919,
+      "end": 1083.2,
+      "duration": 5.281,
+      "text": "learn to map these real world"
+    },
+    {
+      "start": 1079.76,
+      "end": 1085.6,
+      "duration": 5.84,
+      "text": "connections as curved surfaces, which"
+    },
+    {
+      "start": 1083.2,
+      "end": 1087.679,
+      "duration": 4.479,
+      "text": "showed how entire groups of stocks"
+    },
+    {
+      "start": 1085.6,
+      "end": 1089.6,
+      "duration": 4.0,
+      "text": "naturally move together. They're all"
+    },
+    {
+      "start": 1087.679,
+      "end": 1091.76,
+      "duration": 4.081,
+      "text": "interrelated. You know, the whole world"
+    },
+    {
+      "start": 1089.6,
+      "end": 1094.0,
+      "duration": 4.4,
+      "text": "is simply nothing but a big flowchart"
+    },
+    {
+      "start": 1091.76,
+      "end": 1097.2,
+      "duration": 5.44,
+      "text": "for capital. Which leads us to the most"
+    },
+    {
+      "start": 1094.0,
+      "end": 1100.0,
+      "duration": 6.0,
+      "text": "successful trader in history, Jim Simons"
+    },
+    {
+      "start": 1097.2,
+      "end": 1103.039,
+      "duration": 5.839,
+      "text": "and his legendary secretive medallion"
+    },
+    {
+      "start": 1100.0,
+      "end": 1105.84,
+      "duration": 5.84,
+      "text": "fund, the envy of the world. Simons came"
+    },
+    {
+      "start": 1103.039,
+      "end": 1108.4,
+      "duration": 5.361,
+      "text": "to finance indirectly. His mathematical"
+    },
+    {
+      "start": 1105.84,
+      "end": 1110.72,
+      "duration": 4.88,
+      "text": "thesis was on measuring geometric"
+    },
+    {
+      "start": 1108.4,
+      "end": 1113.1200000000001,
+      "duration": 4.72,
+      "text": "distortions, detecting when points"
+    },
+    {
+      "start": 1110.72,
+      "end": 1116.96,
+      "duration": 6.24,
+      "text": "deviated from where they should be on"
+    },
+    {
+      "start": 1113.12,
+      "end": 1120.2399999999998,
+      "duration": 7.12,
+      "text": "complex surfaces. The boundary is a"
+    },
+    {
+      "start": 1116.96,
+      "end": 1123.44,
+      "duration": 6.48,
+      "text": "surface or a higher dimensional surface."
+    },
+    {
+      "start": 1120.24,
+      "end": 1125.679,
+      "duration": 5.439,
+      "text": "I showed it to Churn and he said, \"Well,"
+    },
+    {
+      "start": 1123.44,
+      "end": 1129.919,
+      "duration": 6.479,
+      "text": "you did it in three dimensions, but it"
+    },
+    {
+      "start": 1125.679,
+      "end": 1132.88,
+      "duration": 7.201,
+      "text": "should be doable in all dimensions.\""
+    },
+    {
+      "start": 1129.919,
+      "end": 1135.3600000000001,
+      "duration": 5.441,
+      "text": "Okay. Years later, he realized markets"
+    },
+    {
+      "start": 1132.88,
+      "end": 1137.8400000000001,
+      "duration": 4.96,
+      "text": "were just another geometric system."
+    },
+    {
+      "start": 1135.36,
+      "end": 1140.3999999999999,
+      "duration": 5.04,
+      "text": "Prices tended to follow shapes based on"
+    },
+    {
+      "start": 1137.84,
+      "end": 1142.799,
+      "duration": 4.959,
+      "text": "realworld constraints. When prices moved"
+    },
+    {
+      "start": 1140.4,
+      "end": 1144.64,
+      "duration": 4.24,
+      "text": "off their correct surface or region, he"
+    },
+    {
+      "start": 1142.799,
+      "end": 1146.799,
+      "duration": 4.0,
+      "text": "would calculate the exact trades needed"
+    },
+    {
+      "start": 1144.64,
+      "end": 1149.1200000000001,
+      "duration": 4.48,
+      "text": "to profit from their inevitable drift"
+    },
+    {
+      "start": 1146.799,
+      "end": 1151.2,
+      "duration": 4.401,
+      "text": "back. So Renaissance took a radically"
+    },
+    {
+      "start": 1149.12,
+      "end": 1153.76,
+      "duration": 4.64,
+      "text": "different approach from de Shaw and"
+    },
+    {
+      "start": 1151.2,
+      "end": 1156.64,
+      "duration": 5.44,
+      "text": "others. Is it true that you never hired"
+    },
+    {
+      "start": 1153.76,
+      "end": 1157.74,
+      "duration": 3.98,
+      "text": "people from the investment industry?"
+    },
+    {
+      "start": 1156.64,
+      "end": 1163.3600000000001,
+      "duration": 6.72,
+      "text": "Never."
+    },
+    {
+      "start": 1157.74,
+      "end": 1167.1200000000001,
+      "duration": 9.38,
+      "text": "[Laughter]"
+    },
+    {
+      "start": 1163.36,
+      "end": 1171.039,
+      "duration": 7.679,
+      "text": "Well, I like to say that you can teach a"
+    },
+    {
+      "start": 1167.12,
+      "end": 1174.08,
+      "duration": 6.96,
+      "text": "physicist finance, but you can't teach a"
+    },
+    {
+      "start": 1171.039,
+      "end": 1175.919,
+      "duration": 4.88,
+      "text": "finance person physics."
+    },
+    {
+      "start": 1174.08,
+      "end": 1178.3999999999999,
+      "duration": 4.32,
+      "text": "Simons took a purely mathematical"
+    },
+    {
+      "start": 1175.919,
+      "end": 1181.3600000000001,
+      "duration": 5.441,
+      "text": "approach pattern detection without any"
+    },
+    {
+      "start": 1178.4,
+      "end": 1183.1200000000001,
+      "duration": 4.72,
+      "text": "assumptions. Well, I mean, think of a"
+    },
+    {
+      "start": 1181.36,
+      "end": 1185.84,
+      "duration": 4.48,
+      "text": "stock."
+    },
+    {
+      "start": 1183.12,
+      "end": 1188.08,
+      "duration": 4.96,
+      "text": "It's a time series. You know, it has a"
+    },
+    {
+      "start": 1185.84,
+      "end": 1191.28,
+      "duration": 5.44,
+      "text": "value every day. It goes up, it goes"
+    },
+    {
+      "start": 1188.08,
+      "end": 1194.6399999999999,
+      "duration": 6.56,
+      "text": "down. It's a has a time series. You can"
+    },
+    {
+      "start": 1191.28,
+      "end": 1196.559,
+      "duration": 5.279,
+      "text": "you can analyze time series"
+    },
+    {
+      "start": 1194.64,
+      "end": 1199.8400000000001,
+      "duration": 5.2,
+      "text": "uh mathematically"
+    },
+    {
+      "start": 1196.559,
+      "end": 1204.08,
+      "duration": 7.521,
+      "text": "and uh especially if you have hundreds"
+    },
+    {
+      "start": 1199.84,
+      "end": 1207.12,
+      "duration": 7.28,
+      "text": "or thousands of these time series. And"
+    },
+    {
+      "start": 1204.08,
+      "end": 1208.96,
+      "duration": 4.88,
+      "text": "in looking at the patterns of prices, I"
+    },
+    {
+      "start": 1207.12,
+      "end": 1210.4799999999998,
+      "duration": 3.36,
+      "text": "could see"
+    },
+    {
+      "start": 1208.96,
+      "end": 1212.799,
+      "duration": 3.839,
+      "text": "that there was something we could study"
+    },
+    {
+      "start": 1210.48,
+      "end": 1215.44,
+      "duration": 4.96,
+      "text": "here that there were maybe some ways to"
+    },
+    {
+      "start": 1212.799,
+      "end": 1217.2,
+      "duration": 4.401,
+      "text": "predict prices and the models got better"
+    },
+    {
+      "start": 1215.44,
+      "end": 1219.6000000000001,
+      "duration": 4.16,
+      "text": "and better and finally the models"
+    },
+    {
+      "start": 1217.2,
+      "end": 1221.919,
+      "duration": 4.719,
+      "text": "replaced the fundamental stuff. They use"
+    },
+    {
+      "start": 1219.6,
+      "end": 1224.8799999999999,
+      "duration": 5.28,
+      "text": "machine learning to ingest everything."
+    },
+    {
+      "start": 1221.919,
+      "end": 1226.88,
+      "duration": 4.961,
+      "text": "Prices, news, weather, economic data,"
+    },
+    {
+      "start": 1224.88,
+      "end": 1228.64,
+      "duration": 3.76,
+      "text": "satellite imagery, other sources we"
+    },
+    {
+      "start": 1226.88,
+      "end": 1230.88,
+      "duration": 4.0,
+      "text": "don't know about. And their computers"
+    },
+    {
+      "start": 1228.64,
+      "end": 1234.0,
+      "duration": 5.36,
+      "text": "discovered hundreds of complex surfaces"
+    },
+    {
+      "start": 1230.88,
+      "end": 1236.0,
+      "duration": 5.12,
+      "text": "that prices gravitated towards. So a"
+    },
+    {
+      "start": 1234.0,
+      "end": 1238.48,
+      "duration": 4.48,
+      "text": "trade in this world would take the form"
+    },
+    {
+      "start": 1236.0,
+      "end": 1241.52,
+      "duration": 5.52,
+      "text": "of a computer outputting what to hold"
+    },
+    {
+      "start": 1238.48,
+      "end": 1243.679,
+      "duration": 5.199,
+      "text": "across all stocks. thousands of precise"
+    },
+    {
+      "start": 1241.52,
+      "end": 1245.76,
+      "duration": 4.24,
+      "text": "portfolio instructions, each"
+    },
+    {
+      "start": 1243.679,
+      "end": 1247.52,
+      "duration": 3.841,
+      "text": "representing a tiny statistical edge"
+    },
+    {
+      "start": 1245.76,
+      "end": 1250.4,
+      "duration": 4.64,
+      "text": "based on where prices were expected to"
+    },
+    {
+      "start": 1247.52,
+      "end": 1253.52,
+      "duration": 6.0,
+      "text": "move in the short term. He gave a simple"
+    },
+    {
+      "start": 1250.4,
+      "end": 1255.2800000000002,
+      "duration": 4.88,
+      "text": "example where in New York, the weather"
+    },
+    {
+      "start": 1253.52,
+      "end": 1257.76,
+      "duration": 4.24,
+      "text": "would predict whether the markets would"
+    },
+    {
+      "start": 1255.28,
+      "end": 1260.0,
+      "duration": 4.72,
+      "text": "open slightly up or down. Often these"
+    },
+    {
+      "start": 1257.76,
+      "end": 1262.799,
+      "duration": 5.039,
+      "text": "relationships would only exist briefly"
+    },
+    {
+      "start": 1260.0,
+      "end": 1264.96,
+      "duration": 4.96,
+      "text": "before disappearing. Relationships so"
+    },
+    {
+      "start": 1262.799,
+      "end": 1267.44,
+      "duration": 4.641,
+      "text": "subtle that even Simon's team couldn't"
+    },
+    {
+      "start": 1264.96,
+      "end": 1269.2,
+      "duration": 4.24,
+      "text": "explain why they worked. The beauty was"
+    },
+    {
+      "start": 1267.44,
+      "end": 1271.44,
+      "duration": 4.0,
+      "text": "no one else was trading these surfaces"
+    },
+    {
+      "start": 1269.2,
+      "end": 1274.4,
+      "duration": 5.2,
+      "text": "because they couldn't see them. This was"
+    },
+    {
+      "start": 1271.44,
+      "end": 1276.24,
+      "duration": 4.8,
+      "text": "the ultimate computerized bee, rapidly"
+    },
+    {
+      "start": 1274.4,
+      "end": 1278.159,
+      "duration": 3.759,
+      "text": "incorporating information from every"
+    },
+    {
+      "start": 1276.24,
+      "end": 1280.799,
+      "duration": 4.559,
+      "text": "corner of the world and spreading it"
+    },
+    {
+      "start": 1278.159,
+      "end": 1284.0,
+      "duration": 5.841,
+      "text": "through market prices. And so all"
+    },
+    {
+      "start": 1280.799,
+      "end": 1286.1589999999999,
+      "duration": 5.36,
+      "text": "traders from the most advanced to people"
+    },
+    {
+      "start": 1284.0,
+      "end": 1288.799,
+      "duration": 4.799,
+      "text": "making wild bets in their bedroom. They"
+    },
+    {
+      "start": 1286.159,
+      "end": 1291.2800000000002,
+      "duration": 5.121,
+      "text": "all push prices towards what's fair at"
+    },
+    {
+      "start": 1288.799,
+      "end": 1294.48,
+      "duration": 5.681,
+      "text": "any moment. You can see it as a living"
+    },
+    {
+      "start": 1291.28,
+      "end": 1296.559,
+      "duration": 5.279,
+      "text": "hive. And today the information war has"
+    },
+    {
+      "start": 1294.48,
+      "end": 1298.24,
+      "duration": 3.76,
+      "text": "reached the speed of light. Orders are"
+    },
+    {
+      "start": 1296.559,
+      "end": 1300.72,
+      "duration": 4.161,
+      "text": "executed in micros secondsonds and"
+    },
+    {
+      "start": 1298.24,
+      "end": 1304.4,
+      "duration": 6.16,
+      "text": "trading algorithms react in real time to"
+    },
+    {
+      "start": 1300.72,
+      "end": 1307.1200000000001,
+      "duration": 6.4,
+      "text": "the world. A great example is in 2013"
+    },
+    {
+      "start": 1304.4,
+      "end": 1309.679,
+      "duration": 5.279,
+      "text": "someone hacked the AP news account and a"
+    },
+    {
+      "start": 1307.12,
+      "end": 1312.799,
+      "duration": 5.679,
+      "text": "single fake tweet about an explosion in"
+    },
+    {
+      "start": 1309.679,
+      "end": 1315.44,
+      "duration": 5.761,
+      "text": "the White House moved the entire market"
+    },
+    {
+      "start": 1312.799,
+      "end": 1317.84,
+      "duration": 5.041,
+      "text": "136 billion in seconds which then"
+    },
+    {
+      "start": 1315.44,
+      "end": 1319.44,
+      "duration": 4.0,
+      "text": "snapped back when algorithms realized it"
+    },
+    {
+      "start": 1317.84,
+      "end": 1322.559,
+      "duration": 4.719,
+      "text": "was fake. All right, this is going to"
+    },
+    {
+      "start": 1319.44,
+      "end": 1324.0800000000002,
+      "duration": 4.64,
+      "text": "say everything. PNG is now down 25%."
+    },
+    {
+      "start": 1322.559,
+      "end": 1327.12,
+      "duration": 4.561,
+      "text": "That's true. If that stock is there, you"
+    },
+    {
+      "start": 1324.08,
+      "end": 1329.039,
+      "duration": 4.959,
+      "text": "just go and buy it. Okay, now"
+    },
+    {
+      "start": 1327.12,
+      "end": 1330.799,
+      "duration": 3.679,
+      "text": "it's a fast market. It's a fast market."
+    },
+    {
+      "start": 1329.039,
+      "end": 1332.799,
+      "duration": 3.76,
+      "text": "The market was down 900 points. We're"
+    },
+    {
+      "start": 1330.799,
+      "end": 1335.44,
+      "duration": 4.641,
+      "text": "now down. The arms race for information"
+    },
+    {
+      "start": 1332.799,
+      "end": 1337.44,
+      "duration": 4.641,
+      "text": "has gone upstream. Hedge funds buy"
+    },
+    {
+      "start": 1335.44,
+      "end": 1339.679,
+      "duration": 4.239,
+      "text": "satellite imagery to count cars in"
+    },
+    {
+      "start": 1337.44,
+      "end": 1342.0800000000002,
+      "duration": 4.64,
+      "text": "Walmart parking lots before earnings."
+    },
+    {
+      "start": 1339.679,
+      "end": 1344.96,
+      "duration": 5.281,
+      "text": "Citadel pays Robin Hood for order flow"
+    },
+    {
+      "start": 1342.08,
+      "end": 1347.1999999999998,
+      "duration": 5.12,
+      "text": "to see trades before they hit the"
+    },
+    {
+      "start": 1344.96,
+      "end": 1349.28,
+      "duration": 4.32,
+      "text": "market. And so finally, let's step back"
+    },
+    {
+      "start": 1347.2,
+      "end": 1351.919,
+      "duration": 4.719,
+      "text": "and remember Warren Buffett's original"
+    },
+    {
+      "start": 1349.28,
+      "end": 1354.48,
+      "duration": 5.2,
+      "text": "bet. He wagered that doing nothing would"
+    },
+    {
+      "start": 1351.919,
+      "end": 1357.44,
+      "duration": 5.521,
+      "text": "beat all the sophisticated trading. How"
+    },
+    {
+      "start": 1354.48,
+      "end": 1359.3600000000001,
+      "duration": 4.88,
+      "text": "is that possibly true? In the 1960s, a"
+    },
+    {
+      "start": 1357.44,
+      "end": 1361.52,
+      "duration": 4.08,
+      "text": "young economist named William Sharp was"
+    },
+    {
+      "start": 1359.36,
+      "end": 1364.559,
+      "duration": 5.199,
+      "text": "studying portfolio theory when he had a"
+    },
+    {
+      "start": 1361.52,
+      "end": 1367.6,
+      "duration": 6.08,
+      "text": "revolutionary insight. His one big idea"
+    },
+    {
+      "start": 1364.559,
+      "end": 1371.6,
+      "duration": 7.041,
+      "text": "was to look at all traders collectively"
+    },
+    {
+      "start": 1367.6,
+      "end": 1373.52,
+      "duration": 5.92,
+      "text": "as one entity. First, realize that every"
+    },
+    {
+      "start": 1371.6,
+      "end": 1375.12,
+      "duration": 3.52,
+      "text": "investor is essentially voting with"
+    },
+    {
+      "start": 1373.52,
+      "end": 1377.28,
+      "duration": 3.76,
+      "text": "their money on what the market should"
+    },
+    {
+      "start": 1375.12,
+      "end": 1379.52,
+      "duration": 4.4,
+      "text": "look like by putting their dollars into"
+    },
+    {
+      "start": 1377.28,
+      "end": 1381.6,
+      "duration": 4.32,
+      "text": "some combination of stocks, whether it's"
+    },
+    {
+      "start": 1379.52,
+      "end": 1384.48,
+      "duration": 4.96,
+      "text": "all in one stock or spread across"
+    },
+    {
+      "start": 1381.6,
+      "end": 1386.799,
+      "duration": 5.199,
+      "text": "hundreds. And so, if you pause time at"
+    },
+    {
+      "start": 1384.48,
+      "end": 1388.799,
+      "duration": 4.319,
+      "text": "any moment and add up what everyone has"
+    },
+    {
+      "start": 1386.799,
+      "end": 1391.76,
+      "duration": 4.961,
+      "text": "their money in, you actually get a"
+    },
+    {
+      "start": 1388.799,
+      "end": 1394.32,
+      "duration": 5.521,
+      "text": "single collective portfolio, which Sharp"
+    },
+    {
+      "start": 1391.76,
+      "end": 1397.12,
+      "duration": 5.36,
+      "text": "called the market portfolio. And if you"
+    },
+    {
+      "start": 1394.32,
+      "end": 1399.2,
+      "duration": 4.88,
+      "text": "simply buy this market portfolio, you"
+    },
+    {
+      "start": 1397.12,
+      "end": 1401.6,
+      "duration": 4.48,
+      "text": "capture something remarkable. the"
+    },
+    {
+      "start": 1399.2,
+      "end": 1404.24,
+      "duration": 5.04,
+      "text": "collective result of everyone's wisdom."
+    },
+    {
+      "start": 1401.6,
+      "end": 1406.6399999999999,
+      "duration": 5.04,
+      "text": "And so while traders pay to constantly"
+    },
+    {
+      "start": 1404.24,
+      "end": 1408.4,
+      "duration": 4.16,
+      "text": "change or reallocate their portfolio,"
+    },
+    {
+      "start": 1406.64,
+      "end": 1410.88,
+      "duration": 4.24,
+      "text": "deciding what to own and how much to"
+    },
+    {
+      "start": 1408.4,
+      "end": 1412.48,
+      "duration": 4.08,
+      "text": "own, to the market portfolio holder,"
+    },
+    {
+      "start": 1410.88,
+      "end": 1414.0800000000002,
+      "duration": 3.2,
+      "text": "it's just different slices of the pie"
+    },
+    {
+      "start": 1412.48,
+      "end": 1416.48,
+      "duration": 4.0,
+      "text": "growing and shrinking as they exchange"
+    },
+    {
+      "start": 1414.08,
+      "end": 1419.4399999999998,
+      "duration": 5.36,
+      "text": "value with each other. Market portfolio"
+    },
+    {
+      "start": 1416.48,
+      "end": 1422.159,
+      "duration": 5.679,
+      "text": "holders get this ongoing reallocation"
+    },
+    {
+      "start": 1419.44,
+      "end": 1424.48,
+      "duration": 5.04,
+      "text": "for free. It's like a living organism,"
+    },
+    {
+      "start": 1422.159,
+      "end": 1426.4,
+      "duration": 4.241,
+      "text": "always evolving to perfectly match the"
+    },
+    {
+      "start": 1424.48,
+      "end": 1428.32,
+      "duration": 3.84,
+      "text": "state of the world at each moment. And"
+    },
+    {
+      "start": 1426.4,
+      "end": 1431.1200000000001,
+      "duration": 4.72,
+      "text": "Sharp's big insight is the market"
+    },
+    {
+      "start": 1428.32,
+      "end": 1433.52,
+      "duration": 5.2,
+      "text": "portfolio is the average of everyone's"
+    },
+    {
+      "start": 1431.12,
+      "end": 1436.6399999999999,
+      "duration": 5.52,
+      "text": "holdings. So, it must deliver average"
+    },
+    {
+      "start": 1433.52,
+      "end": 1439.12,
+      "duration": 5.6,
+      "text": "performance. But since it pays no fees,"
+    },
+    {
+      "start": 1436.64,
+      "end": 1442.0,
+      "duration": 5.36,
+      "text": "and everyone else does for every trade,"
+    },
+    {
+      "start": 1439.12,
+      "end": 1444.3999999999999,
+      "duration": 5.28,
+      "text": "it automatically beats the average after"
+    },
+    {
+      "start": 1442.0,
+      "end": 1447.12,
+      "duration": 5.12,
+      "text": "cost and gets better and better over"
+    },
+    {
+      "start": 1444.4,
+      "end": 1450.0,
+      "duration": 5.6,
+      "text": "time because costs eat away at traders"
+    },
+    {
+      "start": 1447.12,
+      "end": 1454.4799999999998,
+      "duration": 7.36,
+      "text": "profits. And John Bogle turned this"
+    },
+    {
+      "start": 1450.0,
+      "end": 1456.88,
+      "duration": 6.88,
+      "text": "insight into the index fund in 1976. A"
+    },
+    {
+      "start": 1454.48,
+      "end": 1460.08,
+      "duration": 5.6,
+      "text": "way for anyone to own the whole market"
+    },
+    {
+      "start": 1456.88,
+      "end": 1462.4,
+      "duration": 5.52,
+      "text": "by holding all 500 stocks in the S&P 500"
+    },
+    {
+      "start": 1460.08,
+      "end": 1464.0,
+      "duration": 3.92,
+      "text": "in proportion to their market value. And"
+    },
+    {
+      "start": 1462.4,
+      "end": 1466.0800000000002,
+      "duration": 3.68,
+      "text": "so your holdings get automatically"
+    },
+    {
+      "start": 1464.0,
+      "end": 1468.24,
+      "duration": 4.24,
+      "text": "updated every time new information gets"
+    },
+    {
+      "start": 1466.08,
+      "end": 1471.36,
+      "duration": 5.28,
+      "text": "injected to the market. The results were"
+    },
+    {
+      "start": 1468.24,
+      "end": 1474.64,
+      "duration": 6.4,
+      "text": "stunning. Since 1976, Bogle's original"
+    },
+    {
+      "start": 1471.36,
+      "end": 1477.12,
+      "duration": 5.76,
+      "text": "index fund has beat roughly 90% of"
+    },
+    {
+      "start": 1474.64,
+      "end": 1480.0,
+      "duration": 5.36,
+      "text": "funds. Jack Bogle has probably done more"
+    },
+    {
+      "start": 1477.12,
+      "end": 1482.9599999999998,
+      "duration": 5.84,
+      "text": "for the American investor than any man"
+    },
+    {
+      "start": 1480.0,
+      "end": 1486.6,
+      "duration": 6.6,
+      "text": "in the country. Jack,"
+    },
+    {
+      "start": 1482.96,
+      "end": 1486.6000000000001,
+      "duration": 3.64,
+      "text": "would you stand up?"
+    },
+    {
+      "start": 1489.2,
+      "end": 1494.32,
+      "duration": 5.12,
+      "text": "It wouldn't have happened without him."
+    },
+    {
+      "start": 1490.88,
+      "end": 1497.5200000000002,
+      "duration": 6.64,
+      "text": "The truth is it was not in the interest"
+    },
+    {
+      "start": 1494.32,
+      "end": 1499.12,
+      "duration": 4.8,
+      "text": "of invest investment industry"
+    },
+    {
+      "start": 1497.52,
+      "end": 1500.48,
+      "duration": 2.96,
+      "text": "of Wall Street. It was not in their"
+    },
+    {
+      "start": 1499.12,
+      "end": 1502.559,
+      "duration": 3.439,
+      "text": "interest actually to have the"
+    },
+    {
+      "start": 1500.48,
+      "end": 1505.3600000000001,
+      "duration": 4.88,
+      "text": "development of an index fund of the"
+    },
+    {
+      "start": 1502.559,
+      "end": 1507.52,
+      "duration": 4.961,
+      "text": "index fund because it brought down fees"
+    },
+    {
+      "start": 1505.36,
+      "end": 1509.279,
+      "duration": 3.919,
+      "text": "dramatically. And this is why Warren"
+    },
+    {
+      "start": 1507.52,
+      "end": 1511.9189999999999,
+      "duration": 4.399,
+      "text": "Buffett could make that bet against his"
+    },
+    {
+      "start": 1509.279,
+      "end": 1514.08,
+      "duration": 4.801,
+      "text": "own life's work. He understood every"
+    },
+    {
+      "start": 1511.919,
+      "end": 1516.5590000000002,
+      "duration": 4.64,
+      "text": "time you make a trade, you have a chance"
+    },
+    {
+      "start": 1514.08,
+      "end": 1518.32,
+      "duration": 4.24,
+      "text": "of being wrong. And active investors"
+    },
+    {
+      "start": 1516.559,
+      "end": 1520.6399999999999,
+      "duration": 4.081,
+      "text": "have to keep guessing. They're like"
+    },
+    {
+      "start": 1518.32,
+      "end": 1522.72,
+      "duration": 4.4,
+      "text": "running a marathon and might fall when"
+    },
+    {
+      "start": 1520.64,
+      "end": 1525.2,
+      "duration": 4.56,
+      "text": "they're wrong. I personally gone"
+    },
+    {
+      "start": 1522.72,
+      "end": 1527.279,
+      "duration": 4.559,
+      "text": "bankrupt. I lost everything I had and"
+    },
+    {
+      "start": 1525.2,
+      "end": 1528.96,
+      "duration": 3.76,
+      "text": "had to borrow from friends three times"
+    },
+    {
+      "start": 1527.279,
+      "end": 1530.159,
+      "duration": 2.88,
+      "text": "in"
+    },
+    {
+      "start": 1528.96,
+      "end": 1532.96,
+      "duration": 4.0,
+      "text": "nine years that I've been in the"
+    },
+    {
+      "start": 1530.159,
+      "end": 1534.72,
+      "duration": 4.561,
+      "text": "business where I'd go sit in the park"
+    },
+    {
+      "start": 1532.96,
+      "end": 1536.88,
+      "duration": 3.92,
+      "text": "and just sit there and just go, I can't"
+    },
+    {
+      "start": 1534.72,
+      "end": 1538.64,
+      "duration": 3.92,
+      "text": "believe this. You know, this this is the"
+    },
+    {
+      "start": 1536.88,
+      "end": 1541.44,
+      "duration": 4.56,
+      "text": "end. This is the end of my life. The"
+    },
+    {
+      "start": 1538.64,
+      "end": 1543.679,
+      "duration": 5.039,
+      "text": "index fund never falls. It just keeps"
+    },
+    {
+      "start": 1541.44,
+      "end": 1546.4,
+      "duration": 4.96,
+      "text": "creeping forward in the race. And since"
+    },
+    {
+      "start": 1543.679,
+      "end": 1548.48,
+      "duration": 4.801,
+      "text": "fees don't slow it down, it gradually"
+    },
+    {
+      "start": 1546.4,
+      "end": 1551.279,
+      "duration": 4.879,
+      "text": "drifts towards the front of the race."
+    },
+    {
+      "start": 1548.48,
+      "end": 1553.679,
+      "duration": 5.199,
+      "text": "And so once you invest in the index, you"
+    },
+    {
+      "start": 1551.279,
+      "end": 1557.039,
+      "duration": 5.76,
+      "text": "literally have every trader on earth"
+    },
+    {
+      "start": 1553.679,
+      "end": 1559.3600000000001,
+      "duration": 5.681,
+      "text": "working for your money 24/7. That's why"
+    },
+    {
+      "start": 1557.039,
+      "end": 1562.24,
+      "duration": 5.201,
+      "text": "Buffett's bet continues to win. It's the"
+    },
+    {
+      "start": 1559.36,
+      "end": 1566.32,
+      "duration": 6.96,
+      "text": "most important idea in finance. Imagine"
+    },
+    {
+      "start": 1562.24,
+      "end": 1570.4,
+      "duration": 8.16,
+      "text": "yourself back on March 11th of 1942 that"
+    },
+    {
+      "start": 1566.32,
+      "end": 1573.12,
+      "duration": 6.8,
+      "text": "at that time uh you had invested $10,000"
+    },
+    {
+      "start": 1570.4,
+      "end": 1574.64,
+      "duration": 4.24,
+      "text": "in effect bought the S&P 500. I want you"
+    },
+    {
+      "start": 1573.12,
+      "end": 1577.52,
+      "duration": 4.4,
+      "text": "to think how much money you might have"
+    },
+    {
+      "start": 1574.64,
+      "end": 1580.5590000000002,
+      "duration": 5.919,
+      "text": "now. And now that you've got a number in"
+    },
+    {
+      "start": 1577.52,
+      "end": 1583.6,
+      "duration": 6.08,
+      "text": "your head, let's go to the next slide"
+    },
+    {
+      "start": 1580.559,
+      "end": 1586.24,
+      "duration": 5.681,
+      "text": "and we'll get the answer. You'd have $51"
+    },
+    {
+      "start": 1583.6,
+      "end": 1587.9189999999999,
+      "duration": 4.319,
+      "text": "million and you wouldn't have had to do"
+    },
+    {
+      "start": 1586.24,
+      "end": 1590.08,
+      "duration": 3.84,
+      "text": "anything. You wouldn't have to"
+    },
+    {
+      "start": 1587.919,
+      "end": 1592.3200000000002,
+      "duration": 4.401,
+      "text": "understand accounting."
+    },
+    {
+      "start": 1590.08,
+      "end": 1594.48,
+      "duration": 4.4,
+      "text": "You basically just had to make one"
+    },
+    {
+      "start": 1592.32,
+      "end": 1596.3999999999999,
+      "duration": 4.08,
+      "text": "investment decision in your life. It"
+    },
+    {
+      "start": 1594.48,
+      "end": 1598.799,
+      "duration": 4.319,
+      "text": "turns out the secret to winning in the"
+    },
+    {
+      "start": 1596.4,
+      "end": 1601.3600000000001,
+      "duration": 4.96,
+      "text": "most sophisticated game on earth is"
+    },
+    {
+      "start": 1598.799,
+      "end": 1603.039,
+      "duration": 4.24,
+      "text": "refusing to play. If you'd follow that,"
+    },
+    {
+      "start": 1601.36,
+      "end": 1605.84,
+      "duration": 4.48,
+      "text": "of course you're there's one problem,"
+    },
+    {
+      "start": 1603.039,
+      "end": 1608.48,
+      "duration": 5.441,
+      "text": "buddy. your your friendly stock broker"
+    },
+    {
+      "start": 1605.84,
+      "end": 1610.0,
+      "duration": 4.16,
+      "text": "would have starved to death."
+    },
+    {
+      "start": 1608.48,
+      "end": 1611.679,
+      "duration": 3.199,
+      "text": "Thank you so much for watching this"
+    },
+    {
+      "start": 1610.0,
+      "end": 1613.84,
+      "duration": 3.84,
+      "text": "video. If you would like to stay up to"
+    },
+    {
+      "start": 1611.679,
+      "end": 1616.24,
+      "duration": 4.561,
+      "text": "date on new videos and projects I have"
+    },
+    {
+      "start": 1613.84,
+      "end": 1618.08,
+      "duration": 4.24,
+      "text": "coming, please join my email list. I"
+    },
+    {
+      "start": 1616.24,
+      "end": 1621.559,
+      "duration": 5.319,
+      "text": "have something coming up I think you'll"
+    },
+    {
+      "start": 1618.08,
+      "end": 1621.559,
+      "duration": 3.479,
+      "text": "be interested in."
+    },
+    {
+      "start": 1627.34,
+      "end": 1630.4599999999998,
+      "duration": 3.12,
+      "text": "[Music]"
+    }
+  ],
+  "language": "en",
+  "is_auto_generated": true,
+  "has_timestamps": true,
+  "title": "YouTube Video TQuxVz52w2w",
+  "author": "Unknown",
+  "duration": 0,
+  "thumbnail": "https://img.youtube.com/vi/TQuxVz52w2w/maxresdefault.jpg",
+  "description": ""
+}
