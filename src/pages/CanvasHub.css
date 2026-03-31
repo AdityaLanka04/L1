@@ -1,0 +1,452 @@
+.ch-root {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+.ch-canvas-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+/* Header */
+.ch-header {
+  height: 70px;
+  padding: 0 40px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.ch-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ch-menu-btn {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.ch-menu-btn:hover { opacity: 1; }
+
+.ch-logo {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -1px;
+  cursor: pointer;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.ch-logo:hover {
+  transform: translateY(-1px);
+  text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.ch-header-divider {
+  width: 1px;
+  height: 20px;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.ch-header-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.ch-nav {
+  display: flex;
+  align-items: center;
+}
+
+.ch-nav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.ch-nav-btn:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.ch-nav-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Body */
+.ch-body {
+  flex: 1;
+  padding: 40px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.ch-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.ch-page-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.ch-page-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.ch-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.ch-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+
+.ch-new-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+/* Empty state */
+.ch-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.ch-empty-icon {
+  color: color-mix(in srgb, var(--accent) 40%, var(--text-secondary));
+  margin-bottom: 8px;
+}
+
+.ch-empty-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.ch-empty-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+/* Grid */
+.ch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.ch-card {
+  background: var(--bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ch-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.ch-card-preview {
+  height: 160px;
+  background: color-mix(in srgb, var(--bg-primary) 60%, var(--bg-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ch-card-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ch-card-blank {
+  color: color-mix(in srgb, var(--accent) 30%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ch-card-footer {
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ch-card-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ch-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ch-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ch-card-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.ch-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ch-icon-btn {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.ch-icon-btn:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.ch-icon-btn-ghost {
+  opacity: 0;
+}
+
+.ch-name-row:hover .ch-icon-btn-ghost,
+.ch-card:hover .ch-icon-btn-ghost {
+  opacity: 1;
+}
+
+.ch-icon-btn-danger:hover {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+}
+
+.ch-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.ch-rename-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ch-rename-input {
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  outline: none;
+  min-width: 0;
+}
+
+/* Modal */
+.ch-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ch-modal {
+  background: var(--bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 12px;
+  padding: 24px;
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ch-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ch-modal-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.ch-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.ch-modal-close:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text-primary);
+}
+
+.ch-modal-input {
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.ch-modal-input:focus {
+  border-color: var(--accent);
+}
+
+.ch-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ch-modal-cancel {
+  padding: 8px 18px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ch-modal-cancel:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--text-primary);
+}
+
+.ch-modal-create {
+  padding: 8px 18px;
+  background: var(--accent);
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.ch-modal-create:hover { opacity: 0.85; }

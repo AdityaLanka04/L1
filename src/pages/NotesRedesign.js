@@ -16,7 +16,7 @@ import {
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
-  ArrowLeft, Layout, Filter, Palette, Command, Zap
+  ChevronLeft, Layout, Filter, Palette, Command, Zap
 } from 'lucide-react';
 import { API_URL } from '../config';
 import { sanitizeHtml, escapeHtml } from '../utils/sanitize';
@@ -2751,7 +2751,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
               className="toggle-sidebar nr-exit-btn"
               title="Exit to My Notes"
             >
-              <ArrowLeft size={18} />
+              <ChevronLeft size={18} />
             </button>
           )}
           {isSharedContent && (
@@ -2760,7 +2760,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
               className="toggle-sidebar"
               title="Back to Social"
             >
-              <ArrowLeft size={18} />
+              <ChevronLeft size={18} />
             </button>
           )}
           <h1 className="nr-header-title" onClick={() => navigate('/dashboard')}>
@@ -2787,17 +2787,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
         <nav className="nav-actions-new">
           {!isSharedContent && (
-            <>
-              <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-              <button className="nr-nav-btn-ghost" onClick={() => setShowRecentlyViewed(!showRecentlyViewed)}>
-                <span>Recent</span>
-                <ChevronRight size={14} />
-              </button>
-              <button className="nr-nav-btn-ghost" onClick={() => setShowCanvasMode(true)}>
-                <span>Canvas</span>
-                <ChevronRight size={14} />
-              </button>
-            </>
+            <button className="nr-nav-btn-ghost" onClick={() => navigate('/canvas')}>
+              <span>Canvas</span>
+              <ChevronRight size={14} />
+            </button>
           )}
           <button className="nr-nav-btn-ghost" onClick={() => navigate("/notes/my-notes")}>
             <span>My Notes</span>

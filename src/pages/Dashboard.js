@@ -101,6 +101,7 @@ const Dashboard = () => {
   const [dailyBreakdown, setDailyBreakdown] = useState([]);
   const [weeklyStats, setWeeklyStats] = useState({});
   const [activeNotesAction, setActiveNotesAction] = useState(null);
+  const [activeFlashcardsAction, setActiveFlashcardsAction] = useState(null);
   const [activeQuickNavItem, setActiveQuickNavItem] = useState(null);
   const [motivationalQuote, setMotivationalQuote] = useState('');
   const [achievements, setAchievements] = useState([]);
@@ -476,7 +477,7 @@ const Dashboard = () => {
           }
           seenSets.get(card.set_id).count++;
         }
-        setRecentFlashcards(Array.from(seenSets.values()).slice(0, 2));
+        setRecentFlashcards(Array.from(seenSets.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 2));
       }
 
       const dcResp = await fetch(`${API_URL}/get_daily_challenge?user_id=${userName}`, {
@@ -752,6 +753,13 @@ const Dashboard = () => {
   const handleNotesActionBlur = (event) => {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       setActiveNotesAction(null);
+    }
+  };
+  const setFlashcardsAction = (actionName) => () => setActiveFlashcardsAction(actionName);
+  const clearFlashcardsAction = () => setActiveFlashcardsAction(null);
+  const handleFlashcardsActionBlur = (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setActiveFlashcardsAction(null);
     }
   };
   const setQuickNavItem = (itemName) => () => setActiveQuickNavItem(itemName);
@@ -1234,11 +1242,49 @@ const Dashboard = () => {
             </div>
             <button className="ds-recent-view-all" onClick={navigateToFlashcards} style={{ color: getWidgetColor('flashcards') }}>View all</button>
           </div>
+          <div
+            className="ds-notes-actions"
+            data-active-action={activeFlashcardsAction || undefined}
+            onMouseLeave={clearFlashcardsAction}
+            onBlur={handleFlashcardsActionBlur}
+          >
+            <button
+              className="ds-notes-action ds-notes-action-ai"
+              onClick={navigateToFlashcards}
+              onMouseEnter={setFlashcardsAction('generate')}
+              onFocus={setFlashcardsAction('generate')}
+              style={{ '--notes-accent': getWidgetColor('flashcards') }}
+            >
+              <div className="ds-notes-action-icon">
+                <Zap size={15} />
+              </div>
+              <div className="ds-notes-action-copy">
+                <span className="ds-notes-action-title">AI Generate</span>
+                <span className="ds-notes-action-meta">Create from topics</span>
+              </div>
+            </button>
+            <button
+              className="ds-notes-action"
+              onClick={navigateToFlashcards}
+              onMouseEnter={setFlashcardsAction('browse')}
+              onFocus={setFlashcardsAction('browse')}
+              style={{ '--notes-accent': getWidgetColor('flashcards') }}
+            >
+              <div className="ds-notes-action-icon">
+                <Layers size={15} />
+              </div>
+              <div className="ds-notes-action-copy">
+                <span className="ds-notes-action-title">Browse Sets</span>
+                <span className="ds-notes-action-meta">Review your cards</span>
+              </div>
+            </button>
+          </div>
+          <div className="ds-notes-recent-label">Recent sets</div>
           <div className="ds-recent-list">
             {recentFlashcards.length > 0 ? recentFlashcards.map(set => (
               <div key={set.set_id} className="ds-recent-item" onClick={navigateToFlashcards}>
                 <span className="ds-recent-item-title">{set.title || 'Untitled Set'}</span>
-                <span className="ds-recent-item-badge" style={{ color: getWidgetColor('flashcards') }}>{set.count} cards</span>
+                <span className="ds-recent-item-time">{getRelativeTime(set.created_at)}</span>
               </div>
             )) : (
               <div className="ds-recent-empty" onClick={navigateToFlashcards}>

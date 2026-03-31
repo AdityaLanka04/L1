@@ -54,6 +54,7 @@ import LearningPaths from './pages/LearningPaths';
 import LearningPathDetail from './pages/LearningPathDetail';
 import AdminAnalytics from './pages/AdminAnalytics';
 import ContextHub from './pages/ContextHub';
+import CanvasHub from './pages/CanvasHub';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import GlobalNavSidebar from './components/GlobalNavSidebar';
@@ -145,6 +146,7 @@ function App() {
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
               <Route path="/context" element={<ProtectedRoute><ContextHub /></ProtectedRoute>} />
+              <Route path="/canvas" element={<ProtectedRoute><CanvasHub /></ProtectedRoute>} />
               <Route path="/home" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
