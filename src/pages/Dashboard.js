@@ -100,6 +100,8 @@ const Dashboard = () => {
   const [weeklyProgress, setWeeklyProgress] = useState([]);
   const [dailyBreakdown, setDailyBreakdown] = useState([]);
   const [weeklyStats, setWeeklyStats] = useState({});
+  const [activeNotesAction, setActiveNotesAction] = useState(null);
+  const [activeQuickNavItem, setActiveQuickNavItem] = useState(null);
   const [motivationalQuote, setMotivationalQuote] = useState('');
   const [achievements, setAchievements] = useState([]);
   const [learningAnalytics, setLearningAnalytics] = useState(null);
@@ -736,7 +738,29 @@ const Dashboard = () => {
   const navigateToAI = () => navigate('/ai-chat');
   const navigateToFlashcards = () => navigate('/flashcards');
   const navigateToQuiz = () => navigate('/quiz');
-  const navigateToNotes = () => navigate('/notes');
+  const navigateToMyNotes = () => navigate('/notes/my-notes');
+  const navigateToAIMediaNotes = () => navigate('/notes/ai-media');
+  const openRecentNote = (noteId) => {
+    if (noteId) {
+      navigate(`/notes/editor/${noteId}`);
+      return;
+    }
+    navigateToMyNotes();
+  };
+  const setNotesAction = (actionName) => () => setActiveNotesAction(actionName);
+  const clearNotesAction = () => setActiveNotesAction(null);
+  const handleNotesActionBlur = (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setActiveNotesAction(null);
+    }
+  };
+  const setQuickNavItem = (itemName) => () => setActiveQuickNavItem(itemName);
+  const clearQuickNavItem = () => setActiveQuickNavItem(null);
+  const handleQuickNavBlur = (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setActiveQuickNavItem(null);
+    }
+  };
   const navigateToGames = () => navigate('/games');
   const navigateToSocial = () => navigate('/social');
   const navigateToConcepts = () => navigate('/activity-timeline');
@@ -1142,18 +1166,56 @@ const Dashboard = () => {
               </div>
               <h3 className="ds-recent-title">Notes</h3>
             </div>
-            <button className="ds-recent-view-all" onClick={navigateToNotes} style={{ color: getWidgetColor('notes') }}>View all</button>
+            <button className="ds-recent-view-all" onClick={navigateToMyNotes} style={{ color: getWidgetColor('notes') }}>Library</button>
           </div>
+          <div
+            className="ds-notes-actions"
+            data-active-action={activeNotesAction || undefined}
+            onMouseLeave={clearNotesAction}
+            onBlur={handleNotesActionBlur}
+          >
+            <button
+              className="ds-notes-action ds-notes-action-ai"
+              onClick={navigateToAIMediaNotes}
+              onMouseEnter={setNotesAction('media')}
+              onFocus={setNotesAction('media')}
+              style={{ '--notes-accent': getWidgetColor('notes') }}
+            >
+              <div className="ds-notes-action-icon">
+                <Zap size={15} />
+              </div>
+              <div className="ds-notes-action-copy">
+                <span className="ds-notes-action-title">AI Media Notes</span>
+                <span className="ds-notes-action-meta">Audio, video, YouTube</span>
+              </div>
+            </button>
+            <button
+              className="ds-notes-action"
+              onClick={navigateToMyNotes}
+              onMouseEnter={setNotesAction('manual')}
+              onFocus={setNotesAction('manual')}
+              style={{ '--notes-accent': getWidgetColor('notes') }}
+            >
+              <div className="ds-notes-action-icon">
+                <BookOpen size={15} />
+              </div>
+              <div className="ds-notes-action-copy">
+                <span className="ds-notes-action-title">My Notes</span>
+                <span className="ds-notes-action-meta">Write and organize</span>
+              </div>
+            </button>
+          </div>
+          <div className="ds-notes-recent-label">Recent notes</div>
           <div className="ds-recent-list">
             {recentNotes.length > 0 ? recentNotes.map(note => (
-              <div key={note.id} className="ds-recent-item" onClick={navigateToNotes}>
+              <div key={note.id} className="ds-recent-item" onClick={() => openRecentNote(note.id)}>
                 <span className="ds-recent-item-title">{note.title || 'Untitled'}</span>
                 <span className="ds-recent-item-time">{getRelativeTime(note.updated_at)}</span>
               </div>
             )) : (
-              <div className="ds-recent-empty" onClick={navigateToNotes}>
+              <div className="ds-recent-empty" onClick={navigateToMyNotes}>
                 <span>No notes yet</span>
-                <span className="ds-recent-empty-cta" style={{ color: getWidgetColor('notes') }}>Create one →</span>
+                <span className="ds-recent-empty-cta" style={{ color: getWidgetColor('notes') }}>Start in My Notes →</span>
               </div>
             )}
           </div>
@@ -1360,20 +1422,52 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="ds-qh-nav">
-                <div className="ds-qh-nav-item" onClick={navigateToSocial}>
+              <div
+                className="ds-qh-nav"
+                data-active-item={activeQuickNavItem || undefined}
+                onMouseLeave={clearQuickNavItem}
+                onBlur={handleQuickNavBlur}
+              >
+                <div
+                  className="ds-qh-nav-item"
+                  onClick={navigateToSocial}
+                  onMouseEnter={setQuickNavItem('social')}
+                  onFocus={setQuickNavItem('social')}
+                  tabIndex={0}
+                >
                   <Users size={13} style={{ color: ac }} />
-                  <span>Social Hub</span>
+                  <div className="ds-qh-nav-copy">
+                    <span>Social Hub</span>
+                    <small>Friends, groups, challenges</small>
+                  </div>
                   <ChevronRight size={12} />
                 </div>
-                <div className="ds-qh-nav-item" onClick={navigateToConcepts}>
+                <div
+                  className="ds-qh-nav-item"
+                  onClick={navigateToConcepts}
+                  onMouseEnter={setQuickNavItem('timeline')}
+                  onFocus={setQuickNavItem('timeline')}
+                  tabIndex={0}
+                >
                   <CalendarIcon size={13} style={{ color: ac }} />
-                  <span>Activity Timeline</span>
+                  <div className="ds-qh-nav-copy">
+                    <span>Activity Timeline</span>
+                    <small>Calendar, reminders, planning</small>
+                  </div>
                   <ChevronRight size={12} />
                 </div>
-                <div className="ds-qh-nav-item" onClick={() => navigate('/learning-paths')}>
+                <div
+                  className="ds-qh-nav-item"
+                  onClick={() => navigate('/learning-paths')}
+                  onMouseEnter={setQuickNavItem('path')}
+                  onFocus={setQuickNavItem('path')}
+                  tabIndex={0}
+                >
                   <Network size={13} style={{ color: ac }} />
-                  <span>Learning Path</span>
+                  <div className="ds-qh-nav-copy">
+                    <span>Learning Path</span>
+                    <small>Track concepts step by step</small>
+                  </div>
                   <ChevronRight size={12} />
                 </div>
               </div>
