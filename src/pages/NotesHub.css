@@ -28,8 +28,8 @@
 .nh-ambient-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(150px);
-  opacity: 0.3;
+  filter: blur(120px);
+  opacity: 0.12;
   animation: nhOrbFloat 25s ease-in-out infinite;
 }
 
@@ -44,7 +44,7 @@
 .nh-ambient-orb-2 {
   width: 400px;
   height: 400px;
-  background: color-mix(in srgb, var(--accent) 50%, #000);
+  background: var(--accent);
   bottom: -100px;
   right: -100px;
   animation-delay: -12s;
@@ -53,11 +53,10 @@
 .nh-ambient-grid {
   position: absolute;
   inset: 0;
-  background-image: 
-    linear-gradient(color-mix(in srgb, var(--accent) 6%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 6%, transparent) 1px, transparent 1px);
-  background-size: 80px 80px;
-  mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black 20%, transparent 70%);
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 75%);
+  opacity: 0.55;
 }
 
 @keyframes nhOrbFloat {
@@ -211,21 +210,30 @@
 }
 
 .nh-section-ai {
-  background: linear-gradient(160deg,
-    #1a1200 0%,
-    color-mix(in srgb, var(--accent) 22%, #0a0a09) 40%,
-    #0f0d07 100%
+  background: linear-gradient(135deg,
+    var(--accent) 0%,
+    color-mix(in srgb, var(--accent) 82%, #000) 100%
   );
-  border-right: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  box-shadow: inset 0 0 120px color-mix(in srgb, var(--accent) 8%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .nh-section-manual {
   background: linear-gradient(160deg,
-    #080808 0%,
-    #0e0e0e 50%,
-    #0a0a0a 100%
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 50%,
+    var(--bg-primary) 100%
   );
+}
+
+.nh-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  opacity: 0.4;
+  z-index: 0;
 }
 
 .nh-section-glow {
@@ -274,16 +282,16 @@
 }
 
 .nh-section-ai .nh-section-icon {
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
-  color: var(--accent);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 20%, transparent);
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: var(--bg-primary);
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.15);
 }
 
 .nh-section-manual .nh-section-icon {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.5);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--text-secondary);
 }
 
 .nh-section:hover .nh-section-icon {
@@ -302,11 +310,11 @@
 }
 
 .nh-section-ai .nh-section-title {
-  color: var(--accent);
+  color: var(--bg-primary);
 }
 
 .nh-section-manual .nh-section-title {
-  color: #EAECEF;
+  color: var(--text-primary);
 }
 
 .nh-section-tag {
@@ -318,11 +326,11 @@
 }
 
 .nh-section-ai .nh-section-tag {
-  color: color-mix(in srgb, var(--accent) 75%, transparent);
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .nh-section-manual .nh-section-tag {
-  color: rgba(255, 255, 255, 0.3);
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 .nh-features {
@@ -351,11 +359,11 @@
 }
 
 .nh-section-ai .nh-feature {
-  color: color-mix(in srgb, var(--accent) 80%, #ffffff);
+  color: var(--bg-primary);
 }
 
 .nh-section-manual .nh-feature {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--text-secondary);
 }
 
 .nh-feature:hover {
@@ -383,15 +391,15 @@
 }
 
 .nh-section-ai .nh-section-cta {
-  background: var(--accent);
-  color: #0a0a09;
+  background: var(--bg-primary);
+  color: var(--accent);
   font-weight: 700;
 }
 
 .nh-section-manual .nh-section-cta {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-secondary));
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .nh-section-cta:hover {
@@ -410,7 +418,7 @@
 }
 
 .nh-section-ai .nh-section-line {
-  background: var(--accent);
+  background: var(--bg-primary);
 }
 
 .nh-section-manual .nh-section-line {
@@ -457,9 +465,6 @@
   z-index: 1;
 }
 
-[data-theme-mode="light"]
-
-
 [data-theme-mode="light"] .nh-ambient-orb {
   opacity: 0.15;
 }
@@ -473,25 +478,22 @@
 }
 
 [data-theme-mode="light"] .nh-section-ai {
-  background: linear-gradient(145deg, #fefefe 0%, color-mix(in srgb, var(--accent) 8%, #fefefe) 100%);
-  border-right: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 82%, #000) 100%);
+  border-right: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 [data-theme-mode="light"] .nh-section-manual {
-  background: linear-gradient(145deg, #f8f9fa 0%, color-mix(in srgb, var(--accent) 5%, #fefefe) 100%);
+  background: linear-gradient(145deg, var(--bg-secondary) 0%, color-mix(in srgb, var(--accent) 5%, var(--bg-primary)) 100%);
 }
 
-[data-theme-mode="light"] .nh-section-ai .nh-section-title,
 [data-theme-mode="light"] .nh-section-manual .nh-section-title {
-  color: var(--accent);
+  color: var(--text-primary);
 }
 
-[data-theme-mode="light"] .nh-section-ai .nh-section-tag,
 [data-theme-mode="light"] .nh-section-manual .nh-section-tag {
   color: color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
-[data-theme-mode="light"] .nh-section-ai .nh-feature,
 [data-theme-mode="light"] .nh-section-manual .nh-feature {
   color: var(--text-primary);
 }

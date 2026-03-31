@@ -1,0 +1,84 @@
+00:58:01 INFO     ============================================================
+00:58:01 INFO       Brainwave Curriculum Ingest — LIVE
+00:58:01 INFO       Source:  all
+00:58:01 INFO       Docs:    31 entries
+00:58:01 INFO       Mode:    resume=yes
+00:58:01 INFO       Log:     D:\Brainwave\L1\backend\ingest\logs\ingest_2026-03-25_04-58.log
+00:58:01 INFO     ============================================================
+00:58:03 INFO     Using SQLite database
+00:58:03 INFO     Initializing ChromaDB + embedding model...
+00:58:54 INFO     Use pytorch device_name: cpu
+00:58:54 INFO     Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/README.md "HTTP/1.1 200 OK"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/sentence_bert_config.json "HTTP/1.1 200 OK"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+00:58:56 WARNING  Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+00:58:56 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+00:58:57 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+00:58:57 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+00:58:57 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+00:58:57 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/tokenizer_config.json "HTTP/1.1 200 OK"
+00:58:57 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+00:58:57 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+00:58:58 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+00:58:58 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+00:58:58 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+00:58:58 INFO     Chroma store initialised with SentenceTransformer
+00:58:58 INFO     context_store initialized.
+00:59:21 INFO     Redis unavailable (Timeout connecting to server) — using in-memory fallback cache
+00:59:21 INFO     Loaded state: 31 previously ingested docs will be skipped.
+00:59:21 INFO     [1/31] Skipping (already ingested): Biology 2e
+00:59:21 INFO     [2/31] Skipping (already ingested): Chemistry 2e
+00:59:21 INFO     [3/31] Skipping (already ingested): College Algebra 2e
+00:59:21 INFO     [4/31] Skipping (already ingested): Algebra and Trigonometry 2e
+00:59:21 INFO     [5/31] Skipping (already ingested): Precalculus 2e
+00:59:21 INFO     [6/31] Skipping (already ingested): Calculus Volume 1
+00:59:21 INFO     [7/31] Skipping (already ingested): Calculus Volume 2
+00:59:21 INFO     [8/31] Skipping (already ingested): Introductory Statistics
+00:59:21 INFO     [9/31] Skipping (already ingested): U.S. History
+00:59:21 INFO     [10/31] Skipping (already ingested): World History Volume 1
+00:59:21 INFO     [11/31] Skipping (already ingested): World History Volume 2
+00:59:21 INFO     [12/31] Skipping (already ingested): Psychology 2e
+00:59:21 INFO     [13/31] Skipping (already ingested): Introduction to Sociology 3e
+00:59:21 INFO     [14/31] Skipping (already ingested): Principles of Economics 3e
+00:59:21 INFO     [15/31] Skipping (already ingested): Anatomy and Physiology
+00:59:21 INFO     [16/31] Skipping (already ingested): College Physics 2e
+00:59:21 INFO     [17/31] Skipping (already ingested): AQA GCSE Biology Specification
+00:59:21 INFO     [18/31] Skipping (already ingested): AQA GCSE Chemistry Specification
+00:59:21 INFO     [19/31] Skipping (already ingested): AQA GCSE Physics Specification
+00:59:21 INFO     [20/31] Skipping (already ingested): AQA GCSE Mathematics Specification
+00:59:21 INFO     [21/31] Skipping (already ingested): AQA GCSE English Language Specification
+00:59:21 INFO     [22/31] Skipping (already ingested): AQA GCSE Geography Specification
+00:59:21 INFO     [23/31] Skipping (already ingested): AQA GCSE History Specification
+00:59:21 INFO     [24/31] Skipping (already ingested): AQA GCSE Economics Specification
+00:59:21 INFO     [25/31] Skipping (already ingested): AQA GCSE Psychology Specification
+00:59:21 INFO     [26/31] Skipping (already ingested): AQA A-Level Biology Specification
+00:59:21 INFO     [27/31] Skipping (already ingested): AQA A-Level Chemistry Specification
+00:59:21 INFO     [28/31] Skipping (already ingested): AQA A-Level Physics Specification
+00:59:21 INFO     [29/31] Skipping (already ingested): AQA A-Level Mathematics Specification
+00:59:21 INFO     [30/31] Skipping (already ingested): AQA A-Level Economics Specification
+00:59:21 INFO     [31/31] Skipping (already ingested): AQA A-Level Psychology Specification
+00:59:21 INFO     
+00:59:21 INFO     ============================================================
+00:59:21 INFO       INGEST COMPLETE
+00:59:21 INFO       Total:     31
+00:59:21 INFO       Succeeded: 0
+00:59:21 INFO       Failed:    0
+00:59:21 INFO       Skipped:   31 (already ingested)
+00:59:21 INFO       Duration:  0s (0.0 min)
+00:59:21 INFO     
+00:59:21 INFO       Spot checks: 0 run
+00:59:21 INFO         Passed: 0
+00:59:21 INFO         Failed: 0
+00:59:21 INFO     ============================================================

@@ -57,11 +57,10 @@
 .qh-ambient-grid {
   position: absolute;
   inset: 0;
-  background-image: 
-    linear-gradient(color-mix(in srgb, var(--accent) 3%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 3%, transparent) 1px, transparent 1px);
-  background-size: 50px 50px;
-  opacity: 0.3;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 75%);
+  opacity: 0.55;
 }
 
 .qh-header {
@@ -238,7 +237,27 @@
 }
 
 .qh-section-battle {
-  background: var(--bg-primary);
+  background: linear-gradient(160deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 50%,
+    var(--bg-primary) 100%
+  );
+}
+
+.qh-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  opacity: 0.4;
+  z-index: 0;
+}
+
+.qh-section-solo::before {
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.2) 1px, transparent 1px);
+  opacity: 0.5;
 }
 
 .qh-section-glow {
@@ -294,8 +313,8 @@
 }
 
 .qh-section-battle .qh-section-icon {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-secondary));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   color: var(--accent);
 }
 
@@ -345,7 +364,7 @@
 }
 
 .qh-section-battle .qh-section-tag {
-  color: color-mix(in srgb, var(--accent) 70%, transparent);
+  color: color-mix(in srgb, var(--accent) 65%, transparent);
 }
 
 [data-theme-mode="light"] .qh-section-solo .qh-section-tag {
@@ -385,7 +404,7 @@
 }
 
 .qh-section-battle .qh-feature {
-  color: var(--accent);
+  color: var(--text-secondary);
 }
 
 [data-theme-mode="light"] .qh-section-solo .qh-feature {

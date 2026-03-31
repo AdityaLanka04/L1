@@ -20,9 +20,7 @@ import logo from '../assets/logo.svg';
 const DEFAULT_LAYOUT_WIDGETS = [
   { id: 'ai-tutor', col: 1, row: 1, cols: 1, rows: 3, color: null, size: 'M' },
   { id: 'learning-hub-grid', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'L' },
-  { id: 'social-hub', col: 4, row: 1, cols: 1, rows: 2, color: null, size: 'M' },
-  { id: 'activity', col: 4, row: 3, cols: 1, rows: 2, color: null, size: 'M' },
-  { id: 'concept-web', col: 4, row: 5, cols: 1, rows: 1, color: null, size: 'S' },
+  { id: 'quick-hub', col: 4, row: 1, cols: 1, rows: 5, color: null, size: 'L' },
   { id: 'streak', col: 1, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
   { id: 'notes', col: 2, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
   { id: 'flashcards', col: 3, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
@@ -95,6 +93,10 @@ const Dashboard = () => {
   const [importExportSource, setImportExportSource] = useState('notes');
 
   const [recentActivities, setRecentActivities] = useState([]);
+  const [recentNotes, setRecentNotes] = useState([]);
+  const [recentFlashcards, setRecentFlashcards] = useState([]);
+  const [gamificationFull, setGamificationFull] = useState({});
+  const [dailyChallenge, setDailyChallenge] = useState(null);
   const [weeklyProgress, setWeeklyProgress] = useState([]);
   const [dailyBreakdown, setDailyBreakdown] = useState([]);
   const [weeklyStats, setWeeklyStats] = useState({});
@@ -142,7 +144,7 @@ const Dashboard = () => {
 
     
     try {
-      const LAYOUT_VERSION = '2.1'; 
+      const LAYOUT_VERSION = '2.2';
       const savedVersion = localStorage.getItem('dashboardLayoutVersion');
       const layoutName = localStorage.getItem('currentLayoutName') || 'Default';
       
@@ -438,7 +440,7 @@ const Dashboard = () => {
             totalChatSessions: data.gamification.total_chat_sessions || 0,
             minutes: data.gamification.total_study_minutes || 0
           });
-          
+          setGamificationFull(data.gamification);
           setTotalQuestions(data.gamification.total_ai_chats || 0);
           setCurrentQuestions(data.gamification.current_messages || data.gamification.total_chat_sessions || 0);
           setCurrentSessions(data.gamification.total_chat_sessions || 0);
@@ -450,6 +452,37 @@ const Dashboard = () => {
         setLearningAnalytics(data.learning_analytics || null);
         setConversationStarters(data.conversation_starters || []);
         setLearningReviews(data.learning_reviews || []);
+      }
+
+      const notesResp = await fetch(`${API_URL}/get_notes?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (notesResp.ok) {
+        const notesData = await notesResp.json();
+        setRecentNotes(notesData.slice(0, 2));
+      }
+
+      const fcResp = await fetch(`${API_URL}/get_flashcards?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (fcResp.ok) {
+        const fcData = await fcResp.json();
+        const seenSets = new Map();
+        for (const card of fcData) {
+          if (!seenSets.has(card.set_id)) {
+            seenSets.set(card.set_id, { set_id: card.set_id, title: card.set_title, created_at: card.created_at, count: 0 });
+          }
+          seenSets.get(card.set_id).count++;
+        }
+        setRecentFlashcards(Array.from(seenSets.values()).slice(0, 2));
+      }
+
+      const dcResp = await fetch(`${API_URL}/get_daily_challenge?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (dcResp.ok) {
+        const dcData = await dcResp.json();
+        setDailyChallenge(dcData);
       }
     } catch (error) {
     // silenced
@@ -1100,33 +1133,57 @@ const Dashboard = () => {
         )}
 
         {getWidgetConfig('notes') && (
-        <div className={`ds-card ds-feature ds-notes ${isWidgetSmall('notes') ? 'ds-widget-small' : ''}`} onClick={navigateToNotes} style={getWidgetStyle('notes')}>
+        <div className={`ds-card ds-recent-widget ds-notes ${isWidgetSmall('notes') ? 'ds-widget-small' : ''}`} style={getWidgetStyle('notes')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('notes'), 0.1)} 0%, transparent 70%)` }}></div>
-          <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('notes') }} />
-          <div className="ds-feature-content">
-            <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('notes')} 0%, ${getWidgetColor('notes')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('notes'), 0.3)}` }}>
-              <FileText size={18} />
+          <div className="ds-recent-header">
+            <div className="ds-recent-header-left">
+              <div className="ds-recent-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('notes')} 0%, ${getWidgetColor('notes')} 100%)`, boxShadow: `0 4px 12px ${rgbaFromHex(getWidgetColor('notes'), 0.3)}` }}>
+                <FileText size={16} />
+              </div>
+              <h3 className="ds-recent-title">Notes</h3>
             </div>
-            <h3 className="ds-feature-title">Notes</h3>
-            <p className="ds-feature-description">
-              AI-POWERED STUDY NOTES
-            </p>
+            <button className="ds-recent-view-all" onClick={navigateToNotes} style={{ color: getWidgetColor('notes') }}>View all</button>
+          </div>
+          <div className="ds-recent-list">
+            {recentNotes.length > 0 ? recentNotes.map(note => (
+              <div key={note.id} className="ds-recent-item" onClick={navigateToNotes}>
+                <span className="ds-recent-item-title">{note.title || 'Untitled'}</span>
+                <span className="ds-recent-item-time">{getRelativeTime(note.updated_at)}</span>
+              </div>
+            )) : (
+              <div className="ds-recent-empty" onClick={navigateToNotes}>
+                <span>No notes yet</span>
+                <span className="ds-recent-empty-cta" style={{ color: getWidgetColor('notes') }}>Create one →</span>
+              </div>
+            )}
           </div>
         </div>
         )}
 
         {getWidgetConfig('flashcards') && (
-        <div className={`ds-card ds-feature ds-flashcards ${isWidgetSmall('flashcards') ? 'ds-widget-small' : ''}`} onClick={navigateToFlashcards} style={getWidgetStyle('flashcards')}>
+        <div className={`ds-card ds-recent-widget ds-flashcards ${isWidgetSmall('flashcards') ? 'ds-widget-small' : ''}`} style={getWidgetStyle('flashcards')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('flashcards'), 0.1)} 0%, transparent 70%)` }}></div>
-          <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('flashcards') }} />
-          <div className="ds-feature-content">
-            <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('flashcards')} 0%, ${getWidgetColor('flashcards')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('flashcards'), 0.3)}` }}>
-              <Layers size={18} />
+          <div className="ds-recent-header">
+            <div className="ds-recent-header-left">
+              <div className="ds-recent-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('flashcards')} 0%, ${getWidgetColor('flashcards')} 100%)`, boxShadow: `0 4px 12px ${rgbaFromHex(getWidgetColor('flashcards'), 0.3)}` }}>
+                <Layers size={16} />
+              </div>
+              <h3 className="ds-recent-title">Flashcards</h3>
             </div>
-            <h3 className="ds-feature-title">Flashcards</h3>
-            <p className="ds-feature-description">
-              MASTER KEY CONCEPTS
-            </p>
+            <button className="ds-recent-view-all" onClick={navigateToFlashcards} style={{ color: getWidgetColor('flashcards') }}>View all</button>
+          </div>
+          <div className="ds-recent-list">
+            {recentFlashcards.length > 0 ? recentFlashcards.map(set => (
+              <div key={set.set_id} className="ds-recent-item" onClick={navigateToFlashcards}>
+                <span className="ds-recent-item-title">{set.title || 'Untitled Set'}</span>
+                <span className="ds-recent-item-badge" style={{ color: getWidgetColor('flashcards') }}>{set.count} cards</span>
+              </div>
+            )) : (
+              <div className="ds-recent-empty" onClick={navigateToFlashcards}>
+                <span>No flashcard sets yet</span>
+                <span className="ds-recent-empty-cta" style={{ color: getWidgetColor('flashcards') }}>Create one →</span>
+              </div>
+            )}
           </div>
         </div>
         )}
@@ -1199,6 +1256,130 @@ const Dashboard = () => {
           </div>
         </div>
         )}
+
+        {getWidgetConfig('quick-hub') && (() => {
+          const ac = getWidgetColor('quick-hub') || 'var(--accent)';
+          const gf = gamificationFull;
+          const level = gf.level || 1;
+          const xp = gf.experience || 0;
+          const nextXp = gf.next_level_xp || 1000;
+          const xpPct = Math.min(xp / Math.max(nextXp, 1), 1);
+          const weeklyPts = gf.weekly_points || 0;
+          const streak = stats.streak || 0;
+          const rank = gf.rank || null;
+          const dc = dailyChallenge;
+          const dcPct = dc ? Math.min(dc.progress / Math.max(dc.challenge.target, 1), 1) : 0;
+          const fmt = n => n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n);
+          return (
+            <div className="ds-card ds-quick-hub" style={getWidgetStyle('quick-hub')}>
+              <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('quick-hub'), 0.1)} 0%, transparent 70%)` }}></div>
+
+              <div className="ds-qh-tile ds-qh-tile--level">
+                <div className="ds-qh-lvl-left">
+                  <span className="ds-qh-lvl-num" style={{ color: ac }}>{level}</span>
+                  <span className="ds-qh-lvl-sub">LEVEL</span>
+                </div>
+                <div className="ds-qh-lvl-right">
+                  <div className="ds-qh-lvl-track">
+                    <div className="ds-qh-lvl-fill" style={{ width: `${xpPct*100}%`, background: ac }} />
+                  </div>
+                  <span className="ds-qh-lvl-xp">{fmt(xp)} <span className="ds-qh-lvl-xp-max">/ {fmt(nextXp)} XP</span></span>
+                </div>
+              </div>
+
+              <div className="ds-qh-duo">
+                <div className="ds-qh-tile ds-qh-tile--big">
+                  <Zap size={14} style={{ color: ac }} />
+                  <span className="ds-qh-big-num" style={{ color: ac }}>{fmt(weeklyPts)}</span>
+                  <span className="ds-qh-tile-lbl">WK POINTS</span>
+                </div>
+                <div className="ds-qh-tile ds-qh-tile--big">
+                  <Flame size={14} style={{ color: ac }} />
+                  <span className="ds-qh-big-num" style={{ color: ac }}>{streak}</span>
+                  <span className="ds-qh-tile-lbl">DAY STREAK</span>
+                </div>
+              </div>
+
+              {rank && (
+                <div className="ds-qh-tile ds-qh-tile--rank">
+                  <Trophy size={13} style={{ color: ac }} />
+                  <span className="ds-qh-rank-text">Global Rank</span>
+                  <span className="ds-qh-rank-num" style={{ color: ac }}>#{rank}</span>
+                </div>
+              )}
+
+              <div className="ds-qh-rings-grid">
+                {[
+                  { icon: MessageSquare, label: 'CHATS',   val: weeklyStats.weeklyAIChats || 0,       goal: gf.weekly_chat_goal || 10 },
+                  { icon: FileText,      label: 'NOTES',   val: weeklyStats.weeklyNotes || 0,          goal: gf.weekly_note_goal || 5 },
+                  { icon: Layers,        label: 'CARDS',   val: weeklyStats.weeklyFlashcards || 0,     goal: gf.weekly_flashcard_goal || 20 },
+                  { icon: Brain,         label: 'QUIZZES', val: gf.weekly_quizzes_completed || 0,      goal: gf.weekly_quiz_goal || 5 },
+                ].map(({ icon: Icon, label, val, goal }) => {
+                  const pct = Math.min(val / Math.max(goal, 1), 1);
+                  const done = pct >= 1;
+                  const ringColor = done ? '#4ade80' : ac;
+                  return (
+                    <div key={label} className="ds-qh-ring-tile">
+                      <div className="ds-qh-ring-svg-wrap">
+                        <svg viewBox="0 0 36 36" width="58" height="58">
+                          <circle cx="18" cy="18" r="15.9155" fill="none" stroke="var(--border)" strokeWidth="3" />
+                          <circle cx="18" cy="18" r="15.9155" fill="none"
+                            stroke={ringColor} strokeWidth="3"
+                            strokeDasharray={`${pct * 100} 100`}
+                            strokeLinecap="round"
+                            transform="rotate(-90 18 18)"
+                            style={{ transition: 'stroke-dasharray 0.8s ease' }}
+                          />
+                        </svg>
+                        <div className="ds-qh-ring-inner">
+                          <span className="ds-qh-ring-num" style={{ color: ringColor }}>{fmt(val)}</span>
+                        </div>
+                      </div>
+                      <div className="ds-qh-ring-meta">
+                        <Icon size={10} style={{ color: ac }} />
+                        <span className="ds-qh-ring-lbl">{label}</span>
+                      </div>
+                      <span className="ds-qh-ring-goal">/{goal}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="ds-qh-tile ds-qh-tile--quest">
+                <div className="ds-qh-quest-top">
+                  <Target size={12} style={{ color: ac, flexShrink: 0 }} />
+                  <span className="ds-qh-quest-name">{dc ? dc.challenge.title : 'Daily Quest'}</span>
+                  {dc && <span className="ds-qh-quest-xp" style={{ color: ac }}>+{dc.challenge.reward}</span>}
+                </div>
+                {dc && <p className="ds-qh-quest-desc">{dc.challenge.description}</p>}
+                <div className="ds-qh-quest-bar-row">
+                  <div className="ds-qh-bar-track">
+                    <div className="ds-qh-bar-fill" style={{ width: `${dcPct*100}%`, background: ac }} />
+                  </div>
+                  <span className="ds-qh-quest-count">{dc ? `${dc.progress}/${dc.challenge.target}` : '0/—'}</span>
+                </div>
+              </div>
+
+              <div className="ds-qh-nav">
+                <div className="ds-qh-nav-item" onClick={navigateToSocial}>
+                  <Users size={13} style={{ color: ac }} />
+                  <span>Social Hub</span>
+                  <ChevronRight size={12} />
+                </div>
+                <div className="ds-qh-nav-item" onClick={navigateToConcepts}>
+                  <CalendarIcon size={13} style={{ color: ac }} />
+                  <span>Activity Timeline</span>
+                  <ChevronRight size={12} />
+                </div>
+                <div className="ds-qh-nav-item" onClick={() => navigate('/learning-paths')}>
+                  <Network size={13} style={{ color: ac }} />
+                  <span>Learning Path</span>
+                  <ChevronRight size={12} />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {getWidgetConfig('heatmap') && (
         <div className="ds-card ds-heatmap" style={getWidgetStyle('heatmap')}>

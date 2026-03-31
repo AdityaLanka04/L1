@@ -1,0 +1,174 @@
+02:38:11 INFO     ============================================================
+02:38:11 INFO       Brainwave Curriculum Ingest — LIVE
+02:38:11 INFO       Source:  us
+02:38:11 INFO       Docs:    16 entries
+02:38:11 INFO       Mode:    resume=yes
+02:38:11 INFO       Log:     D:\Brainwave\L1\backend\ingest\logs\ingest_2026-03-25_06-38.log
+02:38:11 INFO     ============================================================
+02:38:13 INFO     Using SQLite database
+02:38:13 INFO     Initializing ChromaDB + embedding model...
+02:38:22 INFO     Use pytorch device_name: cpu
+02:38:22 INFO     Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+02:38:23 WARNING  Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/README.md "HTTP/1.1 200 OK"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/sentence_bert_config.json "HTTP/1.1 200 OK"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+02:38:23 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/tokenizer_config.json "HTTP/1.1 200 OK"
+02:38:23 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+02:38:24 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+02:38:24 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+02:38:24 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+02:38:24 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+02:38:24 INFO     Chroma store initialised with SentenceTransformer
+02:38:24 INFO     context_store initialized.
+02:38:50 INFO     Redis unavailable (Timeout connecting to server) — using in-memory fallback cache
+02:38:50 INFO     Loaded state: 15 previously ingested docs will be skipped.
+02:38:50 INFO     [1/16] Ingesting: Biology 2e
+02:38:50 INFO       Downloading: Biology 2e
+02:38:50 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/Biology2e-WEB.pdf "HTTP/1.1 200 OK"
+02:38:58 INFO       Downloaded 387750 KB from https://assets.openstax.org/oscms-prodcms/media/documents/Biology2e-WEB.pdf
+02:38:58 INFO       Processing: Biology 2e
+02:40:02 INFO     Per-page extraction selected parser=pymupdf pages=1487 score=231218.9
+02:40:02 INFO       Extracted 7075 chunks from 1487 pages
+02:40:02 INFO       Embedding + storing: Biology 2e
+02:42:14 INFO       Stored 7075 chunks for Biology 2e
+02:42:14 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('6dc0356b-c316-5745-9220-80777fa240fb', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+02:42:14 INFO     [1/16] OK: Biology 2e — 7075 chunks in 203.9s
+02:42:14 INFO     [2/16] Ingesting: Chemistry 2e
+02:42:14 INFO       Downloading: Chemistry 2e
+02:42:14 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/Chemistry2e-WEB.pdf "HTTP/1.1 200 OK"
+02:42:19 INFO       Downloaded 211090 KB from https://assets.openstax.org/oscms-prodcms/media/documents/Chemistry2e-WEB.pdf
+02:42:19 INFO       Processing: Chemistry 2e
+02:46:33 INFO     Per-page extraction selected parser=pymupdf pages=1221 score=231061.5
+02:46:33 INFO       Extracted 4570 chunks from 1221 pages
+02:46:33 INFO       Embedding + storing: Chemistry 2e
+02:48:10 INFO       Stored 4570 chunks for Chemistry 2e
+02:48:10 INFO     [2/16] OK: Chemistry 2e — 4570 chunks in 356.1s
+02:48:10 INFO     [3/16] Ingesting: College Algebra 2e
+02:48:10 INFO       Downloading: College Algebra 2e
+02:48:10 INFO     HTTP Request: GET http://www.stitz-zeager.com/szca07042013.pdf "HTTP/1.1 301 Moved Permanently"
+02:48:11 INFO     HTTP Request: GET https://www.stitz-zeager.com/szca07042013.pdf "HTTP/1.1 200 OK"
+02:48:11 INFO       Downloaded 5962 KB from http://www.stitz-zeager.com/szca07042013.pdf
+02:48:11 INFO       Processing: College Algebra 2e
+02:49:16 INFO     Per-page extraction selected parser=pypdf2 pages=716 score=230588.4
+02:49:16 INFO       Extracted 2262 chunks from 716 pages
+02:49:16 INFO       Embedding + storing: College Algebra 2e
+02:50:11 INFO       Stored 2262 chunks for College Algebra 2e
+02:50:11 INFO     [3/16] OK: College Algebra 2e — 2262 chunks in 121.2s
+02:50:11 INFO     [4/16] Ingesting: Algebra and Trigonometry
+02:50:11 INFO       Downloading: Algebra and Trigonometry
+02:50:12 INFO     HTTP Request: GET http://www.stitz-zeager.com/szpct04082013.pdf "HTTP/1.1 301 Moved Permanently"
+02:50:12 INFO     HTTP Request: GET https://www.stitz-zeager.com/szpct04082013.pdf "HTTP/1.1 404 Not Found"
+02:50:12 WARNING  Download attempt 1 failed for http://www.stitz-zeager.com/szpct04082013.pdf: Client error '404 Not Found' for url 'https://www.stitz-zeager.com/szpct04082013.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404 — retrying in 1s
+02:50:13 INFO     HTTP Request: GET http://www.stitz-zeager.com/szpct04082013.pdf "HTTP/1.1 301 Moved Permanently"
+02:50:13 INFO     HTTP Request: GET https://www.stitz-zeager.com/szpct04082013.pdf "HTTP/1.1 404 Not Found"
+02:50:13 WARNING  Download attempt 2 failed for http://www.stitz-zeager.com/szpct04082013.pdf: Client error '404 Not Found' for url 'https://www.stitz-zeager.com/szpct04082013.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404 — retrying in 2s
+02:50:16 INFO     HTTP Request: GET http://www.stitz-zeager.com/szpct04082013.pdf "HTTP/1.1 301 Moved Permanently"
+02:50:16 INFO     HTTP Request: GET https://www.stitz-zeager.com/szpct04082013.pdf "HTTP/1.1 404 Not Found"
+02:50:16 ERROR    [4/16] FAILED: Algebra and Trigonometry — Download failed: Download failed after 3 attempts for http://www.stitz-zeager.com/szpct04082013.pdf: Client error '404 Not Found' for url 'https://www.stitz-zeager.com/szpct04082013.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+02:50:16 INFO     [5/16] Ingesting: Precalculus 2e
+02:50:16 INFO       Downloading: Precalculus 2e
+02:50:16 INFO     Fetching OpenStax book page: https://openstax.org/details/books/precalculus-2e
+02:50:16 INFO     HTTP Request: GET https://openstax.org/details/books/precalculus-2e "HTTP/1.1 200 OK"
+02:50:16 ERROR    [5/16] FAILED: Precalculus 2e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/precalculus-2e. Check the page manually and add direct_url to the catalog entry.
+02:50:16 INFO     [6/16] Ingesting: Calculus Volume 1
+02:50:16 INFO       Downloading: Calculus Volume 1
+02:50:19 INFO     HTTP Request: GET https://archive.org/download/calculus-volume-1/Calculus%2C%20Volume%201.pdf "HTTP/1.1 302 Found"
+02:50:23 INFO     HTTP Request: GET https://dn790006.ca.archive.org/0/items/calculus-volume-1/Calculus%2C%20Volume%201.pdf "HTTP/1.1 200 OK"
+02:50:40 INFO       Downloaded 16400 KB from https://archive.org/download/calculus-volume-1/Calculus%2C%20Volume%201.pdf
+02:50:40 INFO       Processing: Calculus Volume 1
+02:52:11 INFO     Per-page extraction selected parser=pdfplumber pages=686 score=230628.6
+02:52:11 INFO       Extracted 2560 chunks from 686 pages
+02:52:11 INFO       Embedding + storing: Calculus Volume 1
+02:53:12 INFO       Stored 2560 chunks for Calculus Volume 1
+02:53:12 INFO     [6/16] OK: Calculus Volume 1 — 2560 chunks in 175.8s
+02:53:12 INFO     [7/16] Ingesting: Calculus Volume 2
+02:53:12 INFO       Downloading: Calculus Volume 2
+02:53:13 INFO     HTTP Request: GET https://archive.org/download/calculus-volume-2-web/Calculus_Volume_2_-_WEB.pdf "HTTP/1.1 302 Found"
+02:53:14 INFO     HTTP Request: GET https://ia600600.us.archive.org/31/items/calculus-volume-2-web/Calculus_Volume_2_-_WEB.pdf "HTTP/1.1 200 OK"
+02:53:16 INFO       Downloaded 42638 KB from https://archive.org/download/calculus-volume-2-web/Calculus_Volume_2_-_WEB.pdf
+02:53:16 INFO       Processing: Calculus Volume 2
+02:57:38 INFO     Per-page extraction selected parser=pymupdf pages=737 score=231045.0
+02:57:38 INFO       Extracted 1801 chunks from 737 pages
+02:57:38 INFO       Embedding + storing: Calculus Volume 2
+02:58:08 INFO       Stored 1801 chunks for Calculus Volume 2
+02:58:08 INFO     [7/16] OK: Calculus Volume 2 — 1801 chunks in 295.9s
+02:58:08 INFO     
+--- Spot-checking batch of 5 docs ---
+02:58:08 INFO       Spot checking: Calculus Volume 2
+02:58:09 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Calculus', 'curriculum': 'us'} in query.
+02:58:09 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Calculus', 'curriculum': 'us'} in query.
+02:58:09 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Calculus', 'curriculum': 'us'} in query.
+02:58:09 INFO       Spot check [FAIL] Calculus Volume 2: 0/3 samples passed — Sample 1: chunk not found in top-9 results (query: '624 B • Table of Derivatives 27. 28. 29. 30. Inverse Hyperbo'...)
+02:58:09 INFO       Spot checking: College Algebra 2e
+02:58:09 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Algebra', 'curriculum': 'us'} in query.
+02:58:09 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Algebra', 'curriculum': 'us'} in query.
+02:58:09 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Algebra', 'curriculum': 'us'} in query.
+02:58:09 INFO       Spot check [FAIL] College Algebra 2e: 0/3 samples passed — Sample 1: chunk not found in top-9 results (query: 's a\x191:512 which corresponds to our exponent A. They-intercep'...)
+02:58:09 INFO     [8/16] Ingesting: Introductory Statistics
+02:58:09 INFO       Downloading: Introductory Statistics
+02:58:10 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/Statistics-WEB.pdf "HTTP/1.1 200 OK"
+02:58:11 INFO       Downloaded 31302 KB from https://assets.openstax.org/oscms-prodcms/media/documents/Statistics-WEB.pdf
+02:58:11 INFO       Processing: Introductory Statistics
+02:59:41 INFO     Per-page extraction selected parser=pypdf2 pages=932 score=230939.2
+02:59:42 INFO       Extracted 3154 chunks from 932 pages
+02:59:42 INFO       Embedding + storing: Introductory Statistics
+03:00:56 INFO       Stored 3154 chunks for Introductory Statistics
+03:00:56 INFO     [8/16] OK: Introductory Statistics — 3154 chunks in 167.0s
+03:00:56 INFO     [9/16] Ingesting: U.S. History
+03:00:56 INFO       Downloading: U.S. History
+03:00:56 INFO     Fetching OpenStax book page: https://openstax.org/details/books/us-history
+03:00:57 INFO     HTTP Request: GET https://openstax.org/details/books/us-history "HTTP/1.1 200 OK"
+03:00:57 ERROR    [9/16] FAILED: U.S. History — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/us-history. Check the page manually and add direct_url to the catalog entry.
+03:00:57 INFO     [10/16] Ingesting: World History Volume 1
+03:00:57 INFO       Downloading: World History Volume 1
+03:00:57 INFO     Fetching OpenStax book page: https://openstax.org/details/books/world-history-volume-1
+03:00:58 INFO     HTTP Request: GET https://openstax.org/details/books/world-history-volume-1 "HTTP/1.1 200 OK"
+03:00:58 ERROR    [10/16] FAILED: World History Volume 1 — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-1. Check the page manually and add direct_url to the catalog entry.
+03:00:58 INFO     [11/16] Ingesting: World History Volume 2
+03:00:58 INFO       Downloading: World History Volume 2
+03:00:58 INFO     Fetching OpenStax book page: https://openstax.org/details/books/world-history-volume-2
+03:00:58 INFO     HTTP Request: GET https://openstax.org/details/books/world-history-volume-2 "HTTP/1.1 200 OK"
+03:00:58 ERROR    [11/16] FAILED: World History Volume 2 — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-2. Check the page manually and add direct_url to the catalog entry.
+03:00:58 INFO     [12/16] Ingesting: Introduction to Psychology
+03:00:58 INFO       Downloading: Introduction to Psychology
+03:00:59 INFO     HTTP Request: GET https://opentextbc.ca/introductiontopsychology/open/download?type=pdf "HTTP/1.1 200 OK"
+03:01:23 INFO       Downloaded 35619 KB from https://opentextbc.ca/introductiontopsychology/open/download?type=pdf
+03:01:23 INFO       Processing: Introduction to Psychology
+03:02:36 INFO     Per-page extraction selected parser=pdfplumber pages=786 score=231133.9
+03:02:36 INFO       Extracted 3455 chunks from 786 pages
+03:02:36 INFO       Embedding + storing: Introduction to Psychology
+03:03:52 INFO       Stored 3455 chunks for Introduction to Psychology
+03:03:52 INFO     [12/16] OK: Introduction to Psychology — 3455 chunks in 173.8s
+03:03:52 INFO     [13/16] Ingesting: Introduction to Sociology
+03:03:52 INFO       Downloading: Introduction to Sociology
+03:03:53 INFO     HTTP Request: GET https://opentextbc.ca/introductiontosociology2ndedition/open/download?type=pdf "HTTP/1.1 200 OK"
+03:04:31 INFO       Downloaded 69676 KB from https://opentextbc.ca/introductiontosociology2ndedition/open/download?type=pdf
+03:04:31 INFO       Processing: Introduction to Sociology
+03:06:10 INFO     Per-page extraction selected parser=pdfplumber pages=972 score=231164.4
+03:06:10 INFO       Extracted 4682 chunks from 972 pages
+03:06:10 INFO       Embedding + storing: Introduction to Sociology

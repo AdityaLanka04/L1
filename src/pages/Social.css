@@ -45,11 +45,11 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: 
-    radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.08) 1.5px, transparent 0),
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent) 1.5px, transparent 1.5px),
     linear-gradient(135deg, var(--sh-bg-primary) 0%, color-mix(in srgb, var(--sh-bg-primary) 55%, var(--accent)) 50%, var(--sh-bg-primary) 100%) !important;
-  background-size: 30px 30px, 100% 100%;
-  background-position: 5px 5px, 0 0;
+  background-size: 28px 28px, 100% 100%;
+  background-position: 0 0, 0 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--sh-text-primary);
   overflow: hidden !important;

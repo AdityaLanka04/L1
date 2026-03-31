@@ -1,0 +1,546 @@
+01:15:12 INFO     ============================================================
+01:15:12 INFO       Brainwave Curriculum Ingest — LIVE
+01:15:12 INFO       Source:  all
+01:15:12 INFO       Docs:    31 entries
+01:15:12 INFO       Mode:    resume=yes
+01:15:12 INFO       Log:     D:\Brainwave\L1\backend\ingest\logs\ingest_2026-03-25_05-15.log
+01:15:12 INFO     ============================================================
+01:15:14 INFO     Using SQLite database
+01:15:14 INFO     Initializing ChromaDB + embedding model...
+01:15:59 INFO     Use pytorch device_name: cpu
+01:15:59 INFO     Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+01:16:00 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+01:16:00 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+01:16:00 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+01:16:00 WARNING  Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+01:16:00 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+01:16:00 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+01:16:00 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/README.md "HTTP/1.1 200 OK"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/sentence_bert_config.json "HTTP/1.1 200 OK"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights:   1%|          | 1/103 [00:00<00:00, 6636.56it/s, Materializing param=embeddings.LayerNorm.bias]Loading weights:   1%|          | 1/103 [00:00<00:00, 1997.29it/s, Materializing param=embeddings.LayerNorm.bias]Loading weights:   2%|1         | 2/103 [00:00<00:00, 2015.04it/s, Materializing param=embeddings.LayerNorm.weight]Loading weights:   2%|1         | 2/103 [00:00<00:00, 788.92it/s, Materializing param=embeddings.LayerNorm.weight] Loading weights:   3%|2         | 3/103 [00:00<00:00, 359.54it/s, Materializing param=embeddings.position_embeddings.weight]Loading weights:   3%|2         | 3/103 [00:00<00:00, 350.09it/s, Materializing param=embeddings.position_embeddings.weight]Loading weights:   4%|3         | 4/103 [00:00<00:00, 448.48it/s, Materializing param=embeddings.token_type_embeddings.weight]Loading weights:   4%|3         | 4/103 [00:00<00:00, 441.12it/s, Materializing param=embeddings.token_type_embeddings.weight]Loading weights:   5%|4         | 5/103 [00:00<00:00, 503.57it/s, Materializing param=embeddings.word_embeddings.weight]      Loading weights:   5%|4         | 5/103 [00:00<00:00, 405.94it/s, Materializing param=embeddings.word_embeddings.weight]Loading weights:   6%|5         | 6/103 [00:00<00:00, 439.57it/s, Materializing param=encoder.layer.0.attention.output.LayerNorm.bias]Loading weights:   6%|5         | 6/103 [00:00<00:00, 429.21it/s, Materializing param=encoder.layer.0.attention.output.LayerNorm.bias]Loading weights:   7%|6         | 7/103 [00:00<00:00, 446.26it/s, Materializing param=encoder.layer.0.attention.output.LayerNorm.weight]Loading weights:   7%|6         | 7/103 [00:00<00:00, 438.87it/s, Materializing param=encoder.layer.0.attention.output.LayerNorm.weight]Loading weights:   8%|7         | 8/103 [00:00<00:00, 489.62it/s, Materializing param=encoder.layer.0.attention.output.dense.bias]      Loading weights:   8%|7         | 8/103 [00:00<00:00, 483.97it/s, Materializing param=encoder.layer.0.attention.output.dense.bias]Loading weights:   9%|8         | 9/103 [00:00<00:00, 535.42it/s, Materializing param=encoder.layer.0.attention.output.dense.weight]Loading weights:   9%|8         | 9/103 [00:00<00:00, 530.62it/s, Materializing param=encoder.layer.0.attention.output.dense.weight]Loading weights:  10%|9         | 10/103 [00:00<00:00, 581.24it/s, Materializing param=encoder.layer.0.attention.self.key.bias]     Loading weights:  10%|9         | 10/103 [00:00<00:00, 576.51it/s, Materializing param=encoder.layer.0.attention.self.key.bias]Loading weights:  11%|#         | 11/103 [00:00<00:00, 624.20it/s, Materializing param=encoder.layer.0.attention.self.key.weight]Loading weights:  11%|#         | 11/103 [00:00<00:00, 616.88it/s, Materializing param=encoder.layer.0.attention.self.key.weight]Loading weights:  12%|#1        | 12/103 [00:00<00:00, 645.49it/s, Materializing param=encoder.layer.0.attention.self.query.bias]Loading weights:  12%|#1        | 12/103 [00:00<00:00, 638.24it/s, Materializing param=encoder.layer.0.attention.self.query.bias]Loading weights:  13%|#2        | 13/103 [00:00<00:00, 679.26it/s, Materializing param=encoder.layer.0.attention.self.query.weight]Loading weights:  13%|#2        | 13/103 [00:00<00:00, 673.66it/s, Materializing param=encoder.layer.0.attention.self.query.weight]Loading weights:  14%|#3        | 14/103 [00:00<00:00, 699.93it/s, Materializing param=encoder.layer.0.attention.self.value.bias]  Loading weights:  14%|#3        | 14/103 [00:00<00:00, 685.62it/s, Materializing param=encoder.layer.0.attention.self.value.bias]Loading weights:  15%|#4        | 15/103 [00:00<00:00, 631.18it/s, Materializing param=encoder.layer.0.attention.self.value.weight]Loading weights:  15%|#4        | 15/103 [00:00<00:00, 581.50it/s, Materializing param=encoder.layer.0.attention.self.value.weight]Loading weights:  16%|#5        | 16/103 [00:00<00:00, 611.40it/s, Materializing param=encoder.layer.0.intermediate.dense.bias]    Loading weights:  16%|#5        | 16/103 [00:00<00:00, 608.55it/s, Materializing param=encoder.layer.0.intermediate.dense.bias]Loading weights:  17%|#6        | 17/103 [00:00<00:00, 579.99it/s, Materializing param=encoder.layer.0.intermediate.dense.weight]Loading weights:  17%|#6        | 17/103 [00:00<00:00, 575.95it/s, Materializing param=encoder.layer.0.intermediate.dense.weight]Loading weights:  17%|#7        | 18/103 [00:00<00:00, 603.71it/s, Materializing param=encoder.layer.0.output.LayerNorm.bias]    Loading weights:  17%|#7        | 18/103 [00:00<00:00, 598.64it/s, Materializing param=encoder.layer.0.output.LayerNorm.bias]Loading weights:  18%|#8        | 19/103 [00:00<00:00, 625.36it/s, Materializing param=encoder.layer.0.output.LayerNorm.weight]Loading weights:  18%|#8        | 19/103 [00:00<00:00, 622.19it/s, Materializing param=encoder.layer.0.output.LayerNorm.weight]Loading weights:  19%|#9        | 20/103 [00:00<00:00, 569.96it/s, Materializing param=encoder.layer.0.output.dense.bias]      Loading weights:  19%|#9        | 20/103 [00:00<00:00, 566.72it/s, Materializing param=encoder.layer.0.output.dense.bias]Loading weights:  20%|##        | 21/103 [00:00<00:00, 590.12it/s, Materializing param=encoder.layer.0.output.dense.weight]Loading weights:  20%|##        | 21/103 [00:00<00:00, 587.63it/s, Materializing param=encoder.layer.0.output.dense.weight]Loading weights:  21%|##1       | 22/103 [00:00<00:00, 611.12it/s, Materializing param=encoder.layer.1.attention.output.LayerNorm.bias]Loading weights:  21%|##1       | 22/103 [00:00<00:00, 608.65it/s, Materializing param=encoder.layer.1.attention.output.LayerNorm.bias]Loading weights:  22%|##2       | 23/103 [00:00<00:00, 631.54it/s, Materializing param=encoder.layer.1.attention.output.LayerNorm.weight]Loading weights:  22%|##2       | 23/103 [00:00<00:00, 629.05it/s, Materializing param=encoder.layer.1.attention.output.LayerNorm.weight]Loading weights:  23%|##3       | 24/103 [00:00<00:00, 649.89it/s, Materializing param=encoder.layer.1.attention.output.dense.bias]      Loading weights:  23%|##3       | 24/103 [00:00<00:00, 647.25it/s, Materializing param=encoder.layer.1.attention.output.dense.bias]Loading weights:  24%|##4       | 25/103 [00:00<00:00, 669.50it/s, Materializing param=encoder.layer.1.attention.output.dense.weight]Loading weights:  24%|##4       | 25/103 [00:00<00:00, 614.99it/s, Materializing param=encoder.layer.1.attention.output.dense.weight]Loading weights:  25%|##5       | 26/103 [00:00<00:00, 620.98it/s, Materializing param=encoder.layer.1.attention.self.key.bias]      Loading weights:  25%|##5       | 26/103 [00:00<00:00, 618.73it/s, Materializing param=encoder.layer.1.attention.self.key.bias]Loading weights:  26%|##6       | 27/103 [00:00<00:00, 638.96it/s, Materializing param=encoder.layer.1.attention.self.key.weight]Loading weights:  26%|##6       | 27/103 [00:00<00:00, 637.20it/s, Materializing param=encoder.layer.1.attention.self.key.weight]Loading weights:  27%|##7       | 28/103 [00:00<00:00, 657.62it/s, Materializing param=encoder.layer.1.attention.self.query.bias]Loading weights:  27%|##7       | 28/103 [00:00<00:00, 655.95it/s, Materializing param=encoder.layer.1.attention.self.query.bias]Loading weights:  28%|##8       | 29/103 [00:00<00:00, 675.88it/s, Materializing param=encoder.layer.1.attention.self.query.weight]Loading weights:  28%|##8       | 29/103 [00:00<00:00, 673.73it/s, Materializing param=encoder.layer.1.attention.self.query.weight]Loading weights:  29%|##9       | 30/103 [00:00<00:00, 693.22it/s, Materializing param=encoder.layer.1.attention.self.value.bias]  Loading weights:  29%|##9       | 30/103 [00:00<00:00, 691.28it/s, Materializing param=encoder.layer.1.attention.self.value.bias]Loading weights:  30%|###       | 31/103 [00:00<00:00, 686.99it/s, Materializing param=encoder.layer.1.attention.self.value.weight]Loading weights:  30%|###       | 31/103 [00:00<00:00, 682.43it/s, Materializing param=encoder.layer.1.attention.self.value.weight]Loading weights:  31%|###1      | 32/103 [00:00<00:00, 695.21it/s, Materializing param=encoder.layer.1.intermediate.dense.bias]    Loading weights:  31%|###1      | 32/103 [00:00<00:00, 691.50it/s, Materializing param=encoder.layer.1.intermediate.dense.bias]Loading weights:  32%|###2      | 33/103 [00:00<00:00, 706.85it/s, Materializing param=encoder.layer.1.intermediate.dense.weight]Loading weights:  32%|###2      | 33/103 [00:00<00:00, 705.15it/s, Materializing param=encoder.layer.1.intermediate.dense.weight]Loading weights:  33%|###3      | 34/103 [00:00<00:00, 721.68it/s, Materializing param=encoder.layer.1.output.LayerNorm.bias]    Loading weights:  33%|###3      | 34/103 [00:00<00:00, 719.81it/s, Materializing param=encoder.layer.1.output.LayerNorm.bias]Loading weights:  34%|###3      | 35/103 [00:00<00:00, 738.05it/s, Materializing param=encoder.layer.1.output.LayerNorm.weight]Loading weights:  34%|###3      | 35/103 [00:00<00:00, 736.65it/s, Materializing param=encoder.layer.1.output.LayerNorm.weight]Loading weights:  35%|###4      | 36/103 [00:00<00:00, 755.18it/s, Materializing param=encoder.layer.1.output.dense.bias]      Loading weights:  35%|###4      | 36/103 [00:00<00:00, 753.78it/s, Materializing param=encoder.layer.1.output.dense.bias]Loading weights:  36%|###5      | 37/103 [00:00<00:00, 771.84it/s, Materializing param=encoder.layer.1.output.dense.weight]Loading weights:  36%|###5      | 37/103 [00:00<00:00, 770.40it/s, Materializing param=encoder.layer.1.output.dense.weight]Loading weights:  37%|###6      | 38/103 [00:00<00:00, 788.60it/s, Materializing param=encoder.layer.2.attention.output.LayerNorm.bias]Loading weights:  37%|###6      | 38/103 [00:00<00:00, 787.13it/s, Materializing param=encoder.layer.2.attention.output.LayerNorm.bias]Loading weights:  38%|###7      | 39/103 [00:00<00:00, 804.95it/s, Materializing param=encoder.layer.2.attention.output.LayerNorm.weight]Loading weights:  38%|###7      | 39/103 [00:00<00:00, 803.41it/s, Materializing param=encoder.layer.2.attention.output.LayerNorm.weight]Loading weights:  39%|###8      | 40/103 [00:00<00:00, 821.01it/s, Materializing param=encoder.layer.2.attention.output.dense.bias]      Loading weights:  39%|###8      | 40/103 [00:00<00:00, 819.50it/s, Materializing param=encoder.layer.2.attention.output.dense.bias]Loading weights:  40%|###9      | 41/103 [00:00<00:00, 837.28it/s, Materializing param=encoder.layer.2.attention.output.dense.weight]Loading weights:  40%|###9      | 41/103 [00:00<00:00, 835.77it/s, Materializing param=encoder.layer.2.attention.output.dense.weight]Loading weights:  41%|####      | 42/103 [00:00<00:00, 853.41it/s, Materializing param=encoder.layer.2.attention.self.key.bias]      Loading weights:  41%|####      | 42/103 [00:00<00:00, 851.87it/s, Materializing param=encoder.layer.2.attention.self.key.bias]Loading weights:  42%|####1     | 43/103 [00:00<00:00, 869.32it/s, Materializing param=encoder.layer.2.attention.self.key.weight]Loading weights:  42%|####1     | 43/103 [00:00<00:00, 867.81it/s, Materializing param=encoder.layer.2.attention.self.key.weight]Loading weights:  43%|####2     | 44/103 [00:00<00:00, 885.01it/s, Materializing param=encoder.layer.2.attention.self.query.bias]Loading weights:  43%|####2     | 44/103 [00:00<00:00, 882.15it/s, Materializing param=encoder.layer.2.attention.self.query.bias]Loading weights:  44%|####3     | 45/103 [00:00<00:00, 897.50it/s, Materializing param=encoder.layer.2.attention.self.query.weight]Loading weights:  44%|####3     | 45/103 [00:00<00:00, 894.98it/s, Materializing param=encoder.layer.2.attention.self.query.weight]Loading weights:  45%|####4     | 46/103 [00:00<00:00, 907.05it/s, Materializing param=encoder.layer.2.attention.self.value.bias]  Loading weights:  45%|####4     | 46/103 [00:00<00:00, 904.39it/s, Materializing param=encoder.layer.2.attention.self.value.bias]Loading weights:  46%|####5     | 47/103 [00:00<00:00, 919.33it/s, Materializing param=encoder.layer.2.attention.self.value.weight]Loading weights:  46%|####5     | 47/103 [00:00<00:00, 916.61it/s, Materializing param=encoder.layer.2.attention.self.value.weight]Loading weights:  47%|####6     | 48/103 [00:00<00:00, 931.03it/s, Materializing param=encoder.layer.2.intermediate.dense.bias]    Loading weights:  47%|####6     | 48/103 [00:00<00:00, 928.43it/s, Materializing param=encoder.layer.2.intermediate.dense.bias]Loading weights:  48%|####7     | 49/103 [00:00<00:00, 942.10it/s, Materializing param=encoder.layer.2.intermediate.dense.weight]Loading weights:  48%|####7     | 49/103 [00:00<00:00, 937.11it/s, Materializing param=encoder.layer.2.intermediate.dense.weight]Loading weights:  49%|####8     | 50/103 [00:00<00:00, 950.49it/s, Materializing param=encoder.layer.2.output.LayerNorm.bias]    Loading weights:  49%|####8     | 50/103 [00:00<00:00, 947.60it/s, Materializing param=encoder.layer.2.output.LayerNorm.bias]Loading weights:  50%|####9     | 51/103 [00:00<00:00, 961.43it/s, Materializing param=encoder.layer.2.output.LayerNorm.weight]Loading weights:  50%|####9     | 51/103 [00:00<00:00, 958.66it/s, Materializing param=encoder.layer.2.output.LayerNorm.weight]Loading weights:  50%|#####     | 52/103 [00:00<00:00, 972.77it/s, Materializing param=encoder.layer.2.output.dense.bias]      Loading weights:  50%|#####     | 52/103 [00:00<00:00, 970.13it/s, Materializing param=encoder.layer.2.output.dense.bias]Loading weights:  51%|#####1    | 53/103 [00:00<00:00, 983.14it/s, Materializing param=encoder.layer.2.output.dense.weight]Loading weights:  51%|#####1    | 53/103 [00:00<00:00, 945.14it/s, Materializing param=encoder.layer.2.output.dense.weight]Loading weights:  52%|#####2    | 54/103 [00:00<00:00, 957.91it/s, Materializing param=encoder.layer.3.attention.output.LayerNorm.bias]Loading weights:  52%|#####2    | 54/103 [00:00<00:00, 956.21it/s, Materializing param=encoder.layer.3.attention.output.LayerNorm.bias]Loading weights:  53%|#####3    | 55/103 [00:00<00:00, 967.07it/s, Materializing param=encoder.layer.3.attention.output.LayerNorm.weight]Loading weights:  53%|#####3    | 55/103 [00:00<00:00, 964.92it/s, Materializing param=encoder.layer.3.attention.output.LayerNorm.weight]Loading weights:  54%|#####4    | 56/103 [00:00<00:00, 977.93it/s, Materializing param=encoder.layer.3.attention.output.dense.bias]      Loading weights:  54%|#####4    | 56/103 [00:00<00:00, 976.19it/s, Materializing param=encoder.layer.3.attention.output.dense.bias]Loading weights:  55%|#####5    | 57/103 [00:00<00:00, 990.66it/s, Materializing param=encoder.layer.3.attention.output.dense.weight]Loading weights:  55%|#####5    | 57/103 [00:00<00:00, 989.12it/s, Materializing param=encoder.layer.3.attention.output.dense.weight]Loading weights:  56%|#####6    | 58/103 [00:00<00:00, 1003.68it/s, Materializing param=encoder.layer.3.attention.self.key.bias]     Loading weights:  56%|#####6    | 58/103 [00:00<00:00, 1002.12it/s, Materializing param=encoder.layer.3.attention.self.key.bias]Loading weights:  57%|#####7    | 59/103 [00:00<00:00, 1016.53it/s, Materializing param=encoder.layer.3.attention.self.key.weight]Loading weights:  57%|#####7    | 59/103 [00:00<00:00, 1015.00it/s, Materializing param=encoder.layer.3.attention.self.key.weight]Loading weights:  58%|#####8    | 60/103 [00:00<00:00, 1029.39it/s, Materializing param=encoder.layer.3.attention.self.query.bias]Loading weights:  58%|#####8    | 60/103 [00:00<00:00, 1027.84it/s, Materializing param=encoder.layer.3.attention.self.query.bias]Loading weights:  59%|#####9    | 61/103 [00:00<00:00, 1042.02it/s, Materializing param=encoder.layer.3.attention.self.query.weight]Loading weights:  59%|#####9    | 61/103 [00:00<00:00, 1040.41it/s, Materializing param=encoder.layer.3.attention.self.query.weight]Loading weights:  60%|######    | 62/103 [00:00<00:00, 1053.67it/s, Materializing param=encoder.layer.3.attention.self.value.bias]  Loading weights:  60%|######    | 62/103 [00:00<00:00, 1051.28it/s, Materializing param=encoder.layer.3.attention.self.value.bias]Loading weights:  61%|######1   | 63/103 [00:00<00:00, 1063.28it/s, Materializing param=encoder.layer.3.attention.self.value.weight]Loading weights:  61%|######1   | 63/103 [00:00<00:00, 1060.83it/s, Materializing param=encoder.layer.3.attention.self.value.weight]Loading weights:  62%|######2   | 64/103 [00:00<00:00, 1073.27it/s, Materializing param=encoder.layer.3.intermediate.dense.bias]    Loading weights:  62%|######2   | 64/103 [00:00<00:00, 1070.87it/s, Materializing param=encoder.layer.3.intermediate.dense.bias]Loading weights:  63%|######3   | 65/103 [00:00<00:00, 1083.30it/s, Materializing param=encoder.layer.3.intermediate.dense.weight]Loading weights:  63%|######3   | 65/103 [00:00<00:00, 1080.69it/s, Materializing param=encoder.layer.3.intermediate.dense.weight]Loading weights:  64%|######4   | 66/103 [00:00<00:00, 1092.90it/s, Materializing param=encoder.layer.3.output.LayerNorm.bias]    Loading weights:  64%|######4   | 66/103 [00:00<00:00, 1090.47it/s, Materializing param=encoder.layer.3.output.LayerNorm.bias]Loading weights:  65%|######5   | 67/103 [00:00<00:00, 1102.64it/s, Materializing param=encoder.layer.3.output.LayerNorm.weight]Loading weights:  65%|######5   | 67/103 [00:00<00:00, 1100.25it/s, Materializing param=encoder.layer.3.output.LayerNorm.weight]Loading weights:  66%|######6   | 68/103 [00:00<00:00, 1111.70it/s, Materializing param=encoder.layer.3.output.dense.bias]      Loading weights:  66%|######6   | 68/103 [00:00<00:00, 1109.21it/s, Materializing param=encoder.layer.3.output.dense.bias]Loading weights:  67%|######6   | 69/103 [00:00<00:00, 1121.19it/s, Materializing param=encoder.layer.3.output.dense.weight]Loading weights:  67%|######6   | 69/103 [00:00<00:00, 1118.75it/s, Materializing param=encoder.layer.3.output.dense.weight]Loading weights:  68%|######7   | 70/103 [00:00<00:00, 1130.60it/s, Materializing param=encoder.layer.4.attention.output.LayerNorm.bias]Loading weights:  68%|######7   | 70/103 [00:00<00:00, 1128.10it/s, Materializing param=encoder.layer.4.attention.output.LayerNorm.bias]Loading weights:  69%|######8   | 71/103 [00:00<00:00, 1139.70it/s, Materializing param=encoder.layer.4.attention.output.LayerNorm.weight]Loading weights:  69%|######8   | 71/103 [00:00<00:00, 1137.23it/s, Materializing param=encoder.layer.4.attention.output.LayerNorm.weight]Loading weights:  70%|######9   | 72/103 [00:00<00:00, 1148.81it/s, Materializing param=encoder.layer.4.attention.output.dense.bias]      Loading weights:  70%|######9   | 72/103 [00:00<00:00, 1146.34it/s, Materializing param=encoder.layer.4.attention.output.dense.bias]Loading weights:  71%|#######   | 73/103 [00:00<00:00, 1157.79it/s, Materializing param=encoder.layer.4.attention.output.dense.weight]Loading weights:  71%|#######   | 73/103 [00:00<00:00, 1154.87it/s, Materializing param=encoder.layer.4.attention.output.dense.weight]Loading weights:  72%|#######1  | 74/103 [00:00<00:00, 1166.14it/s, Materializing param=encoder.layer.4.attention.self.key.bias]      Loading weights:  72%|#######1  | 74/103 [00:00<00:00, 1163.66it/s, Materializing param=encoder.layer.4.attention.self.key.bias]Loading weights:  73%|#######2  | 75/103 [00:00<00:00, 1174.88it/s, Materializing param=encoder.layer.4.attention.self.key.weight]Loading weights:  73%|#######2  | 75/103 [00:00<00:00, 1172.41it/s, Materializing param=encoder.layer.4.attention.self.key.weight]Loading weights:  74%|#######3  | 76/103 [00:00<00:00, 1183.60it/s, Materializing param=encoder.layer.4.attention.self.query.bias]Loading weights:  74%|#######3  | 76/103 [00:00<00:00, 1181.11it/s, Materializing param=encoder.layer.4.attention.self.query.bias]Loading weights:  75%|#######4  | 77/103 [00:00<00:00, 1192.21it/s, Materializing param=encoder.layer.4.attention.self.query.weight]Loading weights:  75%|#######4  | 77/103 [00:00<00:00, 1189.77it/s, Materializing param=encoder.layer.4.attention.self.query.weight]Loading weights:  76%|#######5  | 78/103 [00:00<00:00, 1200.80it/s, Materializing param=encoder.layer.4.attention.self.value.bias]  Loading weights:  76%|#######5  | 78/103 [00:00<00:00, 1198.36it/s, Materializing param=encoder.layer.4.attention.self.value.bias]Loading weights:  77%|#######6  | 79/103 [00:00<00:00, 1208.73it/s, Materializing param=encoder.layer.4.attention.self.value.weight]Loading weights:  77%|#######6  | 79/103 [00:00<00:00, 1206.23it/s, Materializing param=encoder.layer.4.attention.self.value.weight]Loading weights:  78%|#######7  | 80/103 [00:00<00:00, 1217.00it/s, Materializing param=encoder.layer.4.intermediate.dense.bias]    Loading weights:  78%|#######7  | 80/103 [00:00<00:00, 1214.53it/s, Materializing param=encoder.layer.4.intermediate.dense.bias]Loading weights:  79%|#######8  | 81/103 [00:00<00:00, 1225.10it/s, Materializing param=encoder.layer.4.intermediate.dense.weight]Loading weights:  79%|#######8  | 81/103 [00:00<00:00, 1222.52it/s, Materializing param=encoder.layer.4.intermediate.dense.weight]Loading weights:  80%|#######9  | 82/103 [00:00<00:00, 1232.96it/s, Materializing param=encoder.layer.4.output.LayerNorm.bias]    Loading weights:  80%|#######9  | 82/103 [00:00<00:00, 1230.45it/s, Materializing param=encoder.layer.4.output.LayerNorm.bias]Loading weights:  81%|########  | 83/103 [00:00<00:00, 1240.96it/s, Materializing param=encoder.layer.4.output.LayerNorm.weight]Loading weights:  81%|########  | 83/103 [00:00<00:00, 1238.52it/s, Materializing param=encoder.layer.4.output.LayerNorm.weight]Loading weights:  82%|########1 | 84/103 [00:00<00:00, 1248.57it/s, Materializing param=encoder.layer.4.output.dense.bias]      Loading weights:  82%|########1 | 84/103 [00:00<00:00, 1246.11it/s, Materializing param=encoder.layer.4.output.dense.bias]Loading weights:  83%|########2 | 85/103 [00:00<00:00, 1256.59it/s, Materializing param=encoder.layer.4.output.dense.weight]Loading weights:  83%|########2 | 85/103 [00:00<00:00, 1254.15it/s, Materializing param=encoder.layer.4.output.dense.weight]Loading weights:  83%|########3 | 86/103 [00:00<00:00, 1264.48it/s, Materializing param=encoder.layer.5.attention.output.LayerNorm.bias]Loading weights:  83%|########3 | 86/103 [00:00<00:00, 1262.00it/s, Materializing param=encoder.layer.5.attention.output.LayerNorm.bias]Loading weights:  84%|########4 | 87/103 [00:00<00:00, 1272.09it/s, Materializing param=encoder.layer.5.attention.output.LayerNorm.weight]Loading weights:  84%|########4 | 87/103 [00:00<00:00, 1269.56it/s, Materializing param=encoder.layer.5.attention.output.LayerNorm.weight]Loading weights:  85%|########5 | 88/103 [00:00<00:00, 1279.58it/s, Materializing param=encoder.layer.5.attention.output.dense.bias]      Loading weights:  85%|########5 | 88/103 [00:00<00:00, 1277.09it/s, Materializing param=encoder.layer.5.attention.output.dense.bias]Loading weights:  86%|########6 | 89/103 [00:00<00:00, 1286.73it/s, Materializing param=encoder.layer.5.attention.output.dense.weight]Loading weights:  86%|########6 | 89/103 [00:00<00:00, 1284.21it/s, Materializing param=encoder.layer.5.attention.output.dense.weight]Loading weights:  87%|########7 | 90/103 [00:00<00:00, 1294.16it/s, Materializing param=encoder.layer.5.attention.self.key.bias]      Loading weights:  87%|########7 | 90/103 [00:00<00:00, 1291.69it/s, Materializing param=encoder.layer.5.attention.self.key.bias]Loading weights:  88%|########8 | 91/103 [00:00<00:00, 1301.57it/s, Materializing param=encoder.layer.5.attention.self.key.weight]Loading weights:  88%|########8 | 91/103 [00:00<00:00, 1299.06it/s, Materializing param=encoder.layer.5.attention.self.key.weight]Loading weights:  89%|########9 | 92/103 [00:00<00:00, 1308.88it/s, Materializing param=encoder.layer.5.attention.self.query.bias]Loading weights:  89%|########9 | 92/103 [00:00<00:00, 1306.42it/s, Materializing param=encoder.layer.5.attention.self.query.bias]Loading weights:  90%|######### | 93/103 [00:00<00:00, 1316.17it/s, Materializing param=encoder.layer.5.attention.self.query.weight]Loading weights:  90%|######### | 93/103 [00:00<00:00, 1313.69it/s, Materializing param=encoder.layer.5.attention.self.query.weight]Loading weights:  91%|#########1| 94/103 [00:00<00:00, 1278.85it/s, Materializing param=encoder.layer.5.attention.self.value.bias]  Loading weights:  91%|#########1| 94/103 [00:00<00:00, 1275.28it/s, Materializing param=encoder.layer.5.attention.self.value.bias]Loading weights:  92%|#########2| 95/103 [00:00<00:00, 1280.28it/s, Materializing param=encoder.layer.5.attention.self.value.weight]Loading weights:  92%|#########2| 95/103 [00:00<00:00, 1276.27it/s, Materializing param=encoder.layer.5.attention.self.value.weight]Loading weights:  93%|#########3| 96/103 [00:00<00:00, 1281.34it/s, Materializing param=encoder.layer.5.intermediate.dense.bias]    Loading weights:  93%|#########3| 96/103 [00:00<00:00, 1277.38it/s, Materializing param=encoder.layer.5.intermediate.dense.bias]Loading weights:  94%|#########4| 97/103 [00:00<00:00, 1284.91it/s, Materializing param=encoder.layer.5.intermediate.dense.weight]Loading weights:  94%|#########4| 97/103 [00:00<00:00, 1282.07it/s, Materializing param=encoder.layer.5.intermediate.dense.weight]Loading weights:  95%|#########5| 98/103 [00:00<00:00, 1290.34it/s, Materializing param=encoder.layer.5.output.LayerNorm.bias]    Loading weights:  95%|#########5| 98/103 [00:00<00:00, 1287.70it/s, Materializing param=encoder.layer.5.output.LayerNorm.bias]Loading weights:  96%|#########6| 99/103 [00:00<00:00, 1295.35it/s, Materializing param=encoder.layer.5.output.LayerNorm.weight]Loading weights:  96%|#########6| 99/103 [00:00<00:00, 1292.65it/s, Materializing param=encoder.layer.5.output.LayerNorm.weight]Loading weights:  97%|#########7| 100/103 [00:00<00:00, 1301.20it/s, Materializing param=encoder.layer.5.output.dense.bias]     Loading weights:  97%|#########7| 100/103 [00:00<00:00, 1298.62it/s, Materializing param=encoder.layer.5.output.dense.bias]Loading weights:  98%|#########8| 101/103 [00:00<00:00, 1307.33it/s, Materializing param=encoder.layer.5.output.dense.weight]Loading weights:  98%|#########8| 101/103 [00:00<00:00, 1305.00it/s, Materializing param=encoder.layer.5.output.dense.weight]Loading weights:  99%|#########9| 102/103 [00:00<00:00, 1313.75it/s, Materializing param=pooler.dense.bias]                  Loading weights:  99%|#########9| 102/103 [00:00<00:00, 1311.51it/s, Materializing param=pooler.dense.bias]Loading weights: 100%|##########| 103/103 [00:00<00:00, 1320.38it/s, Materializing param=pooler.dense.weight]Loading weights: 100%|##########| 103/103 [00:00<00:00, 1318.14it/s, Materializing param=pooler.dense.weight]Loading weights: 100%|##########| 103/103 [00:00<00:00, 1312.67it/s, Materializing param=pooler.dense.weight]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+01:16:01 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+01:16:02 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/tokenizer_config.json "HTTP/1.1 200 OK"
+01:16:02 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+01:16:02 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+01:16:02 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+01:16:02 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+01:16:02 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+01:16:02 INFO     Chroma store initialised with SentenceTransformer
+01:16:02 INFO     context_store initialized.
+01:16:21 INFO     Redis unavailable (Timeout connecting to server) — using in-memory fallback cache
+01:16:21 INFO     Loaded state: 0 previously ingested docs will be skipped.
+01:16:21 INFO     [1/31] Ingesting: Biology 2e
+01:16:21 INFO       Downloading: Biology 2e
+01:16:21 INFO     Fetching OpenStax book page: https://openstax.org/details/books/biology-2e
+01:16:22 INFO     HTTP Request: GET https://openstax.org/details/books/biology-2e "HTTP/1.1 200 OK"
+01:16:22 ERROR    [1/31] FAILED: Biology 2e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/biology-2e. Check the page manually and add direct_url to the catalog entry.
+01:16:22 INFO     [2/31] Ingesting: Chemistry 2e
+01:16:22 INFO       Downloading: Chemistry 2e
+01:16:22 INFO     Fetching OpenStax book page: https://openstax.org/details/books/chemistry-2e
+01:16:23 INFO     HTTP Request: GET https://openstax.org/details/books/chemistry-2e "HTTP/1.1 200 OK"
+01:16:23 ERROR    [2/31] FAILED: Chemistry 2e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/chemistry-2e. Check the page manually and add direct_url to the catalog entry.
+01:16:23 INFO     [3/31] Ingesting: College Algebra 2e
+01:16:23 INFO       Downloading: College Algebra 2e
+01:16:23 INFO     Fetching OpenStax book page: https://openstax.org/details/books/college-algebra-2e
+01:16:23 INFO     HTTP Request: GET https://openstax.org/details/books/college-algebra-2e "HTTP/1.1 200 OK"
+01:16:23 ERROR    [3/31] FAILED: College Algebra 2e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/college-algebra-2e. Check the page manually and add direct_url to the catalog entry.
+01:16:23 INFO     [4/31] Ingesting: Algebra and Trigonometry 2e
+01:16:23 INFO       Downloading: Algebra and Trigonometry 2e
+01:16:23 INFO     Fetching OpenStax book page: https://openstax.org/details/books/algebra-and-trigonometry-2e
+01:16:24 INFO     HTTP Request: GET https://openstax.org/details/books/algebra-and-trigonometry-2e "HTTP/1.1 200 OK"
+01:16:24 ERROR    [4/31] FAILED: Algebra and Trigonometry 2e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/algebra-and-trigonometry-2e. Check the page manually and add direct_url to the catalog entry.
+01:16:24 INFO     [5/31] Ingesting: Precalculus 2e
+01:16:24 INFO       Downloading: Precalculus 2e
+01:16:24 INFO     Fetching OpenStax book page: https://openstax.org/details/books/precalculus-2e
+01:16:24 INFO     HTTP Request: GET https://openstax.org/details/books/precalculus-2e "HTTP/1.1 200 OK"
+01:16:24 ERROR    [5/31] FAILED: Precalculus 2e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/precalculus-2e. Check the page manually and add direct_url to the catalog entry.
+01:16:24 INFO     [6/31] Ingesting: Calculus Volume 1
+01:16:24 INFO       Downloading: Calculus Volume 1
+01:16:24 INFO     Fetching OpenStax book page: https://openstax.org/details/books/calculus-volume-1
+01:16:25 INFO     HTTP Request: GET https://openstax.org/details/books/calculus-volume-1 "HTTP/1.1 200 OK"
+01:16:25 ERROR    [6/31] FAILED: Calculus Volume 1 — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/calculus-volume-1. Check the page manually and add direct_url to the catalog entry.
+01:16:25 INFO     [7/31] Ingesting: Calculus Volume 2
+01:16:25 INFO       Downloading: Calculus Volume 2
+01:16:25 INFO     Fetching OpenStax book page: https://openstax.org/details/books/calculus-volume-2
+01:16:26 INFO     HTTP Request: GET https://openstax.org/details/books/calculus-volume-2 "HTTP/1.1 200 OK"
+01:16:26 ERROR    [7/31] FAILED: Calculus Volume 2 — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/calculus-volume-2. Check the page manually and add direct_url to the catalog entry.
+01:16:26 INFO     [8/31] Ingesting: Introductory Statistics
+01:16:26 INFO       Downloading: Introductory Statistics
+01:16:26 INFO     Fetching OpenStax book page: https://openstax.org/details/books/introductory-statistics
+01:16:26 INFO     HTTP Request: GET https://openstax.org/details/books/introductory-statistics "HTTP/1.1 301 Moved Permanently"
+01:16:26 INFO     HTTP Request: GET https://openstax.org/details/books/introductory-statistics-2e "HTTP/1.1 200 OK"
+01:16:26 ERROR    [8/31] FAILED: Introductory Statistics — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/introductory-statistics. Check the page manually and add direct_url to the catalog entry.
+01:16:26 INFO     [9/31] Ingesting: U.S. History
+01:16:26 INFO       Downloading: U.S. History
+01:16:26 INFO     Fetching OpenStax book page: https://openstax.org/details/books/us-history
+01:16:27 INFO     HTTP Request: GET https://openstax.org/details/books/us-history "HTTP/1.1 200 OK"
+01:16:27 ERROR    [9/31] FAILED: U.S. History — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/us-history. Check the page manually and add direct_url to the catalog entry.
+01:16:27 INFO     [10/31] Ingesting: World History Volume 1
+01:16:27 INFO       Downloading: World History Volume 1
+01:16:27 INFO     Fetching OpenStax book page: https://openstax.org/details/books/world-history-volume-1
+01:16:27 INFO     HTTP Request: GET https://openstax.org/details/books/world-history-volume-1 "HTTP/1.1 200 OK"
+01:16:27 ERROR    [10/31] FAILED: World History Volume 1 — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-1. Check the page manually and add direct_url to the catalog entry.
+01:16:27 INFO     [11/31] Ingesting: World History Volume 2
+01:16:27 INFO       Downloading: World History Volume 2
+01:16:27 INFO     Fetching OpenStax book page: https://openstax.org/details/books/world-history-volume-2
+01:16:28 INFO     HTTP Request: GET https://openstax.org/details/books/world-history-volume-2 "HTTP/1.1 200 OK"
+01:16:28 ERROR    [11/31] FAILED: World History Volume 2 — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-2. Check the page manually and add direct_url to the catalog entry.
+01:16:28 INFO     [12/31] Ingesting: Psychology 2e
+01:16:28 INFO       Downloading: Psychology 2e
+01:16:28 INFO     Fetching OpenStax book page: https://openstax.org/details/books/psychology-2e
+01:16:29 INFO     HTTP Request: GET https://openstax.org/details/books/psychology-2e "HTTP/1.1 200 OK"
+01:16:29 ERROR    [12/31] FAILED: Psychology 2e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/psychology-2e. Check the page manually and add direct_url to the catalog entry.
+01:16:29 INFO     [13/31] Ingesting: Introduction to Sociology 3e
+01:16:29 INFO       Downloading: Introduction to Sociology 3e
+01:16:29 INFO     Fetching OpenStax book page: https://openstax.org/details/books/introduction-sociology-3e
+01:16:29 INFO     HTTP Request: GET https://openstax.org/details/books/introduction-sociology-3e "HTTP/1.1 200 OK"
+01:16:29 ERROR    [13/31] FAILED: Introduction to Sociology 3e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/introduction-sociology-3e. Check the page manually and add direct_url to the catalog entry.
+01:16:29 INFO     [14/31] Ingesting: Principles of Economics 3e
+01:16:29 INFO       Downloading: Principles of Economics 3e
+01:16:29 INFO     Fetching OpenStax book page: https://openstax.org/details/books/principles-economics-3e
+01:16:30 INFO     HTTP Request: GET https://openstax.org/details/books/principles-economics-3e "HTTP/1.1 200 OK"
+01:16:30 ERROR    [14/31] FAILED: Principles of Economics 3e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/principles-economics-3e. Check the page manually and add direct_url to the catalog entry.
+01:16:30 INFO     [15/31] Ingesting: Anatomy and Physiology
+01:16:30 INFO       Downloading: Anatomy and Physiology
+01:16:30 INFO     Fetching OpenStax book page: https://openstax.org/details/books/anatomy-and-physiology
+01:16:30 INFO     HTTP Request: GET https://openstax.org/details/books/anatomy-and-physiology "HTTP/1.1 301 Moved Permanently"
+01:16:30 INFO     HTTP Request: GET https://openstax.org/details/books/anatomy-and-physiology-2e "HTTP/1.1 200 OK"
+01:16:30 ERROR    [15/31] FAILED: Anatomy and Physiology — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/anatomy-and-physiology. Check the page manually and add direct_url to the catalog entry.
+01:16:30 INFO     [16/31] Ingesting: College Physics 2e
+01:16:30 INFO       Downloading: College Physics 2e
+01:16:30 INFO     Fetching OpenStax book page: https://openstax.org/details/books/college-physics-2e
+01:16:31 INFO     HTTP Request: GET https://openstax.org/details/books/college-physics-2e "HTTP/1.1 200 OK"
+01:16:31 ERROR    [16/31] FAILED: College Physics 2e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/college-physics-2e. Check the page manually and add direct_url to the catalog entry.
+01:16:31 INFO     [17/31] Ingesting: AQA GCSE Biology Specification
+01:16:31 INFO       Downloading: AQA GCSE Biology Specification
+01:16:31 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/biology/gcse/biology-8461/specification
+01:16:32 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/biology/gcse/biology-8461/specification "HTTP/1.1 200 OK"
+01:16:32 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/510eb7c76df13be23292df4392de95eb32b0d30f.pdf
+01:16:33 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/510eb7c76df13be23292df4392de95eb32b0d30f.pdf "HTTP/1.1 200 OK"
+01:16:33 INFO       Downloaded 830 KB from https://cdn.sanity.io/files/p28bar15/green/510eb7c76df13be23292df4392de95eb32b0d30f.pdf
+01:16:33 INFO       Processing: AQA GCSE Biology Specification
+01:16:42 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:16:42 INFO     Per-page extraction selected parser=pdfplumber pages=92 score=107423.8
+01:16:42 INFO       Extracted 353 chunks from 92 pages
+01:16:42 INFO       Embedding + storing: AQA GCSE Biology Specification
+01:16:42 INFO     Created system ingest user with id=5
+01:16:48 INFO       Stored 353 chunks for AQA GCSE Biology Specification
+01:16:48 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('43e616ff-3fd0-5c98-8ea8-2e1e34a75930', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:16:48 INFO     [17/31] OK: AQA GCSE Biology Specification — 353 chunks in 17.1s
+01:16:48 INFO     [18/31] Ingesting: AQA GCSE Chemistry Specification
+01:16:48 INFO       Downloading: AQA GCSE Chemistry Specification
+01:16:48 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/chemistry/gcse/chemistry-8462/specification
+01:16:49 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/chemistry/gcse/chemistry-8462/specification "HTTP/1.1 200 OK"
+01:16:49 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/9e1579c8cdada254bf7726b794379cf4c1a56036.pdf
+01:16:49 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/9e1579c8cdada254bf7726b794379cf4c1a56036.pdf "HTTP/1.1 200 OK"
+01:16:50 INFO       Downloaded 2637 KB from https://cdn.sanity.io/files/p28bar15/green/9e1579c8cdada254bf7726b794379cf4c1a56036.pdf
+01:16:50 INFO       Processing: AQA GCSE Chemistry Specification
+01:17:01 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:17:01 INFO     Per-page extraction selected parser=pdfplumber pages=112 score=111062.0
+01:17:01 INFO       Extracted 367 chunks from 112 pages
+01:17:01 INFO       Embedding + storing: AQA GCSE Chemistry Specification
+01:17:17 INFO       Stored 367 chunks for AQA GCSE Chemistry Specification
+01:17:17 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('02b64a90-a714-5afc-bd7b-84d470b45ef6', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:17:17 INFO     [18/31] OK: AQA GCSE Chemistry Specification — 367 chunks in 29.4s
+01:17:17 INFO     [19/31] Ingesting: AQA GCSE Physics Specification
+01:17:17 INFO       Downloading: AQA GCSE Physics Specification
+01:17:17 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/physics/gcse/physics-8463/specification
+01:17:19 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/physics/gcse/physics-8463/specification "HTTP/1.1 200 OK"
+01:17:19 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/e96b2cef624c0970b0f90d9678a438580aed0f65.pdf
+01:17:21 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/e96b2cef624c0970b0f90d9678a438580aed0f65.pdf "HTTP/1.1 200 OK"
+01:17:21 INFO       Downloaded 1992 KB from https://cdn.sanity.io/files/p28bar15/green/e96b2cef624c0970b0f90d9678a438580aed0f65.pdf
+01:17:21 INFO       Processing: AQA GCSE Physics Specification
+01:17:47 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:17:47 INFO     Per-page extraction selected parser=pdfplumber pages=104 score=108503.4
+01:17:47 INFO       Extracted 360 chunks from 104 pages
+01:17:47 INFO       Embedding + storing: AQA GCSE Physics Specification
+01:18:03 INFO       Stored 360 chunks for AQA GCSE Physics Specification
+01:18:03 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('1cd5baff-bd82-5169-b6e1-65d3156ce8c8', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:18:03 INFO     [19/31] OK: AQA GCSE Physics Specification — 360 chunks in 45.1s
+01:18:03 INFO     [20/31] Ingesting: AQA GCSE Mathematics Specification
+01:18:03 INFO       Downloading: AQA GCSE Mathematics Specification
+01:18:03 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification
+01:18:04 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification "HTTP/1.1 200 OK"
+01:18:04 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/04698c10815b90196fae18e4977d9dd8057d7892.pdf
+01:18:06 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/04698c10815b90196fae18e4977d9dd8057d7892.pdf "HTTP/1.1 200 OK"
+01:18:06 INFO       Downloaded 807 KB from https://cdn.sanity.io/files/p28bar15/green/04698c10815b90196fae18e4977d9dd8057d7892.pdf
+01:18:06 INFO       Processing: AQA GCSE Mathematics Specification
+01:18:18 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:18:18 INFO     Per-page extraction selected parser=pdfplumber pages=44 score=44200.5
+01:18:18 INFO       Extracted 117 chunks from 44 pages
+01:18:18 INFO       Embedding + storing: AQA GCSE Mathematics Specification
+01:18:24 INFO       Stored 117 chunks for AQA GCSE Mathematics Specification
+01:18:24 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('53a7048f-f2b8-5090-92d4-24c1ea7b6cec', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:18:24 INFO     [20/31] OK: AQA GCSE Mathematics Specification — 117 chunks in 21.6s
+01:18:24 INFO     [21/31] Ingesting: AQA GCSE English Language Specification
+01:18:24 INFO       Downloading: AQA GCSE English Language Specification
+01:18:24 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/english/gcse/english-language-8700/specification
+01:18:26 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/english/gcse/english-language-8700/specification "HTTP/1.1 307 Temporary Redirect"
+01:18:26 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/english/gcse/english-8700/specification "HTTP/1.1 200 OK"
+01:18:26 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/eb2b6cd029547c5409a8f2f31af857a159311acd.pdf
+01:18:28 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/eb2b6cd029547c5409a8f2f31af857a159311acd.pdf "HTTP/1.1 200 OK"
+01:18:28 INFO       Downloaded 770 KB from https://cdn.sanity.io/files/p28bar15/green/eb2b6cd029547c5409a8f2f31af857a159311acd.pdf
+01:18:28 INFO       Processing: AQA GCSE English Language Specification
+01:18:34 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:18:34 INFO     Per-page extraction selected parser=pymupdf pages=26 score=34617.2
+01:18:34 INFO       Extracted 80 chunks from 26 pages
+01:18:34 INFO       Embedding + storing: AQA GCSE English Language Specification
+01:18:38 INFO       Stored 80 chunks for AQA GCSE English Language Specification
+01:18:38 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('7bf6aa2c-b56b-5deb-83d1-2ba0617c5638', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:18:38 INFO     [21/31] OK: AQA GCSE English Language Specification — 80 chunks in 14.3s
+01:18:38 INFO     
+--- Spot-checking batch of 5 docs ---
+01:18:38 INFO       Spot checking: AQA GCSE Physics Specification
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 12.27it/s]
+01:18:39 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Physics', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 23.14it/s]
+01:18:39 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Physics', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 22.76it/s]
+01:18:39 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Physics', 'curriculum': 'uk'} in query.
+01:18:39 INFO       Spot check [FAIL] AQA GCSE Physics Specification: 0/3 samples passed — Sample 1: chunk not found in top-9 results (query: '• the use of models, as in the particle model of matter or t'...)
+01:18:39 INFO       Spot checking: AQA GCSE English Language Specification
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 23.66it/s]
+01:18:40 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'English', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 26.86it/s]
+01:18:40 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'English', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 21.97it/s]
+01:18:40 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'English', 'curriculum': 'uk'} in query.
+01:18:40 INFO       Spot check [FAIL] AQA GCSE English Language Specification: 0/3 samples passed — Sample 1: chunk not found in top-9 results (query: 'and with good understanding • read critically, and use knowl'...)
+01:18:40 INFO     [22/31] Ingesting: AQA GCSE Geography Specification
+01:18:40 INFO       Downloading: AQA GCSE Geography Specification
+01:18:40 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/geography/gcse/geography-8035/specification
+01:18:41 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/geography/gcse/geography-8035/specification "HTTP/1.1 200 OK"
+01:18:42 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/ed1c32a343b4c229af091211f31c4dc5bcd6c095.pdf
+01:18:43 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/ed1c32a343b4c229af091211f31c4dc5bcd6c095.pdf "HTTP/1.1 200 OK"
+01:18:43 INFO       Downloaded 846 KB from https://cdn.sanity.io/files/p28bar15/green/ed1c32a343b4c229af091211f31c4dc5bcd6c095.pdf
+01:18:43 INFO       Processing: AQA GCSE Geography Specification
+01:18:53 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:18:53 INFO     Per-page extraction selected parser=pymupdf pages=40 score=44697.1
+01:18:53 INFO       Extracted 115 chunks from 40 pages
+01:18:53 INFO       Embedding + storing: AQA GCSE Geography Specification
+01:18:58 INFO       Stored 115 chunks for AQA GCSE Geography Specification
+01:18:58 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('1ce044e9-a22f-51a5-99bd-32efc92be1c1', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:18:58 INFO     [22/31] OK: AQA GCSE Geography Specification — 115 chunks in 18.2s
+01:18:58 INFO     [23/31] Ingesting: AQA GCSE History Specification
+01:18:58 INFO       Downloading: AQA GCSE History Specification
+01:18:58 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/history/gcse/history-8145/specification
+01:19:00 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/history/gcse/history-8145/specification "HTTP/1.1 200 OK"
+01:19:00 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/8ce7740f340e7b7014741572fe0c0e1782e664cb.pdf
+01:19:02 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/8ce7740f340e7b7014741572fe0c0e1782e664cb.pdf "HTTP/1.1 200 OK"
+01:19:02 INFO       Downloaded 848 KB from https://cdn.sanity.io/files/p28bar15/green/8ce7740f340e7b7014741572fe0c0e1782e664cb.pdf
+01:19:02 INFO       Processing: AQA GCSE History Specification
+01:19:03 WARNING  Ignoring (part of) ToUnicode map because the PDF data does not conform to the format. This could result in (cid) values in the output. The start and end byte have different lengths.
+01:19:03 WARNING  Ignoring (part of) ToUnicode map because the PDF data does not conform to the format. This could result in (cid) values in the output. The start and end byte have different lengths.
+01:19:03 WARNING  Ignoring (part of) ToUnicode map because the PDF data does not conform to the format. This could result in (cid) values in the output. The start and end byte have different lengths.
+01:19:16 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:19:16 INFO     Per-page extraction selected parser=pdfplumber pages=44 score=65984.9
+01:19:16 INFO       Extracted 204 chunks from 44 pages
+01:19:16 INFO       Embedding + storing: AQA GCSE History Specification
+01:19:25 INFO       Stored 204 chunks for AQA GCSE History Specification
+01:19:25 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('64771624-5b55-53d9-bbc4-b2ed87463d25', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:19:25 INFO     [23/31] OK: AQA GCSE History Specification — 204 chunks in 26.8s
+01:19:25 INFO     [24/31] Ingesting: AQA GCSE Economics Specification
+01:19:25 INFO       Downloading: AQA GCSE Economics Specification
+01:19:25 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/economics/gcse/economics-8136/specification
+01:19:27 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/economics/gcse/economics-8136/specification "HTTP/1.1 200 OK"
+01:19:27 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/dd863b3c312fbc4c8d6358d3e3fa9fbc025abb64.pdf
+01:19:28 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/dd863b3c312fbc4c8d6358d3e3fa9fbc025abb64.pdf "HTTP/1.1 200 OK"
+01:19:28 INFO       Downloaded 1121 KB from https://cdn.sanity.io/files/p28bar15/green/dd863b3c312fbc4c8d6358d3e3fa9fbc025abb64.pdf
+01:19:28 INFO       Processing: AQA GCSE Economics Specification
+01:19:35 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:19:35 INFO     Per-page extraction selected parser=pdfplumber pages=32 score=36627.9
+01:19:35 INFO       Extracted 92 chunks from 32 pages
+01:19:35 INFO       Embedding + storing: AQA GCSE Economics Specification
+01:19:39 INFO       Stored 92 chunks for AQA GCSE Economics Specification
+01:19:39 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('cc46ec88-449d-500a-912e-30cbbe2f1f98', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:19:39 INFO     [24/31] OK: AQA GCSE Economics Specification — 92 chunks in 14.4s
+01:19:39 INFO     [25/31] Ingesting: AQA GCSE Psychology Specification
+01:19:39 INFO       Downloading: AQA GCSE Psychology Specification
+01:19:39 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/psychology/gcse/psychology-8182/specification
+01:19:41 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/psychology/gcse/psychology-8182/specification "HTTP/1.1 200 OK"
+01:19:41 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/a1264fbdd0f9ec6d8d1c4d2c0008d32e83fd3f8b.pdf
+01:19:42 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/a1264fbdd0f9ec6d8d1c4d2c0008d32e83fd3f8b.pdf "HTTP/1.1 200 OK"
+01:19:43 INFO       Downloaded 684 KB from https://cdn.sanity.io/files/p28bar15/green/a1264fbdd0f9ec6d8d1c4d2c0008d32e83fd3f8b.pdf
+01:19:43 INFO       Processing: AQA GCSE Psychology Specification
+01:19:49 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:19:49 INFO     Per-page extraction selected parser=pdfplumber pages=26 score=30505.3
+01:19:49 INFO       Extracted 72 chunks from 26 pages
+01:19:49 INFO       Embedding + storing: AQA GCSE Psychology Specification
+01:19:52 INFO       Stored 72 chunks for AQA GCSE Psychology Specification
+01:19:52 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('2bae0f19-999a-5c94-afcd-48aa14f9e1ff', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:19:52 INFO     [25/31] OK: AQA GCSE Psychology Specification — 72 chunks in 12.8s
+01:19:52 INFO     [26/31] Ingesting: AQA A-Level Biology Specification
+01:19:52 INFO       Downloading: AQA A-Level Biology Specification
+01:19:52 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/biology/as-and-a-level/biology-7401-7402/specification
+01:19:53 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/biology/as-and-a-level/biology-7401-7402/specification "HTTP/1.1 307 Temporary Redirect"
+01:19:54 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/biology/as-level/biology-7401/specification "HTTP/1.1 200 OK"
+01:19:54 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/98cdb01fb651d63df2ab345a2547774092b43bbc.pdf
+01:19:55 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/98cdb01fb651d63df2ab345a2547774092b43bbc.pdf "HTTP/1.1 200 OK"
+01:19:56 INFO       Downloaded 1265 KB from https://cdn.sanity.io/files/p28bar15/green/98cdb01fb651d63df2ab345a2547774092b43bbc.pdf
+01:19:56 INFO       Processing: AQA A-Level Biology Specification
+01:20:08 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:20:08 INFO     Per-page extraction selected parser=pymupdf pages=84 score=84794.4
+01:20:08 INFO       Extracted 253 chunks from 84 pages
+01:20:08 INFO       Embedding + storing: AQA A-Level Biology Specification
+01:20:16 INFO       Stored 253 chunks for AQA A-Level Biology Specification
+01:20:16 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('87843415-d388-5a8f-8c7d-6b46607aa017', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:20:16 INFO     [26/31] OK: AQA A-Level Biology Specification — 253 chunks in 24.2s
+01:20:16 INFO     
+--- Spot-checking batch of 5 docs ---
+01:20:16 INFO       Spot checking: AQA GCSE History Specification
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 11.32it/s]
+01:20:17 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'History', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 22.29it/s]
+01:20:17 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'History', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 22.58it/s]
+01:20:17 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'History', 'curriculum': 'uk'} in query.
+01:20:17 INFO       Spot check [FAIL] AQA GCSE History Specification: 0/3 samples passed — Sample 1: chunk not found in top-9 results (query: 'hers may wish to visit a similar site in their locality to i'...)
+01:20:17 INFO       Spot checking: AQA A-Level Biology Specification
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 10.55it/s]
+01:20:18 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Biology', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 23.16it/s]
+01:20:18 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Biology', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 25.72it/s]
+01:20:18 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Biology', 'curriculum': 'uk'} in query.
+01:20:18 INFO       Spot check [FAIL] AQA A-Level Biology Specification: 0/3 samples passed — Sample 1: chunk not found in top-9 results (query: 'variable on the rate of\n\nrespiration of cultures of single-c'...)
+01:20:18 INFO     [27/31] Ingesting: AQA A-Level Chemistry Specification
+01:20:18 INFO       Downloading: AQA A-Level Chemistry Specification
+01:20:18 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/chemistry/as-and-a-level/chemistry-7404-7405/specification
+01:20:19 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/chemistry/as-and-a-level/chemistry-7404-7405/specification "HTTP/1.1 307 Temporary Redirect"
+01:20:20 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/chemistry/as-level/chemistry-7404/specification "HTTP/1.1 200 OK"
+01:20:20 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/9bc48d822ce0f2a5b8a6ce62de590a4c06281535.pdf
+01:20:22 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/9bc48d822ce0f2a5b8a6ce62de590a4c06281535.pdf "HTTP/1.1 200 OK"
+01:20:22 INFO       Downloaded 1240 KB from https://cdn.sanity.io/files/p28bar15/green/9bc48d822ce0f2a5b8a6ce62de590a4c06281535.pdf
+01:20:22 INFO       Processing: AQA A-Level Chemistry Specification
+01:20:40 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:20:40 INFO     Per-page extraction selected parser=pdfplumber pages=96 score=89858.8
+01:20:41 INFO       Extracted 308 chunks from 96 pages
+01:20:41 INFO       Embedding + storing: AQA A-Level Chemistry Specification
+01:20:48 INFO       Stored 308 chunks for AQA A-Level Chemistry Specification
+01:20:48 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('39d3aefe-231e-5a64-aff7-f6f71cee620b', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:20:48 INFO     [27/31] OK: AQA A-Level Chemistry Specification — 308 chunks in 30.1s
+01:20:48 INFO     [28/31] Ingesting: AQA A-Level Physics Specification
+01:20:48 INFO       Downloading: AQA A-Level Physics Specification
+01:20:48 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/physics/as-and-a-level/physics-7407-7408/specification
+01:20:48 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/physics/as-and-a-level/physics-7407-7408/specification "HTTP/1.1 307 Temporary Redirect"
+01:20:49 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/physics/as-level/physics-7407/specification "HTTP/1.1 200 OK"
+01:20:49 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/c84fb691cf808ff97ba17ffce6f458f837016dc9.pdf
+01:20:50 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/c84fb691cf808ff97ba17ffce6f458f837016dc9.pdf "HTTP/1.1 200 OK"
+01:20:50 INFO       Downloaded 1425 KB from https://cdn.sanity.io/files/p28bar15/green/c84fb691cf808ff97ba17ffce6f458f837016dc9.pdf
+01:20:50 INFO       Processing: AQA A-Level Physics Specification
+01:21:09 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:21:09 INFO     Per-page extraction selected parser=pdfplumber pages=94 score=85975.3
+01:21:09 INFO       Extracted 266 chunks from 94 pages
+01:21:09 INFO       Embedding + storing: AQA A-Level Physics Specification
+01:21:23 INFO       Stored 266 chunks for AQA A-Level Physics Specification
+01:21:23 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('60b33d50-759c-5991-95a1-a26b477410a1', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:21:23 INFO     [28/31] OK: AQA A-Level Physics Specification — 266 chunks in 35.2s
+01:21:23 INFO     [29/31] Ingesting: AQA A-Level Mathematics Specification
+01:21:23 INFO       Downloading: AQA A-Level Mathematics Specification
+01:21:23 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/mathematics/as-and-a-level/mathematics-7357/specification
+01:21:25 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/mathematics/as-and-a-level/mathematics-7357/specification "HTTP/1.1 307 Temporary Redirect"
+01:21:25 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/mathematics/a-level/mathematics-7357/specification "HTTP/1.1 200 OK"
+01:21:26 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/746cb551bd31654dd1297ad272acd3605010a543.pdf
+01:21:28 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/746cb551bd31654dd1297ad272acd3605010a543.pdf "HTTP/1.1 200 OK"
+01:21:28 INFO       Downloaded 1012 KB from https://cdn.sanity.io/files/p28bar15/green/746cb551bd31654dd1297ad272acd3605010a543.pdf
+01:21:28 INFO       Processing: AQA A-Level Mathematics Specification
+01:21:29 WARNING  Ignoring (part of) ToUnicode map because the PDF data does not conform to the format. This could result in (cid) values in the output. The start and end byte have different lengths.
+01:21:29 WARNING  Ignoring (part of) ToUnicode map because the PDF data does not conform to the format. This could result in (cid) values in the output. The start and end byte have different lengths.
+01:21:50 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:21:50 INFO     Per-page extraction selected parser=pdfplumber pages=50 score=44649.3
+01:21:50 INFO       Extracted 126 chunks from 50 pages
+01:21:50 INFO       Embedding + storing: AQA A-Level Mathematics Specification
+01:21:57 INFO       Stored 126 chunks for AQA A-Level Mathematics Specification
+01:21:57 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('93948d5a-012e-50dd-b301-a01d456d8c91', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:21:57 INFO     [29/31] OK: AQA A-Level Mathematics Specification — 126 chunks in 33.7s
+01:21:57 INFO     [30/31] Ingesting: AQA A-Level Economics Specification
+01:21:57 INFO       Downloading: AQA A-Level Economics Specification
+01:21:57 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/economics/as-and-a-level/economics-7135-7136/specification
+01:21:59 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/economics/as-and-a-level/economics-7135-7136/specification "HTTP/1.1 307 Temporary Redirect"
+01:21:59 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/economics/as-level/economics-7135/specification "HTTP/1.1 200 OK"
+01:21:59 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/69c95a7fa0c7e68538e8d8f2c6a584f305a9b633.pdf
+01:22:00 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/69c95a7fa0c7e68538e8d8f2c6a584f305a9b633.pdf "HTTP/1.1 200 OK"
+01:22:01 INFO       Downloaded 879 KB from https://cdn.sanity.io/files/p28bar15/green/69c95a7fa0c7e68538e8d8f2c6a584f305a9b633.pdf
+01:22:01 INFO       Processing: AQA A-Level Economics Specification
+01:22:20 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:22:20 INFO     Per-page extraction selected parser=pymupdf pages=72 score=76753.6
+01:22:20 INFO       Extracted 218 chunks from 72 pages
+01:22:20 INFO       Embedding + storing: AQA A-Level Economics Specification
+01:22:30 INFO       Stored 218 chunks for AQA A-Level Economics Specification
+01:22:30 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('77f71445-1e3c-5968-b926-6ce02d20966f', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:22:30 INFO     [30/31] OK: AQA A-Level Economics Specification — 218 chunks in 33.5s
+01:22:30 INFO     [31/31] Ingesting: AQA A-Level Psychology Specification
+01:22:30 INFO       Downloading: AQA A-Level Psychology Specification
+01:22:30 INFO     Fetching AQA spec page: https://www.aqa.org.uk/subjects/psychology/as-and-a-level/psychology-7181-7182/specification
+01:22:32 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/psychology/as-and-a-level/psychology-7181-7182/specification "HTTP/1.1 307 Temporary Redirect"
+01:22:32 INFO     HTTP Request: GET https://www.aqa.org.uk/subjects/psychology/as-level/psychology-7181/specification "HTTP/1.1 200 OK"
+01:22:33 INFO     Resolved AQA spec PDF: https://cdn.sanity.io/files/p28bar15/green/661250c1cb8bd3586f93ddb48c89a3218a3913ca.pdf
+01:22:34 INFO     HTTP Request: GET https://cdn.sanity.io/files/p28bar15/green/661250c1cb8bd3586f93ddb48c89a3218a3913ca.pdf "HTTP/1.1 200 OK"
+01:22:34 INFO       Downloaded 1529 KB from https://cdn.sanity.io/files/p28bar15/green/661250c1cb8bd3586f93ddb48c89a3218a3913ca.pdf
+01:22:34 INFO       Processing: AQA A-Level Psychology Specification
+01:22:45 WARNING  PyPDF2 per-page extraction failed: PyCryptodome is required for AES algorithm
+01:22:45 INFO     Per-page extraction selected parser=pymupdf pages=38 score=48313.0
+01:22:45 INFO       Extracted 126 chunks from 38 pages
+01:22:45 INFO       Embedding + storing: AQA A-Level Psychology Specification
+01:22:51 INFO       Stored 126 chunks for AQA A-Level Psychology Specification
+01:22:51 WARNING    DB record failed (non-fatal): (sqlite3.OperationalError) no such column: context_documents.curriculum
+[SQL: SELECT context_documents.id AS context_documents_id, context_documents.user_id AS context_documents_user_id, context_documents.doc_id AS context_documents_doc_id, context_documents.filename AS context_documents_filename, context_documents.file_type AS context_documents_file_type, context_documents.subject AS context_documents_subject, context_documents.grade_level AS context_documents_grade_level, context_documents.scope AS context_documents_scope, context_documents.chunk_count AS context_documents_chunk_count, context_documents.status AS context_documents_status, context_documents.source_url AS context_documents_source_url, context_documents.source_name AS context_documents_source_name, context_documents.license AS context_documents_license, context_documents.curriculum AS context_documents_curriculum, context_documents.source_type AS context_documents_source_type, context_documents.created_at AS context_documents_created_at, context_documents.updated_at AS context_documents_updated_at 
+FROM context_documents 
+WHERE context_documents.doc_id = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('09e6f835-b5fb-5d4e-82cc-81014cebb975', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+01:22:51 INFO     [31/31] OK: AQA A-Level Psychology Specification — 126 chunks in 20.4s
+01:22:51 INFO     
+--- Spot-checking batch of 5 docs ---
+01:22:51 INFO       Spot checking: AQA A-Level Chemistry Specification
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 20.13it/s]
+01:22:51 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Chemistry', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 26.06it/s]
+01:22:51 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Chemistry', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 31.74it/s]
+01:22:51 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Chemistry', 'curriculum': 'uk'} in query.
+01:22:51 INFO       Spot check [FAIL] AQA A-Level Chemistry Specification: 0/3 samples passed — Sample 1: chunk not found in top-9 results (query: 'out simple test-tube reactions to identify: d, k\n\n• cations '...)
+01:22:51 INFO       Spot checking: AQA A-Level Physics Specification
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 20.48it/s]
+01:22:52 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Physics', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 26.76it/s]
+01:22:52 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Physics', 'curriculum': 'uk'} in query.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 36.19it/s]
+01:22:52 WARNING  context_store search failed for hs_curriculum: Expected where to have exactly one operator, got {'subject': 'Physics', 'curriculum': 'uk'} in query.
+01:22:52 INFO       Spot check [FAIL] AQA A-Level Physics Specification: 0/3 samples passed — Sample 1: chunk not found in top-9 results (query: 'a. Time to halve, T = 0.69RC ½ t Quantitative treatment of c'...)
+01:22:52 INFO     
+01:22:52 INFO     ============================================================
+01:22:52 INFO       INGEST COMPLETE
+01:22:52 INFO       Total:     31
+01:22:52 INFO       Succeeded: 15
+01:22:52 INFO       Failed:    16
+01:22:52 INFO       Skipped:   0 (already ingested)
+01:22:52 INFO       Duration:  391s (6.5 min)
+01:22:52 INFO     
+01:22:52 INFO       Spot checks: 6 run
+01:22:52 INFO         Passed: 0
+01:22:52 INFO         Failed: 6
+01:22:52 INFO     ============================================================
+01:22:52 INFO     
+Failed entries:
+01:22:52 INFO       - Biology 2e (biology-2e): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/biology-2e. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - Chemistry 2e (chemistry-2e): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/chemistry-2e. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - College Algebra 2e (college-algebra-2e): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/college-algebra-2e. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - Algebra and Trigonometry 2e (algebra-and-trigonometry-2e): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/algebra-and-trigonometry-2e. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - Precalculus 2e (precalculus-2e): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/precalculus-2e. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - Calculus Volume 1 (calculus-volume-1): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/calculus-volume-1. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - Calculus Volume 2 (calculus-volume-2): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/calculus-volume-2. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - Introductory Statistics (introductory-statistics): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/introductory-statistics. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - U.S. History (us-history): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/us-history. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - World History Volume 1 (world-history-volume-1): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-1. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - World History Volume 2 (world-history-volume-2): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-2. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - Psychology 2e (psychology-2e): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/psychology-2e. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - Introduction to Sociology 3e (sociology-3e): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/introduction-sociology-3e. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - Principles of Economics 3e (principles-economics-3e): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/principles-economics-3e. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - Anatomy and Physiology (anatomy-and-physiology): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/anatomy-and-physiology. Check the page manually and add direct_url to the catalog entry.
+01:22:52 INFO       - College Physics 2e (college-physics-2e): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/college-physics-2e. Check the page manually and add direct_url to the catalog entry.
+01:22:52 WARNING  
+WARNING: 6 spot check(s) failed. Some documents may not be searchable. Check the log for details.

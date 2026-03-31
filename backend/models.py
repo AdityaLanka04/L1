@@ -1393,7 +1393,12 @@ class UserGamificationStats(Base):
     weekly_solo_quizzes = Column(Integer, default=0)
     weekly_flashcards_reviewed = Column(Integer, default=0)
     weekly_flashcards_mastered = Column(Integer, default=0)
-    
+
+    weekly_chat_goal = Column(Integer, default=10)
+    weekly_note_goal = Column(Integer, default=5)
+    weekly_flashcard_goal = Column(Integer, default=20)
+    weekly_quiz_goal = Column(Integer, default=5)
+
     current_streak = Column(Integer, default=0)
     longest_streak = Column(Integer, default=0)
     last_activity_date = Column(DateTime, nullable=True)

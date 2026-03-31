@@ -616,7 +616,11 @@ def get_user_stats(db: Session, user_id: int):
         "total_battles_won": stats.total_battles_won,
         "total_solo_quizzes": getattr(stats, 'total_solo_quizzes', 0),
         "total_flashcards_reviewed": getattr(stats, 'total_flashcards_reviewed', 0),
-        "total_flashcards_mastered": getattr(stats, 'total_flashcards_mastered', 0)
+        "total_flashcards_mastered": getattr(stats, 'total_flashcards_mastered', 0),
+        "weekly_chat_goal": getattr(stats, 'weekly_chat_goal', 10),
+        "weekly_note_goal": getattr(stats, 'weekly_note_goal', 5),
+        "weekly_flashcard_goal": getattr(stats, 'weekly_flashcard_goal', 20),
+        "weekly_quiz_goal": getattr(stats, 'weekly_quiz_goal', 5)
     }
 
 def recalculate_all_stats(db: Session):

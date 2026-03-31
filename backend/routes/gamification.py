@@ -131,6 +131,38 @@ async def get_personalized_xp_roadmap(
         logger.error(f"Error getting personalized roadmap: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/set_weekly_goals")
+async def set_weekly_goals(
+    user_id: str = Query(...),
+    chat_goal: int = Query(10),
+    note_goal: int = Query(5),
+    flashcard_goal: int = Query(20),
+    quiz_goal: int = Query(5),
+    db: Session = Depends(get_db)
+):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        stats = db.query(models.UserGamificationStats).filter(
+            models.UserGamificationStats.user_id == user.id
+        ).first()
+        if not stats:
+            stats = models.UserGamificationStats(user_id=user.id)
+            db.add(stats)
+
+        stats.weekly_chat_goal = max(1, chat_goal)
+        stats.weekly_note_goal = max(1, note_goal)
+        stats.weekly_flashcard_goal = max(1, flashcard_goal)
+        stats.weekly_quiz_goal = max(1, quiz_goal)
+        db.commit()
+
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Error setting weekly goals: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/get_dashboard_data")
 async def get_dashboard_data(
     user_id: str = Query(...),

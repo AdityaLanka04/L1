@@ -2129,12 +2129,15 @@ html:has(.ai-chat-page) {
   font-weight: 600;
 }
 
-.md-ul, .md-ol {
+.md-ul, .md-ol,
+.ac-message-content ul,
+.ac-message-content ol {
   margin: 10px 0 14px 0;
   padding-left: 24px;
 }
 
-.md-li, .md-li-num {
+.md-li, .md-li-num,
+.ac-message-content li {
   margin: 6px 0;
   line-height: 1.65;
 }

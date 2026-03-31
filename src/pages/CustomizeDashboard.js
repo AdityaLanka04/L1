@@ -20,7 +20,8 @@ import {
   BookOpen,
   Calendar,
   ChevronLeft,
-  Lock
+  Lock,
+  BarChart2
 , Menu} from 'lucide-react';
 import './CustomizeDashboard.css';
 
@@ -107,6 +108,15 @@ const WIDGET_DEFINITIONS = {
     sizes: { S: { cols: 2, rows: 1 }, M: { cols: 3, rows: 2 }, L: { cols: 4, rows: 2 } },
     defaultSize: 'L',
     mandatory: false
+  },
+  'quick-hub': {
+    id: 'quick-hub',
+    title: 'Weekly Hub',
+    icon: BarChart2,
+    description: 'Weekly stats + Social, Timeline & Paths',
+    sizes: { S: { cols: 2, rows: 2 }, M: { cols: 4, rows: 2 }, L: { cols: 4, rows: 3 } },
+    defaultSize: 'L',
+    mandatory: false
   }
 };
 
@@ -115,9 +125,7 @@ const DEFAULT_LAYOUT = {
   widgets: [
     { id: 'ai-tutor', col: 1, row: 1, cols: 1, rows: 3, color: null, size: 'M' },
     { id: 'learning-hub-grid', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'L' },
-    { id: 'social-hub', col: 4, row: 1, cols: 1, rows: 2, color: null, size: 'M' },
-    { id: 'activity', col: 4, row: 3, cols: 1, rows: 2, color: null, size: 'M' },
-    { id: 'concept-web', col: 4, row: 5, cols: 1, rows: 1, color: null, size: 'S' },
+    { id: 'quick-hub', col: 4, row: 1, cols: 1, rows: 5, color: null, size: 'L' },
     { id: 'streak', col: 1, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
     { id: 'notes', col: 2, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
     { id: 'flashcards', col: 3, row: 4, cols: 1, rows: 2, color: null, size: 'M' },

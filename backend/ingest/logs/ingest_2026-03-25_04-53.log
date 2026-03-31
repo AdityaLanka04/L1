@@ -1,0 +1,186 @@
+00:53:36 INFO     ============================================================
+00:53:36 INFO       Brainwave Curriculum Ingest — DRY RUN
+00:53:36 INFO       Source:  all
+00:53:36 INFO       Docs:    31 entries
+00:53:36 INFO       Mode:    resume=yes
+00:53:36 INFO       Log:     D:\Brainwave\L1\backend\ingest\logs\ingest_2026-03-25_04-53.log
+00:53:36 INFO     ============================================================
+00:53:38 INFO     Using SQLite database
+00:53:38 INFO     Initializing ChromaDB + embedding model...
+00:54:14 INFO     Use pytorch device_name: cpu
+00:54:14 INFO     Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+00:54:16 WARNING  Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/README.md "HTTP/1.1 200 OK"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/sentence_bert_config.json "HTTP/1.1 200 OK"
+00:54:16 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+00:54:17 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+00:54:17 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+00:54:18 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+00:54:18 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+00:54:18 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+00:54:18 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/tokenizer_config.json "HTTP/1.1 200 OK"
+00:54:18 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+00:54:18 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+00:54:18 INFO     HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+00:54:18 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+00:54:18 INFO     HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+00:54:18 INFO     Chroma store initialised with SentenceTransformer
+00:54:18 INFO     context_store initialized.
+00:54:41 INFO     Redis unavailable (Timeout connecting to server) — using in-memory fallback cache
+00:54:41 INFO     Loaded state: 0 previously ingested docs will be skipped.
+00:54:41 INFO     [1/31] Ingesting: Biology 2e
+00:54:41 INFO       [DRY RUN] Would ingest: Biology 2e (biology-2e)
+00:54:41 INFO     [1/31] OK: Biology 2e — 0 chunks in 0.0s
+00:54:41 INFO     [2/31] Ingesting: Chemistry 2e
+00:54:41 INFO       [DRY RUN] Would ingest: Chemistry 2e (chemistry-2e)
+00:54:41 INFO     [2/31] OK: Chemistry 2e — 0 chunks in 0.0s
+00:54:41 INFO     [3/31] Ingesting: College Algebra 2e
+00:54:41 INFO       [DRY RUN] Would ingest: College Algebra 2e (college-algebra-2e)
+00:54:41 INFO     [3/31] OK: College Algebra 2e — 0 chunks in 0.0s
+00:54:41 INFO     [4/31] Ingesting: Algebra and Trigonometry 2e
+00:54:41 INFO       [DRY RUN] Would ingest: Algebra and Trigonometry 2e (algebra-and-trigonometry-2e)
+00:54:41 INFO     [4/31] OK: Algebra and Trigonometry 2e — 0 chunks in 0.0s
+00:54:41 INFO     [5/31] Ingesting: Precalculus 2e
+00:54:41 INFO       [DRY RUN] Would ingest: Precalculus 2e (precalculus-2e)
+00:54:41 INFO     [5/31] OK: Precalculus 2e — 0 chunks in 0.0s
+00:54:41 INFO     
+--- Spot-checking batch of 5 docs ---
+00:54:41 INFO       Spot checking: Precalculus 2e
+00:54:41 INFO       Spot check [SKIP] Precalculus 2e: 0/0 samples passed — No chunks found for doc_id=5140b09a-b1e3-5991-b906-e16be26b40b7 in hs_curriculum
+00:54:41 INFO       Spot checking: College Algebra 2e
+00:54:41 INFO       Spot check [SKIP] College Algebra 2e: 0/0 samples passed — No chunks found for doc_id=ad1a8409-f193-5b97-802d-d2e8456d565e in hs_curriculum
+00:54:41 INFO     [6/31] Ingesting: Calculus Volume 1
+00:54:41 INFO       [DRY RUN] Would ingest: Calculus Volume 1 (calculus-volume-1)
+00:54:41 INFO     [6/31] OK: Calculus Volume 1 — 0 chunks in 0.0s
+00:54:41 INFO     [7/31] Ingesting: Calculus Volume 2
+00:54:41 INFO       [DRY RUN] Would ingest: Calculus Volume 2 (calculus-volume-2)
+00:54:41 INFO     [7/31] OK: Calculus Volume 2 — 0 chunks in 0.0s
+00:54:41 INFO     [8/31] Ingesting: Introductory Statistics
+00:54:41 INFO       [DRY RUN] Would ingest: Introductory Statistics (introductory-statistics)
+00:54:41 INFO     [8/31] OK: Introductory Statistics — 0 chunks in 0.0s
+00:54:41 INFO     [9/31] Ingesting: U.S. History
+00:54:41 INFO       [DRY RUN] Would ingest: U.S. History (us-history)
+00:54:41 INFO     [9/31] OK: U.S. History — 0 chunks in 0.0s
+00:54:41 INFO     [10/31] Ingesting: World History Volume 1
+00:54:41 INFO       [DRY RUN] Would ingest: World History Volume 1 (world-history-volume-1)
+00:54:41 INFO     [10/31] OK: World History Volume 1 — 0 chunks in 0.0s
+00:54:41 INFO     
+--- Spot-checking batch of 5 docs ---
+00:54:41 INFO       Spot checking: World History Volume 1
+00:54:42 INFO       Spot check [SKIP] World History Volume 1: 0/0 samples passed — No chunks found for doc_id=b4349134-b341-552c-96fd-fe3f6b5f68d1 in hs_curriculum
+00:54:42 INFO       Spot checking: Calculus Volume 1
+00:54:42 INFO       Spot check [SKIP] Calculus Volume 1: 0/0 samples passed — No chunks found for doc_id=0377be9a-b180-5411-8741-51c7b58cb97a in hs_curriculum
+00:54:42 INFO     [11/31] Ingesting: World History Volume 2
+00:54:42 INFO       [DRY RUN] Would ingest: World History Volume 2 (world-history-volume-2)
+00:54:42 INFO     [11/31] OK: World History Volume 2 — 0 chunks in 0.0s
+00:54:42 INFO     [12/31] Ingesting: Psychology 2e
+00:54:42 INFO       [DRY RUN] Would ingest: Psychology 2e (psychology-2e)
+00:54:42 INFO     [12/31] OK: Psychology 2e — 0 chunks in 0.0s
+00:54:42 INFO     [13/31] Ingesting: Introduction to Sociology 3e
+00:54:42 INFO       [DRY RUN] Would ingest: Introduction to Sociology 3e (sociology-3e)
+00:54:42 INFO     [13/31] OK: Introduction to Sociology 3e — 0 chunks in 0.0s
+00:54:42 INFO     [14/31] Ingesting: Principles of Economics 3e
+00:54:42 INFO       [DRY RUN] Would ingest: Principles of Economics 3e (principles-economics-3e)
+00:54:42 INFO     [14/31] OK: Principles of Economics 3e — 0 chunks in 0.0s
+00:54:42 INFO     [15/31] Ingesting: Anatomy and Physiology
+00:54:42 INFO       [DRY RUN] Would ingest: Anatomy and Physiology (anatomy-and-physiology)
+00:54:42 INFO     [15/31] OK: Anatomy and Physiology — 0 chunks in 0.0s
+00:54:42 INFO     
+--- Spot-checking batch of 5 docs ---
+00:54:42 INFO       Spot checking: Introduction to Sociology 3e
+00:54:42 INFO       Spot check [SKIP] Introduction to Sociology 3e: 0/0 samples passed — No chunks found for doc_id=184f9e01-f346-5081-b736-169ce7c56157 in hs_curriculum
+00:54:42 INFO       Spot checking: Anatomy and Physiology
+00:54:42 INFO       Spot check [SKIP] Anatomy and Physiology: 0/0 samples passed — No chunks found for doc_id=6ee0271c-c0fe-554f-8273-561fbb0c938e in hs_curriculum
+00:54:42 INFO     [16/31] Ingesting: College Physics 2e
+00:54:42 INFO       [DRY RUN] Would ingest: College Physics 2e (college-physics-2e)
+00:54:42 INFO     [16/31] OK: College Physics 2e — 0 chunks in 0.0s
+00:54:42 INFO     [17/31] Ingesting: AQA GCSE Biology Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA GCSE Biology Specification (aqa-gcse-biology-8461)
+00:54:42 INFO     [17/31] OK: AQA GCSE Biology Specification — 0 chunks in 0.0s
+00:54:42 INFO     [18/31] Ingesting: AQA GCSE Chemistry Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA GCSE Chemistry Specification (aqa-gcse-chemistry-8462)
+00:54:42 INFO     [18/31] OK: AQA GCSE Chemistry Specification — 0 chunks in 0.0s
+00:54:42 INFO     [19/31] Ingesting: AQA GCSE Physics Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA GCSE Physics Specification (aqa-gcse-physics-8463)
+00:54:42 INFO     [19/31] OK: AQA GCSE Physics Specification — 0 chunks in 0.0s
+00:54:42 INFO     [20/31] Ingesting: AQA GCSE Mathematics Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA GCSE Mathematics Specification (aqa-gcse-maths-8300)
+00:54:42 INFO     [20/31] OK: AQA GCSE Mathematics Specification — 0 chunks in 0.0s
+00:54:42 INFO     
+--- Spot-checking batch of 5 docs ---
+00:54:42 INFO       Spot checking: AQA GCSE Physics Specification
+00:54:42 INFO       Spot check [SKIP] AQA GCSE Physics Specification: 0/0 samples passed — No chunks found for doc_id=1cd5baff-bd82-5169-b6e1-65d3156ce8c8 in hs_curriculum
+00:54:42 INFO       Spot checking: AQA GCSE Chemistry Specification
+00:54:42 INFO       Spot check [SKIP] AQA GCSE Chemistry Specification: 0/0 samples passed — No chunks found for doc_id=02b64a90-a714-5afc-bd7b-84d470b45ef6 in hs_curriculum
+00:54:42 INFO     [21/31] Ingesting: AQA GCSE English Language Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA GCSE English Language Specification (aqa-gcse-english-language-8700)
+00:54:42 INFO     [21/31] OK: AQA GCSE English Language Specification — 0 chunks in 0.0s
+00:54:42 INFO     [22/31] Ingesting: AQA GCSE Geography Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA GCSE Geography Specification (aqa-gcse-geography-8035)
+00:54:42 INFO     [22/31] OK: AQA GCSE Geography Specification — 0 chunks in 0.0s
+00:54:42 INFO     [23/31] Ingesting: AQA GCSE History Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA GCSE History Specification (aqa-gcse-history-8145)
+00:54:42 INFO     [23/31] OK: AQA GCSE History Specification — 0 chunks in 0.0s
+00:54:42 INFO     [24/31] Ingesting: AQA GCSE Economics Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA GCSE Economics Specification (aqa-gcse-economics-8136)
+00:54:42 INFO     [24/31] OK: AQA GCSE Economics Specification — 0 chunks in 0.0s
+00:54:42 INFO     [25/31] Ingesting: AQA GCSE Psychology Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA GCSE Psychology Specification (aqa-gcse-psychology-8182)
+00:54:42 INFO     [25/31] OK: AQA GCSE Psychology Specification — 0 chunks in 0.0s
+00:54:42 INFO     
+--- Spot-checking batch of 5 docs ---
+00:54:42 INFO       Spot checking: AQA GCSE Geography Specification
+00:54:42 INFO       Spot check [SKIP] AQA GCSE Geography Specification: 0/0 samples passed — No chunks found for doc_id=1ce044e9-a22f-51a5-99bd-32efc92be1c1 in hs_curriculum
+00:54:42 INFO       Spot checking: AQA GCSE Psychology Specification
+00:54:42 INFO       Spot check [SKIP] AQA GCSE Psychology Specification: 0/0 samples passed — No chunks found for doc_id=2bae0f19-999a-5c94-afcd-48aa14f9e1ff in hs_curriculum
+00:54:42 INFO     [26/31] Ingesting: AQA A-Level Biology Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA A-Level Biology Specification (aqa-alevel-biology-7402)
+00:54:42 INFO     [26/31] OK: AQA A-Level Biology Specification — 0 chunks in 0.0s
+00:54:42 INFO     [27/31] Ingesting: AQA A-Level Chemistry Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA A-Level Chemistry Specification (aqa-alevel-chemistry-7405)
+00:54:42 INFO     [27/31] OK: AQA A-Level Chemistry Specification — 0 chunks in 0.0s
+00:54:42 INFO     [28/31] Ingesting: AQA A-Level Physics Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA A-Level Physics Specification (aqa-alevel-physics-7408)
+00:54:42 INFO     [28/31] OK: AQA A-Level Physics Specification — 0 chunks in 0.0s
+00:54:42 INFO     [29/31] Ingesting: AQA A-Level Mathematics Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA A-Level Mathematics Specification (aqa-alevel-maths-7357)
+00:54:42 INFO     [29/31] OK: AQA A-Level Mathematics Specification — 0 chunks in 0.0s
+00:54:42 INFO     [30/31] Ingesting: AQA A-Level Economics Specification
+00:54:42 INFO       [DRY RUN] Would ingest: AQA A-Level Economics Specification (aqa-alevel-economics-7136)
+00:54:42 INFO     [30/31] OK: AQA A-Level Economics Specification — 0 chunks in 0.0s
+00:54:42 INFO     
+--- Spot-checking batch of 5 docs ---
+00:54:42 INFO       Spot checking: AQA A-Level Chemistry Specification
+00:54:43 INFO       Spot check [SKIP] AQA A-Level Chemistry Specification: 0/0 samples passed — No chunks found for doc_id=39d3aefe-231e-5a64-aff7-f6f71cee620b in hs_curriculum
+00:54:43 INFO       Spot checking: AQA A-Level Economics Specification
+00:54:43 INFO       Spot check [SKIP] AQA A-Level Economics Specification: 0/0 samples passed — No chunks found for doc_id=77f71445-1e3c-5968-b926-6ce02d20966f in hs_curriculum
+00:54:43 INFO     [31/31] Ingesting: AQA A-Level Psychology Specification
+00:54:43 INFO       [DRY RUN] Would ingest: AQA A-Level Psychology Specification (aqa-alevel-psychology-7182)
+00:54:43 INFO     [31/31] OK: AQA A-Level Psychology Specification — 0 chunks in 0.0s
+00:54:43 INFO     
+--- Final spot-check on remaining 1 docs ---
+00:54:43 INFO       Spot checking: AQA A-Level Psychology Specification
+00:54:43 INFO       Spot check [SKIP] AQA A-Level Psychology Specification: 0/0 samples passed — No chunks found for doc_id=09e6f835-b5fb-5d4e-82cc-81014cebb975 in hs_curriculum
+00:54:43 INFO     
+00:54:43 INFO     ============================================================
+00:54:43 INFO       INGEST COMPLETE
+00:54:43 INFO       Total:     31
+00:54:43 INFO       Succeeded: 31
+00:54:43 INFO       Failed:    0
+00:54:43 INFO       Skipped:   0 (already ingested)
+00:54:43 INFO       Duration:  2s (0.0 min)
+00:54:43 INFO     
+00:54:43 INFO       Spot checks: 13 run
+00:54:43 INFO         Passed: 0
+00:54:43 INFO         Failed: 0
+00:54:43 INFO     ============================================================

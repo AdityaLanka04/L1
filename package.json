@@ -19,6 +19,7 @@
     "katex": "^0.16.25",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.477.0",
+    "marked": "^17.0.5",
     "mathquill4quill": "^2.4.0",
     "matter-js": "^0.20.0",
     "mermaid": "^11.12.1",

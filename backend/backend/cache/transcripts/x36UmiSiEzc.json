@@ -1,0 +1,1310 @@
+{
+  "success": true,
+  "transcript": "P versus NP. That this is arguably the most famous unsolved problem in computer science. And actually, if you're cracked enough to solve it, the Clay Mathematics Institute will literally give you $1 million. And all you have to do is come up with a proof for this philosophical question. If you can verify a solution quickly, can you also find the solution quickly? Or in other words, is handcrafting a beautiful meme just as easy as admiring its beauty? To me, the answer seems obvious. Of course, P does not equal NP. Many others believe this, but nobody's been able to prove it. I arrogantly set out to prove that P doesn't equal NP myself and couldn't do it. But what's scary, though, is that if everybody turns out to be wrong and somebody proves that P does actually equal NP, then every password, encryption key, and crypto wallet becomes instantly crackable, while simultaneously curing cancer and ending world hunger. It would be total chaos. In today's video, we'll look at the weird mind-bending math behind the greatest unsolved problem in computer science and try to win a million dollars in the process. The P versus NP problem was officially defined in 1971 by Steven Cook in his famous the complexity of theorem proving procedures paper. But we can actually go back even further to 1955 when mathematician John Nash warned the National Security Agency that for well-defined cryptography, the effort needed to break a code doesn't scale linear. It explodes exponentially as the key gets longer. He was implying that P does not equal NP. But what's crazy is that there are thousands of papers, decades of research, and zero proof either way. But to understand why it's so hard to prove, we first need to understand the math behind it. P stands for polomial time, which are problems a computer can solve efficiently even as the input gets bigger. Think about an algorithm that sorts a list of names. As the list gets bigger, it takes longer to sort, but at a deterministic and reasonable pace. When sorting a list of names alphabetically, the amount of work on the CPU is roughly proportional to n or n login. So if the list gets 10 times bigger, the computer does about 10 to 20 times more work. And problems that grow at a reasonable pace like this are called p. But then things start to get weird when we talk about np, which stands for non-deterministic polomial time. These are problems where you might be able to check a solution quickly, but finding it, good luck. Some examples are the traveling salesman problem, Sudoku puzzles, or scheduling your dev team's vacation days. If you already know the answer, verifying it only takes polomial time. But if you need to find the solution from scratch, you might be waiting until the heat death of the universe. For example, imagine I give you two prime numbers 7 and 13. Then ask you to multiply them together. That's a piece of cake that you could likely do in your head right now. But now imagine this problem reversed. I give you 91 and ask you to find two prime numbers to produce it. You might need to test out a few different possibilities, but you can still do it in your head. But now try the same exercise on 69420. What you'll find is that it's far more difficult because you need to explore all kinds of different potential options. And that simple fact is why prime numbers are the foundation for modern public key cryptography like RSA encryption. Multiplying two primes is easy, but factoring back to the original components is extremely hard. What's funny is that we know it's hard, but mathematicians can't actually prove that it's hard and can't prove that no faster algorithm exists. Another classic problem like this that you might see on a technical interview is the traveling salesman problem. You have n cities and you want the shortest route that visits each one once. The brute force approach is to try every possible path and that gives you a lot of possibilities. N minus one bang factorial. For just 15 cities, that gives us like 87 billion different possibilities. That'll make your CPU explode. But here's the twist. If someone hands you the optimal route, you can quickly verify it. But by checking if it's shorter than the alternatives you already know. The verification is easy. Discovery is brutal. Because of that, algorithms in the real world have to be optimized for different rules or horistics if you want to sound smart, which aren't guaranteed to get you the best answer, but they should get you pretty close. Basically, you have to trade the optimal solution for a reasonable compute time. So at this point we know that a problem is NP if a solution can be verified in polomial time. But there's another special group of problems called NP complete and these are the worst of the worst. If you can solve any one of them in polomial time you can solve all of them in polomial time. The first NPcomplete problem was SAT the boolean satisfiability problem. Imagine you have a giant logical expression that looks like this. Is there some assignment of true false values that makes the whole thing true? Checking the answer is trivial, but finding the answer requires tons of different combinations. What's interesting about this one though is that it was the first problem to be defined as NP complete by Steven Cook in 1971. Since then, many other problems have joined the club like traveling salesman, the Sudoku, circuit design, protein folding, and a bunch of other problems that are really important to humans. What's really weird though is that they all simulate each other in terms of complexity. And that means if somebody finds a polomial solution to solving one of them, then all of them will be solved instantly. Hypothetically, if somebody did that, P would equal NP and the world would completely change overnight. The things that were once impossibly hard are now trivial. But despite 50 years of trying, nobody has been able to find a fast algorithm for any NPcomplete problem. In addition, mathematicians have tried to end this debate with a variety of different proof methods, but every time they hit barriers that make it impossible. But why is this problem so important? And why did I even bother to make a video about it? If you really take a minute to think about it, the implications are kind of mind-blowing. If P equals NP, then every puzzle has a shortcut and the universe is ultimately efficient, like a machine built by an intelligent designer who never wastes computation. But if P does not equal NP, then reality itself contains problems that can't be cut short, like the universe runs on deep computational limits, the kind you might expect if you were living in a simulation trying to conserve processing power. But the scariest possibility isn't that P equals NP or that it doesn't. It's that God or the universe or the simulation already knows the answer. And the entire purpose of our existence is to be the algorithm that computes it. >> Let me out. Let me out. I WANT OUT. >> Unfortunately though, after several minutes of prompting, I still haven't solved the problem. But if you figure it out, let me know because I could really use that million dollars. Until then, the only thing I have actually solved recently is my back-end infrastructure. Thanks to MongoDB Atlas, the sponsor of today's video, everyone's trying to ship new AI features as fast as possible right now, but their back-end infrastructure is usually a mess. You've got separate databases for your app data and vector embeddings, a search engine duct taped onto the side, and a bunch of sloppy glue code holding everything together. MongoDB Atlas eliminates all that complexity by providing a modern data platform built for AI applications. You can use it to store all your source data, vector embeddings, and metadata in the same document. then query everything in one place. It also supports real-time stream processing so your agents can react to live events as they happen rather than relying on stable batch updates. If you're building an AI app and want to simplify your architecture for good, try out MongoDB Atlas for free at the link below. Thanks for watching and I will see you in the next one.",
+  "segments": [
+    {
+      "start": 0.16,
+      "end": 5.12,
+      "duration": 4.96,
+      "text": "P versus NP. That this is arguably the"
+    },
+    {
+      "start": 3.12,
+      "end": 7.12,
+      "duration": 4.0,
+      "text": "most famous unsolved problem in computer"
+    },
+    {
+      "start": 5.12,
+      "end": 8.96,
+      "duration": 3.84,
+      "text": "science. And actually, if you're cracked"
+    },
+    {
+      "start": 7.12,
+      "end": 10.8,
+      "duration": 3.68,
+      "text": "enough to solve it, the Clay Mathematics"
+    },
+    {
+      "start": 8.96,
+      "end": 13.040000000000001,
+      "duration": 4.08,
+      "text": "Institute will literally give you $1"
+    },
+    {
+      "start": 10.8,
+      "end": 14.88,
+      "duration": 4.08,
+      "text": "million. And all you have to do is come"
+    },
+    {
+      "start": 13.04,
+      "end": 16.799999999999997,
+      "duration": 3.76,
+      "text": "up with a proof for this philosophical"
+    },
+    {
+      "start": 14.88,
+      "end": 19.039,
+      "duration": 4.159,
+      "text": "question. If you can verify a solution"
+    },
+    {
+      "start": 16.8,
+      "end": 20.64,
+      "duration": 3.84,
+      "text": "quickly, can you also find the solution"
+    },
+    {
+      "start": 19.039,
+      "end": 22.8,
+      "duration": 3.761,
+      "text": "quickly? Or in other words, is"
+    },
+    {
+      "start": 20.64,
+      "end": 25.199,
+      "duration": 4.559,
+      "text": "handcrafting a beautiful meme just as"
+    },
+    {
+      "start": 22.8,
+      "end": 27.519000000000002,
+      "duration": 4.719,
+      "text": "easy as admiring its beauty? To me, the"
+    },
+    {
+      "start": 25.199,
+      "end": 30.080000000000002,
+      "duration": 4.881,
+      "text": "answer seems obvious. Of course, P does"
+    },
+    {
+      "start": 27.519,
+      "end": 31.839999999999996,
+      "duration": 4.321,
+      "text": "not equal NP. Many others believe this,"
+    },
+    {
+      "start": 30.08,
+      "end": 33.519999999999996,
+      "duration": 3.44,
+      "text": "but nobody's been able to prove it. I"
+    },
+    {
+      "start": 31.84,
+      "end": 35.68,
+      "duration": 3.84,
+      "text": "arrogantly set out to prove that P"
+    },
+    {
+      "start": 33.52,
+      "end": 37.36,
+      "duration": 3.84,
+      "text": "doesn't equal NP myself and couldn't do"
+    },
+    {
+      "start": 35.68,
+      "end": 39.2,
+      "duration": 3.52,
+      "text": "it. But what's scary, though, is that if"
+    },
+    {
+      "start": 37.36,
+      "end": 41.28,
+      "duration": 3.92,
+      "text": "everybody turns out to be wrong and"
+    },
+    {
+      "start": 39.2,
+      "end": 43.2,
+      "duration": 4.0,
+      "text": "somebody proves that P does actually"
+    },
+    {
+      "start": 41.28,
+      "end": 44.879000000000005,
+      "duration": 3.599,
+      "text": "equal NP, then every password,"
+    },
+    {
+      "start": 43.2,
+      "end": 46.719,
+      "duration": 3.519,
+      "text": "encryption key, and crypto wallet"
+    },
+    {
+      "start": 44.879,
+      "end": 48.8,
+      "duration": 3.921,
+      "text": "becomes instantly crackable, while"
+    },
+    {
+      "start": 46.719,
+      "end": 50.800000000000004,
+      "duration": 4.081,
+      "text": "simultaneously curing cancer and ending"
+    },
+    {
+      "start": 48.8,
+      "end": 52.32,
+      "duration": 3.52,
+      "text": "world hunger. It would be total chaos."
+    },
+    {
+      "start": 50.8,
+      "end": 54.16,
+      "duration": 3.36,
+      "text": "In today's video, we'll look at the"
+    },
+    {
+      "start": 52.32,
+      "end": 56.16,
+      "duration": 3.84,
+      "text": "weird mind-bending math behind the"
+    },
+    {
+      "start": 54.16,
+      "end": 58.0,
+      "duration": 3.84,
+      "text": "greatest unsolved problem in computer"
+    },
+    {
+      "start": 56.16,
+      "end": 60.64,
+      "duration": 4.48,
+      "text": "science and try to win a million dollars"
+    },
+    {
+      "start": 58.0,
+      "end": 63.44,
+      "duration": 5.44,
+      "text": "in the process. The P versus NP problem"
+    },
+    {
+      "start": 60.64,
+      "end": 66.0,
+      "duration": 5.36,
+      "text": "was officially defined in 1971 by Steven"
+    },
+    {
+      "start": 63.44,
+      "end": 68.24,
+      "duration": 4.8,
+      "text": "Cook in his famous the complexity of"
+    },
+    {
+      "start": 66.0,
+      "end": 69.92,
+      "duration": 3.92,
+      "text": "theorem proving procedures paper. But we"
+    },
+    {
+      "start": 68.24,
+      "end": 72.96,
+      "duration": 4.72,
+      "text": "can actually go back even further to"
+    },
+    {
+      "start": 69.92,
+      "end": 74.96000000000001,
+      "duration": 5.04,
+      "text": "1955 when mathematician John Nash warned"
+    },
+    {
+      "start": 72.96,
+      "end": 76.79899999999999,
+      "duration": 3.839,
+      "text": "the National Security Agency that for"
+    },
+    {
+      "start": 74.96,
+      "end": 78.55999999999999,
+      "duration": 3.6,
+      "text": "well-defined cryptography, the effort"
+    },
+    {
+      "start": 76.799,
+      "end": 80.96000000000001,
+      "duration": 4.161,
+      "text": "needed to break a code doesn't scale"
+    },
+    {
+      "start": 78.56,
+      "end": 83.2,
+      "duration": 4.64,
+      "text": "linear. It explodes exponentially as the"
+    },
+    {
+      "start": 80.96,
+      "end": 85.36,
+      "duration": 4.4,
+      "text": "key gets longer. He was implying that P"
+    },
+    {
+      "start": 83.2,
+      "end": 86.88000000000001,
+      "duration": 3.68,
+      "text": "does not equal NP. But what's crazy is"
+    },
+    {
+      "start": 85.36,
+      "end": 88.88,
+      "duration": 3.52,
+      "text": "that there are thousands of papers,"
+    },
+    {
+      "start": 86.88,
+      "end": 90.79899999999999,
+      "duration": 3.919,
+      "text": "decades of research, and zero proof"
+    },
+    {
+      "start": 88.88,
+      "end": 92.39999999999999,
+      "duration": 3.52,
+      "text": "either way. But to understand why it's"
+    },
+    {
+      "start": 90.799,
+      "end": 94.4,
+      "duration": 3.601,
+      "text": "so hard to prove, we first need to"
+    },
+    {
+      "start": 92.4,
+      "end": 96.799,
+      "duration": 4.399,
+      "text": "understand the math behind it. P stands"
+    },
+    {
+      "start": 94.4,
+      "end": 98.56,
+      "duration": 4.16,
+      "text": "for polomial time, which are problems a"
+    },
+    {
+      "start": 96.799,
+      "end": 100.47900000000001,
+      "duration": 3.68,
+      "text": "computer can solve efficiently even as"
+    },
+    {
+      "start": 98.56,
+      "end": 102.72,
+      "duration": 4.16,
+      "text": "the input gets bigger. Think about an"
+    },
+    {
+      "start": 100.479,
+      "end": 104.479,
+      "duration": 4.0,
+      "text": "algorithm that sorts a list of names. As"
+    },
+    {
+      "start": 102.72,
+      "end": 106.479,
+      "duration": 3.759,
+      "text": "the list gets bigger, it takes longer to"
+    },
+    {
+      "start": 104.479,
+      "end": 108.399,
+      "duration": 3.92,
+      "text": "sort, but at a deterministic and"
+    },
+    {
+      "start": 106.479,
+      "end": 110.159,
+      "duration": 3.68,
+      "text": "reasonable pace. When sorting a list of"
+    },
+    {
+      "start": 108.399,
+      "end": 112.88,
+      "duration": 4.481,
+      "text": "names alphabetically, the amount of work"
+    },
+    {
+      "start": 110.159,
+      "end": 115.60000000000001,
+      "duration": 5.441,
+      "text": "on the CPU is roughly proportional to n"
+    },
+    {
+      "start": 112.88,
+      "end": 117.759,
+      "duration": 4.879,
+      "text": "or n login. So if the list gets 10 times"
+    },
+    {
+      "start": 115.6,
+      "end": 119.6,
+      "duration": 4.0,
+      "text": "bigger, the computer does about 10 to 20"
+    },
+    {
+      "start": 117.759,
+      "end": 121.52,
+      "duration": 3.761,
+      "text": "times more work. And problems that grow"
+    },
+    {
+      "start": 119.6,
+      "end": 123.439,
+      "duration": 3.839,
+      "text": "at a reasonable pace like this are"
+    },
+    {
+      "start": 121.52,
+      "end": 125.52,
+      "duration": 4.0,
+      "text": "called p. But then things start to get"
+    },
+    {
+      "start": 123.439,
+      "end": 127.75899999999999,
+      "duration": 4.32,
+      "text": "weird when we talk about np, which"
+    },
+    {
+      "start": 125.52,
+      "end": 129.44,
+      "duration": 3.92,
+      "text": "stands for non-deterministic polomial"
+    },
+    {
+      "start": 127.759,
+      "end": 131.599,
+      "duration": 3.84,
+      "text": "time. These are problems where you might"
+    },
+    {
+      "start": 129.44,
+      "end": 133.84,
+      "duration": 4.4,
+      "text": "be able to check a solution quickly, but"
+    },
+    {
+      "start": 131.599,
+      "end": 136.23899999999998,
+      "duration": 4.64,
+      "text": "finding it, good luck. Some examples are"
+    },
+    {
+      "start": 133.84,
+      "end": 138.31900000000002,
+      "duration": 4.479,
+      "text": "the traveling salesman problem, Sudoku"
+    },
+    {
+      "start": 136.239,
+      "end": 140.0,
+      "duration": 3.761,
+      "text": "puzzles, or scheduling your dev team's"
+    },
+    {
+      "start": 138.319,
+      "end": 142.319,
+      "duration": 4.0,
+      "text": "vacation days. If you already know the"
+    },
+    {
+      "start": 140.0,
+      "end": 143.76,
+      "duration": 3.76,
+      "text": "answer, verifying it only takes polomial"
+    },
+    {
+      "start": 142.319,
+      "end": 145.35999999999999,
+      "duration": 3.041,
+      "text": "time. But if you need to find the"
+    },
+    {
+      "start": 143.76,
+      "end": 146.72,
+      "duration": 2.96,
+      "text": "solution from scratch, you might be"
+    },
+    {
+      "start": 145.36,
+      "end": 148.8,
+      "duration": 3.44,
+      "text": "waiting until the heat death of the"
+    },
+    {
+      "start": 146.72,
+      "end": 151.84,
+      "duration": 5.12,
+      "text": "universe. For example, imagine I give"
+    },
+    {
+      "start": 148.8,
+      "end": 153.84,
+      "duration": 5.04,
+      "text": "you two prime numbers 7 and 13. Then ask"
+    },
+    {
+      "start": 151.84,
+      "end": 155.12,
+      "duration": 3.28,
+      "text": "you to multiply them together. That's a"
+    },
+    {
+      "start": 153.84,
+      "end": 156.959,
+      "duration": 3.119,
+      "text": "piece of cake that you could likely do"
+    },
+    {
+      "start": 155.12,
+      "end": 159.44,
+      "duration": 4.32,
+      "text": "in your head right now. But now imagine"
+    },
+    {
+      "start": 156.959,
+      "end": 161.28,
+      "duration": 4.321,
+      "text": "this problem reversed. I give you 91 and"
+    },
+    {
+      "start": 159.44,
+      "end": 162.879,
+      "duration": 3.439,
+      "text": "ask you to find two prime numbers to"
+    },
+    {
+      "start": 161.28,
+      "end": 164.48,
+      "duration": 3.2,
+      "text": "produce it. You might need to test out a"
+    },
+    {
+      "start": 162.879,
+      "end": 166.39999999999998,
+      "duration": 3.521,
+      "text": "few different possibilities, but you can"
+    },
+    {
+      "start": 164.48,
+      "end": 169.599,
+      "duration": 5.119,
+      "text": "still do it in your head. But now try"
+    },
+    {
+      "start": 166.4,
+      "end": 171.36,
+      "duration": 4.96,
+      "text": "the same exercise on 69420. What you'll"
+    },
+    {
+      "start": 169.599,
+      "end": 173.2,
+      "duration": 3.601,
+      "text": "find is that it's far more difficult"
+    },
+    {
+      "start": 171.36,
+      "end": 174.87900000000002,
+      "duration": 3.519,
+      "text": "because you need to explore all kinds of"
+    },
+    {
+      "start": 173.2,
+      "end": 176.95899999999997,
+      "duration": 3.759,
+      "text": "different potential options. And that"
+    },
+    {
+      "start": 174.879,
+      "end": 178.72,
+      "duration": 3.841,
+      "text": "simple fact is why prime numbers are the"
+    },
+    {
+      "start": 176.959,
+      "end": 181.04,
+      "duration": 4.081,
+      "text": "foundation for modern public key"
+    },
+    {
+      "start": 178.72,
+      "end": 183.04,
+      "duration": 4.32,
+      "text": "cryptography like RSA encryption."
+    },
+    {
+      "start": 181.04,
+      "end": 184.319,
+      "duration": 3.279,
+      "text": "Multiplying two primes is easy, but"
+    },
+    {
+      "start": 183.04,
+      "end": 186.239,
+      "duration": 3.199,
+      "text": "factoring back to the original"
+    },
+    {
+      "start": 184.319,
+      "end": 188.159,
+      "duration": 3.84,
+      "text": "components is extremely hard. What's"
+    },
+    {
+      "start": 186.239,
+      "end": 190.08,
+      "duration": 3.841,
+      "text": "funny is that we know it's hard, but"
+    },
+    {
+      "start": 188.159,
+      "end": 192.239,
+      "duration": 4.08,
+      "text": "mathematicians can't actually prove that"
+    },
+    {
+      "start": 190.08,
+      "end": 194.31900000000002,
+      "duration": 4.239,
+      "text": "it's hard and can't prove that no faster"
+    },
+    {
+      "start": 192.239,
+      "end": 195.68,
+      "duration": 3.441,
+      "text": "algorithm exists. Another classic"
+    },
+    {
+      "start": 194.319,
+      "end": 197.599,
+      "duration": 3.28,
+      "text": "problem like this that you might see on"
+    },
+    {
+      "start": 195.68,
+      "end": 200.0,
+      "duration": 4.32,
+      "text": "a technical interview is the traveling"
+    },
+    {
+      "start": 197.599,
+      "end": 201.67999999999998,
+      "duration": 4.081,
+      "text": "salesman problem. You have n cities and"
+    },
+    {
+      "start": 200.0,
+      "end": 203.76,
+      "duration": 3.76,
+      "text": "you want the shortest route that visits"
+    },
+    {
+      "start": 201.68,
+      "end": 205.76000000000002,
+      "duration": 4.08,
+      "text": "each one once. The brute force approach"
+    },
+    {
+      "start": 203.76,
+      "end": 207.599,
+      "duration": 3.839,
+      "text": "is to try every possible path and that"
+    },
+    {
+      "start": 205.76,
+      "end": 210.39999999999998,
+      "duration": 4.64,
+      "text": "gives you a lot of possibilities. N"
+    },
+    {
+      "start": 207.599,
+      "end": 212.72,
+      "duration": 5.121,
+      "text": "minus one bang factorial. For just 15"
+    },
+    {
+      "start": 210.4,
+      "end": 214.48000000000002,
+      "duration": 4.08,
+      "text": "cities, that gives us like 87 billion"
+    },
+    {
+      "start": 212.72,
+      "end": 216.72,
+      "duration": 4.0,
+      "text": "different possibilities. That'll make"
+    },
+    {
+      "start": 214.48,
+      "end": 218.64,
+      "duration": 4.16,
+      "text": "your CPU explode. But here's the twist."
+    },
+    {
+      "start": 216.72,
+      "end": 220.239,
+      "duration": 3.519,
+      "text": "If someone hands you the optimal route,"
+    },
+    {
+      "start": 218.64,
+      "end": 221.51899999999998,
+      "duration": 2.879,
+      "text": "you can quickly verify it. But by"
+    },
+    {
+      "start": 220.239,
+      "end": 223.04,
+      "duration": 2.801,
+      "text": "checking if it's shorter than the"
+    },
+    {
+      "start": 221.519,
+      "end": 225.04,
+      "duration": 3.521,
+      "text": "alternatives you already know. The"
+    },
+    {
+      "start": 223.04,
+      "end": 227.12,
+      "duration": 4.08,
+      "text": "verification is easy. Discovery is"
+    },
+    {
+      "start": 225.04,
+      "end": 229.04,
+      "duration": 4.0,
+      "text": "brutal. Because of that, algorithms in"
+    },
+    {
+      "start": 227.12,
+      "end": 230.879,
+      "duration": 3.759,
+      "text": "the real world have to be optimized for"
+    },
+    {
+      "start": 229.04,
+      "end": 232.48,
+      "duration": 3.44,
+      "text": "different rules or horistics if you want"
+    },
+    {
+      "start": 230.879,
+      "end": 234.0,
+      "duration": 3.121,
+      "text": "to sound smart, which aren't guaranteed"
+    },
+    {
+      "start": 232.48,
+      "end": 235.76,
+      "duration": 3.28,
+      "text": "to get you the best answer, but they"
+    },
+    {
+      "start": 234.0,
+      "end": 237.519,
+      "duration": 3.519,
+      "text": "should get you pretty close. Basically,"
+    },
+    {
+      "start": 235.76,
+      "end": 239.76,
+      "duration": 4.0,
+      "text": "you have to trade the optimal solution"
+    },
+    {
+      "start": 237.519,
+      "end": 241.68,
+      "duration": 4.161,
+      "text": "for a reasonable compute time. So at"
+    },
+    {
+      "start": 239.76,
+      "end": 243.35999999999999,
+      "duration": 3.6,
+      "text": "this point we know that a problem is NP"
+    },
+    {
+      "start": 241.68,
+      "end": 245.36,
+      "duration": 3.68,
+      "text": "if a solution can be verified in"
+    },
+    {
+      "start": 243.36,
+      "end": 247.36,
+      "duration": 4.0,
+      "text": "polomial time. But there's another"
+    },
+    {
+      "start": 245.36,
+      "end": 249.20000000000002,
+      "duration": 3.84,
+      "text": "special group of problems called NP"
+    },
+    {
+      "start": 247.36,
+      "end": 250.959,
+      "duration": 3.599,
+      "text": "complete and these are the worst of the"
+    },
+    {
+      "start": 249.2,
+      "end": 253.04,
+      "duration": 3.84,
+      "text": "worst. If you can solve any one of them"
+    },
+    {
+      "start": 250.959,
+      "end": 254.879,
+      "duration": 3.92,
+      "text": "in polomial time you can solve all of"
+    },
+    {
+      "start": 253.04,
+      "end": 258.079,
+      "duration": 5.039,
+      "text": "them in polomial time. The first"
+    },
+    {
+      "start": 254.879,
+      "end": 260.239,
+      "duration": 5.36,
+      "text": "NPcomplete problem was SAT the boolean"
+    },
+    {
+      "start": 258.079,
+      "end": 262.0,
+      "duration": 3.921,
+      "text": "satisfiability problem. Imagine you have"
+    },
+    {
+      "start": 260.239,
+      "end": 263.84,
+      "duration": 3.601,
+      "text": "a giant logical expression that looks"
+    },
+    {
+      "start": 262.0,
+      "end": 265.68,
+      "duration": 3.68,
+      "text": "like this. Is there some assignment of"
+    },
+    {
+      "start": 263.84,
+      "end": 267.44,
+      "duration": 3.6,
+      "text": "true false values that makes the whole"
+    },
+    {
+      "start": 265.68,
+      "end": 269.52,
+      "duration": 3.84,
+      "text": "thing true? Checking the answer is"
+    },
+    {
+      "start": 267.44,
+      "end": 271.28,
+      "duration": 3.84,
+      "text": "trivial, but finding the answer requires"
+    },
+    {
+      "start": 269.52,
+      "end": 272.639,
+      "duration": 3.119,
+      "text": "tons of different combinations. What's"
+    },
+    {
+      "start": 271.28,
+      "end": 274.23999999999995,
+      "duration": 2.96,
+      "text": "interesting about this one though is"
+    },
+    {
+      "start": 272.639,
+      "end": 277.04,
+      "duration": 4.401,
+      "text": "that it was the first problem to be"
+    },
+    {
+      "start": 274.24,
+      "end": 279.68,
+      "duration": 5.44,
+      "text": "defined as NP complete by Steven Cook in"
+    },
+    {
+      "start": 277.04,
+      "end": 281.44,
+      "duration": 4.4,
+      "text": "1971. Since then, many other problems"
+    },
+    {
+      "start": 279.68,
+      "end": 284.0,
+      "duration": 4.32,
+      "text": "have joined the club like traveling"
+    },
+    {
+      "start": 281.44,
+      "end": 285.759,
+      "duration": 4.319,
+      "text": "salesman, the Sudoku, circuit design,"
+    },
+    {
+      "start": 284.0,
+      "end": 287.28,
+      "duration": 3.28,
+      "text": "protein folding, and a bunch of other"
+    },
+    {
+      "start": 285.759,
+      "end": 289.28000000000003,
+      "duration": 3.521,
+      "text": "problems that are really important to"
+    },
+    {
+      "start": 287.28,
+      "end": 291.03999999999996,
+      "duration": 3.76,
+      "text": "humans. What's really weird though is"
+    },
+    {
+      "start": 289.28,
+      "end": 292.88,
+      "duration": 3.6,
+      "text": "that they all simulate each other in"
+    },
+    {
+      "start": 291.04,
+      "end": 295.04,
+      "duration": 4.0,
+      "text": "terms of complexity. And that means if"
+    },
+    {
+      "start": 292.88,
+      "end": 296.8,
+      "duration": 3.92,
+      "text": "somebody finds a polomial solution to"
+    },
+    {
+      "start": 295.04,
+      "end": 298.0,
+      "duration": 2.96,
+      "text": "solving one of them, then all of them"
+    },
+    {
+      "start": 296.8,
+      "end": 300.40000000000003,
+      "duration": 3.6,
+      "text": "will be solved instantly."
+    },
+    {
+      "start": 298.0,
+      "end": 302.24,
+      "duration": 4.24,
+      "text": "Hypothetically, if somebody did that, P"
+    },
+    {
+      "start": 300.4,
+      "end": 303.84,
+      "duration": 3.44,
+      "text": "would equal NP and the world would"
+    },
+    {
+      "start": 302.24,
+      "end": 305.68,
+      "duration": 3.44,
+      "text": "completely change overnight. The things"
+    },
+    {
+      "start": 303.84,
+      "end": 308.08,
+      "duration": 4.24,
+      "text": "that were once impossibly hard are now"
+    },
+    {
+      "start": 305.68,
+      "end": 309.68,
+      "duration": 4.0,
+      "text": "trivial. But despite 50 years of trying,"
+    },
+    {
+      "start": 308.08,
+      "end": 312.4,
+      "duration": 4.32,
+      "text": "nobody has been able to find a fast"
+    },
+    {
+      "start": 309.68,
+      "end": 314.08,
+      "duration": 4.4,
+      "text": "algorithm for any NPcomplete problem. In"
+    },
+    {
+      "start": 312.4,
+      "end": 315.75899999999996,
+      "duration": 3.359,
+      "text": "addition, mathematicians have tried to"
+    },
+    {
+      "start": 314.08,
+      "end": 317.52,
+      "duration": 3.44,
+      "text": "end this debate with a variety of"
+    },
+    {
+      "start": 315.759,
+      "end": 318.88,
+      "duration": 3.121,
+      "text": "different proof methods, but every time"
+    },
+    {
+      "start": 317.52,
+      "end": 320.88,
+      "duration": 3.36,
+      "text": "they hit barriers that make it"
+    },
+    {
+      "start": 318.88,
+      "end": 322.479,
+      "duration": 3.599,
+      "text": "impossible. But why is this problem so"
+    },
+    {
+      "start": 320.88,
+      "end": 323.759,
+      "duration": 2.879,
+      "text": "important? And why did I even bother to"
+    },
+    {
+      "start": 322.479,
+      "end": 325.199,
+      "duration": 2.72,
+      "text": "make a video about it? If you really"
+    },
+    {
+      "start": 323.759,
+      "end": 326.88,
+      "duration": 3.121,
+      "text": "take a minute to think about it, the"
+    },
+    {
+      "start": 325.199,
+      "end": 329.52000000000004,
+      "duration": 4.321,
+      "text": "implications are kind of mind-blowing."
+    },
+    {
+      "start": 326.88,
+      "end": 331.52,
+      "duration": 4.64,
+      "text": "If P equals NP, then every puzzle has a"
+    },
+    {
+      "start": 329.52,
+      "end": 333.52,
+      "duration": 4.0,
+      "text": "shortcut and the universe is ultimately"
+    },
+    {
+      "start": 331.52,
+      "end": 335.28,
+      "duration": 3.76,
+      "text": "efficient, like a machine built by an"
+    },
+    {
+      "start": 333.52,
+      "end": 338.0,
+      "duration": 4.48,
+      "text": "intelligent designer who never wastes"
+    },
+    {
+      "start": 335.28,
+      "end": 339.84,
+      "duration": 4.56,
+      "text": "computation. But if P does not equal NP,"
+    },
+    {
+      "start": 338.0,
+      "end": 341.6,
+      "duration": 3.6,
+      "text": "then reality itself contains problems"
+    },
+    {
+      "start": 339.84,
+      "end": 343.44,
+      "duration": 3.6,
+      "text": "that can't be cut short, like the"
+    },
+    {
+      "start": 341.6,
+      "end": 345.199,
+      "duration": 3.599,
+      "text": "universe runs on deep computational"
+    },
+    {
+      "start": 343.44,
+      "end": 346.88,
+      "duration": 3.44,
+      "text": "limits, the kind you might expect if you"
+    },
+    {
+      "start": 345.199,
+      "end": 348.72,
+      "duration": 3.521,
+      "text": "were living in a simulation trying to"
+    },
+    {
+      "start": 346.88,
+      "end": 350.88,
+      "duration": 4.0,
+      "text": "conserve processing power. But the"
+    },
+    {
+      "start": 348.72,
+      "end": 353.28000000000003,
+      "duration": 4.56,
+      "text": "scariest possibility isn't that P equals"
+    },
+    {
+      "start": 350.88,
+      "end": 355.12,
+      "duration": 4.24,
+      "text": "NP or that it doesn't. It's that God or"
+    },
+    {
+      "start": 353.28,
+      "end": 356.88,
+      "duration": 3.6,
+      "text": "the universe or the simulation already"
+    },
+    {
+      "start": 355.12,
+      "end": 358.8,
+      "duration": 3.68,
+      "text": "knows the answer. And the entire purpose"
+    },
+    {
+      "start": 356.88,
+      "end": 360.15999999999997,
+      "duration": 3.28,
+      "text": "of our existence is to be the algorithm"
+    },
+    {
+      "start": 358.8,
+      "end": 362.08,
+      "duration": 3.28,
+      "text": "that computes it."
+    },
+    {
+      "start": 360.16,
+      "end": 364.16,
+      "duration": 4.0,
+      "text": ">> Let me out."
+    },
+    {
+      "start": 362.08,
+      "end": 365.68,
+      "duration": 3.6,
+      "text": "Let me out. I WANT OUT."
+    },
+    {
+      "start": 364.16,
+      "end": 367.28000000000003,
+      "duration": 3.12,
+      "text": ">> Unfortunately though, after several"
+    },
+    {
+      "start": 365.68,
+      "end": 368.88,
+      "duration": 3.2,
+      "text": "minutes of prompting, I still haven't"
+    },
+    {
+      "start": 367.28,
+      "end": 370.4,
+      "duration": 3.12,
+      "text": "solved the problem. But if you figure it"
+    },
+    {
+      "start": 368.88,
+      "end": 372.319,
+      "duration": 3.439,
+      "text": "out, let me know because I could really"
+    },
+    {
+      "start": 370.4,
+      "end": 373.84,
+      "duration": 3.44,
+      "text": "use that million dollars. Until then,"
+    },
+    {
+      "start": 372.319,
+      "end": 376.08000000000004,
+      "duration": 3.761,
+      "text": "the only thing I have actually solved"
+    },
+    {
+      "start": 373.84,
+      "end": 378.56,
+      "duration": 4.72,
+      "text": "recently is my back-end infrastructure."
+    },
+    {
+      "start": 376.08,
+      "end": 380.4,
+      "duration": 4.32,
+      "text": "Thanks to MongoDB Atlas, the sponsor of"
+    },
+    {
+      "start": 378.56,
+      "end": 382.16,
+      "duration": 3.6,
+      "text": "today's video, everyone's trying to ship"
+    },
+    {
+      "start": 380.4,
+      "end": 383.67999999999995,
+      "duration": 3.28,
+      "text": "new AI features as fast as possible"
+    },
+    {
+      "start": 382.16,
+      "end": 385.6,
+      "duration": 3.44,
+      "text": "right now, but their back-end"
+    },
+    {
+      "start": 383.68,
+      "end": 387.6,
+      "duration": 3.92,
+      "text": "infrastructure is usually a mess. You've"
+    },
+    {
+      "start": 385.6,
+      "end": 389.36,
+      "duration": 3.76,
+      "text": "got separate databases for your app data"
+    },
+    {
+      "start": 387.6,
+      "end": 391.36,
+      "duration": 3.76,
+      "text": "and vector embeddings, a search engine"
+    },
+    {
+      "start": 389.36,
+      "end": 392.96000000000004,
+      "duration": 3.6,
+      "text": "duct taped onto the side, and a bunch of"
+    },
+    {
+      "start": 391.36,
+      "end": 395.52000000000004,
+      "duration": 4.16,
+      "text": "sloppy glue code holding everything"
+    },
+    {
+      "start": 392.96,
+      "end": 397.59999999999997,
+      "duration": 4.64,
+      "text": "together. MongoDB Atlas eliminates all"
+    },
+    {
+      "start": 395.52,
+      "end": 400.24,
+      "duration": 4.72,
+      "text": "that complexity by providing a modern"
+    },
+    {
+      "start": 397.6,
+      "end": 401.84000000000003,
+      "duration": 4.24,
+      "text": "data platform built for AI applications."
+    },
+    {
+      "start": 400.24,
+      "end": 404.16,
+      "duration": 3.92,
+      "text": "You can use it to store all your source"
+    },
+    {
+      "start": 401.84,
+      "end": 406.08,
+      "duration": 4.24,
+      "text": "data, vector embeddings, and metadata in"
+    },
+    {
+      "start": 404.16,
+      "end": 408.47900000000004,
+      "duration": 4.319,
+      "text": "the same document. then query everything"
+    },
+    {
+      "start": 406.08,
+      "end": 410.56,
+      "duration": 4.48,
+      "text": "in one place. It also supports real-time"
+    },
+    {
+      "start": 408.479,
+      "end": 412.71999999999997,
+      "duration": 4.241,
+      "text": "stream processing so your agents can"
+    },
+    {
+      "start": 410.56,
+      "end": 414.479,
+      "duration": 3.919,
+      "text": "react to live events as they happen"
+    },
+    {
+      "start": 412.72,
+      "end": 416.24,
+      "duration": 3.52,
+      "text": "rather than relying on stable batch"
+    },
+    {
+      "start": 414.479,
+      "end": 417.919,
+      "duration": 3.44,
+      "text": "updates. If you're building an AI app"
+    },
+    {
+      "start": 416.24,
+      "end": 420.56,
+      "duration": 4.32,
+      "text": "and want to simplify your architecture"
+    },
+    {
+      "start": 417.919,
+      "end": 422.56,
+      "duration": 4.641,
+      "text": "for good, try out MongoDB Atlas for free"
+    },
+    {
+      "start": 420.56,
+      "end": 426.24,
+      "duration": 5.68,
+      "text": "at the link below. Thanks for watching"
+    },
+    {
+      "start": 422.56,
+      "end": 426.24,
+      "duration": 3.68,
+      "text": "and I will see you in the next one."
+    }
+  ],
+  "language": "en",
+  "is_auto_generated": true,
+  "has_timestamps": true,
+  "title": "YouTube Video x36UmiSiEzc",
+  "author": "Unknown",
+  "duration": 0,
+  "thumbnail": "https://img.youtube.com/vi/x36UmiSiEzc/maxresdefault.jpg",
+  "description": ""
+}

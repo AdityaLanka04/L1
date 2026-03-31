@@ -66,6 +66,12 @@ const ProfileQuiz = () => {
       q5: []
     }
   });
+  const [weeklyGoalPreset, setWeeklyGoalPreset] = useState('regular');
+  const weeklyGoalPresets = {
+    light:     { chat: 5,  note: 3,  flashcard: 10, quiz: 2, label: 'Light',     desc: '5 chats · 3 notes · 10 cards · 2 quizzes' },
+    regular:   { chat: 10, note: 5,  flashcard: 20, quiz: 5, label: 'Regular',   desc: '10 chats · 5 notes · 20 cards · 5 quizzes' },
+    intensive: { chat: 20, note: 10, flashcard: 40, quiz: 10, label: 'Intensive', desc: '20 chats · 10 notes · 40 cards · 10 quizzes' },
+  };
   const [userName, setUserName] = useState('');
 
   
@@ -461,7 +467,8 @@ const ProfileQuiz = () => {
 
       try {
         const token = localStorage.getItem('token');
-        
+        const preset = weeklyGoalPresets[weeklyGoalPreset] || weeklyGoalPresets.regular;
+
         await fetch(`${API_URL}/save_complete_profile`, {
           method: 'POST',
           headers: {
@@ -478,6 +485,11 @@ const ProfileQuiz = () => {
             quiz_completed: true
           })
         });
+
+        await fetch(`${API_URL}/api/set_weekly_goals?user_id=${encodeURIComponent(userName)}&chat_goal=${preset.chat}&note_goal=${preset.note}&flashcard_goal=${preset.flashcard}&quiz_goal=${preset.quiz}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }); // silenced
 
         setCurrentStep('complete');
         sessionStorage.setItem('justCompletedOnboarding', 'true');
@@ -765,6 +777,25 @@ const ProfileQuiz = () => {
                     }}
                   >
                     {goal.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {answers.mainSubject && answers.brainwaveGoal && (
+            <div className="form-section">
+              <label className="form-label">weekly activity goals</label>
+              <p className="form-hint">how much do you plan to study each week?</p>
+              <div className="button-group-horizontal">
+                {Object.entries(weeklyGoalPresets).map(([key, preset]) => (
+                  <button
+                    key={key}
+                    className={`choice-btn-horizontal ${weeklyGoalPreset === key ? 'selected' : ''}`}
+                    onClick={() => setWeeklyGoalPreset(key)}
+                  >
+                    <span className="goal-preset-label">{preset.label}</span>
+                    <span className="goal-preset-desc">{preset.desc}</span>
                   </button>
                 ))}
               </div>
