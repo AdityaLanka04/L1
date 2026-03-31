@@ -5,12 +5,13 @@ Creates all tables if they don't exist and adds missing columns
 import sqlite3
 import os
 from sqlalchemy import inspect, text
+from sqlalchemy.engine import make_url
 from models import engine, Base, User, ChatSession, ChatMessage, \
     Flashcard, FlashcardSet, Note, LearningReview, UserStats, \
     ComprehensiveUserProfile, Friendship, FriendRequest, \
     Notification, Achievement, UserAchievement, Leaderboard, Challenge, \
     ChallengeParticipation, ConceptNode, ConceptConnection, KnowledgeRoadmap, \
-    Reminder, ReminderList
+    Reminder, ReminderList, UserGamificationStats, PointTransaction
 from database import DATABASE_URL
 
 def get_model_columns(model):
@@ -91,18 +92,25 @@ def run_migration():
         _run_postgres_migration()
         return
 
-    possible_paths = [
+    db_path = None
+    try:
+        sqlite_path = make_url(DATABASE_URL).database
+        if sqlite_path and sqlite_path != ":memory:":
+            db_path = sqlite_path if os.path.isabs(sqlite_path) else os.path.abspath(sqlite_path)
+    except Exception:
+        db_path = None
+
+    possible_paths = []
+    if db_path:
+        possible_paths.append(db_path)
+    possible_paths.extend([
         os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db'),
         os.path.join(os.path.dirname(__file__), 'brainwave.db'),
         os.path.join(os.path.dirname(__file__), '..', 'brainwave_tutor.db'),
-    ]
-    
-    db_path = None
-    for path in possible_paths:
-        if os.path.exists(path):
-            db_path = path
-            break
-    
+    ])
+
+    db_path = next((path for path in possible_paths if os.path.exists(path)), db_path)
+
     if not db_path:
         db_path = possible_paths[0]
         print(f"📁 Creating new database: {db_path}")
@@ -126,7 +134,8 @@ def run_migration():
         ComprehensiveUserProfile, Friendship, FriendRequest,
         Notification, Achievement, UserAchievement,
         Leaderboard, Challenge, ChallengeParticipation, ConceptNode,
-        ConceptConnection, KnowledgeRoadmap, Reminder, ReminderList
+        ConceptConnection, KnowledgeRoadmap, Reminder, ReminderList,
+        UserGamificationStats, PointTransaction
     ]
     
     try:
@@ -248,6 +257,16 @@ def _run_postgres_migration():
             "license": "VARCHAR(80)",
             "curriculum": "VARCHAR(20)",
             "source_type": "VARCHAR(40)",
+        },
+    )
+
+    add_missing_columns(
+        "user_gamification_stats",
+        {
+            "weekly_chat_goal": "INTEGER DEFAULT 10",
+            "weekly_note_goal": "INTEGER DEFAULT 5",
+            "weekly_flashcard_goal": "INTEGER DEFAULT 20",
+            "weekly_quiz_goal": "INTEGER DEFAULT 5",
         },
     )
 

@@ -64,6 +64,20 @@ if "sqlite" in DATABASE_URL:
         _conn.commit()
 
     with engine.connect() as _conn:
+        _gamification_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(user_gamification_stats)"))}
+        _gamification_additions = {
+            "weekly_chat_goal": "INTEGER DEFAULT 10",
+            "weekly_note_goal": "INTEGER DEFAULT 5",
+            "weekly_flashcard_goal": "INTEGER DEFAULT 20",
+            "weekly_quiz_goal": "INTEGER DEFAULT 5",
+        }
+        for _col, _typ in _gamification_additions.items():
+            if _col not in _gamification_cols:
+                _conn.execute(text(f"ALTER TABLE user_gamification_stats ADD COLUMN {_col} {_typ}"))
+                logger.info("Added column user_gamification_stats.%s", _col)
+        _conn.commit()
+
+    with engine.connect() as _conn:
         _ctx_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(context_documents)"))}
         if "source_name" not in _ctx_cols:
             _conn.execute(text("ALTER TABLE context_documents ADD COLUMN source_name VARCHAR(200)"))
