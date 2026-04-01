@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { formatToLocalTime, getRelativeTime } from '../utils/dateUtils';
 import { HelpTour, HelpButton } from './HelpTour';
 import {
-  CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen, Zap,
-  MessageSquare, HelpCircle, FileText, Network, ChevronRight, Search, User, Home,
-  Brain, Target, Flame, Settings, LogOut, Sparkles, TrendingUp, Layers, Trophy
+  CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon,
+  HelpCircle, FileText, Network, ChevronRight, Search, User, Home,
+  Target, Flame, Settings, LogOut, Sparkles, Layers
 , Menu} from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
@@ -100,8 +100,6 @@ const Dashboard = () => {
   const [weeklyProgress, setWeeklyProgress] = useState([]);
   const [dailyBreakdown, setDailyBreakdown] = useState([]);
   const [weeklyStats, setWeeklyStats] = useState({});
-  const [activeNotesAction, setActiveNotesAction] = useState(null);
-  const [activeFlashcardsAction, setActiveFlashcardsAction] = useState(null);
   const [activeQuickNavItem, setActiveQuickNavItem] = useState(null);
   const [motivationalQuote, setMotivationalQuote] = useState('');
   const [achievements, setAchievements] = useState([]);
@@ -748,20 +746,6 @@ const Dashboard = () => {
     }
     navigateToMyNotes();
   };
-  const setNotesAction = (actionName) => () => setActiveNotesAction(actionName);
-  const clearNotesAction = () => setActiveNotesAction(null);
-  const handleNotesActionBlur = (event) => {
-    if (!event.currentTarget.contains(event.relatedTarget)) {
-      setActiveNotesAction(null);
-    }
-  };
-  const setFlashcardsAction = (actionName) => () => setActiveFlashcardsAction(actionName);
-  const clearFlashcardsAction = () => setActiveFlashcardsAction(null);
-  const handleFlashcardsActionBlur = (event) => {
-    if (!event.currentTarget.contains(event.relatedTarget)) {
-      setActiveFlashcardsAction(null);
-    }
-  };
   const setQuickNavItem = (itemName) => () => setActiveQuickNavItem(itemName);
   const clearQuickNavItem = () => setActiveQuickNavItem(null);
   const handleQuickNavBlur = (event) => {
@@ -1152,12 +1136,10 @@ const Dashboard = () => {
             </div>
             <div className="ds-streak-actions">
               <button className="ds-analytics-btn" onClick={() => navigate('/xp-roadmap')} style={{ borderColor: getWidgetColor('streak'), color: getWidgetColor('streak') }}>
-                <Trophy size={16} />
-                <span>XP ROADMAP</span>
+                XP ROADMAP
               </button>
               <button className="ds-analytics-btn" onClick={() => navigate('/analytics')} style={{ borderColor: getWidgetColor('streak'), color: getWidgetColor('streak') }}>
-                <TrendingUp size={16} />
-                <span>VIEW ANALYTICS</span>
+                VIEW ANALYTICS
               </button>
             </div>
           </div>
@@ -1176,40 +1158,25 @@ const Dashboard = () => {
             </div>
             <button className="ds-recent-view-all" onClick={navigateToMyNotes} style={{ color: getWidgetColor('notes') }}>Library</button>
           </div>
-          <div
-            className="ds-notes-actions"
-            data-active-action={activeNotesAction || undefined}
-            onMouseLeave={clearNotesAction}
-            onBlur={handleNotesActionBlur}
-          >
+          <div className="ds-notes-actions">
             <button
               className="ds-notes-action ds-notes-action-ai"
               onClick={navigateToAIMediaNotes}
-              onMouseEnter={setNotesAction('media')}
-              onFocus={setNotesAction('media')}
               style={{ '--notes-accent': getWidgetColor('notes') }}
             >
-              <div className="ds-notes-action-icon">
-                <Zap size={15} />
-              </div>
               <div className="ds-notes-action-copy">
                 <span className="ds-notes-action-title">AI Media Notes</span>
-                <span className="ds-notes-action-meta">Audio, video, YouTube</span>
+                <small className="ds-notes-action-meta">Audio, video, YouTube</small>
               </div>
             </button>
             <button
               className="ds-notes-action"
               onClick={navigateToMyNotes}
-              onMouseEnter={setNotesAction('manual')}
-              onFocus={setNotesAction('manual')}
               style={{ '--notes-accent': getWidgetColor('notes') }}
             >
-              <div className="ds-notes-action-icon">
-                <BookOpen size={15} />
-              </div>
               <div className="ds-notes-action-copy">
                 <span className="ds-notes-action-title">My Notes</span>
-                <span className="ds-notes-action-meta">Write and organize</span>
+                <small className="ds-notes-action-meta">Write and organize</small>
               </div>
             </button>
           </div>
@@ -1242,40 +1209,25 @@ const Dashboard = () => {
             </div>
             <button className="ds-recent-view-all" onClick={navigateToFlashcards} style={{ color: getWidgetColor('flashcards') }}>View all</button>
           </div>
-          <div
-            className="ds-notes-actions"
-            data-active-action={activeFlashcardsAction || undefined}
-            onMouseLeave={clearFlashcardsAction}
-            onBlur={handleFlashcardsActionBlur}
-          >
+          <div className="ds-notes-actions">
             <button
               className="ds-notes-action ds-notes-action-ai"
               onClick={navigateToFlashcards}
-              onMouseEnter={setFlashcardsAction('generate')}
-              onFocus={setFlashcardsAction('generate')}
               style={{ '--notes-accent': getWidgetColor('flashcards') }}
             >
-              <div className="ds-notes-action-icon">
-                <Zap size={15} />
-              </div>
               <div className="ds-notes-action-copy">
                 <span className="ds-notes-action-title">AI Generate</span>
-                <span className="ds-notes-action-meta">Create from topics</span>
+                <small className="ds-notes-action-meta">Create from topics</small>
               </div>
             </button>
             <button
               className="ds-notes-action"
               onClick={navigateToFlashcards}
-              onMouseEnter={setFlashcardsAction('browse')}
-              onFocus={setFlashcardsAction('browse')}
               style={{ '--notes-accent': getWidgetColor('flashcards') }}
             >
-              <div className="ds-notes-action-icon">
-                <Layers size={15} />
-              </div>
               <div className="ds-notes-action-copy">
                 <span className="ds-notes-action-title">Browse Sets</span>
-                <span className="ds-notes-action-meta">Review your cards</span>
+                <small className="ds-notes-action-meta">Review your cards</small>
               </div>
             </button>
           </div>
@@ -1397,12 +1349,10 @@ const Dashboard = () => {
 
               <div className="ds-qh-duo">
                 <div className="ds-qh-tile ds-qh-tile--big">
-                  <Zap size={14} style={{ color: ac }} />
                   <span className="ds-qh-big-num" style={{ color: ac }}>{fmt(weeklyPts)}</span>
                   <span className="ds-qh-tile-lbl">WK POINTS</span>
                 </div>
                 <div className="ds-qh-tile ds-qh-tile--big">
-                  <Flame size={14} style={{ color: ac }} />
                   <span className="ds-qh-big-num" style={{ color: ac }}>{streak}</span>
                   <span className="ds-qh-tile-lbl">DAY STREAK</span>
                 </div>
@@ -1410,7 +1360,6 @@ const Dashboard = () => {
 
               {rank && (
                 <div className="ds-qh-tile ds-qh-tile--rank">
-                  <Trophy size={13} style={{ color: ac }} />
                   <span className="ds-qh-rank-text">Global Rank</span>
                   <span className="ds-qh-rank-num" style={{ color: ac }}>#{rank}</span>
                 </div>
@@ -1418,11 +1367,11 @@ const Dashboard = () => {
 
               <div className="ds-qh-rings-grid">
                 {[
-                  { icon: MessageSquare, label: 'CHATS',   val: weeklyStats.weeklyAIChats || 0,       goal: gf.weekly_chat_goal || 10 },
-                  { icon: FileText,      label: 'NOTES',   val: weeklyStats.weeklyNotes || 0,          goal: gf.weekly_note_goal || 5 },
-                  { icon: Layers,        label: 'CARDS',   val: weeklyStats.weeklyFlashcards || 0,     goal: gf.weekly_flashcard_goal || 20 },
-                  { icon: Brain,         label: 'QUIZZES', val: gf.weekly_quizzes_completed || 0,      goal: gf.weekly_quiz_goal || 5 },
-                ].map(({ icon: Icon, label, val, goal }) => {
+                  { label: 'CHATS',   val: weeklyStats.weeklyAIChats || 0,       goal: gf.weekly_chat_goal || 10 },
+                  { label: 'NOTES',   val: weeklyStats.weeklyNotes || 0,          goal: gf.weekly_note_goal || 5 },
+                  { label: 'CARDS',   val: weeklyStats.weeklyFlashcards || 0,     goal: gf.weekly_flashcard_goal || 20 },
+                  { label: 'QUIZZES', val: gf.weekly_quizzes_completed || 0,      goal: gf.weekly_quiz_goal || 5 },
+                ].map(({ label, val, goal }) => {
                   const pct = Math.min(val / Math.max(goal, 1), 1);
                   const done = pct >= 1;
                   const ringColor = done ? '#4ade80' : ac;
@@ -1444,7 +1393,6 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div className="ds-qh-ring-meta">
-                        <Icon size={10} style={{ color: ac }} />
                         <span className="ds-qh-ring-lbl">{label}</span>
                       </div>
                       <span className="ds-qh-ring-goal">/{goal}</span>
