@@ -79,12 +79,16 @@ if "sqlite" in DATABASE_URL:
 
     with engine.connect() as _conn:
         _ctx_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(context_documents)"))}
-        if "source_name" not in _ctx_cols:
-            _conn.execute(text("ALTER TABLE context_documents ADD COLUMN source_name VARCHAR(200)"))
-            logger.info("Added column context_documents.source_name")
-        if "license" not in _ctx_cols:
-            _conn.execute(text("ALTER TABLE context_documents ADD COLUMN license VARCHAR(80)"))
-            logger.info("Added column context_documents.license")
+        _ctx_additions = {
+            "source_name": "VARCHAR(200)",
+            "license": "VARCHAR(80)",
+            "curriculum": "VARCHAR(20)",
+            "source_type": "VARCHAR(40)",
+        }
+        for _col, _typ in _ctx_additions.items():
+            if _col not in _ctx_cols:
+                _conn.execute(text(f"ALTER TABLE context_documents ADD COLUMN {_col} {_typ}"))
+                logger.info("Added column context_documents.%s", _col)
         _conn.commit()
 
     with engine.connect() as _conn:
