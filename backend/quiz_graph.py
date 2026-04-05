@@ -280,6 +280,9 @@ def build_prompt(state: QuizGenState) -> dict:
         logger.info("[QUIZ PROMPT] No RAG context — generating from model knowledge only")
 
     parts.append(
+        "MATH FORMATTING: For any mathematical expressions use LaTeX — "
+        "\\( ... \\) for inline, \\[ ... \\] for display. "
+        "Example: 'Solve \\(ax^2 + bx + c = 0\\)' — never write bare math.\n\n"
         "FORMAT: Return ONLY a valid JSON array. Each object must have:\n"
         '{"question_text": "Clear, specific question?", '
         '"question_type": "multiple_choice|true_false|short_answer", '

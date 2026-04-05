@@ -290,6 +290,7 @@
   transition: all 0.2s;
   width: 100%;
   text-align: left;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .fc-nav-item:hover {

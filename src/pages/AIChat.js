@@ -1354,6 +1354,52 @@ const AIChat = ({ sharedMode = false }) => {
   const renderMarkdown = (text) => {
     if (!text) return '';
 
+    // Extract math blocks before marked runs so it can't mangle them
+    const mathPlaceholders = [];
+    const extractMath = (src) => {
+      // Display math first ($$...$$), then inline ($...$), then \[...\] and \(...\)
+      return src
+        .replace(/\$\$([\s\S]+?)\$\$/g, (_, m) => {
+          mathPlaceholders.push(`$$${m}$$`);
+          return `MATHPLACEHOLDER${mathPlaceholders.length - 1}END`;
+        })
+        .replace(/\$([^\n$]+?)\$/g, (_, m) => {
+          mathPlaceholders.push(`$${m}$`);
+          return `MATHPLACEHOLDER${mathPlaceholders.length - 1}END`;
+        })
+        .replace(/\\\[([\s\S]+?)\\\]/g, (_, m) => {
+          mathPlaceholders.push(`\\[${m}\\]`);
+          return `MATHPLACEHOLDER${mathPlaceholders.length - 1}END`;
+        })
+        .replace(/\\\(([^)]+?)\\\)/g, (_, m) => {
+          mathPlaceholders.push(`\\(${m}\\)`);
+          return `MATHPLACEHOLDER${mathPlaceholders.length - 1}END`;
+        });
+    };
+    const restoreMath = (html) =>
+      html.replace(/MATHPLACEHOLDER(\d+)END/g, (_, i) => mathPlaceholders[parseInt(i)]);
+
+    // Auto-wrap bare LaTeX commands and ^-power expressions that have no delimiters.
+    // Conservative: only wraps high-confidence math tokens to avoid false positives.
+    const autoWrapBareMath = (src) => {
+      // 1. Bare LaTeX math commands without delimiters: \frac{...}, \sqrt{...}, etc.
+      //    These are unambiguously math — wrap the whole expression up to end of braces.
+      src = src.replace(
+        /(?<![`$\\])(\\(?:frac|sqrt|sum|int|oint|prod|lim|partial|infty|alpha|beta|gamma|delta|epsilon|varepsilon|theta|lambda|mu|nu|pi|sigma|tau|phi|omega|Sigma|Omega|Delta|Gamma|Lambda|Pi|nabla|pm|mp|times|cdot|leq|geq|neq|approx|equiv|rightarrow|leftarrow|Rightarrow|vec|hat|bar|overline|mathbb|mathbf)\b[^$\n]*)/g,
+        (match) => `$${match.trim()}$`
+      );
+      // 2. Expressions with ^ power notation: e.g. x^2, ax^2 + bx, e^{-x}
+      //    Match: word-char(s) ^ digit-or-brace, optionally followed by algebraic continuation
+      src = src.replace(
+        /(?<![`$\\a-zA-Z])([a-zA-Z][a-zA-Z0-9]*\s*\^[\d{][^$`\n]*?(?=[\s,;.!?)]|$))/g,
+        (match) => match.startsWith('$') ? match : `$${match.trim()}$`
+      );
+      return src;
+    };
+
+    text = autoWrapBareMath(text);
+    text = extractMath(text);
+
     const renderer = new marked.Renderer();
     renderer.heading = ({ text: t, depth }) =>
       `<h${depth} class="md-h${depth}">${t}</h${depth}>`;
@@ -1369,6 +1415,8 @@ const AIChat = ({ sharedMode = false }) => {
     } catch {
       text = `<p>${text}</p>`;
     }
+
+    text = restoreMath(text);
 
     // Highlight ALL-CAPS keywords
     text = text.replace(/>([^<]*)</g, (_, inner) =>

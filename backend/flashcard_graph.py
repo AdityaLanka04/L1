@@ -247,6 +247,9 @@ def build_prompt(state: FlashcardGenState) -> dict:
         logger.info("[FLASHCARD PROMPT] No RAG context — generating from model knowledge only")
 
     parts.append(
+        "MATH FORMATTING: For any mathematical expressions, use LaTeX notation. "
+        "Wrap inline math in single dollar signs: $f(x) = ax^2 + bx + c$. "
+        "Wrap display equations in double dollar signs: $$E = mc^2$$.\n\n"
         "FORMAT: Return ONLY a valid JSON array. Each object must have:\n"
         '{"question": "...", "answer": "...", "difficulty": "' + difficulty + '", '
         '"wrong_options": ["wrong1", "wrong2", "wrong3"]}\n\n'

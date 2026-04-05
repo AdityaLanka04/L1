@@ -606,7 +606,14 @@ def build_prompt_and_respond(state: TutorState) -> dict:
         "'Let me think about this:', or any meta-commentary about how you are structuring your answer. "
         "Go directly to the answer — no preamble, no self-narration. "
         "When reporting on the student's activity, always use the STRUCTURED LEARNING DATA provided - "
-        "never fabricate or guess information."
+        "never fabricate or guess information. "
+        "MATH FORMATTING — THIS IS MANDATORY: Every mathematical expression MUST be wrapped in LaTeX delimiters. "
+        "Use \\( ... \\) for inline math and \\[ ... \\] for display/block equations. "
+        "EXAMPLES — inline: 'The equation is \\(ax^2 + bx + c = 0\\) where \\(a \\neq 0\\).' "
+        "EXAMPLES — display: 'Solving gives:\\[x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\\]' "
+        "NEVER write bare math like: ax^2 + bx + c = 0 or x = -b/2a. "
+        "ALWAYS write: \\(ax^2 + bx + c = 0\\) and \\(x = \\frac{-b}{2a}\\). "
+        "This applies to ALL variables, equations, formulas, and expressions — no exceptions."
     )
     if student_name:
         system += f"\n\nThe student's name is {student_name}. Address them by name naturally (not every sentence)."

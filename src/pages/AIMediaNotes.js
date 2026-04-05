@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Upload, Youtube, FileText, Save, Copy, Mic, Loader,
   Settings, Brain, Zap, Clock, Globe, ChevronLeft, ChevronRight,
@@ -14,6 +14,7 @@ import PodcastStudio from '../components/media/PodcastStudio';
 
 const AIMediaNotes = () => {
   const navigate = useNavigate();
+  const { noteId } = useParams();
   const userName = localStorage.getItem('username');
   const fileInputRef = useRef(null);
   const contentRef = useRef(null);
@@ -311,6 +312,12 @@ const AIMediaNotes = () => {
   }, []);
 
   useEffect(() => {
+    if (noteId) {
+      loadHistoryItem({ id: parseInt(noteId) });
+    }
+  }, [noteId]);
+
+  useEffect(() => {
     if (contentRef.current) {
       contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -377,6 +384,7 @@ const AIMediaNotes = () => {
       });
       setActiveNoteId(item.id);
       setActiveTab('notes');
+      navigate(`/notes/ai-media/${item.id}`, { replace: true });
     } catch (error) {
       console.error('Load error:', error);
       alert(`Failed to load note: ${error.message}`);
@@ -658,76 +666,67 @@ const AIMediaNotes = () => {
             ) : (
               <div className="mn-results">
                 <div className="mn-results-header">
-                  <div className="mn-results-header-top">
-                    <h2>{results.filename}</h2>
-                    <button 
-                      onClick={() => {
-                        setResults(null);
-                        setUploadedFile(null);
-                        setYoutubeUrl('');
-                      }}
-                      className="mn-btn mn-btn-secondary"
-                    >
-                      <Upload size={16} />
-                      New Note
-                    </button>
-                  </div>
+                  <h2 className="mn-results-title">{results.filename}</h2>
                   <div className="mn-results-meta">
                     {results.language_name && (
                       <span className="mn-meta-badge">
-                        <Globe size={14} />
+                        <Globe size={13} />
                         {results.language_name}
                       </span>
                     )}
                     {results.duration > 0 && (
                       <span className="mn-meta-badge">
-                        <Clock size={14} />
+                        <Clock size={13} />
                         {formatTime(results.duration)}
                       </span>
                     )}
                     {results.analysis?.difficulty_level && (
                       <span className="mn-meta-badge">
-                        <Zap size={14} />
+                        <Zap size={13} />
                         {results.analysis.difficulty_level}
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="mn-tabs">
-                  <button
-                    className={`mn-tab ${activeTab === 'notes' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('notes')}
-                  >
-                    <BookOpen size={16} />
-                    <span>NOTES</span>
-                  </button>
-                  <button
-                    className={`mn-tab ${activeTab === 'podcast' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('podcast')}
-                  >
-                    <Mic size={16} />
-                    <span>PODCAST</span>
-                  </button>
+                <div className="mn-tabs-bar">
+                  <div className="mn-tabs">
+                    <button
+                      className={`mn-tab ${activeTab === 'notes' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('notes')}
+                    >
+                      <BookOpen size={15} />
+                      <span>NOTES</span>
+                    </button>
+                    <button
+                      className={`mn-tab ${activeTab === 'podcast' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('podcast')}
+                    >
+                      <Mic size={15} />
+                      <span>PODCAST</span>
+                    </button>
+                  </div>
+                  {activeTab === 'notes' && results.notes && (
+                    <div className="mn-tabs-actions">
+                      <button onClick={() => copyToClipboard(results.notes.content)} className="mn-tab-action-btn">
+                        <Copy size={14} />
+                        <span>Copy</span>
+                      </button>
+                      <button onClick={saveNotes} className="mn-tab-action-btn mn-tab-action-primary">
+                        <Save size={14} />
+                        <span>Save to Notes</span>
+                      </button>
+                      <button onClick={() => setShowImportExport(true)} className="mn-tab-action-btn">
+                        <Zap size={14} />
+                        <span>Convert</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mn-tab-content">
                   {activeTab === 'notes' && results.notes && (
                     <div>
-                      <div className="mn-content-actions">
-                        <button onClick={() => copyToClipboard(results.notes.content)} className="mn-btn mn-btn-secondary">
-                          <Copy size={16} />
-                          Copy
-                        </button>
-                        <button onClick={saveNotes} className="mn-btn mn-btn-primary">
-                          <Save size={16} />
-                          Save to Notes
-                        </button>
-                        <button onClick={() => setShowImportExport(true)} className="convert-btn">
-                          <Zap size={16} />
-                          <span>Convert</span>
-                        </button>
-                      </div>
                       <div className="mn-notes-panel">
                         <div
                           className="mn-notes-output"
@@ -830,7 +829,7 @@ const AIMediaNotes = () => {
                   )}
 
                   {activeTab === 'podcast' && (
-                    <PodcastStudio results={results} userName={userName} />
+                    <PodcastStudio results={results} userName={userName} onExit={() => setActiveTab('notes')} />
                   )}
 
                   {activeTab === 'quiz' && (
