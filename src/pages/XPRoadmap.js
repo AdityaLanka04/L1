@@ -273,12 +273,10 @@ const XPRoadmap = () => {
 
       <div className="xp-roadmap-body">
         <div className="xp-roadmap-main-full">
-          <div className="roadmap-section-header">
-            <Trophy size={24} />
-            <div>
-              <h2>Your XP Journey</h2>
-              <p>{completedCount} of {totalCount} milestones completed ({completionPercentage.toFixed(1)}%)</p>
-            </div>
+          <div className="roadmap-view-header">
+            <span className="roadmap-view-kicker">Progress Tracker</span>
+            <h2 className="roadmap-view-title">XP Journey</h2>
+            <p className="roadmap-view-sub">{completedCount} of {totalCount} milestones completed · {completionPercentage.toFixed(1)}% complete</p>
           </div>
 
           <div className="overall-progress">

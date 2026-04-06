@@ -21,7 +21,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
+/* Browsers do NOT inherit font-family into form elements — force Inter everywhere */
+button,
+input,
+select,
+textarea,
+optgroup,
+option {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code,
+pre {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 

@@ -2546,6 +2546,11 @@ const Flashcards = () => {
             </div>
 
           <nav className="fc-sidebar-nav">
+            <button className={`fc-nav-item fc-nav-item--primary ${activePanel === 'generator' ? 'active' : ''}`} onClick={() => setActivePanel('generator')}>
+              <span className="fc-nav-icon">{Icons.sparkle}</span>
+              <span className="fc-nav-text">Generator</span>
+            </button>
+            <div className="fc-nav-divider" />
             <button className={`fc-nav-item ${activePanel === 'cards' ? 'active' : ''}`} onClick={() => setActivePanel('cards')}>
               <span className="fc-nav-icon">{Icons.cards}</span>
               <span className="fc-nav-text">My Flashcards</span>
@@ -2563,10 +2568,6 @@ const Flashcards = () => {
               {reviewCards.total_cards > 0 && (
                 <span className="fc-nav-badge">{reviewCards.total_cards}</span>
               )}
-            </button>
-            <button className={`fc-nav-item ${activePanel === 'generator' ? 'active' : ''}`} onClick={() => setActivePanel('generator')}>
-              <span className="fc-nav-icon">{Icons.sparkle}</span>
-              <span className="fc-nav-text">Generator</span>
             </button>
             <button className={`fc-nav-item ${activePanel === 'explore' ? 'active' : ''}`} onClick={() => { setActivePanel('explore'); loadAllPublicFlashcards(); }}>
               <span className="fc-nav-icon">{Icons.search}</span>
@@ -2618,14 +2619,10 @@ const Flashcards = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="fc-section-header-text">
-                      <h2>MY FLASHCARDS</h2>
-                      <p>{flashcardHistory.length} {flashcardHistory.length === 1 ? 'SET' : 'SETS'} • {flashcardStats?.total_cards || 0} CARDS TOTAL</p>
-                      {displayedSets.length > 0 && displayedSets.length < getFilteredAndSortedSets().length && (
-                        <p style={{ fontSize: '12px', marginTop: '4px', opacity: 0.7 }}>
-                          Showing {displayedSets.length} of {getFilteredAndSortedSets().length} sets
-                        </p>
-                      )}
+                    <div className="fc-view-header">
+                      <span className="fc-view-kicker">Your Collection</span>
+                      <h2 className="fc-view-title">My Flashcards</h2>
+                      <p className="fc-view-sub">{flashcardHistory.length} {flashcardHistory.length === 1 ? 'set' : 'sets'} · {flashcardStats?.total_cards || 0} cards total</p>
                     </div>
                     
                     <div className={`fc-grid ${isRearranging ? 'fc-grid-rearranging' : ''}`}>

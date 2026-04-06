@@ -463,53 +463,50 @@ const SlideExplorer = () => {
         <aside className="se-sidebar">
           <nav className="se-sidebar-nav">
             <button
-              className={`se-nav-item ${activeView === 'grid' ? 'active' : ''}`}
-              onClick={() => setActiveView('grid')}
-            >
-              <span className="se-nav-icon"><FileText size={20} /></span>
-              <span className="se-nav-text">My Slides</span>
-              {uploadedSlides.length > 0 && <span className="se-slide-count">{uploadedSlides.length}</span>}
-            </button>
-            <button
-              className={`se-nav-item ${activeView === 'upload' ? 'active' : ''} se-upload-btn`}
+              className={`se-nav-item se-nav-item--primary ${activeView === 'upload' ? 'active' : ''}`}
               onClick={() => setActiveView('upload')}
               disabled={uploading}
             >
-              <span className="se-nav-icon"><Upload size={20} /></span>
+              <span className="se-nav-icon"><Upload size={18} /></span>
               <span className="se-nav-text">Upload New</span>
+            </button>
+            <div className="se-nav-divider" />
+            <button
+              className={`se-nav-item ${activeView === 'grid' ? 'active' : ''}`}
+              onClick={() => setActiveView('grid')}
+            >
+              <span className="se-nav-icon"><FileText size={18} /></span>
+              <span className="se-nav-text">My Slides</span>
+              {uploadedSlides.length > 0 && <span className="se-slide-count">{uploadedSlides.length}</span>}
             </button>
 
             {uploadedSlides.length > 0 && (
-              <div className="se-nav-section" style={{ marginTop: '16px' }}>
+              <>
                 <div className="se-nav-section-title">Recents</div>
                 {uploadedSlides.slice(0, 6).map(slide => (
-                  <div
-                    key={slide.id}
-                    className="se-slide-item"
-                    onClick={() => analyzeSlide(slide.id)}
-                  >
-                    <span className="se-nav-icon"><FileText size={20} /></span>
+                  <div key={slide.id} className="se-slide-item" onClick={() => analyzeSlide(slide.id)}>
+                    <span className="se-nav-icon"><FileText size={16} /></span>
                     <div className="se-slide-info">
                       <div className="se-slide-title">{slide.filename || 'Untitled'}</div>
                       <div className="se-slide-meta">{slide.page_count || 0} pages</div>
                     </div>
                     <button className="se-slide-delete-btn" onClick={(e) => deleteSlide(slide.id, e)} title="Delete">
-                      <Trash2 size={14} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 ))}
-              </div>
+              </>
             )}
           </nav>
 
           <div className="se-sidebar-footer">
-            <button className="se-tab-btn" onClick={() => navigate('/dashboard')}>
-              <span className="se-nav-icon"><ChevronLeft size={20} /></span>
+            <button className="se-nav-item" onClick={() => navigate('/dashboard')}>
+              <span className="se-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
               <span className="se-nav-text">Dashboard</span>
             </button>
-            <button className="se-tab-btn" onClick={() => navigate('/learning-review')}>
-              <span className="se-nav-icon"><BookOpen size={20} /></span>
-              <span className="se-nav-text">Learning Hub</span>
+            <button className="se-nav-item" onClick={() => navigate('/ai-chat')}>
+              <span className="se-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+              <span className="se-nav-text">AI Chat</span>
             </button>
           </div>
         </aside>
@@ -517,9 +514,10 @@ const SlideExplorer = () => {
         <main className="se-main-content">
           {activeView === 'upload' ? (
             <div className="se-upload-view">
-              <div className="se-upload-view-header">
-                <h2 className="se-grid-title">UPLOAD PRESENTATION</h2>
-                <p className="se-grid-subtitle">PDF or PowerPoint (.pptx, .ppt)</p>
+              <div className="se-view-header">
+                <span className="se-view-kicker">Add Content</span>
+                <h2 className="se-view-title">Upload Slides</h2>
+                <p className="se-view-sub">PDF or PowerPoint (.pptx, .ppt)</p>
               </div>
               <div
                 className={`se-upload-area ${dragActive ? 'active' : ''} ${uploading ? 'disabled' : ''}`}
@@ -544,17 +542,14 @@ const SlideExplorer = () => {
             </div>
           ) : (
             <>
-          <div className="se-grid-header">
-            <div>
-              <h2 className="se-grid-title">MY SLIDES</h2>
-              <p className="se-grid-subtitle">
-                {uploadedSlides.length} PRESENTATION{uploadedSlides.length !== 1 ? 'S' : ''} • {uploadedSlides.reduce((acc, s) => acc + (s.page_count || 0), 0)} SLIDES TOTAL
-              </p>
-            </div>
+          <div className="se-view-header">
+            <span className="se-view-kicker">Your Library</span>
+            <h2 className="se-view-title">My Slides</h2>
+            <p className="se-view-sub">{uploadedSlides.length} presentation{uploadedSlides.length !== 1 ? 's' : ''} · {uploadedSlides.reduce((acc, s) => acc + (s.page_count || 0), 0)} slides total</p>
           </div>
 
           {loading ? (
-            <div className="se-loading"><Loader size={40} className="se-spinner" /><p>Loading slides...</p></div>
+            <div className="se-loading"><div className="se-pulse-loader"><div className="se-pulse-sq se-pulse-1" /><div className="se-pulse-sq se-pulse-2" /><div className="se-pulse-sq se-pulse-3" /></div></div>
           ) : uploadedSlides.length === 0 ? (
             <div className="se-empty-state">
               <div className="se-empty-icon-wrap"><FileText size={64} /></div>
