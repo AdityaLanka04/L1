@@ -1354,52 +1354,52 @@ const AIChat = ({ sharedMode = false }) => {
   const renderMarkdown = (text) => {
     if (!text) return '';
 
-    // Extract math blocks before marked runs so it can't mangle them
-    const mathPlaceholders = [];
-    const extractMath = (src) => {
-      // Display math first ($$...$$), then inline ($...$), then \[...\] and \(...\)
-      return src
-        .replace(/\$\$([\s\S]+?)\$\$/g, (_, m) => {
-          mathPlaceholders.push(`$$${m}$$`);
-          return `MATHPLACEHOLDER${mathPlaceholders.length - 1}END`;
-        })
-        .replace(/\$([^\n$]+?)\$/g, (_, m) => {
-          mathPlaceholders.push(`$${m}$`);
-          return `MATHPLACEHOLDER${mathPlaceholders.length - 1}END`;
-        })
-        .replace(/\\\[([\s\S]+?)\\\]/g, (_, m) => {
-          mathPlaceholders.push(`\\[${m}\\]`);
-          return `MATHPLACEHOLDER${mathPlaceholders.length - 1}END`;
-        })
-        .replace(/\\\(([^)]+?)\\\)/g, (_, m) => {
-          mathPlaceholders.push(`\\(${m}\\)`);
-          return `MATHPLACEHOLDER${mathPlaceholders.length - 1}END`;
-        });
-    };
-    const restoreMath = (html) =>
-      html.replace(/MATHPLACEHOLDER(\d+)END/g, (_, i) => mathPlaceholders[parseInt(i)]);
+    // ── Step 1: Extract ALL math blocks BEFORE markdown touches them ──────────
+    // Markdown mangles \[, \(, and $$  by treating \ as an escape character
+    // and $ as potential formatting. We replace every math span with a safe
+    // alphanumeric placeholder, let marked run, then put the math back.
+    const mathStore = [];
+    const placeholder = (i) => `ZMATH${i}Z`;
 
-    // Auto-wrap bare LaTeX commands and ^-power expressions that have no delimiters.
-    // Conservative: only wraps high-confidence math tokens to avoid false positives.
-    const autoWrapBareMath = (src) => {
-      // 1. Bare LaTeX math commands without delimiters: \frac{...}, \sqrt{...}, etc.
-      //    These are unambiguously math — wrap the whole expression up to end of braces.
-      src = src.replace(
-        /(?<![`$\\])(\\(?:frac|sqrt|sum|int|oint|prod|lim|partial|infty|alpha|beta|gamma|delta|epsilon|varepsilon|theta|lambda|mu|nu|pi|sigma|tau|phi|omega|Sigma|Omega|Delta|Gamma|Lambda|Pi|nabla|pm|mp|times|cdot|leq|geq|neq|approx|equiv|rightarrow|leftarrow|Rightarrow|vec|hat|bar|overline|mathbb|mathbf)\b[^$\n]*)/g,
-        (match) => `$${match.trim()}$`
-      );
-      // 2. Expressions with ^ power notation: e.g. x^2, ax^2 + bx, e^{-x}
-      //    Match: word-char(s) ^ digit-or-brace, optionally followed by algebraic continuation
-      src = src.replace(
-        /(?<![`$\\a-zA-Z])([a-zA-Z][a-zA-Z0-9]*\s*\^[\d{][^$`\n]*?(?=[\s,;.!?)]|$))/g,
-        (match) => match.startsWith('$') ? match : `$${match.trim()}$`
-      );
+    const extractMath = (src) => {
+      // Display: $$...$$ (may be multiline)
+      src = src.replace(/\$\$([\s\S]+?)\$\$/g, (_, m) => {
+        mathStore.push({ tex: m.trim(), display: true });
+        return placeholder(mathStore.length - 1);
+      });
+      // Display: \[...\] (may be multiline)
+      src = src.replace(/\\\[([\s\S]+?)\\\]/g, (_, m) => {
+        mathStore.push({ tex: m.trim(), display: true });
+        return placeholder(mathStore.length - 1);
+      });
+      // Inline: $...$  (single-line only)
+      src = src.replace(/\$([^\n$]{1,300}?)\$/g, (_, m) => {
+        mathStore.push({ tex: m.trim(), display: false });
+        return placeholder(mathStore.length - 1);
+      });
+      // Inline: \(...\)
+      src = src.replace(/\\\(([^\n]{1,300}?)\\\)/g, (_, m) => {
+        mathStore.push({ tex: m.trim(), display: false });
+        return placeholder(mathStore.length - 1);
+      });
       return src;
     };
 
-    text = autoWrapBareMath(text);
+    // After markdown, swap placeholders back to KaTeX-ready delimiters
+    const restoreMath = (html) => {
+      return html.replace(/ZMATH(\d+)Z/g, (_, i) => {
+        const { tex, display } = mathStore[parseInt(i, 10)];
+        if (display) {
+          // Wrap in a div so KaTeX renders as display block
+          return `<div class="math-display-wrap">$$${tex}$$</div>`;
+        }
+        return `$${tex}$`;
+      });
+    };
+
     text = extractMath(text);
 
+    // ── Step 2: Parse markdown (math is safely placeholdered) ─────────────────
     const renderer = new marked.Renderer();
     renderer.heading = ({ text: t, depth }) =>
       `<h${depth} class="md-h${depth}">${t}</h${depth}>`;
@@ -1416,24 +1416,16 @@ const AIChat = ({ sharedMode = false }) => {
       text = `<p>${text}</p>`;
     }
 
+    // ── Step 3: Restore math delimiters ──────────────────────────────────────
     text = restoreMath(text);
 
-    // Highlight ALL-CAPS keywords
-    text = text.replace(/>([^<]*)</g, (_, inner) =>
-      '>' + inner.replace(/\b([A-Z]{2,})\b/g, '<span class="keyword">$1</span>') + '<'
-    );
-
-    // Wrap math symbols
-    const mathSymbols = ['∑', 'Σ', '∫', '∏', 'Π', '∮', '∯', '∰', '⨌'];
-    mathSymbols.forEach(symbol => {
-      try {
-        text = text.split(symbol).join(`<span class="math-symbol">${symbol}</span>`);
-      } catch {
-        // silenced
-      }
+    // ── Step 4: Highlight ALL-CAPS keywords (skip inside math wrappers) ───────
+    text = text.replace(/>([^<]+)</g, (full, inner) => {
+      // Don't touch content inside math wrappers
+      if (/\$/.test(inner)) return full;
+      return '>' + inner.replace(/\b([A-Z]{3,})\b/g, '<span class="kw-highlight">$1</span>') + '<';
     });
-    
-    
+
     return text;
   };
 
@@ -2044,18 +2036,51 @@ const AIChat = ({ sharedMode = false }) => {
 
         {/* Main Content */}
         <main className={`ac-main ${messages.length === 0 ? 'empty-state' : ''}`}>
+          {/* Persistent vector background */}
+          <svg className="ac-hero-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+                  <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
+                  <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+                  <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
+                  <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+                  <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
+                  <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
+                  <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
+                  <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
+                  <circle cx="600" cy="40" r="5" fill="currentColor"/>
+                  <circle cx="600" cy="760" r="5" fill="currentColor"/>
+                  <circle cx="240" cy="400" r="5" fill="currentColor"/>
+                  <circle cx="960" cy="400" r="5" fill="currentColor"/>
+                  <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
+                  <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
+                  <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
+                  <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
+                  <rect x="24" y="24" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+                  <rect x="44" y="44" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+                  <circle cx="60" cy="60" r="3" fill="currentColor"/>
+                  <rect x="1104" y="704" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+                  <rect x="1124" y="724" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+                  <circle cx="1140" cy="740" r="3" fill="currentColor"/>
+                  <circle cx="120" cy="200" r="2" fill="currentColor"/>
+                  <circle cx="160" cy="160" r="1.5" fill="currentColor"/>
+                  <circle cx="200" cy="200" r="2" fill="currentColor"/>
+                  <circle cx="160" cy="240" r="1.5" fill="currentColor"/>
+                  <circle cx="1080" cy="600" r="2" fill="currentColor"/>
+                  <circle cx="1040" cy="640" r="1.5" fill="currentColor"/>
+                  <circle cx="1000" cy="600" r="2" fill="currentColor"/>
+                  <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
+          </svg>
           {/* Chat Content */}
-          <div 
+          <div
             className="ac-content"
             onScroll={handleScroll}
           >
             {messages.length === 0 ? (
               <div className="ac-empty-center">
-                <div className="ac-welcome">
-                  <h2>{greeting}</h2>
+                <div className="ac-welcome-hero">
+                  <h1 className="ac-welcome-title">{greeting}</h1>
                 </div>
-                {/* Input Box - Centered with greeting when empty */}
-                <div 
+
+                <div
                   className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
@@ -2069,7 +2094,6 @@ const AIChat = ({ sharedMode = false }) => {
                     onChange={handleFileInputChange}
                     style={{ display: 'none' }}
                   />
-                  
                   <button
                     className="ac-input-btn"
                     onClick={() => fileInputRef.current?.click()}
@@ -2078,7 +2102,6 @@ const AIChat = ({ sharedMode = false }) => {
                   >
                     {Icons.attach}
                   </button>
-                  
                   <textarea
                     ref={textareaRef}
                     value={inputMessage}
@@ -2089,7 +2112,6 @@ const AIChat = ({ sharedMode = false }) => {
                     disabled={loading}
                     rows="1"
                   />
-                  
                   <button
                     onClick={sendMessage}
                     disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}

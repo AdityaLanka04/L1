@@ -2992,8 +2992,8 @@
 .ds-quick-hub {
   display: flex;
   flex-direction: column;
-  padding: 14px 12px;
-  gap: 10px;
+  padding: 12px;
+  gap: 7px;
   overflow: hidden;
   height: 100%;
   box-sizing: border-box;
@@ -3001,18 +3001,20 @@
 
 /* ── Bento tiles ───────────────────────────────────────────────────────── */
 .ds-qh-tile {
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-secondary) 55%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
   box-sizing: border-box;
 }
 
-/* Level tile – horizontal split */
+/* Level tile */
 .ds-qh-tile--level {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .ds-qh-lvl-left {
@@ -3020,35 +3022,37 @@
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
+  min-width: 48px;
 }
 
 .ds-qh-lvl-num {
-  font-size: 32px;
+  font-size: 44px;
   font-weight: 900;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.04em;
 }
 
 .ds-qh-lvl-sub {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   color: var(--text-secondary);
-  margin-top: 1px;
+  margin-top: 2px;
+  text-transform: uppercase;
 }
 
 .ds-qh-lvl-right {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .ds-qh-lvl-track {
   width: 100%;
   height: 5px;
   border-radius: 3px;
-  background: var(--border);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
   overflow: hidden;
 }
 
@@ -3059,91 +3063,108 @@
 }
 
 .ds-qh-lvl-xp {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .ds-qh-lvl-xp-max {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-/* Duo: 2 side-by-side tiles */
+/* Duo: WK POINTS + DAY STREAK */
 .ds-qh-duo {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 7px;
 }
 
 .ds-qh-tile--big {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 12px 8px;
+  justify-content: center;
+  gap: 2px;
+  padding: 13px 8px;
 }
 
 .ds-qh-big-num {
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 900;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.04em;
 }
 
 .ds-qh-tile-lbl {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.13em;
   color: var(--text-secondary);
+  text-transform: uppercase;
 }
 
-/* Rank tile – horizontal */
+/* Rank tile */
 .ds-qh-tile--rank {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
+  gap: 0;
+  padding: 9px 14px;
 }
 
 .ds-qh-rank-text {
   flex: 1;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .ds-qh-rank-num {
-  font-size: 16px;
+  font-size: 24px;
   font-weight: 900;
+  letter-spacing: -0.03em;
 }
 
 /* Ring stats grid (2×2) */
 .ds-qh-rings-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 7px;
+  flex: 1;
+  min-height: 0;
 }
 
 .ds-qh-ring-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 10px 6px 8px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-secondary) 55%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 6px 10px;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  transition: border-color 0.18s ease, background 0.18s ease;
+  min-height: 0;
+}
+
+.ds-qh-ring-tile:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .ds-qh-ring-svg-wrap {
   position: relative;
-  width: 58px;
-  height: 58px;
+  width: 90px;
+  height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .ds-qh-ring-svg-wrap svg {
@@ -3155,73 +3176,78 @@
 .ds-qh-ring-inner {
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0;
 }
 
 .ds-qh-ring-num {
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 900;
   line-height: 1;
+  letter-spacing: -0.03em;
 }
 
 .ds-qh-ring-meta {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 
 .ds-qh-ring-lbl {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.13em;
   color: var(--text-secondary);
+  text-transform: uppercase;
 }
 
 .ds-qh-ring-goal {
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--text-secondary);
-  opacity: 0.6;
-  margin-top: -2px;
+  opacity: 0.5;
 }
 
-/* Quest tile – flex: 1 to consume remaining space */
+/* Quest tile */
 .ds-qh-tile--quest {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  flex: 1;
-  min-height: 0;
   justify-content: center;
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .ds-qh-quest-top {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
 }
 
 .ds-qh-quest-name {
   flex: 1;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
 .ds-qh-quest-xp {
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 900;
   white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .ds-qh-quest-desc {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-secondary);
-  line-height: 1.35;
+  line-height: 1.4;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -3232,14 +3258,14 @@
 .ds-qh-quest-bar-row {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 }
 
 .ds-qh-bar-track {
   flex: 1;
   height: 5px;
   border-radius: 3px;
-  background: var(--border);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   overflow: hidden;
 }
 
@@ -3250,8 +3276,8 @@
 }
 
 .ds-qh-quest-count {
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
   color: var(--text-secondary);
   white-space: nowrap;
 }
@@ -3260,14 +3286,14 @@
 .ds-qh-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .ds-qh-nav-item {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 11px 14px;
+  padding: 10px 12px;
   border-radius: 10px;
   background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
   border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
@@ -3275,14 +3301,14 @@
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, padding 0.22s cubic-bezier(0.4, 0, 0.2, 1), min-height 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text-primary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   min-height: 18px;
   outline: none;
 }
 
 .ds-qh-nav-item:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   transform: translateY(-1px);
 }
 

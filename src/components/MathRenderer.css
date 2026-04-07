@@ -1,346 +1,215 @@
+/* ── Base ──────────────────────────────────────────────────────────────────── */
 .math-content {
-  line-height: 1.9;
-  color: inherit;
-  font-size: 15px;
+  line-height: 1.85;
+  color: var(--text-primary);
+  font-size: 17px;
   word-wrap: break-word;
 }
 
+/* ── Paragraphs ─────────────────────────────────────────────────────────────── */
 .math-content p {
-  margin: 0.8em 0;
+  margin: 0 0 0.9em 0;
+  color: var(--text-primary);
 }
+.math-content p:first-child { margin-top: 0; }
+.math-content p:last-child  { margin-bottom: 0; }
 
-.math-content p:first-child {
-  margin-top: 0;
-}
+/* ── Headings ───────────────────────────────────────────────────────────────── */
+.math-content .md-h1,
+.math-content h1 { font-size: 1.45em; font-weight: 900; letter-spacing: -0.02em; margin: 1.3em 0 0.5em; color: var(--text-primary); }
+.math-content .md-h2,
+.math-content h2 { font-size: 1.2em;  font-weight: 800; letter-spacing: -0.01em; margin: 1.2em 0 0.4em; color: var(--accent); }
+.math-content .md-h3,
+.math-content h3 { font-size: 1.05em; font-weight: 700; margin: 1em 0 0.35em; color: var(--accent); }
+.math-content .md-h4,
+.math-content h4 { font-size: 1em;    font-weight: 700; margin: 0.9em 0 0.3em; color: var(--text-primary); }
 
-.math-content p:last-child {
-  margin-bottom: 0;
-}
-
-.math-content h1,
-.math-content h2,
-.math-content h3,
-.math-content h4 {
-  color: inherit;
-  margin: 1.4em 0 0.7em 0;
-  font-weight: 600;
-}
-
+/* ── Lists ──────────────────────────────────────────────────────────────────── */
 .math-content ul,
-.math-content ol {
-  margin: 0.8em 0;
-  padding-left: 2em;
-}
+.math-content ol  { margin: 0.6em 0; padding-left: 1.7em; color: var(--text-primary); }
+.math-content li  { margin: 0.35em 0; line-height: 1.75; }
 
-.math-content li {
-  margin: 0.5em 0;
-  line-height: 1.7;
-}
+/* ── Emphasis ───────────────────────────────────────────────────────────────── */
+.math-content strong,
+.math-content .md-bold-inline { font-weight: 700; color: var(--text-primary); }
+.math-content em { font-style: italic; }
 
-.math-content strong {
-  font-weight: 700;
-  color: inherit;
-}
-
-.math-content em {
-  font-style: italic;
-}
-
-.math-content code {
-  background: rgba(255, 255, 255, 0.08);
-  padding: 0.2em 0.5em;
-  border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.88em;
+/* ── Inline code ────────────────────────────────────────────────────────────── */
+.math-content code,
+.math-content .md-inline-code {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  padding: 0.12em 0.4em;
+  border-radius: 5px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.86em;
   color: var(--accent);
 }
 
+/* ── Code block (pre) ───────────────────────────────────────────────────────── */
 .math-content pre {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 1em;
-  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-primary) 80%, black);
+  border: 1px solid var(--border);
+  padding: 1em 1.2em;
+  border-radius: 10px;
   overflow-x: auto;
   margin: 1em 0;
 }
-
 .math-content pre code {
   background: none;
-  padding: 0;
-  color: #e0e0e0;
-}
-
-.math-content .katex {
-  font-size: 0.91em !important;
-  color: var(--accent) !important;
-}
-
-.math-content .katex * {
-  color: var(--accent) !important;
-}
-
-.math-content .katex .mord,
-.math-content .katex .mop,
-.math-content .katex .mbin,
-.math-content .katex .mrel,
-.math-content .katex .mopen,
-.math-content .katex .mclose,
-.math-content .katex .mpunct,
-.math-content .katex .minner,
-.math-content .katex .msupsub {
-  color: var(--accent) !important;
-}
-
-.math-content .katex .mfrac .frac-line {
-  border-color: var(--accent);
-  background: var(--accent);
-}
-
-.math-content .katex .sqrt-sign {
-  color: var(--accent);
-}
-
-.math-content .katex .sqrt-line {
-  border-color: var(--accent);
-  background: var(--accent);
-}
-
-.math-content .katex-display {
-  display: block !important;
-  margin: 1.5em 0 !important;
-  overflow-x: auto;
-  text-align: center;
-  padding: 0.5em 0;
-  background: transparent;
-  border-radius: 0;
   border: none;
+  padding: 0;
+  color: var(--text-primary);
+  font-size: 0.9em;
 }
 
-.math-content .katex-display > .katex {
-  font-size: 1.54em !important;
-  color: var(--accent) !important;
-  font-weight: 400;
+/* ── Keyword highlights ─────────────────────────────────────────────────────── */
+.math-content .kw-highlight {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.8em;
+  letter-spacing: 0.07em;
 }
 
-.math-content .katex-display::-webkit-scrollbar {
-  height: 6px;
-}
-
-.math-content .katex-display::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
-}
-
-.math-content .katex-display::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 3px;
-}
-
-.math-inline {
-  display: inline;
-}
-
-.math-inline .katex {
-  font-size: 0.875em !important;
-  color: var(--accent) !important;
+/* ════════════════════════════════════════════════════════════════════════════ */
+/* KaTeX – INLINE MATH  ($...$)                                                 */
+/* ════════════════════════════════════════════════════════════════════════════ */
+.math-content .katex {
+  font-size: 1.05em !important;
   vertical-align: middle;
 }
+.math-content .katex,
+.math-content .katex * { color: var(--accent) !important; }
 
-.math-block {
+.math-content .katex .frac-line,
+.math-content .katex .sqrt-line {
+  border-color: var(--accent) !important;
+  background:   var(--accent) !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════ */
+/* KaTeX – DISPLAY MATH  ($$...$$)                                              */
+/* ════════════════════════════════════════════════════════════════════════════ */
+
+/* Wrapper div we inject around every display block */
+.math-content .math-display-wrap {
   display: block;
-  margin: 1.2em 0;
+  margin: 1.4em 0;
+  padding: 0.9em 1.4em;
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg-secondary));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  overflow-x: auto;
+}
+
+.math-content .math-display-wrap .katex-display {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
   text-align: center;
   overflow-x: auto;
-  padding: 0.5em 0;
 }
 
-.math-block .katex {
-  font-size: 1.05em !important;
-  color: var(--accent) !important;
+.math-content .math-display-wrap .katex-display > .katex {
+  font-size: 1.35em !important;
 }
 
-[data-theme-mode="light"] .math-content {
-  color: inherit;
+.math-content .math-display-wrap .katex,
+.math-content .math-display-wrap .katex * { color: var(--accent) !important; }
+
+.math-content .math-display-wrap .frac-line,
+.math-content .math-display-wrap .sqrt-line {
+  border-color: var(--accent) !important;
+  background:   var(--accent) !important;
 }
 
-[data-theme-mode="light"] .math-content h1,
-[data-theme-mode="light"] .math-content h2,
-[data-theme-mode="light"] .math-content h3,
-[data-theme-mode="light"] .math-content strong {
-  color: inherit;
+/* Fallback: KaTeX-generated katex-display without our wrapper */
+.math-content .katex-display {
+  display: block !important;
+  margin: 1.4em 0 !important;
+  padding: 0.9em 1.4em !important;
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg-secondary)) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent) !important;
+  border-left: 3px solid var(--accent) !important;
+  border-radius: 0 10px 10px 0 !important;
+  overflow-x: auto;
+  text-align: center;
+}
+.math-content .katex-display > .katex { font-size: 1.35em !important; }
+.math-content .katex-display .katex,
+.math-content .katex-display .katex * { color: var(--accent) !important; }
+.math-content .katex-display .frac-line,
+.math-content .katex-display .sqrt-line {
+  border-color: var(--accent) !important;
+  background:   var(--accent) !important;
 }
 
-[data-theme-mode="light"] .math-content code {
-  background: rgba(0, 0, 0, 0.05);
+/* Scrollbar on display math */
+.math-content .math-display-wrap::-webkit-scrollbar,
+.math-content .katex-display::-webkit-scrollbar { height: 4px; }
+.math-content .math-display-wrap::-webkit-scrollbar-track,
+.math-content .katex-display::-webkit-scrollbar-track { background: transparent; }
+.math-content .math-display-wrap::-webkit-scrollbar-thumb,
+.math-content .katex-display::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 2px;
+}
+
+/* ── Spacing around display math ────────────────────────────────────────────── */
+.math-content p + .math-display-wrap,
+.math-content p + .katex-display   { margin-top: 1.2em; }
+.math-content .math-display-wrap + p,
+.math-content .katex-display + p   { margin-top: 1.2em; }
+
+/* ── Light theme ────────────────────────────────────────────────────────────── */
+[data-theme-mode="light"] .math-content,
+[data-theme-mode="light"] .math-content p,
+[data-theme-mode="light"] .math-content li { color: var(--text-primary); }
+
+[data-theme-mode="light"] .math-content .math-display-wrap,
+[data-theme-mode="light"] .math-content .katex-display {
+  background: color-mix(in srgb, var(--accent) 6%, white) !important;
+}
+
+/* ── Specialised quiz/flashcard contexts ────────────────────────────────────── */
+.math-content.option-text {
+  display: inline-flex; align-items: center; flex-wrap: wrap;
+  gap: 2px; line-height: 1.5; font-size: inherit; flex: 1; min-width: 0;
+}
+.math-content.question-text      { display: block; font-size: 1.15em; line-height: 1.7; margin: 0; }
+.math-content.question-text-full { display: inline; font-size: inherit; line-height: inherit; }
+.math-content.qbd-question-text  { display: block; font-size: inherit; line-height: 1.6; margin: 0; }
+.math-content.qbd-wrong-question-text { display: block; font-size: inherit; line-height: 1.5; margin: 0; }
+.math-content.qbd-option-text {
+  display: inline-flex; align-items: center; flex-wrap: wrap; gap: 2px;
+  font-size: inherit; line-height: 1.4;
+}
+.math-content.qbd-result-question-math { display: inline; font-size: inherit; line-height: inherit; }
+.math-content.fc-study-card-text,
+.math-content.fc-sr-card-content {
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; font-size: inherit; line-height: 1.6; width: 100%; min-height: 40px;
+}
+.math-content.fc-sr-card-content { font-size: 1.15em; line-height: 1.7; }
+
+/* No display-block styling inside option/inline contexts */
+.math-content.option-text .math-display-wrap,
+.math-content.qbd-option-text .math-display-wrap,
+.math-content.option-text .katex-display,
+.math-content.qbd-option-text .katex-display {
+  display: inline-block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  text-align: left;
 }
 
 @media (max-width: 768px) {
-  .math-content {
-    font-size: 14px;
-  }
-
-  .math-content .katex {
-    font-size: 1.05em;
-  }
-
-  .math-content .katex-display > .katex {
-    font-size: 1.15em;
-  }
-}
-
-.math-content .katex .base {
-  color: var(--accent) !important;
-}
-
-.math-content .katex .mord.text {
-  color: var(--accent) !important;
-}
-
-.math-content .katex .mspace {
-  color: var(--accent) !important;
-}
-
-.math-content .katex .frac-line {
-  border-bottom-color: var(--accent) !important;
-  background-color: var(--accent) !important;
-}
-
-.math-content .katex .sqrt > .root {
-  color: var(--accent) !important;
-}
-
-.math-content .katex .sqrt-sign {
-  border-color: var(--accent) !important;
-}
-
-.math-content .katex .op-symbol {
-  color: var(--accent) !important;
-}
-
-.math-content .katex .op-limits {
-  color: var(--accent) !important;
-}
-
-.math-content .katex .delimsizing {
-  color: var(--accent) !important;
-}
-
-.math-content .katex .delim-size1,
-.math-content .katex .delim-size2,
-.math-content .katex .delim-size3,
-.math-content .katex .delim-size4 {
-  color: var(--accent) !important;
-}
-
-.math-content .katex * {
-  color: var(--accent) !important;
-}
-
-.math-content .katex-display .katex {
-  color: var(--accent) !important;
-  font-weight: 400;
-}
-
-[data-theme-mode="light"] .math-content .katex,
-[data-theme-mode="light"] .math-content .katex * {
-  color: var(--accent);
-}
-
-.math-content p + .katex-display {
-  margin-top: 1.5em;
-}
-
-.math-content .katex-display + p {
-  margin-top: 1.5em;
-}
-
-.math-content p .katex {
-  font-size: 0.91em !important;
-  vertical-align: middle;
-  padding: 0 0.1em;
-}
-
-.math-content p:has(.katex) {
-  line-height: 1.9;
-}
-
-.math-content.option-text {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px;
-  line-height: 1.5;
-  font-size: inherit;
-  flex: 1;
-  min-width: 0;
-}
-
-.math-content.question-text {
-  display: block;
-  font-size: 1.15em;
-  line-height: 1.7;
-  margin: 0;
-}
-
-.math-content.question-text-full {
-  display: inline;
-  font-size: inherit;
-  line-height: inherit;
-}
-
-.math-content.qbd-question-text {
-  display: block;
-  font-size: inherit;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.math-content.qbd-wrong-question-text {
-  display: block;
-  font-size: inherit;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.math-content.qbd-option-text {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px;
-  font-size: inherit;
-  line-height: 1.4;
-}
-
-.math-content.qbd-result-question-math {
-  display: inline;
-  font-size: inherit;
-  line-height: inherit;
-}
-
-.math-content.fc-study-card-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-size: inherit;
-  line-height: 1.6;
-  width: 100%;
-  min-height: 40px;
-}
-
-.math-content.fc-sr-card-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-size: 1.15em;
-  line-height: 1.7;
-  width: 100%;
-  min-height: 40px;
-}
-
-.math-content.option-text .katex-display,
-.math-content.qbd-option-text .katex-display {
-  display: inline-block;
-  margin: 0;
-  text-align: left;
+  .math-content { font-size: 14px; }
+  .math-content .math-display-wrap,
+  .math-content .katex-display { padding: 0.7em 0.9em !important; }
+  .math-content .katex-display > .katex { font-size: 1.15em !important; }
 }

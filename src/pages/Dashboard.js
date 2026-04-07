@@ -1190,7 +1190,7 @@ const Dashboard = () => {
             )) : (
               <div className="ds-recent-empty" onClick={navigateToMyNotes}>
                 <span>No notes yet</span>
-                <span className="ds-recent-empty-cta" style={{ color: getWidgetColor('notes') }}>Start in My Notes →</span>
+                <span className="ds-recent-empty-cta" style={{ color: getWidgetColor('notes') }}>Start in My Notes</span>
               </div>
             )}
           </div>
@@ -1241,7 +1241,7 @@ const Dashboard = () => {
             )) : (
               <div className="ds-recent-empty" onClick={navigateToFlashcards}>
                 <span>No flashcard sets yet</span>
-                <span className="ds-recent-empty-cta" style={{ color: getWidgetColor('flashcards') }}>Create one →</span>
+                <span className="ds-recent-empty-cta" style={{ color: getWidgetColor('flashcards') }}>Create one</span>
               </div>
             )}
           </div>
@@ -1332,8 +1332,6 @@ const Dashboard = () => {
           const fmt = n => n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n);
           return (
             <div className="ds-card ds-quick-hub" style={getWidgetStyle('quick-hub')}>
-              <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('quick-hub'), 0.1)} 0%, transparent 70%)` }}></div>
-
               <div className="ds-qh-tile ds-qh-tile--level">
                 <div className="ds-qh-lvl-left">
                   <span className="ds-qh-lvl-num" style={{ color: ac }}>{level}</span>
@@ -1378,10 +1376,10 @@ const Dashboard = () => {
                   return (
                     <div key={label} className="ds-qh-ring-tile">
                       <div className="ds-qh-ring-svg-wrap">
-                        <svg viewBox="0 0 36 36" width="58" height="58">
-                          <circle cx="18" cy="18" r="15.9155" fill="none" stroke="var(--border)" strokeWidth="3" />
+                        <svg viewBox="0 0 36 36" width="90" height="90">
+                          <circle cx="18" cy="18" r="15.9155" fill="none" stroke="var(--border)" strokeWidth="2" />
                           <circle cx="18" cy="18" r="15.9155" fill="none"
-                            stroke={ringColor} strokeWidth="3"
+                            stroke={ringColor} strokeWidth="2.5"
                             strokeDasharray={`${pct * 100} 100`}
                             strokeLinecap="round"
                             transform="rotate(-90 18 18)"
