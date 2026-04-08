@@ -605,48 +605,40 @@ def get_due_flashcards(
 
 @router.post("/flashcards/sr_review")
 async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
-    """Submit a spaced repetition review with SM-2 grade."""
-    from spaced_repetition import GRADE_MAP, calculate_next_review, preview_intervals
+    """Submit a spaced repetition review — powered by FSRS-6."""
+    from fsrs_scheduler import GRADE_TO_RATING, apply_fsrs_review, preview_intervals as fsrs_preview
 
     user = get_user_by_username(db, request.user_id) or get_user_by_email(db, request.user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     grade_str = request.grade.lower()
-    if grade_str not in GRADE_MAP:
-        raise HTTPException(status_code=400, detail=f"Invalid grade. Must be one of: {list(GRADE_MAP.keys())}")
+    if grade_str not in GRADE_TO_RATING:
+        raise HTTPException(status_code=400, detail=f"Invalid grade. Must be one of: {list(GRADE_TO_RATING)}")
 
     card = db.query(models.Flashcard).filter(models.Flashcard.id == request.card_id).first()
     if not card:
         raise HTTPException(status_code=404, detail="Flashcard not found")
 
-    grade = GRADE_MAP[grade_str]
     old_state = card.sr_state or "new"
 
-    result = calculate_next_review(
-        sr_state=old_state,
-        ease_factor=card.ease_factor or 2.5,
-        interval=card.interval or 0,
-        repetitions=card.repetitions or 0,
-        lapses=card.lapses or 0,
-        grade=grade,
-        learning_step=card.learning_step or 0,
-    )
+    result = apply_fsrs_review(card, grade_str)
 
-    card.sr_state = result["new_state"]
-    card.ease_factor = result["new_ease"]
-    card.interval = result["new_interval"]
-    card.repetitions = result["new_repetitions"]
-    card.lapses = result["new_lapses"]
-    card.learning_step = result["new_learning_step"]
+    card.sr_state       = result["new_state"]
+    card.ease_factor    = result["new_ease"]
+    card.interval       = result["new_interval"]
+    card.repetitions    = result["new_repetitions"]
+    card.lapses         = result["new_lapses"]
+    card.learning_step  = result["new_learning_step"]
     card.next_review_date = result["next_review_date"]
+    card.fsrs_stability = result["fsrs_stability"]
 
     card.times_reviewed = (card.times_reviewed or 0) + 1
-    if grade >= 2:
+    if grade_str in ("good", "easy"):
         card.correct_count = (card.correct_count or 0) + 1
     card.last_reviewed = datetime.now(timezone.utc)
 
-    if result["new_state"] == "review" and grade >= 2:
+    if result["new_state"] == "review" and grade_str in ("good", "easy"):
         card.marked_for_review = False
 
     db.commit()
@@ -668,10 +660,12 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
     if chroma_store.available():
         try:
             summary = (
-                f"SR Review in \"{set_title}\": grade={grade_str}, "
+                f"FSRS Review in \"{set_title}\": grade={grade_str}, "
                 f"Q: {card.question[:80]}. "
                 f"State: {old_state}->{result['new_state']}, "
-                f"Next interval: {result['new_interval']:.1f}d, Ease: {result['new_ease']}"
+                f"interval={result['new_interval']:.1f}d, "
+                f"stability={result['fsrs_stability']:.2f}, "
+                f"retrievability={result['retrievability']:.2%}"
             )
             chroma_store.write_episode(
                 user_id=str(user.id),
@@ -690,7 +684,7 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
         except Exception as e:
             logger.warning(f"Chroma write failed on SR review: {e}")
 
-    if grade == 0:
+    if grade_str == "again":
         from tutor import neo4j_store
         if neo4j_store.available():
             try:
@@ -700,10 +694,7 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
             except Exception as e:
                 logger.warning(f"Neo4j struggle write failed: {e}")
 
-    new_preview = preview_intervals(
-        result["new_state"], result["new_ease"], result["new_interval"],
-        result["new_repetitions"], result["new_lapses"], result["new_learning_step"],
-    )
+    new_preview = fsrs_preview(card)
 
     return {
         "status": "success",
@@ -712,6 +703,8 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
         "new_interval": round(result["new_interval"], 2),
         "new_ease": result["new_ease"],
         "next_review_date": result["next_review_date"].isoformat() + "Z",
+        "fsrs_stability": result["fsrs_stability"],
+        "retrievability": result["retrievability"],
         "interval_preview": new_preview,
     }
 

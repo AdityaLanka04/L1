@@ -3,59 +3,75 @@ from __future__ import annotations
 import logging
 
 from tutor.state import TutorState, StudentState, Neo4jInsights
+from dkt.style_bandit import STYLE_INSTRUCTIONS
 
 logger = logging.getLogger(__name__)
 
 def build_tutor_prompt(state: TutorState) -> str:
-    student = state.get("student_state")
-    insights = state.get("neo4j_insights")
-    memories = state.get("episodic_memories", [])
+    student            = state.get("student_state")
+    insights           = state.get("neo4j_insights")
+    memories           = state.get("episodic_memories", [])
     structured_context = state.get("structured_context", [])
-    chat_history = state.get("chat_history", [])
-    task = state.get("instructional_task", "")
-    user_input = state.get("user_input", "")
+    chat_history       = state.get("chat_history", [])
+    task               = state.get("instructional_task", "")
+    user_input         = state.get("user_input", "")
+    rag_context        = state.get("rag_context", [])
+    analysis           = state.get("language_analysis") or {}
+    selected_style     = state.get("selected_style", "")
+    intent             = state.get("intent", "")
 
-    rag_context = state.get("rag_context", [])
+    is_greeting = intent in ("greeting", "returning_greeting")
 
     sections = []
+    sections.append(_student_section(student, intent=intent))
 
-    sections.append(_student_section(student))
+    # Preferences always shown — survive greetings
+    pref_memories = [m for m in memories if m.startswith("[STUDENT PREFERENCE]")]
+    other_memories = [m for m in memories if not m.startswith("[STUDENT PREFERENCE]")]
+    if pref_memories:
+        sections.insert(1, _preferences_section(pref_memories))
 
-    if chat_history:
-        sections.append(_chat_history_section(chat_history))
-
-    sections.append(_concept_section(insights))
-
-    if structured_context:
-        sections.append(_structured_context_section(structured_context))
-
-    if memories:
-        sections.append(_memory_section(memories))
-
-    if rag_context:
-        logger.info(f"[TUTOR PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) into tutor prompt ***")
-        sections.append(_rag_section(rag_context))
-    else:
-        logger.info("[TUTOR PROMPT] No RAG context — tutor answering from model knowledge only")
+    # Everything below is suppressed for greetings — prevents topic seeding
+    if not is_greeting:
+        if chat_history:
+            sections.append(_chat_history_section(chat_history))
+        sections.append(_concept_section(insights))
+        if structured_context:
+            sections.append(_structured_context_section(structured_context))
+        if other_memories:
+            sections.append(_memory_section(other_memories))
+        if rag_context:
+            logger.info(f"[TUTOR PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) ***")
+            sections.append(_rag_section(rag_context))
+        else:
+            logger.info("[TUTOR PROMPT] No RAG context — model knowledge only")
+        if analysis:
+            conf_section = _confidence_section(analysis)
+            if conf_section:
+                sections.append(conf_section)
+        if selected_style:
+            sections.append(_style_section(selected_style))
 
     sections.append(_task_section(task, user_input))
 
     return "\n\n".join(sections)
 
-def _student_section(s: StudentState | None) -> str:
+def _student_section(s: StudentState | None, intent: str = "") -> str:
     if not s:
         return "[STUDENT STATE]\nNo profile available."
     lines = ["[STUDENT STATE]"]
     if s.first_name:
         lines.append(f"- Name: {s.first_name}")
-    if s.strengths:
-        lines.append(f"- Strengths: {', '.join(s.strengths)}")
-    if s.weaknesses:
-        lines.append(f"- Weaknesses: {', '.join(s.weaknesses)}")
+    # Don't expose topic lists for greetings — LLM uses them to hallucinate suggestions
+    if intent not in ("greeting", "returning_greeting"):
+        if s.strengths:
+            lines.append(f"- Strengths: {', '.join(s.strengths)}")
+        if s.weaknesses:
+            lines.append(f"- Weaknesses: {', '.join(s.weaknesses)}")
+        if s.current_subject:
+            lines.append(f"- Current subject: {s.current_subject}")
     lines.append(f"- Preferred style: {s.preferred_style}")
     lines.append(f"- Difficulty level: {s.difficulty_level}")
-    if s.current_subject:
-        lines.append(f"- Current subject: {s.current_subject}")
     return "\n".join(lines)
 
 def _chat_history_section(history: list[dict]) -> str:
@@ -110,6 +126,61 @@ def _rag_section(chunks: list[str]) -> str:
         lines.append(f"\n--- Source {i} ---")
         lines.append(chunk)
     return "\n".join(lines)
+
+def _confidence_section(analysis: dict) -> str:
+    signal_type      = analysis.get("signal_type", "neutral")
+    knowledge_signal = analysis.get("knowledge_signal", 0.0)
+    concept          = analysis.get("primary_concept")
+    markers          = analysis.get("matched_markers", [])
+
+    if signal_type in ("neutral", "neutral_question") or not signal_type:
+        return ""
+
+    lines = ["[DETECTED CONFIDENCE STATE]"]
+
+    signal_labels = {
+        "confusion":  "CONFUSION (student does not understand)",
+        "re_ask":     "RE-ASK (student needs a completely different explanation)",
+        "doubt":      "CONFIRMATION SEEKING (student is checking their understanding)",
+        "hesitation": "HESITATION (student is uncertain but trying)",
+        "mastery":    "MASTERY SIGNAL (student indicates they understood)",
+        "extension":  "CONCEPTUAL EXTENSION (student making connections — strong signal)",
+    }
+    label = signal_labels.get(signal_type, signal_type.upper())
+    lines.append(f"- Signal: {label}")
+
+    if concept:
+        lines.append(f"- Concept in focus: {concept}")
+
+    lines.append(f"- Knowledge signal: {knowledge_signal:+.2f} (−1 = forgot/lost, +1 = mastered)")
+
+    if markers:
+        lines.append(f"- Detected phrase: \"{markers[0]}\"")
+
+    lines.append(
+        "IMPORTANT: Let this signal shape your response structure. "
+        "Do NOT ignore it. Do NOT narrate it — just act on it."
+    )
+
+    return "\n".join(lines)
+
+
+def _preferences_section(pref_memories: list[str]) -> str:
+    lines = ["[STUDENT PREFERENCES — MUST FOLLOW]"]
+    lines.append("The student has explicitly stated these preferences. You MUST respect them in every response:")
+    for p in pref_memories:
+        clean = p.replace("[STUDENT PREFERENCE]", "").strip()
+        lines.append(f"• {clean}")
+    lines.append("Ignoring these preferences is a critical failure.")
+    return "\n".join(lines)
+
+
+def _style_section(style: str) -> str:
+    instructions = STYLE_INSTRUCTIONS.get(style)
+    if not instructions:
+        return ""
+    return f"[TEACHING FORMAT]\n{instructions}"
+
 
 def _task_section(task: str, user_input: str) -> str:
     lines = ["[TASK]"]

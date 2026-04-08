@@ -11,6 +11,19 @@ from tutor.evaluator import evaluate
 
 logger = logging.getLogger(__name__)
 
+_dkt_vocab: dict | None = None
+_lang_embedding_cache: dict = {}   # user_id → last message embedding (cleared after use)
+
+def _get_vocab() -> dict | None:
+    global _dkt_vocab
+    if _dkt_vocab is None:
+        try:
+            from dkt.language_analyzer import load_vocab_if_available
+            _dkt_vocab = load_vocab_if_available() or {}
+        except Exception:
+            _dkt_vocab = {}
+    return _dkt_vocab or None
+
 CONFUSION_PATTERNS = [
     r"\bi\s*don'?t\s*(get|understand)\b",
     r"\bwhat\s*do\s*you\s*mean\b",
@@ -23,8 +36,10 @@ CONFUSION_PATTERNS = [
 ]
 
 GREETING_PATTERNS = [
-    r"^(hi|hello|hey|good\s*(morning|afternoon|evening))\b",
-    r"^(what'?s\s*up|sup|yo)\b",
+    r"^(hi+|hello+|hey+|hiya|howdy|good\s*(morning|afternoon|evening|day))\b",
+    r"^(what'?s\s*up|sup|yo+|hola+|hoi+|hai+|heya|ello|helo+)\b",
+    r"^(greetings|salut|bonjour|namaste|ciao|hallo+)\b",
+    r"^\W*(hi+|hello+|hey+|hola+)\W*$",   # catches "hoiii!", "hola!!", etc.
 ]
 
 FOLLOWUP_PATTERNS = [
@@ -121,10 +136,56 @@ def detect_intent(state: TutorState) -> dict:
 
     return {"intent": "question"}
 
-async def fetch_student_state(state: TutorState) -> dict:
-    user_id = state.get("user_id", "")
+
+def analyze_message(state: TutorState) -> dict:
+    """
+    Run language analysis on the student's raw message.
+    Detects which concept they're asking about and what confidence signal
+    they're sending (confusion, doubt, mastery, etc.).
+    Stored in state["language_analysis"] — used by prompt builder and persist_updates.
+    """
+    intent = state.get("intent", "")
+    if intent in ("greeting", "returning_greeting", "off_topic", "recall"):
+        return {"language_analysis": {}}
+
+    text       = state.get("user_input", "")
+    vocab      = _get_vocab()
+    user_id    = state.get("user_id", "")
     db_factory = state.get("_db_factory")
-    student = StudentState(user_id=user_id)
+
+    try:
+        from dkt.language_analyzer import analyze
+        db = db_factory() if db_factory else None
+        try:
+            uid    = int(user_id) if user_id else None
+            result = analyze(text, vocab, user_id=uid, db=db)
+        finally:
+            if db is not None:
+                db.close()
+
+        analysis = result.to_dict()
+        logger.info(
+            f"[LANG] signal={analysis['signal_type']} ({result.classification_method}) "
+            f"score={analysis['knowledge_signal']:+.2f} "
+            f"concept={analysis['primary_concept']!r}"
+        )
+        # Store embedding on state so persist_updates can reuse it (avoid re-embedding)
+        _lang_embedding_cache[user_id] = result.embedding
+        return {"language_analysis": analysis}
+    except Exception as e:
+        logger.warning(f"Language analysis failed: {e}")
+        return {"language_analysis": {}}
+
+async def fetch_student_state(state: TutorState) -> dict:
+    user_id    = state.get("user_id", "")
+    db_factory = state.get("_db_factory")
+    chat_id    = state.get("chat_id")
+    chat_history = state.get("chat_history", [])
+    student    = StudentState(user_id=user_id)
+
+    is_new_session    = len(chat_history) == 0
+    session_gap_days  = None
+    decayed_concepts  = []
 
     if db_factory:
         try:
@@ -142,7 +203,7 @@ async def fetch_student_state(state: TutorState) -> dict:
                 ).first()
                 if profile:
                     student.difficulty_level = profile.difficulty_level or "intermediate"
-                    student.current_subject = profile.main_subject or ""
+                    student.current_subject  = profile.main_subject or ""
                     if profile.strong_areas:
                         student.strengths = [s.strip() for s in profile.strong_areas.split(",") if s.strip()]
                     if profile.weak_areas:
@@ -164,24 +225,31 @@ async def fetch_student_state(state: TutorState) -> dict:
                     topic = tm.topic_name or ""
                     if topic and topic not in student.strengths:
                         student.strengths.append(topic)
+
+                if is_new_session:
+                    try:
+                        from dkt.temporal_decay import get_session_gap, get_decayed_concepts
+                        session_gap_days = get_session_gap(uid, chat_id, db)
+                        decayed_concepts = get_decayed_concepts(uid, db, threshold_days=7)
+                        if decayed_concepts:
+                            logger.info(
+                                f"[DECAY] user={uid} session_gap={session_gap_days}d "
+                                f"decayed={[c['concept'] for c in decayed_concepts[:3]]}"
+                            )
+                    except Exception as e:
+                        logger.warning(f"Temporal decay fetch failed: {e}")
+
             finally:
                 db.close()
         except Exception as e:
             logger.warning(f"DB fetch failed: {e}")
 
-    if neo4j_store.available():
-        try:
-            concepts = await neo4j_store.get_student_concepts(user_id)
-            for c in concepts.get("mastered", []):
-                if c not in student.strengths:
-                    student.strengths.append(c)
-            for c in concepts.get("struggling", []):
-                if c not in student.weaknesses:
-                    student.weaknesses.append(c)
-        except Exception as e:
-            logger.warning(f"Neo4j student fetch failed: {e}")
-
-    return {"student_state": student}
+    return {
+        "student_state":     student,
+        "session_gap_days":  session_gap_days,
+        "decayed_concepts":  decayed_concepts,
+        "is_new_session":    is_new_session,
+    }
 
 async def reason_from_graph(state: TutorState) -> dict:
     user_input = state.get("user_input", "")
@@ -373,6 +441,70 @@ def _fetch_activity_summary(db_factory, user_id: str) -> list[str]:
         logger.warning(f"Failed to fetch activity summary: {e}")
         return []
 
+def _fetch_last_session_topics(db_factory, user_id: str, current_chat_id=None) -> list[str]:
+    """
+    Query ChatConceptSignal to find actual topics covered in recent sessions.
+    This is ground truth — no ChromaDB, no hallucination.
+    """
+    if not db_factory:
+        return []
+    try:
+        from models import ChatConceptSignal, ChatSession
+        from sqlalchemy import func
+        db = db_factory()
+        try:
+            uid = int(user_id)
+
+            # Get the last 3 chat sessions (excluding current)
+            sessions_q = db.query(ChatSession).filter(ChatSession.user_id == uid)
+            if current_chat_id:
+                sessions_q = sessions_q.filter(ChatSession.id != current_chat_id)
+            recent_sessions = (
+                sessions_q.order_by(ChatSession.created_at.desc()).limit(3).all()
+            )
+
+            if not recent_sessions:
+                return []
+
+            lines = ["Topics you actually studied in recent sessions (from your chat history):"]
+            for sess in recent_sessions:
+                signals = (
+                    db.query(ChatConceptSignal)
+                    .filter(
+                        ChatConceptSignal.user_id == uid,
+                        ChatConceptSignal.chat_session_id == sess.id,
+                        ChatConceptSignal.knowledge_signal != 0,
+                    )
+                    .order_by(ChatConceptSignal.created_at.asc())
+                    .all()
+                )
+                if not signals:
+                    continue
+
+                # Deduplicate concepts, keep order
+                seen = set()
+                concepts = []
+                for s in signals:
+                    c = (s.concept or "").strip().lower()
+                    if c and c not in seen:
+                        seen.add(c)
+                        concepts.append(s.concept.strip())
+
+                if concepts:
+                    date_str = sess.created_at.strftime("%b %d") if sess.created_at else "recent"
+                    title = (sess.title or "Untitled session")[:40]
+                    lines.append(f"  - Session '{title}' ({date_str}): {', '.join(concepts[:8])}")
+
+            if len(lines) == 1:
+                return ["No specific topics recorded in recent sessions yet."]
+            return lines
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"_fetch_last_session_topics failed: {e}")
+        return []
+
+
 def gate_and_retrieve(state: TutorState) -> dict:
     intent = state.get("intent", "")
     user_input = state.get("user_input", "")
@@ -392,55 +524,70 @@ def gate_and_retrieve(state: TutorState) -> dict:
     memories = []
     structured_context = []
 
+    # Always retrieve student preferences from the important_ collection.
+    # This runs regardless of intent — preferences must survive greetings too.
+    if chroma_store.available():
+        try:
+            prefs = chroma_store.retrieve_important(user_id, query="student preferences instructions", top_k=5)
+            for p in prefs:
+                if p.get("metadata", {}).get("source") == "preference":
+                    memories.insert(0, f"[STUDENT PREFERENCE] {p['document']}")
+        except Exception as e:
+            logger.warning(f"Preference retrieval failed: {e}")
+
     domains = _detect_query_domain(user_input)
 
     if should_retrieve:
-        if "flashcard" in domains or (intent == "recall" and not domains):
-            fc_context = _fetch_flashcard_context(db_factory, user_id)
-            if fc_context:
-                structured_context.extend(fc_context)
+        # For recall: use DB only (ground truth). ChromaDB episode summaries are noisy.
+        # For specific domain questions (flashcard/note): use DB + filtered ChromaDB.
+        if intent != "recall":
+            if "flashcard" in domains:
+                fc_context = _fetch_flashcard_context(db_factory, user_id)
+                if fc_context:
+                    structured_context.extend(fc_context)
 
-            if chroma_store.available():
-                try:
-                    fc_memories = chroma_store.retrieve_episodes_filtered(
-                        user_id, user_input, source_filter="flashcard_review", top_k=5
-                    )
-                    for m in fc_memories:
-                        memories.append(m["document"])
+                if chroma_store.available():
+                    try:
+                        fc_memories = chroma_store.retrieve_episodes_filtered(
+                            user_id, user_input, source_filter="flashcard_review", top_k=5
+                        )
+                        for m in fc_memories:
+                            memories.append(m["document"])
+                        fc_created = chroma_store.retrieve_episodes_filtered(
+                            user_id, user_input, source_filter="flashcard_created", top_k=5
+                        )
+                        for m in fc_created:
+                            memories.append(m["document"])
+                    except Exception as e:
+                        logger.warning(f"Chroma flashcard retrieval failed: {e}")
 
-                    fc_created = chroma_store.retrieve_episodes_filtered(
-                        user_id, user_input, source_filter="flashcard_created", top_k=5
-                    )
-                    for m in fc_created:
-                        memories.append(m["document"])
-                except Exception as e:
-                    logger.warning(f"Chroma flashcard retrieval failed: {e}")
+            if "note" in domains:
+                note_context = _fetch_notes_context(db_factory, user_id)
+                if note_context:
+                    structured_context.extend(note_context)
 
-        if "note" in domains or (intent == "recall" and not domains):
-            note_context = _fetch_notes_context(db_factory, user_id)
-            if note_context:
-                structured_context.extend(note_context)
+                if chroma_store.available():
+                    try:
+                        note_memories = chroma_store.retrieve_episodes_filtered(
+                            user_id, user_input, source_filter="note_activity", top_k=5
+                        )
+                        for m in note_memories:
+                            memories.append(m["document"])
+                    except Exception as e:
+                        logger.warning(f"Chroma note retrieval failed: {e}")
 
-            if chroma_store.available():
-                try:
-                    note_memories = chroma_store.retrieve_episodes_filtered(
-                        user_id, user_input, source_filter="note_activity", top_k=5
-                    )
-                    for m in note_memories:
-                        memories.append(m["document"])
-                except Exception as e:
-                    logger.warning(f"Chroma note retrieval failed: {e}")
+            if "activity" in domains:
+                activity_context = _fetch_activity_summary(db_factory, user_id)
+                if activity_context:
+                    structured_context.extend(activity_context)
 
-        if "activity" in domains:
-            activity_context = _fetch_activity_summary(db_factory, user_id)
-            if activity_context:
-                structured_context.extend(activity_context)
-
-        if chroma_store.available():
+        # General ChromaDB retrieval — only for non-recall question/confusion intents.
+        # Recall uses DB-structured data only (reliable). ChromaDB general summaries are
+        # truncated and cause hallucination ("we discussed organic chemistry") for recall.
+        if chroma_store.available() and intent not in ("recall",):
             try:
-                top_k = 5 if intent == "recall" else 3
                 general_memories = chroma_store.retrieve_episodes(
-                    user_id, user_input, top_k=top_k
+                    user_id, user_input, top_k=3
                 )
                 for m in general_memories:
                     if m not in memories:
@@ -448,13 +595,18 @@ def gate_and_retrieve(state: TutorState) -> dict:
             except Exception as e:
                 logger.warning(f"Chroma retrieval failed: {e}")
 
-        if intent == "recall" and not structured_context and not domains:
+        if intent == "recall":
+            # Ground-truth recall from DB only — no ChromaDB (too noisy/hallucination-prone).
+            chat_id = state.get("chat_id")
+            session_topics = _fetch_last_session_topics(db_factory, user_id, current_chat_id=chat_id)
+            structured_context.extend(session_topics)
+
             fc_context = _fetch_flashcard_context(db_factory, user_id, top_k=5)
+            structured_context.extend(fc_context)
             note_context = _fetch_notes_context(db_factory, user_id, top_k=5)
+            structured_context.extend(note_context)
             activity_context = _fetch_activity_summary(db_factory, user_id)
             structured_context.extend(activity_context)
-            structured_context.extend(fc_context)
-            structured_context.extend(note_context)
 
     rag_chunks: list[str] = []
     use_hs = state.get("use_hs_context", True)
@@ -495,22 +647,152 @@ def gate_and_retrieve(state: TutorState) -> dict:
         "rag_context": rag_chunks,
     }
 
+def select_teaching_style(state: TutorState) -> dict:
+    """
+    NeuralUCB contextual bandit node.
+
+    Reads the per-user NeuralArm state from DB, builds the d=12 context
+    vector (including full mastery dict from AKT), and selects the optimal
+    teaching style via MC Dropout UCB.
+    Explicit student style requests override the bandit selection — the
+    bandit still receives the reward next turn.
+    """
+    intent     = state.get("intent", "")
+    db_factory = state.get("_db_factory")
+    user_id    = state.get("user_id", "")
+    analysis   = state.get("language_analysis") or {}
+
+    if intent in ("greeting", "returning_greeting", "off_topic", "recall", "repetitive"):
+        return {"selected_style": "conceptual", "style_context": [], "style_scores": {}}
+
+    if not db_factory:
+        return {"selected_style": "example_first", "style_context": [], "style_scores": {}}
+
+    try:
+        from dkt.style_bandit import (
+            StyleBandit, build_context, load_bandit,
+            get_recent_signals, STYLES,
+        )
+
+        uid      = int(user_id)
+        db       = db_factory()
+        try:
+            bandit         = load_bandit(uid, db)
+            recent_signals = get_recent_signals(uid, db)
+        finally:
+            db.close()
+
+        student          = state.get("student_state")
+        difficulty       = (student.difficulty_level if student else None) or "intermediate"
+        session_gap      = state.get("session_gap_days")
+        n_interactions   = len(recent_signals)
+
+        primary_concept  = analysis.get("primary_concept")
+        concept_mastery  = 0.5
+        mastery_dict     = None
+        n_decayed        = len(state.get("decayed_concepts") or [])
+        try:
+            from dkt.inference import get_mastery
+            m            = get_mastery(uid, db_factory, apply_decay=True)
+            mastery_dict = m.get("effective_mastery") or {}
+            if primary_concept and primary_concept in mastery_dict:
+                concept_mastery = mastery_dict[primary_concept]
+        except Exception:
+            pass
+
+        context = build_context(
+            difficulty_level = difficulty,
+            recent_signals   = recent_signals,
+            session_gap_days = session_gap,
+            n_interactions   = n_interactions,
+            concept_mastery  = concept_mastery,
+            mastery_dict     = mastery_dict,
+            n_decayed        = n_decayed,
+        )
+
+        explicit_style   = analysis.get("explicit_style")
+        selected, scores = bandit.select(context, forced=explicit_style)
+
+        logger.info(
+            f"[BANDIT] user={uid} selected={selected!r} "
+            f"{'(explicit override)' if explicit_style else ''} "
+            f"scores={{{', '.join(f'{k}: {v:.3f}' for k, v in scores.items())}}}"
+        )
+
+        return {
+            "selected_style": selected,
+            "style_context":  context.tolist(),
+            "style_scores":   scores,
+        }
+
+    except Exception as e:
+        logger.warning(f"[BANDIT] style selection failed: {e}")
+        return {"selected_style": "example_first", "style_context": [], "style_scores": {}}
+
+
 def _build_instructional_task(state: TutorState) -> str:
-    intent = state.get("intent", "")
-    student = state.get("student_state")
-    domains = _detect_query_domain(state.get("user_input", ""))
+    intent   = state.get("intent", "")
+    student  = state.get("student_state")
+    domains  = _detect_query_domain(state.get("user_input", ""))
+    analysis = state.get("language_analysis") or {}
+
+    signal_type = analysis.get("signal_type", "neutral")
+    hint        = analysis.get("instructional_hint", "")
 
     if intent == "greeting":
+        gap          = state.get("session_gap_days")
+        decayed      = state.get("decayed_concepts") or []
+        student_name = student.first_name if student else ""
+
+        anti_hallucination = (
+            "CRITICAL: Do NOT mention, reference, or allude to any past greetings, "
+            "previous conversations, or prior topics the student may have discussed. "
+            "You have no memory of past sessions in this prompt — do not fabricate any. "
+            "Respond only to what the student just said right now."
+        )
+
+        if gap is None or gap < 1:
+            return (
+                f"Respond warmly and very briefly to the greeting. "
+                f"{'Address them as ' + student_name + '.' if student_name else ''} "
+                "Ask what they'd like to work on today. Do NOT dump weak areas or suggestions unprompted. "
+                + anti_hallucination
+            )
+
+        if decayed:
+            top = decayed[0]
+            days_str = f"{int(top['last_seen_days'])} days"
+            ret_pct  = int(top['retrievability'] * 100)
+            return (
+                f"Greet the student warmly. "
+                f"{'Address them as ' + student_name + '. ' if student_name else ''}"
+                f"It has been {days_str} since the student last studied '{top['concept']}'. "
+                f"Their estimated recall of that concept is {ret_pct}% — mention this naturally "
+                f"(e.g. 'last time we were working on X, want to pick up there?'). "
+                "Keep it conversational. Do not list weaknesses or be clinical. "
+                + anti_hallucination
+            )
+
+        if gap > 7:
+            return (
+                f"Greet the student warmly. "
+                f"{'Address them as ' + student_name + '. ' if student_name else ''}"
+                f"It has been {int(gap)} days since their last session — acknowledge the gap naturally "
+                "and ask what they'd like to focus on. "
+                + anti_hallucination
+            )
+
         return (
-            "Respond warmly and briefly. Address the student by name if available. "
-            "If the student has known weaknesses, gently suggest a topic to work on."
+            f"Respond warmly and briefly. "
+            f"{'Address them as ' + student_name + '. ' if student_name else ''}"
+            "Ask what they'd like to work on. Keep it casual and short."
         )
 
     if intent == "returning_greeting":
         return (
-            "The student has greeted again in the same conversation. Don't repeat your welcome. "
-            "Acknowledge them briefly and naturally continue the conversation. "
-            "Reference what you discussed before or suggest something new. Address them by name."
+            "The student has greeted again. Acknowledge briefly in 1 sentence. "
+            "Ask what they want to work on. Do NOT suggest any topic, subject, or example. "
+            "Address them by name."
         )
 
     if intent == "repetitive":
@@ -543,31 +825,35 @@ def _build_instructional_task(state: TutorState) -> str:
             )
         else:
             domain_hints = (
-                "The student is asking about previous sessions or past conversations. "
-                "Use BOTH the STRUCTURED LEARNING DATA and RELEVANT HISTORY sections below. "
-                "Give specific details about their flashcards, notes, and study activity. "
+                "The student is asking what they studied previously. "
+                "Use ONLY the STRUCTURED LEARNING DATA section — it contains their actual flashcard sets, "
+                "notes, and activity summary pulled directly from the database. "
+                "Report what is there specifically: flashcard set names, note titles, chat count, etc. "
             )
 
         return (
             f"{domain_hints}"
-            "If structured data is available, use it to give accurate, specific answers. "
-            "NEVER make up or guess information. Only report what is in the data. "
-            "If there is no data available, honestly say you don't have records of that activity yet."
-        )
-
-    if intent == "confusion":
-        return (
-            "The student is confused. Re-explain the concept using a different approach. "
-            "Be patient, use analogies or step-by-step breakdowns. "
-            "Check their understanding at the end."
+            "CRITICAL RULES:\n"
+            "1. Only report what is LITERALLY in the STRUCTURED LEARNING DATA below.\n"
+            "2. NEVER say 'we previously discussed X' unless X is explicitly listed in 'Topics you actually studied'.\n"
+            "3. If the topics section says 'No specific topics recorded', then say exactly that — do not invent any topics.\n"
+            "4. You may report flashcard set names, note titles, and counts — these are real.\n"
+            "5. Do NOT add commentary, suggestions, or guesses about what was covered."
         )
 
     if intent == "off_topic":
         return "Gently redirect the student toward a learning topic."
 
-    style = student.preferred_style if student else "balanced"
-    difficulty = student.difficulty_level if student else "intermediate"
+    if hint:
+        style      = student.preferred_style if student else "balanced"
+        difficulty = student.difficulty_level if student else "intermediate"
+        return (
+            f"{hint}\n"
+            f"Adjust complexity to {difficulty} level using a {style} style."
+        )
 
+    style      = student.preferred_style if student else "balanced"
+    difficulty = student.difficulty_level if student else "intermediate"
     return (
         f"Answer the student's question clearly at a {difficulty} level. "
         f"Use a {style} explanation style. "
@@ -595,9 +881,10 @@ def build_prompt_and_respond(state: TutorState) -> dict:
     student = state.get("student_state")
     student_name = student.first_name if student and student.first_name else ""
 
+    intent = state.get("intent", "")
+
     system = (
-        "You are Cerbyl, an expert tutor and central learning agent. You have access to the student's "
-        "complete learning history including their flashcards, notes, study sessions, and chat history. "
+        "You are Cerbyl, an expert tutor and central learning agent. "
         "You adapt your teaching to each student's level and learning style. "
         "You never dump information; you teach with intention. "
         "Be concise but thorough. Use markdown formatting for clarity. "
@@ -605,18 +892,26 @@ def build_prompt_and_respond(state: TutorState) -> dict:
         "Do NOT write things like 'Common mistakes to address:', 'For the style he prefers, I will:', "
         "'Let me think about this:', or any meta-commentary about how you are structuring your answer. "
         "Go directly to the answer — no preamble, no self-narration. "
-        "When reporting on the student's activity, always use the STRUCTURED LEARNING DATA provided - "
-        "never fabricate or guess information. "
+        "When reporting on the student's activity, always use the STRUCTURED LEARNING DATA provided — "
+        "never fabricate or guess information about past conversations. "
         "MATH FORMATTING — THIS IS MANDATORY: Every mathematical expression MUST be wrapped in LaTeX delimiters. "
         "Use \\( ... \\) for inline math and \\[ ... \\] for display/block equations. "
-        "EXAMPLES — inline: 'The equation is \\(ax^2 + bx + c = 0\\) where \\(a \\neq 0\\).' "
-        "EXAMPLES — display: 'Solving gives:\\[x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\\]' "
-        "NEVER write bare math like: ax^2 + bx + c = 0 or x = -b/2a. "
-        "ALWAYS write: \\(ax^2 + bx + c = 0\\) and \\(x = \\frac{-b}{2a}\\). "
+        "NEVER write bare math like: ax^2 + bx + c = 0. ALWAYS write: \\(ax^2 + bx + c = 0\\). "
         "This applies to ALL variables, equations, formulas, and expressions — no exceptions."
     )
     if student_name:
         system += f"\n\nThe student's name is {student_name}. Address them by name naturally (not every sentence)."
+
+    if intent in ("greeting", "returning_greeting"):
+        system += (
+            "\n\nGREETING MODE — HARD RULES:\n"
+            "1. Do NOT suggest any subject, topic, concept, equation, or example whatsoever.\n"
+            "2. Do NOT say things like 'we could explore math' or 'perhaps quadratic equations'.\n"
+            "3. Do NOT reference any past conversations or behaviors you think you remember.\n"
+            "4. ONLY greet the student and ask what THEY want to work on.\n"
+            "5. Keep the response to 1-2 sentences maximum.\n"
+            "Violating any of these rules is a critical failure."
+        )
 
     full_prompt = f"{system}\n\n{prompt}"
 
@@ -642,56 +937,181 @@ def evaluate_response(state: TutorState) -> dict:
     return {"evaluation": result}
 
 async def persist_updates(state: TutorState) -> dict:
-    evaluation = state.get("evaluation")
-    if not evaluation:
-        return {"neo4j_updates": [], "chroma_writes": []}
-
-    user_id = state.get("user_id", "")
-    insights = state.get("neo4j_insights")
+    user_id       = state.get("user_id", "")
+    intent        = state.get("intent", "")
+    user_input    = state.get("user_input", "")
+    response_text = state.get("response", "")
+    evaluation    = state.get("evaluation")
+    analysis      = state.get("language_analysis") or {}
+    chat_id       = state.get("chat_id")
+    db_factory    = state.get("_db_factory")
     neo4j_updates = []
     chroma_writes = []
 
-    concepts = insights.relevant_concepts if insights else []
-    primary_concept = concepts[0] if concepts else None
+    signal_type      = analysis.get("signal_type", "neutral")
+    knowledge_signal = float(analysis.get("knowledge_signal", 0.0))
+    primary_concept  = analysis.get("primary_concept")
+    matched_concepts = analysis.get("matched_concepts", [])
 
-    if neo4j_store.available() and primary_concept:
+    if primary_concept and db_factory and intent not in ("greeting", "returning_greeting", "off_topic", "recall"):
         try:
-            if evaluation.mastery_confirmed:
-                await neo4j_store.update_mastery(user_id, primary_concept)
-                neo4j_updates.append({"action": "mastered", "concept": primary_concept})
+            from models import ChatConceptSignal, UserWeakArea
+            from datetime import datetime, timezone
+            db = db_factory()
+            try:
+                uid = int(user_id)
 
-            if evaluation.new_struggle:
-                await neo4j_store.update_struggle(user_id, primary_concept)
-                neo4j_updates.append({"action": "struggle", "concept": primary_concept})
+                sig = ChatConceptSignal(
+                    user_id         = uid,
+                    chat_session_id = chat_id,
+                    concept         = primary_concept[:255],
+                    signal_type     = signal_type,
+                    knowledge_signal= round(knowledge_signal, 4),
+                    message_snippet = user_input[:300],
+                )
+                db.add(sig)
 
-            if evaluation.strategy_worked:
-                task = state.get("instructional_task", "")
-                if task:
-                    await neo4j_store.record_strategy_success(user_id, task[:200])
-                    neo4j_updates.append({"action": "strategy_success"})
+                if knowledge_signal < -0.3:
+                    existing = db.query(UserWeakArea).filter(
+                        UserWeakArea.user_id == uid,
+                        UserWeakArea.topic   == primary_concept,
+                    ).first()
+                    now = datetime.now(timezone.utc)
+                    if existing:
+                        existing.weakness_score  = min(1.0, (existing.weakness_score or 0.0) + abs(knowledge_signal) * 0.15)
+                        existing.incorrect_count = (existing.incorrect_count or 0) + 1
+                        existing.total_questions = (existing.total_questions or 0) + 1
+                        accuracy = (existing.correct_count or 0) / max(existing.total_questions, 1)
+                        existing.accuracy        = round(accuracy, 4)
+                        existing.status          = "needs_practice" if existing.weakness_score > 0.4 else existing.status
+                        existing.last_updated    = now
+                    else:
+                        wa = UserWeakArea(
+                            user_id          = uid,
+                            topic            = primary_concept[:255],
+                            subtopic         = signal_type,
+                            total_questions  = 1,
+                            correct_count    = 0,
+                            incorrect_count  = 1,
+                            accuracy         = 0.0,
+                            weakness_score   = abs(knowledge_signal),
+                            status           = "needs_practice",
+                            priority         = int(abs(knowledge_signal) * 10),
+                            first_identified = now,
+                            last_updated     = now,
+                        )
+                        db.add(wa)
+
+                elif knowledge_signal > 0.4:
+                    existing = db.query(UserWeakArea).filter(
+                        UserWeakArea.user_id == uid,
+                        UserWeakArea.topic   == primary_concept,
+                    ).first()
+                    if existing:
+                        existing.weakness_score  = max(0.0, (existing.weakness_score or 0.0) - knowledge_signal * 0.1)
+                        existing.correct_count   = (existing.correct_count or 0) + 1
+                        existing.total_questions = (existing.total_questions or 0) + 1
+                        accuracy = existing.correct_count / max(existing.total_questions, 1)
+                        existing.accuracy        = round(accuracy, 4)
+                        if existing.weakness_score < 0.2:
+                            existing.status = "improving"
+                        existing.last_updated = datetime.now(timezone.utc)
+
+                db.commit()
+                logger.info(
+                    f"[LANG PERSIST] user={uid} concept={primary_concept!r} "
+                    f"signal={signal_type} score={knowledge_signal:+.2f}"
+                )
+
+                if signal_type not in ("neutral", "neutral_question"):
+                    try:
+                        from dkt.language_analyzer import update_student_head
+                        cached_emb = _lang_embedding_cache.pop(user_id, None)
+                        update_student_head(uid, user_input, signal_type, db, embedding=cached_emb)
+                    except Exception as _e:
+                        logger.debug(f"[LANG] head update skipped: {_e}")
+            finally:
+                db.close()
         except Exception as e:
-            logger.warning(f"Neo4j persistence failed: {e}")
+            logger.warning(f"ChatConceptSignal persist failed: {e}")
 
-    intent = state.get("intent", "")
-    user_input = state.get("user_input", "")
-    response_text = state.get("response", "")
+    selected_style = state.get("selected_style", "")
+    style_context  = state.get("style_context") or []
 
-    memory_summary = None
-    if evaluation and evaluation.distilled_memory:
-        memory_summary = evaluation.distilled_memory
-    elif intent not in ("greeting", "off_topic", "repetitive", "recall"):
-        truncated_resp = response_text[:150] + "..." if len(response_text) > 150 else response_text
-        memory_summary = f"Student asked: {user_input[:100]}. Cerbyl covered: {truncated_resp}"
-
-    if memory_summary and chroma_store.available():
+    if db_factory and intent not in ("greeting", "returning_greeting", "off_topic", "recall", "repetitive"):
         try:
+            import numpy as np
+            from dkt.style_bandit import (
+                load_bandit, save_bandit,
+                get_pending_update, set_pending_update,
+            )
+            uid = int(user_id)
+            db  = db_factory()
+            try:
+                pending = get_pending_update(uid, db)
+                if pending and knowledge_signal != 0.0:
+                    bandit = load_bandit(uid, db)
+                    reward = float(np.clip(knowledge_signal, -1.0, 1.0))
+                    bandit.update(pending["style"], pending["context"], reward)
+                    save_bandit(uid, bandit, db)
+                    logger.info(
+                        f"[BANDIT] reward loop closed: style={pending['style']!r} "
+                        f"reward={reward:+.3f} user={uid}"
+                    )
+
+                if selected_style and style_context:
+                    ctx = np.array(style_context, dtype=np.float64)
+                    set_pending_update(uid, selected_style, ctx, db)
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning(f"[BANDIT] reward update failed: {e}")
+
+    # Detect and persist student preferences (e.g. "don't suggest topics")
+    # These go to the important_ collection so they survive across sessions.
+    if chroma_store.available() and user_input:
+        try:
+            _PREF_PATTERNS = [
+                r"\bdon'?t\b.{0,40}\b(suggest|recommend|tell|show|give)\b",
+                r"\bstop\b.{0,40}\b(suggest|recommend|telling|showing)\b",
+                r"\bnever\b.{0,40}\b(suggest|recommend|tell|show|give)\b",
+                r"\bplease\s+(don'?t|stop|never)\b",
+                r"\bi\s+(prefer|want|like|hate|dislike)\b.{0,60}",
+                r"\balways\b.{0,40}\b(do|use|give|start)\b",
+                r"\buntil\s+i\s+(ask|tell|say)\b",
+            ]
+            import re as _re
+            is_preference = any(_re.search(p, user_input, _re.I) for p in _PREF_PATTERNS)
+            if is_preference:
+                chroma_store.write_important(
+                    user_id  = user_id,
+                    summary  = user_input[:300],
+                    metadata = {
+                        "source":    "preference",
+                        "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+                    },
+                )
+                logger.info(f"[PREF] Stored student preference: {user_input[:80]!r}")
+        except Exception as e:
+            logger.warning(f"Preference detection failed: {e}")
+
+    if chroma_store.available() and intent not in ("greeting", "returning_greeting", "off_topic", "repetitive", "recall"):
+        try:
+            truncated_resp = response_text[:150] + "..." if len(response_text) > 150 else response_text
+            memory_summary = (
+                (evaluation.distilled_memory if evaluation and evaluation.distilled_memory else None)
+                or f"Student asked: {user_input[:100]}. Cerbyl covered: {truncated_resp}"
+            )
             chroma_store.write_episode(
-                user_id=user_id,
-                summary=memory_summary,
-                metadata={
-                    "intent": intent,
-                    "concept": primary_concept or "",
-                    "source": "chat",
+                user_id  = user_id,
+                summary  = memory_summary,
+                metadata = {
+                    "intent":           intent,
+                    "concept":          primary_concept or "",
+                    "signal_type":      signal_type,
+                    "knowledge_signal": str(round(knowledge_signal, 2)),
+                    "teaching_style":   selected_style or "",
+                    "source":           "chat",
                 },
             )
             chroma_writes.append({"summary": memory_summary})

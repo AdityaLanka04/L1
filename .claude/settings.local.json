@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(mv PodcastStudio.tmp PodcastStudio.js)"
+      "Bash(mv PodcastStudio.tmp PodcastStudio.js)",
+      "Bash(pip install:*)"
     ]
   }
 }

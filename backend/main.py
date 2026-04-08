@@ -47,6 +47,7 @@ if "sqlite" in DATABASE_URL:
         "lapses": "INTEGER DEFAULT 0",
         "sr_state": "VARCHAR(20) DEFAULT 'new'",
         "learning_step": "INTEGER DEFAULT 0",
+        "fsrs_stability": "FLOAT DEFAULT 0.0",
     }
     with engine.connect() as _conn:
         _existing = {r[1] for r in _conn.execute(text("PRAGMA table_info(flashcards)"))}
@@ -107,6 +108,17 @@ if "sqlite" in DATABASE_URL:
                 if _col not in _podcast_cols:
                     _conn.execute(text(f"ALTER TABLE podcast_sessions ADD COLUMN {_col} {_typ}"))
                     logger.info("Added column podcast_sessions.%s", _col)
+            _conn.commit()
+
+    with engine.connect() as _conn:
+        _has_style_table = _conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name='student_style_models'")
+        ).fetchone()
+        if _has_style_table:
+            _style_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(student_style_models)"))}
+            if "student_classifier_state" not in _style_cols:
+                _conn.execute(text("ALTER TABLE student_style_models ADD COLUMN student_classifier_state TEXT"))
+                logger.info("Added column student_style_models.student_classifier_state")
             _conn.commit()
 
 
@@ -310,6 +322,7 @@ from routes import (
     weakness,
     imports,
     context as context_routes,
+    knowledge_tracing,
 )
 
 app.include_router(auth.router)
@@ -333,6 +346,7 @@ app.include_router(reviews.router)
 app.include_router(weakness.router)
 app.include_router(imports.router)
 app.include_router(context_routes.router)
+app.include_router(knowledge_tracing.router)
 
 try:
     from flashcard_api_minimal import register_flashcard_api_minimal

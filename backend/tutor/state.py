@@ -42,6 +42,13 @@ class TutorState(TypedDict, total=False):
     rag_context: list[str]
     use_hs_context: bool
     retrieval_gated: bool
+    language_analysis: dict
+    is_new_session: bool
+    session_gap_days: Optional[float]
+    decayed_concepts: list[dict]
+    selected_style: str
+    style_context: list[float]
+    style_scores: dict
     instructional_task: str
     response: str
     evaluation: EvalResult

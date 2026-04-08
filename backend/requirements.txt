@@ -36,10 +36,13 @@ neo4j>=5.0.0
 langsmith>=0.1.0
 
 # AI/ML - Transformers (optional)
-#torch>=2.0.0
+torch>=2.0.0
 #transformers>=4.30.0
 #accelerate>=0.20.0
 sentence-transformers>=2.2.0
+
+# Spaced Repetition - FSRS (Free Spaced Repetition Scheduler)
+fsrs>=6.0.0
 
 # Vector Database
 chromadb>=0.4.0

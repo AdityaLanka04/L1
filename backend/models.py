@@ -944,6 +944,43 @@ class PracticeRecommendation(Base):
     
     user = relationship("User")
 
+class StudentStyleModel(Base):
+    """
+    Per-user NeuralUCB bandit state + per-student signal classifier.
+    One row per user. Updated after every chat interaction.
+    """
+    __tablename__ = "student_style_models"
+
+    id                       = Column(Integer, primary_key=True, index=True)
+    user_id                  = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    bandit_state             = Column(Text, nullable=True)   # JSON: NeuralArm state_dicts per style
+    pending_style            = Column(String(40), nullable=True)   # last selected style awaiting reward
+    pending_context          = Column(Text, nullable=True)         # JSON: context vector for pending_style
+    student_classifier_state = Column(Text, nullable=True)         # JSON: per-student W, b for signal head
+    updated_at               = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+
+
+class ChatConceptSignal(Base):
+    """
+    Per-message language analysis signal.
+    Written after every non-trivial chat message, used by DKT and the weakness engine.
+    """
+    __tablename__ = "chat_concept_signals"
+
+    id               = Column(Integer, primary_key=True, index=True)
+    user_id          = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    chat_session_id  = Column(Integer, ForeignKey("chat_sessions.id"), nullable=True)
+    concept          = Column(String(255), nullable=False, index=True)
+    signal_type      = Column(String(40), nullable=False)
+    knowledge_signal = Column(Float, nullable=False)
+    message_snippet  = Column(String(300), nullable=True)
+    created_at       = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    user = relationship("User")
+
+
 class QuestionAttempt(Base):
     __tablename__ = "question_attempts"
     
