@@ -121,6 +121,16 @@ if "sqlite" in DATABASE_URL:
                 logger.info("Added column student_style_models.student_classifier_state")
             _conn.commit()
 
+    with engine.connect() as _conn:
+        for _new_table in ("student_knowledge_states", "student_memories", "message_ml_logs",
+                           "cerbyl_session_states", "agent_events"):
+            _exists = _conn.execute(
+                text(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{_new_table}'")
+            ).fetchone()
+            if not _exists:
+                logger.info(f"Intelligence table {_new_table} will be created by SQLAlchemy metadata")
+        _conn.commit()
+
 
 def _sync_sequences():
     if "postgres" not in DATABASE_URL.lower():
@@ -278,6 +288,49 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Redis cache init failed: {e}")
 
+    try:
+        from services.ml_pipeline import ModelRegistry
+        from tutor import chroma_store as _cs_for_ml
+        reg = ModelRegistry.get()
+        if _cs_for_ml._embed_model and not reg._embed_model:
+            reg._embed_model = _cs_for_ml._embed_model
+            reg._ready = True
+            logger.info("ML ModelRegistry reused chroma_store embedding model")
+        else:
+            reg.load()
+            logger.info("ML ModelRegistry initialized (sentence-transformers)")
+    except Exception as e:
+        logger.warning(f"ModelRegistry init failed: {e}")
+
+    try:
+        from tutor import chroma_store as _cs
+        from services.memory_service import initialize_memory_service
+
+        if _cs.available():
+            def _embed_fn(text):
+                if _cs._embed_model:
+                    try:
+                        return _cs._embed_model.encode(text, normalize_embeddings=True)
+                    except Exception:
+                        pass
+                return [0.0] * 384
+            initialize_memory_service(_embed_fn, _cs._client)
+            logger.info("CerbylMemoryService initialized")
+        else:
+            logger.warning("MemoryService skipped — ChromaDB unavailable")
+    except Exception as e:
+        logger.warning(f"MemoryService init failed: {e}")
+
+    try:
+        from database import SessionLocal as _sl
+        from services.memory_service import get_memory_service
+        from services.context_agent import initialize_context_agent
+
+        initialize_context_agent(_sl, get_memory_service())
+        logger.info("CentralContextAgent initialized")
+    except Exception as e:
+        logger.warning(f"ContextAgent init failed: {e}")
+
     logger.info("Startup complete")
     yield
 
@@ -323,6 +376,7 @@ from routes import (
     imports,
     context as context_routes,
     knowledge_tracing,
+    intelligence,
 )
 
 app.include_router(auth.router)
@@ -347,6 +401,7 @@ app.include_router(weakness.router)
 app.include_router(imports.router)
 app.include_router(context_routes.router)
 app.include_router(knowledge_tracing.router)
+app.include_router(intelligence.router)
 
 try:
     from flashcard_api_minimal import register_flashcard_api_minimal

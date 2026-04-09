@@ -902,6 +902,10 @@ def build_prompt_and_respond(state: TutorState) -> dict:
     if student_name:
         system += f"\n\nThe student's name is {student_name}. Address them by name naturally (not every sentence)."
 
+    intelligence_ctx = state.get("intelligence_context", "")
+    if intelligence_ctx:
+        system = intelligence_ctx + "\n\n" + system
+
     if intent in ("greeting", "returning_greeting"):
         system += (
             "\n\nGREETING MODE — HARD RULES:\n"

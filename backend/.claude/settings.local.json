@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /d/Brainwave/L1/backend/routes/*.py)",
+      "Bash(mkdir -p /d/Brainwave/L1/backend/services)",
+      "Bash(mkdir -p /d/Brainwave/L1/src/components/WeaknessTracker)",
+      "Bash(python -c \"import models; print\\('models OK'\\)\")",
+      "Bash(python:*)"
+    ]
+  }
+}

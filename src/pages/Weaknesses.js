@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ChevronRight, Target, Brain, MessageSquare, 
-  TrendingUp, AlertTriangle, CheckCircle, 
-  Activity, Zap, RefreshCw
+import {
+  ChevronRight, Target, Brain, MessageSquare,
+  TrendingUp, AlertTriangle, CheckCircle,
+  Activity, Zap, RefreshCw, Cpu
 , Menu} from 'lucide-react';
 import './Weaknesses.css';
 import { API_URL } from '../config';
+import WeaknessTracker from '../components/WeaknessTracker/WeaknessTracker';
 
 const Weaknesses = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const userName = localStorage.getItem('username');
   
+  const [activeTab, setActiveTab] = useState('weaknesses');
   const [loading, setLoading] = useState(true);
   const [weakAreasData, setWeakAreasData] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
@@ -91,10 +93,28 @@ const Weaknesses = () => {
           <span className="weaknesses-subtitle">WEAK AREAS ANALYSIS</span>
         </div>
         <nav className="weaknesses-header-right">
-          <button className="weaknesses-nav-btn weaknesses-nav-btn-accent" onClick={loadWeakAreas}>
-            <RefreshCw size={16} />
-            <span>Refresh</span>
-          </button>
+          <div className="weaknesses-tab-switcher">
+            <button
+              className={`weaknesses-tab-btn ${activeTab === 'weaknesses' ? 'active' : ''}`}
+              onClick={() => setActiveTab('weaknesses')}
+            >
+              <Activity size={15} />
+              <span>Weak Areas</span>
+            </button>
+            <button
+              className={`weaknesses-tab-btn ${activeTab === 'intelligence' ? 'active' : ''}`}
+              onClick={() => setActiveTab('intelligence')}
+            >
+              <Cpu size={15} />
+              <span>Intelligence</span>
+            </button>
+          </div>
+          {activeTab === 'weaknesses' && (
+            <button className="weaknesses-nav-btn weaknesses-nav-btn-accent" onClick={loadWeakAreas}>
+              <RefreshCw size={16} />
+              <span>Refresh</span>
+            </button>
+          )}
           <button className="weaknesses-nav-btn weaknesses-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
@@ -102,7 +122,13 @@ const Weaknesses = () => {
         </nav>
       </header>
 
-      <div className="weaknesses-body">
+      {activeTab === 'intelligence' && (
+        <div className="weaknesses-intelligence-wrapper">
+          <WeaknessTracker userId={userName} token={token} onNavigate={navigate} />
+        </div>
+      )}
+
+      {activeTab === 'weaknesses' && <div className="weaknesses-body">
         <aside className="weaknesses-sidebar">
           <div className="sidebar-section">
             <h3 className="sidebar-heading">FILTER BY SEVERITY</h3>
@@ -187,7 +213,7 @@ const Weaknesses = () => {
             </div>
           )}
         </main>
-      </div>
+      </div>}
     </div>
   );
 };

@@ -694,6 +694,26 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
             except Exception as e:
                 logger.warning(f"Neo4j struggle write failed: {e}")
 
+    try:
+        from services.context_agent import get_context_agent, LearningEvent
+        _agent = get_context_agent()
+        if _agent:
+            _concept_name = set_title.replace("Flashcards: ", "") if set_title else card.category or ""
+            _correct = grade_str in ("good", "easy")
+            _event = LearningEvent(
+                student_id=str(user.id),
+                source="flashcard",
+                event_type="review",
+                concept_id=str(card.set_id),
+                concept_name=_concept_name,
+                correct=_correct,
+                wrong_count=0 if _correct else 1,
+                raw_data={"grade": grade_str, "difficulty": card.difficulty or "medium"},
+            )
+            _agent.record_event(db, _event)
+    except Exception as _ae:
+        logger.debug(f"[Flashcard] agent event skipped: {_ae}")
+
     new_preview = fsrs_preview(card)
 
     return {

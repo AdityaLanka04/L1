@@ -55,6 +55,7 @@ class TutorState(TypedDict, total=False):
     neo4j_updates: list[dict]
     chroma_writes: list[dict]
     error: Optional[str]
+    intelligence_context: Optional[str]
     _ai_client: Any
     _hs_ai_client: Any
     _db_factory: Any

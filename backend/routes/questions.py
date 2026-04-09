@@ -649,6 +649,24 @@ async def submit_question_answers(
         except Exception as neo4j_err:
             logger.warning(f"Neo4j mastery write failed on quiz submit: {neo4j_err}")
 
+        try:
+            from services.context_agent import get_context_agent, LearningEvent
+            _agent = get_context_agent()
+            if _agent and topic:
+                _event = LearningEvent(
+                    student_id=str(question_set.user_id),
+                    source="quiz",
+                    event_type="completed",
+                    concept_id=str(question_set_id),
+                    concept_name=topic[:100],
+                    score=score / 100.0,
+                    wrong_questions=incorrect_count,
+                    time_seconds=0,
+                )
+                _agent.record_event(db, _event)
+        except Exception as _ae:
+            logger.debug(f"[Quiz] agent event skipped: {_ae}")
+
         return {
             "status": "success",
             "score": round(score, 1),
