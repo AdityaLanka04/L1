@@ -278,10 +278,11 @@ const WeaknessPractice = () => {
             <div className="start-icon">
               <Brain size={64} />
             </div>
-            <h2>Practice: {topic}</h2>
-            <p className="start-description">
-              Improve your understanding with personalized questions tailored to your weaknesses
-            </p>
+            <div className="view-heading">
+              <span className="view-kicker">Targeted Practice</span>
+              <h2 className="view-title">Practice: {topic}</h2>
+              <p className="view-sub">Work through personalized questions</p>
+            </div>
             
             <div className="start-details">
               <div className="detail-item">
@@ -349,7 +350,11 @@ const WeaknessPractice = () => {
             <div className="summary-icon">
               <Award size={64} />
             </div>
-            <h2>Practice Complete!</h2>
+            <div className="view-heading">
+              <span className="view-kicker">Session Complete</span>
+              <h2 className="view-title">Practice Complete!</h2>
+              <p className="view-sub">Review your performance below</p>
+            </div>
             <p className="summary-topic">{sessionSummary.topic}</p>
             
             <div className="summary-stats-grid">

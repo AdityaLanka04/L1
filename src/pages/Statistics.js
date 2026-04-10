@@ -207,7 +207,7 @@ const Statistics = () => {
               <div className="st-performance-card">
                 <div className="st-performance-header st-strength">
                   <TrendingUp size={20} />
-                  <h3 className="st-performance-title">Strength Areas</h3>
+                  <span className="view-kicker">Strength Areas</span>
                 </div>
                 {stats.strengthAreas.length > 0 ? (
                   <div className="st-performance-list">
@@ -226,7 +226,7 @@ const Statistics = () => {
               <div className="st-performance-card">
                 <div className="st-performance-header st-warning">
                   <Target size={20} />
-                  <h3 className="st-performance-title">Areas for Improvement</h3>
+                  <span className="view-kicker">Areas for Improvement</span>
                 </div>
                 {stats.improvementAreas.length > 0 ? (
                   <div className="st-performance-list">
@@ -246,8 +246,11 @@ const Statistics = () => {
             {learningReviews.length > 0 && (
               <div className="st-reviews-section">
                 <div className="st-section-header">
-                  <h2 className="st-section-title">Recent Sessions</h2>
-                  <p className="st-section-subtitle">Your learning history</p>
+                  <div className="view-heading">
+                    <span className="view-kicker">Track Record</span>
+                    <h2 className="view-title">Recent Sessions</h2>
+                    <p className="view-sub">Your learning history</p>
+                  </div>
                 </div>
 
                 <div className="st-reviews-list">

@@ -4840,23 +4840,25 @@ h1.note-title ::-moz-selection,
 .notes-redesign .folder-item,
 .notes-redesign .note-list-item {
   border: 1px solid transparent;
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 10px;
 }
 
 .notes-redesign .folder-item:hover,
 .notes-redesign .note-list-item:hover {
-  border-color: color-mix(in srgb, var(--nr-accent) 35%, transparent);
-  background: color-mix(in srgb, var(--nr-accent) 10%, transparent);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--nr-accent) 28%, transparent);
+  background: color-mix(in srgb, var(--nr-accent) 9%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--nr-accent) 12%, transparent);
+  transform: translateX(3px);
 }
 
 .notes-redesign .note-list-item.active,
 .notes-redesign .folder-item.active {
-  border-color: var(--nr-accent);
-  background: color-mix(in srgb, var(--nr-accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--nr-accent) 50%, transparent);
+  background: color-mix(in srgb, var(--nr-accent) 14%, transparent);
   color: var(--nr-text-primary);
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--nr-accent) 18%, transparent);
+  transform: translateX(2px);
 }
 
 .notes-redesign .note-card {

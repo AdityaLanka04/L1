@@ -2500,6 +2500,38 @@ const Flashcards = () => {
   
   return (
     <div className="flashcards-page">
+      <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
+        <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
+        <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+        <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
+        <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
+        <circle cx="600" cy="40" r="5" fill="currentColor"/>
+        <circle cx="600" cy="760" r="5" fill="currentColor"/>
+        <circle cx="240" cy="400" r="5" fill="currentColor"/>
+        <circle cx="960" cy="400" r="5" fill="currentColor"/>
+        <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
+        <rect x="24" y="24" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="44" y="44" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+        <circle cx="60" cy="60" r="3" fill="currentColor"/>
+        <rect x="1104" y="704" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="1124" y="724" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+        <circle cx="1140" cy="740" r="3" fill="currentColor"/>
+        <circle cx="120" cy="200" r="2" fill="currentColor"/>
+        <circle cx="160" cy="160" r="1.5" fill="currentColor"/>
+        <circle cx="200" cy="200" r="2" fill="currentColor"/>
+        <circle cx="160" cy="240" r="1.5" fill="currentColor"/>
+        <circle cx="1080" cy="600" r="2" fill="currentColor"/>
+        <circle cx="1040" cy="640" r="1.5" fill="currentColor"/>
+        <circle cx="1000" cy="600" r="2" fill="currentColor"/>
+        <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
+      </svg>
       <div className="fc-layout">
         <header className="hub-header">
           {sidebarCollapsed && (
@@ -2738,9 +2770,10 @@ const Flashcards = () => {
           {activePanel === 'generator' && (
             <>
               <div className="fc-content">
-                <div className="fc-section-header-text">
-                  <h2>CREATE FLASHCARDS</h2>
-                  <p>AI-POWERED GENERATION OR CREATE YOUR OWN</p>
+                <div className="fc-view-header">
+                  <span className="fc-view-kicker">AI-Powered</span>
+                  <h2 className="fc-view-title">Create Flashcards</h2>
+                  <p className="fc-view-sub">Generate with AI by topic, from chat history, or build your own</p>
                 </div>
                 
                 <div className="fc-generator">
@@ -3113,9 +3146,10 @@ const Flashcards = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="fc-section-header-text">
-                      <h2>NEEDS REVIEW</h2>
-                      <p>CARDS YOU MARKED AS "I DON'T KNOW THIS"</p>
+                    <div className="fc-view-header">
+                      <span className="fc-view-kicker">Weak Cards</span>
+                      <h2 className="fc-view-title">Needs Review</h2>
+                      <p className="fc-view-sub">Cards you marked as "I don't know this" — practice them to mastery</p>
                     </div>
                     
                     <div className="fc-review-section">
@@ -3198,30 +3232,38 @@ const Flashcards = () => {
                     <p>Searching public flashcards...</p>
                   </div>
                 ) : publicFlashcards.length === 0 ? (
-                  <div className="fc-empty">
-                    <h3>No Public Flashcards Found</h3>
-                    <p>Search for flashcard sets shared by the community</p>
-                    
-                    <div className="fc-empty-search-container">
-                      <div className="fc-search fc-search-large">
-                        <input 
+                  <>
+                    <div className="fc-view-header">
+                      <span className="fc-view-kicker">Community</span>
+                      <h2 className="fc-view-title">Explore Public</h2>
+                      <p className="fc-view-sub">Discover and copy flashcard sets shared by the community</p>
+                    </div>
+                    <div className="fc-explore-search-landing">
+                      <div className="fc-explore-searchbar">
+                        <span className="fc-explore-search-icon">{Icons.search}</span>
+                        <input
                           type="text"
-                          placeholder="Search public flashcards..."
+                          className="fc-explore-search-input"
+                          placeholder="Search public flashcard sets..."
                           value={publicSearchQuery}
                           onChange={(e) => setPublicSearchQuery(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && searchPublicFlashcards()}
                         />
-                        <button className="fc-search-icon search-btn" onClick={() => searchPublicFlashcards()} type="button">
-                          {Icons.search}
+                        <button className="fc-explore-search-btn" onClick={() => searchPublicFlashcards()} type="button">
+                          Search
                         </button>
                       </div>
+                      <button className="fc-btn fc-btn-secondary fc-explore-browse-btn" onClick={loadAllPublicFlashcards}>
+                        Browse All Public Sets
+                      </button>
                     </div>
-                  </div>
+                  </>
                 ) : (
                   <>
-                    <div className="fc-section-header-text">
-                      <h2>EXPLORE PUBLIC FLASHCARDS</h2>
-                      <p>DISCOVER AND COPY FLASHCARD SETS FROM THE COMMUNITY</p>
+                    <div className="fc-view-header">
+                      <span className="fc-view-kicker">Community</span>
+                      <h2 className="fc-view-title">Explore Public</h2>
+                      <p className="fc-view-sub">Discover and copy flashcard sets shared by the community</p>
                     </div>
                     
                     <div className="fc-public-search-bar">
@@ -3297,12 +3339,17 @@ const Flashcards = () => {
 
           {activePanel === 'sr_study' && (
             <div className="fc-content">
-              <div className="fc-sr-panel-header">
-                <h2>Spaced Repetition</h2>
-                <p><span>{dueCards.due_count}</span> Cards Due Today</p>
+              <div className="fc-view-header">
+                <span className="fc-view-kicker">Spaced Repetition Algorithm</span>
+                <h2 className="fc-view-title">Study Queue</h2>
+                <p className="fc-view-sub">
+                  {dueCards.due_count > 0
+                    ? `${dueCards.due_count} card${dueCards.due_count !== 1 ? 's' : ''} due today`
+                    : "You're all caught up — no cards due right now"}
+                </p>
               </div>
 
-              <div className="fc-sr-summary">
+              <div className="fc-sr-queue-row">
                 <div className="fc-sr-summary-item">
                   <span className="fc-sr-dot fc-sr-dot-new"></span>
                   <span className="fc-sr-count">{dueCards.new_count || 0}</span>
@@ -3323,13 +3370,13 @@ const Flashcards = () => {
                   <span className="fc-sr-count">{dueCards.relearning_count || 0}</span>
                   <span className="fc-sr-label">Relearning</span>
                 </div>
-              </div>
 
-              {dueCards.due_count > 0 && (
-                <button className="fc-btn fc-btn-primary fc-sr-start-btn" onClick={startSrStudy}>
-                  {Icons.bolt} Start Review ({dueCards.due_count} cards)
-                </button>
-              )}
+                {dueCards.due_count > 0 && (
+                  <button className="fc-btn fc-btn-primary fc-sr-start-btn-inline" onClick={startSrStudy}>
+                    {Icons.bolt} Start Review ({dueCards.due_count})
+                  </button>
+                )}
+              </div>
 
               {dueCards.due_count === 0 && (
                 <div className="fc-sr-empty">
@@ -3342,7 +3389,10 @@ const Flashcards = () => {
               {/* SR Stats Section */}
               {srStats && (
                 <div className="fc-sr-stats-panel">
-                  <h3 className="fc-sr-stats-title">Your Stats</h3>
+                  <div className="fc-sr-stats-heading">
+                    <span className="fc-view-kicker" style={{opacity:1}}>Algorithm Data</span>
+                    <h3 className="fc-sr-stats-title">Your Learning Stats</h3>
+                  </div>
 
                   <div className="fc-sr-stats-grid">
                     <div className="fc-sr-stat-card">
@@ -3430,7 +3480,10 @@ const Flashcards = () => {
 
               {/* AI Suggestions Section */}
               <div className="fc-sr-ai-section">
-                <h3 className="fc-sr-stats-title">AI Study Coach</h3>
+                <div className="fc-sr-stats-heading">
+                  <span className="fc-view-kicker" style={{opacity:1}}>Personalized</span>
+                  <h3 className="fc-sr-stats-title">AI Study Coach</h3>
+                </div>
                 <button
                   className="fc-btn fc-btn-secondary fc-sr-ai-btn"
                   onClick={loadAiSuggestions}
@@ -3497,9 +3550,10 @@ const Flashcards = () => {
           {activePanel === 'statistics' && (
             <>
               <div className="fc-content">
-                <div className="fc-section-header-text">
-                  <h2>STATISTICS & ANALYTICS</h2>
-                  <p>TRACK YOUR LEARNING PROGRESS</p>
+                <div className="fc-view-header">
+                  <span className="fc-view-kicker">Performance</span>
+                  <h2 className="fc-view-title">Statistics</h2>
+                  <p className="fc-view-sub">Track your learning progress and mastery over time</p>
                 </div>
                 
                 {flashcardStats ? (

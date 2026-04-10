@@ -74,3 +74,68 @@ pre {
 *::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--accent, #6366f1) 120%, white);
 }
+
+/* ══════════════════════════════════════════════════════
+   GLOBAL CINEMATIC HEADING UTILITY
+   Use: <div class="view-heading"> <span class="view-kicker"> <h2 class="view-title"> <p class="view-sub">
+   ══════════════════════════════════════════════════════ */
+.view-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent, #6366f1) 12%, transparent);
+  position: relative;
+  flex-shrink: 0;
+  margin-bottom: 32px;
+}
+.view-heading::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 80px;
+  height: 2px;
+  background: var(--accent, #6366f1);
+}
+.view-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  color: var(--accent, #6366f1);
+  opacity: 0.8;
+  font-family: 'Inter', sans-serif;
+  display: block;
+}
+.view-title {
+  font-size: clamp(32px, 3.5vw, 48px);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--text-primary, #fff);
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+}
+.view-sub {
+  font-size: 14px;
+  color: color-mix(in srgb, var(--text-primary, #fff) 40%, transparent);
+  font-weight: 500;
+  margin-top: 4px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ══════════════════════════════════════════════════════
+   GLOBAL GEOMETRIC CIRCLE BACKGROUND
+   Usage: drop <svg className="geo-bg"> as first child of any page wrapper
+   ══════════════════════════════════════════════════════ */
+.geo-bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  color: var(--accent, #6366f1);
+  opacity: 0.07;
+}

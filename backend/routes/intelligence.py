@@ -508,3 +508,274 @@ def _mastery_color(p: float) -> str:
     if p < 0.85:
         return "light_green"
     return "bright_green"
+
+
+# ── RL / Bandit Analytics Endpoints ───────────────────────────────────────────
+
+@router.get("/rl/strategy-performance/{user_id_param}")
+async def get_rl_strategy_performance(
+    user_id_param: str,
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token),
+):
+    """
+    Per-student RL bandit insights.
+    Returns strategy stats, top learned policy, learning curve, and overall summary.
+    """
+    user = _resolve_user(db, user_id_param)
+    student_id = str(user.id)
+
+    episode_rows = (
+        db.query(models.BanditEpisodeLog)
+        .filter_by(student_id=student_id)
+        .order_by(models.BanditEpisodeLog.timestamp.asc())
+        .all()
+    )
+
+    bandit_rows = (
+        db.query(models.BanditState)
+        .filter_by(student_id=student_id)
+        .all()
+    )
+
+    # ── strategy_stats ─────────────────────────────────────────────────────────
+    from services.rl_strategy_agent import STRATEGY_IDS
+
+    strategy_agg: dict = {s: {"pulls": 0, "total_reward": 0.0, "rewards": []} for s in STRATEGY_IDS}
+    for ep in episode_rows:
+        sid = ep.strategy_selected
+        if sid in strategy_agg:
+            strategy_agg[sid]["pulls"] += 1
+            if ep.reward_received is not None:
+                strategy_agg[sid]["total_reward"] += ep.reward_received
+                strategy_agg[sid]["rewards"].append(ep.reward_received)
+
+    # State descriptions for best/worst states
+    state_hash_features: dict = {}
+    for ep in episode_rows:
+        if ep.state_hash not in state_hash_features and ep.state_features:
+            f = ep.state_features
+            state_hash_features[ep.state_hash] = (
+                f"{f.get('cognitive_state','?').title()} "
+                f"{f.get('archetype','?')}, "
+                f"{f.get('p_mastery_bucket','?')}"
+            )
+
+    # Build bandit confidence per strategy × state
+    bandit_by_strategy: dict = {}
+    for row in bandit_rows:
+        if row.strategy_id not in bandit_by_strategy:
+            bandit_by_strategy[row.strategy_id] = []
+        bandit_by_strategy[row.strategy_id].append({
+            "state_hash": row.state_hash,
+            "avg_reward": row.avg_reward,
+            "confidence": row.alpha / (row.alpha + row.beta_param),
+            "pulls": row.pulls,
+        })
+
+    strategy_stats = []
+    for sid in STRATEGY_IDS:
+        agg = strategy_agg[sid]
+        rewards = agg["rewards"]
+        avg_r = sum(rewards) / len(rewards) if rewards else 0.0
+        win_rate = sum(1 for r in rewards if r > 0) / len(rewards) if rewards else 0.0
+
+        state_rows = sorted(
+            bandit_by_strategy.get(sid, []), key=lambda x: x["avg_reward"], reverse=True
+        )
+        best_states = [
+            state_hash_features.get(r["state_hash"], r["state_hash"])
+            for r in state_rows[:3]
+        ]
+        worst_states = [
+            state_hash_features.get(r["state_hash"], r["state_hash"])
+            for r in reversed(state_rows[-3:]) if state_rows
+        ]
+
+        strategy_stats.append({
+            "strategy_id": sid,
+            "total_pulls": agg["pulls"],
+            "avg_reward": round(avg_r, 4),
+            "win_rate": round(win_rate, 4),
+            "best_states": best_states,
+            "worst_states": worst_states,
+        })
+
+    # ── top_policy: what the bandit learned works best per state ───────────────
+    top_policy = []
+    state_best: dict = {}
+    for row in bandit_rows:
+        if row.state_hash not in state_best or row.avg_reward > state_best[row.state_hash]["avg"]:
+            confidence = row.alpha / (row.alpha + row.beta_param)
+            state_best[row.state_hash] = {
+                "avg": row.avg_reward,
+                "strategy": row.strategy_id,
+                "confidence": confidence,
+                "pulls": row.pulls,
+            }
+
+    for sh, info in sorted(state_best.items(), key=lambda x: -x[1]["avg"])[:20]:
+        if info["pulls"] >= 3:
+            top_policy.append({
+                "state_description": state_hash_features.get(sh, sh),
+                "best_strategy": info["strategy"],
+                "confidence": round(info["confidence"], 4),
+                "pulls": info["pulls"],
+            })
+
+    # ── learning_curve: weekly avg reward ──────────────────────────────────────
+    from collections import defaultdict
+
+    weekly_rewards: dict = defaultdict(list)
+    for ep in episode_rows:
+        if ep.reward_received is not None and ep.timestamp:
+            ts = ep.timestamp.replace(tzinfo=timezone.utc) if ep.timestamp.tzinfo is None else ep.timestamp
+            week_key = ts.strftime("%Y-W%W")
+            weekly_rewards[week_key].append(ep.reward_received)
+
+    explore_total = sum(1 for ep in episode_rows if ep.exploration_flag)
+    explore_rate = explore_total / len(episode_rows) if episode_rows else 0.0
+
+    learning_curve = {
+        "avg_reward_by_week": [
+            {"week": wk, "avg_reward": round(sum(v) / len(v), 4)}
+            for wk, v in sorted(weekly_rewards.items())
+        ],
+        "exploration_rate": round(explore_rate, 4),
+    }
+
+    # ── overall_stats ──────────────────────────────────────────────────────────
+    all_rewards = [ep.reward_received for ep in episode_rows if ep.reward_received is not None]
+    rule_rewards = [ep.reward_received for ep in episode_rows
+                    if ep.selection_method == "rule" and ep.reward_received is not None]
+    bandit_rewards = [ep.reward_received for ep in episode_rows
+                      if ep.selection_method in ("bandit", "blend_bandit") and ep.reward_received is not None]
+
+    rule_avg = sum(rule_rewards) / len(rule_rewards) if rule_rewards else 0.0
+    bandit_avg = sum(bandit_rewards) / len(bandit_rewards) if bandit_rewards else 0.0
+
+    method_counts: dict = defaultdict(int)
+    for ep in episode_rows:
+        method_counts[ep.selection_method] += 1
+    most_used_strategy = max(strategy_stats, key=lambda x: x["total_pulls"])["strategy_id"] if strategy_stats else ""
+    most_effective_strategy = max(strategy_stats, key=lambda x: x["avg_reward"])["strategy_id"] if strategy_stats else ""
+
+    overall_stats = {
+        "total_interactions_with_rl": len(episode_rows),
+        "avg_reward_all_time": round(sum(all_rewards) / len(all_rewards), 4) if all_rewards else 0.0,
+        "most_used_strategy": most_used_strategy,
+        "most_effective_strategy": most_effective_strategy,
+        "improvement_vs_rules": round(bandit_avg - rule_avg, 4),
+        "selection_method_breakdown": dict(method_counts),
+    }
+
+    return {
+        "strategy_stats": strategy_stats,
+        "top_policy": top_policy,
+        "learning_curve": learning_curve,
+        "overall_stats": overall_stats,
+    }
+
+
+@router.get("/rl/platform-insights")
+async def get_rl_platform_insights(
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token),
+):
+    """
+    Admin-only aggregate RL insights across all students.
+    Returns global strategy effectiveness, archetype→strategy mappings,
+    hardest states, and policy recommendations.
+    """
+    from services.rl_strategy_agent import STRATEGY_IDS
+    from collections import defaultdict
+
+    all_episodes = (
+        db.query(models.BanditEpisodeLog)
+        .filter(models.BanditEpisodeLog.reward_received.isnot(None))
+        .all()
+    )
+
+    # Global strategy performance
+    global_strategy: dict = {s: {"rewards": [], "pulls": 0} for s in STRATEGY_IDS}
+    for ep in all_episodes:
+        sid = ep.strategy_selected
+        if sid in global_strategy:
+            global_strategy[sid]["pulls"] += 1
+            if ep.reward_received is not None:
+                global_strategy[sid]["rewards"].append(ep.reward_received)
+
+    strategy_performance = []
+    for sid in STRATEGY_IDS:
+        rewards = global_strategy[sid]["rewards"]
+        avg_r = sum(rewards) / len(rewards) if rewards else 0.0
+        strategy_performance.append({
+            "strategy_id": sid,
+            "total_pulls": global_strategy[sid]["pulls"],
+            "avg_reward": round(avg_r, 4),
+            "win_rate": round(sum(1 for r in rewards if r > 0) / len(rewards), 4) if rewards else 0.0,
+        })
+
+    # Archetype → strategy effectiveness heatmap
+    archetype_strategy: dict = defaultdict(lambda: defaultdict(list))
+    for ep in all_episodes:
+        sf = ep.state_features or {}
+        arch = sf.get("archetype", "default")
+        sid = ep.strategy_selected
+        if ep.reward_received is not None:
+            archetype_strategy[arch][sid].append(ep.reward_received)
+
+    archetype_heatmap = {}
+    for arch, strategies in archetype_strategy.items():
+        archetype_heatmap[arch] = {
+            sid: round(sum(v) / len(v), 4) for sid, v in strategies.items() if v
+        }
+
+    # Hardest states (lowest avg reward)
+    state_rewards: dict = defaultdict(list)
+    state_features_map: dict = {}
+    for ep in all_episodes:
+        if ep.reward_received is not None:
+            state_rewards[ep.state_hash].append(ep.reward_received)
+            if ep.state_hash not in state_features_map and ep.state_features:
+                f = ep.state_features
+                state_features_map[ep.state_hash] = (
+                    f"{f.get('cognitive_state','?')} {f.get('archetype','?')}, "
+                    f"{f.get('p_mastery_bucket','?')}, {f.get('frustration_bucket','?')}"
+                )
+
+    hardest_states = sorted(
+        [
+            {
+                "state": state_features_map.get(sh, sh),
+                "avg_reward": round(sum(v) / len(v), 4),
+                "interactions": len(v),
+            }
+            for sh, v in state_rewards.items() if len(v) >= 5
+        ],
+        key=lambda x: x["avg_reward"],
+    )[:10]
+
+    # Global policy recommendations
+    recommendations = []
+    for sid in STRATEGY_IDS:
+        rewards = global_strategy[sid]["rewards"]
+        if len(rewards) >= 10:
+            avg_r = sum(rewards) / len(rewards)
+            if avg_r > 0.3:
+                recommendations.append(f"{sid}: high effectiveness (avg={avg_r:.2f}) — use more")
+            elif avg_r < -0.1:
+                recommendations.append(f"{sid}: underperforming (avg={avg_r:.2f}) — review when used")
+
+    total_students = db.query(models.BanditEpisodeLog.student_id).distinct().count()
+
+    return {
+        "strategy_performance": sorted(strategy_performance, key=lambda x: -x["avg_reward"]),
+        "archetype_heatmap": archetype_heatmap,
+        "hardest_states": hardest_states,
+        "recommendations": recommendations,
+        "platform_stats": {
+            "total_students_with_rl": total_students,
+            "total_strategy_selections": len(all_episodes),
+        },
+    }

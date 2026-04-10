@@ -28,6 +28,12 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+logging.getLogger("huggingface_hub.file_download").setLevel(logging.WARNING)
+logging.getLogger("neo4j").setLevel(logging.ERROR)
+logging.getLogger("neo4j.notifications").setLevel(logging.ERROR)
 logger = logging.getLogger(__name__)
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -123,12 +129,13 @@ if "sqlite" in DATABASE_URL:
 
     with engine.connect() as _conn:
         for _new_table in ("student_knowledge_states", "student_memories", "message_ml_logs",
-                           "cerbyl_session_states", "agent_events"):
+                           "cerbyl_session_states", "agent_events",
+                           "bandit_state", "bandit_reward_queue", "bandit_episode_log"):
             _exists = _conn.execute(
                 text(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{_new_table}'")
             ).fetchone()
             if not _exists:
-                logger.info(f"Intelligence table {_new_table} will be created by SQLAlchemy metadata")
+                logger.info(f"Table {_new_table} will be created by SQLAlchemy metadata")
         _conn.commit()
 
 
@@ -315,7 +322,6 @@ async def lifespan(app: FastAPI):
                         pass
                 return [0.0] * 384
             initialize_memory_service(_embed_fn, _cs._client)
-            logger.info("CerbylMemoryService initialized")
         else:
             logger.warning("MemoryService skipped — ChromaDB unavailable")
     except Exception as e:
@@ -327,12 +333,43 @@ async def lifespan(app: FastAPI):
         from services.context_agent import initialize_context_agent
 
         initialize_context_agent(_sl, get_memory_service())
-        logger.info("CentralContextAgent initialized")
     except Exception as e:
         logger.warning(f"ContextAgent init failed: {e}")
 
+    _scheduler = None
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from services.rl_strategy_agent import get_bandit
+
+        _bandit_instance = get_bandit()
+        _scheduler = AsyncIOScheduler()
+
+        def _run_reward_measurement():
+            _bandit_instance.measure_pending_rewards(SessionLocal)
+
+        _scheduler.add_job(
+            _run_reward_measurement,
+            "interval",
+            seconds=60,
+            id="rl_reward_measurement",
+            max_instances=1,
+            coalesce=True,
+        )
+        _scheduler.start()
+        logger.info("RL reward measurement scheduler started (60s interval)")
+    except ImportError:
+        logger.warning("APScheduler not installed — RL reward measurement disabled. Add apscheduler>=3.10.0 to requirements.txt")
+    except Exception as e:
+        logger.warning(f"RL scheduler init failed: {e}")
+
     logger.info("Startup complete")
     yield
+
+    if _scheduler is not None:
+        try:
+            _scheduler.shutdown(wait=False)
+        except Exception:
+            pass
 
 
 app = FastAPI(title="Brainwave Backend API", version="4.0.0", lifespan=lifespan)

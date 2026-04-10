@@ -265,7 +265,10 @@ const ActivityFeed = () => {
 
       <div className="af-content-section">
         <div className="af-section-header">
-          <h2 className="af-section-title">Friend Activity</h2>
+          <div className="view-heading" style={{ marginBottom: 0, paddingBottom: 0, border: 'none' }}>
+            <span className="view-kicker">Social</span>
+            <h2 className="view-title">Friend Activity</h2>
+          </div>
           <div className="af-header-actions">
             <button 
               className="af-refresh-btn"

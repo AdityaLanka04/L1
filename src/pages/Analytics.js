@@ -300,7 +300,11 @@ const Analytics = () => {
         <div className="analytics-chart-section">
           <div className="analytics-chart-header">
             <div>
-              <h2>Activity Overview</h2>
+              <div className="view-heading">
+                <span className="view-kicker">Your Data</span>
+                <h2 className="view-title">Activity Overview</h2>
+                <p className="view-sub">Insights into your learning activity</p>
+              </div>
               <span className="analytics-chart-subtitle">{chartData.length} {periodStats.groupBy === 'month' ? 'months' : periodStats.groupBy === 'week' ? 'weeks' : 'days'} of data</span>
             </div>
             <div className="analytics-chart-legend">

@@ -2529,7 +2529,11 @@ const SearchHub = () => {
               <div className="hero-content">
                 {personalizedPrompts.length > 0 && (
                   <div className="recommendations-section">
-                    <h2 className="recommendations-title">RECOMMENDATIONS</h2>
+                    <div className="view-heading">
+                      <span className="view-kicker">Personalized</span>
+                      <h2 className="view-title">Recommendations</h2>
+                      <p className="view-sub">Topics curated from your learning history</p>
+                    </div>
 
                     <div className="recommendations-grid">
                       {personalizedPrompts.map((prompt, index) => {
@@ -2689,9 +2693,9 @@ const SearchHub = () => {
             <div className="content-section">
               {recentSearches.length > 0 && (
                 <div className="recent-searches-section">
-                  <div className="section-header">
-                    <Clock className="section-icon" />
-                    <h2 className="section-title">Recent Searches</h2>
+                  <div className="view-heading">
+                    <span className="view-kicker">History</span>
+                    <h2 className="view-title">Recent Searches</h2>
                   </div>
 
                   <div className="recent-searches-list">

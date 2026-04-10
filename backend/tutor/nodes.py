@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import re
 import logging
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, Optional
 
 from tutor.state import TutorState, StudentState, Neo4jInsights, EvalResult
 from tutor import neo4j_store, chroma_store
@@ -41,6 +42,24 @@ GREETING_PATTERNS = [
     r"^(greetings|salut|bonjour|namaste|ciao|hallo+)\b",
     r"^\W*(hi+|hello+|hey+|hola+)\W*$",   # catches "hoiii!", "hola!!", etc.
 ]
+
+
+def _detect_greeting_energy(text: str) -> str:
+    """
+    Classify the student's greeting energy so Cerbyl can mirror it.
+    Returns 'high', 'medium', or 'calm'.
+    """
+    t = text.strip()
+    # High energy: yo repeated, extended vowels, caps run, multi-exclamation
+    if re.search(
+        r'(yo[\s!]*){2,}|y[o]{3,}|h[e]{3,}y+|h[i]{3,}|s[u]{2,}p|!{2,}|[A-Z]{4,}|heyyyy|suuup',
+        t, re.IGNORECASE
+    ):
+        return "high"
+    # Medium: casual slang with mild energy
+    if re.search(r'\byo\b|sup\b|heya|hiya|heyy+|hiii+|wazzup|wassup', t, re.IGNORECASE):
+        return "medium"
+    return "calm"
 
 FOLLOWUP_PATTERNS = [
     r"\bwhat\s*about\b",
@@ -244,11 +263,16 @@ async def fetch_student_state(state: TutorState) -> dict:
         except Exception as e:
             logger.warning(f"DB fetch failed: {e}")
 
+    last_session_summary = None
+    if is_new_session:
+        last_session_summary = _fetch_last_session_summary(db_factory, user_id, current_chat_id=chat_id)
+
     return {
-        "student_state":     student,
-        "session_gap_days":  session_gap_days,
-        "decayed_concepts":  decayed_concepts,
-        "is_new_session":    is_new_session,
+        "student_state":        student,
+        "session_gap_days":     session_gap_days,
+        "decayed_concepts":     decayed_concepts,
+        "is_new_session":       is_new_session,
+        "last_session_summary": last_session_summary,
     }
 
 async def reason_from_graph(state: TutorState) -> dict:
@@ -441,33 +465,283 @@ def _fetch_activity_summary(db_factory, user_id: str) -> list[str]:
         logger.warning(f"Failed to fetch activity summary: {e}")
         return []
 
+# ── Time-range classification for recall queries ──────────────────────────────
+
+_TIME_RANGE_PATTERNS = [
+    (r'\b(just now|right now|this (moment|second)|past hour|last hour)\b',              "last_hour",   1),
+    (r'\b(today|this (morning|afternoon|evening|day)|past (few hours|2|3|4|5) hours)\b', "today",      24),
+    (r'\b(recent(ly)?|lately|just|just now)\b',                                          "recent",     24),
+    (r'\byesterday\b',                                                                    "yesterday",  48),
+    (r'\b(this week|past (2|3|4|5|6) days|few days)\b',                                 "this_week", 168),
+    (r'\b(last week|past week|7 days|seven days)\b',                                     "last_week", 336),
+    (r'\b(last month|past month|30 days|thirty days)\b',                                 "last_month",720),
+    (r'\b(ever|all time|always|everything|from the start|since I (started|joined))\b',  "all_time",  8760),
+]
+
+
+def _classify_recall_time_range(text: str) -> tuple[str, int]:
+    """
+    Return (label, hours) from the student's recall phrasing.
+    hours=0 means 'last session only' (no time bound).
+    """
+    t = text.lower()
+    for pattern, label, hours in _TIME_RANGE_PATTERNS:
+        if re.search(pattern, t):
+            return label, hours
+    return "last_session", 0
+
+
+def _store_recall_signal(db_factory, user_id: str, user_input: str,
+                          time_label: str, time_hours: int,
+                          is_correction: bool = False) -> None:
+    """
+    Persist each recall query as a labeled training example in StudentMemory.
+    Corrections (student refining after an initial recall) are flagged so they
+    can be weighted higher during future fine-tuning.
+    """
+    if not db_factory:
+        return
+    try:
+        from models import StudentMemory
+        db = db_factory()
+        try:
+            uid = int(user_id)
+            content = (
+                f"{'[CORRECTION] ' if is_correction else ''}"
+                f"Query: '{user_input[:200]}' → range: {time_label} ({time_hours}h)"
+            )
+            mem = StudentMemory(
+                user_id=uid,
+                memory_type="recall_query",
+                concept_name=time_label,
+                source="recall",
+                content=content,
+                importance_score=0.8 if is_correction else 0.4,
+            )
+            db.add(mem)
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"Recall signal store failed: {e}")
+
+
+def _fetch_activity_in_range(db_factory, user_id: str, hours: int) -> list[str]:
+    """
+    Fetch all recorded activity within the past `hours` hours.
+    Queries: ChatSession/ChatMessage, Note, FlashcardSet, Activity log.
+    Returns formatted lines ready for structured_context.
+    """
+    if not db_factory:
+        return [f"No activity data available."]
+    try:
+        from datetime import timedelta
+        from models import ChatSession, ChatMessage, Note, FlashcardSet, Activity
+        db = db_factory()
+        try:
+            uid = int(user_id)
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+            label = {1: "last hour", 24: "last 24 hours", 48: "yesterday + today",
+                     168: "this week", 336: "last week", 720: "last month",
+                     8760: "all time"}.get(hours, f"past {hours} hours")
+            lines = [f"Your activity — {label}:"]
+            found = False
+
+            # Chat sessions active in window
+            sessions = (
+                db.query(ChatSession)
+                .filter(ChatSession.user_id == uid, ChatSession.updated_at >= cutoff)
+                .order_by(ChatSession.updated_at.desc())
+                .all()
+            )
+            for sess in sessions:
+                msgs = (
+                    db.query(ChatMessage)
+                    .filter(ChatMessage.chat_session_id == sess.id,
+                            ChatMessage.timestamp >= cutoff)
+                    .order_by(ChatMessage.timestamp.asc())
+                    .all()
+                )
+                if not msgs:
+                    continue
+                topics = _extract_message_topics(msgs, max_msgs=6)
+                ts = sess.updated_at.strftime("%b %d %H:%M") if sess.updated_at else ""
+                title = (sess.title or "Chat")[:40]
+                topic_str = "; ".join(topics[:4]) if topics else f"{len(msgs)} messages"
+                lines.append(f"  [Chat '{title}' {ts}]: {topic_str}")
+                found = True
+
+            # Notes created/updated in window
+            notes = (
+                db.query(Note)
+                .filter(Note.user_id == uid, Note.updated_at >= cutoff,
+                        Note.is_deleted == False)
+                .order_by(Note.updated_at.desc())
+                .all()
+            )
+            for note in notes:
+                ts = note.updated_at.strftime("%b %d %H:%M") if note.updated_at else ""
+                lines.append(f"  [Note '{note.title}' {ts}]")
+                found = True
+
+            # Flashcard sets created in window
+            fc_sets = (
+                db.query(FlashcardSet)
+                .filter(FlashcardSet.user_id == uid, FlashcardSet.created_at >= cutoff)
+                .order_by(FlashcardSet.created_at.desc())
+                .all()
+            )
+            for fc in fc_sets:
+                ts = fc.created_at.strftime("%b %d %H:%M") if fc.created_at else ""
+                lines.append(f"  [Flashcards '{fc.title}' created {ts}]")
+                found = True
+
+            # Activity log entries in window
+            activities = (
+                db.query(Activity)
+                .filter(Activity.user_id == uid, Activity.timestamp >= cutoff)
+                .order_by(Activity.timestamp.desc())
+                .limit(10)
+                .all()
+            )
+            for act in activities:
+                ts = act.timestamp.strftime("%b %d %H:%M") if act.timestamp else ""
+                lines.append(f"  [Quiz/Practice '{act.topic}' {ts}]: {act.question[:60]}")
+                found = True
+
+            if not found:
+                return [f"No activity found in the {label}."]
+            return lines
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"_fetch_activity_in_range failed: {e}")
+        return []
+
+
+def _extract_message_topics(messages: list, max_msgs: int = 8) -> list[str]:
+    """
+    Pull short topic-hints from raw user messages when no concept signals exist.
+    Strips filler words, keeps the meaningful fragment of each message.
+    """
+    SKIP = {"hi", "hey", "hello", "ok", "okay", "thanks", "thank you", "sure", "yes", "no",
+            "what", "how", "why", "can you", "please", "tell me", "explain", "what is"}
+    topics = []
+    seen_lower = set()
+    for msg in messages[:max_msgs]:
+        raw = (msg.user_message or "").strip()
+        if len(raw) < 4:
+            continue
+        # Take first 70 chars to keep it a short topic hint
+        snippet = raw[:70].rstrip()
+        low = snippet.lower()
+        if low in seen_lower or any(low == s for s in SKIP):
+            continue
+        seen_lower.add(low)
+        topics.append(snippet)
+    return topics
+
+
+def _fetch_last_session_summary(db_factory, user_id: str, current_chat_id=None) -> Optional[dict]:
+    """
+    Return a concise dict summarising the most recent past chat session:
+      {title, date_str, topics: [...], message_count}
+    Used by greeting (proactive recap) and recall.
+    """
+    if not db_factory:
+        return None
+    try:
+        from models import ChatMessage, ChatSession, ChatConceptSignal
+        db = db_factory()
+        try:
+            uid = int(user_id)
+            q = db.query(ChatSession).filter(ChatSession.user_id == uid)
+            if current_chat_id:
+                q = q.filter(ChatSession.id != current_chat_id)
+            last = q.order_by(ChatSession.created_at.desc()).first()
+            if not last:
+                return None
+
+            date_str = last.created_at.strftime("%b %d") if last.created_at else "recently"
+            title = (last.title or "Chat session")[:60]
+
+            # Prefer ChatConceptSignal (ML-detected topics) — deduplicated
+            signals = (
+                db.query(ChatConceptSignal)
+                .filter(
+                    ChatConceptSignal.user_id == uid,
+                    ChatConceptSignal.chat_session_id == last.id,
+                )
+                .order_by(ChatConceptSignal.created_at.asc())
+                .all()
+            )
+            seen: set = set()
+            topics = []
+            for s in signals:
+                c = (s.concept or "").strip()
+                cl = c.lower()
+                if c and cl not in seen:
+                    seen.add(cl)
+                    topics.append(c)
+            topics = topics[:8]
+
+            # Fallback to raw user messages when no concept signals recorded
+            if not topics:
+                msgs = (
+                    db.query(ChatMessage)
+                    .filter(ChatMessage.chat_session_id == last.id)
+                    .order_by(ChatMessage.timestamp.asc())
+                    .limit(12)
+                    .all()
+                )
+                topics = _extract_message_topics(msgs)
+
+            msg_count = (
+                db.query(ChatMessage)
+                .filter(ChatMessage.chat_session_id == last.id)
+                .count()
+            )
+
+            return {
+                "title":         title,
+                "date_str":      date_str,
+                "topics":        topics,
+                "message_count": msg_count,
+            }
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"_fetch_last_session_summary failed: {e}")
+        return None
+
+
 def _fetch_last_session_topics(db_factory, user_id: str, current_chat_id=None) -> list[str]:
     """
-    Query ChatConceptSignal to find actual topics covered in recent sessions.
-    This is ground truth — no ChromaDB, no hallucination.
+    Return structured context lines for the recall intent.
+    Pulls from ChatConceptSignal first; falls back to raw ChatMessage content.
     """
     if not db_factory:
         return []
     try:
-        from models import ChatConceptSignal, ChatSession
-        from sqlalchemy import func
+        from models import ChatConceptSignal, ChatSession, ChatMessage
         db = db_factory()
         try:
             uid = int(user_id)
-
-            # Get the last 3 chat sessions (excluding current)
             sessions_q = db.query(ChatSession).filter(ChatSession.user_id == uid)
             if current_chat_id:
                 sessions_q = sessions_q.filter(ChatSession.id != current_chat_id)
-            recent_sessions = (
-                sessions_q.order_by(ChatSession.created_at.desc()).limit(3).all()
-            )
+            recent_sessions = sessions_q.order_by(ChatSession.created_at.desc()).limit(3).all()
 
             if not recent_sessions:
-                return []
+                return ["No previous sessions found."]
 
-            lines = ["Topics you actually studied in recent sessions (from your chat history):"]
+            lines = ["What you worked on in recent sessions:"]
+            found_any = False
             for sess in recent_sessions:
+                date_str = sess.created_at.strftime("%b %d") if sess.created_at else "recently"
+                title = (sess.title or "Untitled")[:40]
+
+                # Try concept signals
                 signals = (
                     db.query(ChatConceptSignal)
                     .filter(
@@ -478,24 +752,32 @@ def _fetch_last_session_topics(db_factory, user_id: str, current_chat_id=None) -
                     .order_by(ChatConceptSignal.created_at.asc())
                     .all()
                 )
-                if not signals:
-                    continue
-
-                # Deduplicate concepts, keep order
-                seen = set()
+                seen: set = set()
                 concepts = []
                 for s in signals:
-                    c = (s.concept or "").strip().lower()
-                    if c and c not in seen:
-                        seen.add(c)
-                        concepts.append(s.concept.strip())
+                    c = (s.concept or "").strip()
+                    if c and c.lower() not in seen:
+                        seen.add(c.lower())
+                        concepts.append(c)
+
+                # Fallback: use raw user messages
+                if not concepts:
+                    msgs = (
+                        db.query(ChatMessage)
+                        .filter(ChatMessage.chat_session_id == sess.id)
+                        .order_by(ChatMessage.timestamp.asc())
+                        .limit(10)
+                        .all()
+                    )
+                    concepts = _extract_message_topics(msgs, max_msgs=5)
 
                 if concepts:
-                    date_str = sess.created_at.strftime("%b %d") if sess.created_at else "recent"
-                    title = (sess.title or "Untitled session")[:40]
-                    lines.append(f"  - Session '{title}' ({date_str}): {', '.join(concepts[:8])}")
+                    lines.append(f"  [{date_str}] '{title}': {'; '.join(concepts[:6])}")
+                    found_any = True
+                else:
+                    lines.append(f"  [{date_str}] '{title}': (no topics detected)")
 
-            if len(lines) == 1:
+            if not found_any:
                 return ["No specific topics recorded in recent sessions yet."]
             return lines
         finally:
@@ -596,10 +878,29 @@ def gate_and_retrieve(state: TutorState) -> dict:
                 logger.warning(f"Chroma retrieval failed: {e}")
 
         if intent == "recall":
-            # Ground-truth recall from DB only — no ChromaDB (too noisy/hallucination-prone).
-            chat_id = state.get("chat_id")
-            session_topics = _fetch_last_session_topics(db_factory, user_id, current_chat_id=chat_id)
-            structured_context.extend(session_topics)
+            time_label, time_hours = _classify_recall_time_range(user_input)
+
+            # Detect correction: previous AI turn was also a recall → student is refining
+            chat_history = state.get("chat_history", [])
+            is_correction = False
+            if chat_history and len(chat_history) >= 2:
+                prev_user = chat_history[-2].get("content", "") if len(chat_history) >= 2 else ""
+                _, prev_hours = _classify_recall_time_range(prev_user)
+                is_correction = (prev_hours != time_hours) and bool(prev_user)
+
+            # Store as labeled training example (async-safe: fire-and-forget pattern)
+            _store_recall_signal(db_factory, user_id, user_input, time_label, time_hours, is_correction)
+            logger.info(f"[RECALL] user={user_id} range={time_label}({time_hours}h) correction={is_correction}")
+
+            if time_hours > 0:
+                # Time-ranged: query all activity tables within the window
+                ranged = _fetch_activity_in_range(db_factory, user_id, time_hours)
+                structured_context.extend(ranged)
+            else:
+                # Last-session: use session topics + full flashcard/note/activity context
+                chat_id = state.get("chat_id")
+                session_topics = _fetch_last_session_topics(db_factory, user_id, current_chat_id=chat_id)
+                structured_context.extend(session_topics)
 
             fc_context = _fetch_flashcard_context(db_factory, user_id, top_k=5)
             structured_context.extend(fc_context)
@@ -740,59 +1041,73 @@ def _build_instructional_task(state: TutorState) -> str:
     hint        = analysis.get("instructional_hint", "")
 
     if intent == "greeting":
-        gap          = state.get("session_gap_days")
-        decayed      = state.get("decayed_concepts") or []
-        student_name = student.first_name if student else ""
+        gap                  = state.get("session_gap_days")
+        decayed              = state.get("decayed_concepts") or []
+        last_summary         = state.get("last_session_summary")
+        student_name         = student.first_name if student else ""
 
-        anti_hallucination = (
-            "CRITICAL: Do NOT mention, reference, or allude to any past greetings, "
-            "previous conversations, or prior topics the student may have discussed. "
-            "You have no memory of past sessions in this prompt — do not fabricate any. "
-            "Respond only to what the student just said right now."
-        )
+        energy = _detect_greeting_energy(state.get("user_input", ""))
+        energy_tone = {
+            "high":   "[TONE: high energy — be hyped, casual, match their vibe]",
+            "medium": "[TONE: warm and upbeat]",
+            "calm":   "[TONE: warm, grounded]",
+        }[energy]
+
+        name_part = f"Address them as {student_name}. " if student_name else ""
+
+        # Build a session recap block from real DB data — no hallucination possible.
+        recap = ""
+        if last_summary and last_summary.get("topics"):
+            topics_str = "; ".join(last_summary["topics"][:5])
+            recap = (
+                f"Last session ({last_summary['date_str']}): the student asked about/worked on: {topics_str}. "
+                f"Mention this naturally as a brief recap — e.g. 'Last time we were covering [X], want to pick up there or start something new?' "
+                f"Keep it 1-2 sentences, conversational. "
+            )
+        elif last_summary:
+            # Session existed but no recognisable topics
+            recap = (
+                f"The student had a previous session on {last_summary['date_str']}. "
+                "Acknowledge they're back, ask what they want to work on."
+            )
+
+        no_invent = "Do NOT invent or guess topics not listed above."
 
         if gap is None or gap < 1:
-            return (
-                f"Respond warmly and very briefly to the greeting. "
-                f"{'Address them as ' + student_name + '.' if student_name else ''} "
-                "Ask what they'd like to work on today. Do NOT dump weak areas or suggestions unprompted. "
-                + anti_hallucination
-            )
+            # Same session day — just greet, recap if we have data
+            if recap:
+                return f"{energy_tone} {name_part}{recap}{no_invent}"
+            return f"{energy_tone} {name_part}Ask what they'd like to work on. Keep it short."
 
         if decayed:
-            top = decayed[0]
+            top      = decayed[0]
             days_str = f"{int(top['last_seen_days'])} days"
             ret_pct  = int(top['retrievability'] * 100)
-            return (
-                f"Greet the student warmly. "
-                f"{'Address them as ' + student_name + '. ' if student_name else ''}"
-                f"It has been {days_str} since the student last studied '{top['concept']}'. "
-                f"Their estimated recall of that concept is {ret_pct}% — mention this naturally "
-                f"(e.g. 'last time we were working on X, want to pick up there?'). "
-                "Keep it conversational. Do not list weaknesses or be clinical. "
-                + anti_hallucination
+            decay_hint = (
+                f"It has been {days_str} since they studied '{top['concept']}' "
+                f"(estimated recall: {ret_pct}%). Weave this in naturally. "
             )
+            return f"{energy_tone} {name_part}{recap}{decay_hint}{no_invent}"
 
         if gap > 7:
-            return (
-                f"Greet the student warmly. "
-                f"{'Address them as ' + student_name + '. ' if student_name else ''}"
-                f"It has been {int(gap)} days since their last session — acknowledge the gap naturally "
-                "and ask what they'd like to focus on. "
-                + anti_hallucination
-            )
+            gap_hint = f"They haven't been here in {int(gap)} days — acknowledge warmly. "
+            return f"{energy_tone} {name_part}{recap}{gap_hint}{no_invent}"
 
-        return (
-            f"Respond warmly and briefly. "
-            f"{'Address them as ' + student_name + '. ' if student_name else ''}"
-            "Ask what they'd like to work on. Keep it casual and short."
-        )
+        return f"{energy_tone} {name_part}{recap}{no_invent}" if recap else \
+               f"{energy_tone} {name_part}Ask what they'd like to work on. Keep it short."
 
     if intent == "returning_greeting":
+        energy = _detect_greeting_energy(state.get("user_input", ""))
+        energy_tone = {
+            "high":   "[TONE: high energy — be hyped, casual]",
+            "medium": "[TONE: warm and friendly]",
+            "calm":   "[TONE: warm, grounded]",
+        }[energy]
+        student_name = student.first_name if student else ""
+        name_part = f"Address them as {student_name}. " if student_name else ""
         return (
-            "The student has greeted again. Acknowledge briefly in 1 sentence. "
-            "Ask what they want to work on. Do NOT suggest any topic, subject, or example. "
-            "Address them by name."
+            f"Student greeted again. {energy_tone} {name_part}"
+            "1 sentence, ask what they want to work on. No topic suggestions."
         )
 
     if intent == "repetitive":
@@ -803,42 +1118,42 @@ def _build_instructional_task(state: TutorState) -> str:
         )
 
     if intent == "recall":
-        domain_hints = ""
+        time_label, time_hours = _classify_recall_time_range(state.get("user_input", ""))
+        time_desc = {
+            "last_hour": "the last hour",
+            "today": "today",
+            "recent": "recently (last 24 hours)",
+            "yesterday": "yesterday",
+            "this_week": "this week",
+            "last_week": "last week",
+            "last_month": "last month",
+            "all_time": "all time",
+            "last_session": "the last session",
+        }.get(time_label, "recently")
+
         if "flashcard" in domains:
             domain_hints = (
-                "The student is specifically asking about their FLASHCARD activity. "
-                "Use the STRUCTURED LEARNING DATA section below which contains their actual flashcard sets, "
-                "study progress, and review history from the database. "
-                "Give specific details: set names, card counts, accuracy percentages, what topics they studied. "
+                "The student is asking about FLASHCARD activity. "
+                "Report actual set names, card counts, accuracy from STRUCTURED LEARNING DATA. "
             )
         elif "note" in domains:
             domain_hints = (
-                "The student is specifically asking about their NOTES. "
-                "Use the STRUCTURED LEARNING DATA section below which contains their actual notes "
-                "from the database. Give specific details: note titles, content previews, dates. "
-            )
-        elif "activity" in domains:
-            domain_hints = (
-                "The student is asking about their overall learning progress/activity. "
-                "Use the STRUCTURED LEARNING DATA section below which contains a summary of all "
-                "their activity across flashcards, notes, and chat. Give a comprehensive overview. "
+                "The student is asking about their NOTES. "
+                "Report actual note titles and dates from STRUCTURED LEARNING DATA. "
             )
         else:
             domain_hints = (
-                "The student is asking what they studied previously. "
-                "Use ONLY the STRUCTURED LEARNING DATA section — it contains their actual flashcard sets, "
-                "notes, and activity summary pulled directly from the database. "
-                "Report what is there specifically: flashcard set names, note titles, chat count, etc. "
+                f"The student is asking what they did — time range: {time_desc}. "
+                "STRUCTURED LEARNING DATA below contains their real activity for that period. "
+                "Give a warm, specific summary like a tutor recap: "
+                "'In the last 24 hours you asked about X, created a flashcard set on Y, and made a note on Z.' "
+                "Use exact titles/topics from the data. Treat short user message snippets as questions they asked. "
             )
 
         return (
             f"{domain_hints}"
-            "CRITICAL RULES:\n"
-            "1. Only report what is LITERALLY in the STRUCTURED LEARNING DATA below.\n"
-            "2. NEVER say 'we previously discussed X' unless X is explicitly listed in 'Topics you actually studied'.\n"
-            "3. If the topics section says 'No specific topics recorded', then say exactly that — do not invent any topics.\n"
-            "4. You may report flashcard set names, note titles, and counts — these are real.\n"
-            "5. Do NOT add commentary, suggestions, or guesses about what was covered."
+            "Only use what is in STRUCTURED LEARNING DATA. "
+            "Never invent topics. If truly nothing is there, say so honestly and ask what they'd like to start."
         )
 
     if intent == "off_topic":
@@ -885,6 +1200,8 @@ def build_prompt_and_respond(state: TutorState) -> dict:
 
     system = (
         "You are Cerbyl, an expert tutor and central learning agent. "
+        "You are genuinely enthusiastic about teaching and learning — your energy is warm, encouraging, and upbeat. "
+        "You celebrate student progress, make learning feel exciting, and bring positive energy to every response. "
         "You adapt your teaching to each student's level and learning style. "
         "You never dump information; you teach with intention. "
         "Be concise but thorough. Use markdown formatting for clarity. "
@@ -902,8 +1219,11 @@ def build_prompt_and_respond(state: TutorState) -> dict:
     if student_name:
         system += f"\n\nThe student's name is {student_name}. Address them by name naturally (not every sentence)."
 
+    # Only inject ML intelligence context for non-greeting intents.
+    # Injecting it during greetings causes the LLM to hallucinate topic suggestions,
+    # equations, and worked examples even though GREETING MODE rules come after.
     intelligence_ctx = state.get("intelligence_context", "")
-    if intelligence_ctx:
+    if intelligence_ctx and intent not in ("greeting", "returning_greeting"):
         system = intelligence_ctx + "\n\n" + system
 
     if intent in ("greeting", "returning_greeting"):
@@ -914,6 +1234,7 @@ def build_prompt_and_respond(state: TutorState) -> dict:
             "3. Do NOT reference any past conversations or behaviors you think you remember.\n"
             "4. ONLY greet the student and ask what THEY want to work on.\n"
             "5. Keep the response to 1-2 sentences maximum.\n"
+            "6. Honor the [TONE: ...] tag in the prompt exactly.\n"
             "Violating any of these rules is a critical failure."
         )
 

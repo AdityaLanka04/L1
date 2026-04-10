@@ -5,7 +5,9 @@
       "Bash(mkdir -p /d/Brainwave/L1/backend/services)",
       "Bash(mkdir -p /d/Brainwave/L1/src/components/WeaknessTracker)",
       "Bash(python -c \"import models; print\\('models OK'\\)\")",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/pip show:*)"
     ]
   }
 }

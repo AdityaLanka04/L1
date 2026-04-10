@@ -102,8 +102,11 @@ const Leaderboards = () => {
 
       <div className="leaderboard-container">
         <div className="leaderboard-welcome">
-          <h2 className="leaderboard-title">Leaderboards</h2>
-          <p className="leaderboard-description">Compete with friends and track your rankings</p>
+          <div className="view-heading">
+            <span className="view-kicker">Rankings</span>
+            <h2 className="view-title">Leaderboards</h2>
+            <p className="view-sub">See where you stand among all learners</p>
+          </div>
         </div>
 
         <div className="filter-section">

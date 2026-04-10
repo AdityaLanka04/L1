@@ -569,8 +569,11 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
 
       <div className="detail-body">
         <div className="items-header">
-          <h2 className="items-title">Playlist Items</h2>
-          <span className="items-count">{filteredItems.length} of {allItems.length} items</span>
+          <div className="view-heading" style={{ marginBottom: 0, paddingBottom: 0, border: 'none' }}>
+            <span className="view-kicker">Collection</span>
+            <h2 className="view-title">Playlist Items</h2>
+            <p className="view-sub">{filteredItems.length} of {allItems.length} items</p>
+          </div>
         </div>
 
         {allItems.length > 0 && (

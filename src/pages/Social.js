@@ -538,7 +538,11 @@ const Social = () => {
         <div className="friend-section">
           {friendRequests.received.length > 0 && (
             <div className="requests-section">
-              <h3 className="section-title">Received Requests</h3>
+              <div className="view-heading">
+                <span className="view-kicker">Inbox</span>
+                <h2 className="view-title">Received Requests</h2>
+                <p className="view-sub">People who want to connect with you</p>
+              </div>
               <div className="users-grid">
                 {friendRequests.received.map(request => renderUserCard(request,
                   <div className="request-actions">
@@ -564,7 +568,11 @@ const Social = () => {
 
           {friendRequests.sent.length > 0 && (
             <div className="requests-section">
-              <h3 className="section-title">Sent Requests</h3>
+              <div className="view-heading">
+                <span className="view-kicker">Outbox</span>
+                <h2 className="view-title">Sent Requests</h2>
+                <p className="view-sub">Requests you've sent, awaiting response</p>
+              </div>
               <div className="users-grid">
                 {friendRequests.sent.map(request => renderUserCard(request,
                   <span className="pending-badge">Pending</span>
@@ -582,7 +590,11 @@ const Social = () => {
       {activeTab === 'friends' && (
         <div className="friend-section">
           <div className="section-header">
-            <h2 className="section-main-title">Your Friends</h2>
+            <div className="view-heading">
+              <span className="view-kicker">Your Network</span>
+              <h2 className="view-title">Friends</h2>
+              <p className="view-sub">{friends.length} {friends.length === 1 ? 'friend' : 'friends'} connected</p>
+            </div>
             <button className="hub-nav-btn" onClick={() => setActiveTab('search')}>
               <UserPlus size={16} />
               <span>Find Friends</span>

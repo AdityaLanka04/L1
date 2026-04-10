@@ -1,15 +1,37 @@
 .nh {
-  min-height: 100vh;
+  position: fixed !important;
+  inset: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-primary, var(--bg-primary));
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 70%),
+    linear-gradient(160deg, #0d0b08 0%, #090909 56%, #111 100%);
   color: var(--text-primary, #ffffff);
-  position: relative;
-  overflow-y: auto;
-  overflow-x: hidden;
+}
 
-  background: var(--bg-primary, #fafafa);
+[data-theme-mode="light"] .nh {
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 50%),
+    var(--bg-primary);
+}
+
+.nh::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
 }
 
 .nh * {
@@ -18,51 +40,23 @@
 }
 
 .nh-ambient {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
+  display: none;
 }
 
 .nh-ambient-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.12;
-  animation: nhOrbFloat 25s ease-in-out infinite;
+  display: none;
 }
 
 .nh-ambient-orb-1 {
-  width: 500px;
-  height: 500px;
-  background: var(--accent);
-  top: -150px;
-  left: -100px;
+  display: none;
 }
 
 .nh-ambient-orb-2 {
-  width: 400px;
-  height: 400px;
-  background: var(--accent);
-  bottom: -100px;
-  right: -100px;
-  animation-delay: -12s;
+  display: none;
 }
 
 .nh-ambient-grid {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent) 1.5px, transparent 1.5px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 75%);
-  opacity: 0.55;
-}
-
-@keyframes nhOrbFloat {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(40px, -30px) scale(1.05); }
-  66% { transform: translate(-30px, 40px) scale(0.95); }
+  display: none;
 }
 
 .nh-header {
@@ -72,25 +66,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 40px;
-  height: 70px;
-  min-height: 70px;
-  max-height: 70px;
-  background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 80%, transparent);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
-}
-
-[data-theme-mode="dark"] .nh-header {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  padding: 0 48px;
+  height: 68px;
+  min-height: 68px;
+  max-height: 68px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, #0d0b08 85%, transparent);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 1px 40px rgba(0,0,0,0.5);
 }
 
 [data-theme-mode="light"] .nh-header {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  box-shadow: 0 1px 20px rgba(0,0,0,0.08);
 }
 
 .nh-header-left {
@@ -103,7 +92,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--accent);
   letter-spacing: -1px;
@@ -140,9 +129,9 @@
 
 .nh-subtitle {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
   color: color-mix(in srgb, var(--accent) 70%, var(--text-primary, #fff));
-  letter-spacing: 2px;
+  letter-spacing: 3.5px;
   text-transform: uppercase;
 }
 
@@ -465,14 +454,6 @@
   z-index: 1;
 }
 
-[data-theme-mode="light"] .nh-ambient-orb {
-  opacity: 0.15;
-}
-
-[data-theme-mode="light"] .nh-header {
-  background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 90%, transparent);
-}
-
 [data-theme-mode="light"] .nh-nav-btn-ghost {
   color: var(--text-primary, #1a1a2e);
 }
@@ -629,17 +610,6 @@
   }
 }
 
-[data-theme-mode="dark"] .nh-header {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-}
-
-[data-theme-mode="light"] .nh-header {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
 
 .nh-generated-section {
   padding: 24px 48px 32px;

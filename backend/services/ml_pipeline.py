@@ -62,15 +62,15 @@ STRATEGY_MAP = [
 ]
 
 STRATEGY_INSTRUCTIONS = {
-    "GUIDED_DISCOVERY": "Surface weak areas using Socratic questions. Ask what they already know.",
+    "GUIDED_DISCOVERY":   "Surface weak areas using Socratic questions. Ask what they already know.",
     "DIRECT_EXPLANATION": "Give a clear, structured explanation of the concept. Use precise language.",
-    "WORKED_EXAMPLE": "Walk through a step-by-step solved example. Show every step.",
-    "ANALOGICAL": "Use a real-world analogy to explain the concept. Make it concrete and relatable.",
-    "SCAFFOLDED": "Break the concept into smaller sub-problems. Address each part in sequence.",
-    "REASSURANCE_FIRST": "Acknowledge the student's frustration with empathy first. Then address the concept gently.",
-    "CHALLENGE_PUSH": "The student is ready for harder content. Push them with a challenging follow-up.",
-    "REANCHOR": "Kindly redirect the conversation back to their learning goals.",
-    "METACOGNITIVE": "Invite reflection on their learning process. Ask what helped or confused them.",
+    "WORKED_EXAMPLE":     "Walk through a step-by-step solved example. Show every step.",
+    "ANALOGICAL":         "Use a real-world analogy to explain the concept. Make it concrete and relatable.",
+    "SCAFFOLDED":         "Break the concept into smaller sub-problems. Address each part in sequence.",
+    "REASSURANCE_FIRST":  "Acknowledge the student's frustration with empathy first. Then address the concept gently.",
+    "CHALLENGE_PUSH":     "The student is ready for harder content. Push them with a challenging follow-up.",
+    "REANCHOR":           "Kindly redirect the conversation back to their learning goals.",
+    "METACOGNITIVE":      "Invite the student to reflect on their learning process. Ask what helped or confused them and how they might approach it differently next time.",
 }
 
 
@@ -159,6 +159,10 @@ class MLOutput:
     memories_used: List[str] = field(default_factory=list)
     kt_before: Dict[str, float] = field(default_factory=dict)
     kt_after: Dict[str, float] = field(default_factory=dict)
+    rl_state_hash: str = ""
+    rl_selection_method: str = "rule"
+    rl_episode_id: str = ""
+    rl_exploration_flag: bool = False
 
 
 class MessageMLPipeline:
@@ -410,6 +414,14 @@ class MessageMLPipeline:
             return strategy
         return "DIRECT_EXPLANATION"
 
+    def _get_interaction_count(self, db, user_id: int) -> int:
+        """Fast count of total ML-logged messages for this student — used for RL cold-start gate."""
+        try:
+            import models
+            return db.query(models.MessageMLLog).filter_by(user_id=user_id).count()
+        except Exception:
+            return 0
+
     async def process(
         self,
         message: str,
@@ -444,9 +456,57 @@ class MessageMLPipeline:
             out.kt_before = kt_before
             out.kt_after = kt_after
 
-            out.response_strategy = self._select_strategy(
-                intent, frustration, p_mastery, archetype, engagement
-            )
+            # Layer 4: RL Thompson Sampling strategy selection
+            # Falls back to rule-based during cold start (<20 interactions)
+            try:
+                from services.rl_strategy_agent import (
+                    StateFeatures, get_bandit, session_depth_from_count
+                )
+                state = StateFeatures(
+                    archetype=archetype,
+                    cognitive_state=cognitive,
+                    intent=intent,
+                    p_mastery=p_mastery,
+                    frustration_score=frustration,
+                    session_depth=session_depth_from_count(session.message_count),
+                )
+                interaction_count = self._get_interaction_count(db, user_id)
+                bandit = get_bandit()
+                selection = bandit.select_strategy(
+                    db=db,
+                    student_id=student_id,
+                    state=state,
+                    interaction_count=interaction_count,
+                    session_id=session.session_id,
+                    p_mastery_before=p_mastery,
+                    frustration_before=frustration,
+                    engagement_before=engagement,
+                )
+                out.response_strategy = selection.strategy_id
+                out.rl_state_hash = selection.state_hash
+                out.rl_selection_method = selection.selection_method
+                out.rl_episode_id = selection.episode_id or ""
+                out.rl_exploration_flag = selection.exploration_flag
+
+                # Queue deferred reward measurement (non-blocking)
+                bandit.queue_reward_measurement(
+                    db=db,
+                    student_id=student_id,
+                    session_id=session.session_id,
+                    message_id=None,  # filled in by chat route after ML log commit
+                    state_hash=selection.state_hash,
+                    strategy_id=selection.strategy_id,
+                    p_mastery_before=p_mastery,
+                    frustration_before=frustration,
+                    engagement_before=engagement,
+                )
+                db.commit()
+            except Exception as rl_err:
+                logger.warning(f"[ML] RL strategy selection failed, using rule fallback: {rl_err}")
+                out.response_strategy = self._select_strategy(
+                    intent, frustration, p_mastery, archetype, engagement
+                )
+                out.rl_selection_method = "rule"
 
             if self._memory_svc:
                 try:
@@ -460,10 +520,11 @@ class MessageMLPipeline:
                     logger.warning(f"[ML] memory retrieval failed: {e}")
 
             logger.info(
-                "[ML  ✓] DONE  user=%-10s  strategy=%-20s  mastery=%.0f%%  "
+                "[ML  ✓] DONE  user=%-10s  strategy=%-22s  method=%-14s  mastery=%.0f%%  "
                 "frustration=%.2f  memories=%d  msg=%.40r",
                 student_id,
                 out.response_strategy,
+                out.rl_selection_method,
                 out.p_mastery * 100,
                 out.frustration_score,
                 len(out.memories_used),

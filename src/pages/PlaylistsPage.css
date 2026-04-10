@@ -64,7 +64,12 @@
   width: 100%;
   min-height: 100vh;
   height: auto;
-  background: var(--lp-bg-primary) !important;
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 70%),
+    linear-gradient(160deg, #0d0b08 0%, #090909 56%, #111 100%) !important;
+  background-attachment: fixed;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--lp-text-primary);
   overflow-x: hidden;
@@ -75,6 +80,25 @@
   flex-direction: column;
 }
 
+[data-theme-mode="light"] .playlists-container {
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 50%),
+    var(--bg-primary) !important;
+  background-attachment: fixed;
+}
+
+.playlists-container::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+}
+
 
 .playlists-container .hub-header {
   position: sticky;
@@ -83,27 +107,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 40px;
-  height: 70px;
-  min-height: 70px;
-  max-height: 70px;
-  background: color-mix(in srgb, var(--lp-bg-primary) 80%, transparent);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid color-mix(in srgb, var(--lp-accent) 15%, transparent);
+  padding: 0 48px;
+  height: 68px;
+  min-height: 68px;
+  max-height: 68px;
   flex-shrink: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-[data-theme-mode="dark"] .playlists-container .hub-header {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: color-mix(in srgb, #0d0b08 85%, transparent);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 1px 40px rgba(0,0,0,0.5);
 }
 
 [data-theme-mode="light"] .playlists-container .hub-header {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  box-shadow: 0 1px 20px rgba(0,0,0,0.08);
 }
 
 .playlists-container .hub-header-left {
@@ -116,7 +133,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--lp-accent);
   letter-spacing: -1px;
@@ -153,9 +170,9 @@
 
 .playlists-container .hub-header-subtitle {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
   color: color-mix(in srgb, var(--lp-accent) 70%, var(--lp-text-primary));
-  letter-spacing: 2px;
+  letter-spacing: 3.5px;
   text-transform: uppercase;
   margin: 0;
 }
@@ -304,12 +321,6 @@
   border-color: var(--lp-accent);
 }
 
-.playlists-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  height: 100%;
-}
 
 .playlists-sidebar {
   width: 260px;
@@ -693,7 +704,7 @@
   flex-direction: column;
   height: auto;
   overflow: visible;
-  background: var(--lp-bg-primary);
+  background: transparent;
   position: relative;
   min-height: 0;
   min-width: 0;

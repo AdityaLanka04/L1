@@ -46,6 +46,7 @@ class TutorState(TypedDict, total=False):
     is_new_session: bool
     session_gap_days: Optional[float]
     decayed_concepts: list[dict]
+    last_session_summary: Optional[dict]
     selected_style: str
     style_context: list[float]
     style_scores: dict

@@ -2,19 +2,19 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight, Target, Brain, MessageSquare,
-  TrendingUp, AlertTriangle, CheckCircle,
-  Activity, Zap, RefreshCw, Cpu
-, Menu} from 'lucide-react';
+  CheckCircle, Activity, Zap, RefreshCw, Cpu, Menu
+} from 'lucide-react';
 import './Weaknesses.css';
 import { API_URL } from '../config';
 import WeaknessTracker from '../components/WeaknessTracker/WeaknessTracker';
+import RLInsights from '../components/RLInsights/RLInsights';
 
 const Weaknesses = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const userName = localStorage.getItem('username');
-  
-  const [activeTab, setActiveTab] = useState('weaknesses');
+
+  const [activeView, setActiveView] = useState('weak-areas');
   const [loading, setLoading] = useState(true);
   const [weakAreasData, setWeakAreasData] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
@@ -38,7 +38,7 @@ const Weaknesses = () => {
         setWeakAreasData(data);
       }
     } catch (error) {
-      console.error('Error loading weak areas:', error);
+      console.error('Error loading weak areas:', error); // silenced
     } finally {
       setLoading(false);
     }
@@ -50,7 +50,6 @@ const Weaknesses = () => {
 
   const getFilteredAreas = () => {
     if (!weakAreasData?.weak_areas) return [];
-    
     if (filterCategory === 'all') {
       return [
         ...(weakAreasData.weak_areas.critical || []),
@@ -58,162 +57,224 @@ const Weaknesses = () => {
         ...(weakAreasData.weak_areas.improving || [])
       ];
     }
-    
     return weakAreasData.weak_areas[filterCategory] || [];
   };
 
+  const criticalCount = weakAreasData?.summary?.critical_count || 0;
+  const needsPracticeCount = weakAreasData?.summary?.needs_practice_count || 0;
+  const improvingCount = weakAreasData?.summary?.improving_count || 0;
+  const totalCount = criticalCount + needsPracticeCount + improvingCount;
+
   if (loading) {
     return (
-      <div className="weaknesses-page">
-        <div className="weaknesses-loading">
-          <div className="loading-spinner-weak"></div>
-          <p>ANALYZING YOUR PERFORMANCE...</p>
+      <div className="wk-container">
+        <div className="wk-loading">
+          <div className="wk-loading-dots">
+            <span /><span /><span />
+          </div>
+          <p>ANALYZING YOUR PERFORMANCE</p>
         </div>
       </div>
     );
   }
 
   const filteredAreas = getFilteredAreas();
-  const criticalCount = weakAreasData?.summary?.critical_count || 0;
-  const needsPracticeCount = weakAreasData?.summary?.needs_practice_count || 0;
-  const improvingCount = weakAreasData?.summary?.improving_count || 0;
 
   return (
-    <div className="weaknesses-container">
-      <header className="weaknesses-header">
-        <div className="weaknesses-header-left">
+    <div className="wk-container">
+      <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
+        <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
+        <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+        <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
+        <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
+        <circle cx="600" cy="40" r="5" fill="currentColor"/>
+        <circle cx="600" cy="760" r="5" fill="currentColor"/>
+        <circle cx="240" cy="400" r="5" fill="currentColor"/>
+        <circle cx="960" cy="400" r="5" fill="currentColor"/>
+        <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
+        <rect x="24" y="24" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="44" y="44" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+        <circle cx="60" cy="60" r="3" fill="currentColor"/>
+        <rect x="1104" y="704" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="1124" y="724" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+        <circle cx="1140" cy="740" r="3" fill="currentColor"/>
+        <circle cx="120" cy="200" r="2" fill="currentColor"/>
+        <circle cx="160" cy="160" r="1.5" fill="currentColor"/>
+        <circle cx="200" cy="200" r="2" fill="currentColor"/>
+        <circle cx="160" cy="240" r="1.5" fill="currentColor"/>
+        <circle cx="1080" cy="600" r="2" fill="currentColor"/>
+        <circle cx="1040" cy="640" r="1.5" fill="currentColor"/>
+        <circle cx="1000" cy="600" r="2" fill="currentColor"/>
+        <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
+      </svg>
+      <header className="wk-header">
+        <div className="wk-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="weaknesses-logo" onClick={() => navigate('/search-hub')}>
-            <div className="weaknesses-logo-img" />
+          <h1 className="wk-logo" onClick={() => navigate('/search-hub')}>
+            <div className="wk-logo-img" />
             cerbyl
           </h1>
-          <div className="weaknesses-header-divider"></div>
-          <span className="weaknesses-subtitle">WEAK AREAS ANALYSIS</span>
+          <div className="wk-header-divider" />
+          <span className="wk-subtitle">INTELLIGENCE</span>
         </div>
-        <nav className="weaknesses-header-right">
-          <div className="weaknesses-tab-switcher">
-            <button
-              className={`weaknesses-tab-btn ${activeTab === 'weaknesses' ? 'active' : ''}`}
-              onClick={() => setActiveTab('weaknesses')}
-            >
-              <Activity size={15} />
-              <span>Weak Areas</span>
-            </button>
-            <button
-              className={`weaknesses-tab-btn ${activeTab === 'intelligence' ? 'active' : ''}`}
-              onClick={() => setActiveTab('intelligence')}
-            >
-              <Cpu size={15} />
-              <span>Intelligence</span>
-            </button>
-          </div>
-          {activeTab === 'weaknesses' && (
-            <button className="weaknesses-nav-btn weaknesses-nav-btn-accent" onClick={loadWeakAreas}>
-              <RefreshCw size={16} />
-              <span>Refresh</span>
+        <nav className="wk-header-right">
+          {activeView === 'weak-areas' && (
+            <button className="wk-nav-btn wk-nav-btn-accent" onClick={loadWeakAreas}>
+              <RefreshCw size={15} />
+              Refresh
             </button>
           )}
-          <button className="weaknesses-nav-btn weaknesses-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
+          <button className="wk-nav-btn wk-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            Dashboard
             <ChevronRight size={14} />
           </button>
         </nav>
       </header>
 
-      {activeTab === 'intelligence' && (
-        <div className="weaknesses-intelligence-wrapper">
-          <WeaknessTracker userId={userName} token={token} onNavigate={navigate} />
-        </div>
-      )}
+      <div className="wk-layout">
+        <aside className="wk-sidebar">
+          <nav className="wk-sidebar-nav">
+            <button
+              className={`wk-sidebar-item ${activeView === 'weak-areas' ? 'active' : ''}`}
+              onClick={() => setActiveView('weak-areas')}
+            >
+              <Activity size={16} />
+              <span>Weak Areas</span>
+              {totalCount > 0 && <span className="wk-count">{totalCount}</span>}
+            </button>
+            <button
+              className={`wk-sidebar-item ${activeView === 'intelligence' ? 'active' : ''}`}
+              onClick={() => setActiveView('intelligence')}
+            >
+              <Cpu size={16} />
+              <span>Intelligence</span>
+            </button>
+            <button
+              className={`wk-sidebar-item ${activeView === 'how-i-learn' ? 'active' : ''}`}
+              onClick={() => setActiveView('how-i-learn')}
+            >
+              <Brain size={16} />
+              <span>How I Learn</span>
+            </button>
+          </nav>
 
-      {activeTab === 'weaknesses' && <div className="weaknesses-body">
-        <aside className="weaknesses-sidebar">
-          <div className="sidebar-section">
-            <h3 className="sidebar-heading">FILTER BY SEVERITY</h3>
-            <nav className="sidebar-menu">
-              <button 
-                className={`menu-item ${filterCategory === 'all' ? 'active' : ''}`}
-                onClick={() => setFilterCategory('all')}
-              >
-                <Activity size={18} />
-                <span>All Areas</span>
-                {filterCategory === 'all' && <div className="active-indicator"></div>}
-              </button>
-              
-              <button 
-                className={`menu-item ${filterCategory === 'critical' ? 'active' : ''}`}
-                onClick={() => setFilterCategory('critical')}
-              >
-                <AlertTriangle size={18} />
-                <span>Critical</span>
-                {filterCategory === 'critical' && <div className="active-indicator"></div>}
-              </button>
-              
-              <button 
-                className={`menu-item ${filterCategory === 'needs_practice' ? 'active' : ''}`}
-                onClick={() => setFilterCategory('needs_practice')}
-              >
-                <Target size={18} />
-                <span>Needs Practice</span>
-                {filterCategory === 'needs_practice' && <div className="active-indicator"></div>}
-              </button>
-              
-              <button 
-                className={`menu-item ${filterCategory === 'improving' ? 'active' : ''}`}
-                onClick={() => setFilterCategory('improving')}
-              >
-                <TrendingUp size={18} />
-                <span>Improving</span>
-                {filterCategory === 'improving' && <div className="active-indicator"></div>}
-              </button>
-            </nav>
-          </div>
-
-          <div className="sidebar-divider"></div>
-
-          <div className="sidebar-stats">
-            <div className="stat-box critical-stat">
-              <div className="stat-value">{criticalCount}</div>
-              <div className="stat-label">CRITICAL</div>
-            </div>
-            <div className="stat-box needs-practice-stat">
-              <div className="stat-value">{needsPracticeCount}</div>
-              <div className="stat-label">NEEDS PRACTICE</div>
-            </div>
-            <div className="stat-box improving-stat">
-              <div className="stat-value">{improvingCount}</div>
-              <div className="stat-label">IMPROVING</div>
-            </div>
-          </div>
-        </aside>
-
-        <main className="weaknesses-main">
-          {filteredAreas.length === 0 ? (
-            <div className="empty-container">
-              <CheckCircle size={64} />
-              <h3>NO WEAK AREAS DETECTED!</h3>
-              <p>You're doing great! Keep up the excellent work.</p>
-              <button className="empty-btn" onClick={() => navigate('/ai-chat')}>
-                <Zap size={18} />
-                <span>START LEARNING</span>
-              </button>
-            </div>
-          ) : (
-            <div className="weaknesses-grid">
-              {filteredAreas.map((area, idx) => (
-                <WeaknessCard
-                  key={idx}
-                  area={area}
-                  index={idx}
-                  onClick={() => handleTopicClick(area.topic)}
-                />
-              ))}
+          {activeView === 'weak-areas' && totalCount > 0 && (
+            <div className="wk-sidebar-stats">
+              {criticalCount > 0 && (
+                <div className="wk-stat-pill wk-stat-critical">
+                  <span className="wk-stat-num">{criticalCount}</span>
+                  <span className="wk-stat-lbl">Critical</span>
+                </div>
+              )}
+              {needsPracticeCount > 0 && (
+                <div className="wk-stat-pill wk-stat-practice">
+                  <span className="wk-stat-num">{needsPracticeCount}</span>
+                  <span className="wk-stat-lbl">Practice</span>
+                </div>
+              )}
+              {improvingCount > 0 && (
+                <div className="wk-stat-pill wk-stat-improving">
+                  <span className="wk-stat-num">{improvingCount}</span>
+                  <span className="wk-stat-lbl">Improving</span>
+                </div>
+              )}
             </div>
           )}
+        </aside>
+
+        <main className="wk-main">
+          {activeView === 'weak-areas' && (
+            <>
+              <div className="wk-view-header">
+                <span className="wk-view-kicker">Performance Analysis</span>
+                <h2 className="wk-view-title">Weak Areas</h2>
+                <p className="wk-view-sub">
+                  {totalCount > 0
+                    ? `${totalCount} area${totalCount !== 1 ? 's' : ''} identified across your activity`
+                    : 'No weak areas detected'}
+                </p>
+              </div>
+
+              {totalCount > 0 && (
+                <div className="wk-filter-row">
+                  {[
+                    { key: 'all', label: 'All Areas', count: null },
+                    { key: 'critical', label: 'Critical', count: criticalCount },
+                    { key: 'needs_practice', label: 'Needs Practice', count: needsPracticeCount },
+                    { key: 'improving', label: 'Improving', count: improvingCount },
+                  ].map(({ key, label, count }) => (
+                    <button
+                      key={key}
+                      className={`wk-filter-pill ${filterCategory === key ? 'active' : ''} wk-filter-${key}`}
+                      onClick={() => setFilterCategory(key)}
+                    >
+                      {label}
+                      {count !== null && <span className="wk-filter-count">{count}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {filteredAreas.length === 0 ? (
+                <div className="wk-empty">
+                  <CheckCircle size={56} />
+                  <h3>No weak areas detected</h3>
+                  <p>You're performing well across all tracked topics. Keep learning to build your profile.</p>
+                  <button className="wk-cta-btn" onClick={() => navigate('/ai-chat')}>
+                    <Zap size={16} />
+                    Start Learning
+                  </button>
+                </div>
+              ) : (
+                <div className="wk-bento-grid">
+                  {filteredAreas.map((area, idx) => (
+                    <WeaknessCard
+                      key={idx}
+                      area={area}
+                      onClick={() => handleTopicClick(area.topic)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {activeView === 'intelligence' && (
+            <>
+              <div className="wk-view-header">
+                <span className="wk-view-kicker">AI-Powered Insights</span>
+                <h2 className="wk-view-title">Intelligence</h2>
+                <p className="wk-view-sub">Deep analysis of your learning patterns and concept mastery</p>
+              </div>
+              <div className="wk-component-wrapper">
+                <WeaknessTracker userId={userName} token={token} onNavigate={navigate} />
+              </div>
+            </>
+          )}
+
+          {activeView === 'how-i-learn' && (
+            <>
+              <div className="wk-view-header">
+                <span className="wk-view-kicker">Adaptive Strategy</span>
+                <h2 className="wk-view-title">How I Learn</h2>
+                <p className="wk-view-sub">Your personalized teaching strategy profile, powered by reinforcement learning</p>
+              </div>
+              <div className="wk-component-wrapper">
+                <RLInsights userName={userName} token={token} />
+              </div>
+            </>
+          )}
         </main>
-      </div>}
+      </div>
     </div>
   );
 };
@@ -223,75 +284,87 @@ export default Weaknesses;
 // ==================== WEAKNESS CARD ====================
 
 const WeaknessCard = ({ area, onClick }) => {
-  const getCategoryColor = (category) => {
-    switch(category) {
-      case 'critical': return '#ef4444';
-      case 'needs_practice': return '#f59e0b';
-      case 'improving': return '#10b981';
-      default: return '#6b7280';
-    }
-  };
+  const cat = area.category;
+  const accuracy = area.accuracy ?? 0;
 
-  const categoryColor = getCategoryColor(area.category);
-  const hasQuizOrFlashcard = area.sources?.includes('quiz') || area.sources?.includes('flashcard');
+  const catColor = {
+    critical: '#ef4444',
+    needs_practice: '#f59e0b',
+    improving: '#10b981',
+  }[cat] || '#6b7280';
+
+  const catLabel = {
+    critical: 'Critical',
+    needs_practice: 'Needs Practice',
+    improving: 'Improving',
+  }[cat] || cat;
+
+  const hasMetrics = area.sources?.includes('quiz') || area.sources?.includes('flashcard');
+  const correct = (area.total_attempts || 0) - (area.total_wrong || 0);
 
   return (
-    <div className={`weakness-card ${area.category}`}>
-      <div 
-        className="card-cover" 
-        style={{ 
-          background: `linear-gradient(135deg, ${categoryColor}22 0%, ${categoryColor}55 100%)`
-        }}
+    <div className={`wk-card wk-card--${cat}`} onClick={onClick}>
+      <div className="wk-card-header">
+        <div className="wk-card-badges">
+          {area.sources?.includes('quiz') && <span className="wk-badge wk-badge--quiz">Quiz</span>}
+          {area.sources?.includes('flashcard') && <span className="wk-badge wk-badge--card">Cards</span>}
+          {area.sources?.includes('chat') && <span className="wk-badge wk-badge--chat">Chat</span>}
+        </div>
+        <span className="wk-card-cat" style={{ color: catColor }}>{catLabel}</span>
+      </div>
+
+      <h3 className="wk-card-topic">{area.topic || 'Unknown Topic'}</h3>
+
+      {area.chat_analysis?.is_doubtful && (
+        <p className="wk-card-hint">
+          <MessageSquare size={11} />
+          Asked {area.chat_analysis.mentions} time{area.chat_analysis.mentions !== 1 ? 's' : ''} in chat
+        </p>
+      )}
+
+      {area.flashcard_performance?.is_weak && (area.flashcard_performance?.struggling_cards?.length > 0) && (
+        <p className="wk-card-hint">
+          <Brain size={11} />
+          {area.flashcard_performance.struggling_cards.length} struggling card{area.flashcard_performance.struggling_cards.length !== 1 ? 's' : ''}
+        </p>
+      )}
+
+      {hasMetrics && (
+        <>
+          <div className="wk-card-bar-wrap">
+            <div className="wk-card-bar-track">
+              <div
+                className="wk-card-bar-fill"
+                style={{ width: `${accuracy}%`, background: catColor }}
+              />
+            </div>
+            <span className="wk-card-pct" style={{ color: catColor }}>{accuracy}%</span>
+          </div>
+
+          <div className="wk-card-metrics">
+            <div className="wk-metric">
+              <span className="wk-metric-val" style={{ color: '#10b981' }}>{correct}</span>
+              <span className="wk-metric-lbl">Correct</span>
+            </div>
+            <div className="wk-metric">
+              <span className="wk-metric-val" style={{ color: '#ef4444' }}>{area.total_wrong || 0}</span>
+              <span className="wk-metric-lbl">Wrong</span>
+            </div>
+            <div className="wk-metric">
+              <span className="wk-metric-val">{area.total_attempts || 0}</span>
+              <span className="wk-metric-lbl">Total</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      <button
+        className="wk-card-btn"
+        onClick={(e) => { e.stopPropagation(); onClick(); }}
       >
-        <h3 className="card-cover-title">{area.topic || 'Unknown Topic'}</h3>
-        <div className="card-sources-top">
-          {area.sources?.includes('quiz') && <span className="source-badge quiz">QUIZ</span>}
-          {area.sources?.includes('flashcard') && <span className="source-badge flashcard">FLASHCARD</span>}
-          {area.sources?.includes('chat') && <span className="source-badge chat">CHAT</span>}
-        </div>
-      </div>
-
-      <div className="card-content">
-        {area.chat_analysis?.is_doubtful && (
-          <div className="card-subtitle doubtful">
-            <MessageSquare size={12} />
-            <span>Asked {area.chat_analysis.mentions} times</span>
-          </div>
-        )}
-
-        {area.flashcard_performance?.is_weak && area.flashcard_performance?.struggling_cards?.length > 0 && (
-          <div className="card-subtitle struggling">
-            <Brain size={12} />
-            <span>{area.flashcard_performance.struggling_cards.length} struggling cards</span>
-          </div>
-        )}
-        
-        {hasQuizOrFlashcard && (
-          <>
-            <div className="card-accuracy">
-              <span className="accuracy-label">ACCURACY</span>
-              <span className="accuracy-value" style={{ color: categoryColor }}>{area.accuracy}%</span>
-            </div>
-            
-            <div className="card-accuracy">
-              <span className="accuracy-label">CORRECT</span>
-              <span className="accuracy-value">{area.total_attempts - area.total_wrong}</span>
-            </div>
-            
-            <div className="card-accuracy">
-              <span className="accuracy-label">WRONG</span>
-              <span className="accuracy-value">{area.total_wrong}</span>
-            </div>
-          </>
-        )}
-
-        <div className="card-actions">
-          <button className="analyze-btn" onClick={(e) => { e.stopPropagation(); onClick(); }}>
-            <Target size={16} />
-            <span>ANALYZE</span>
-          </button>
-        </div>
-      </div>
+        <Target size={13} />
+        Analyze
+      </button>
     </div>
   );
 };

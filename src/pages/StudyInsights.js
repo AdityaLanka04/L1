@@ -139,12 +139,12 @@ const StudyInsights = () => {
       <main className="si-main">
         <div className="si-bento-grid">
           <div className="si-bento si-summary">
-            <h2 className="si-bento-title">AI SUMMARY</h2>
+            <span className="view-kicker si-bento-title">AI SUMMARY</span>
             <p className="si-summary-text">{insights.ai_summary}</p>
           </div>
 
           <div className="si-bento si-time-stats">
-            <h2 className="si-bento-title">STUDY TIME</h2>
+            <span className="view-kicker si-bento-title">STUDY TIME</span>
             <div className="si-stats-grid">
               <div className="si-stat">
                 <div className="si-stat-value">{insights.time_stats?.weekly_study_minutes || 0}</div>
@@ -162,7 +162,7 @@ const StudyInsights = () => {
           </div>
 
           <div className="si-bento si-activity">
-            <h2 className="si-bento-title">WEEKLY ACTIVITY</h2>
+            <span className="view-kicker si-bento-title">WEEKLY ACTIVITY</span>
             <div className="si-activity-list">
               <div className="si-activity-row">
                 <span className="si-activity-label">AI Chats</span>
@@ -188,7 +188,7 @@ const StudyInsights = () => {
           </div>
 
           <div className="si-bento si-quiz">
-            <h2 className="si-bento-title">QUIZ PERFORMANCE</h2>
+            <span className="view-kicker si-bento-title">QUIZ PERFORMANCE</span>
             {insights.quizzes?.total_quizzes > 0 ? (
               <>
                 <div className="si-quiz-summary">
@@ -225,7 +225,7 @@ const StudyInsights = () => {
           </div>
 
           <div className="si-bento si-flashcards">
-            <h2 className="si-bento-title">FLASHCARD MASTERY</h2>
+            <span className="view-kicker si-bento-title">FLASHCARD MASTERY</span>
             {insights.flashcards?.total > 0 ? (
               <>
                 <div className="si-fc-stats">
@@ -263,7 +263,7 @@ const StudyInsights = () => {
           </div>
 
           <div className="si-bento si-weak">
-            <h2 className="si-bento-title">WEAK AREAS TO IMPROVE</h2>
+            <span className="view-kicker si-bento-title">WEAK AREAS TO IMPROVE</span>
             {insights.weak_areas && insights.weak_areas.length > 0 ? (
               <div className="si-weak-list">
                 {insights.weak_areas.slice(0, 5).map((area, idx) => (
@@ -293,7 +293,7 @@ const StudyInsights = () => {
 
           {insights.quizzes?.recent_quizzes && insights.quizzes.recent_quizzes.length > 0 && (
             <div className="si-bento si-recent-quizzes">
-              <h2 className="si-bento-title">RECENT QUIZ RESULTS</h2>
+              <span className="view-kicker si-bento-title">RECENT QUIZ RESULTS</span>
               <div className="si-quiz-list">
                 {insights.quizzes.recent_quizzes.slice(0, 5).map((quiz, idx) => (
                   <div key={idx} className="si-quiz-row">
@@ -313,7 +313,7 @@ const StudyInsights = () => {
           )}
 
           <div className="si-bento si-qb">
-            <h2 className="si-bento-title">QUESTION BANK</h2>
+            <span className="view-kicker si-bento-title">QUESTION BANK</span>
             {insights.question_bank?.total_questions > 0 ? (
               <div className="si-qb-stats">
                 <div className="si-qb-stat">
@@ -339,7 +339,7 @@ const StudyInsights = () => {
 
           {insights.session_data?.specific_topics && insights.session_data.specific_topics.length > 0 && (
             <div className="si-bento si-topics">
-              <h2 className="si-bento-title">TOPICS STUDIED</h2>
+              <span className="view-kicker si-bento-title">TOPICS STUDIED</span>
               <div className="si-topics-list">
                 {insights.session_data.specific_topics.slice(0, 6).map((topic, idx) => (
                   <div key={idx} className="si-topic-row" onClick={() => navigate('/ai-chat', {
@@ -355,7 +355,7 @@ const StudyInsights = () => {
 
           {insights.notes?.recent_notes && insights.notes.recent_notes.length > 0 && (
             <div className="si-bento si-notes">
-              <h2 className="si-bento-title">RECENT NOTES</h2>
+              <span className="view-kicker si-bento-title">RECENT NOTES</span>
               <div className="si-notes-list">
                 {insights.notes.recent_notes.map((note) => (
                   <div key={note.id} className="si-note-row" onClick={() => navigate(`/notes-redesign?note_id=${note.id}`)}>
@@ -368,7 +368,7 @@ const StudyInsights = () => {
 
           {!hasData && (
             <div className="si-bento si-empty-state">
-              <h2 className="si-bento-title">GET STARTED</h2>
+              <span className="view-kicker si-bento-title">GET STARTED</span>
               <p className="si-empty-text">Start studying to see your comprehensive insights here.</p>
               <button className="si-btn-large" onClick={() => navigate('/ai-chat')}>START STUDYING</button>
             </div>

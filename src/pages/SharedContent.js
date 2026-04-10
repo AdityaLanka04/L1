@@ -150,10 +150,11 @@ const SharedContent = () => {
       <div className="shared-container">
         <div className="shared-welcome">
           <div className="shared-welcome-left">
-            <h2 className="shared-title">Content Shared With You</h2>
-            <p className="shared-description">
-              Access notes and AI chats that friends have shared with you
-            </p>
+            <div className="view-heading" style={{ marginBottom: 0, paddingBottom: 0, border: 'none' }}>
+              <span className="view-kicker">Friends</span>
+              <h2 className="view-title">Content Shared With You</h2>
+              <p className="view-sub">Access notes and AI chats that friends have shared with you</p>
+            </div>
           </div>
           <div className="shared-stats">
             <div className="stat-badge">

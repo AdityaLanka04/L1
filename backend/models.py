@@ -1,6 +1,6 @@
 from sqlalchemy import (
     create_engine, Column, Integer, String, Text, DateTime, ForeignKey,
-    Boolean, Float, JSON, Date, func
+    Boolean, Float, JSON, Date, func, UniqueConstraint
 )
 from sqlalchemy.orm import relationship, sessionmaker, backref
 from datetime import datetime, timezone
@@ -2264,3 +2264,62 @@ class AgentEvent(Base):
     raw_data = Column(JSON, nullable=True)
 
     user = relationship("User")
+
+
+class BanditState(Base):
+    """Thompson Sampling Contextual Bandit — per-student × state × strategy arm state."""
+    __tablename__ = "bandit_state"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(String(36), nullable=False, index=True)
+    state_hash = Column(String(32), nullable=False, index=True)
+    strategy_id = Column(String(32), nullable=False)
+    pulls = Column(Integer, default=0)
+    total_reward = Column(Float, default=0.0)
+    avg_reward = Column(Float, default=0.0)
+    alpha = Column(Float, default=1.0)
+    beta_param = Column(Float, default=1.0)
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        UniqueConstraint("student_id", "state_hash", "strategy_id", name="uq_bandit_state"),
+    )
+
+
+class BanditRewardQueue(Base):
+    """Deferred reward measurement queue — measured 2 minutes after response is sent."""
+    __tablename__ = "bandit_reward_queue"
+
+    id = Column(String(36), primary_key=True)
+    student_id = Column(String(36), nullable=False, index=True)
+    session_id = Column(Integer, nullable=True)
+    message_id = Column(Integer, ForeignKey("message_ml_logs.id"), nullable=True)
+    state_hash = Column(String(32), nullable=False)
+    strategy_id = Column(String(32), nullable=False)
+    response_sent_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    reward_measured = Column(Boolean, default=False, index=True)
+    reward_value = Column(Float, nullable=True)
+    reward_components = Column(JSON, nullable=True)
+    measure_after = Column(DateTime, nullable=False, index=True)
+    p_mastery_before = Column(Float, nullable=True)
+    frustration_before = Column(Float, nullable=True)
+    engagement_before = Column(Float, nullable=True)
+
+
+class BanditEpisodeLog(Base):
+    """Full audit log of every strategy selection decision."""
+    __tablename__ = "bandit_episode_log"
+
+    id = Column(String(36), primary_key=True)
+    student_id = Column(String(36), nullable=False, index=True)
+    session_id = Column(Integer, nullable=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    state_hash = Column(String(32), nullable=False)
+    state_features = Column(JSON, nullable=True)
+    strategy_selected = Column(String(32), nullable=False)
+    selection_method = Column(String(16), nullable=False)
+    thompson_samples = Column(JSON, nullable=True)
+    exploration_flag = Column(Boolean, default=False)
+    reward_received = Column(Float, nullable=True)
+    p_mastery_before = Column(Float, nullable=True)
+    p_mastery_after = Column(Float, nullable=True)

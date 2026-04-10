@@ -156,13 +156,19 @@ const WeaknessTips = () => {
         <div className="tips-content">
           <div className="tips-topic-header">
             <Brain size={48} />
-            <h2>{decodeURIComponent(topic)}</h2>
-            <p>Personalized study recommendations and practice resources</p>
+            <div className="view-heading">
+              <span className="view-kicker">Topic Focus</span>
+              <h2 className="view-title">{decodeURIComponent(topic)}</h2>
+              <p className="view-sub">Personalized tips and practice for this topic</p>
+            </div>
           </div>
 
           {suggestions?.suggestions?.length > 0 && (
             <div className="tips-section">
-              <h3><Lightbulb size={20} /> Personalized Suggestions</h3>
+              <div className="view-heading">
+                <span className="view-kicker">Personalized Suggestions</span>
+                <h2 className="view-title">Study Recommendations</h2>
+              </div>
               <div className="suggestions-grid">
                 {suggestions.suggestions.map((suggestion, idx) => (
                   <div key={idx} className={`suggestion-card ${suggestion.priority}`}>
@@ -180,7 +186,10 @@ const WeaknessTips = () => {
           )}
 
           <div className="tips-section practice-generator-section">
-            <h3><Zap size={20} /> Generate Practice Questions</h3>
+            <div className="view-heading">
+              <span className="view-kicker">Generate Practice Questions</span>
+              <h2 className="view-title">Practice Generator</h2>
+            </div>
             <div className="practice-generator-card">
               <div className="practice-gen-header">
                 <Brain size={40} />

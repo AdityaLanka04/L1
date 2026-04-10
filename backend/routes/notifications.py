@@ -60,14 +60,11 @@ async def get_notifications(
     db: Session = Depends(get_db)
 ):
     try:
-        logger.info(f"Getting notifications for user: {user_id}")
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
 
         if not user:
-            logger.warning(f"User not found for notifications: {user_id}")
             return {"notifications": []}
 
-        logger.info(f"Found user with id: {user.id}")
 
         now = _normalize_dt(datetime.now(timezone.utc))
         try:
@@ -168,8 +165,6 @@ async def get_notifications(
         notifications = db.query(models.Notification).filter(
             models.Notification.user_id == user.id
         ).order_by(models.Notification.created_at.desc()).all()
-
-        logger.info(f"Found {len(notifications)} notifications")
 
         return {
             "notifications": [

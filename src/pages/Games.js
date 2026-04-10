@@ -414,7 +414,11 @@ const Games = () => {
 
           <div className="section-card bingo-card">
             <div className="section-header">
-              <h2>weekly challenges</h2>
+              <div className="view-heading">
+                <span className="view-kicker">This Week</span>
+                <h2 className="view-title">Weekly Challenges</h2>
+                <p className="view-sub">Fresh challenges updated every week</p>
+              </div>
               <span className="completion-badge">{completedCount}/{totalTasks}</span>
             </div>
             <div className="bingo-board">
@@ -462,7 +466,11 @@ const Games = () => {
 
           <div className="section-card recent-card">
             <div className="section-header">
-              <h2>recent activity</h2>
+              <div className="view-heading">
+                <span className="view-kicker">Your History</span>
+                <h2 className="view-title">Recent Activity</h2>
+                <p className="view-sub">Your latest learning activity</p>
+              </div>
             </div>
             <div className="activity-list">
               {recentActivities.length === 0 ? (
@@ -486,7 +494,11 @@ const Games = () => {
 
           <div className="section-card points-card">
             <div className="section-header">
-              <h2>point system</h2>
+              <div className="view-heading">
+                <span className="view-kicker">How It Works</span>
+                <h2 className="view-title">Point System</h2>
+                <p className="view-sub">Earn points by completing learning activities</p>
+              </div>
             </div>
             <div className="points-list">
               <div className="points-item">

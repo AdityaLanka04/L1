@@ -6,7 +6,11 @@
   bottom: 0;
   width: 100vw;
   height: 100vh;
-  background: var(--bg-primary);
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 70%),
+    linear-gradient(160deg, #0d0b08 0%, #090909 56%, #111 100%);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text-primary);
   overflow: hidden;
@@ -14,53 +18,42 @@
   flex-direction: column;
 }
 
-.qh-ambient {
+[data-theme-mode="light"] .qh {
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 50%),
+    var(--bg-primary);
+}
+
+.qh::after {
+  content: '';
   position: fixed;
   inset: 0;
-  z-index: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
   pointer-events: none;
-  overflow: hidden;
+  z-index: 0;
+  opacity: 0.3;
+}
+
+.qh-ambient {
+  display: none;
 }
 
 .qh-ambient-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.15;
-  animation: float 20s ease-in-out infinite;
+  display: none;
 }
 
 .qh-ambient-orb-1 {
-  width: 600px;
-  height: 600px;
-  background: var(--accent);
-  top: -200px;
-  left: -200px;
-  animation-delay: 0s;
+  display: none;
 }
 
 .qh-ambient-orb-2 {
-  width: 500px;
-  height: 500px;
-  background: var(--accent);
-  bottom: -150px;
-  right: -150px;
-  animation-delay: 10s;
-}
-
-@keyframes float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -30px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
+  display: none;
 }
 
 .qh-ambient-grid {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent) 1.5px, transparent 1.5px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 75%);
-  opacity: 0.55;
+  display: none;
 }
 
 .qh-header {
@@ -70,26 +63,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 40px;
-  height: 70px;
-  min-height: 70px;
-  max-height: 70px;
-  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  padding: 0 48px;
+  height: 68px;
+  min-height: 68px;
+  max-height: 68px;
   flex-shrink: 0;
-}
-
-[data-theme-mode="dark"] .qh-header {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: color-mix(in srgb, #0d0b08 85%, transparent);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 1px 40px rgba(0,0,0,0.5);
 }
 
 [data-theme-mode="light"] .qh-header {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  box-shadow: 0 1px 20px rgba(0,0,0,0.08);
 }
 
 .qh-header-left {
@@ -102,7 +89,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--accent);
   letter-spacing: -1px;
@@ -139,9 +126,9 @@
 
 .qh-subtitle {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
   color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
-  letter-spacing: 2px;
+  letter-spacing: 3.5px;
   text-transform: uppercase;
   margin: 0;
 }

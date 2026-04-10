@@ -38,6 +38,38 @@ const QuizHub = () => {
 
   return (
     <div className="qh">
+      <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
+        <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
+        <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+        <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
+        <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
+        <circle cx="600" cy="40" r="5" fill="currentColor"/>
+        <circle cx="600" cy="760" r="5" fill="currentColor"/>
+        <circle cx="240" cy="400" r="5" fill="currentColor"/>
+        <circle cx="960" cy="400" r="5" fill="currentColor"/>
+        <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
+        <rect x="24" y="24" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="44" y="44" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+        <circle cx="60" cy="60" r="3" fill="currentColor"/>
+        <rect x="1104" y="704" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="1124" y="724" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+        <circle cx="1140" cy="740" r="3" fill="currentColor"/>
+        <circle cx="120" cy="200" r="2" fill="currentColor"/>
+        <circle cx="160" cy="160" r="1.5" fill="currentColor"/>
+        <circle cx="200" cy="200" r="2" fill="currentColor"/>
+        <circle cx="160" cy="240" r="1.5" fill="currentColor"/>
+        <circle cx="1080" cy="600" r="2" fill="currentColor"/>
+        <circle cx="1040" cy="640" r="1.5" fill="currentColor"/>
+        <circle cx="1000" cy="600" r="2" fill="currentColor"/>
+        <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
+      </svg>
       <div className="qh-ambient">
         <div className="qh-ambient-orb qh-ambient-orb-1"></div>
         <div className="qh-ambient-orb qh-ambient-orb-2"></div>
@@ -83,8 +115,11 @@ const QuizHub = () => {
             </div>
             
             <div className="qh-section-content">
-              <h2 className="qh-section-title">Solo Practice</h2>
-              <p className="qh-section-tag">Practice at Your Own Pace</p>
+              <div className="view-heading">
+                <span className="view-kicker">Study Mode</span>
+                <h2 className="view-title">Solo Practice</h2>
+                <p className="view-sub">Practice at your own pace with adaptive questions</p>
+              </div>
               
               <div className="qh-features">
                 <div className="qh-feature">
@@ -126,8 +161,11 @@ const QuizHub = () => {
             </div>
             
             <div className="qh-section-content">
-              <h2 className="qh-section-title">1v1 Battles</h2>
-              <p className="qh-section-tag">Challenge Your Friends</p>
+              <div className="view-heading">
+                <span className="view-kicker">Challenge Mode</span>
+                <h2 className="view-title">1v1 Battles</h2>
+                <p className="view-sub">Go head-to-head against friends in real time</p>
+              </div>
               
               <div className="qh-features">
                 <div className="qh-feature">
