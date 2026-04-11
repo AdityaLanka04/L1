@@ -54,7 +54,11 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: var(--bg-primary) !important;
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 70%),
+    linear-gradient(160deg, #0d0b08 0%, #090909 56%, #111 100%) !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--nr-text-primary);
   overflow: hidden !important;
@@ -65,6 +69,23 @@
   flex-direction: column;
 }
 
+[data-theme-mode="light"] .notes-redesign {
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 50%),
+    var(--bg-primary) !important;
+}
+
+.notes-redesign::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+}
 
 .notes-redesign * {
   box-sizing: border-box;
@@ -76,13 +97,15 @@
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .tools-sidepanel {
   width: var(--nr-sidebar-width);
   height: 100%;
   background: var(--bg-secondary);
-  border-right: 1px solid var(--nr-border-subtle);
+  border-right: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -93,7 +116,10 @@
 }
 
 [data-theme-mode="dark"] .tools-sidepanel {
-  background: var(--bg-secondary);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 15%, #000000) 0%,
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
   color: color-mix(in srgb, var(--accent) 60%, #ffffff);
 }
 
@@ -102,12 +128,16 @@
 }
 
 [data-theme-mode="dark"] .tool-panel-btn span {
-  color: color-mix(in srgb, var(--accent) 60%, #ffffff);
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
 [data-theme-mode="light"] .tools-sidepanel {
-  background: var(--bg-secondary);
-  color: color-mix(in srgb, var(--accent) 80%, #000000);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 0%,
+    color-mix(in srgb, var(--accent) 25%, #ffffff) 50%,
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%);
+  box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
 [data-theme-mode="light"] .tool-section-label {
@@ -115,7 +145,7 @@
 }
 
 [data-theme-mode="light"] .tool-panel-btn span {
-  color: color-mix(in srgb, var(--accent) 80%, #000000);
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
 .tools-sidepanel.closed {
@@ -154,16 +184,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--nr-border-subtle);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .tools-panel-header h3 {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3.5px;
   margin: 0;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .tools-sidepanel.closed .tools-panel-header h3 {
@@ -201,26 +232,27 @@
 .tool-section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 16px;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.tool-section + .tool-section {
+  border-top: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+  padding-top: 8px;
 }
 
 .tool-section-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 800;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 2px;
-  padding: 12px 16px 8px 16px;
-  margin-bottom: 4px;
-  margin-top: 8px;
+  letter-spacing: 3px;
+  padding: 8px 16px 6px 16px;
+  margin-bottom: 2px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, var(--nr-accent), var(--nr-accent-dark));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  opacity: 0.7;
 }
 
 .tool-buttons-group {
@@ -239,11 +271,12 @@
   border-radius: 8px;
   color: var(--nr-text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   text-align: left;
   position: relative;
   overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .tool-panel-btn span {
@@ -255,15 +288,16 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.2s;
 }
 
 .tool-panel-btn::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, var(--nr-accent-glow), transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 20%, transparent), transparent);
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.25s;
 }
 
 .tool-panel-btn:hover::before {
@@ -272,26 +306,38 @@
 
 .tool-panel-btn.active::before {
   opacity: 1;
-  background: linear-gradient(90deg, var(--nr-accent-glow), transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 25%, transparent), transparent);
 }
 
 .tool-panel-btn:hover {
-  background: var(--nr-bg-tertiary);
-  color: var(--nr-text-primary);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--text-primary);
+  transform: translateX(2px);
+}
+
+.tool-panel-btn:hover svg {
+  transform: scale(1.12);
+  color: var(--accent);
 }
 
 .tool-panel-btn.active {
-  background: var(--nr-accent-glow);
-  color: var(--nr-accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.tool-panel-btn:active {
+  transform: translateX(1px) scale(0.98);
 }
 
 .tool-panel-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tools-sidepanel.closed .tool-panel-btn span {
@@ -386,15 +432,16 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--nr-bg-primary);
+  background: transparent;
 }
 
 .top-nav-new {
   height: var(--nr-header-height);
   min-height: var(--nr-header-height);
   padding: 20px 40px;
-  background: var(--bg-primary);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  background: color-mix(in srgb, #0d0b08 85%, transparent);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3898,14 +3945,17 @@ h1.note-title ::-moz-selection,
 }
 
 [data-theme-mode="dark"] .top-nav-new {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: color-mix(in srgb, #0d0b08 85%, transparent);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 1px 40px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 [data-theme-mode="light"] .top-nav-new {
-  background: linear-gradient(180deg, #ffffff 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 1px 20px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="dark"] .editor-area-new {

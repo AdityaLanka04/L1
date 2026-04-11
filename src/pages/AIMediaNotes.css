@@ -21,7 +21,11 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: var(--mn-bg-primary) !important;
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 70%),
+    linear-gradient(160deg, #0d0b08 0%, #090909 56%, #111 100%) !important;
   color: var(--mn-text-primary);
   overflow: hidden !important;
   z-index: 9999 !important;
@@ -31,15 +35,27 @@
   flex-direction: column;
 }
 
-
+.ai-media-notes-page::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+}
 
 .hub-header {
   height: 70px;
   min-height: 70px;
   max-height: 70px;
   padding: 0 40px;
-  background: var(--mn-bg-primary);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  background: color-mix(in srgb, #0d0b08 85%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 1px 40px rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -47,6 +63,7 @@
   width: 100%;
   z-index: 100;
   box-sizing: border-box;
+  position: relative;
 }
 
 .hub-header-left {
@@ -248,8 +265,11 @@
 .mn-sidebar {
   width: var(--mn-sidebar-width);
   height: 100%;
-  background: var(--mn-bg-secondary);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 15%, var(--mn-bg-secondary)) 0%,
+    color-mix(in srgb, var(--accent) 8%, var(--mn-bg-secondary)) 100%);
   border-right: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -259,11 +279,20 @@
 }
 
 [data-theme-mode="dark"] .mn-sidebar {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 15%, #000000) 0%,
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
   color: color-mix(in srgb, var(--accent) 60%, #ffffff);
 }
 
 [data-theme-mode="light"] .mn-sidebar {
-  color: color-mix(in srgb, var(--accent) 80%, #000000);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 0%,
+    color-mix(in srgb, var(--accent) 25%, #ffffff) 50%,
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%);
+  box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
 .mn-sidebar.collapsed {
@@ -509,11 +538,11 @@
 }
 
 [data-theme-mode="dark"] .mn-main {
-  background: linear-gradient(160deg, var(--mn-bg-primary) 0%, color-mix(in srgb, var(--mn-accent) 4%, var(--mn-bg-primary)) 50%, var(--mn-bg-primary) 100%);
+  background: transparent;
 }
 
 [data-theme-mode="light"] .mn-main {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%);
+  background: transparent;
 }
 
 .mn-content {

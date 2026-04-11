@@ -1214,11 +1214,13 @@
 }
 
 .fc-empty h3 {
-  font-size: 24px !important;
-  font-weight: 600 !important;
-  color: var(--fc-text-primary) !important;
-  margin-bottom: 0 !important;
-  margin-top: 0 !important;
+  font-size: clamp(32px, 3.5vw, 48px) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1 !important;
+  color: var(--text-primary) !important;
+  margin: 0 !important;
+  font-family: 'Inter', sans-serif !important;
 }
 
 .fc-empty > p {
@@ -1354,32 +1356,45 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 28px;
   min-height: 300px;
 }
 
-.fc-spinner {
+.fc-pulse-loader {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
 }
 
-.fc-spinner span {
-  width: 12px;
-  height: 12px;
-  background: var(--fc-accent);
-  animation: fc-pulse 1.4s ease-in-out infinite;
+.fc-pulse-square {
+  background: var(--accent);
+  animation: fc-pulse-grow 1.5s ease-in-out infinite;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 8px;
 }
 
-.fc-spinner span:nth-child(1) {
+.fc-pulse-1 {
+  width: 24px;
+  height: 24px;
   animation-delay: 0s;
 }
 
-.fc-spinner span:nth-child(2) {
+.fc-pulse-2 {
+  width: 32px;
+  height: 32px;
   animation-delay: 0.2s;
 }
 
-.fc-spinner span:nth-child(3) {
+.fc-pulse-3 {
+  width: 40px;
+  height: 40px;
   animation-delay: 0.4s;
+}
+
+@keyframes fc-pulse-grow {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; }
 }
 
 @keyframes fc-pulse {
@@ -1396,6 +1411,7 @@
 .fc-loading p {
   font-size: 14px;
   color: var(--fc-text-muted);
+  margin: 0;
 }
 
 .fc-generator {
@@ -4322,9 +4338,6 @@
   box-shadow: 0 6px 24px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-.fc-spinner span {
-  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent);
-}
 
 [data-theme-mode="dark"] .fc-content::before {
   content: '';
@@ -6107,7 +6120,7 @@
     animation: none;
   }
   
-  .fc-spinner span,
+  .fc-pulse-square,
   .fc-spinner-small span {
     animation: none;
   }

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus, 
+  Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus,
   Grid, List as ListIcon, Layout, Sparkles, ChevronLeft, ChevronRight,
-  Home, LogOut, FileText, Menu, RotateCcw
+  Home, LogOut, FileText, Menu, RotateCcw, MessageSquare, BookOpen,
+  HelpCircle, X
 } from 'lucide-react';
 import './MyNotes.css';
 import './MyNotesSmartFolders.css';
@@ -42,6 +43,11 @@ const MyNotes = () => {
   const [noteToMove, setNoteToMove] = useState(null);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [importTab, setImportTab] = useState('chat');
+  const [flashcardSets, setFlashcardSets] = useState([]);
+  const [selectedFlashcardSets, setSelectedFlashcardSets] = useState([]);
+  const [quizHistory, setQuizHistory] = useState([]);
+  const [selectedQuizzes, setSelectedQuizzes] = useState([]);
 
   
   const Icons = {
@@ -136,6 +142,36 @@ const MyNotes = () => {
       if (res.ok) {
         const data = await res.json();
         setChatSessions(data.sessions || []);
+      }
+    } catch (error) {
+    // silenced
+  }
+  };
+
+  const loadFlashcardSets = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/get_flashcard_history?user_id=${userName}&limit=100&offset=0`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFlashcardSets(data.flashcard_history || []);
+      }
+    } catch (error) {
+    // silenced
+  }
+  };
+
+  const loadQuizHistory = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/get_quiz_history?user_id=${userName}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQuizHistory(data.quiz_history || data.quizzes || []);
       }
     } catch (error) {
     // silenced
@@ -243,6 +279,52 @@ const MyNotes = () => {
       }
     } catch (error) {
       console.error('Chat to note conversion error:', error);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const importFromFlashcards = async () => {
+    if (selectedFlashcardSets.length === 0) return;
+    setImporting(true);
+    try {
+      const conversionAgentService = (await import('../services/conversionAgentService')).default;
+      const result = await conversionAgentService.convertFlashcardsToNotes({
+        userId: userName,
+        setIds: selectedFlashcardSets,
+      });
+      if (result.success || result.note_id) {
+        await loadNotes();
+        setShowChatImport(false);
+        setSelectedFlashcardSets([]);
+        if (result.note_id) navigate(`/notes/editor/${result.note_id}`);
+      }
+    } catch (error) {
+    // silenced
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const importFromQuizzes = async () => {
+    if (selectedQuizzes.length === 0) return;
+    setImporting(true);
+    try {
+      const conversionAgentService = (await import('../services/conversionAgentService')).default;
+      const result = await conversionAgentService.convert({
+        sourceType: 'quiz',
+        target: 'notes',
+        userId: userName,
+        sourceIds: selectedQuizzes,
+      });
+      if (result.success || result.note_id) {
+        await loadNotes();
+        setShowChatImport(false);
+        setSelectedQuizzes([]);
+        if (result.note_id) navigate(`/notes/editor/${result.note_id}`);
+      }
+    } catch (error) {
+    // silenced
     } finally {
       setImporting(false);
     }
@@ -455,7 +537,7 @@ const MyNotes = () => {
                 <span className="nt-nav-icon"><Layout size={18} /></span>
                 <span className="nt-nav-text">Templates</span>
               </button>
-              <button className="nt-nav-item" onClick={() => setShowChatImport(true)}>
+              <button className="nt-nav-item" onClick={() => { setShowChatImport(true); setImportTab('chat'); setSelectedSessions([]); setSelectedFlashcardSets([]); setSelectedQuizzes([]); }}>
                 <span className="nt-nav-icon"><Upload size={18} /></span>
                 <span className="nt-nav-text">From Chat</span>
               </button>
@@ -676,49 +758,164 @@ const MyNotes = () => {
       )}
 
       {showChatImport && (
-        <div className="nt-modal-overlay" onClick={() => setShowChatImport(false)}>
-          <div className="nt-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Import from AI Chat</h3>
-            <p className="nt-modal-subtitle">Select chat sessions to convert into notes</p>
-            <div className="nt-chat-list">
-              {chatSessions.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--nt-text-muted)' }}>
-                  No chat sessions found
-                </div>
-              ) : (
-                chatSessions.map(session => (
-                  <label key={session.id} className="nt-chat-item">
-                    <input
-                      type="checkbox"
-                      checked={selectedSessions.includes(session.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedSessions([...selectedSessions, session.id]);
-                        } else {
-                          setSelectedSessions(selectedSessions.filter(id => id !== session.id));
-                        }
-                      }}
-                    />
-                    <div className="nt-chat-info">
-                      <span className="nt-chat-title">{session.title || 'Untitled Chat'}</span>
-                      <span className="nt-chat-date">{formatDate(session.created_at)}</span>
-                    </div>
-                  </label>
-                ))
-              )}
-            </div>
-            <div className="nt-modal-actions">
-              <button className="nt-modal-btn cancel" onClick={() => setShowChatImport(false)}>Cancel</button>
-              <button 
-                className="nt-modal-btn primary" 
-                onClick={importFromChat} 
-                disabled={importing || selectedSessions.length === 0}
-              >
-                {importing ? 'Importing...' : `Import (${selectedSessions.length})`}
+        <>
+          <div className="nt-import-overlay" onClick={() => setShowChatImport(false)} />
+          <div className="nt-import-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="nt-import-header">
+              <div className="nt-import-header-text">
+                <span className="nt-import-kicker">Cerbyl</span>
+                <h2 className="nt-import-title">Import to Notes</h2>
+              </div>
+              <button className="nt-import-close" onClick={() => setShowChatImport(false)}>
+                <X size={18} />
               </button>
             </div>
+
+            <div className="nt-import-tabs">
+              <button
+                className={`nt-import-tab ${importTab === 'chat' ? 'active' : ''}`}
+                onClick={() => setImportTab('chat')}
+              >
+                <MessageSquare size={13} /> Chat
+              </button>
+              <button
+                className={`nt-import-tab ${importTab === 'flashcards' ? 'active' : ''}`}
+                onClick={() => { setImportTab('flashcards'); loadFlashcardSets(); }}
+              >
+                <BookOpen size={13} /> Flashcards
+              </button>
+              <button
+                className={`nt-import-tab ${importTab === 'quiz' ? 'active' : ''}`}
+                onClick={() => { setImportTab('quiz'); loadQuizHistory(); }}
+              >
+                <HelpCircle size={13} /> Quiz
+              </button>
+            </div>
+
+            {importTab === 'chat' && (
+              <>
+                <p className="nt-import-subtitle">Select AI chat sessions to convert into structured notes</p>
+                <div className="nt-import-list">
+                  {chatSessions.length === 0 ? (
+                    <div className="nt-import-empty">
+                      <MessageSquare size={32} />
+                      <p>No chat sessions found</p>
+                    </div>
+                  ) : chatSessions.map(session => (
+                    <label key={session.id} className={`nt-import-item ${selectedSessions.includes(session.id) ? 'selected' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="nt-import-checkbox"
+                        checked={selectedSessions.includes(session.id)}
+                        onChange={(e) => setSelectedSessions(e.target.checked
+                          ? [...selectedSessions, session.id]
+                          : selectedSessions.filter(id => id !== session.id))}
+                      />
+                      <div className="nt-import-item-icon"><MessageSquare size={15} /></div>
+                      <div className="nt-import-item-info">
+                        <span className="nt-import-item-title">{session.title || 'Untitled Chat'}</span>
+                        <span className="nt-import-item-meta">{formatDate(session.created_at)}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <div className="nt-import-footer">
+                  <span className="nt-import-count"><span>{selectedSessions.length}</span> selected</span>
+                  <div className="nt-import-actions">
+                    <button className="nt-import-btn nt-import-btn-cancel" onClick={() => setShowChatImport(false)}>Cancel</button>
+                    <button className="nt-import-btn nt-import-btn-primary" onClick={importFromChat} disabled={importing || selectedSessions.length === 0}>
+                      {importing ? 'Importing...' : `Import ${selectedSessions.length > 0 ? `(${selectedSessions.length})` : ''}`}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {importTab === 'flashcards' && (
+              <>
+                <p className="nt-import-subtitle">Select flashcard sets to generate notes from</p>
+                <div className="nt-import-list">
+                  {flashcardSets.length === 0 ? (
+                    <div className="nt-import-empty">
+                      <BookOpen size={32} />
+                      <p>No flashcard sets found</p>
+                    </div>
+                  ) : flashcardSets.map(set => (
+                    <label key={set.id} className={`nt-import-item ${selectedFlashcardSets.includes(set.id) ? 'selected' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="nt-import-checkbox"
+                        checked={selectedFlashcardSets.includes(set.id)}
+                        onChange={(e) => setSelectedFlashcardSets(e.target.checked
+                          ? [...selectedFlashcardSets, set.id]
+                          : selectedFlashcardSets.filter(id => id !== set.id))}
+                      />
+                      <div className="nt-import-item-icon"><BookOpen size={15} /></div>
+                      <div className="nt-import-item-info">
+                        <span className="nt-import-item-title">{set.title || 'Untitled Set'}</span>
+                        <span className="nt-import-item-meta">
+                          {formatDate(set.created_at)}
+                          {set.card_count != null && <span className="nt-import-item-badge">{set.card_count} cards</span>}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <div className="nt-import-footer">
+                  <span className="nt-import-count"><span>{selectedFlashcardSets.length}</span> selected</span>
+                  <div className="nt-import-actions">
+                    <button className="nt-import-btn nt-import-btn-cancel" onClick={() => setShowChatImport(false)}>Cancel</button>
+                    <button className="nt-import-btn nt-import-btn-primary" onClick={importFromFlashcards} disabled={importing || selectedFlashcardSets.length === 0}>
+                      {importing ? 'Importing...' : `Import ${selectedFlashcardSets.length > 0 ? `(${selectedFlashcardSets.length})` : ''}`}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {importTab === 'quiz' && (
+              <>
+                <p className="nt-import-subtitle">Select quiz sessions to generate notes from</p>
+                <div className="nt-import-list">
+                  {quizHistory.length === 0 ? (
+                    <div className="nt-import-empty">
+                      <HelpCircle size={32} />
+                      <p>No quiz sessions found</p>
+                    </div>
+                  ) : quizHistory.map(quiz => (
+                    <label key={quiz.id} className={`nt-import-item ${selectedQuizzes.includes(quiz.id) ? 'selected' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="nt-import-checkbox"
+                        checked={selectedQuizzes.includes(quiz.id)}
+                        onChange={(e) => setSelectedQuizzes(e.target.checked
+                          ? [...selectedQuizzes, quiz.id]
+                          : selectedQuizzes.filter(id => id !== quiz.id))}
+                      />
+                      <div className="nt-import-item-icon"><HelpCircle size={15} /></div>
+                      <div className="nt-import-item-info">
+                        <span className="nt-import-item-title">{quiz.topic || quiz.title || 'Untitled Quiz'}</span>
+                        <span className="nt-import-item-meta">
+                          {formatDate(quiz.created_at)}
+                          {quiz.score != null && <span className="nt-import-item-badge">{quiz.score}%</span>}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <div className="nt-import-footer">
+                  <span className="nt-import-count"><span>{selectedQuizzes.length}</span> selected</span>
+                  <div className="nt-import-actions">
+                    <button className="nt-import-btn nt-import-btn-cancel" onClick={() => setShowChatImport(false)}>Cancel</button>
+                    <button className="nt-import-btn nt-import-btn-primary" onClick={importFromQuizzes} disabled={importing || selectedQuizzes.length === 0}>
+                      {importing ? 'Importing...' : `Import ${selectedQuizzes.length > 0 ? `(${selectedQuizzes.length})` : ''}`}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        </div>
+        </>
       )}
 
       {showMoveModal && noteToMove && (

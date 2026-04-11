@@ -1432,7 +1432,10 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
   return (
     <div className="tpl-modal">
         <div className="tpl-header">
-          <h2>Note Templates</h2>
+          <div className="tpl-header-text">
+            <span className="tpl-header-sub">Cerbyl</span>
+            <h2>Note Templates</h2>
+          </div>
           <button className="tpl-close-btn" onClick={onClose}>
             <X size={20} />
           </button>
@@ -1489,8 +1492,10 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
                   <div className="tpl-card-icon">
                     <FileText size={24} />
                   </div>
-                  <h3>Create Custom Template</h3>
-                  <p>Build your own reusable note template</p>
+                  <div className="tpl-card-body">
+                    <h3>Create Custom Template</h3>
+                    <p>Build your own reusable note template</p>
+                  </div>
                 </button>
               )}
 
@@ -1601,8 +1606,10 @@ const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = f
                     <div className="tpl-card-icon">
                       <Icon size={24} />
                     </div>
-                    <h3>{template.name}</h3>
-                    <p>{template.description}</p>
+                    <div className="tpl-card-body">
+                      <h3>{template.name}</h3>
+                      <p>{template.description}</p>
+                    </div>
                   </div>
                 );
               })}

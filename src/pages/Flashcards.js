@@ -2634,10 +2634,10 @@ const Flashcards = () => {
               <div className="fc-content fc-cards-panel">
                 {loadingHistory && flashcardHistory.length === 0 ? (
                   <div className="fc-loading">
-                    <div className="fc-spinner">
-                      <span></span>
-                      <span></span>
-                      <span></span>
+                    <div className="fc-pulse-loader">
+                      <div className="fc-pulse-square fc-pulse-1"></div>
+                      <div className="fc-pulse-square fc-pulse-2"></div>
+                      <div className="fc-pulse-square fc-pulse-3"></div>
                     </div>
                     <p>Loading your flashcards...</p>
                   </div>
@@ -3129,10 +3129,10 @@ const Flashcards = () => {
               <div className="fc-content">
                 {loadingReviewCards ? (
                   <div className="fc-loading">
-                    <div className="fc-spinner">
-                      <span></span>
-                      <span></span>
-                      <span></span>
+                    <div className="fc-pulse-loader">
+                      <div className="fc-pulse-square fc-pulse-1"></div>
+                      <div className="fc-pulse-square fc-pulse-2"></div>
+                      <div className="fc-pulse-square fc-pulse-3"></div>
                     </div>
                     <p>Loading cards for review...</p>
                   </div>
@@ -3224,10 +3224,10 @@ const Flashcards = () => {
               <div className="fc-content fc-cards-panel">
                 {loadingPublic ? (
                   <div className="fc-loading">
-                    <div className="fc-spinner">
-                      <span></span>
-                      <span></span>
-                      <span></span>
+                    <div className="fc-pulse-loader">
+                      <div className="fc-pulse-square fc-pulse-1"></div>
+                      <div className="fc-pulse-square fc-pulse-2"></div>
+                      <div className="fc-pulse-square fc-pulse-3"></div>
                     </div>
                     <p>Searching public flashcards...</p>
                   </div>

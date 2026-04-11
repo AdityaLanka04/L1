@@ -1,205 +1,418 @@
-.my-notes-page-full .nt-modal-overlay,
-.my-notes-page-full .nt-modal,
-.my-notes-page-full .nt-modal *,
-.my-notes-page-full .nt-modal *::before,
-.my-notes-page-full .nt-modal *::after {
-  border-radius: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.my-notes-page-full .nt-modal-overlay {
+.nt-import-overlay {
   position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  background: rgba(0, 0, 0, 0.8) !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.75) !important;
   backdrop-filter: blur(8px) !important;
   z-index: 9998 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
 }
 
-.my-notes-page-full .nt-modal {
-  background: var(--bg-secondary) !important;
-  border: 2px solid var(--border) !important;
+.nt-import-modal {
+  --imp-accent: var(--accent);
+  --imp-accent-dark: color-mix(in srgb, var(--accent) 85%, black);
+  --imp-bg: #0d0b08;
+  --imp-bg-card: color-mix(in srgb, var(--accent) 6%, #0d0b08);
+  --imp-border: color-mix(in srgb, var(--accent) 22%, transparent);
+
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: var(--imp-bg) !important;
+  border: 1px solid var(--imp-border) !important;
+  border-radius: 16px;
+  box-shadow:
+    0 40px 80px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 color-mix(in srgb, var(--accent) 15%, transparent) !important;
   width: 90% !important;
-  max-width: 550px !important;
-  max-height: 85vh !important;
+  max-width: 600px !important;
+  max-height: 88vh !important;
   overflow: hidden !important;
   z-index: 9999 !important;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6) !important;
   display: flex !important;
   flex-direction: column !important;
-  padding: 0 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
-.my-notes-page-full .nt-modal h3 {
-  font-size: 18px !important;
-  font-weight: 700 !important;
-  color: #D7B38C !important;
-  margin: 0 !important;
-  padding: 20px 24px !important;
-  border-bottom: 2px solid var(--border) !important;
-  background: var(--bg-secondary) !important;
-  text-transform: uppercase !important;
-  letter-spacing: 2px !important;
+[data-theme-mode="light"] .nt-import-modal {
+  --imp-bg: #f5f3ef;
+  --imp-bg-card: color-mix(in srgb, var(--accent) 5%, #ffffff);
+  --imp-border: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-.my-notes-page-full .nt-modal-subtitle {
-  font-size: 13px !important;
-  color: var(--text-secondary) !important;
-  margin: 0 !important;
-  padding: 16px 24px !important;
-  background: var(--bg-secondary) !important;
-  border-bottom: 1px solid var(--border) !important;
+/* dot grid */
+.nt-import-modal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 15%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.22;
+  border-radius: 16px;
 }
 
-.my-notes-page-full .nt-chat-list {
-  max-height: 350px !important;
-  overflow-y: auto !important;
-  background: var(--bg-secondary) !important;
-  margin: 0 !important;
-  border: none !important;
+/* ── Header ── */
+.nt-import-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26px 28px 22px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
 }
 
-.my-notes-page-full .nt-chat-list::-webkit-scrollbar {
-  width: 8px !important;
+.nt-import-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.my-notes-page-full .nt-chat-list::-webkit-scrollbar-track {
-  background: var(--bg-secondary) !important;
+.nt-import-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--imp-accent);
+  opacity: 0.7;
 }
 
-.my-notes-page-full .nt-chat-list::-webkit-scrollbar-thumb {
-  background: #D7B38C !important;
+.nt-import-title {
+  font-size: clamp(20px, 2.5vw, 28px);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--text-primary);
+  margin: 0;
+  font-family: 'Inter', sans-serif;
 }
 
-.my-notes-page-full .nt-chat-item {
-  display: flex !important;
-  align-items: center !important;
-  gap: 14px !important;
-  padding: 16px 24px !important;
-  border-bottom: 1px solid var(--border) !important;
-  cursor: pointer !important;
-  transition: background 0.2s !important;
-  background: transparent !important;
+.nt-import-close {
+  width: 38px;
+  height: 38px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 10px;
+  color: var(--imp-accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
 }
 
-.my-notes-page-full .nt-chat-item:last-child {
-  border-bottom: none !important;
+.nt-import-close:hover {
+  background: var(--imp-accent);
+  color: #000;
+  transform: scale(1.05);
 }
 
-.my-notes-page-full .nt-chat-item:hover {
-  background: rgba(215, 179, 140, 0.05) !important;
+/* ── Tabs ── */
+.nt-import-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 14px 28px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
 }
 
-.my-notes-page-full .nt-chat-item input[type="checkbox"] {
-  width: 20px !important;
-  height: 20px !important;
-  accent-color: #D7B38C !important;
-  cursor: pointer !important;
+.nt-import-tab {
+  padding: 8px 18px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
 }
 
-.my-notes-page-full .nt-chat-info {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 4px !important;
+.nt-import-tab:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-.my-notes-page-full .nt-chat-title {
-  font-size: 14px !important;
-  color: var(--text-primary) !important;
-  font-weight: 600 !important;
+.nt-import-tab.active {
+  background: linear-gradient(135deg, var(--imp-accent), var(--imp-accent-dark));
+  border-color: var(--imp-accent);
+  color: #000;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-.my-notes-page-full .nt-chat-date {
-  font-size: 12px !important;
-  color: var(--text-secondary) !important;
+[data-theme-mode="light"] .nt-import-tab.active {
+  color: #fff;
 }
 
-.my-notes-page-full .nt-modal-actions {
-  display: flex !important;
-  justify-content: flex-end !important;
-  gap: 12px !important;
-  padding: 20px 24px !important;
-  border-top: 2px solid var(--border) !important;
-  background: var(--bg-secondary) !important;
+.nt-import-tab svg {
+  width: 14px;
+  height: 14px;
 }
 
-.my-notes-page-full .nt-modal-btn {
-  padding: 12px 24px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  transition: all 0.2s !important;
+/* ── Subtitle ── */
+.nt-import-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 12px 28px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  opacity: 0.75;
+  letter-spacing: 0.3px;
 }
 
-.my-notes-page-full .nt-modal-btn.cancel {
-  background: var(--bg-secondary) !important;
-  border: 2px solid var(--border) !important;
-  color: var(--text-primary) !important;
+/* ── List ── */
+.nt-import-list {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  min-height: 0;
 }
 
-.my-notes-page-full .nt-modal-btn.cancel:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border-color: #D7B38C !important;
+.nt-import-list::-webkit-scrollbar {
+  width: 6px;
 }
 
-.my-notes-page-full .nt-modal-btn.primary {
-  background: #D7B38C !important;
-  border: 2px solid #D7B38C !important;
-  color: var(--bg-secondary) !important;
-  font-weight: 700 !important;
+.nt-import-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.my-notes-page-full .nt-modal-btn.primary:hover:not(:disabled) {
-  background: #c9a67a !important;
-  transform: translateY(-1px) !important;
+.nt-import-list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 3px;
 }
 
-.my-notes-page-full .nt-modal-btn.primary:disabled {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-  transform: none !important;
+.nt-import-list::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-.my-notes-page-full .nt-folder-select-list {
-  max-height: 300px !important;
-  overflow-y: auto !important;
-  background: var(--bg-secondary) !important;
-  margin: 16px 0 !important;
+/* ── Item ── */
+.nt-import-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 28px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 8%, transparent);
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  border-radius: 0;
+  font-family: 'Inter', sans-serif;
 }
 
-.my-notes-page-full .nt-folder-select-item {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 14px 20px !important;
-  border: none !important;
-  border-bottom: 1px solid var(--border) !important;
-  background: transparent !important;
-  color: var(--text-primary) !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  transition: all 0.2s !important;
-  width: 100% !important;
-  text-align: left !important;
+.nt-import-item:last-child {
+  border-bottom: none;
 }
 
-.my-notes-page-full .nt-folder-select-item:last-child {
-  border-bottom: none !important;
+.nt-import-item:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
-.my-notes-page-full .nt-folder-select-item:hover {
-  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
-  color: #D7B38C !important;
+.nt-import-item.selected {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-left: 3px solid var(--imp-accent);
 }
 
-.my-notes-page-full .nt-folder-select-item svg {
-  color: #D7B38C !important;
+.nt-import-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--imp-accent);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
+.nt-import-item-icon {
+  width: 36px;
+  height: 36px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--imp-accent);
+}
+
+.nt-import-item-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.nt-import-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nt-import-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nt-import-item-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nt-import-item-badge {
+  padding: 2px 7px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--imp-accent);
+  text-transform: uppercase;
+}
+
+/* ── Empty ── */
+.nt-import-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.nt-import-empty svg {
+  width: 36px;
+  height: 36px;
+  color: var(--imp-accent);
+  opacity: 0.4;
+}
+
+.nt-import-empty p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ── Footer ── */
+.nt-import-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.nt-import-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.nt-import-count span {
+  color: var(--imp-accent);
+  font-weight: 800;
+}
+
+.nt-import-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.nt-import-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nt-import-btn-cancel {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--text-secondary);
+}
+
+.nt-import-btn-cancel:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--text-primary);
+}
+
+.nt-import-btn-primary {
+  background: linear-gradient(135deg, var(--imp-accent), var(--imp-accent-dark));
+  border: none;
+  color: #000;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+[data-theme-mode="light"] .nt-import-btn-primary {
+  color: #fff;
+}
+
+.nt-import-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  transition: left 0.5s;
+}
+
+.nt-import-btn-primary:hover::before {
+  left: 100%;
+}
+
+.nt-import-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.nt-import-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

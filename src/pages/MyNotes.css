@@ -51,7 +51,11 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: var(--bg-primary) !important;
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 70%),
+    linear-gradient(160deg, #0d0b08 0%, #090909 56%, #111 100%) !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--nt-text-primary);
   overflow: hidden !important;
@@ -60,6 +64,24 @@
   padding: 0 !important;
   display: flex;
   flex-direction: column;
+}
+
+[data-theme-mode="light"] .my-notes-page-full {
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 50%),
+    var(--bg-primary) !important;
+}
+
+.my-notes-page-full::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
 }
 
 .my-notes-page-full * {
@@ -79,11 +101,17 @@
   height: 70px;
   min-height: 70px;
   max-height: 70px;
-  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  background: color-mix(in srgb, #0d0b08 85%, transparent);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 1px 40px rgba(0,0,0,0.5);
   flex-shrink: 0;
   width: 100%;
+}
+
+[data-theme-mode="light"] .mn-header {
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  box-shadow: 0 1px 20px rgba(0,0,0,0.06);
 }
 
 .mn-header-left {
@@ -216,8 +244,10 @@
 .nt-sidebar {
   width: var(--nt-sidebar-width);
   height: 100%;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--nt-border-subtle);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 0%,
+    color-mix(in srgb, var(--accent) 8%, var(--bg-secondary)) 100%);
+  border-right: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -226,12 +256,11 @@
 }
 
 [data-theme-mode="dark"] .nt-sidebar {
-  background: var(--bg-secondary);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 15%, #000000) 0%,
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
   color: color-mix(in srgb, var(--accent) 60%, #ffffff);
-}
-
-[data-theme-mode="dark"] .nt-nav-section-title {
-  color: var(--accent);
 }
 
 [data-theme-mode="dark"] .nt-nav-text {
@@ -239,12 +268,12 @@
 }
 
 [data-theme-mode="light"] .nt-sidebar {
-  background: var(--bg-secondary);
-  color: color-mix(in srgb, var(--accent) 80%, #000000);
-}
-
-[data-theme-mode="light"] .nt-nav-section-title {
-  color: var(--accent);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 0%,
+    color-mix(in srgb, var(--accent) 25%, #ffffff) 50%,
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%);
+  box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
 [data-theme-mode="light"] .nt-nav-text {
@@ -364,60 +393,58 @@
 .nt-new-note-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  gap: 12px;
   padding: 12px 16px;
-  margin: 12px;
-  background: linear-gradient(135deg, var(--nt-accent), var(--nt-accent-dark));
-  border: none;
+  margin: 12px 12px 4px 12px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   border-radius: 8px;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2px;
+  font-weight: 800;
+  letter-spacing: 1px;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: calc(100% - 24px);
+  position: relative;
+  overflow: hidden;
 }
 
-[data-theme-mode="dark"] .nt-new-note-btn {
-  color: #000000;
+.nt-new-note-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 20%, transparent), transparent);
+  opacity: 0;
+  transition: opacity 0.25s;
 }
 
-[data-theme-mode="dark"] .nt-new-note-btn svg {
-  color: #000000;
-  flex-shrink: 0;
-}
-
-[data-theme-mode="dark"] .nt-new-note-btn .nt-nav-text {
-  color: #000000;
-}
-
-[data-theme-mode="light"] .nt-new-note-btn {
-  color: var(--bg-secondary);
-}
-
-[data-theme-mode="light"] .nt-new-note-btn svg {
-  color: #ffffff;
-  flex-shrink: 0;
-}
-
-[data-theme-mode="light"] .nt-new-note-btn .nt-nav-text {
-  color: #ffffff;
+.nt-new-note-btn:hover::before {
+  opacity: 1;
 }
 
 .nt-new-note-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+  transform: none;
 }
 
 .nt-new-note-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nt-new-note-btn:hover svg {
+  transform: scale(1.12);
 }
 
 .nt-new-note-btn .nt-nav-text {
-  flex: 0 0 auto;
+  flex: 1;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
 .nt-sidebar.collapsed .nt-new-note-btn span {
@@ -440,25 +467,35 @@
 }
 
 .nt-nav-section {
-  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
 }
 
-.nt-nav-section:last-child {
-  border-bottom: none;
+.nt-nav-section + .nt-nav-section {
+  margin-top: 4px;
 }
 
 .nt-nav-section-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--accent) 45%, transparent);
   text-transform: uppercase;
-  letter-spacing: 2px;
-  padding: 12px 16px 8px 16px;
-  margin-bottom: 4px;
-  margin-top: 8px;
+  letter-spacing: 3px;
+  padding: 10px 16px 4px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+}
+
+.nt-nav-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  margin-left: 8px;
 }
 
 .nt-nav-item {
@@ -471,18 +508,44 @@
   border-radius: 8px;
   color: var(--nt-text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   text-align: left;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+.nt-nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 20%, transparent), transparent);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.nt-nav-item:hover::before {
+  opacity: 1;
+}
+
+.nt-nav-item.active::before {
+  opacity: 1;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 25%, transparent), transparent);
 }
 
 .nt-nav-item:hover {
-  background: var(--nt-bg-tertiary);
-  color: var(--nt-text-primary);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--text-primary);
+  transform: translateX(2px);
+}
+
+.nt-nav-item:active {
+  transform: translateX(1px) scale(0.98);
 }
 
 .nt-nav-item.active {
-  background: var(--nt-accent-glow);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--nt-accent);
 }
 
@@ -498,6 +561,12 @@
 .nt-nav-icon svg {
   width: 20px;
   height: 20px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nt-nav-item:hover .nt-nav-icon svg {
+  transform: scale(1.12);
+  color: var(--accent);
 }
 
 .nt-nav-text {
@@ -514,11 +583,14 @@
 }
 
 .nt-nav-count {
-  font-size: 11px;
-  padding: 2px 6px;
-  background: var(--nt-bg-tertiary);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 10px;
-  color: var(--nt-text-muted);
+  color: color-mix(in srgb, var(--accent) 60%, var(--text-primary));
+  letter-spacing: 0;
 }
 
 .nt-sidebar.collapsed .nt-nav-text,
@@ -566,7 +638,7 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 .nt-header {
@@ -1283,12 +1355,12 @@
   }
 }
 
-[data-theme-mode="dark"] .my-notes-page-full {
-  background: linear-gradient(135deg, #0a0a0a 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
-}
 
 [data-theme-mode="light"] .my-notes-page-full {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%);
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 50%),
+    var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .nt-sidebar {
@@ -1305,22 +1377,25 @@
 }
 
 [data-theme-mode="dark"] .mn-header {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: color-mix(in srgb, #0d0b08 85%, transparent);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 1px 40px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 [data-theme-mode="light"] .mn-header {
-  background: linear-gradient(180deg, #ffffff 0%, var(--bg-primary) 100%);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 1px 20px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="dark"] .nt-main {
-  background: linear-gradient(135deg, #0a0a0a 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
+  background: transparent;
 }
 
 [data-theme-mode="light"] .nt-main {
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, #f8f9fa 50%, #ffffff 100%);
+  background: transparent;
 }
 
 [data-theme-mode="dark"] .nt-header {
@@ -1394,46 +1469,10 @@
   background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
-.nt-nav-item {
-  position: relative;
-  overflow: hidden;
+.nt-nav-item.active {
+  box-shadow: inset 3px 0 0 var(--nt-accent);
 }
 
-.nt-nav-item::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, var(--nt-accent-glow), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.nt-nav-item:hover::before {
-  opacity: 1;
-}
-
-.nt-nav-item.active::before {
-  opacity: 1;
-  background: linear-gradient(90deg, var(--nt-accent-glow), transparent);
-}
-
-.nt-new-note-btn {
-  position: relative;
-  overflow: hidden;
-}
-
-.nt-new-note-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--nt-accent), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.nt-new-note-btn:hover::before {
-  opacity: 0.3;
-}
 
 .my-notes-page-full::before {
   content: '';
@@ -1452,7 +1491,6 @@
 .nt-sidebar,
 .nt-main {
   position: relative;
-  z-index: 1;
 }
 
 .nt-content::-webkit-scrollbar-thumb {
@@ -1460,12 +1498,6 @@
   box-shadow: 0 0 10px var(--nt-accent);
 }
 
-.nt-nav-section-title {
-  background: linear-gradient(135deg, var(--nt-accent), var(--nt-accent-dark));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
 
 .nt-header-title {
   background: linear-gradient(135deg, var(--nt-accent), var(--nt-accent-dark));
@@ -1502,30 +1534,34 @@
 }
 
 .nav-menu-btn {
+  width: 44px;
+  height: 44px;
   background: transparent;
-  border: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 10px;
   color: var(--accent);
-  padding: 8px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0;
+  transition: all 0.2s;
   position: relative;
 }
 
+.nav-menu-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
 .nav-menu-btn:hover {
-  color: var(--accent);
-  background: var(--bg-bottom);
+  background: var(--nt-bg-tertiary);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .nav-menu-btn:active {
   transform: scale(0.95);
-}
-
-.nav-menu-btn svg {
-  stroke-width: 2;
 }
 
 .nt-nav-item.convert-btn {

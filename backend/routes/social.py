@@ -2243,6 +2243,27 @@ async def create_solo_quiz(
 
         db.commit()
 
+        try:
+            from tutor import chroma_store
+            if chroma_store.available():
+                chroma_store.write_episode(
+                    user_id=str(current_user.id),
+                    summary=(
+                        f"Quiz created: \"{subject}\" on {subject}. "
+                        f"{question_count} questions, difficulty: {difficulty}."
+                    ),
+                    metadata={
+                        "source": "quiz_created",
+                        "topic": (subject or "")[:100],
+                        "title": (subject or "")[:100],
+                        "question_count": question_count,
+                        "difficulty": difficulty,
+                        "quiz_id": str(quiz.id),
+                    },
+                )
+        except Exception as chroma_err:
+            logger.warning(f"Chroma write failed on solo quiz create: {chroma_err}")
+
         return {
             "status": "success",
             "quiz_id": quiz.id
@@ -2350,6 +2371,38 @@ async def complete_solo_quiz(
             logger.warning(f"Failed to log activity: {log_error}")
 
         try:
+            from tutor import chroma_store
+            if chroma_store.available():
+                correct_count = round((score / 100) * quiz.question_count) if score is not None else 0
+                chroma_store.write_episode(
+                    user_id=str(current_user.id),
+                    summary=(
+                        f"Quiz completed: \"{quiz.subject}\" — scored {score:.1f}% "
+                        f"({correct_count}/{quiz.question_count} correct)."
+                    ),
+                    metadata={
+                        "source": "quiz_completed",
+                        "topic": (quiz.subject or "")[:100],
+                        "title": (quiz.subject or "")[:100],
+                        "score": str(round(score, 1)),
+                        "correct": str(correct_count),
+                        "total": str(quiz.question_count),
+                        "difficulty": quiz.difficulty,
+                        "quiz_id": str(quiz_id),
+                    },
+                )
+                chroma_store.write_quiz_result(
+                    user_id=str(current_user.id),
+                    topic=quiz.subject or "",
+                    score=score,
+                    correct=correct_count,
+                    total=quiz.question_count,
+                    metadata={"quiz_id": str(quiz_id), "difficulty": quiz.difficulty},
+                )
+        except Exception as chroma_err:
+            logger.warning(f"Chroma write failed on solo quiz complete: {chroma_err}")
+
+        try:
             from agents.agent_api import get_user_kg
             user_kg = get_user_kg()
             if user_kg and answers:
@@ -2444,8 +2497,7 @@ async def debug_websocket_connections(username: str = Depends(verify_token)):
     }
 
 async def _generate_quiz_questions(subject: str, difficulty: str, count: int):
-    try:
-        prompt = f"""Generate {count} multiple choice questions about {subject} at {difficulty} level.
+    prompt = f"""Generate {count} multiple choice questions about {subject} at {difficulty} level.
 
 For each question provide:
 - A clear question
@@ -2458,29 +2510,23 @@ CRITICAL: Each option MUST contain the FULL ANSWER TEXT, not just letter labels.
 Use this exact structure:
 [{{"question": "...", "options": ["First option with full answer text", "Second option with full answer text", "Third option with full answer text", "Fourth option with full answer text"], "correct_answer": 0, "explanation": "..."}}]"""
 
-        content = call_ai(prompt, max_tokens=3000, temperature=0.7)
+    content = call_ai(prompt, max_tokens=3000, temperature=0.7)
 
-        if content.startswith("```"):
-            content = re.sub(r"^```(?:json)?\s*\n", "", content)
-            content = re.sub(r"\n```\s*$", "", content)
-            content = content.strip()
+    start = content.find("[")
+    end = content.rfind("]")
+    if start != -1 and end != -1 and end > start:
+        content = content[start:end + 1]
+    else:
+        content = re.sub(r"^```(?:json)?\s*\n?", "", content.strip())
+        content = re.sub(r"\n?```\s*$", "", content).strip()
 
-        logger.info(f"Cleaned content: {content[:200]}...")
-        questions = json.loads(content)
+    logger.info(f"Cleaned content: {content[:200]}...")
+    questions = json.loads(content)
 
-        if not isinstance(questions, list) or len(questions) == 0:
-            raise ValueError("Invalid questions format")
+    if not isinstance(questions, list) or len(questions) == 0:
+        raise ValueError("AI returned empty or invalid questions list")
 
-        return questions
-
-    except Exception as e:
-        logger.error(f"Error generating questions: {str(e)}")
-        return [{
-            "question": f"Sample question {i + 1} about {subject}",
-            "options": ["Option A", "Option B", "Option C", "Option D"],
-            "correct_answer": 0,
-            "explanation": "This is a sample explanation."
-        } for i in range(count)]
+    return questions
 
 @ws_router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
