@@ -426,6 +426,7 @@
   border-radius: 14px;
   padding: 16px;
   box-shadow: 0 4px 24px color-mix(in srgb, var(--accent) 12%, transparent);
+  overflow: hidden;
 }
 
 .at-mini-calendar-header {
@@ -465,7 +466,8 @@
 
 .at-mini-calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  width: 100%;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
 }
 
@@ -474,6 +476,7 @@
   align-items: center;
   justify-content: center;
   height: 28px;
+  min-width: 0;
   font-size: 9px;
   font-weight: 700;
   color: var(--text-tertiary);
@@ -487,7 +490,8 @@
   justify-content: center;
   position: relative;
   aspect-ratio: 1 / 1;
-  width: 100%;
+  width: auto;
+  min-width: 0;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 12px;
@@ -3568,4 +3572,58 @@
 
 .nav-menu-btn svg {
   stroke-width: 2;
+}
+
+/* Activity Timeline: remove glow-heavy styling and keep dashboard-like flat surfaces */
+.at-activity-timeline-page {
+  background: var(--bg-primary);
+  background-attachment: scroll;
+}
+
+[data-theme-mode="light"] .at-activity-timeline-page {
+  background: var(--bg-primary);
+}
+
+.at-activity-timeline-page::after,
+.at-timeline-activity-card::before,
+.at-empty-state-icon::before {
+  display: none !important;
+}
+
+.at-activity-timeline-page *,
+.at-activity-timeline-page *::before,
+.at-activity-timeline-page *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.at-left-sidebar,
+.at-sidebar-view-modes,
+.at-sidebar-filters,
+.at-week-view-container,
+.at-month-view-container,
+.at-timeline-view-container,
+.at-reminders-view-container,
+.at-week-view-header,
+.at-month-view-header,
+.at-timeline-date-badge,
+.at-timeline-activity-card,
+.at-reminder-list-item {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.at-timeline-line {
+  background: var(--border);
+}
+
+.at-timeline-activity-dot {
+  border-color: var(--border);
+}
+
+.at-timeline-activity-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
 }
