@@ -3,7 +3,10 @@
     "allow": [
       "Bash(python:*)",
       "Bash(mv PodcastStudio.tmp PodcastStudio.js)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(find:*)",
+      "Bash(.venv/Scripts/python -c ':*)",
+      "Bash(npx react-scripts:*)"
     ]
   }
 }

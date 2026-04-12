@@ -1,8 +1,12 @@
+import io
+import json
 import logging
+import re
 from datetime import datetime, timezone
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
@@ -18,6 +22,13 @@ from deps import (
     unified_ai,
     verify_token,
 )
+
+CHAT_UPLOAD_DIR = Path("uploads/chat_images")
+CHAT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+_SUPPORTED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+_MAX_IMAGE_BYTES = 20 * 1024 * 1024  # 20 MB per image
+_MAX_IMAGES_PER_MESSAGE = 10
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -369,6 +380,242 @@ async def ask_simple(
             "topics_discussed": ["error"],
             "query_type": "error",
         }
+
+@router.post("/ask_with_files/")
+async def ask_with_files(
+    user_id: str = Form(...),
+    question: str = Form(...),
+    chat_id: Optional[str] = Form(None),
+    use_hs_context: bool = Form(True),
+    files: List[UploadFile] = File(default=[]),
+    db: Session = Depends(get_db),
+):
+    """
+    Handle chat messages that include image uploads or pastes.
+    Images are passed directly to the vision API; PDFs are text-extracted.
+    Falls back to /ask_simple/ behaviour when no valid files are present.
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {
+                "answer": "Please log in again — your session may have expired.",
+                "ai_confidence": 0.0,
+                "topics_discussed": ["error"],
+                "query_type": "error",
+            }
+
+        chat_id_int = int(chat_id) if chat_id else None
+
+        # ── Read & validate uploaded files ────────────────────────────────────
+        image_payloads: list[dict] = []   # for vision API
+        text_extracts: list[str] = []     # PDF text blobs
+        saved_metadata: list[dict] = []   # stored in DB
+
+        for upload in files[:_MAX_IMAGES_PER_MESSAGE]:
+            raw = await upload.read()
+            if not raw:
+                continue
+
+            mime = (upload.content_type or "").lower()
+            fname = upload.filename or "upload"
+
+            if mime in _SUPPORTED_IMAGE_TYPES:
+                if len(raw) > _MAX_IMAGE_BYTES:
+                    continue  # silently skip oversized images
+                safe_name = _safe_filename(user.id, fname)
+                dest = CHAT_UPLOAD_DIR / safe_name
+                dest.write_bytes(raw)
+                image_payloads.append({"data": raw, "mime_type": mime, "filename": fname})
+                saved_metadata.append({
+                    "filename": fname,
+                    "mime_type": mime,
+                    "size": len(raw),
+                    "storage_path": str(dest),
+                    "is_image": True,
+                })
+
+            elif mime == "application/pdf" or fname.lower().endswith(".pdf"):
+                extracted = _extract_pdf_text(raw)
+                if extracted:
+                    text_extracts.append(f"[PDF: {fname}]\n{extracted[:6000]}")
+                safe_name = _safe_filename(user.id, fname)
+                dest = CHAT_UPLOAD_DIR / safe_name
+                dest.write_bytes(raw)
+                saved_metadata.append({
+                    "filename": fname,
+                    "mime_type": "application/pdf",
+                    "size": len(raw),
+                    "storage_path": str(dest),
+                    "is_image": False,
+                })
+
+        # ── Build enriched prompt ─────────────────────────────────────────────
+        enriched_question = question.strip() or "Please analyze the attached content."
+        if text_extracts:
+            enriched_question += "\n\n" + "\n\n".join(text_extracts)
+        if image_payloads:
+            img_count = len(image_payloads)
+            enriched_question = (
+                f"{enriched_question}\n\n"
+                f"[{img_count} image{'s' if img_count > 1 else ''} attached — analyse and respond]"
+            )
+
+        # ── Pull recent chat history ──────────────────────────────────────────
+        chat_history = []
+        if chat_id_int:
+            recent = (
+                db.query(models.ChatMessage)
+                .filter(models.ChatMessage.chat_session_id == chat_id_int)
+                .order_by(models.ChatMessage.timestamp.desc())
+                .limit(20)
+                .all()
+            )
+            chat_history = [
+                {"user": m.user_message, "ai": m.ai_response}
+                for m in reversed(recent)
+            ]
+
+        # ── Call AI (vision-aware) ────────────────────────────────────────────
+        response_text = ""
+        ai_provider = "AI"
+        vision_unavailable = False
+
+        from deps import unified_ai as _unified_ai
+        from ai_utils import NoVisionProviderError
+        ai_client = _unified_ai
+
+        if ai_client and image_payloads:
+            try:
+                response_text = ai_client.generate_with_images(
+                    prompt=enriched_question,
+                    images=image_payloads,
+                    max_tokens=2000,
+                    temperature=0.7,
+                )
+                ai_provider = "vision"
+            except NoVisionProviderError:
+                vision_unavailable = True
+                logger.warning("No vision provider configured — answering text only")
+            except Exception as e:
+                logger.warning(f"Vision call failed ({e}) — answering text only")
+
+        # Text question: route through tutor graph regardless (handles PDFs, text, and
+        # the vision-unavailable case where we still want to answer the question)
+        if not response_text:
+            tutor_input = question.strip() or "What can you help me with?"
+            if text_extracts:
+                tutor_input += "\n\n" + "\n\n".join(text_extracts)
+            try:
+                from tutor.graph import get_tutor
+                tutor = get_tutor()
+                if tutor:
+                    result = await tutor.invoke(
+                        user_id=str(user.id),
+                        user_input=tutor_input,
+                        chat_id=chat_id_int,
+                        chat_history=chat_history,
+                        use_hs_context=bool(use_hs_context),
+                    )
+                    response_text = result.get("response", "")
+                else:
+                    response_text = call_ai(tutor_input)
+            except Exception as e:
+                logger.error(f"Tutor graph failed in ask_with_files: {e}")
+                response_text = call_ai(tutor_input)
+
+            # Append a single honest note if vision was requested but not available
+            if vision_unavailable and image_payloads:
+                response_text += (
+                    "\n\n> **Note:** Image analysis isn't available with the current AI provider "
+                    "(Gemini API key required). Your text question was answered above."
+                )
+
+        try:
+            from math_processor import process_math_in_response
+            response_text = process_math_in_response(response_text)
+        except Exception:
+            pass
+
+        # ── Persist to DB ─────────────────────────────────────────────────────
+        if chat_id_int:
+            msg = models.ChatMessage(
+                chat_session_id=chat_id_int,
+                user_id=user.id,
+                user_message=question or "[image upload]",
+                ai_response=response_text,
+                timestamp=datetime.now(timezone.utc),
+                image_metadata=json.dumps(saved_metadata) if saved_metadata else None,
+            )
+            db.add(msg)
+
+            session = db.query(models.ChatSession).filter(
+                models.ChatSession.id == chat_id_int
+            ).first()
+            if session:
+                session.updated_at = datetime.now(timezone.utc)
+
+            try:
+                from gamification_system import award_points
+                award_points(db, user.id, "ai_chat")
+            except Exception:
+                pass
+
+            db.commit()
+
+        file_summaries = [
+            {"file_name": m["filename"], "is_image": m["is_image"], "size": m["size"]}
+            for m in saved_metadata
+        ]
+
+        return {
+            "answer": response_text,
+            "ai_confidence": 0.85,
+            "topics_discussed": [],
+            "query_type": "multimodal",
+            "files_processed": len(saved_metadata),
+            "file_summaries": file_summaries,
+            "has_file_context": bool(saved_metadata),
+            "ai_provider": ai_provider,
+        }
+
+    except Exception as e:
+        logger.error(f"Error in /api/ask_with_files/: {e}", exc_info=True)
+        return {
+            "answer": "I encountered an error processing your files. Please try again.",
+            "ai_confidence": 0.3,
+            "topics_discussed": ["error"],
+            "query_type": "error",
+            "files_processed": 0,
+        }
+
+
+def _safe_filename(user_id: int, original: str) -> str:
+    ts = int(datetime.now(timezone.utc).timestamp() * 1000)
+    clean = re.sub(r"[^\w.\-]", "_", original)
+    return f"{user_id}_{ts}_{clean}"
+
+
+def _extract_pdf_text(raw: bytes) -> str:
+    try:
+        import PyPDF2
+        reader = PyPDF2.PdfReader(io.BytesIO(raw))
+        pages = []
+        for page in reader.pages[:20]:
+            t = page.extract_text()
+            if t:
+                pages.append(t.strip())
+        return "\n\n".join(pages)
+    except Exception:
+        pass
+    try:
+        import fitz  # PyMuPDF
+        doc = fitz.open(stream=raw, filetype="pdf")
+        pages = [doc[i].get_text() for i in range(min(20, doc.page_count))]
+        return "\n\n".join(p.strip() for p in pages if p.strip())
+    except Exception:
+        return ""
+
 
 @router.post("/test_ai_simple")
 async def test_ai_simple(question: str = Form(...)):

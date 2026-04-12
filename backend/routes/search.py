@@ -253,27 +253,7 @@ def _clean_prompt_topic(text: str) -> str:
     cleaned = re.sub(r'\*+', '', cleaned)
     return cleaned.strip()
 
-_JUNK_TOPIC_WORDS = frozenset({
-    "hi", "hello", "hey", "yo", "yoooo", "yoo", "yooo", "sup", "what", "ok", "okay",
-    "test", "testing", "lol", "hmm", "hm", "uh", "um", "new chat", "untitled",
-    "chat", "session", "help", "bye", "thanks", "thank", "haha", "cool",
-})
-
-def _is_valid_topic(text: str) -> bool:
-    """Return True only if text looks like a genuine study topic."""
-    if not text:
-        return False
-    cleaned = text.strip()
-    if len(cleaned) < 4:
-        return False
-    words = cleaned.lower().split()
-    if len(words) == 1 and words[0] in _JUNK_TOPIC_WORDS:
-        return False
-    if re.match(r'^[\d\s\W]+$', cleaned):
-        return False
-    if len(words) <= 2 and words[0] in _JUNK_TOPIC_WORDS:
-        return False
-    return True
+from topic_utils import is_valid_topic as _is_valid_topic
 
 def _extract_topic_from_episode(entry: dict) -> Optional[str]:
     meta = entry.get("metadata") or {}

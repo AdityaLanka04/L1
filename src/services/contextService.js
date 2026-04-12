@@ -100,6 +100,19 @@ class ContextService {
     return response.json();
   }
 
+  async askKnowledgeBase(question, { useHs = true, topK = 6 } = {}) {
+    const response = await fetch(`${API_URL}/context/ask`, {
+      method: 'POST',
+      headers: this._headers(),
+      body: JSON.stringify({ question, use_hs: useHs, top_k: topK }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `Ask failed (${response.status})`);
+    }
+    return response.json();
+  }
+
   async listCommunityDocuments({ curriculum = '', grade = '', subject = '' } = {}) {
     const params = new URLSearchParams();
     if (curriculum) params.set('curriculum', curriculum);

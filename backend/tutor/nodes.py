@@ -622,31 +622,37 @@ def _fetch_activity_in_range(db_factory, user_id: str, hours: int) -> list[str]:
 def _extract_message_topics(messages: list, max_msgs: int = 8) -> list[str]:
     """
     Pull short topic-hints from raw user messages when no concept signals exist.
-    Strips filler words, keeps the meaningful fragment of each message.
+    Delegates junk detection to topic_utils.is_valid_topic.
     """
-    SKIP = {"hi", "hey", "hello", "ok", "okay", "thanks", "thank you", "sure", "yes", "no",
-            "what", "how", "why", "can you", "please", "tell me", "explain", "what is"}
+    from topic_utils import is_valid_topic
     topics = []
     seen_lower = set()
     for msg in messages[:max_msgs]:
         raw = (msg.user_message or "").strip()
-        if len(raw) < 4:
-            continue
-        # Take first 70 chars to keep it a short topic hint
         snippet = raw[:70].rstrip()
         low = snippet.lower()
-        if low in seen_lower or any(low == s for s in SKIP):
+        if low in seen_lower or not is_valid_topic(snippet):
             continue
         seen_lower.add(low)
         topics.append(snippet)
     return topics
 
 
+def _days_ago(dt: Optional[datetime]) -> Optional[int]:
+    """Return how many full days ago a datetime was, or None."""
+    if not dt:
+        return None
+    now = datetime.now(timezone.utc)
+    aware = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+    return max(0, (now - aware).days)
+
+
 def _fetch_last_session_summary(db_factory, user_id: str, current_chat_id=None) -> Optional[dict]:
     """
-    Return a concise dict summarising the most recent past chat session:
-      {title, date_str, topics: [...], message_count}
-    Used by greeting (proactive recap) and recall.
+    Return a concise dict summarising the most recent past chat session that had
+    real topics (concept signals or substantive messages).
+    Scans up to 5 recent sessions; skips greeting-only sessions.
+    Returns: {title, date_str, days_ago, topics, message_count} or None.
     """
     if not db_factory:
         return None
@@ -658,56 +664,65 @@ def _fetch_last_session_summary(db_factory, user_id: str, current_chat_id=None) 
             q = db.query(ChatSession).filter(ChatSession.user_id == uid)
             if current_chat_id:
                 q = q.filter(ChatSession.id != current_chat_id)
-            last = q.order_by(ChatSession.created_at.desc()).first()
-            if not last:
+            candidates = q.order_by(ChatSession.created_at.desc()).limit(5).all()
+            if not candidates:
                 return None
 
-            date_str = last.created_at.strftime("%b %d") if last.created_at else "recently"
-            title = (last.title or "Chat session")[:60]
-
-            # Prefer ChatConceptSignal (ML-detected topics) — deduplicated
-            signals = (
-                db.query(ChatConceptSignal)
-                .filter(
-                    ChatConceptSignal.user_id == uid,
-                    ChatConceptSignal.chat_session_id == last.id,
-                )
-                .order_by(ChatConceptSignal.created_at.asc())
-                .all()
-            )
-            seen: set = set()
-            topics = []
-            for s in signals:
-                c = (s.concept or "").strip()
-                cl = c.lower()
-                if c and cl not in seen:
-                    seen.add(cl)
-                    topics.append(c)
-            topics = topics[:8]
-
-            # Fallback to raw user messages when no concept signals recorded
-            if not topics:
-                msgs = (
-                    db.query(ChatMessage)
-                    .filter(ChatMessage.chat_session_id == last.id)
-                    .order_by(ChatMessage.timestamp.asc())
-                    .limit(12)
+            for sess in candidates:
+                # Prefer ChatConceptSignal (ML-detected topics) — deduplicated
+                signals = (
+                    db.query(ChatConceptSignal)
+                    .filter(
+                        ChatConceptSignal.user_id == uid,
+                        ChatConceptSignal.chat_session_id == sess.id,
+                    )
+                    .order_by(ChatConceptSignal.created_at.asc())
                     .all()
                 )
-                topics = _extract_message_topics(msgs)
+                seen: set = set()
+                topics = []
+                for s in signals:
+                    c = (s.concept or "").strip()
+                    cl = c.lower()
+                    if c and cl not in seen:
+                        seen.add(cl)
+                        topics.append(c)
+                topics = topics[:8]
 
-            msg_count = (
-                db.query(ChatMessage)
-                .filter(ChatMessage.chat_session_id == last.id)
-                .count()
-            )
+                # Fallback to raw user messages when no concept signals recorded
+                if not topics:
+                    msgs = (
+                        db.query(ChatMessage)
+                        .filter(ChatMessage.chat_session_id == sess.id)
+                        .order_by(ChatMessage.timestamp.asc())
+                        .limit(12)
+                        .all()
+                    )
+                    topics = _extract_message_topics(msgs)
 
-            return {
-                "title":         title,
-                "date_str":      date_str,
-                "topics":        topics,
-                "message_count": msg_count,
-            }
+                msg_count = (
+                    db.query(ChatMessage)
+                    .filter(ChatMessage.chat_session_id == sess.id)
+                    .count()
+                )
+
+                # Skip sessions that were just greetings / no real work
+                if not topics and msg_count <= 2:
+                    continue
+
+                date_str = sess.created_at.strftime("%b %d") if sess.created_at else "recently"
+                title = (sess.title or "Chat session")[:60]
+                ago = _days_ago(sess.created_at)
+
+                return {
+                    "title":         title,
+                    "date_str":      date_str,
+                    "days_ago":      ago,
+                    "topics":        topics,
+                    "message_count": msg_count,
+                }
+
+            return None
         finally:
             db.close()
     except Exception as e:
@@ -1058,18 +1073,23 @@ def _build_instructional_task(state: TutorState) -> str:
         # Build a session recap block from real DB data — no hallucination possible.
         recap = ""
         if last_summary and last_summary.get("topics"):
-            topics_str = "; ".join(last_summary["topics"][:5])
+            topics_str = "; ".join(last_summary["topics"][:3])
+            ago = last_summary.get("days_ago")
+            if ago is None:
+                time_hint = f"on {last_summary['date_str']}"
+            elif ago == 0:
+                time_hint = "earlier today"
+            elif ago == 1:
+                time_hint = "yesterday"
+            else:
+                time_hint = f"about {ago} days ago"
             recap = (
-                f"Last session ({last_summary['date_str']}): the student asked about/worked on: {topics_str}. "
-                f"Mention this naturally as a brief recap — e.g. 'Last time we were covering [X], want to pick up there or start something new?' "
+                f"Most recent substantive session ({time_hint}, {last_summary['message_count']} messages): "
+                f"student worked on: {topics_str}. "
+                f"Naturally mention this — e.g. 'Last time we covered [topic] — {time_hint}. Want to continue or start something new?' "
                 f"Keep it 1-2 sentences, conversational. "
             )
-        elif last_summary:
-            # Session existed but no recognisable topics
-            recap = (
-                f"The student had a previous session on {last_summary['date_str']}. "
-                "Acknowledge they're back, ask what they want to work on."
-            )
+        # If last_summary exists but has no topics, it was a brief check-in — don't reference it
 
         no_invent = "Do NOT invent or guess topics not listed above."
 

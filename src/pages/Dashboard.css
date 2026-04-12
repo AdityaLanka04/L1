@@ -1327,17 +1327,9 @@
 }
 
 .ds-analytics-btn:hover {
-  background: var(--accent);
-  color: var(--bg-primary);
-  border-color: var(--accent);
+  background: color-mix(in srgb, currentColor 12%, transparent);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.ds-analytics-btn:hover span,
-.ds-analytics-btn:hover svg {
-  color: var(--bg-primary);
-  stroke: var(--bg-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .ds-feature {
@@ -3003,7 +2995,6 @@
 .ds-qh-tile {
   border-radius: 12px;
   background: var(--bg-secondary);
-  border: 1px solid var(--border);
   padding: 12px 14px;
   box-sizing: border-box;
 }
@@ -3014,7 +3005,6 @@
   align-items: center;
   gap: 14px;
   background: color-mix(in srgb, var(--accent) 12%, var(--bg-secondary));
-  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .ds-qh-lvl-left {
@@ -3147,14 +3137,12 @@
   padding: 10px 6px 10px;
   border-radius: 12px;
   background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  transition: border-color 0.18s ease, background 0.18s ease;
+  transition: background 0.18s ease;
   min-height: 0;
 }
 
 .ds-qh-ring-tile:hover {
   background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .ds-qh-ring-svg-wrap {
@@ -3217,7 +3205,6 @@
   gap: 7px;
   justify-content: center;
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-secondary));
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .ds-qh-quest-top {
@@ -3296,9 +3283,8 @@
   padding: 10px 12px;
   border-radius: 10px;
   background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, padding 0.22s cubic-bezier(0.4, 0, 0.2, 1), min-height 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.18s ease, transform 0.18s ease, padding 0.22s cubic-bezier(0.4, 0, 0.2, 1), min-height 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
@@ -3308,7 +3294,6 @@
 
 .ds-qh-nav-item:hover {
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-secondary));
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   transform: translateY(-1px);
 }
 

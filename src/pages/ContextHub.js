@@ -9,7 +9,8 @@ import {
   Dna, FlaskConical, Zap, Microscope, Landmark, Code2, BarChart2,
   Palette, Wrench, Dumbbell, Music, Tv, Brain, Scale, Hash,
   Triangle, Heart, Film, Leaf, Mic2, Languages, Building2, Sun,
-  MessageCircle, Globe2, Sigma, Clock, Menu
+  MessageCircle, Globe2, Sigma, Clock, Menu, Send,
+  Tag, ArrowRight
 } from 'lucide-react';
 import contextService from '../services/contextService';
 import './ContextHub.css';
@@ -325,9 +326,17 @@ function DocCard({ doc, viewMode, onDelete, isOwn }) {
       <div className="ch-doc-card-body">
         <h4 className="ch-doc-card-title">{doc.title || doc.filename || 'Untitled'}</h4>
         {doc.subject && <p className="ch-doc-card-subject">{doc.subject}</p>}
+        {doc.ai_summary && <p className="ch-doc-card-summary">{doc.ai_summary}</p>}
+        {doc.topic_tags && doc.topic_tags.length > 0 && (
+          <div className="ch-doc-card-tags">
+            {doc.topic_tags.slice(0, 4).map(tag => (
+              <span key={tag} className="ch-doc-tag"><Tag size={9} />{tag}</span>
+            ))}
+          </div>
+        )}
         <p className="ch-doc-card-meta">
           {doc.created_at && fmtDate(doc.created_at)}
-          {doc.file_size && <> · {fmtBytes(doc.file_size)}</>}
+          {doc.chunk_count ? <> · {doc.chunk_count} chunks</> : null}
         </p>
       </div>
       {isOwn && (
@@ -509,7 +518,8 @@ export default function ContextHub() {
   const selectedGrade      = curr && urlG && curr.grades[urlG] ? urlG : null;
   const gradeInfo          = curr && selectedGrade ? curr.grades[selectedGrade] : null;
   const selectedSubject    = gradeInfo && urlS ? (gradeInfo.subjects.find(s => s.id === urlS) || null) : null;
-  const view               = urlViewParam === 'custom' ? 'custom'
+  const view               = urlViewParam === 'ask'    ? 'ask'
+    : urlViewParam === 'custom' ? 'custom'
     : selectedSubject    ? 'subject'
     : selectedGrade      ? 'grade'
     : selectedCurriculum ? 'curriculum'
@@ -537,14 +547,21 @@ export default function ContextHub() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [stats, setStats]             = useState({ myDocs: 0, communityDocs: 0 });
 
+  // ── Ask Your Notes state ───────────────────────────────────────────────────
+  const [askHistory, setAskHistory]   = useState([]);
+  const [askInput, setAskInput]       = useState('');
+  const [askLoading, setAskLoading]   = useState(false);
+  const [askUseHs, setAskUseHs]       = useState(true);
+  const askEndRef                      = useRef(null);
+
   // ── Loaders ────────────────────────────────────────────────────────────────
   const loadDocs = useCallback(async () => {
     setDocsLoading(true);
     setDocsError('');
     try {
       const all  = await contextService.listDocuments();
-      const docs = Array.isArray(all) ? all : (all.documents || []);
-      const community = docs.filter(d => d.scope === 'public');
+      const docs = Array.isArray(all) ? all : (all.user_docs || all.documents || []);
+      const community = docs.filter(d => d.scope === 'public' || d.scope === 'hs_shared');
       setMyDocs(docs);
       setCommunityDocs(community);
       setStats(s => ({ ...s, myDocs: docs.length, communityDocs: community.length }));
@@ -567,7 +584,10 @@ export default function ContextHub() {
       loadDocs();
       loadCommunityDocs(selectedCurriculum, selectedGrade, selectedSubject?.id);
     }
-  }, [urlC, urlG, urlS, loadDocs, loadCommunityDocs]); // eslint-disable-line
+    if (view === 'ask' || view === 'custom') {
+      loadDocs();
+    }
+  }, [urlC, urlG, urlS, urlViewParam, loadDocs, loadCommunityDocs]); // eslint-disable-line
 
   // ── Active Context ─────────────────────────────────────────────────────────
   const addToRecent = useCallback((curriculum, grade, subject) => {
@@ -647,6 +667,36 @@ export default function ContextHub() {
 
   const activeCtxCurr  = activeContext?.curriculum ? CURRICULA[activeContext.curriculum] : null;
   const activeCtxGrade = activeCtxCurr && activeContext?.grade ? activeCtxCurr.grades[activeContext.grade] : null;
+
+  // ── Ask Your Notes ─────────────────────────────────────────────────────────
+  const handleAsk = useCallback(async () => {
+    const q = askInput.trim();
+    if (!q || askLoading) return;
+    setAskInput('');
+    const entry = { question: q, answer: null, sources: [], loading: true, error: null };
+    setAskHistory(prev => [...prev, entry]);
+    setAskLoading(true);
+    try {
+      const res = await contextService.askKnowledgeBase(q, { useHs: askUseHs, topK: 6 });
+      setAskHistory(prev => {
+        const next = [...prev];
+        next[next.length - 1] = { question: q, answer: res.answer, sources: res.sources || [], loading: false, error: null };
+        return next;
+      });
+    } catch (e) {
+      setAskHistory(prev => {
+        const next = [...prev];
+        next[next.length - 1] = { question: q, answer: null, sources: [], loading: false, error: e.message || 'Request failed' };
+        return next;
+      });
+    } finally {
+      setAskLoading(false);
+    }
+  }, [askInput, askLoading, askUseHs]);
+
+  useEffect(() => {
+    if (askEndRef.current) askEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [askHistory]);
 
   // ─── SIDEBAR ──────────────────────────────────────────────────────────────
   const Sidebar = () => (
@@ -766,6 +816,13 @@ export default function ContextHub() {
               onClick={() => setSearchParams({ view: 'custom' })}
             >
               <Plus size={14} /><span>Add Your Own</span>
+            </button>
+
+            <button
+              className={`ch-sidebar-nav-item ch-sidebar-nav-item--ask ${urlViewParam === 'ask' ? 'ch-sidebar-nav-item--active' : ''}`}
+              onClick={() => setSearchParams({ view: 'ask' })}
+            >
+              <MessageCircle size={14} /><span>Ask Your Notes</span>
             </button>
           </nav>
         </div>
@@ -1207,6 +1264,140 @@ export default function ContextHub() {
     </div>
   );
 
+  // ─── ASK YOUR NOTES ───────────────────────────────────────────────────────
+  const AskView = () => (
+    <div className="ch-ask-view">
+      <div className="ch-ask-header">
+        <div className="ch-ask-header-info">
+          <MessageCircle size={22} className="ch-ask-header-icon" />
+          <div>
+            <h2 className="ch-ask-title">Ask Your Notes</h2>
+            <p className="ch-ask-subtitle">
+              Ask any question — the AI will answer using your uploaded documents and the HS curriculum.
+            </p>
+          </div>
+        </div>
+        <label className="ch-ask-hs-toggle">
+          <input
+            type="checkbox"
+            checked={askUseHs}
+            onChange={e => setAskUseHs(e.target.checked)}
+          />
+          <span className="ch-ask-hs-label">Include curriculum</span>
+        </label>
+      </div>
+
+      {askHistory.length === 0 ? (
+        <div className="ch-ask-empty">
+          <div className="ch-ask-empty-icon"><MessageCircle size={48} /></div>
+          <h3>Ask anything about your documents</h3>
+          <p>Upload notes, textbooks, or any study material — then ask questions and get cited answers.</p>
+          <div className="ch-ask-suggestions">
+            {[
+              'What are the key concepts in this subject?',
+              'Summarise the main topics covered',
+              'Explain the most important formulas',
+              'What should I focus on for the exam?',
+            ].map(s => (
+              <button
+                key={s}
+                className="ch-ask-suggestion-chip"
+                onClick={() => { setAskInput(s); }}
+              >
+                <ArrowRight size={12} />{s}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="ch-ask-history">
+          {askHistory.map((item, idx) => (
+            <div key={idx} className="ch-ask-turn">
+              <div className="ch-ask-question">
+                <div className="ch-ask-q-bubble">{item.question}</div>
+              </div>
+
+              {item.loading ? (
+                <div className="ch-ask-answer ch-ask-answer--loading">
+                  <Loader2 size={18} className="ch-spinner" />
+                  <span>Searching your knowledge base…</span>
+                </div>
+              ) : item.error ? (
+                <div className="ch-ask-answer ch-ask-answer--error">
+                  <AlertCircle size={16} />
+                  <span>{item.error}</span>
+                </div>
+              ) : (
+                <div className="ch-ask-answer">
+                  <div className="ch-ask-a-bubble">
+                    {item.answer}
+                  </div>
+                  {item.sources && item.sources.length > 0 && (
+                    <div className="ch-ask-sources">
+                      <p className="ch-ask-sources-label">
+                        <BookOpen size={12} />Sources used
+                      </p>
+                      <div className="ch-ask-source-chips">
+                        {item.sources.map((src, si) => (
+                          <div key={si} className={`ch-ask-source-chip ch-ask-source-chip--${src.source}`}>
+                            <FileText size={11} />
+                            <span className="ch-ask-source-name">
+                              [{si + 1}] {src.filename}
+                              {src.page && <em> p.{src.page}</em>}
+                            </span>
+                            {src.subject && (
+                              <span className="ch-ask-source-subject">
+                                <Tag size={9} />{src.subject}
+                              </span>
+                            )}
+                            {src.source === 'hs' && (
+                              <span className="ch-ask-source-hs-badge">Curriculum</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+          <div ref={askEndRef} />
+        </div>
+      )}
+
+      <div className="ch-ask-input-area">
+        <div className="ch-ask-input-wrap">
+          <textarea
+            className="ch-ask-textarea"
+            placeholder="Ask a question about your notes…"
+            value={askInput}
+            onChange={e => setAskInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAsk(); }
+            }}
+            rows={2}
+            disabled={askLoading}
+          />
+          <button
+            className="ch-ask-send-btn"
+            onClick={handleAsk}
+            disabled={askLoading || !askInput.trim()}
+            title="Send"
+          >
+            {askLoading ? <Loader2 size={16} className="ch-spinner" /> : <Send size={16} />}
+          </button>
+        </div>
+        <p className="ch-ask-hint">
+          {myDocs.length === 0
+            ? <>No documents uploaded yet. <button className="ch-ask-hint-link" onClick={() => setUploadOpen(true)}>Upload one</button> to get started.</>
+            : <>Searching across {myDocs.length} document{myDocs.length !== 1 ? 's' : ''}{askUseHs ? ' + curriculum' : ''}. Press Enter to send.</>
+          }
+        </p>
+      </div>
+    </div>
+  );
+
   // ─── RENDER ───────────────────────────────────────────────────────────────
   const renderView = () => {
     if (view === 'landing')    return <LandingView />;
@@ -1214,6 +1405,7 @@ export default function ContextHub() {
     if (view === 'grade')      return <GradeView />;
     if (view === 'subject')    return <SubjectView />;
     if (view === 'custom')     return <CustomView />;
+    if (view === 'ask')        return <AskView />;
     return <LandingView />;
   };
 

@@ -52,6 +52,7 @@ Seeding Process:
 from __future__ import annotations
 
 import logging
+import math
 import re
 from datetime import datetime, timezone
 from typing import Optional
@@ -142,6 +143,10 @@ def _keyword_tokens(text: str) -> set[str]:
     tokens = re.findall(r"[a-zA-Z0-9]+", (text or "").lower())
     return {t for t in tokens if len(t) > 2 and t not in _STOPWORDS}
 
+def _tokenize_list(text: str) -> list[str]:
+    tokens = re.findall(r"[a-zA-Z0-9]+", (text or "").lower())
+    return [t for t in tokens if len(t) > 2 and t not in _STOPWORDS]
+
 def _overlap_ratio(query_tokens: set[str], doc_text: str) -> float:
     if not query_tokens:
         return 0.0
@@ -150,6 +155,37 @@ def _overlap_ratio(query_tokens: set[str], doc_text: str) -> float:
         return 0.0
     overlap = len(query_tokens & doc_tokens)
     return overlap / max(1, len(query_tokens))
+
+def _bm25_scores(query_tokens: list[str], corpus: list[str], k1: float = 1.5, b: float = 0.75) -> list[float]:
+    """
+    BM25 ranking scores for a list of candidate documents.
+    Returns one score per document; higher = more relevant.
+    k1=1.5, b=0.75 are Robertson 2009 defaults.
+    """
+    if not query_tokens or not corpus:
+        return [0.0] * len(corpus)
+
+    tokenized = [_tokenize_list(doc) for doc in corpus]
+    dl = [len(t) for t in tokenized]
+    avgdl = sum(dl) / max(1, len(dl))
+    N = len(corpus)
+
+    scores: list[float] = []
+    for i, doc_tokens in enumerate(tokenized):
+        freq: dict[str, int] = {}
+        for t in doc_tokens:
+            freq[t] = freq.get(t, 0) + 1
+        doc_len = dl[i]
+        score = 0.0
+        for term in query_tokens:
+            df = sum(1 for dt in tokenized if term in dt)
+            if df == 0:
+                continue
+            idf = math.log((N - df + 0.5) / (df + 0.5) + 1.0)
+            tf = freq.get(term, 0)
+            score += idf * (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * doc_len / max(1, avgdl)))
+        scores.append(score)
+    return scores
 
 def initialize(chroma_client, embed_model):
     """
@@ -348,6 +384,7 @@ def search_context(
     seen_keys: set[str] = set()
 
     query_tokens = _keyword_tokens(query)
+    query_token_list = _tokenize_list(query)
     subject_filter = canonicalize_subject(subject) if subject else ""
     if subject_filter not in _KNOWN_SUBJECTS:
         subject_filter = ""
@@ -358,7 +395,8 @@ def search_context(
         subject_filter = ""
     grade_filter = (grade_level or "").strip()
 
-    overlap_boost = 0.35
+    overlap_boost = 0.20
+    bm25_boost    = 0.18
     subject_boost = 0.05
 
     def _fetch_from(col_name: str, source_label: str, where: Optional[dict] = None, n_multiplier: int = 2):
@@ -422,10 +460,20 @@ def search_context(
             hs_where = {"$and": [{k: v} for k, v in hs_where.items()]}
         _fetch_from(HS_CURRICULUM_COLLECTION, "hs", where=hs_where or None, n_multiplier=4)
 
+    # BM25 re-rank over all candidates
+    if query_token_list and results:
+        corpus = [r["text"] for r in results]
+        bm25 = _bm25_scores(query_token_list, corpus)
+        max_bm25 = max(bm25) if bm25 else 1.0
+        for i, r in enumerate(results):
+            r["_bm25"] = bm25[i] / max(max_bm25, 1e-9)
+
     def _score(item: dict) -> float:
         score = item.get("distance", 1.0)
         if query_tokens:
             score -= overlap_boost * item.get("_overlap", 0.0)
+        if query_token_list:
+            score -= bm25_boost * item.get("_bm25", 0.0)
         if item.get("_subject_match"):
             score -= subject_boost
         return score

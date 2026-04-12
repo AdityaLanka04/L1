@@ -24,7 +24,7 @@ import ipaddress
 import re
 import requests
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -211,8 +211,56 @@ class ImportUrlRequest(BaseModel):
     source_name: str = ""
     license: str = ""
 
+class AskRequest(BaseModel):
+    question: str
+    use_hs: bool = True
+    top_k: int = 6
+
+def _generate_doc_summary(doc_id: str, chunks: list[str], filename: str, subject: str, db_session_factory):
+    """
+    Background task: call AI to generate a structured summary for a document
+    and persist it to the ContextDocument row.
+    Uses the first ~4000 chars of the document for the prompt.
+    """
+    try:
+        sample = "\n\n".join(chunks[:8])[:4000]
+        prompt = (
+            "You are a study assistant. Analyse this excerpt from a student's document and return a JSON object "
+            "with the following keys:\n"
+            "  \"title\": a short descriptive title (max 10 words)\n"
+            "  \"description\": a 1-2 sentence plain-English summary of what the document covers\n"
+            "  \"key_concepts\": a JSON array of up to 8 key academic concepts covered\n"
+            "  \"topic_tags\": a JSON array of up to 5 short topic labels (e.g. [\"Algebra\", \"Quadratic equations\"])\n\n"
+            f"Document filename: {filename}\n"
+            f"Subject hint: {subject or 'unknown'}\n\n"
+            "Excerpt:\n"
+            f"{sample}\n\n"
+            "Return ONLY the JSON object, no markdown fences, no other text."
+        )
+        raw = call_ai(prompt, max_tokens=400, temperature=0.2)
+        raw = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        data = json.loads(raw)
+
+        ai_summary   = str(data.get("description") or data.get("title") or "")[:1000]
+        key_concepts = json.dumps(data.get("key_concepts") or [])[:2000]
+        topic_tags   = json.dumps(data.get("topic_tags") or [])[:500]
+
+        db = db_session_factory()
+        try:
+            doc = db.query(models.ContextDocument).filter(models.ContextDocument.doc_id == doc_id).first()
+            if doc:
+                doc.ai_summary   = ai_summary
+                doc.key_concepts = key_concepts
+                doc.topic_tags   = topic_tags
+                db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"AI summary generation failed for doc {doc_id}: {e}")
+
 @router.post("/upload")
 async def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     subject: str = Form(""),
     grade_level: str = Form(""),
@@ -337,6 +385,12 @@ async def upload_document(
         doc_record.grade_level = final_grade[:20] if final_grade else ""
         doc_record.status = "ready"
         db.commit()
+
+        from database import SessionLocal as _SL
+        background_tasks.add_task(
+            _generate_doc_summary,
+            doc_id, result["chunks"], file.filename or "upload", final_subject, _SL
+        )
 
         return {
             "success": True,
@@ -543,17 +597,20 @@ def list_documents(
 
     user_docs = [
         {
-            "doc_id":      d.doc_id,
-            "filename":    d.filename,
-            "subject":     d.subject or "",
-            "grade_level": d.grade_level or "",
-            "scope":       d.scope,
-            "chunk_count": d.chunk_count,
-            "status":      d.status,
-            "source_url":  d.source_url or "",
-            "source_name": d.source_name or "",
-            "license":     d.license or "",
-            "created_at":  d.created_at.isoformat() + "Z" if d.created_at else "",
+            "doc_id":       d.doc_id,
+            "filename":     d.filename,
+            "subject":      d.subject or "",
+            "grade_level":  d.grade_level or "",
+            "scope":        d.scope,
+            "chunk_count":  d.chunk_count,
+            "status":       d.status,
+            "source_url":   d.source_url or "",
+            "source_name":  d.source_name or "",
+            "license":      d.license or "",
+            "ai_summary":   d.ai_summary or "",
+            "key_concepts": json.loads(d.key_concepts) if d.key_concepts else [],
+            "topic_tags":   json.loads(d.topic_tags) if d.topic_tags else [],
+            "created_at":   d.created_at.isoformat() + "Z" if d.created_at else "",
         }
         for d in user_docs_db
     ]
@@ -852,3 +909,108 @@ def get_hs_stats(
     except Exception as e:
         logger.warning(f"get_hs_stats failed: {e}")
         return {}
+
+
+@router.post("/ask")
+def ask_knowledge_base(
+    payload: AskRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Ask a question against the student's knowledge base (personal docs + optional HS curriculum).
+
+    Retrieves the most relevant chunks via hybrid BM25+vector search, then asks the AI
+    to synthesise a cited answer.
+
+    Returns:
+    {
+        "answer": str,
+        "sources": [
+            {
+                "filename": str,
+                "page": str,
+                "subject": str,
+                "source": "private"|"hs",
+                "doc_id": str,
+                "snippet": str
+            }
+        ],
+        "chunk_count": int
+    }
+    """
+    question = (payload.question or "").strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question must not be empty")
+    if len(question) > 1000:
+        raise HTTPException(status_code=400, detail="Question too long (max 1000 chars)")
+
+    if not context_store.available():
+        raise HTTPException(status_code=503, detail="Knowledge base unavailable. Please try again later.")
+
+    top_k = max(1, min(payload.top_k or 6, 12))
+
+    try:
+        results = context_store.search_context(
+            query=question,
+            user_id=str(current_user.id),
+            use_hs=payload.use_hs,
+            top_k=top_k,
+        )
+    except Exception as e:
+        logger.error(f"context/ask search failed: {e}")
+        raise HTTPException(status_code=500, detail="Search failed")
+
+    if not results:
+        return {
+            "answer": "I couldn't find any relevant information in your knowledge base for that question. Try uploading more documents or rephrasing your question.",
+            "sources": [],
+            "chunk_count": 0,
+        }
+
+    # Build prompt with numbered excerpts
+    excerpts_text = ""
+    sources = []
+    for i, r in enumerate(results, start=1):
+        meta = r.get("metadata") or {}
+        filename = meta.get("filename", "Unknown")
+        page     = meta.get("page_number") or meta.get("page_start") or ""
+        subject  = meta.get("subject", "")
+        src_label = r.get("source", "private")
+        snippet  = (r.get("text") or "").strip()[:600]
+
+        page_str = f", p.{page}" if page else ""
+        src_str  = "Community Curriculum" if src_label == "hs" else "Your Notes"
+        excerpts_text += f"[{i}] {filename}{page_str} ({src_str})\n{snippet}\n\n"
+
+        sources.append({
+            "filename": filename,
+            "page":     page,
+            "subject":  subject,
+            "source":   src_label,
+            "doc_id":   meta.get("doc_id", ""),
+            "snippet":  snippet[:300],
+        })
+
+    prompt = (
+        "You are a study assistant helping a student understand their own uploaded notes and documents.\n"
+        "Answer the student's question using ONLY the excerpts provided below. "
+        "Cite sources inline as [1], [2], etc. when you use information from them.\n"
+        "Be thorough but concise. If the excerpts don't contain enough information to answer fully, say so clearly.\n\n"
+        f"Student's question: {question}\n\n"
+        "Relevant excerpts from their knowledge base:\n"
+        f"{excerpts_text}"
+        "Your answer:"
+    )
+
+    try:
+        answer = call_ai(prompt, max_tokens=1000, temperature=0.3)
+    except Exception as e:
+        logger.error(f"context/ask AI call failed: {e}")
+        raise HTTPException(status_code=502, detail="AI answer generation failed")
+
+    return {
+        "answer": answer.strip(),
+        "sources": sources,
+        "chunk_count": len(results),
+    }

@@ -91,6 +91,9 @@ if "sqlite" in DATABASE_URL:
             "license": "VARCHAR(80)",
             "curriculum": "VARCHAR(20)",
             "source_type": "VARCHAR(40)",
+            "ai_summary": "TEXT",
+            "key_concepts": "TEXT",
+            "topic_tags": "TEXT",
         }
         for _col, _typ in _ctx_additions.items():
             if _col not in _ctx_cols:
@@ -126,6 +129,13 @@ if "sqlite" in DATABASE_URL:
                 _conn.execute(text("ALTER TABLE student_style_models ADD COLUMN student_classifier_state TEXT"))
                 logger.info("Added column student_style_models.student_classifier_state")
             _conn.commit()
+
+    with engine.connect() as _conn:
+        _chat_msg_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(chat_messages)"))}
+        if "image_metadata" not in _chat_msg_cols:
+            _conn.execute(text("ALTER TABLE chat_messages ADD COLUMN image_metadata TEXT"))
+            logger.info("Added column chat_messages.image_metadata")
+        _conn.commit()
 
     with engine.connect() as _conn:
         for _new_table in ("student_knowledge_states", "student_memories", "message_ml_logs",

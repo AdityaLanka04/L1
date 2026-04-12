@@ -93,7 +93,7 @@ class ChatSession(Base):
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -101,7 +101,9 @@ class ChatMessage(Base):
     ai_response = Column(Text, nullable=False)
     is_user = Column(Boolean, default=True)
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    
+    # JSON list of {filename, mime_type, size, storage_path, is_image}
+    image_metadata = Column(Text, nullable=True)
+
     chat_session = relationship("ChatSession", back_populates="messages")
 
 class KnowledgeNode(Base):
@@ -2132,6 +2134,9 @@ class ContextDocument(Base):
     license      = Column(String(80), nullable=True)
     curriculum   = Column(String(20), nullable=True)
     source_type  = Column(String(40), nullable=True)
+    ai_summary   = Column(Text, nullable=True)
+    key_concepts = Column(Text, nullable=True)
+    topic_tags   = Column(Text, nullable=True)
     created_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

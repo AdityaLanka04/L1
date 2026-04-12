@@ -39,8 +39,16 @@ def initialize(persist_dir: Optional[str] = None):
 
     try:
         from sentence_transformers import SentenceTransformer
-        _embed_model = SentenceTransformer("all-MiniLM-L6-v2")
-        logger.info("Chroma store initialised with SentenceTransformer")
+        # BAAI/bge-small-en-v1.5 — 384-dim, same as all-MiniLM-L6-v2 but significantly
+        # higher quality on MTEB benchmarks. Falls back to all-MiniLM-L6-v2 if unavailable.
+        # NOTE: switching models requires re-indexing existing ChromaDB collections.
+        try:
+            _embed_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
+            logger.info("Chroma store initialised with BAAI/bge-small-en-v1.5")
+        except Exception as _e:
+            logger.warning(f"bge-small-en-v1.5 load failed ({_e}), falling back to all-MiniLM-L6-v2")
+            _embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+            logger.info("Chroma store initialised with all-MiniLM-L6-v2 (fallback)")
     except ImportError:
         logger.warning("sentence-transformers not installed — Chroma disabled")
         _client = None

@@ -334,31 +334,47 @@ const AIChat = ({ sharedMode = false }) => {
     }
   };
 
-  const handleFileSelect = (files) => {
-    const validFiles = Array.from(files).filter(file => {
-      const isValidType = file.type.startsWith('image/') || 
-                         file.type === 'application/pdf' || 
-                         file.name.toLowerCase().endsWith('.pdf');
-      const isValidSize = file.size <= 10 * 1024 * 1024;
-      
-      if (!isValidType) {
-        alert(`${file.name} is not a supported file type. Please upload images or PDF files.`);
-        return false;
-      }
-      if (!isValidSize) {
-        alert(`${file.name} is too large. Please upload files smaller than 10MB.`);
-        return false;
-      }
-      return true;
-    });
+  const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
-    setSelectedFiles(prev => [...prev, ...validFiles]);
+  const attachPreviewUrl = (file) => {
+    if (file.type.startsWith('image/')) {
+      file._previewUrl = URL.createObjectURL(file);
+    }
+    return file;
+  };
+
+  const handleFileSelect = (rawFiles) => {
+    const incoming = Array.from(rawFiles);
+    const valid = [];
+    for (const file of incoming) {
+      const isImage = SUPPORTED_IMAGE_TYPES.includes(file.type);
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if (!isImage && !isPdf) {
+        alert(`"${file.name}" is not supported. Upload images (JPEG, PNG, GIF, WebP) or PDFs.`);
+        continue;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`"${file.name}" exceeds the 20 MB limit.`);
+        continue;
+      }
+      valid.push(attachPreviewUrl(file));
+    }
+    if (valid.length > 0) setSelectedFiles(prev => [...prev, ...valid]);
   };
 
   const handleFileInputChange = (e) => {
-    if (e.target.files) {
-      handleFileSelect(e.target.files);
-    }
+    if (e.target.files) handleFileSelect(e.target.files);
+    e.target.value = '';
+  };
+
+  const handlePaste = (e) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItems = items.filter(item => item.kind === 'file' && item.type.startsWith('image/'));
+    if (imageItems.length === 0) return;
+    e.preventDefault();
+    const files = imageItems.map(item => item.getAsFile()).filter(Boolean);
+    handleFileSelect(files);
   };
 
   const isFileDragEvent = (event) => {
@@ -370,9 +386,7 @@ const AIChat = ({ sharedMode = false }) => {
     if (!isFileDragEvent(e)) return;
     e.preventDefault();
     setDragActive(false);
-    if (e.dataTransfer.files) {
-      handleFileSelect(e.dataTransfer.files);
-    }
+    if (e.dataTransfer.files) handleFileSelect(e.dataTransfer.files);
   };
 
   const handleDragOver = (e) => {
@@ -388,10 +402,16 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const removeFile = (index) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles(prev => {
+      const next = [...prev];
+      if (next[index]?._previewUrl) URL.revokeObjectURL(next[index]._previewUrl);
+      next.splice(index, 1);
+      return next;
+    });
   };
 
   const clearAllFiles = () => {
+    selectedFiles.forEach(f => { if (f._previewUrl) URL.revokeObjectURL(f._previewUrl); });
     setSelectedFiles([]);
     setProcessedFiles([]);
   };
@@ -736,12 +756,14 @@ const AIChat = ({ sharedMode = false }) => {
     const userMessage = {
       id: `user_${Date.now()}`,
       type: 'user',
-      content: messageText || (messagedFiles.length > 0 ? `${messagedFiles.length} file(s) uploaded` : ''),
+      content: messageText || '',
       timestamp: new Date().toISOString(),
       files: messagedFiles.map(file => ({
         name: file.name,
         type: file.type,
-        size: file.size
+        size: file.size,
+        previewUrl: file._previewUrl || null,
+        isImage: file.type.startsWith('image/'),
       }))
     };
 
@@ -2094,31 +2116,33 @@ const AIChat = ({ sharedMode = false }) => {
                     onChange={handleFileInputChange}
                     style={{ display: 'none' }}
                   />
-                  <button
-                    className="ac-input-btn"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={loading}
-                    title="Attach files"
-                  >
-                    {Icons.attach}
-                  </button>
-                  <textarea
-                    ref={textareaRef}
-                    value={inputMessage}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type your message or drag files here..."
-                    className="ac-textarea"
-                    disabled={loading}
-                    rows="1"
-                  />
-                  <button
-                    onClick={sendMessage}
-                    disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
-                    className="ac-send-btn"
-                  >
-                    {Icons.send}
-                  </button>
+                  <div className="ac-input-row">
+                    <button
+                      className="ac-input-btn"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={loading}
+                      title="Attach files"
+                    >
+                      {Icons.attach}
+                    </button>
+                    <textarea
+                      ref={textareaRef}
+                      value={inputMessage}
+                      onChange={handleInputChange}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Type your message or drag files here..."
+                      className="ac-textarea"
+                      disabled={loading}
+                      rows="1"
+                    />
+                    <button
+                      onClick={sendMessage}
+                      disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
+                      className="ac-send-btn"
+                    >
+                      {Icons.send}
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -2131,15 +2155,25 @@ const AIChat = ({ sharedMode = false }) => {
                       </div>
                       
                       {message.files && message.files.length > 0 && (
-                        <div className="ac-file-analysis">
+                        <div className="ac-msg-attachments">
                           {message.files.map((file, index) => (
-                            <div key={index} className="ac-file-tag">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                <polyline points="14 2 14 8 20 8"/>
-                              </svg>
-                              <span>{file.name}</span>
-                            </div>
+                            file.isImage && file.previewUrl ? (
+                              <div key={index} className="ac-msg-img-wrap">
+                                <img
+                                  src={file.previewUrl}
+                                  alt={file.name}
+                                  className="ac-msg-img"
+                                />
+                              </div>
+                            ) : (
+                              <div key={index} className="ac-file-tag">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                  <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                                <span>{file.name}</span>
+                              </div>
+                            )
                           ))}
                         </div>
                       )}
@@ -2383,37 +2417,10 @@ const AIChat = ({ sharedMode = false }) => {
             </button>
           )}
 
-          {/* File Preview */}
-          {selectedFiles.length > 0 && (
-            <div className="ac-file-preview">
-              {selectedFiles.map((file, index) => (
-                <div key={index} className="ac-file-tag">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                  </svg>
-                  <span>{file.name}</span>
-                  <button 
-                    className="ac-file-remove" 
-                    onClick={() => removeFile(index)}
-                  >
-                    {Icons.x}
-                  </button>
-                </div>
-              ))}
-              <button 
-                className="ac-btn ac-btn-secondary"
-                onClick={clearAllFiles}
-              >
-                Clear All
-              </button>
-            </div>
-          )}
-
           {/* Input Box - Fixed at bottom when there are messages */}
           {messages.length > 0 && (
-            <div 
-              className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
+            <div
+              className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''} ${selectedFiles.length > 0 ? 'has-attachments' : ''}`}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -2426,34 +2433,77 @@ const AIChat = ({ sharedMode = false }) => {
                 onChange={handleFileInputChange}
                 style={{ display: 'none' }}
               />
+
+              {/* Staged attachment strip — lives inside the box */}
+              {selectedFiles.length > 0 && (
+                <div className="ac-file-preview">
+                  {selectedFiles.map((file, index) => (
+                    file.type.startsWith('image/') && file._previewUrl ? (
+                      <div key={index} className="ac-img-thumb-wrap">
+                        <img
+                          src={file._previewUrl}
+                          alt={file.name}
+                          className="ac-img-thumb"
+                        />
+                        <button
+                          className="ac-img-thumb-remove"
+                          onClick={() => removeFile(index)}
+                          title="Remove"
+                        >
+                          {Icons.x}
+                        </button>
+                      </div>
+                    ) : (
+                      <div key={index} className="ac-file-tag">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                          <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        <span>{file.name}</span>
+                        <button className="ac-file-remove" onClick={() => removeFile(index)}>
+                          {Icons.x}
+                        </button>
+                      </div>
+                    )
+                  ))}
+                  {selectedFiles.length > 1 && (
+                    <button className="ac-file-clear-btn" onClick={clearAllFiles}>
+                      Clear all
+                    </button>
+                  )}
+                </div>
+              )}
               
-              <button
-                className="ac-input-btn"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
-                title="Attach files"
-              >
-                {Icons.attach}
-              </button>
-              
-              <textarea
-                ref={textareaRef}
-                value={inputMessage}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your message or drag files here..."
-                className="ac-textarea"
-                disabled={loading}
-                rows="1"
-              />
-              
-              <button
-                onClick={sendMessage}
-                disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
-                className="ac-send-btn"
-              >
-                {Icons.send}
-              </button>
+              <div className="ac-input-row">
+                <button
+                  className="ac-input-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  title="Attach image or PDF"
+                >
+                  {Icons.attach}
+                </button>
+
+                <textarea
+                  ref={textareaRef}
+                  value={inputMessage}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
+                  placeholder={selectedFiles.length > 0 ? 'Add a message or send as-is…' : 'Message or paste an image…'}
+                  className="ac-textarea"
+                  disabled={loading}
+                  rows="1"
+                />
+
+                <button
+                  onClick={sendMessage}
+                  disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
+                  className="ac-send-btn"
+                >
+                  {Icons.send}
+                </button>
+              </div>
             </div>
           )}
         </main>

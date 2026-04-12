@@ -37,7 +37,7 @@ const GlobalNavSidebar = ({ isOpen, onClose }) => {
       icon: Home,
       items: [
         { path: '/dashboard', label: 'Dashboard', icon: Home, description: 'Your learning hub' },
-        { path: '/search-hub', label: 'Search Hub', icon: Search, description: 'Find anything instantly' },
+        { path: '/search-hub', label: 'Atlas', icon: Search, description: 'Your living knowledge universe' },
       ]
     },
     {

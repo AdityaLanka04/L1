@@ -508,23 +508,7 @@ def _infer_action(query: str) -> Dict[str, Any]:
 
     return {"action": "search", "confidence": 0.6}
 
-_JUNK_TOPICS = frozenset({
-    "hi", "hello", "hey", "yo", "yoooo", "yoo", "yooo", "sup", "what", "ok", "okay",
-    "test", "testing", "lol", "hmm", "hm", "uh", "um", "new chat", "untitled",
-    "chat", "session", "help", "bye", "thanks", "thank", "haha", "cool",
-})
-
-def _is_valid_topic(text: str) -> bool:
-    if not text or len(text.strip()) < 4:
-        return False
-    words = text.strip().lower().split()
-    if len(words) == 1 and words[0] in _JUNK_TOPICS:
-        return False
-    if len(words) <= 2 and words[0] in _JUNK_TOPICS:
-        return False
-    if re.match(r'^[\d\s\W]+$', text.strip()):
-        return False
-    return True
+from topic_utils import is_valid_topic as _is_valid_topic
 
 def _build_topic_suggestions(topic: str) -> List[str]:
     return [
