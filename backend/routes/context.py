@@ -647,15 +647,20 @@ def list_documents(
     )
     hs_docs = [
         {
-            "doc_id":      d.doc_id,
-            "filename":    d.filename,
-            "subject":     d.subject or "",
-            "grade_level": d.grade_level or "",
-            "scope":       d.scope,
-            "chunk_count": d.chunk_count,
-            "status":      d.status,
-            "source_name": d.source_name or "",
-            "created_at":  d.created_at.isoformat() + "Z" if d.created_at else "",
+            "doc_id":       d.doc_id,
+            "filename":     d.filename,
+            "subject":      d.subject or "",
+            "grade_level":  d.grade_level or "",
+            "scope":        d.scope,
+            "chunk_count":  d.chunk_count,
+            "page_count":   d.page_count if hasattr(d, "page_count") else None,
+            "file_size":    d.file_size if hasattr(d, "file_size") else None,
+            "status":       d.status,
+            "source_name":  d.source_name or "",
+            "ai_summary":   d.ai_summary or "",
+            "topic_tags":   json.loads(d.topic_tags) if d.topic_tags else [],
+            "key_concepts": json.loads(d.key_concepts) if d.key_concepts else [],
+            "created_at":   d.created_at.isoformat() + "Z" if d.created_at else "",
         }
         for d in hs_docs_db
     ]

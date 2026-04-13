@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { API_URL } from '../config/api';
 import contextService from '../services/contextService';
+import { useNavigate } from 'react-router-dom';
 import './Atlas.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -244,6 +245,45 @@ function DocCard({ doc, active, onToggle, onAsk, onDelete }){
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HS curriculum document card (read-only, Archive view)
+// ─────────────────────────────────────────────────────────────────────────────
+function HsDocCard({ doc }){
+  const [expanded,setExpanded]=useState(false);
+  return (
+    <div className="atl-hs-doc-card">
+      <div className="atl-hs-doc-header">
+        <div className="atl-doc-icon-wrap"><FileText size={16}/></div>
+        <div className="atl-hs-doc-name-block">
+          <div className="atl-doc-name" title={doc.filename}>{(doc.filename||'UNTITLED').replace(/\.[^.]+$/,'').toUpperCase()}</div>
+          <div className="atl-hs-doc-badges">
+            {doc.subject&&<span className="atl-hs-badge atl-hs-badge--subject">{doc.subject.toUpperCase()}</span>}
+            {doc.grade_level&&<span className="atl-hs-badge atl-hs-badge--grade">{doc.grade_level}</span>}
+          </div>
+        </div>
+      </div>
+      {doc.ai_summary&&(
+        <p className={`atl-doc-summary${expanded?'':' atl-doc-summary--clamp'}`} onClick={()=>setExpanded(v=>!v)}>
+          {doc.ai_summary}
+        </p>
+      )}
+      {doc.topic_tags?.length>0&&(
+        <div className="atl-doc-tags">
+          {doc.topic_tags.slice(0,6).map(t=>(
+            <span key={t} className="atl-doc-tag"><Tag size={9}/>{t.toUpperCase()}</span>
+          ))}
+        </div>
+      )}
+      <div className="atl-doc-meta">
+        {doc.chunk_count>0&&<span>{doc.chunk_count} CHUNKS</span>}
+        {doc.page_count&&<span>{doc.page_count} PAGES</span>}
+        {doc.file_size&&<span>{fmtBytes(doc.file_size)}</span>}
+        {doc.source_name&&<span className="atl-hs-source-name">{doc.source_name.toUpperCase()}</span>}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Atlas(){
@@ -263,12 +303,15 @@ export default function Atlas(){
   const [askLoading,    setAskLoading]    = useState(false);
   const [askUseHs,      setAskUseHs]      = useState(true);
   const [uploadOpen,    setUploadOpen]    = useState(false);
-  const [archiveSearch, setArchiveSearch] = useState('');
   const [vaultSearch,   setVaultSearch]   = useState('');
   const [activeDocIds,  setActiveDocIds]  = useState(new Set());
   const [vaultSubject,  setVaultSubject]  = useState('');
   const [docsError,     setDocsError]     = useState(null);
+  const [hsDocs,        setHsDocs]        = useState([]);
+  const [hsDocsSearch,  setHsDocsSearch]  = useState('');
+  const [hsGradeFilter, setHsGradeFilter] = useState('');
   const oracleEndRef = useRef(null);
+  const navigate = useNavigate();
 
   // ── Three.js ───────────────────────────────────────────────────────────────
   useEffect(()=>{
@@ -702,6 +745,7 @@ export default function Atlas(){
       const d=await contextService.listDocuments();
       const list=Array.isArray(d)?d:Array.isArray(d?.user_docs)?d.user_docs:Array.isArray(d?.documents)?d.documents:Array.isArray(d?.docs)?d.docs:[];
       setUserDocs(list);
+      if(Array.isArray(d?.hs_docs)) setHsDocs(d.hs_docs);
     } catch(e){
       console.error('Documents load failed:',e);
       setDocsError(e.message||'Failed to load documents');
@@ -721,6 +765,7 @@ export default function Atlas(){
   useEffect(()=>{ loadAll(); },[loadAll]);
   // Reload docs each time vault opens
   useEffect(()=>{ if(activeWorld==='vault') loadAll(); },[activeWorld]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   useEffect(()=>{ if(oracleEndRef.current) oracleEndRef.current.scrollIntoView({behavior:'smooth'}); },[askHistory]);
 
@@ -760,7 +805,6 @@ export default function Atlas(){
   },[activeDocIds,toggleDoc]);
 
   const totalChunks=hsStats.total_chunks||0;
-  const filteredSubjects=hsSubjects.filter(s=>!archiveSearch||s.subject.toLowerCase().includes(archiveSearch.toLowerCase()));
 
   // Vault filters
   const vaultSubjects=[...new Set(userDocs.map(d=>d.subject).filter(Boolean))];
@@ -768,6 +812,16 @@ export default function Atlas(){
     const matchSearch=!vaultSearch||(d.filename||'').toLowerCase().includes(vaultSearch.toLowerCase())||(d.ai_summary||'').toLowerCase().includes(vaultSearch.toLowerCase());
     const matchSubject=!vaultSubject||d.subject===vaultSubject;
     return matchSearch&&matchSubject;
+  });
+
+  const hsGrades=[...new Set(hsDocs.map(d=>d.grade_level).filter(Boolean))].sort();
+  const filteredHsDocs=hsDocs.filter(d=>{
+    const matchSearch=!hsDocsSearch
+      ||(d.filename||'').toLowerCase().includes(hsDocsSearch.toLowerCase())
+      ||(d.ai_summary||'').toLowerCase().includes(hsDocsSearch.toLowerCase())
+      ||(d.subject||'').toLowerCase().includes(hsDocsSearch.toLowerCase());
+    const matchGrade=!hsGradeFilter||d.grade_level===hsGradeFilter;
+    return matchSearch&&matchGrade;
   });
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -820,17 +874,9 @@ export default function Atlas(){
 
           {/* ── ORACLE ── */}
           {activeWorld==='oracle'&&(
-            <div className="atl-panel-body">
-              <div className="atl-panel-hd">
-                <div>
-                  <h2 className="atl-panel-title">ORACLE</h2>
-                  <p className="atl-panel-desc">ASK ANYTHING · ANSWERS CITED FROM YOUR KNOWLEDGE BASE</p>
-                </div>
-                <div className="atl-panel-hd-actions">
-                  <label className="atl-hs-toggle"><input type="checkbox" checked={askUseHs} onChange={e=>setAskUseHs(e.target.checked)}/><span>CURRICULUM</span></label>
-                </div>
-              </div>
+            <div className={`atl-panel-body${askHistory.length===0?' atl-oracle-body-hero':''}`}>
 
+              {/* Active doc context bar */}
               {activeDocIds.size>0&&(
                 <div className="atl-oracle-ctx-bar">
                   <Layers size={12}/>
@@ -846,50 +892,150 @@ export default function Atlas(){
                 </div>
               )}
 
-              <div className="atl-oracle-history">
-                {askHistory.length===0?(
-                  <div className="atl-oracle-empty">
-                    <p>ASK ANYTHING. ORACLE SEARCHES YOUR DOCUMENTS AND CURRICULUM FOR ANSWERS.</p>
-                    <div className="atl-oracle-chips">
-                      {['Explain natural selection','Integration by parts','Causes of World War I',"Ohm's Law"].map(s=>(
-                        <button key={s} className="atl-chip" onClick={()=>handleAsk(s)}>{s.toUpperCase()}</button>
-                      ))}
+              {askHistory.length===0?(
+                /* ── HERO EMPTY STATE ── */
+                <div className="atl-oracle-hero">
+                  <div className="atl-oracle-glow-halo">
+                    <div className="atl-oracle-glow-ring atl-oracle-glow-ring--1"/>
+                    <div className="atl-oracle-glow-ring atl-oracle-glow-ring--2"/>
+                    <div className="atl-oracle-glow-ring atl-oracle-glow-ring--3"/>
+                    <div className="atl-oracle-glow-core">
+                      <Brain size={22} className="atl-oracle-brain-icon"/>
                     </div>
                   </div>
-                ):askHistory.map((item,i)=>(
-                  <div key={i} className="atl-oracle-turn">
-                    <div className="atl-q-bubble">{item.question}</div>
-                    {item.loading?(
-                      <div className="atl-oracle-loading"><Loader2 size={15} className="atl-spin"/><span>CONSULTING ARCHIVE</span></div>
-                    ):item.error?(
-                      <div className="atl-oracle-error"><AlertCircle size={13}/>{item.error}</div>
-                    ):(
-                      <div className="atl-a-bubble">
-                        <p>{item.answer}</p>
-                        {item.sources?.length>0&&(
-                          <div className="atl-sources">
-                            {item.sources.map((src,si)=>(
-                              <div key={si} className="atl-source-chip">
-                                <FileText size={10}/>
-                                [{si+1}] {(src.filename||'').toUpperCase()}{src.page?` P.${src.page}`:''}
-                                {src.source==='hs'&&<span className="atl-src-badge">CURRICULUM</span>}
+
+                  <div className="atl-oracle-hero-wordmark">ORACLE</div>
+                  <div className="atl-oracle-hero-tagline">THE KNOW · IT · ALL</div>
+
+                  <div className="atl-oracle-knowledge-stats">
+                    <div className="atl-oracle-kstat">
+                      <span className="atl-oracle-kstat-val">{hsSubjects.length||0}</span>
+                      <span className="atl-oracle-kstat-lbl">SUBJECTS</span>
+                    </div>
+                    <div className="atl-oracle-kstat-sep"/>
+                    <div className="atl-oracle-kstat">
+                      <span className="atl-oracle-kstat-val">{userDocs.length||0}</span>
+                      <span className="atl-oracle-kstat-lbl">YOUR DOCS</span>
+                    </div>
+                    <div className="atl-oracle-kstat-sep"/>
+                    <div className="atl-oracle-kstat">
+                      <span className="atl-oracle-kstat-val">{(totalChunks||0).toLocaleString()}</span>
+                      <span className="atl-oracle-kstat-lbl">FRAGMENTS</span>
+                    </div>
+                  </div>
+
+                  <div className="atl-oracle-hero-form">
+                    <div className="atl-oracle-hero-input-wrap">
+                      <textarea
+                        className="atl-oracle-hero-textarea"
+                        placeholder="Ask me anything — topics, flashcards, study material, concepts..."
+                        value={askInput}
+                        onChange={e=>setAskInput(e.target.value)}
+                        onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleAsk();}}}
+                        rows={3}
+                        disabled={askLoading}
+                      />
+                      <div className="atl-oracle-hero-row">
+                        <label className="atl-hs-toggle">
+                          <input type="checkbox" checked={askUseHs} onChange={e=>setAskUseHs(e.target.checked)}/>
+                          <span>CURRICULUM</span>
+                        </label>
+                        <button className="atl-oracle-hero-send" onClick={()=>handleAsk()} disabled={askLoading||!askInput.trim()}>
+                          {askLoading?<Loader2 size={15} className="atl-spin"/>:<Send size={15}/>}
+                          <span>{askLoading?'CONSULTING…':'ASK ORACLE'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="atl-oracle-suggestions">
+                    {[
+                      'Explain natural selection',
+                      'Integration by parts',
+                      'Causes of World War I',
+                      "Ohm's Law",
+                      'What flashcards do I have?',
+                      'Show available calculus material',
+                      'Photosynthesis step by step',
+                      "Newton's laws of motion",
+                    ].map(s=>(
+                      <button key={s} className="atl-oracle-sugg" onClick={()=>handleAsk(s)}>{s}</button>
+                    ))}
+                  </div>
+                </div>
+
+              ):(
+                /* ── CONVERSATION STATE ── */
+                <>
+                  <div className="atl-oracle-compact-hd">
+                    <Brain size={13} className="atl-oracle-compact-icon"/>
+                    <span>ORACLE · THE KNOW-IT-ALL</span>
+                    <button className="atl-oracle-reset-btn" onClick={()=>setAskHistory([])} title="New conversation">
+                      <RefreshCw size={11}/>
+                    </button>
+                  </div>
+
+                  <div className="atl-oracle-history">
+                    {askHistory.map((item,i)=>(
+                      <div key={i} className="atl-oracle-turn">
+                        <div className="atl-q-bubble">{item.question}</div>
+                        {item.loading?(
+                          <div className="atl-oracle-thinking">
+                            <div className="atl-oracle-think-dots"><span/><span/><span/></div>
+                            <span className="atl-oracle-think-text">CONSULTING KNOWLEDGE BASE</span>
+                          </div>
+                        ):item.error?(
+                          <div className="atl-oracle-error"><AlertCircle size={13}/>{item.error}</div>
+                        ):(
+                          <div className="atl-answer-card">
+                            <div className="atl-answer-card-hd">
+                              <Brain size={13} className="atl-answer-card-icon"/>
+                              <span className="atl-answer-card-label">ORACLE</span>
+                            </div>
+                            <p className="atl-answer-text">{item.answer}</p>
+                            {item.sources?.length>0&&(
+                              <div className="atl-answer-sources">
+                                <div className="atl-answer-sources-lbl">SOURCES CONSULTED</div>
+                                <div className="atl-answer-sources-grid">
+                                  {item.sources.map((src,si)=>(
+                                    <div key={si} className="atl-answer-source-card">
+                                      <FileText size={11} className="atl-answer-source-icon"/>
+                                      <div className="atl-answer-source-info">
+                                        <span className="atl-answer-source-name">{(src.filename||`SOURCE ${si+1}`).replace(/\.[^.]+$/,'').toUpperCase()}</span>
+                                        {src.page&&<span className="atl-answer-source-page">PAGE {src.page}</span>}
+                                      </div>
+                                      {src.source==='hs'&&<span className="atl-answer-source-badge">CURRICULUM</span>}
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            ))}
+                            )}
+                            <div className="atl-answer-actions">
+                              <button className="atl-answer-action" onClick={()=>navigate('/notes',{state:{topic:item.question}})}>
+                                <BookOpen size={11}/>CREATE NOTES
+                              </button>
+                              <button className="atl-answer-action" onClick={()=>navigate('/flashcards',{state:{topic:item.question}})}>
+                                <Layers size={11}/>MAKE FLASHCARDS
+                              </button>
+                              <button className="atl-answer-action" onClick={()=>navigate('/quiz-hub',{state:{topic:item.question}})}>
+                                <Brain size={11}/>QUIZ ME
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
-                    )}
+                    ))}
+                    <div ref={oracleEndRef}/>
                   </div>
-                ))}
-                <div ref={oracleEndRef}/>
-              </div>
 
-              <div className="atl-oracle-input-row">
-                <textarea className="atl-oracle-textarea" placeholder="ASK THE ORACLE..." value={askInput} onChange={e=>setAskInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleAsk();}}} rows={2} disabled={askLoading}/>
-                <button className="atl-send-btn" onClick={()=>handleAsk()} disabled={askLoading||!askInput.trim()}>
-                  {askLoading?<Loader2 size={16} className="atl-spin"/>:<Send size={16}/>}
-                </button>
-              </div>
+                  <div className="atl-oracle-input-row">
+                    <textarea className="atl-oracle-textarea" placeholder="ASK THE ORACLE..." value={askInput} onChange={e=>setAskInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleAsk();}}} rows={2} disabled={askLoading}/>
+                    <button className="atl-send-btn" onClick={()=>handleAsk()} disabled={askLoading||!askInput.trim()}>
+                      {askLoading?<Loader2 size={16} className="atl-spin"/>:<Send size={16}/>}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -899,24 +1045,42 @@ export default function Atlas(){
               <div className="atl-panel-hd">
                 <div>
                   <h2 className="atl-panel-title">ARCHIVE</h2>
-                  <p className="atl-panel-desc">{hsSubjects.length} SUBJECTS · {totalChunks.toLocaleString()} CURRICULUM FRAGMENTS</p>
+                  <p className="atl-panel-desc">
+                    {dataLoading?'LOADING…':`${filteredHsDocs.length} DOCUMENT${filteredHsDocs.length!==1?'S':''} · ${hsSubjects.length} SUBJECTS · ${totalChunks.toLocaleString()} FRAGMENTS`}
+                  </p>
                 </div>
               </div>
-              <div className="atl-search-row">
-                <Search size={13}/>
-                <input className="atl-search-input" placeholder="SEARCH SUBJECTS..." value={archiveSearch} onChange={e=>setArchiveSearch(e.target.value)}/>
-                {archiveSearch&&<button className="atl-clear-btn" onClick={()=>setArchiveSearch('')}><X size={12}/></button>}
+
+              {/* Toolbar: search + grade filter */}
+              <div className="atl-archive-toolbar">
+                <div className="atl-search-row atl-archive-search">
+                  <Search size={13}/>
+                  <input className="atl-search-input" placeholder="SEARCH ARCHIVE..." value={hsDocsSearch} onChange={e=>setHsDocsSearch(e.target.value)}/>
+                  {hsDocsSearch&&<button className="atl-clear-btn" onClick={()=>setHsDocsSearch('')}><X size={12}/></button>}
+                </div>
+                {hsGrades.length>0&&(
+                  <div className="atl-archive-grade-pills">
+                    <button className={`atl-subject-pill${hsGradeFilter===''?' atl-subject-pill--active':''}`} onClick={()=>setHsGradeFilter('')}>ALL GRADES</button>
+                    {hsGrades.map(g=>(
+                      <button key={g} className={`atl-subject-pill${hsGradeFilter===g?' atl-subject-pill--active':''}`} onClick={()=>setHsGradeFilter(hsGradeFilter===g?'':g)}>
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
               {dataLoading?(
                 <div className="atl-loading"><Loader2 size={22} className="atl-spin"/></div>
+              ):filteredHsDocs.length===0?(
+                <div className="atl-vault-empty">
+                  <BookOpen size={38} style={{opacity:0.28,marginBottom:14}}/>
+                  <p>{hsDocs.length===0?'NO CURRICULUM DOCUMENTS FOUND.':'NO DOCUMENTS MATCH YOUR SEARCH.'}</p>
+                </div>
               ):(
-                <div className="atl-subject-grid">
-                  {filteredSubjects.map((s,i)=>(
-                    <button key={i} className="atl-subject-card" onClick={()=>{setActiveWorld('oracle');handleAsk(`Explain ${s.subject}`);}}>
-                      <div className="atl-subject-name">{s.subject.toUpperCase()}</div>
-                      {s.grade_level&&<div className="atl-subject-grade">{s.grade_level}</div>}
-                      <div className="atl-subject-count">{s.doc_count} DOCS</div>
-                    </button>
+                <div className="atl-doc-grid">
+                  {filteredHsDocs.map((doc,i)=>(
+                    <HsDocCard key={doc.doc_id||i} doc={doc}/>
                   ))}
                 </div>
               )}
