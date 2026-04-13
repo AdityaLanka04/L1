@@ -2,215 +2,182 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
 import {
   Send, Upload, FileText, Brain, X, Loader2, AlertCircle,
-  CheckCircle, Trash2, RefreshCw, ArrowRight, Plus,
-  Search, Menu, Tag, ChevronLeft
+  CheckCircle, Trash2, RefreshCw, Plus,
+  Search, Menu, Tag, ChevronLeft, BookOpen, Layers
 } from 'lucide-react';
 import { API_URL } from '../config/api';
 import contextService from '../services/contextService';
 import './Atlas.css';
 
-// ── GLSL shaders ──────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// GLSL — Planet surface
+// ─────────────────────────────────────────────────────────────────────────────
 const PLANET_VERT = `
-  varying vec2  vUv;
-  varying vec3  vNormal;
-  varying vec3  vViewDir;
-  varying float vElevation;
-  void main() {
-    vUv       = uv;
-    vNormal   = normalize(normalMatrix * normal);
-    vec4 mv   = modelViewMatrix * vec4(position, 1.0);
-    vViewDir  = normalize(-mv.xyz);
-    vElevation= position.y;
-    gl_Position = projectionMatrix * mv;
+  varying vec2 vUv; varying vec3 vNormal; varying vec3 vViewDir;
+  void main(){
+    vUv=uv; vNormal=normalize(normalMatrix*normal);
+    vec4 mv=modelViewMatrix*vec4(position,1.0);
+    vViewDir=normalize(-mv.xyz);
+    gl_Position=projectionMatrix*mv;
   }
 `;
-
 const PLANET_FRAG = `
-  uniform vec3  uColorA;
-  uniform vec3  uColorB;
-  uniform float uTime;
-  uniform float uZoom;
-
-  varying vec2  vUv;
-  varying vec3  vNormal;
-  varying vec3  vViewDir;
-  varying float vElevation;
-
-  float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
-  float noise(vec2 p){
-    vec2 i=floor(p), f=fract(p);
-    f=f*f*(3.0-2.0*f);
-    return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
-               mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
-  }
-  float fbm(vec2 p){
-    float v=0.0, a=0.5;
-    for(int i=0;i<5;i++){ v+=a*noise(p); p*=2.1; a*=0.48; }
-    return v;
-  }
-
-  void main() {
-    vec3 L   = normalize(vec3(4.0, 6.0, 5.0));
-    float d  = max(dot(vNormal, L), 0.0);
-    float lit = 0.15 + 0.85 * d;
-
-    float t  = uTime * 0.01;
-    float n1 = fbm(vUv * 4.0  + vec2( t,  t*0.7));
-    float n2 = fbm(vUv * 9.0  - vec2( t*0.6, -t*0.4));
-    float n3 = noise(vUv * 18.0 + vec2(-t*0.3, t*0.5));
-    float pat = n1*0.50 + n2*0.32 + n3*0.18;
-
-    vec3 col  = mix(uColorA, uColorB, pat*0.60 + vUv.y*0.30);
-    col      *= lit;
-
-    float rim = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 2.0);
-    col += uColorB * rim * (0.70 + uZoom * 0.60);
-
-    float spec = pow(max(dot(reflect(-L, vNormal), vViewDir), 0.0), 28.0);
-    col += vec3(spec) * 0.25;
-
-    gl_FragColor = vec4(col, 1.0);
+  uniform vec3 uColorA,uColorB; uniform float uTime,uZoom;
+  varying vec2 vUv; varying vec3 vNormal,vViewDir;
+  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+    return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+  float fbm(vec2 p){float v=0.0,a=0.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.1;a*=0.48;}return v;}
+  void main(){
+    vec3 L=normalize(vec3(4.0,6.0,5.0));
+    float lit=0.15+0.85*max(dot(vNormal,L),0.0);
+    float t=uTime*0.01;
+    float pat=fbm(vUv*4.0+vec2(t,t*0.7))*0.50+fbm(vUv*9.0-vec2(t*0.6,-t*0.4))*0.32+noise(vUv*18.0+vec2(-t*0.3,t*0.5))*0.18;
+    vec3 col=mix(uColorA,uColorB,pat*0.60+vUv.y*0.30)*lit;
+    col+=uColorB*pow(1.0-max(dot(vNormal,vViewDir),0.0),2.0)*(0.70+uZoom*0.60);
+    col+=vec3(pow(max(dot(reflect(-L,vNormal),vViewDir),0.0),28.0))*0.25;
+    gl_FragColor=vec4(col,1.0);
   }
 `;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GLSL — Atmosphere glow
+// ─────────────────────────────────────────────────────────────────────────────
 const ATMO_VERT = `
-  varying vec3 vNormal;
-  varying vec3 vViewDir;
-  void main() {
-    vNormal  = normalize(normalMatrix * normal);
-    vec4 mv  = modelViewMatrix * vec4(position, 1.0);
-    vViewDir = normalize(-mv.xyz);
-    gl_Position = projectionMatrix * mv;
-  }
+  varying vec3 vNormal,vViewDir;
+  void main(){vNormal=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vViewDir=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}
 `;
-
 const ATMO_FRAG = `
-  uniform vec3  uColor;
-  uniform float uPower;
-  uniform float uIntensity;
-  varying vec3 vNormal;
-  varying vec3 vViewDir;
-  void main() {
-    float r = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), uPower);
-    gl_FragColor = vec4(uColor, r * uIntensity);
+  uniform vec3 uColor; uniform float uPower,uIntensity;
+  varying vec3 vNormal,vViewDir;
+  void main(){float r=pow(1.0-max(dot(vNormal,vViewDir),0.0),uPower);gl_FragColor=vec4(uColor,r*uIntensity);}
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GLSL — Connection flow lines (points march along A→B)
+// ─────────────────────────────────────────────────────────────────────────────
+const FLOW_VERT = `
+  uniform vec3 uA,uB; uniform float uPhase,uN;
+  attribute float aIdx; varying float vLife;
+  void main(){
+    float t=fract(aIdx/uN+uPhase);
+    float h=0.26;
+    float a = t<h*0.15 ? t/(h*0.15) : t<h ? 1.0-(t-h*0.15)/(h*0.85) : 0.0;
+    vLife=a;
+    gl_PointSize=(2.0+a*4.5)*(1.0-t*0.2);
+    gl_Position=projectionMatrix*viewMatrix*vec4(mix(uA,uB,t),1.0);
+  }
+`;
+const FLOW_FRAG = `
+  uniform vec3 uColor; varying float vLife;
+  void main(){
+    if(vLife<=0.001)discard;
+    float d=length(gl_PointCoord-0.5)*2.0;
+    gl_FragColor=vec4(uColor,vLife*(1.0-smoothstep(0.0,1.0,d))*0.90);
   }
 `;
 
-// ── Gold palette (normalised RGB) ─────────────────────────────────────────────
-const G_MAIN  = [0.843, 0.702, 0.549]; // #D7B38C  warm gold
-const G_LIGHT = [0.929, 0.835, 0.690]; // #EDD5B0  light gold
-const G_DEEP  = [0.478, 0.329, 0.208]; // #7A5435  dark gold
-const G_DIM   = [0.722, 0.565, 0.408]; // #B89068  mid gold
-const G_PALE  = [0.961, 0.918, 0.835]; // #F5EAD5  near-white gold
+// ─────────────────────────────────────────────────────────────────────────────
+// Palette
+// ─────────────────────────────────────────────────────────────────────────────
+const G_MAIN  = [0.843,0.702,0.549];
+const G_LIGHT = [0.929,0.835,0.690];
+const G_DEEP  = [0.478,0.329,0.208];
+const G_DIM   = [0.722,0.565,0.408];
+const G_PALE  = [0.961,0.918,0.835];
 
-// Three.js hex equivalents
-const HEX_MAIN   = 0xD7B38C;
-const HEX_LIGHT  = 0xEDD5B0;
-const HEX_DEEP   = 0x7A5435;
-const HEX_BG     = 0x0A0806;
+const HEX_MAIN  = 0xD7B38C;
+const HEX_LIGHT = 0xEDD5B0;
+const HEX_DEEP  = 0x7A5435;
+const HEX_DIM   = 0xB89068;
+const HEX_BG    = 0x08060A;
 
-const ORBIT_CENTER = new THREE.Vector3(0, 0, -9);
-const HOME_CAM     = new THREE.Vector3(0, 1.5, 14);
-const HOME_LOOK    = new THREE.Vector3(0, 0, -9);
-
+// ─────────────────────────────────────────────────────────────────────────────
+// World configs — fixed positions, gentle drift
+// ─────────────────────────────────────────────────────────────────────────────
 const WORLDS = [
   {
-    key: 'oracle',  label: 'ORACLE',  sub: 'ASK ANYTHING',
-    colorA: G_MAIN,  colorB: G_LIGHT,
-    atmoColor: G_MAIN, atmoScale: 1.45, atmoIntensity: 0.70,
-    radius: 1.32, orbitR: 5.2, orbitSpeed: 0.18, orbitTiltX: 0.22, orbitTiltZ: 0.08,
-    hasRing: false,
+    key:'oracle',  label:'ORACLE',  sub:'ASK ANYTHING',  type:'icosa',
+    pos:[-14, 3, -4],
+    colorA:G_PALE,  colorB:G_LIGHT, atmoColor:G_PALE,  atmoIntensity:0.82, coreRadius:1.6,
   },
   {
-    key: 'archive', label: 'ARCHIVE', sub: 'CURRICULUM',
-    colorA: G_DEEP,  colorB: G_DIM,
-    atmoColor: G_DIM,  atmoScale: 1.40, atmoIntensity: 0.60,
-    radius: 1.84, orbitR: 8.2, orbitSpeed: 0.16, orbitTiltX: -0.20, orbitTiltZ: 0.15,
-    hasRing: true,
+    key:'archive', label:'ARCHIVE', sub:'CURRICULUM',     type:'rings',
+    pos:[0, -3, -11],
+    colorA:G_DEEP,  colorB:G_DIM,   atmoColor:G_DIM,   atmoIntensity:0.68, coreRadius:2.0,
   },
   {
-    key: 'vault',   label: 'VAULT',   sub: 'MY DOCUMENTS',
-    colorA: G_DIM,   colorB: G_PALE,
-    atmoColor: G_LIGHT, atmoScale: 1.50, atmoIntensity: 0.75,
-    radius: 1.04, orbitR: 11.5, orbitSpeed: 0.20, orbitTiltX: 0.40, orbitTiltZ: -0.12,
-    hasRing: false,
+    key:'vault',   label:'VAULT',   sub:'MY DOCUMENTS',   type:'cube',
+    pos:[14, 3, -4],
+    colorA:G_DIM,   colorB:G_MAIN,  atmoColor:G_LIGHT, atmoIntensity:0.78, coreRadius:1.4,
   },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function fmtDate(iso) {
-  if (!iso) return '';
-  try { return new Date(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'2-digit' }); }
-  catch { return ''; }
+const HOME_CAM  = new THREE.Vector3(0, 5, 24);
+const HOME_LOOK = new THREE.Vector3(0, -1, -4);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function fmtDate(iso){
+  if(!iso) return '';
+  try{ return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}); }
+  catch{ return ''; }
 }
-function fmtBytes(n) {
-  if (!n) return '';
-  if (n < 1024) return `${n}B`;
-  if (n < 1048576) return `${(n/1024).toFixed(0)}KB`;
+function fmtBytes(n){
+  if(!n) return '';
+  if(n<1024) return `${n}B`;
+  if(n<1048576) return `${(n/1024).toFixed(0)}KB`;
   return `${(n/1048576).toFixed(1)}MB`;
 }
 
-// ── Upload modal ──────────────────────────────────────────────────────────────
-function UploadModal({ open, onClose, onDone }) {
-  const [file, setFile]       = useState(null);
-  const [subject, setSubject] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-  const [success, setSuccess] = useState(false);
-  const [drag, setDrag]       = useState(false);
-  const inputRef              = useRef();
-
-  useEffect(() => { if (open) { setFile(null); setError(''); setSuccess(false); } }, [open]);
-
-  const submit = async () => {
-    if (!file) { setError('Choose a file first.'); return; }
+// ─────────────────────────────────────────────────────────────────────────────
+// Upload modal
+// ─────────────────────────────────────────────────────────────────────────────
+function UploadModal({ open, onClose, onDone }){
+  const [file,setFile]       = useState(null);
+  const [subject,setSubject] = useState('');
+  const [loading,setLoading] = useState(false);
+  const [error,setError]     = useState('');
+  const [success,setSuccess] = useState(false);
+  const [drag,setDrag]       = useState(false);
+  const inputRef             = useRef();
+  useEffect(()=>{ if(open){ setFile(null);setError('');setSuccess(false); } },[open]);
+  const submit = async()=>{
+    if(!file){ setError('Choose a file first.'); return; }
     setLoading(true); setError('');
-    try {
-      await contextService.uploadDocument(file, subject, '', 'private');
-      setSuccess(true);
-      if (onDone) onDone();
-      setTimeout(onClose, 1400);
-    } catch (e) { setError(e.message || 'Upload failed'); }
-    finally { setLoading(false); }
+    try{
+      await contextService.uploadDocument(file,subject,'','private');
+      setSuccess(true); if(onDone)onDone(); setTimeout(onClose,1400);
+    } catch(e){ setError(e.message||'Upload failed'); }
+    finally{ setLoading(false); }
   };
-
-  if (!open) return null;
+  if(!open) return null;
   return (
-    <div className="atl-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="atl-modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="atl-modal">
-        <div className="atl-modal-hd">
-          <span>UPLOAD TO VAULT</span>
-          <button className="atl-modal-close" onClick={onClose}><X size={16}/></button>
-        </div>
-        {success ? (
+        <div className="atl-modal-hd"><span>UPLOAD TO VAULT</span><button className="atl-modal-close" onClick={onClose}><X size={16}/></button></div>
+        {success?(
           <div className="atl-modal-success"><CheckCircle size={36}/><p>ADDED TO YOUR VAULT</p></div>
-        ) : (
+        ):(
           <>
-            <div
-              className={`atl-drop-zone${drag?' atl-drop-zone--over':''}${file?' atl-drop-zone--has':''}`}
-              onDragOver={e=>{e.preventDefault();setDrag(true);}}
-              onDragLeave={()=>setDrag(false)}
+            <div className={`atl-drop-zone${drag?' atl-drop-zone--over':''}${file?' atl-drop-zone--has':''}`}
+              onDragOver={e=>{e.preventDefault();setDrag(true);}} onDragLeave={()=>setDrag(false)}
               onDrop={e=>{e.preventDefault();setDrag(false);const f=e.dataTransfer.files[0];if(f)setFile(f);}}
-              onClick={()=>inputRef.current?.click()}
-            >
+              onClick={()=>inputRef.current?.click()}>
               <input ref={inputRef} type="file" accept=".pdf,.txt,.md" style={{display:'none'}} onChange={e=>setFile(e.target.files[0])}/>
-              {file ? (
-                <div className="atl-drop-file">
-                  <FileText size={22}/><span>{file.name}</span>
-                  <span className="atl-drop-size">{fmtBytes(file.size)}</span>
-                  <button onClick={e=>{e.stopPropagation();setFile(null);}}><X size={12}/></button>
-                </div>
-              ) : (
+              {file?(
+                <div className="atl-drop-file"><FileText size={22}/><span>{file.name}</span><span className="atl-drop-size">{fmtBytes(file.size)}</span><button onClick={e=>{e.stopPropagation();setFile(null);}}><X size={12}/></button></div>
+              ):(
                 <><Upload size={28} className="atl-drop-icon"/><p>DROP PDF, TXT, OR MD</p><span>OR CLICK TO BROWSE</span></>
               )}
             </div>
             <input className="atl-modal-subject" placeholder="SUBJECT (OPTIONAL)" value={subject} onChange={e=>setSubject(e.target.value)}/>
-            {error && <div className="atl-modal-err"><AlertCircle size={13}/>{error}</div>}
+            {error&&<div className="atl-modal-err"><AlertCircle size={13}/>{error}</div>}
             <div className="atl-modal-actions">
               <button className="atl-btn atl-btn--ghost" onClick={onClose}>CANCEL</button>
               <button className="atl-btn atl-btn--accent" onClick={submit} disabled={loading||!file}>
-                {loading?<Loader2 size={14} className="atl-spin"/>:<Upload size={14}/>}
-                {loading?'UPLOADING':'UPLOAD'}
+                {loading?<Loader2 size={14} className="atl-spin"/>:<Upload size={14}/>}{loading?'UPLOADING':'UPLOAD'}
               </button>
             </div>
           </>
@@ -220,485 +187,597 @@ function UploadModal({ open, onClose, onDone }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-export default function Atlas() {
+// ─────────────────────────────────────────────────────────────────────────────
+// Document card
+// ─────────────────────────────────────────────────────────────────────────────
+function DocCard({ doc, active, onToggle, onAsk, onDelete }){
+  const [expanded,setExpanded] = useState(false);
+  return (
+    <div className={`atl-doc-card${active?' atl-doc-card--active':''}`}>
+      <div className="atl-doc-card-top">
+        <div className="atl-doc-icon-wrap"><FileText size={18}/></div>
+        <div className="atl-doc-name-wrap">
+          <div className="atl-doc-name" title={doc.filename}>{(doc.filename||'UNTITLED').toUpperCase()}</div>
+          {doc.subject&&<span className="atl-doc-subject-badge">{doc.subject.toUpperCase()}</span>}
+        </div>
+        <button
+          className={`atl-ctx-pill${active?' atl-ctx-pill--on':''}`}
+          onClick={()=>onToggle(doc.doc_id)}
+          title={active?'Remove from context':'Add to AI context'}
+        >
+          <Layers size={11}/>
+          <span>{active?'IN CONTEXT':'+ CONTEXT'}</span>
+        </button>
+      </div>
+
+      {doc.ai_summary&&(
+        <p className={`atl-doc-summary${expanded?'':' atl-doc-summary--clamp'}`} onClick={()=>setExpanded(v=>!v)}>
+          {doc.ai_summary}
+        </p>
+      )}
+
+      <div className="atl-doc-meta">
+        {doc.chunk_count>0&&<span>{doc.chunk_count} CHUNKS</span>}
+        {doc.file_size&&<span>{fmtBytes(doc.file_size)}</span>}
+        {doc.created_at&&<span>{fmtDate(doc.created_at).toUpperCase()}</span>}
+        {doc.page_count&&<span>{doc.page_count} PAGES</span>}
+      </div>
+
+      {doc.topic_tags?.length>0&&(
+        <div className="atl-doc-tags">
+          {doc.topic_tags.slice(0,5).map(t=>(
+            <span key={t} className="atl-doc-tag"><Tag size={9}/>{t.toUpperCase()}</span>
+          ))}
+        </div>
+      )}
+
+      <div className="atl-doc-actions">
+        <button className="atl-doc-action-btn" onClick={()=>onAsk(doc)}>
+          <Brain size={12}/>ASK ORACLE
+        </button>
+        <button className="atl-doc-action-btn atl-doc-action-btn--del" onClick={()=>onDelete(doc.doc_id)}>
+          <Trash2 size={12}/>DELETE
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────────────────────────────────────
+export default function Atlas(){
   const canvasRef      = useRef(null);
   const threeRef       = useRef({});
   const labelRefs      = useRef([]);
   const rafRef         = useRef(null);
   const activeWorldRef = useRef(null);
 
-  const [activeWorld, setActiveWorld] = useState(null);
-  const [userDocs,    setUserDocs]    = useState([]);
-  const [hsSubjects,  setHsSubjects]  = useState([]);
-  const [hsStats,     setHsStats]     = useState({});
-  const [dataLoading, setDataLoading] = useState(false);
-  const [askHistory,  setAskHistory]  = useState([]);
-  const [askInput,    setAskInput]    = useState('');
-  const [askLoading,  setAskLoading]  = useState(false);
-  const [askUseHs,    setAskUseHs]    = useState(true);
-  const [uploadOpen,  setUploadOpen]  = useState(false);
-  const [archiveSearch,setArchiveSearch]=useState('');
-  const oracleEndRef   = useRef(null);
+  const [activeWorld,   setActiveWorld]   = useState(null);
+  const [userDocs,      setUserDocs]      = useState([]);
+  const [hsSubjects,    setHsSubjects]    = useState([]);
+  const [hsStats,       setHsStats]       = useState({});
+  const [dataLoading,   setDataLoading]   = useState(false);
+  const [askHistory,    setAskHistory]    = useState([]);
+  const [askInput,      setAskInput]      = useState('');
+  const [askLoading,    setAskLoading]    = useState(false);
+  const [askUseHs,      setAskUseHs]      = useState(true);
+  const [uploadOpen,    setUploadOpen]    = useState(false);
+  const [archiveSearch, setArchiveSearch] = useState('');
+  const [vaultSearch,   setVaultSearch]   = useState('');
+  const [activeDocIds,  setActiveDocIds]  = useState(new Set());
+  const [vaultSubject,  setVaultSubject]  = useState('');
+  const [docsError,     setDocsError]     = useState(null);
+  const oracleEndRef = useRef(null);
 
-  // ── Three.js ──────────────────────────────────────────────────────────────
-  useEffect(() => {
+  // ── Three.js ───────────────────────────────────────────────────────────────
+  useEffect(()=>{
     const container = canvasRef.current;
-    if (!container) return;
-    const W = container.clientWidth, H = container.clientHeight;
+    if(!container) return;
+    const W=container.clientWidth, H=container.clientHeight;
 
-    // renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(W, H);
-    renderer.setClearColor(HEX_BG, 1);
+    const renderer = new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    renderer.setSize(W,H);
+    renderer.setClearColor(HEX_BG,1);
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(HEX_BG, 0.007);
+    scene.fog   = new THREE.FogExp2(HEX_BG,0.0045);
 
-    const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 800);
+    const camera = new THREE.PerspectiveCamera(52,W/H,0.1,900);
     camera.position.copy(HOME_CAM);
     camera.lookAt(HOME_LOOK);
 
     const clock = new THREE.Clock();
 
-    // lights
-    scene.add(new THREE.AmbientLight(HEX_LIGHT, 0.10));
-    const key = new THREE.DirectionalLight(0xffffff, 1.3);
-    key.position.set(12, 18, 10);
-    scene.add(key);
-    const fill = new THREE.DirectionalLight(HEX_MAIN, 0.35);
-    fill.position.set(-8, -5, -5);
-    scene.add(fill);
+    // ── Lights ──────────────────────────────────────────────────────────────
+    scene.add(new THREE.AmbientLight(HEX_LIGHT,0.08));
+    const keyL=new THREE.DirectionalLight(0xffffff,1.5); keyL.position.set(10,18,14); scene.add(keyL);
+    const fillL=new THREE.DirectionalLight(HEX_MAIN,0.32); fillL.position.set(-10,-6,-6); scene.add(fillL);
 
-    // stars (warm tint)
-    const starArr = new Float32Array(5000 * 3);
-    for (let i = 0; i < 5000; i++) {
-      starArr[i*3]   = (Math.random()-0.5)*600;
-      starArr[i*3+1] = (Math.random()-0.5)*600;
-      starArr[i*3+2] = (Math.random()-0.5)*600;
-    }
-    const starGeo = new THREE.BufferGeometry();
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starArr, 3));
-    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
-      color: HEX_LIGHT, size: 0.20, sizeAttenuation: true, transparent: true, opacity: 0.55,
-    })));
+    // ── Stars ────────────────────────────────────────────────────────────────
+    const mkStars=(n,sz,op,spread)=>{
+      const a=new Float32Array(n*3);
+      for(let i=0;i<n;i++){a[i*3]=(Math.random()-0.5)*spread;a[i*3+1]=(Math.random()-0.5)*spread;a[i*3+2]=(Math.random()-0.5)*spread;}
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(a,3));
+      return new THREE.Points(g,new THREE.PointsMaterial({color:HEX_LIGHT,size:sz,sizeAttenuation:true,transparent:true,opacity:op}));
+    };
+    scene.add(mkStars(9000,0.14,0.38,750));
+    scene.add(mkStars(1400,0.32,0.65,550));
 
-    // large background icosahedron wireframe
-    const bgEdge = new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(80, 3));
-    const bgMesh = new THREE.LineSegments(bgEdge, new THREE.LineBasicMaterial({
-      color: HEX_MAIN, transparent: true, opacity: 0.028,
-    }));
+    // ── Background geodesic cage ─────────────────────────────────────────────
+    const bgMesh=new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(120,3)),
+      new THREE.LineBasicMaterial({color:HEX_MAIN,transparent:true,opacity:0.022})
+    );
     scene.add(bgMesh);
 
-    // background random network (node graph)
-    const netNodes = Array.from({length:50}, () =>
-      new THREE.Vector3((Math.random()-0.5)*100, (Math.random()-0.5)*60, -30-Math.random()*40)
-    );
-    const netVerts = [];
-    for (let i = 0; i < netNodes.length; i++)
-      for (let j = i+1; j < netNodes.length; j++)
-        if (netNodes[i].distanceTo(netNodes[j]) < 22)
-          netVerts.push(netNodes[i].x,netNodes[i].y,netNodes[i].z, netNodes[j].x,netNodes[j].y,netNodes[j].z);
-    const netGeo = new THREE.BufferGeometry();
-    netGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(netVerts), 3));
-    scene.add(new THREE.LineSegments(netGeo, new THREE.LineBasicMaterial({
-      color: HEX_MAIN, transparent: true, opacity: 0.08,
-    })));
+    // ── Background node network ──────────────────────────────────────────────
+    const nNodes=Array.from({length:70},()=>new THREE.Vector3((Math.random()-0.5)*140,(Math.random()-0.5)*80,-45-Math.random()*55));
+    const nVerts=[];
+    for(let i=0;i<nNodes.length;i++) for(let j=i+1;j<nNodes.length;j++) if(nNodes[i].distanceTo(nNodes[j])<20) nVerts.push(nNodes[i].x,nNodes[i].y,nNodes[i].z,nNodes[j].x,nNodes[j].y,nNodes[j].z);
+    const nGeo=new THREE.BufferGeometry(); nGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(nVerts),3));
+    scene.add(new THREE.LineSegments(nGeo,new THREE.LineBasicMaterial({color:HEX_MAIN,transparent:true,opacity:0.07})));
 
-    // orbit center sun
-    const sunMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.18, 16, 16),
-      new THREE.MeshBasicMaterial({ color: HEX_LIGHT })
-    );
-    sunMesh.position.copy(ORBIT_CENTER);
-    scene.add(sunMesh);
-    const sunAtmoMat = new THREE.ShaderMaterial({
-      vertexShader: ATMO_VERT, fragmentShader: ATMO_FRAG,
-      uniforms: {
-        uColor:     { value: new THREE.Color(HEX_MAIN) },
-        uPower:     { value: 1.4 },
-        uIntensity: { value: 0.45 },
-      },
-      transparent: true, side: THREE.FrontSide, depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-    sunMesh.add(new THREE.Mesh(new THREE.SphereGeometry(2.8, 32, 32), sunAtmoMat));
+    // ── Tron grid floor ──────────────────────────────────────────────────────
+    {
+      const C=54,S=3.4,pts=new Float32Array(C*C*3); let gi=0;
+      for(let r=0;r<C;r++) for(let c=0;c<C;c++){pts[gi++]=(c-(C-1)*0.5)*S;pts[gi++]=-26;pts[gi++]=(r-(C-1)*0.5)*S-28;}
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pts,3));
+      scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:HEX_DEEP,size:0.058,sizeAttenuation:true,transparent:true,opacity:0.48})));
+    }
 
-    // dynamic connection lines between planets
-    const connPos = new Float32Array(18);
-    const connGeo = new THREE.BufferGeometry();
-    connGeo.setAttribute('position', new THREE.BufferAttribute(connPos, 3));
-    scene.add(new THREE.LineSegments(connGeo, new THREE.LineBasicMaterial({
-      color: HEX_MAIN, transparent: true, opacity: 0.09, depthWrite: false,
-    })));
-
-    // ── Build planets ─────────────────────────────────────────────────────
-    const planets = [];
-
-    WORLDS.forEach((w, wi) => {
-      const tiltGroup = new THREE.Group();
-      tiltGroup.rotation.x = w.orbitTiltX;
-      tiltGroup.rotation.z = w.orbitTiltZ;
-      tiltGroup.position.copy(ORBIT_CENTER);
-      scene.add(tiltGroup);
-
-      // orbit path ring
-      const orbitPts = new Float32Array(129 * 3);
-      for (let k = 0; k <= 128; k++) {
-        const a = (k/128)*Math.PI*2;
-        orbitPts[k*3]   = Math.cos(a) * w.orbitR;
-        orbitPts[k*3+1] = 0;
-        orbitPts[k*3+2] = Math.sin(a) * w.orbitR;
-      }
-      const orbitGeo = new THREE.BufferGeometry();
-      orbitGeo.setAttribute('position', new THREE.BufferAttribute(orbitPts, 3));
-      tiltGroup.add(new THREE.Line(orbitGeo, new THREE.LineBasicMaterial({
-        color: HEX_MAIN, transparent: true, opacity: 0.16,
-      })));
-
-      const group = new THREE.Group();
-      tiltGroup.add(group);
-
-      // solid planet (ShaderMaterial — noise surface + fresnel rim + specular)
-      const sMat = new THREE.ShaderMaterial({
-        vertexShader: PLANET_VERT,
-        fragmentShader: PLANET_FRAG,
-        uniforms: {
-          uColorA: { value: new THREE.Vector3(...w.colorA) },
-          uColorB: { value: new THREE.Vector3(...w.colorB) },
-          uTime:   { value: 0.0 },
-          uZoom:   { value: 0.0 },
-        },
-      });
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(w.radius, 64, 64), sMat);
-      group.add(mesh);
-
-      // geodesic wireframe — high detail, normally subtle
-      const geoIco   = new THREE.IcosahedronGeometry(w.radius * 1.006, 4);
-      const wfEdgeHi = new THREE.EdgesGeometry(geoIco);
-      const wfHi     = new THREE.LineSegments(wfEdgeHi, new THREE.LineBasicMaterial({
-        color: HEX_LIGHT, transparent: true, opacity: 0.06, depthWrite: false,
-      }));
-      group.add(wfHi);
-
-      // low-detail outer lattice — more visible, slower counter-rotation
-      const geoLo   = new THREE.SphereGeometry(w.radius * 1.016, 14, 10);
-      const wfEdgeLo = new THREE.EdgesGeometry(geoLo);
-      const wfLo     = new THREE.LineSegments(wfEdgeLo, new THREE.LineBasicMaterial({
-        color: HEX_MAIN, transparent: true, opacity: 0.18, depthWrite: false,
-      }));
-      group.add(wfLo);
-
-      // extra inner icosahedron — only visible when zoomed in
-      const geoInner   = new THREE.IcosahedronGeometry(w.radius * 0.82, 2);
-      const wfEdgeInner = new THREE.EdgesGeometry(geoInner);
-      const wfInner     = new THREE.LineSegments(wfEdgeInner, new THREE.LineBasicMaterial({
-        color: HEX_DEEP, transparent: true, opacity: 0.0, depthWrite: false,
-      }));
-      group.add(wfInner);
-
-      // atmosphere (Fresnel, additive)
-      const atmoMat = new THREE.ShaderMaterial({
-        vertexShader: ATMO_VERT, fragmentShader: ATMO_FRAG,
-        uniforms: {
-          uColor:     { value: new THREE.Vector3(...w.atmoColor) },
-          uPower:     { value: 2.0 },
-          uIntensity: { value: w.atmoIntensity },
-        },
-        transparent: true, side: THREE.FrontSide, depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      group.add(new THREE.Mesh(new THREE.SphereGeometry(w.radius * w.atmoScale, 32, 32), atmoMat));
-
-      // outer halo ring (large, very transparent) — extra atmosphere layer
-      const haloMat = new THREE.ShaderMaterial({
-        vertexShader: ATMO_VERT, fragmentShader: ATMO_FRAG,
-        uniforms: {
-          uColor:     { value: new THREE.Vector3(...w.colorB) },
-          uPower:     { value: 1.2 },
-          uIntensity: { value: 0.15 },
-        },
-        transparent: true, side: THREE.FrontSide, depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      group.add(new THREE.Mesh(new THREE.SphereGeometry(w.radius * 2.2, 32, 32), haloMat));
-
-      // Saturn ring (Archive)
-      if (w.hasRing) {
-        const rIn = w.radius * 1.75, rOut = w.radius * 2.65;
-        const rGeo = new THREE.RingGeometry(rIn, rOut, 128, 3);
-        const rMat = new THREE.MeshBasicMaterial({
-          color: HEX_LIGHT, transparent: true, opacity: 0.18,
-          side: THREE.DoubleSide, depthWrite: false,
-        });
-        const ring = new THREE.Mesh(rGeo, rMat);
-        ring.rotation.x = Math.PI * 0.5 + 0.28;
-        ring.rotation.z = 0.18;
-        group.add(ring);
-
-        const rWfEdge = new THREE.EdgesGeometry(new THREE.RingGeometry(rIn, rOut, 48, 2));
-        const rWf = new THREE.LineSegments(rWfEdge, new THREE.LineBasicMaterial({
-          color: HEX_MAIN, transparent: true, opacity: 0.25,
-        }));
-        rWf.rotation.x = ring.rotation.x;
-        rWf.rotation.z = ring.rotation.z;
-        group.add(rWf);
-      }
-
-      // point light
-      const pLight = new THREE.PointLight(HEX_MAIN, 0.7, 28);
-      group.add(pLight);
-
-      planets.push({
-        w, tiltGroup, group, mesh, sMat, wfHi, wfLo, wfInner, atmoMat,
-        angle: wi * (Math.PI * 2 / 3),
-        bounceT: -1,
-        bounceDur: 1.4,
-      });
+    // ── Nebula clusters ──────────────────────────────────────────────────────
+    [[-32,12,-65],[22,-16,-85],[0,28,-72]].forEach(([cx,cy,cz])=>{
+      const n=650,p=new Float32Array(n*3);
+      for(let i=0;i<n;i++){const r=20+Math.random()*15,t=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p[i*3]=cx+r*Math.sin(ph)*Math.cos(t);p[i*3+1]=cy+r*Math.sin(ph)*Math.sin(t);p[i*3+2]=cz+r*Math.cos(ph);}
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(p,3));
+      scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:HEX_DIM,size:0.19,sizeAttenuation:true,transparent:true,opacity:0.13})));
     });
 
-    // raycaster
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    const meshes = planets.map(p => p.mesh);
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    const mkAtmoMat=(color,power,intensity)=>new THREE.ShaderMaterial({
+      vertexShader:ATMO_VERT,fragmentShader:ATMO_FRAG,
+      uniforms:{uColor:{value:new THREE.Vector3(...color)},uPower:{value:power},uIntensity:{value:intensity}},
+      transparent:true,side:THREE.FrontSide,depthWrite:false,blending:THREE.AdditiveBlending,
+    });
+    const mkAtmoMesh=(color,r,power,intensity)=>{
+      const mat=mkAtmoMat(color,power,intensity);
+      return {mesh:new THREE.Mesh(new THREE.SphereGeometry(r,32,32),mat),mat};
+    };
+    const mkWf=(geo,color,opacity)=>new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({color,transparent:true,opacity,depthWrite:false})
+    );
+    const mkRingDots=(radius,count,color,opacity,size=0.07)=>{
+      const a=new Float32Array(count*3);
+      for(let i=0;i<count;i++){const ang=(i/count)*Math.PI*2;a[i*3]=Math.cos(ang)*radius;a[i*3+1]=0;a[i*3+2]=Math.sin(ang)*radius;}
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(a,3));
+      return new THREE.Points(g,new THREE.PointsMaterial({color,size,sizeAttenuation:true,transparent:true,opacity}));
+    };
+    const mkPulse=(baseR,color)=>{
+      const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
+      const mesh=new THREE.Mesh(new THREE.RingGeometry(baseR,baseR+0.15,80),mat);
+      mesh.rotation.x=Math.PI*0.5;
+      return {mesh,mat,t:0};
+    };
 
-    const onClick = e => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
-      mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      const hits = raycaster.intersectObjects(meshes);
-      if (hits.length > 0) {
-        const pd = planets.find(p => p.mesh === hits[0].object);
-        if (pd) {
-          pd.bounceT = 0;
-          setActiveWorld(prev => prev === pd.w.key ? null : pd.w.key);
-        }
+    // ── ORACLE — nested icosahedra ───────────────────────────────────────────
+    const oracleGroup=new THREE.Group();
+    scene.add(oracleGroup);
+    {
+      const w=WORLDS[0];
+      const sMat=new THREE.ShaderMaterial({
+        vertexShader:PLANET_VERT,fragmentShader:PLANET_FRAG,
+        uniforms:{uColorA:{value:new THREE.Vector3(...w.colorA)},uColorB:{value:new THREE.Vector3(...w.colorB)},uTime:{value:0},uZoom:{value:0}},
+      });
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(w.coreRadius,64,64),sMat);
+      oracleGroup.add(mesh);
+      const {mesh:am,mat:atmoMat}=mkAtmoMesh(w.atmoColor,w.coreRadius*1.55,2.2,w.atmoIntensity);
+      oracleGroup.add(am);
+      const {mesh:gm,mat:glow0Mat}=mkAtmoMesh(G_PALE,w.coreRadius*1.28,1.1,1.0);
+      oracleGroup.add(gm);
+      const {mesh:hm}=mkAtmoMesh(G_MAIN,w.coreRadius*3.4,1.0,0.22);
+      oracleGroup.add(hm);
+
+      const ico1=mkWf(new THREE.IcosahedronGeometry(2.6,2),HEX_LIGHT,0.40);
+      const ico2=mkWf(new THREE.IcosahedronGeometry(3.6,2),HEX_MAIN, 0.22);
+      const ico3=mkWf(new THREE.IcosahedronGeometry(4.8,1),HEX_DEEP, 0.10);
+      oracleGroup.add(ico1); oracleGroup.add(ico2); oracleGroup.add(ico3);
+
+      // Vertex accent dots on ico1
+      const ivp=(new THREE.IcosahedronGeometry(2.6,1)).attributes.position;
+      const uniq=[]; const seen=new Set();
+      for(let i=0;i<ivp.count;i++){const k=`${ivp.getX(i).toFixed(2)},${ivp.getY(i).toFixed(2)},${ivp.getZ(i).toFixed(2)}`;if(!seen.has(k)){seen.add(k);uniq.push(ivp.getX(i),ivp.getY(i),ivp.getZ(i));}}
+      const vg=new THREE.BufferGeometry(); vg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(uniq),3));
+      const vDots=new THREE.Points(vg,new THREE.PointsMaterial({color:HEX_LIGHT,size:0.20,sizeAttenuation:true,transparent:true,opacity:0.92,blending:THREE.AdditiveBlending}));
+      oracleGroup.add(vDots);
+
+      const orbitRing=mkRingDots(5.5,200,HEX_LIGHT,0.30,0.060);
+      oracleGroup.add(orbitRing);
+
+      const pulse=mkPulse(w.coreRadius*1.1,HEX_LIGHT); pulse.t=0;
+      oracleGroup.add(pulse.mesh);
+      oracleGroup.add(new THREE.PointLight(HEX_LIGHT,0.85,36));
+
+      WORLDS[0]._three={group:oracleGroup,mesh,sMat,atmoMat,glow0Mat,ico1,ico2,ico3,vDots,orbitRing,pulse,bounceT:-1,bounceDur:1.3};
+      oracleGroup.position.set(...WORLDS[0].pos);
+    }
+
+    // ── ARCHIVE — multi-ring world ───────────────────────────────────────────
+    const archiveGroup=new THREE.Group();
+    scene.add(archiveGroup);
+    {
+      const w=WORLDS[1];
+      const sMat=new THREE.ShaderMaterial({
+        vertexShader:PLANET_VERT,fragmentShader:PLANET_FRAG,
+        uniforms:{uColorA:{value:new THREE.Vector3(...w.colorA)},uColorB:{value:new THREE.Vector3(...w.colorB)},uTime:{value:0},uZoom:{value:0}},
+      });
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(w.coreRadius,64,64),sMat);
+      archiveGroup.add(mesh);
+      const {mesh:am,mat:atmoMat}=mkAtmoMesh(w.atmoColor,w.coreRadius*1.50,2.0,w.atmoIntensity);
+      archiveGroup.add(am);
+      const {mesh:hm,mat:haloMat}=mkAtmoMesh(G_DIM,w.coreRadius*3.2,1.0,0.20);
+      archiveGroup.add(hm);
+
+      // Solid Saturn ring
+      const satMat=new THREE.MeshBasicMaterial({color:HEX_LIGHT,transparent:true,opacity:0.14,side:THREE.DoubleSide,depthWrite:false});
+      const satRing=new THREE.Mesh(new THREE.RingGeometry(w.coreRadius*1.8,w.coreRadius*3.2,140,2),satMat);
+      satRing.rotation.x=Math.PI*0.5+0.20; satRing.rotation.z=0.14;
+      archiveGroup.add(satRing);
+      const satWf=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.RingGeometry(w.coreRadius*1.8,w.coreRadius*3.2,64,1)),new THREE.LineBasicMaterial({color:HEX_MAIN,transparent:true,opacity:0.28,depthWrite:false}));
+      satWf.rotation.copy(satRing.rotation); archiveGroup.add(satWf);
+
+      // 4 ring systems in different planes
+      const ring1=mkRingDots(4.5,320,HEX_LIGHT,0.55,0.075);
+      archiveGroup.add(ring1);
+
+      const ring2Grp=new THREE.Group(); ring2Grp.rotation.x=Math.PI*0.5;
+      const ring2=mkRingDots(3.8,260,HEX_MAIN,0.48,0.068); ring2Grp.add(ring2);
+      archiveGroup.add(ring2Grp);
+
+      const ring3Grp=new THREE.Group(); ring3Grp.rotation.z=Math.PI*0.25; ring3Grp.rotation.x=Math.PI*0.30;
+      const ring3=mkRingDots(4.8,220,HEX_DIM,0.38,0.062); ring3Grp.add(ring3);
+      archiveGroup.add(ring3Grp);
+
+      const ring4=mkRingDots(6.5,440,HEX_DEEP,0.30,0.058);
+      archiveGroup.add(ring4);
+
+      const arcIco=mkWf(new THREE.IcosahedronGeometry(w.coreRadius*1.18,1),HEX_DIM,0.24);
+      archiveGroup.add(arcIco);
+
+      const pulse=mkPulse(w.coreRadius*1.1,HEX_MAIN); pulse.t=1.8;
+      archiveGroup.add(pulse.mesh);
+      archiveGroup.add(new THREE.PointLight(HEX_DIM,0.75,40));
+
+      WORLDS[1]._three={group:archiveGroup,mesh,sMat,atmoMat,haloMat,ring1,ring2,ring2Grp,ring3,ring3Grp,ring4,arcIco,pulse,bounceT:-1,bounceDur:1.3};
+      archiveGroup.position.set(...WORLDS[1].pos);
+    }
+
+    // ── VAULT — nested cubes ─────────────────────────────────────────────────
+    const vaultGroup=new THREE.Group();
+    scene.add(vaultGroup);
+    {
+      const w=WORLDS[2];
+      const sMat=new THREE.ShaderMaterial({
+        vertexShader:PLANET_VERT,fragmentShader:PLANET_FRAG,
+        uniforms:{uColorA:{value:new THREE.Vector3(...w.colorA)},uColorB:{value:new THREE.Vector3(...w.colorB)},uTime:{value:0},uZoom:{value:0}},
+      });
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(w.coreRadius,64,64),sMat);
+      vaultGroup.add(mesh);
+      const {mesh:am,mat:atmoMat}=mkAtmoMesh(w.atmoColor,w.coreRadius*1.55,2.2,w.atmoIntensity);
+      vaultGroup.add(am);
+      const {mesh:hm,mat:haloMat}=mkAtmoMesh(G_MAIN,w.coreRadius*3.2,1.0,0.22);
+      vaultGroup.add(hm);
+
+      const cube1=mkWf(new THREE.BoxGeometry(2.8,2.8,2.8),HEX_LIGHT,0.58);
+      const cube2=mkWf(new THREE.BoxGeometry(4.2,4.2,4.2),HEX_MAIN, 0.30);
+      const cube3=mkWf(new THREE.BoxGeometry(5.8,5.8,5.8),HEX_DEEP, 0.12);
+      vaultGroup.add(cube1); vaultGroup.add(cube2); vaultGroup.add(cube3);
+
+      // Corner accent dots
+      const cvArr=[-1.4,-1.4,-1.4,1.4,-1.4,-1.4,-1.4,1.4,-1.4,1.4,1.4,-1.4,-1.4,-1.4,1.4,1.4,-1.4,1.4,-1.4,1.4,1.4,1.4,1.4,1.4];
+      const cvg=new THREE.BufferGeometry(); cvg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(cvArr),3));
+      const cvDots=new THREE.Points(cvg,new THREE.PointsMaterial({color:HEX_LIGHT,size:0.24,sizeAttenuation:true,transparent:true,opacity:0.96,blending:THREE.AdditiveBlending}));
+      vaultGroup.add(cvDots);
+
+      // Particle shell
+      const SHELL=800,sp=new Float32Array(SHELL*3);
+      for(let i=0;i<SHELL;i++){const r=3.2+Math.random()*1.0,t=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);sp[i*3]=r*Math.sin(ph)*Math.cos(t);sp[i*3+1]=r*Math.sin(ph)*Math.sin(t);sp[i*3+2]=r*Math.cos(ph);}
+      const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+      const shellPts=new THREE.Points(sg,new THREE.PointsMaterial({color:HEX_MAIN,size:0.060,sizeAttenuation:true,transparent:true,opacity:0.52}));
+      vaultGroup.add(shellPts);
+
+      const eqRing=mkRingDots(4.8,240,HEX_LIGHT,0.30,0.062);
+      vaultGroup.add(eqRing);
+
+      const pulse=mkPulse(w.coreRadius*1.1,HEX_LIGHT); pulse.t=0.9;
+      vaultGroup.add(pulse.mesh);
+      vaultGroup.add(new THREE.PointLight(HEX_MAIN,0.80,34));
+
+      WORLDS[2]._three={group:vaultGroup,mesh,sMat,atmoMat,haloMat,cube1,cube2,cube3,cvDots,shellPts,eqRing,pulse,bounceT:-1,bounceDur:1.3};
+      vaultGroup.position.set(...WORLDS[2].pos);
+    }
+
+    // ── Connection flow lines ────────────────────────────────────────────────
+    const FN=90;
+    const pA=new THREE.Vector3(...WORLDS[0].pos);
+    const pB=new THREE.Vector3(...WORLDS[1].pos);
+    const pC=new THREE.Vector3(...WORLDS[2].pos);
+
+    const buildFlow=(posA,posB,phaseOff,speed)=>{
+      const idx=new Float32Array(FN),posArr=new Float32Array(FN*3);
+      for(let i=0;i<FN;i++){
+        idx[i]=i;
+        const t=i/FN;
+        posArr[i*3]=posA.x+(posB.x-posA.x)*t;
+        posArr[i*3+1]=posA.y+(posB.y-posA.y)*t;
+        posArr[i*3+2]=posA.z+(posB.z-posA.z)*t;
+      }
+      const g=new THREE.BufferGeometry();
+      g.setAttribute('position',new THREE.BufferAttribute(posArr,3));
+      g.setAttribute('aIdx',new THREE.BufferAttribute(idx,1));
+      const mat=new THREE.ShaderMaterial({
+        vertexShader:FLOW_VERT,fragmentShader:FLOW_FRAG,
+        uniforms:{uA:{value:posA.clone()},uB:{value:posB.clone()},uPhase:{value:phaseOff},uN:{value:FN},uColor:{value:new THREE.Color(HEX_MAIN)}},
+        transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+      });
+      const pts=new THREE.Points(g,mat); pts.frustumCulled=false; scene.add(pts);
+      return {mat,speed};
+    };
+
+    const flowLines=[
+      buildFlow(pA,pB,0.00,0.13), buildFlow(pB,pA,0.50,0.13),
+      buildFlow(pB,pC,0.22,0.10), buildFlow(pC,pB,0.72,0.10),
+      buildFlow(pA,pC,0.44,0.11), buildFlow(pC,pA,0.94,0.11),
+    ];
+
+    // ── Raycaster ────────────────────────────────────────────────────────────
+    const raycaster=new THREE.Raycaster(), mouse=new THREE.Vector2();
+    const meshes=WORLDS.map(w=>w._three.mesh);
+
+    const onClick=e=>{
+      const rect=renderer.domElement.getBoundingClientRect();
+      mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+      mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+      raycaster.setFromCamera(mouse,camera);
+      const hits=raycaster.intersectObjects(meshes);
+      if(hits.length>0){
+        const wd=WORLDS.find(w=>w._three.mesh===hits[0].object);
+        if(wd){ wd._three.bounceT=0; setActiveWorld(prev=>prev===wd.key?null:wd.key); }
       }
     };
-    renderer.domElement.addEventListener('click', onClick);
+    renderer.domElement.addEventListener('click',onClick);
 
-    const onResize = () => {
-      const nW = container.clientWidth, nH = container.clientHeight;
-      camera.aspect = nW / nH;
-      camera.updateProjectionMatrix();
-      renderer.setSize(nW, nH);
-    };
-    window.addEventListener('resize', onResize);
+    const onResize=()=>{const nW=container.clientWidth,nH=container.clientHeight;camera.aspect=nW/nH;camera.updateProjectionMatrix();renderer.setSize(nW,nH);};
+    window.addEventListener('resize',onResize);
 
-    // camera animation state
-    const camTarget  = { pos: HOME_CAM.clone(), look: HOME_LOOK.clone() };
-    const camCurrent = { pos: HOME_CAM.clone(), look: HOME_LOOK.clone() };
+    const camTarget ={pos:HOME_CAM.clone(),look:HOME_LOOK.clone()};
+    const camCurrent={pos:HOME_CAM.clone(),look:HOME_LOOK.clone()};
 
-    threeRef.current = {
-      renderer, scene, camera, planets, meshes,
-      camTarget, camCurrent, connPos, connGeo, sunAtmoMat, bgMesh,
-    };
+    threeRef.current={renderer,scene,camera,camTarget,camCurrent,flowLines,bgMesh};
 
-    // ── Animation loop ────────────────────────────────────────────────────
-    const animate = () => {
-      rafRef.current = requestAnimationFrame(animate);
-      const delta   = Math.min(clock.getDelta(), 0.08);
-      const elapsed = clock.getElapsedTime();
+    // ── Animation loop ───────────────────────────────────────────────────────
+    const animate=()=>{
+      rafRef.current=requestAnimationFrame(animate);
+      const delta=Math.min(clock.getDelta(),0.07);
+      const elapsed=clock.getElapsedTime();
 
-      bgMesh.rotation.y = elapsed * 0.012;
-      bgMesh.rotation.x = elapsed * 0.006;
-      sunAtmoMat.uniforms.uIntensity.value = 0.40 + Math.sin(elapsed * 1.6) * 0.18;
+      bgMesh.rotation.y=elapsed*0.010; bgMesh.rotation.x=elapsed*0.005;
 
-      // Per-planet update
-      const worldPositions = [];
-      const activeKey = activeWorldRef.current;
+      const activeKey=activeWorldRef.current;
+      const worldPositions=[];
 
-      planets.forEach((pd, i) => {
-        pd.angle += pd.w.orbitSpeed * delta * 0.5;
-        const ox = Math.cos(pd.angle) * pd.w.orbitR;
-        const oz = Math.sin(pd.angle) * pd.w.orbitR;
-        pd.group.position.set(ox, 0, oz);
+      WORLDS.forEach((w,wi)=>{
+        const td=w._three;
+        const [bx,by,bz]=w.pos;
 
-        // Bounce: surge toward camera then back
-        if (pd.bounceT >= 0) {
-          pd.bounceT += delta;
-          const bt = Math.min(pd.bounceT / pd.bounceDur, 1.0);
-          const surge = Math.sin(bt * Math.PI);
-
-          pd.tiltGroup.updateWorldMatrix(true, false);
-          pd.group.updateWorldMatrix(true, false);
-          const worldPos = new THREE.Vector3();
-          pd.group.getWorldPosition(worldPos);
-          const towardCam = camera.position.clone().sub(worldPos).normalize();
-          const invQuat   = pd.tiltGroup.quaternion.clone().invert();
-          towardCam.applyQuaternion(invQuat);
-          pd.group.position.addScaledVector(towardCam, surge * 5.0);
-
-          if (bt >= 1.0) {
-            pd.bounceT = -1;
-            pd.group.position.set(ox, 0, oz);
-          }
-        } else {
-          pd.group.scale.setScalar(1.0);
+        // Gentle ambient drift
+        if(td.bounceT<0){
+          td.group.position.set(
+            bx+Math.sin(elapsed*0.18+wi*2.1)*0.22,
+            by+Math.sin(elapsed*0.13+wi*1.4)*0.13,
+            bz
+          );
         }
 
-        // Axial self-rotation
-        pd.mesh.rotation.y  = elapsed * (0.55 + i * 0.18);
-        pd.mesh.rotation.x  = Math.sin(elapsed * 0.22 + i * 1.1) * 0.07;
-        pd.wfHi.rotation.y  = elapsed * (0.20 + i * 0.09);
-        pd.wfHi.rotation.x  = elapsed * 0.11;
-        pd.wfLo.rotation.y  = -elapsed * (0.13 + i * 0.06);
-        pd.wfLo.rotation.z  = elapsed * 0.04;
-        pd.wfInner.rotation.y = elapsed * (0.35 + i * 0.12);
-        pd.wfInner.rotation.z = elapsed * (0.18 + i * 0.07);
+        // Bounce toward camera on click
+        if(td.bounceT>=0){
+          td.bounceT+=delta;
+          const bt=Math.min(td.bounceT/td.bounceDur,1.0);
+          const surge=Math.sin(bt*Math.PI);
+          const wp2=new THREE.Vector3(); td.group.getWorldPosition(wp2);
+          const dir=camera.position.clone().sub(wp2).normalize();
+          td.group.position.set(bx,by,bz).addScaledVector(dir,surge*4.0);
+          if(bt>=1.0){ td.bounceT=-1; }
+        }
 
-        pd.sMat.uniforms.uTime.value = elapsed;
-
-        // Compute current world position
-        const wp = new THREE.Vector3();
-        pd.group.getWorldPosition(wp);
+        const wp=new THREE.Vector3(); td.group.getWorldPosition(wp);
         worldPositions.push(wp);
 
-        // How close is camera to this planet (0=far, 1=fully zoomed)
-        const dist   = camera.position.distanceTo(wp);
-        const close  = Math.max(0, Math.min(1, 1.0 - (dist - 2.5) / 9.0));
-        const isThis = activeKey === pd.w.key;
+        const dist=camera.position.distanceTo(wp);
+        const close=Math.max(0,Math.min(1,1.0-(dist-2.5)/10.0));
 
-        // Wireframe opacity scales up dramatically on zoom
-        pd.wfHi.material.opacity    = 0.06 + close * 0.58;
-        pd.wfLo.material.opacity    = 0.18 + close * 0.62;
-        pd.wfInner.material.opacity = close * 0.50;
+        // Core rotation + shader
+        td.mesh.rotation.y=elapsed*(0.50+wi*0.15);
+        td.mesh.rotation.x=Math.sin(elapsed*0.20+wi*1.0)*0.06;
+        td.sMat.uniforms.uTime.value=elapsed;
+        td.sMat.uniforms.uZoom.value=close;
+        td.atmoMat.uniforms.uIntensity.value=w.atmoIntensity*(1.0+close*1.8)+Math.sin(elapsed*1.2+wi*2.0)*0.09;
 
-        // Planet shader zoom uniform — brightens rim
-        pd.sMat.uniforms.uZoom.value = close;
+        // Pulse
+        {const p=td.pulse;p.t+=delta*0.55;const dur=5.0,pct=(p.t%dur)/dur;p.mesh.scale.setScalar(1.0+pct*5.0);p.mat.opacity=Math.max(0,0.28*(1.0-pct));}
 
-        // Atmosphere pulses more intensely when zoomed
-        pd.atmoMat.uniforms.uIntensity.value =
-          pd.w.atmoIntensity * (1.0 + close * 1.8) + Math.sin(elapsed * 1.3 + i * 2.1) * 0.10;
+        if(w.type==='icosa'){
+          td.ico1.rotation.y=elapsed*0.44; td.ico1.rotation.x=elapsed*0.22;
+          td.ico2.rotation.y=-elapsed*0.28; td.ico2.rotation.z=elapsed*0.16;
+          td.ico3.rotation.x=elapsed*0.12; td.ico3.rotation.z=-elapsed*0.09;
+          td.vDots.rotation.copy(td.ico1.rotation);
+          td.orbitRing.rotation.y=elapsed*0.09;
+          td.ico1.material.opacity=0.40+close*0.44+Math.sin(elapsed*0.9)*0.04;
+          td.ico2.material.opacity=0.22+close*0.28;
+          td.ico3.material.opacity=0.10+close*0.18;
+          td.glow0Mat.uniforms.uIntensity.value=0.92+Math.sin(elapsed*2.4)*0.30;
+        }
+        if(w.type==='rings'){
+          td.ring1.rotation.y=elapsed*0.22;
+          td.ring2Grp.rotation.y=elapsed*0.18; td.ring2Grp.rotation.x=Math.PI*0.5+elapsed*0.10;
+          td.ring3Grp.rotation.z=Math.PI*0.25+elapsed*0.14; td.ring3Grp.rotation.x=Math.PI*0.30-elapsed*0.08;
+          td.ring4.rotation.y=-elapsed*0.10;
+          td.arcIco.rotation.y=elapsed*0.30; td.arcIco.rotation.x=-elapsed*0.18;
+          td.ring1.material.opacity=0.55+close*0.32;
+          td.ring4.material.opacity=0.30+close*0.24;
+        }
+        if(w.type==='cube'){
+          td.cube1.rotation.y=elapsed*0.40; td.cube1.rotation.x=elapsed*0.26;
+          td.cube2.rotation.y=-elapsed*0.24; td.cube2.rotation.z=elapsed*0.20;
+          td.cube3.rotation.x=-elapsed*0.15; td.cube3.rotation.z=elapsed*0.12;
+          td.cvDots.rotation.copy(td.cube1.rotation);
+          td.shellPts.rotation.y=elapsed*0.07;
+          td.eqRing.rotation.y=elapsed*0.14;
+          td.cube1.material.opacity=0.58+close*0.36+Math.sin(elapsed*0.7)*0.05;
+          td.cube2.material.opacity=0.30+close*0.28;
+          td.cube3.material.opacity=0.12+close*0.16;
+        }
       });
 
-      // Update connection lines
-      [[0,1],[1,2],[0,2]].forEach(([a,b], i) => {
-        const A = worldPositions[a], B = worldPositions[b];
-        connPos[i*6]   = A.x; connPos[i*6+1] = A.y; connPos[i*6+2] = A.z;
-        connPos[i*6+3] = B.x; connPos[i*6+4] = B.y; connPos[i*6+5] = B.z;
+      // Advance flow line phases (endpoints are static, set once at build time)
+      flowLines.forEach(fl=>{
+        fl.mat.uniforms.uPhase.value=(fl.mat.uniforms.uPhase.value+delta*fl.speed)%1.0;
       });
-      connGeo.attributes.position.needsUpdate = true;
 
-      // Camera target: home or zoom-track selected planet
-      if (activeKey === null) {
-        camTarget.pos.copy(HOME_CAM);
-        camTarget.look.copy(HOME_LOOK);
+      // Camera
+      if(activeKey===null){
+        camTarget.pos.copy(HOME_CAM); camTarget.look.copy(HOME_LOOK);
       } else {
-        const idx = planets.findIndex(p => p.w.key === activeKey);
-        if (idx >= 0 && worldPositions[idx]) {
-          const wp = worldPositions[idx];
-          const pd = planets[idx];
-          // Position camera close to planet on the home-facing side
-          const zoomDist = pd.w.radius * 3.2 + 1.0;
-          const toHome   = HOME_CAM.clone().sub(wp).normalize();
-          camTarget.pos.copy(wp).addScaledVector(toHome, zoomDist);
+        const idx=WORLDS.findIndex(w=>w.key===activeKey);
+        if(idx>=0&&worldPositions[idx]){
+          const wp=worldPositions[idx],wd=WORLDS[idx];
+          const zoomDist=wd.coreRadius*3.8+1.5;
+          camTarget.pos.copy(wp).addScaledVector(HOME_CAM.clone().sub(wp).normalize(),zoomDist);
           camTarget.look.copy(wp);
         }
       }
-
-      camCurrent.pos.lerp(camTarget.pos, 0.038);
-      camCurrent.look.lerp(camTarget.look, 0.038);
+      camCurrent.pos.lerp(camTarget.pos,0.035);
+      camCurrent.look.lerp(camTarget.look,0.035);
       camera.position.copy(camCurrent.pos);
       camera.lookAt(camCurrent.look);
-
-      // Idle sway in home view
-      if (activeKey === null) {
-        camera.position.x += Math.sin(elapsed * 0.10) * 0.50;
-        camera.position.y += Math.sin(elapsed * 0.07) * 0.24;
-      }
+      if(activeKey===null){ camera.position.x+=Math.sin(elapsed*0.09)*0.40; camera.position.y+=Math.sin(elapsed*0.07)*0.20; }
 
       // Label positions
-      const cW = container.clientWidth, cH = container.clientHeight;
-      const isHome = activeKey === null;
-      labelRefs.current.forEach((el, i) => {
-        if (!el || !worldPositions[i]) return;
-        const v = worldPositions[i].clone().project(camera);
-        el.style.left         = `${(v.x + 1) / 2 * cW}px`;
-        el.style.top          = `${-(v.y - 1) / 2 * cH}px`;
-        el.style.opacity      = isHome ? '1' : '0';
-        el.style.pointerEvents = isHome ? 'auto' : 'none';
+      const cW=container.clientWidth,cH=container.clientHeight;
+      const isHome=activeKey===null;
+      labelRefs.current.forEach((el,i)=>{
+        if(!el||!worldPositions[i]) return;
+        const v=worldPositions[i].clone().project(camera);
+        el.style.left=`${(v.x+1)/2*cW}px`;
+        el.style.top=`${-(v.y-1)/2*cH}px`;
+        el.style.opacity=isHome?'1':'0';
+        el.style.pointerEvents=isHome?'auto':'none';
       });
 
-      renderer.render(scene, camera);
+      renderer.render(scene,camera);
     };
     animate();
 
-    return () => {
+    return ()=>{
       cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('resize', onResize);
-      renderer.domElement.removeEventListener('click', onClick);
+      window.removeEventListener('resize',onResize);
+      renderer.domElement.removeEventListener('click',onClick);
       renderer.dispose();
-      if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
+      WORLDS.forEach(w=>{w._three=null;});
+      if(container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  },[]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { activeWorldRef.current = activeWorld; }, [activeWorld]);
+  useEffect(()=>{ activeWorldRef.current=activeWorld; },[activeWorld]);
 
-  // ── Data ──────────────────────────────────────────────────────────────────
-  const loadAll = useCallback(async () => {
+  // ── Data ───────────────────────────────────────────────────────────────────
+  const loadAll=useCallback(async()=>{
     setDataLoading(true);
-    try {
-      const [docs, subs, stats] = await Promise.allSettled([
-        contextService.listDocuments(),
+    setDocsError(null);
+    // Load documents separately so its error is visible
+    try{
+      const d=await contextService.listDocuments();
+      const list=Array.isArray(d)?d:Array.isArray(d?.user_docs)?d.user_docs:Array.isArray(d?.documents)?d.documents:Array.isArray(d?.docs)?d.docs:[];
+      setUserDocs(list);
+    } catch(e){
+      console.error('Documents load failed:',e);
+      setDocsError(e.message||'Failed to load documents');
+    }
+    // Load subjects + stats in parallel, silently
+    try{
+      const [subs,stats]=await Promise.allSettled([
         contextService.getHsSubjects(),
-        fetch(`${API_URL}/context/hs/stats`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        }).then(r => r.ok ? r.json() : {}),
+        fetch(`${API_URL}/context/hs/stats`,{headers:{Authorization:`Bearer ${localStorage.getItem('token')}`}}).then(r=>r.ok?r.json():{}),
       ]);
-      if (docs.status  === 'fulfilled') { const d = docs.value; setUserDocs(Array.isArray(d) ? d : (d.user_docs||[])); }
-      if (subs.status  === 'fulfilled') setHsSubjects(subs.value.subjects||[]);
-      if (stats.status === 'fulfilled') setHsStats(stats.value);
-    } catch { /* silenced */ }
-    finally { setDataLoading(false); }
-  }, []);
+      if(subs.status==='fulfilled') setHsSubjects(subs.value.subjects||[]);
+      if(stats.status==='fulfilled') setHsStats(stats.value);
+    } catch{ /* silenced */ }
+    finally{ setDataLoading(false); }
+  },[]);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
-  useEffect(() => {
-    if (oracleEndRef.current) oracleEndRef.current.scrollIntoView({ behavior: 'smooth' });
-  }, [askHistory]);
+  useEffect(()=>{ loadAll(); },[loadAll]);
+  // Reload docs each time vault opens
+  useEffect(()=>{ if(activeWorld==='vault') loadAll(); },[activeWorld]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleAsk = useCallback(async (q) => {
-    const question = (q || askInput).trim();
-    if (!question || askLoading) return;
+  useEffect(()=>{ if(oracleEndRef.current) oracleEndRef.current.scrollIntoView({behavior:'smooth'}); },[askHistory]);
+
+  const handleAsk=useCallback(async(q)=>{
+    const question=(q||askInput).trim();
+    if(!question||askLoading) return;
     setAskInput('');
-    setAskHistory(prev => [...prev, { question, answer: null, sources: [], loading: true }]);
+    setAskHistory(prev=>[...prev,{question,answer:null,sources:[],loading:true}]);
     setAskLoading(true);
-    try {
-      const res = await contextService.askKnowledgeBase(question, { useHs: askUseHs, topK: 6 });
-      setAskHistory(prev => { const n=[...prev]; n[n.length-1]={question,answer:res.answer,sources:res.sources||[],loading:false}; return n; });
-    } catch (e) {
-      setAskHistory(prev => { const n=[...prev]; n[n.length-1]={question,answer:null,sources:[],loading:false,error:e.message||'Failed'}; return n; });
-    } finally { setAskLoading(false); }
-  }, [askInput, askLoading, askUseHs]);
+    try{
+      const opts={useHs:askUseHs,topK:6};
+      if(activeDocIds.size>0) opts.doc_ids=[...activeDocIds];
+      const res=await contextService.askKnowledgeBase(question,opts);
+      setAskHistory(prev=>{const n=[...prev];n[n.length-1]={question,answer:res.answer,sources:res.sources||[],loading:false};return n;});
+    } catch(e){
+      setAskHistory(prev=>{const n=[...prev];n[n.length-1]={question,answer:null,sources:[],loading:false,error:e.message||'Failed'};return n;});
+    } finally{ setAskLoading(false); }
+  },[askInput,askLoading,askUseHs,activeDocIds]);
 
-  const handleDelete = useCallback(async (docId) => {
-    if (!window.confirm('Remove from your vault?')) return;
-    try { await contextService.deleteDocument(docId); setUserDocs(prev => prev.filter(d => d.doc_id !== docId)); }
-    catch { /* silenced */ }
-  }, []);
+  const handleDelete=useCallback(async(docId)=>{
+    if(!window.confirm('Remove from your vault?')) return;
+    try{
+      await contextService.deleteDocument(docId);
+      setUserDocs(prev=>prev.filter(d=>d.doc_id!==docId));
+      setActiveDocIds(prev=>{const n=new Set(prev);n.delete(docId);return n;});
+    } catch{ /* silenced */ }
+  },[]);
 
-  const totalChunks      = hsStats.total_chunks || 0;
-  const filteredSubjects = hsSubjects.filter(s =>
-    !archiveSearch || s.subject.toLowerCase().includes(archiveSearch.toLowerCase())
-  );
+  const toggleDoc=useCallback((docId)=>{
+    setActiveDocIds(prev=>{const n=new Set(prev);n.has(docId)?n.delete(docId):n.add(docId);return n;});
+  },[]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const handleDocAsk=useCallback((doc)=>{
+    setAskInput(`Summarise and explain the key points from ${doc.filename}`);
+    setActiveWorld('oracle');
+    if(!activeDocIds.has(doc.doc_id)) toggleDoc(doc.doc_id);
+  },[activeDocIds,toggleDoc]);
+
+  const totalChunks=hsStats.total_chunks||0;
+  const filteredSubjects=hsSubjects.filter(s=>!archiveSearch||s.subject.toLowerCase().includes(archiveSearch.toLowerCase()));
+
+  // Vault filters
+  const vaultSubjects=[...new Set(userDocs.map(d=>d.subject).filter(Boolean))];
+  const filteredDocs=userDocs.filter(d=>{
+    const matchSearch=!vaultSearch||(d.filename||'').toLowerCase().includes(vaultSearch.toLowerCase())||(d.ai_summary||'').toLowerCase().includes(vaultSearch.toLowerCase());
+    const matchSubject=!vaultSubject||d.subject===vaultSubject;
+    return matchSearch&&matchSubject;
+  });
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="atl-root">
       <div ref={canvasRef} className="atl-canvas"/>
 
-      {/* Sphere labels — JS-positioned each frame */}
-      {WORLDS.map((w, i) => (
-        <div
-          key={w.key}
-          ref={el => { labelRefs.current[i] = el; }}
-          className="atl-sphere-label"
-          onClick={() => setActiveWorld(w.key)}
-        >
+      {/* Planet labels */}
+      {WORLDS.map((w,i)=>(
+        <div key={w.key} ref={el=>{labelRefs.current[i]=el;}} className="atl-sphere-label" onClick={()=>setActiveWorld(w.key)}>
           <div className="atl-sphere-label-pip"/>
           <span className="atl-sphere-label-name">{w.label}</span>
           <span className="atl-sphere-label-sub">{w.sub}</span>
@@ -707,26 +786,26 @@ export default function Atlas() {
 
       {/* Header */}
       <header className="atl-header">
-        <button className="atl-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()}><Menu size={18}/></button>
-        <div className="atl-brand" onClick={() => setActiveWorld(null)}>cerbyl</div>
+        <button className="atl-menu-btn" onClick={()=>window.openGlobalNav&&window.openGlobalNav()}><Menu size={18}/></button>
+        <div className="atl-brand" onClick={()=>setActiveWorld(null)}>cerbyl</div>
         <nav className="atl-header-nav">
-          {WORLDS.map(w => (
-            <button
-              key={w.key}
-              className={`atl-nav-btn${activeWorld===w.key?' atl-nav-btn--active':''}`}
-              onClick={() => setActiveWorld(activeWorld===w.key ? null : w.key)}
-            >
+          {WORLDS.map(w=>(
+            <button key={w.key} className={`atl-nav-btn${activeWorld===w.key?' atl-nav-btn--active':''}`} onClick={()=>setActiveWorld(activeWorld===w.key?null:w.key)}>
               {w.label}
             </button>
           ))}
         </nav>
-        <button className="atl-btn atl-btn--accent" onClick={() => setUploadOpen(true)}>
-          <Plus size={13}/>ADD
-        </button>
+        {activeDocIds.size>0&&(
+          <div className="atl-ctx-indicator">
+            <Layers size={12}/>{activeDocIds.size} IN CONTEXT
+            <button onClick={()=>setActiveDocIds(new Set())}><X size={10}/></button>
+          </div>
+        )}
+        <button className="atl-btn atl-btn--accent" onClick={()=>setUploadOpen(true)}><Plus size={13}/>ADD</button>
       </header>
 
-      {/* Home: CERBYL title at top */}
-      {activeWorld === null && (
+      {/* Home overlay */}
+      {activeWorld===null&&(
         <div className="atl-home-overlay">
           <h1 className="atl-home-title">cerbyl</h1>
           <p className="atl-home-sub">YOUR LIVING KNOWLEDGE UNIVERSE</p>
@@ -734,52 +813,66 @@ export default function Atlas() {
         </div>
       )}
 
-      {/* Content panel — slides from right, camera already zoomed */}
-      {activeWorld !== null && (
+      {/* Full-page panel */}
+      {activeWorld!==null&&(
         <div className="atl-panel">
-          <button className="atl-panel-back" onClick={() => setActiveWorld(null)}>
-            <ChevronLeft size={15}/>BACK
-          </button>
+          <button className="atl-panel-back" onClick={()=>setActiveWorld(null)}><ChevronLeft size={15}/>BACK TO UNIVERSE</button>
 
-          {/* ORACLE */}
-          {activeWorld === 'oracle' && (
+          {/* ── ORACLE ── */}
+          {activeWorld==='oracle'&&(
             <div className="atl-panel-body">
               <div className="atl-panel-hd">
-                <h2 className="atl-panel-title">ORACLE</h2>
-                <label className="atl-hs-toggle">
-                  <input type="checkbox" checked={askUseHs} onChange={e=>setAskUseHs(e.target.checked)}/>
-                  <span>CURRICULUM</span>
-                </label>
+                <div>
+                  <h2 className="atl-panel-title">ORACLE</h2>
+                  <p className="atl-panel-desc">ASK ANYTHING · ANSWERS CITED FROM YOUR KNOWLEDGE BASE</p>
+                </div>
+                <div className="atl-panel-hd-actions">
+                  <label className="atl-hs-toggle"><input type="checkbox" checked={askUseHs} onChange={e=>setAskUseHs(e.target.checked)}/><span>CURRICULUM</span></label>
+                </div>
               </div>
+
+              {activeDocIds.size>0&&(
+                <div className="atl-oracle-ctx-bar">
+                  <Layers size={12}/>
+                  <span>USING {activeDocIds.size} DOCUMENT{activeDocIds.size>1?'S':''} AS CONTEXT</span>
+                  <div className="atl-oracle-ctx-docs">
+                    {userDocs.filter(d=>activeDocIds.has(d.doc_id)).map(d=>(
+                      <span key={d.doc_id} className="atl-oracle-ctx-pill">
+                        {(d.filename||'').replace(/\.[^.]+$/,'').toUpperCase().slice(0,18)}
+                        <button onClick={()=>toggleDoc(d.doc_id)}><X size={9}/></button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="atl-oracle-history">
-                {askHistory.length === 0 ? (
+                {askHistory.length===0?(
                   <div className="atl-oracle-empty">
-                    <p>ASK ANYTHING. ANSWERS CITED FROM YOUR KNOWLEDGE BASE.</p>
+                    <p>ASK ANYTHING. ORACLE SEARCHES YOUR DOCUMENTS AND CURRICULUM FOR ANSWERS.</p>
                     <div className="atl-oracle-chips">
                       {['Explain natural selection','Integration by parts','Causes of World War I',"Ohm's Law"].map(s=>(
-                        <button key={s} className="atl-chip" onClick={()=>handleAsk(s)}>
-                          <ArrowRight size={10}/>{s.toUpperCase()}
-                        </button>
+                        <button key={s} className="atl-chip" onClick={()=>handleAsk(s)}>{s.toUpperCase()}</button>
                       ))}
                     </div>
                   </div>
-                ) : askHistory.map((item,i)=>(
+                ):askHistory.map((item,i)=>(
                   <div key={i} className="atl-oracle-turn">
                     <div className="atl-q-bubble">{item.question}</div>
-                    {item.loading ? (
+                    {item.loading?(
                       <div className="atl-oracle-loading"><Loader2 size={15} className="atl-spin"/><span>CONSULTING ARCHIVE</span></div>
-                    ) : item.error ? (
+                    ):item.error?(
                       <div className="atl-oracle-error"><AlertCircle size={13}/>{item.error}</div>
-                    ) : (
+                    ):(
                       <div className="atl-a-bubble">
                         <p>{item.answer}</p>
-                        {item.sources?.length > 0 && (
+                        {item.sources?.length>0&&(
                           <div className="atl-sources">
                             {item.sources.map((src,si)=>(
                               <div key={si} className="atl-source-chip">
                                 <FileText size={10}/>
                                 [{si+1}] {(src.filename||'').toUpperCase()}{src.page?` P.${src.page}`:''}
-                                {src.source==='hs' && <span className="atl-src-badge">CURRICULUM</span>}
+                                {src.source==='hs'&&<span className="atl-src-badge">CURRICULUM</span>}
                               </div>
                             ))}
                           </div>
@@ -790,15 +883,9 @@ export default function Atlas() {
                 ))}
                 <div ref={oracleEndRef}/>
               </div>
+
               <div className="atl-oracle-input-row">
-                <textarea
-                  className="atl-oracle-textarea"
-                  placeholder="ASK THE ORACLE..."
-                  value={askInput}
-                  onChange={e=>setAskInput(e.target.value)}
-                  onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleAsk();}}}
-                  rows={2} disabled={askLoading}
-                />
+                <textarea className="atl-oracle-textarea" placeholder="ASK THE ORACLE..." value={askInput} onChange={e=>setAskInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleAsk();}}} rows={2} disabled={askLoading}/>
                 <button className="atl-send-btn" onClick={()=>handleAsk()} disabled={askLoading||!askInput.trim()}>
                   {askLoading?<Loader2 size={16} className="atl-spin"/>:<Send size={16}/>}
                 </button>
@@ -806,28 +893,28 @@ export default function Atlas() {
             </div>
           )}
 
-          {/* ARCHIVE */}
-          {activeWorld === 'archive' && (
-            <div className="atl-panel-body">
+          {/* ── ARCHIVE ── */}
+          {activeWorld==='archive'&&(
+            <div className="atl-panel-body atl-panel-body--wide">
               <div className="atl-panel-hd">
                 <div>
                   <h2 className="atl-panel-title">ARCHIVE</h2>
-                  <p className="atl-panel-desc">{hsSubjects.length} SUBJECTS · {totalChunks.toLocaleString()} FRAGMENTS</p>
+                  <p className="atl-panel-desc">{hsSubjects.length} SUBJECTS · {totalChunks.toLocaleString()} CURRICULUM FRAGMENTS</p>
                 </div>
               </div>
               <div className="atl-search-row">
                 <Search size={13}/>
                 <input className="atl-search-input" placeholder="SEARCH SUBJECTS..." value={archiveSearch} onChange={e=>setArchiveSearch(e.target.value)}/>
-                {archiveSearch && <button className="atl-clear-btn" onClick={()=>setArchiveSearch('')}><X size={12}/></button>}
+                {archiveSearch&&<button className="atl-clear-btn" onClick={()=>setArchiveSearch('')}><X size={12}/></button>}
               </div>
-              {dataLoading ? (
+              {dataLoading?(
                 <div className="atl-loading"><Loader2 size={22} className="atl-spin"/></div>
-              ) : (
+              ):(
                 <div className="atl-subject-grid">
                   {filteredSubjects.map((s,i)=>(
-                    <button key={i} className="atl-subject-card" onClick={()=>{setAskInput(`Explain ${s.subject}`);setActiveWorld('oracle');}}>
+                    <button key={i} className="atl-subject-card" onClick={()=>{setActiveWorld('oracle');handleAsk(`Explain ${s.subject}`);}}>
                       <div className="atl-subject-name">{s.subject.toUpperCase()}</div>
-                      {s.grade_level && <div className="atl-subject-grade">{s.grade_level}</div>}
+                      {s.grade_level&&<div className="atl-subject-grade">{s.grade_level}</div>}
                       <div className="atl-subject-count">{s.doc_count} DOCS</div>
                     </button>
                   ))}
@@ -836,58 +923,88 @@ export default function Atlas() {
             </div>
           )}
 
-          {/* VAULT */}
-          {activeWorld === 'vault' && (
-            <div className="atl-panel-body">
+          {/* ── VAULT ── */}
+          {activeWorld==='vault'&&(
+            <div className="atl-panel-body atl-panel-body--wide">
+              {/* Vault header */}
               <div className="atl-panel-hd">
                 <div>
                   <h2 className="atl-panel-title">VAULT</h2>
-                  <p className="atl-panel-desc">PRIVATE DOCUMENTS · POWERS THE ORACLE</p>
+                  <p className="atl-panel-desc">
+                    {userDocs.length} DOCUMENTS&nbsp;·&nbsp;
+                    {activeDocIds.size>0?`${activeDocIds.size} IN CONTEXT`:'CLICK DOCUMENTS TO ADD THEM TO AI CONTEXT'}
+                  </p>
                 </div>
                 <div className="atl-panel-hd-actions">
-                  <button className="atl-icon-btn" onClick={loadAll}><RefreshCw size={13}/></button>
+                  <button className="atl-icon-btn" onClick={loadAll} title="Refresh"><RefreshCw size={13}/></button>
                   <button className="atl-btn atl-btn--accent" onClick={()=>setUploadOpen(true)}><Plus size={13}/>UPLOAD</button>
                 </div>
               </div>
-              {dataLoading ? (
-                <div className="atl-loading"><Loader2 size={22} className="atl-spin"/></div>
-              ) : userDocs.length === 0 ? (
-                <div className="atl-vault-empty">
-                  <p>NO DOCUMENTS YET. UPLOAD PDFS, TXT, OR MARKDOWN TO POWER THE ORACLE.</p>
-                  <button className="atl-btn atl-btn--accent" onClick={()=>setUploadOpen(true)}><Upload size={13}/>UPLOAD FIRST DOCUMENT</button>
+
+              {/* Active context summary bar */}
+              {activeDocIds.size>0&&(
+                <div className="atl-vault-ctx-bar">
+                  <Layers size={13}/>
+                  <span><strong>{activeDocIds.size}</strong> DOCUMENT{activeDocIds.size>1?'S':''} ACTIVE IN ORACLE CONTEXT</span>
+                  <button className="atl-vault-ctx-clear" onClick={()=>setActiveDocIds(new Set())}>CLEAR ALL</button>
+                  <button className="atl-vault-ctx-ask" onClick={()=>setActiveWorld('oracle')}>
+                    ASK ORACLE
+                  </button>
                 </div>
-              ) : (
-                <div className="atl-vault-list">
-                  {userDocs.map((doc,i)=>(
-                    <div key={doc.doc_id||i} className="atl-vault-item">
-                      <div className="atl-vault-item-info">
-                        <FileText size={15} className="atl-vault-file-icon"/>
-                        <div className="atl-vault-item-text">
-                          <div className="atl-vault-filename">{(doc.filename||'UNTITLED').toUpperCase()}</div>
-                          {doc.ai_summary && <div className="atl-vault-summary">{doc.ai_summary}</div>}
-                          <div className="atl-vault-meta">
-                            {doc.subject && <span>{doc.subject.toUpperCase()}</span>}
-                            {doc.chunk_count>0 && <span>{doc.chunk_count} CHUNKS</span>}
-                            {doc.created_at && <span>{fmtDate(doc.created_at).toUpperCase()}</span>}
-                          </div>
-                          {doc.topic_tags?.length>0 && (
-                            <div className="atl-vault-tags">
-                              {doc.topic_tags.slice(0,3).map(t=>(
-                                <span key={t} className="atl-tag"><Tag size={9}/>{t.toUpperCase()}</span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="atl-vault-item-actions">
-                        <button className="atl-icon-btn" title="Ask Oracle" onClick={()=>{setAskInput(`Summarise ${doc.filename}`);setActiveWorld('oracle');}}>
-                          <Brain size={13}/>
-                        </button>
-                        <button className="atl-icon-btn atl-icon-btn--del" title="Delete" onClick={()=>handleDelete(doc.doc_id)}>
-                          <Trash2 size={13}/>
-                        </button>
-                      </div>
-                    </div>
+              )}
+
+              {/* Filters */}
+              <div className="atl-vault-filters">
+                <div className="atl-search-row atl-vault-search">
+                  <Search size={13}/>
+                  <input className="atl-search-input" placeholder="SEARCH DOCUMENTS..." value={vaultSearch} onChange={e=>setVaultSearch(e.target.value)}/>
+                  {vaultSearch&&<button className="atl-clear-btn" onClick={()=>setVaultSearch('')}><X size={12}/></button>}
+                </div>
+                {vaultSubjects.length>0&&(
+                  <div className="atl-vault-subject-pills">
+                    <button className={`atl-subject-pill${vaultSubject===''?' atl-subject-pill--active':''}`} onClick={()=>setVaultSubject('')}>ALL</button>
+                    {vaultSubjects.map(s=>(
+                      <button key={s} className={`atl-subject-pill${vaultSubject===s?' atl-subject-pill--active':''}`} onClick={()=>setVaultSubject(vaultSubject===s?'':s)}>
+                        {s.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {docsError&&(
+                <div className="atl-vault-error">
+                  <AlertCircle size={16}/>
+                  <span>COULD NOT LOAD DOCUMENTS: {docsError.toUpperCase()}</span>
+                  <button className="atl-btn atl-btn--ghost" onClick={loadAll}><RefreshCw size={12}/>RETRY</button>
+                </div>
+              )}
+              {dataLoading?(
+                <div className="atl-loading"><Loader2 size={22} className="atl-spin"/></div>
+              ):!docsError&&filteredDocs.length===0?(
+                <div className="atl-vault-empty">
+                  {userDocs.length===0?(
+                    <>
+                      <BookOpen size={42} style={{opacity:0.3,marginBottom:16}}/>
+                      <p>YOUR VAULT IS EMPTY.</p>
+                      <p style={{opacity:0.5,fontSize:'0.75rem',marginBottom:20}}>UPLOAD PDFS, TXT, OR MARKDOWN FILES. THE ORACLE WILL USE THEM TO ANSWER YOUR QUESTIONS.</p>
+                      <button className="atl-btn atl-btn--accent" onClick={()=>setUploadOpen(true)}><Upload size={13}/>UPLOAD FIRST DOCUMENT</button>
+                    </>
+                  ):(
+                    <p>NO DOCUMENTS MATCH YOUR SEARCH.</p>
+                  )}
+                </div>
+              ):(
+                <div className="atl-doc-grid">
+                  {filteredDocs.map((doc,i)=>(
+                    <DocCard
+                      key={doc.doc_id||i}
+                      doc={doc}
+                      active={activeDocIds.has(doc.doc_id)}
+                      onToggle={toggleDoc}
+                      onAsk={handleDocAsk}
+                      onDelete={handleDelete}
+                    />
                   ))}
                 </div>
               )}
