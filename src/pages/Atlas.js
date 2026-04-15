@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {
   Send, Upload, FileText, Brain, X, Loader2, AlertCircle,
   CheckCircle, Trash2, RefreshCw, Plus,
-  Search, Menu, Tag, ChevronLeft, BookOpen, Layers
+  Search, Menu, Tag, ChevronLeft, BookOpen, Layers, Home
 } from 'lucide-react';
 import { API_URL } from '../config/api';
 import contextService from '../services/contextService';
@@ -98,24 +98,28 @@ const HEX_BG    = 0x08060A;
 // ─────────────────────────────────────────────────────────────────────────────
 const WORLDS = [
   {
-    key:'oracle',  label:'ORACLE',  sub:'ASK ANYTHING',  type:'icosa',
-    pos:[-14, 3, -4],
+    key:'oracle',  label:'ORACLE',  sub:'KNOW-IT-ALL',  side:'left', type:'icosa',
+    desc:'Ask anything — Oracle searches your documents and curriculum to give cited, intelligent answers.',
+    pos:[-14, -1, -4],
     colorA:G_PALE,  colorB:G_LIGHT, atmoColor:G_PALE,  atmoIntensity:0.82, coreRadius:1.6,
   },
   {
-    key:'archive', label:'ARCHIVE', sub:'CURRICULUM',     type:'rings',
-    pos:[0, -3, -11],
+    key:'archive', label:'ARCHIVE', sub:'CURRICULUM LIBRARY', side:'bottom', type:'rings',
+    desc:'Browse all encoded curriculum documents across every subject and grade level.',
+    pos:[0, -6, -11],
     colorA:G_DEEP,  colorB:G_DIM,   atmoColor:G_DIM,   atmoIntensity:0.68, coreRadius:2.0,
   },
   {
-    key:'vault',   label:'VAULT',   sub:'MY DOCUMENTS',   type:'cube',
-    pos:[14, 3, -4],
+    key:'vault',   label:'VAULT',   sub:'MY DOCUMENTS',   side:'right', type:'cube',
+    desc:'Upload your own PDFs and notes. Toggle docs as live AI context for personalized answers.',
+    pos:[14, -1, -4],
     colorA:G_DIM,   colorB:G_MAIN,  atmoColor:G_LIGHT, atmoIntensity:0.78, coreRadius:1.4,
   },
 ];
 
-const HOME_CAM  = new THREE.Vector3(0, 5, 24);
-const HOME_LOOK = new THREE.Vector3(0, -1, -4);
+// Camera elevated and angled down — worlds sit in the lower 60% of viewport
+const HOME_CAM  = new THREE.Vector3(0, 6, 22);
+const HOME_LOOK = new THREE.Vector3(0, -5, -6);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -194,25 +198,27 @@ function UploadModal({ open, onClose, onDone }){
 function DocCard({ doc, active, onToggle, onAsk, onDelete }){
   const [expanded,setExpanded] = useState(false);
   return (
-    <div className={`atl-doc-card${active?' atl-doc-card--active':''}`}>
+    <div
+      className={`atl-doc-card${active?' atl-doc-card--active':''}`}
+      onClick={()=>onToggle(doc.doc_id)}
+      title={active?'Click to remove from Oracle context':'Click to add to Oracle context'}
+    >
       <div className="atl-doc-card-top">
         <div className="atl-doc-icon-wrap"><FileText size={18}/></div>
         <div className="atl-doc-name-wrap">
           <div className="atl-doc-name" title={doc.filename}>{(doc.filename||'UNTITLED').toUpperCase()}</div>
           {doc.subject&&<span className="atl-doc-subject-badge">{doc.subject.toUpperCase()}</span>}
         </div>
-        <button
-          className={`atl-ctx-pill${active?' atl-ctx-pill--on':''}`}
-          onClick={()=>onToggle(doc.doc_id)}
-          title={active?'Remove from context':'Add to AI context'}
-        >
-          <Layers size={11}/>
-          <span>{active?'IN CONTEXT':'+ CONTEXT'}</span>
-        </button>
+        <div className={`atl-doc-ctx-toggle${active?' atl-doc-ctx-toggle--on':''}`}>
+          {active?<CheckCircle size={17}/>:<Plus size={17}/>}
+        </div>
       </div>
 
+      {active&&<div className="atl-doc-oracle-label"><Layers size={9}/>ACTIVE IN ORACLE</div>}
+
       {doc.ai_summary&&(
-        <p className={`atl-doc-summary${expanded?'':' atl-doc-summary--clamp'}`} onClick={()=>setExpanded(v=>!v)}>
+        <p className={`atl-doc-summary${expanded?'':' atl-doc-summary--clamp'}`}
+           onClick={e=>{e.stopPropagation();setExpanded(v=>!v)}}>
           {doc.ai_summary}
         </p>
       )}
@@ -232,12 +238,12 @@ function DocCard({ doc, active, onToggle, onAsk, onDelete }){
         </div>
       )}
 
-      <div className="atl-doc-actions">
+      <div className="atl-doc-actions" onClick={e=>e.stopPropagation()}>
         <button className="atl-doc-action-btn" onClick={()=>onAsk(doc)}>
           <Brain size={12}/>ASK ORACLE
         </button>
         <button className="atl-doc-action-btn atl-doc-action-btn--del" onClick={()=>onDelete(doc.doc_id)}>
-          <Trash2 size={12}/>DELETE
+          <Trash2 size={12}/>REMOVE
         </button>
       </div>
     </div>
@@ -307,9 +313,11 @@ export default function Atlas(){
   const [activeDocIds,  setActiveDocIds]  = useState(new Set());
   const [vaultSubject,  setVaultSubject]  = useState('');
   const [docsError,     setDocsError]     = useState(null);
-  const [hsDocs,        setHsDocs]        = useState([]);
-  const [hsDocsSearch,  setHsDocsSearch]  = useState('');
-  const [hsGradeFilter, setHsGradeFilter] = useState('');
+  const [hsDocs,           setHsDocs]           = useState([]);
+  const [hsDocsSearch,     setHsDocsSearch]     = useState('');
+  const [hsGradeFilter,    setHsGradeFilter]    = useState('');
+  const [hsSubjectFilter,  setHsSubjectFilter]  = useState('');
+  const [vaultDrag,        setVaultDrag]        = useState(false);
   const oracleEndRef = useRef(null);
   const navigate = useNavigate();
 
@@ -815,13 +823,15 @@ export default function Atlas(){
   });
 
   const hsGrades=[...new Set(hsDocs.map(d=>d.grade_level).filter(Boolean))].sort();
+  const archiveSubjects=[...new Set(hsDocs.map(d=>d.subject).filter(Boolean))].sort();
   const filteredHsDocs=hsDocs.filter(d=>{
     const matchSearch=!hsDocsSearch
       ||(d.filename||'').toLowerCase().includes(hsDocsSearch.toLowerCase())
       ||(d.ai_summary||'').toLowerCase().includes(hsDocsSearch.toLowerCase())
       ||(d.subject||'').toLowerCase().includes(hsDocsSearch.toLowerCase());
     const matchGrade=!hsGradeFilter||d.grade_level===hsGradeFilter;
-    return matchSearch&&matchGrade;
+    const matchSubject=!hsSubjectFilter||d.subject===hsSubjectFilter;
+    return matchSearch&&matchGrade&&matchSubject;
   });
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -831,10 +841,10 @@ export default function Atlas(){
 
       {/* Planet labels */}
       {WORLDS.map((w,i)=>(
-        <div key={w.key} ref={el=>{labelRefs.current[i]=el;}} className="atl-sphere-label" onClick={()=>setActiveWorld(w.key)}>
-          <div className="atl-sphere-label-pip"/>
+        <div key={w.key} ref={el=>{labelRefs.current[i]=el;}} className={`atl-sphere-label atl-sphere-label--${w.side}`} onClick={()=>setActiveWorld(w.key)}>
           <span className="atl-sphere-label-name">{w.label}</span>
           <span className="atl-sphere-label-sub">{w.sub}</span>
+          <span className="atl-sphere-label-desc">{w.desc}</span>
         </div>
       ))}
 
@@ -861,9 +871,19 @@ export default function Atlas(){
       {/* Home overlay */}
       {activeWorld===null&&(
         <div className="atl-home-overlay">
-          <h1 className="atl-home-title">cerbyl</h1>
-          <p className="atl-home-sub">YOUR LIVING KNOWLEDGE UNIVERSE</p>
-          <p className="atl-home-hint">CLICK A WORLD TO BEGIN</p>
+          {/* Brand — pinned to top, clearly above the world scene */}
+          <div className="atl-home-brand">
+            <h1 className="atl-home-title">cerbyl</h1>
+            <p className="atl-home-sub">YOUR LIVING KNOWLEDGE UNIVERSE</p>
+          </div>
+
+          {/* Bottom strip */}
+          <div className="atl-home-bottom">
+            <p className="atl-home-hint">CLICK A WORLD TO EXPLORE</p>
+            <button className="atl-home-dash-btn" onClick={()=>navigate('/dashboard')}>
+              <Home size={14}/>DASHBOARD
+            </button>
+          </div>
         </div>
       )}
 
@@ -936,10 +956,14 @@ export default function Atlas(){
                         disabled={askLoading}
                       />
                       <div className="atl-oracle-hero-row">
-                        <label className="atl-hs-toggle">
-                          <input type="checkbox" checked={askUseHs} onChange={e=>setAskUseHs(e.target.checked)}/>
-                          <span>CURRICULUM</span>
-                        </label>
+                        <button
+                          className={`atl-oracle-src-pill${askUseHs?' atl-oracle-src-pill--on':''}`}
+                          onClick={()=>setAskUseHs(v=>!v)}
+                          type="button"
+                        >
+                          <BookOpen size={11}/>
+                          {askUseHs?'CURRICULUM ON':'CURRICULUM OFF'}
+                        </button>
                         <button className="atl-oracle-hero-send" onClick={()=>handleAsk()} disabled={askLoading||!askInput.trim()}>
                           {askLoading?<Loader2 size={15} className="atl-spin"/>:<Send size={15}/>}
                           <span>{askLoading?'CONSULTING…':'ASK ORACLE'}</span>
@@ -1046,26 +1070,42 @@ export default function Atlas(){
                 <div>
                   <h2 className="atl-panel-title">ARCHIVE</h2>
                   <p className="atl-panel-desc">
-                    {dataLoading?'LOADING…':`${filteredHsDocs.length} DOCUMENT${filteredHsDocs.length!==1?'S':''} · ${hsSubjects.length} SUBJECTS · ${totalChunks.toLocaleString()} FRAGMENTS`}
+                    {dataLoading?'LOADING…':`${filteredHsDocs.length} DOCUMENT${filteredHsDocs.length!==1?'S':''} · ${archiveSubjects.length} SUBJECTS · ${totalChunks.toLocaleString()} FRAGMENTS`}
                   </p>
                 </div>
               </div>
 
-              {/* Toolbar: search + grade filter */}
+              {/* Toolbar: search + subject + grade filter */}
               <div className="atl-archive-toolbar">
                 <div className="atl-search-row atl-archive-search">
                   <Search size={13}/>
-                  <input className="atl-search-input" placeholder="SEARCH ARCHIVE..." value={hsDocsSearch} onChange={e=>setHsDocsSearch(e.target.value)}/>
+                  <input className="atl-search-input" placeholder="SEARCH BY TITLE, SUBJECT, OR TOPIC..." value={hsDocsSearch} onChange={e=>setHsDocsSearch(e.target.value)}/>
                   {hsDocsSearch&&<button className="atl-clear-btn" onClick={()=>setHsDocsSearch('')}><X size={12}/></button>}
                 </div>
+                {archiveSubjects.length>0&&(
+                  <div className="atl-archive-filter-row">
+                    <span className="atl-archive-filter-lbl">SUBJECT</span>
+                    <div className="atl-archive-filter-pills">
+                      <button className={`atl-subject-pill${hsSubjectFilter===''?' atl-subject-pill--active':''}`} onClick={()=>setHsSubjectFilter('')}>ALL</button>
+                      {archiveSubjects.map(s=>(
+                        <button key={s} className={`atl-subject-pill${hsSubjectFilter===s?' atl-subject-pill--active':''}`} onClick={()=>setHsSubjectFilter(hsSubjectFilter===s?'':s)}>
+                          {s.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {hsGrades.length>0&&(
-                  <div className="atl-archive-grade-pills">
-                    <button className={`atl-subject-pill${hsGradeFilter===''?' atl-subject-pill--active':''}`} onClick={()=>setHsGradeFilter('')}>ALL GRADES</button>
-                    {hsGrades.map(g=>(
-                      <button key={g} className={`atl-subject-pill${hsGradeFilter===g?' atl-subject-pill--active':''}`} onClick={()=>setHsGradeFilter(hsGradeFilter===g?'':g)}>
-                        {g}
-                      </button>
-                    ))}
+                  <div className="atl-archive-filter-row">
+                    <span className="atl-archive-filter-lbl">GRADE</span>
+                    <div className="atl-archive-filter-pills">
+                      <button className={`atl-subject-pill${hsGradeFilter===''?' atl-subject-pill--active':''}`} onClick={()=>setHsGradeFilter('')}>ALL</button>
+                      {hsGrades.map(g=>(
+                        <button key={g} className={`atl-subject-pill${hsGradeFilter===g?' atl-subject-pill--active':''}`} onClick={()=>setHsGradeFilter(hsGradeFilter===g?'':g)}>
+                          {g}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1094,26 +1134,47 @@ export default function Atlas(){
               <div className="atl-panel-hd">
                 <div>
                   <h2 className="atl-panel-title">VAULT</h2>
-                  <p className="atl-panel-desc">
-                    {userDocs.length} DOCUMENTS&nbsp;·&nbsp;
-                    {activeDocIds.size>0?`${activeDocIds.size} IN CONTEXT`:'CLICK DOCUMENTS TO ADD THEM TO AI CONTEXT'}
-                  </p>
+                  <p className="atl-panel-desc">YOUR PERSONAL DOCUMENT LIBRARY · CLICK A DOCUMENT TO ADD IT TO ORACLE'S CONTEXT</p>
                 </div>
                 <div className="atl-panel-hd-actions">
                   <button className="atl-icon-btn" onClick={loadAll} title="Refresh"><RefreshCw size={13}/></button>
-                  <button className="atl-btn atl-btn--accent" onClick={()=>setUploadOpen(true)}><Plus size={13}/>UPLOAD</button>
                 </div>
               </div>
 
-              {/* Active context summary bar */}
+              {/* Upload strip — always visible */}
+              <div
+                className={`atl-vault-upload-strip${vaultDrag?' atl-vault-upload-strip--over':''}`}
+                onClick={()=>setUploadOpen(true)}
+                onDragOver={e=>{e.preventDefault();setVaultDrag(true);}}
+                onDragLeave={()=>setVaultDrag(false)}
+                onDrop={e=>{e.preventDefault();setVaultDrag(false);setUploadOpen(true);}}
+              >
+                <div className="atl-vault-upload-icon"><Upload size={16}/></div>
+                <div className="atl-vault-upload-text">
+                  <span className="atl-vault-upload-primary">DROP FILES HERE OR CLICK TO UPLOAD</span>
+                  <span className="atl-vault-upload-types">PDF · TXT · MARKDOWN</span>
+                </div>
+              </div>
+
+              {/* Active context bar — only when docs selected */}
               {activeDocIds.size>0&&(
-                <div className="atl-vault-ctx-bar">
-                  <Layers size={13}/>
-                  <span><strong>{activeDocIds.size}</strong> DOCUMENT{activeDocIds.size>1?'S':''} ACTIVE IN ORACLE CONTEXT</span>
-                  <button className="atl-vault-ctx-clear" onClick={()=>setActiveDocIds(new Set())}>CLEAR ALL</button>
-                  <button className="atl-vault-ctx-ask" onClick={()=>setActiveWorld('oracle')}>
-                    ASK ORACLE
-                  </button>
+                <div className="atl-vault-active-bar">
+                  <div className="atl-vault-active-bar-left">
+                    <div className="atl-vault-active-count">
+                      <Layers size={15}/>
+                      <span>{activeDocIds.size}</span>
+                    </div>
+                    <div className="atl-vault-active-info">
+                      <span className="atl-vault-active-title">DOC{activeDocIds.size>1?'S':''} IN ORACLE CONTEXT</span>
+                      <span className="atl-vault-active-sub">Oracle will focus on these when answering</span>
+                    </div>
+                  </div>
+                  <div className="atl-vault-active-actions">
+                    <button className="atl-vault-ctx-clear" onClick={()=>setActiveDocIds(new Set())}>CLEAR</button>
+                    <button className="atl-vault-ctx-ask" onClick={()=>setActiveWorld('oracle')}>
+                      <Brain size={12}/>ASK ORACLE
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1121,7 +1182,7 @@ export default function Atlas(){
               <div className="atl-vault-filters">
                 <div className="atl-search-row atl-vault-search">
                   <Search size={13}/>
-                  <input className="atl-search-input" placeholder="SEARCH DOCUMENTS..." value={vaultSearch} onChange={e=>setVaultSearch(e.target.value)}/>
+                  <input className="atl-search-input" placeholder="SEARCH YOUR VAULT..." value={vaultSearch} onChange={e=>setVaultSearch(e.target.value)}/>
                   {vaultSearch&&<button className="atl-clear-btn" onClick={()=>setVaultSearch('')}><X size={12}/></button>}
                 </div>
                 {vaultSubjects.length>0&&(
@@ -1149,9 +1210,9 @@ export default function Atlas(){
                 <div className="atl-vault-empty">
                   {userDocs.length===0?(
                     <>
-                      <BookOpen size={42} style={{opacity:0.3,marginBottom:16}}/>
-                      <p>YOUR VAULT IS EMPTY.</p>
-                      <p style={{opacity:0.5,fontSize:'0.75rem',marginBottom:20}}>UPLOAD PDFS, TXT, OR MARKDOWN FILES. THE ORACLE WILL USE THEM TO ANSWER YOUR QUESTIONS.</p>
+                      <div className="atl-vault-empty-icon"><Upload size={32}/></div>
+                      <p className="atl-vault-empty-title">YOUR VAULT IS EMPTY</p>
+                      <p className="atl-vault-empty-desc">Upload PDFs, notes, or markdown files. Oracle will use them to give you personalised, cited answers.</p>
                       <button className="atl-btn atl-btn--accent" onClick={()=>setUploadOpen(true)}><Upload size={13}/>UPLOAD FIRST DOCUMENT</button>
                     </>
                   ):(

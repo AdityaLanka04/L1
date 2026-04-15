@@ -231,15 +231,6 @@
   transition: all 0.2s ease;
 }
 
-.slide-notif-action::after {
-  content: '→';
-  font-size: 14px;
-  transition: transform 0.2s ease;
-}
-
-.slide-notif-card:hover .slide-notif-action::after {
-  transform: translateX(4px);
-}
 
 .slide-notif:nth-child(2) {
   top: 200px;
