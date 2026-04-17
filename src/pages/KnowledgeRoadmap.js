@@ -10,7 +10,7 @@ import ReactFlow, {
   Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight, X, Edit3, Save, StickyNote , Menu} from 'lucide-react';
+import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight, X, Edit3, Save, StickyNote, Menu, MessageCircle } from 'lucide-react';
 import './KnowledgeRoadmap.css';
 import { API_URL } from '../config';
 import MathRenderer from '../components/MathRenderer';
@@ -154,6 +154,7 @@ const KnowledgeRoadmap = () => {
   const [manualNotes, setManualNotes] = useState(new Map()); 
   const [editingNotes, setEditingNotes] = useState(false);
   const [tempNotes, setTempNotes] = useState('');
+  const [sidebarView, setSidebarView] = useState('learn');
 
   
   const [showExportSuccessModal, setShowExportSuccessModal] = useState(false);
@@ -1492,6 +1493,8 @@ Instructions:
     if (nodeExplanation) {
       setChatMessages([]);
       setChatInput('');
+      setSidebarView('learn');
+      setEditingNotes(false);
     }
   }, [nodeExplanation]);
 
@@ -1840,6 +1843,12 @@ Instructions:
     }
   };
 
+  const activeNodePath = nodeExplanation
+    ? getNodePathForContext(nodeExplanation.id || nodeExplanation.nodeId)
+    : '';
+  const activeNodeId = nodeExplanation ? (nodeExplanation.id || nodeExplanation.nodeId) : null;
+  const activeNodeNotes = activeNodeId ? (manualNotes.get(activeNodeId) || '') : '';
+
   return (
     <div className="kr-page">
       <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
@@ -2066,163 +2075,224 @@ Instructions:
               {nodeExplanation && (
                 <div className="kr-explanation-sidebar">
                   <div className="kr-explanation-header-sticky">
-                    <h3>{nodeExplanation.topic_name}</h3>
+                    <div className="kr-explanation-header-meta">
+                      <span className="kr-explanation-kicker">Topic Deep Dive</span>
+                      <h3 className="kr-explanation-title">{nodeExplanation.topic_name}</h3>
+                      <p className="kr-explanation-path">{activeNodePath || nodeExplanation.topic_name}</p>
+                    </div>
                     <button 
                       className="kr-close-explanation"
                       onClick={() => setNodeExplanation(null)}
+                      aria-label="Close topic panel"
                     >
-                      ×
+                      <X size={16} />
                     </button>
                   </div>
-
-                  <div className="kr-explanation-scrollable">
-                    {nodeExplanation.ai_explanation && (
-                      <div className="kr-explanation-section">
-                        <h4>Overview</h4>
-                        <p>{nodeExplanation.ai_explanation}</p>
-                      </div>
-                    )}
-
-                    {nodeExplanation.key_concepts && nodeExplanation.key_concepts.length > 0 && (
-                      <div className="kr-explanation-section">
-                        <h4>Key Concepts</h4>
-                        <ul className="kr-concepts-list">
-                          {nodeExplanation.key_concepts.map((concept, idx) => (
-                            <li key={idx}>{concept}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {nodeExplanation.why_important && (
-                      <div className="kr-explanation-section">
-                        <h4>Why This Matters</h4>
-                        <p>{nodeExplanation.why_important}</p>
-                      </div>
-                    )}
-
-                    {nodeExplanation.real_world_examples && nodeExplanation.real_world_examples.length > 0 && (
-                      <div className="kr-explanation-section">
-                        <h4>Real-World Examples</h4>
-                        <ul className="kr-examples-list">
-                          {nodeExplanation.real_world_examples.map((example, idx) => (
-                            <li key={idx}>{example}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {nodeExplanation.learning_tips && (
-                      <div className="kr-explanation-section">
-                        <h4>Learning Tips</h4>
-                        <p>{nodeExplanation.learning_tips}</p>
-                      </div>
-                    )}
-
-                    <div className="kr-manual-notes-section">
-                      <div className="kr-manual-notes-header">
-                        <h4>
-                          <StickyNote size={14} />
-                          My Notes
-                        </h4>
-                        {!editingNotes ? (
-                          <button 
-                            className="kr-edit-notes-btn"
-                            onClick={startEditingNotes}
-                          >
-                            <Edit3 size={14} />
-                            {manualNotes.get(nodeExplanation.id || nodeExplanation.nodeId) ? 'Edit' : 'Add Notes'}
-                          </button>
-                        ) : (
-                          <button 
-                            className="kr-save-notes-btn"
-                            onClick={saveManualNotes}
-                          >
-                            <Save size={14} />
-                            Save
-                          </button>
-                        )}
-                      </div>
-                      {editingNotes ? (
-                        <textarea
-                          className="kr-manual-notes-input"
-                          value={tempNotes}
-                          onChange={(e) => setTempNotes(e.target.value)}
-                          placeholder="Add your own notes about this topic..."
-                          rows={5}
-                          autoFocus
-                        />
-                      ) : (
-                        <div className="kr-manual-notes-content">
-                          {manualNotes.get(nodeExplanation.id || nodeExplanation.nodeId) ? (
-                            <p>{manualNotes.get(nodeExplanation.id || nodeExplanation.nodeId)}</p>
-                          ) : (
-                            <p className="kr-no-notes">No personal notes yet. Click "Add Notes" to add your own thoughts.</p>
+                  <div className="kr-sidebar-body">
+                    <div className="kr-sidebar-content">
+                      {sidebarView === 'learn' && (
+                        <div className="kr-sidebar-pane">
+                          {nodeExplanation.ai_explanation && (
+                            <div className="kr-explanation-section">
+                              <h4>Overview</h4>
+                              <p>{nodeExplanation.ai_explanation}</p>
+                            </div>
                           )}
+
+                          {nodeExplanation.key_concepts && nodeExplanation.key_concepts.length > 0 && (
+                            <div className="kr-explanation-section">
+                              <h4>Key Concepts</h4>
+                              <ul className="kr-concepts-list">
+                                {nodeExplanation.key_concepts.map((concept, idx) => (
+                                  <li key={idx}>{concept}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {nodeExplanation.why_important && (
+                            <div className="kr-explanation-section">
+                              <h4>Why This Matters</h4>
+                              <p>{nodeExplanation.why_important}</p>
+                            </div>
+                          )}
+
+                          {nodeExplanation.real_world_examples && nodeExplanation.real_world_examples.length > 0 && (
+                            <div className="kr-explanation-section">
+                              <h4>Real-World Examples</h4>
+                              <ul className="kr-examples-list">
+                                {nodeExplanation.real_world_examples.map((example, idx) => (
+                                  <li key={idx}>{example}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {nodeExplanation.learning_tips && (
+                            <div className="kr-explanation-section">
+                              <h4>Learning Tips</h4>
+                              <p>{nodeExplanation.learning_tips}</p>
+                            </div>
+                          )}
+
+                          {!nodeExplanation.ai_explanation && (!nodeExplanation.key_concepts || nodeExplanation.key_concepts.length === 0) && (
+                            <div className="kr-chat-placeholder">
+                              <p>No generated learning content yet for this node.</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {sidebarView === 'notes' && (
+                        <div className="kr-manual-notes-section kr-sidebar-pane">
+                          <div className="kr-manual-notes-header">
+                            <h4>
+                              <StickyNote size={14} />
+                              My Notes
+                            </h4>
+                            {!editingNotes ? (
+                              <button 
+                                className="kr-edit-notes-btn"
+                                onClick={startEditingNotes}
+                              >
+                                <Edit3 size={14} />
+                                {activeNodeNotes ? 'Edit' : 'Add Notes'}
+                              </button>
+                            ) : (
+                              <button 
+                                className="kr-save-notes-btn"
+                                onClick={saveManualNotes}
+                              >
+                                <Save size={14} />
+                                Save
+                              </button>
+                            )}
+                          </div>
+                          <p className="kr-notes-context">{activeNodePath || nodeExplanation.topic_name}</p>
+                          {editingNotes ? (
+                            <textarea
+                              className="kr-manual-notes-input"
+                              value={tempNotes}
+                              onChange={(e) => setTempNotes(e.target.value)}
+                              placeholder="Add your own notes about this topic..."
+                              rows={8}
+                              autoFocus
+                            />
+                          ) : (
+                            <div className="kr-manual-notes-content">
+                              {activeNodeNotes ? (
+                                <p>{activeNodeNotes}</p>
+                              ) : (
+                                <p className="kr-no-notes">No personal notes yet. Click "Add Notes" to add your own thoughts.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {sidebarView === 'chat' && (
+                        <div className="kr-chat-section kr-sidebar-pane">
+                          <div className="kr-chat-section-header">
+                            <span className="kr-chat-kicker">Topic Chat</span>
+                            <h4 className="kr-chat-title">Ask Questions About This Topic</h4>
+                            <p className="kr-chat-subtitle">
+                              This chat stays scoped to <strong>{nodeExplanation.topic_name}</strong>.
+                            </p>
+                          </div>
+                          <div className="kr-chat-messages" ref={chatMessagesRef}>
+                            {chatMessages.length === 0 ? (
+                              <div className="kr-chat-placeholder">
+                                <p>Ask me anything about "{nodeExplanation.topic_name}"</p>
+                              </div>
+                            ) : (
+                              chatMessages.map((message) => (
+                                <div key={message.id} className={`ac-message kr-topic-chat-message ${message.type === 'user' ? 'user' : 'ai'}`}>
+                                  <div className="ac-message-bubble">
+                                    <div className="ac-message-content kr-chat-message-content">
+                                      {renderChatMessageContent(message.content)}
+                                    </div>
+                                  </div>
+                                  <div className="ac-message-meta kr-chat-message-meta">
+                                    <span className="ac-message-time">
+                                      {new Date(message.timestamp).toLocaleTimeString('en-US', {
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                        hour12: true
+                                      })}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                            {chatLoading && (
+                              <div className="ac-message kr-topic-chat-message ai">
+                                <div className="ac-message-bubble">
+                                  <div className="ac-pulse-loader">
+                                    <div className="ac-pulse-square ac-pulse-1"></div>
+                                    <div className="ac-pulse-square ac-pulse-2"></div>
+                                    <div className="ac-pulse-square ac-pulse-3"></div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ac-input-wrapper kr-chat-input-wrapper">
+                            <div className="ac-input-row">
+                              <textarea
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                onKeyDown={handleChatKeyDown}
+                                placeholder={`Ask about ${nodeExplanation.topic_name}...`}
+                                className="ac-textarea kr-chat-input"
+                                disabled={chatLoading}
+                                rows="1"
+                              />
+                              <button
+                                onClick={sendChatMessage}
+                                disabled={chatLoading || !chatInput.trim()}
+                                className="ac-send-btn kr-chat-send-btn"
+                                aria-label="Send topic question"
+                              >
+                                {chatLoading ? (
+                                  <span className="kr-send-spinner" aria-hidden="true" />
+                                ) : (
+                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M1 8l14-6-6 14-2-8z"/>
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
 
-                    <div className="kr-chat-section">
-                      <h4>Ask Questions About This Topic</h4>
-                      <div className="kr-chat-messages" ref={chatMessagesRef}>
-                        {chatMessages.length === 0 ? (
-                          <div className="kr-chat-placeholder">
-                            <p>Ask me anything about "{nodeExplanation.topic_name}"</p>
-                          </div>
-                        ) : (
-                          chatMessages.map(message => (
-                            <div key={message.id} className={`kr-chat-message ${message.type}`}>
-                              <div className={`kr-chat-message-content ${message.type === 'assistant' ? 'ac-message-content' : ''}`}>
-                                {renderChatMessageContent(message.content)}
-                              </div>
-                              <div className="kr-chat-message-time">
-                                {new Date(message.timestamp).toLocaleTimeString('en-US', {
-                                  hour: 'numeric',
-                                  minute: '2-digit',
-                                  hour12: true
-                                })}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                        {chatLoading && (
-                          <div className="kr-chat-message assistant">
-                            <div className="kr-chat-message-content">
-                              <div className="ac-pulse-loader">
-                                <div className="ac-pulse-square ac-pulse-1"></div>
-                                <div className="ac-pulse-square ac-pulse-2"></div>
-                                <div className="ac-pulse-square ac-pulse-3"></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="kr-chat-input-container">
-                        <textarea
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          onKeyDown={handleChatKeyDown}
-                          placeholder={`Ask about ${nodeExplanation.topic_name}...`}
-                          className="kr-chat-input"
-                          disabled={chatLoading}
-                          rows="2"
-                        />
-                        <button
-                          onClick={sendChatMessage}
-                          disabled={chatLoading || !chatInput.trim()}
-                          className="kr-chat-send-btn"
-                        >
-                          {chatLoading ? (
-                            <span className="kr-send-spinner" aria-hidden="true" />
-                          ) : (
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                              <path d="M1 8l14-6-6 14-2-8z"/>
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
+                    <aside className="kr-sidebar-rail" aria-label="Sidebar sections">
+                      <button
+                        className={`kr-sidebar-rail-btn ${sidebarView === 'learn' ? 'active' : ''}`}
+                        onClick={() => setSidebarView('learn')}
+                        title="Learn panel"
+                      >
+                        <Info size={16} />
+                        <span className="kr-sidebar-rail-label">Learn</span>
+                      </button>
+                      <button
+                        className={`kr-sidebar-rail-btn ${sidebarView === 'notes' ? 'active' : ''}`}
+                        onClick={() => setSidebarView('notes')}
+                        title="Notes panel"
+                      >
+                        <StickyNote size={16} />
+                        <span className="kr-sidebar-rail-label">Notes</span>
+                      </button>
+                      <button
+                        className={`kr-sidebar-rail-btn ${sidebarView === 'chat' ? 'active' : ''}`}
+                        onClick={() => setSidebarView('chat')}
+                        title="Topic chat panel"
+                      >
+                        <MessageCircle size={16} />
+                        <span className="kr-sidebar-rail-label">Chat</span>
+                      </button>
+                    </aside>
                   </div>
                 </div>
               )}

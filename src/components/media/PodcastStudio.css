@@ -1207,8 +1207,19 @@ body.podcast-fullscreen-open {
 }
 
 .podcast-fullscreen-word {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px 2px;
+  border-radius: 10px;
   color: rgba(255, 255, 255, 0.52);
-  transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+  background: transparent;
+  transform: translateY(0);
+  will-change: color, background-color, transform, box-shadow;
+  transition:
+    color 0.24s ease,
+    background-color 0.24s ease,
+    transform 0.24s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.24s ease;
 }
 
 .podcast-fullscreen-word.spoken {
@@ -1218,10 +1229,8 @@ body.podcast-fullscreen-open {
 .podcast-fullscreen-word.active {
   color: var(--bg-primary, #0d0b08);
   background: var(--mn-accent);
-  padding: 0 8px 2px;
-  border-radius: 10px;
   box-shadow: 0 8px 22px color-mix(in srgb, var(--mn-accent) 25%, transparent);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .spin {

@@ -66,21 +66,7 @@ const tokenizeWords = (text) => {
   return words;
 };
 
-const shouldBreakSubtitleCue = (wordText, wordsInCue) => {
-  if (wordsInCue >= 14) return true;
-  if (wordsInCue >= 8 && /[.!?]$/.test(wordText)) return true;
-  if (wordsInCue >= 10 && /[,;:]$/.test(wordText)) return true;
-  return false;
-};
-
-const buildSubtitleModel = (input) => {
-  const text = normalizeText(input);
-  const words = tokenizeWords(text);
-
-  if (words.length === 0) {
-    return { text, words: [], cues: [] };
-  }
-
+const buildWordChunkCues = (text, words) => {
   const cues = [];
   let startWordIndex = 0;
 
@@ -108,6 +94,120 @@ const buildSubtitleModel = (input) => {
     startWordIndex = index + 1;
   }
 
+  return cues;
+};
+
+const splitSentences = (text) => {
+  const sentences = [];
+  if (!text) return sentences;
+
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    try {
+      const segmenter = new Intl.Segmenter('en-US', { granularity: 'sentence' });
+      for (const segment of segmenter.segment(text)) {
+        const raw = segment.segment || '';
+        const rawStart = segment.index || 0;
+        let startChar = rawStart;
+        let endChar = rawStart + raw.length;
+
+        while (startChar < endChar && /\s/.test(text[startChar])) startChar += 1;
+        while (endChar > startChar && /\s/.test(text[endChar - 1])) endChar -= 1;
+
+        if (endChar > startChar) {
+          sentences.push({
+            text: text.slice(startChar, endChar),
+            startChar,
+            endChar,
+          });
+        }
+      }
+      if (sentences.length > 0) return sentences;
+    } catch (e) {
+      // fallback to regex splitter
+    }
+  }
+
+  const matcher = /[^.!?]+(?:[.!?]+(?=\s|$)|$)/g;
+  let match = matcher.exec(text);
+
+  while (match) {
+    const raw = match[0];
+    let startChar = match.index;
+    let endChar = match.index + raw.length;
+
+    while (startChar < endChar && /\s/.test(text[startChar])) startChar += 1;
+    while (endChar > startChar && /\s/.test(text[endChar - 1])) endChar -= 1;
+
+    if (endChar > startChar) {
+      sentences.push({
+        text: text.slice(startChar, endChar),
+        startChar,
+        endChar,
+      });
+    }
+
+    match = matcher.exec(text);
+  }
+
+  return sentences;
+};
+
+const buildSentenceCues = (text, words, sentences) => {
+  if (!sentences.length) return [];
+
+  const cues = [];
+  let wordCursor = 0;
+
+  for (const sentence of sentences) {
+    while (wordCursor < words.length && words[wordCursor].endChar <= sentence.startChar) {
+      wordCursor += 1;
+    }
+
+    const startWordIndex = wordCursor;
+    let endWordIndex = startWordIndex - 1;
+
+    while (wordCursor < words.length && words[wordCursor].startChar < sentence.endChar) {
+      endWordIndex = wordCursor;
+      wordCursor += 1;
+    }
+
+    if (endWordIndex < startWordIndex) continue;
+
+    const firstWord = words[startWordIndex];
+    const lastWord = words[endWordIndex];
+
+    cues.push({
+      index: cues.length,
+      text: text.slice(firstWord.startChar, lastWord.endChar),
+      startWordIndex,
+      endWordIndex,
+      startChar: firstWord.startChar,
+      endChar: lastWord.endChar,
+      words: words.slice(startWordIndex, endWordIndex + 1),
+    });
+  }
+
+  return cues;
+};
+
+const shouldBreakSubtitleCue = (wordText, wordsInCue) => {
+  if (wordsInCue >= 14) return true;
+  if (wordsInCue >= 8 && /[.!?]$/.test(wordText)) return true;
+  if (wordsInCue >= 10 && /[,;:]$/.test(wordText)) return true;
+  return false;
+};
+
+const buildSubtitleModel = (input) => {
+  const text = normalizeText(input);
+  const words = tokenizeWords(text);
+
+  if (words.length === 0) {
+    return { text, words: [], cues: [] };
+  }
+
+  const sentenceCues = buildSentenceCues(text, words, splitSentences(text));
+  const cues = sentenceCues.length > 0 ? sentenceCues : buildWordChunkCues(text, words);
+
   return { text, words, cues };
 };
 
@@ -127,6 +227,76 @@ const findCueIndexForWord = (cues, wordIndex) => {
   if (!cues.length || wordIndex < 0) return -1;
   return cues.findIndex((cue) => wordIndex >= cue.startWordIndex && wordIndex <= cue.endWordIndex);
 };
+
+const rankPreferredVoices = (voices) => {
+  const isEnglish = (voice) => voice.lang?.toLowerCase().startsWith('en');
+  const isEnglishUS = (voice) => voice.lang?.toLowerCase().startsWith('en-us');
+  const isGoogle = (voice) => voice.name?.toLowerCase().includes('google');
+
+  const sorted = [
+    ...voices.filter((voice) => isGoogle(voice) && isEnglishUS(voice)),
+    ...voices.filter((voice) => isGoogle(voice) && isEnglish(voice)),
+    ...voices.filter((voice) => isEnglishUS(voice)),
+    ...voices.filter((voice) => isEnglish(voice)),
+    ...voices,
+  ];
+
+  const seen = new Set();
+  return sorted.filter((voice) => {
+    if (!voice?.voiceURI || seen.has(voice.voiceURI)) return false;
+    seen.add(voice.voiceURI);
+    return true;
+  });
+};
+
+const testVoiceBoundarySupport = (synth, voice) => new Promise((resolve) => {
+  if (!voice) {
+    resolve(false);
+    return;
+  }
+
+  const utterance = new SpeechSynthesisUtterance('alpha beta gamma delta epsilon');
+  let boundaryCount = 0;
+  let settled = false;
+  let timeoutId = null;
+
+  const finalize = (result) => {
+    if (settled) return;
+    settled = true;
+    if (timeoutId) clearTimeout(timeoutId);
+    resolve(result);
+  };
+
+  utterance.voice = voice;
+  utterance.lang = voice.lang || 'en-US';
+  utterance.volume = 0;
+  utterance.rate = 1;
+  utterance.pitch = 1;
+
+  utterance.onboundary = (event) => {
+    if (typeof event.charIndex === 'number') {
+      boundaryCount += 1;
+    }
+  };
+  utterance.onend = () => finalize(boundaryCount >= 2);
+  utterance.onerror = () => finalize(false);
+
+  timeoutId = setTimeout(() => {
+    try {
+      synth.cancel();
+    } catch (e) {
+      // ignore cancel errors
+    }
+    finalize(false);
+  }, 2200);
+
+  try {
+    synth.cancel();
+    synth.speak(utterance);
+  } catch (e) {
+    finalize(false);
+  }
+});
 
 const difficultyIndexMap = {
   basic: 0,
@@ -275,17 +445,17 @@ const PodcastStudio = ({ results, userName, onExit }) => {
     setIsRecording(false);
   };
 
-  const syncSpeechProgress = (charIndex) => {
-    if (!subtitleModel.words.length) {
+  const syncSpeechProgress = (charIndex, model = subtitleModel) => {
+    if (!model.words.length) {
       setSpeechCharIndex(-1);
       setActiveWordIndex(-1);
       setActiveSubtitleIndex(-1);
       return;
     }
 
-    const safeCharIndex = clamp(Math.floor(Number.isFinite(charIndex) ? charIndex : 0), 0, normalizedCurrentSegment.length);
-    const nextWordIndex = findWordIndexForChar(subtitleModel.words, safeCharIndex);
-    const nextCueIndex = findCueIndexForWord(subtitleModel.cues, nextWordIndex);
+    const safeCharIndex = clamp(Math.floor(Number.isFinite(charIndex) ? charIndex : 0), 0, model.text.length);
+    const nextWordIndex = findWordIndexForChar(model.words, safeCharIndex);
+    const nextCueIndex = findCueIndexForWord(model.cues, nextWordIndex);
 
     setSpeechCharIndex(safeCharIndex);
     setActiveWordIndex(nextWordIndex);
@@ -519,15 +689,30 @@ const PodcastStudio = ({ results, userName, onExit }) => {
 
   useEffect(() => {
     if (!speechSupported) return undefined;
+    if (selectedVoiceUri) return undefined;
+    if (sessionId || isSpeaking) return undefined;
 
     const synth = window.speechSynthesis;
+    let cancelled = false;
 
-    const loadVoices = () => {
+    const loadVoices = async () => {
       const list = synth.getVoices() || [];
       setVoices(list);
       if (!selectedVoiceUri && list.length > 0) {
-        const englishVoice = list.find((voice) => voice.lang?.toLowerCase().startsWith('en'));
-        setSelectedVoiceUri((englishVoice || list[0]).voiceURI);
+        const ranked = rankPreferredVoices(list);
+        for (const voice of ranked) {
+          // Ensure selected voice supports boundary events for word-by-word sync.
+          // eslint-disable-next-line no-await-in-loop
+          const supportsBoundary = await testVoiceBoundarySupport(synth, voice);
+          if (cancelled) return;
+          if (supportsBoundary) {
+            setSelectedVoiceUri(voice.voiceURI);
+            return;
+          }
+        }
+        if (!cancelled) {
+          setSelectedVoiceUri(ranked[0].voiceURI);
+        }
       }
     };
 
@@ -535,9 +720,10 @@ const PodcastStudio = ({ results, userName, onExit }) => {
     synth.addEventListener('voiceschanged', loadVoices);
 
     return () => {
+      cancelled = true;
       synth.removeEventListener('voiceschanged', loadVoices);
     };
-  }, [selectedVoiceUri, speechSupported]);
+  }, [selectedVoiceUri, speechSupported, sessionId, isSpeaking]);
 
   useEffect(() => () => {
     stopSpeaking();
@@ -629,6 +815,10 @@ const PodcastStudio = ({ results, userName, onExit }) => {
     const leadingWhitespace = rawSlice.length - rawSlice.trimStart().length;
     const startChar = rawStartChar + leadingWhitespace;
     const speechText = rawSlice.trimStart();
+    const shouldSyncSubtitles = Boolean(options.syncSubtitles);
+    const speechModel = shouldSyncSubtitles
+      ? (options.subtitleModel || buildSubtitleModel(normalizedText))
+      : null;
 
     if (!speechText) return;
 
@@ -638,12 +828,12 @@ const PodcastStudio = ({ results, userName, onExit }) => {
     if (selectedVoice) {
       utterance.voice = selectedVoice;
     }
+    utterance.lang = selectedVoice?.lang || 'en-US';
 
     const modeRate = voiceProfile?.speech_rate || 1;
     const modePitch = voiceProfile?.speech_pitch || 1;
     const personaRate = personaProfile?.speech_rate || 1;
     const personaPitch = personaProfile?.speech_pitch || 1;
-
     utterance.rate = clamp(((modeRate + personaRate) / 2) * playbackRate, 0.75, 1.35);
     utterance.pitch = clamp((modePitch + personaPitch) / 2, 0.75, 1.3);
 
@@ -651,7 +841,9 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       speechCancelRef.current = false;
       setIsSpeaking(true);
       setIsSpeechPaused(false);
-      syncSpeechProgress(startChar);
+      if (shouldSyncSubtitles && speechModel) {
+        syncSpeechProgress(startChar, speechModel);
+      }
     };
     utterance.onpause = () => {
       setIsSpeechPaused(true);
@@ -662,8 +854,8 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       setIsSpeaking(true);
     };
     utterance.onboundary = (event) => {
-      if (typeof event.charIndex === 'number') {
-        syncSpeechProgress(startChar + event.charIndex);
+      if (shouldSyncSubtitles && speechModel && typeof event.charIndex === 'number') {
+        syncSpeechProgress(startChar + event.charIndex, speechModel);
       }
     };
     utterance.onend = () => {
@@ -673,8 +865,8 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       setIsSpeaking(false);
       setIsSpeechPaused(false);
 
-      if (!wasCancelled) {
-        syncSpeechProgress(normalizedText.length);
+      if (!wasCancelled && shouldSyncSubtitles && speechModel) {
+        syncSpeechProgress(normalizedText.length, speechModel);
       }
     };
     utterance.onerror = () => {
@@ -690,7 +882,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
 
   const playCurrentSegment = (startChar = 0) => {
     if (!normalizedCurrentSegment || !speechSupported) return;
-    speakText(normalizedCurrentSegment, { startChar });
+    speakText(normalizedCurrentSegment, { startChar, syncSubtitles: true, subtitleModel });
   };
 
   const handlePlay = () => {
@@ -709,9 +901,9 @@ const PodcastStudio = ({ results, userName, onExit }) => {
     playCurrentSegment(resumeWord?.startChar || 0);
   };
 
-  const speakIfEnabled = (text) => {
+  const speakIfEnabled = (text, options = {}) => {
     if (autoPlay) {
-      speakText(text);
+      speakText(text, options);
     }
   };
 
@@ -750,7 +942,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       setConversation([]);
       if (response.current_segment) {
         appendConversation({ role: 'assistant', type: 'narration', content: response.current_segment });
-        speakIfEnabled(response.current_segment);
+        speakIfEnabled(response.current_segment, { syncSubtitles: true });
       }
       await loadSessionMemory();
     } catch (e) {
@@ -804,7 +996,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
 
       if (response.current_segment) {
         appendConversation({ role: 'assistant', type: 'narration', content: response.current_segment });
-        speakIfEnabled(response.current_segment);
+        speakIfEnabled(response.current_segment, { syncSubtitles: true });
       }
     } catch (e) {
       setError(e.message || 'Failed to load next segment');
@@ -832,7 +1024,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
 
       if (response.current_segment) {
         appendConversation({ role: 'assistant', type: 'narration', content: response.current_segment });
-        speakIfEnabled(response.current_segment);
+        speakIfEnabled(response.current_segment, { syncSubtitles: true });
       }
     } catch (e) {
       setError(e.message || 'Failed to jump chapter');
@@ -880,7 +1072,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
 
       if (response.current_segment) {
         appendConversation({ role: 'assistant', type: 'narration', content: response.current_segment });
-        speakIfEnabled(response.current_segment);
+        speakIfEnabled(response.current_segment, { syncSubtitles: true });
       }
     } catch (e) {
       setError(e.message || 'Failed to replay bookmark');
