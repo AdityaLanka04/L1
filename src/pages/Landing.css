@@ -290,21 +290,23 @@
 
 /* Faded logo fills the full slide behind text */
 .lnd-home-watermark {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 0;
+  position: absolute !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  overflow: hidden !important;
 }
 
 .lnd-home-logo-mark {
-  width: min(74vw, 74vh);
-  height: min(74vw, 74vh);
-  object-fit: contain;
-  opacity: 0.048;
-  filter: brightness(4) sepia(0.6);
+  position: absolute !important;
+  left: -20vw !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  height: 175vh !important;
+  width: 175vh !important;
+  display: block !important;
+  opacity: 0.06 !important;
+  filter: brightness(4) sepia(0.6) !important;
 }
 
 /* Content sits above the watermark */

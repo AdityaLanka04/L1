@@ -87,7 +87,7 @@ function SlideHome({ next }) {
         <div className="lnd-home-tagline">Learning, unified.</div>
         <p className="lnd-home-hook">The machine that learns to adapt to you.</p>
         <button className="lnd-home-cta" onClick={next}>
-          LEARN MORE <ArrowRight size={15}/>
+          LEARN MORE
         </button>
       </div>
     </div>
