@@ -1,379 +1,134 @@
-.lg-page,
-.lg-page * {
-  margin: 0;
-  padding: 0;
-}
-
 .lg-page {
   width: 100vw;
   min-height: 100vh;
-  height: 100vh;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
-  display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
-  gap: 24px;
-  position: relative;
-  overflow: hidden;
-  padding: 24px;
-  box-sizing: border-box;
-}
-
-.lg-left {
-  position: relative;
-  z-index: 1;
+  background: #0a0a0b;
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
-  padding: 30px;
-  background:
-    radial-gradient(circle at top left,
-      color-mix(in srgb, white 18%, var(--accent) 82%) 0%,
-      transparent 34%),
-    linear-gradient(145deg,
-      color-mix(in srgb, var(--accent) 88%, #d29a15 12%) 0%,
-      color-mix(in srgb, var(--accent) 74%, #8c6510 26%) 100%);
-  border: 1px solid color-mix(in srgb, var(--accent) 72%, #7e5b0f 28%);
-  border-radius: 32px;
-  overflow: hidden;
-}
-
-.lg-brand-panel {
+  font-family: 'Inter', sans-serif;
   position: relative;
-  width: 100%;
-  max-width: 100%;
-  height: 100%;
-  padding: 24px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at top left,
-      color-mix(in srgb, white 10%, transparent) 0%,
-      transparent 36%),
-    linear-gradient(180deg,
-      color-mix(in srgb, #17120a 86%, var(--accent) 14%) 0%,
-      color-mix(in srgb, #0f0b05 92%, var(--accent) 8%) 100%);
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
-  box-shadow:
-    0 30px 90px color-mix(in srgb, var(--accent) 10%, transparent),
-    inset 0 1px 0 color-mix(in srgb, white 18%, transparent);
   overflow: hidden;
 }
 
-.lg-brand-panel::before {
+.lg-page::before {
   content: '';
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(125deg,
-      transparent 0%,
-      color-mix(in srgb, var(--accent) 5%, transparent) 40%,
-      transparent 72%);
+  background-image:
+    radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--accent) 5%, transparent) 0%, transparent 40%);
   pointer-events: none;
 }
 
-.lg-brand-panel > * {
+.lg-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 36px 36px;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.lg-card {
   position: relative;
   z-index: 1;
-}
-
-.lg-brand-panel-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-.lg-glow-orb-1 {
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, 
-    color-mix(in srgb, var(--accent) 25%, transparent) 0%,
-    transparent 70%);
-  border-radius: 50%;
-  top: 20%;
-  left: 20%;
-  z-index: 0;
-  animation: floatOrb 8s ease-in-out infinite;
-  filter: blur(40px);
-}
-
-.lg-glow-orb-2 {
-  position: absolute;
-  width: 250px;
-  height: 250px;
-  background: radial-gradient(circle, 
-    color-mix(in srgb, var(--accent) 20%, transparent) 0%,
-    transparent 70%);
-  border-radius: 50%;
-  bottom: 15%;
-  right: 18%;
-  z-index: 0;
-  animation: floatOrb 10s ease-in-out infinite 2s;
-  filter: blur(50px);
-}
-
-@keyframes floatOrb {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.3;
-  }
-  50% {
-    transform: translate(20px, -20px) scale(1.1);
-    opacity: 0.5;
-  }
-}
-
-.lg-brand-label {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 2.8px;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.lg-brand-badge {
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  width: 100%;
+  max-width: 420px;
+  background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  color: color-mix(in srgb, var(--text-primary) 88%, transparent);
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
+  border-radius: 20px;
+  padding: 48px 44px 40px;
+  box-sizing: border-box;
+  backdrop-filter: blur(20px);
 }
 
-.lg-brand-name-row {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-
-.lg-brand-name-block {
-  min-width: 0;
+.lg-brand {
+  text-align: center;
+  margin-bottom: 36px;
 }
 
 .lg-brand-name {
-  font-family: 'Inter', sans-serif;
-  font-size: clamp(38px, 4vw, 52px);
+  font-family: 'Dancing Script', cursive;
+  font-size: 2.6rem;
   font-weight: 700;
-  line-height: 1;
   color: var(--accent);
-  letter-spacing: -2px;
-  text-transform: lowercase;
-  margin-bottom: 8px;
+  line-height: 1;
+  letter-spacing: -0.5px;
 }
 
-.lg-brand-tagline {
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 2px;
+.lg-brand-sub {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--text-secondary);
+  margin-top: 6px;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-primary) 80%, transparent);
-}
-
-.lg-brand-about-block {
-  margin-bottom: 10px;
-}
-
-.lg-brand-about-label {
-  margin-bottom: 10px;
-  font-size: 11px;
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 88%, white 12%);
-  border: 1px solid color-mix(in srgb, var(--accent) 70%, #000 30%);
-  font-weight: 800;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #000000;
-}
-
-.lg-brand-description {
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.48;
-  color: color-mix(in srgb, var(--text-primary) 85%, transparent);
-}
-
-.lg-brand-podcast-block {
-  margin-bottom: 10px;
-}
-
-.lg-brand-feature-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  flex: 1;
-  grid-auto-rows: minmax(0, 1fr);
-  align-content: stretch;
-}
-
-.lg-brand-feature-item {
-  min-height: 112px;
-  height: 100%;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--bg-primary) 24%, transparent) 0%,
-      color-mix(in srgb, var(--bg-secondary) 84%, transparent) 100%);
-  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
-}
-
-.lg-brand-feature-title {
-  margin-bottom: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.lg-brand-feature-text {
-  font-size: 11px;
-  line-height: 1.45;
-  color: color-mix(in srgb, var(--text-primary) 76%, transparent);
-}
-
-.lg-right {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px;
-  border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
-  border-radius: 32px;
-  background: color-mix(in srgb, var(--bg-primary) 98%, transparent);
-}
-
-.lg-container {
-  width: 100%;
-  max-width: 390px;
-  opacity: 0;
-  transform: translateY(20px);
-  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
-}
-
-@keyframes fadeInUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.lg-header {
-  margin-bottom: 48px;
 }
 
 .lg-title {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 4px;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.lg-title::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(to right, 
-    var(--accent) 0%, 
-    transparent 100%);
-  opacity: 0.3;
-}
-
-.lg-subtitle {
-  font-size: 20px;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 3px;
+  letter-spacing: 0.18em;
+  color: var(--text-secondary);
   text-transform: uppercase;
   text-align: center;
-  font-family: 'Inter', sans-serif;
+  margin-bottom: 24px;
 }
 
-.lg-google-signin-container {
-  margin-bottom: 32px;
-}
-
-.lg-google-signin-button {
+.lg-google-btn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 13px 20px;
-  background-color: #ffffff;
-  border: 2px solid #dadce0;
-  border-radius: 8px;
-  color: #3c4043;
-  font-size: 12px;
+  gap: 10px;
+  padding: 12px 20px;
+  background: color-mix(in srgb, var(--bg-primary) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 16%, transparent);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
   font-weight: 500;
-  letter-spacing: 0.3px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-  overflow: hidden;
+  transition: background 0.15s, border-color 0.15s;
+  box-sizing: border-box;
 }
 
-.lg-google-signin-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(0, 0, 0, 0.03) 50%, 
-    transparent 100%);
-  transition: left 0.5s ease;
+.lg-google-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
+  border-color: color-mix(in srgb, var(--text-primary) 28%, transparent);
 }
 
-.lg-google-signin-button:hover::before {
-  left: 100%;
-}
-
-.lg-google-signin-button:hover {
-  border-color: #d2d3d4;
-  transform: translateY(-1px);
-  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
-}
-
-.lg-google-signin-button:disabled {
+.lg-google-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
 .lg-google-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.lg-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: lg-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes lg-spin {
+  to { transform: rotate(360deg); }
 }
 
 .lg-divider {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin: 32px 0;
+  gap: 12px;
+  margin: 20px 0;
 }
 
 .lg-divider::before,
@@ -381,253 +136,117 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 12%, transparent);
 }
 
 .lg-divider span {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  color: var(--accent);
-  text-transform: uppercase;
-  flex-shrink: 0;
-  background: transparent;
-  padding: 0 8px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
 }
 
 .lg-form {
   display: flex;
   flex-direction: column;
-  gap: 17px;
+  gap: 14px;
 }
 
-.lg-input-group {
+.lg-field {
   position: relative;
-}
-
-.lg-input-label {
-  position: absolute;
-  top: 13px;
-  left: 13px;
-  font-size: 12px;
-  color: color-mix(in srgb, var(--text-primary) 50%, transparent);
-  pointer-events: none;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  letter-spacing: 0.3px;
 }
 
 .lg-input {
   width: 100%;
-  padding: 13px;
-  background-color: var(--bg-secondary);
-  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
-  border-radius: 8px;
+  padding: 13px 16px;
+  background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 14%, transparent);
+  border-radius: 10px;
   color: var(--text-primary);
-  font-size: 12px;
   font-family: 'Inter', sans-serif;
-  letter-spacing: 0.3px;
+  font-size: 0.88rem;
   outline: none;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.lg-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
 }
 
 .lg-input:focus {
-  border-color: var(--accent);
-  background-color: color-mix(in srgb, var(--bg-secondary) 70%, var(--accent) 3%);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-.lg-input:focus + .lg-input-label,
-.lg-input:not(:placeholder-shown) + .lg-input-label {
-  top: -10px;
-  left: 12px;
-  font-size: 11px;
-  padding: 0 4px;
-  background-color: var(--bg-primary);
-  color: var(--accent);
-  font-weight: 600;
-  letter-spacing: 2px;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 .lg-input:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
 }
 
-.lg-button {
+.lg-submit {
   width: 100%;
-  padding: 13px 20px;
-  background-color: var(--accent);
-  border: 2px solid var(--accent);
-  border-radius: 8px;
-  color: var(--bg-primary);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2px;
+  padding: 13px;
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  color: #1a1008;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
-  margin-top: 12px;
-  position: relative;
-  overflow: hidden;
+  transition: opacity 0.15s, transform 0.1s;
+  margin-top: 4px;
 }
 
-.lg-button::before {
-  display: none;
+.lg-submit:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
-.lg-button:hover::before {
-  display: none;
-}
-
-.lg-button:hover {
-  background-color: var(--accent);
-  border: 2px solid var(--accent);
-  border-radius: 8px;
-}
-
-.lg-button:active {
-  background-color: var(--accent);
-  border: 2px solid var(--accent);
-  border-radius: 8px;
-}
-
-.lg-button:disabled {
-  opacity: 0.6;
+.lg-submit:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
 
-.lg-button-text {
-  position: relative;
-  z-index: 1;
-}
-
 .lg-footer {
-  margin-top: 32px;
+  margin-top: 22px;
   text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
 }
 
-.lg-description-founders {
-  margin-top: auto;
-  padding-top: 12px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-primary) 72%, transparent);
-}
-
-.lg-description-founders span {
-  color: var(--accent);
-}
-
-.lg-switch {
-  font-size: 12px;
-  color: color-mix(in srgb, var(--text-primary) 70%, transparent);
-  letter-spacing: 0.3px;
-}
-
-.lg-switch-link {
+.lg-link {
   color: var(--accent);
   font-weight: 600;
   cursor: pointer;
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: all 0.3s ease;
   margin-left: 5px;
-  letter-spacing: 2px;
+}
+
+.lg-link:hover {
+  text-decoration: underline;
+}
+
+.lg-back-link {
+  position: absolute;
+  top: 28px;
+  left: 36px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
   text-transform: uppercase;
-  font-size: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s;
+  z-index: 2;
 }
 
-.lg-switch-link:hover {
-  border-bottom-color: var(--accent);
-}
-
-.lg-google-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
-  border-top: 2px solid var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@media (max-width: 1200px) {
-  .lg-page {
-    grid-template-columns: 1fr;
-    height: auto;
-    min-height: 100vh;
-  }
-  
-  .lg-left {
-    display: none;
-  }
-  
-  .lg-right {
-    min-height: calc(100vh - 48px);
-  }
-}
-
-@media (max-width: 768px) {
-  .lg-page {
-    padding: 16px;
-  }
-
-  .lg-right {
-    padding: 32px 20px;
-    border-radius: 24px;
-  }
-  
-  .lg-container {
-    max-width: 100%;
-  }
-  
-  .lg-subtitle {
-    font-size: 24px;
-  }
-}
-
-@media (max-width: 480px) {
-  .lg-brand-panel {
-    padding: 28px 24px;
-    border-radius: 24px;
-  }
-
-  .lg-brand-panel-top,
-  .lg-brand-name-row {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .lg-brand-name {
-    font-size: 44px;
-  }
-
-  .lg-brand-description {
-    font-size: 14px;
-  }
-
-  .lg-brand-feature-list {
-    grid-template-columns: 1fr;
-  }
-
-  .lg-input,
-  .lg-button,
-  .lg-google-signin-button {
-    padding: 14px 16px;
-    font-size: 13px;
-  }
-  
-  .lg-title {
-    font-size: 11px;
-  }
-  
-  .lg-subtitle {
-    font-size: 20px;
-  }
+.lg-back-link:hover {
+  color: var(--accent);
 }

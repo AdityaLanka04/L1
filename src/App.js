@@ -36,6 +36,7 @@ import Profile from './pages/profile';
 import ProfileQuiz from './pages/ProfileQuiz';
 import SearchHub from './pages/SearchHub';
 import Atlas from './pages/Atlas';
+import Landing from './pages/Landing';
 import StudyInsights from './pages/StudyInsights';
 import Weaknesses from './pages/Weaknesses';
 import WeaknessPractice from './pages/WeaknessPractice';
@@ -89,7 +90,7 @@ function App() {
               />
             )}
             <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/" element={<Landing />} />
               <Route path="/search-hub" element={<ProtectedRoute><Atlas /></ProtectedRoute>} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
