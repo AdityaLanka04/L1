@@ -6,6 +6,8 @@ import {
   Database, GitBranch
 } from 'lucide-react';
 import logo from '../assets/logo.svg';
+import adiImg from '../assets/Adi.jpeg';
+import parthavImg from '../assets/Parthav.png';
 import './Landing.css';
 
 const NAV = ['HOME','TEAM','PROBLEM','ARCHITECTURE','FEATURES','MARKET','COMPETITION','BUSINESS'];
@@ -299,13 +301,13 @@ function SlideTeam({ navigate }) {
 
       <div className="lnd-founders-row">
         <div className="lnd-founder">
-          <div className="lnd-founder-avatar">AL</div>
+          <div className="lnd-founder-avatar"><img src={adiImg} alt="Aditya Lanka" /></div>
           <div className="lnd-founder-name">Aditya Lanka</div>
           <div className="lnd-founder-role">Co-Founder</div>
         </div>
         <div className="lnd-founders-divider"/>
         <div className="lnd-founder">
-          <div className="lnd-founder-avatar">PE</div>
+          <div className="lnd-founder-avatar"><img src={parthavImg} alt="Parthav Elangovan" /></div>
           <div className="lnd-founder-name">Parthav Elangovan</div>
           <div className="lnd-founder-role">Co-Founder</div>
         </div>
