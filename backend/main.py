@@ -380,12 +380,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Brainwave Backend API", version="4.0.0", lifespan=lifespan)
 
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://cerbyl.com").split(",")
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,https://cerbyl.com,https://www.cerbyl.com"
+).split(",")
 _is_dev = os.getenv("ENVIRONMENT", "development") != "production"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if _is_dev else allowed_origins,
-    allow_origin_regex=None if _is_dev else r"https://l1-[a-zA-Z0-9-]+\.vercel\.app$",
+    allow_origin_regex=r"https://.*\.vercel\.app$" if not _is_dev else None,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-User-Id", "X-Requested-With"],
