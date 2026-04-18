@@ -1,4 +1,4 @@
-export const API_URL = process.env.REACT_APP_API_URL || 'https://api.cerbyl.com/api';
+export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 export const apiRequest = async (endpoint, options = {}) => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
