@@ -25,9 +25,9 @@ _HEADERS = {
     ),
     "Accept": "text/html,application/xhtml+xml,application/pdf,*/*",
 }
-_DEFAULT_TIMEOUT = 120
-_MAX_PDF_BYTES = 80 * 1024 * 1024      # 80 MB for user uploads
-_PIPELINE_MAX_PDF_BYTES = 500 * 1024 * 1024  # 500 MB for admin ingestion
+_DEFAULT_TIMEOUT = 300
+_MAX_PDF_BYTES = 80 * 1024 * 1024
+_PIPELINE_MAX_PDF_BYTES = 10 * 1024 * 1024 * 1024  # 10 GB — no effective limit
 
 
 class DownloadError(Exception):

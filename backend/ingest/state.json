@@ -17,15 +17,11 @@
     "chunk_count": 2262,
     "ingested_at": "2026-03-25T06:50:11.745447+00:00"
   },
-  "algebra-and-trigonometry-2e": {
-    "success": false,
-    "error": "Download failed: Download failed after 3 attempts for http://www.stitz-zeager.com/szpct04082013.pdf: Client error '404 Not Found' for url 'https://www.stitz-zeager.com/szpct04082013.pdf'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404",
-    "attempted_at": "2026-03-25T06:50:16.317991+00:00"
-  },
   "precalculus-2e": {
-    "success": false,
-    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/precalculus-2e. Check the page manually and add direct_url to the catalog entry.",
-    "attempted_at": "2026-03-25T06:50:16.858218+00:00"
+    "success": true,
+    "doc_id": "5140b09a-b1e3-5991-b906-e16be26b40b7",
+    "chunk_count": 3838,
+    "ingested_at": "2026-04-18T03:06:40.957409+00:00"
   },
   "calculus-volume-1": {
     "success": true,
@@ -45,21 +41,6 @@
     "chunk_count": 3154,
     "ingested_at": "2026-03-25T07:00:56.722085+00:00"
   },
-  "us-history": {
-    "success": false,
-    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/us-history. Check the page manually and add direct_url to the catalog entry.",
-    "attempted_at": "2026-03-25T07:00:57.522124+00:00"
-  },
-  "world-history-volume-1": {
-    "success": false,
-    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-1. Check the page manually and add direct_url to the catalog entry.",
-    "attempted_at": "2026-03-25T07:00:58.075402+00:00"
-  },
-  "world-history-volume-2": {
-    "success": false,
-    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-2. Check the page manually and add direct_url to the catalog entry.",
-    "attempted_at": "2026-03-25T07:00:58.754257+00:00"
-  },
   "psychology-2e": {
     "success": true,
     "doc_id": "4e8de6c2-1239-5425-8f19-0a6959c3d2ee",
@@ -67,24 +48,16 @@
     "ingested_at": "2026-03-25T07:03:52.514940+00:00"
   },
   "sociology-3e": {
-    "success": false,
-    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/introduction-sociology-3e. Check the page manually and add direct_url to the catalog entry.",
-    "attempted_at": "2026-03-25T05:16:29.681043+00:00"
-  },
-  "principles-economics-3e": {
-    "success": false,
-    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/principles-economics-3e. Check the page manually and add direct_url to the catalog entry.",
-    "attempted_at": "2026-03-25T05:16:30.261207+00:00"
-  },
-  "anatomy-and-physiology": {
-    "success": false,
-    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/anatomy-and-physiology. Check the page manually and add direct_url to the catalog entry.",
-    "attempted_at": "2026-03-25T05:16:30.884084+00:00"
+    "success": true,
+    "doc_id": "184f9e01-f346-5081-b736-169ce7c56157",
+    "chunk_count": 4682,
+    "ingested_at": "2026-04-18T03:21:03.625742+00:00"
   },
   "college-physics-2e": {
-    "success": false,
-    "error": "Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/college-physics-2e. Check the page manually and add direct_url to the catalog entry.",
-    "attempted_at": "2026-03-25T05:16:31.470764+00:00"
+    "success": true,
+    "doc_id": "22d1c49c-f6a4-55b8-b42a-6a398c529f3f",
+    "chunk_count": 7728,
+    "ingested_at": "2026-04-18T04:23:30.889711+00:00"
   },
   "aqa-gcse-biology-8461": {
     "success": true,

@@ -266,34 +266,32 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Neo4j connection failed: {e}")
 
     try:
-        from tutor import chroma_store
-        chroma_dir = os.path.join(os.path.dirname(__file__), ".chroma_data")
-        chroma_store.initialize(persist_dir=chroma_dir)
-        logger.info("Chroma store initialized")
-    except Exception as e:
-        logger.warning(f"Chroma init failed: {e}")
+        from sentence_transformers import SentenceTransformer
+        try:
+            _embed_model_inst = SentenceTransformer("BAAI/bge-small-en-v1.5")
+            logger.info("Embedding model loaded: BAAI/bge-small-en-v1.5")
+        except Exception:
+            _embed_model_inst = SentenceTransformer("all-MiniLM-L6-v2")
+            logger.info("Embedding model loaded: all-MiniLM-L6-v2 (fallback)")
 
-    try:
-        import context_store
-        from tutor import chroma_store as _cs
-        if _cs.available():
-            context_store.initialize(_cs._client, _cs._embed_model)
-            logger.info("Context store (HS Mode) initialized")
-            try:
-                subjects = context_store.list_hs_subjects()
-                if subjects:
-                    logger.info(
-                        f"HS curriculum: {len(subjects)} subject(s) seeded: "
-                        + ", ".join(f"{s['subject']} ({s['doc_count']} docs, grade {s['grade_level']})" for s in subjects)
-                    )
-                else:
-                    logger.info("HS curriculum collection is empty")
-            except Exception as se:
-                logger.warning(f"HS curriculum listing failed: {se}")
-        else:
-            logger.warning("Context store skipped — ChromaDB unavailable")
+        import vector_store
+        vector_store.initialize(_embed_model_inst)
+        logger.info("vector_store (pgvector) initialized")
+
+        try:
+            import context_store
+            subjects = context_store.list_hs_subjects()
+            if subjects:
+                logger.info(
+                    f"HS curriculum: {len(subjects)} subject(s) seeded: "
+                    + ", ".join(f"{s['subject']} ({s['doc_count']} docs)" for s in subjects)
+                )
+            else:
+                logger.info("HS curriculum collection is empty")
+        except Exception as se:
+            logger.warning(f"HS curriculum listing failed: {se}")
     except Exception as e:
-        logger.warning(f"Context store init failed: {e}")
+        logger.warning(f"vector_store init failed: {e}")
 
     try:
         import redis_cache
@@ -307,12 +305,12 @@ async def lifespan(app: FastAPI):
 
     try:
         from services.ml_pipeline import ModelRegistry
-        from tutor import chroma_store as _cs_for_ml
+        import vector_store as _vs
         reg = ModelRegistry.get()
-        if _cs_for_ml._embed_model and not reg._embed_model:
-            reg._embed_model = _cs_for_ml._embed_model
+        if _vs.available() and _vs._embed_model and not reg._embed_model:
+            reg._embed_model = _vs._embed_model
             reg._ready = True
-            logger.info("ML ModelRegistry reused chroma_store embedding model")
+            logger.info("ML ModelRegistry reused vector_store embedding model")
         else:
             reg.load()
             logger.info("ML ModelRegistry initialized (sentence-transformers)")
@@ -320,20 +318,18 @@ async def lifespan(app: FastAPI):
         logger.warning(f"ModelRegistry init failed: {e}")
 
     try:
-        from tutor import chroma_store as _cs
+        import vector_store as _vs
         from services.memory_service import initialize_memory_service
 
-        if _cs.available():
+        if _vs.available():
             def _embed_fn(text):
-                if _cs._embed_model:
-                    try:
-                        return _cs._embed_model.encode(text, normalize_embeddings=True)
-                    except Exception:
-                        pass
-                return [0.0] * 384
-            initialize_memory_service(_embed_fn, _cs._client)
+                try:
+                    return _vs._embed_model.encode(text, normalize_embeddings=True)
+                except Exception:
+                    return [0.0] * 384
+            initialize_memory_service(_embed_fn)
         else:
-            logger.warning("MemoryService skipped — ChromaDB unavailable")
+            logger.warning("MemoryService skipped — vector_store unavailable")
     except Exception as e:
         logger.warning(f"MemoryService init failed: {e}")
 

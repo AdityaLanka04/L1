@@ -30,13 +30,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import context_store
 import document_processor
 import redis_cache
-from tutor import chroma_store
+import vector_store
 from database import SessionLocal, engine, Base
 
 logger = logging.getLogger(__name__)
 
 STATE_FILE = os.path.join(os.path.dirname(__file__), "state.json")
-CHROMA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".chroma_data")
 VERIFY_EVERY = 5
 SYSTEM_USER_EMAIL = "system@brainwave.internal"
 SYSTEM_USERNAME = "system"
@@ -158,16 +157,20 @@ class IngestPipeline:
         self._state: dict = {}
 
     def setup(self) -> None:
-        """Initialize ChromaDB, embedding model, context_store, and DB."""
-        logger.info("Initializing ChromaDB + embedding model...")
-        chroma_store.initialize(persist_dir=CHROMA_DIR)
-        if not chroma_store.available():
-            raise RuntimeError(
-                "ChromaDB or sentence-transformers failed to initialize. "
-                "Check that sentence-transformers is installed."
-            )
-        context_store.initialize(chroma_store._client, chroma_store._embed_model)
-        logger.info("context_store initialized.")
+        """Initialize vector_store (pgvector) + embedding model, context_store, and DB."""
+        logger.info("Initializing vector_store + embedding model...")
+        try:
+            from sentence_transformers import SentenceTransformer
+            try:
+                _em = SentenceTransformer("BAAI/bge-small-en-v1.5")
+            except Exception:
+                _em = SentenceTransformer("all-MiniLM-L6-v2")
+            vector_store.initialize(_em)
+        except Exception as e:
+            raise RuntimeError(f"vector_store init failed: {e}") from e
+        if not vector_store.available():
+            raise RuntimeError("vector_store failed to initialize — check DATABASE_URL and sentence-transformers")
+        logger.info("vector_store (pgvector) initialized.")
 
         try:
             redis_cache.init_redis()

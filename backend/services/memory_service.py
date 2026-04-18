@@ -23,9 +23,9 @@ def get_memory_service() -> Optional["CerbylMemoryService"]:
     return _memory_service
 
 
-def initialize_memory_service(embed_fn, chroma_client) -> "CerbylMemoryService":
+def initialize_memory_service(embed_fn, chroma_client=None) -> "CerbylMemoryService":
     global _memory_service
-    _memory_service = CerbylMemoryService(embed_fn, chroma_client)
+    _memory_service = CerbylMemoryService(embed_fn)
     logger.info("CerbylMemoryService initialized")
     return _memory_service
 
@@ -158,23 +158,8 @@ class CerbylMemoryService:
     Backed by SQLite (StudentMemory model) + ChromaDB per-student collection.
     """
 
-    def __init__(self, embed_fn, chroma_client):
+    def __init__(self, embed_fn, chroma_client=None):
         self._embed = embed_fn
-        self._chroma = chroma_client
-        self._collections: Dict[str, Any] = {}
-
-    def _collection(self, student_id: str):
-        key = f"memories_{student_id}"
-        if key not in self._collections:
-            try:
-                self._collections[key] = self._chroma.get_or_create_collection(
-                    name=key,
-                    metadata={"hnsw:space": "cosine"},
-                )
-            except Exception as e:
-                logger.warning(f"[Memory] ChromaDB collection create failed: {e}")
-                return None
-        return self._collections[key]
 
     def write_memory(self, db, student_id: str, event: MemoryEvent) -> Optional[Memory]:
         """Write (or update) a memory for today's interaction."""
@@ -247,17 +232,18 @@ class CerbylMemoryService:
 
     def _upsert_chroma(self, student_id: str, mem_row, content: str):
         try:
-            coll = self._collection(student_id)
-            if not coll:
+            import vector_store as vs
+            if not vs.available():
                 return
             embedding = self._embed(content)
             if hasattr(embedding, "tolist"):
                 embedding = embedding.tolist()
-            coll.upsert(
-                ids=[mem_row.memory_hash],
-                embeddings=[embedding],
-                documents=[content],
-                metadatas=[{
+            vs.upsert(
+                "memories",
+                mem_row.memory_hash,
+                content,
+                embedding,
+                {
                     "student_id": student_id,
                     "memory_hash": mem_row.memory_hash,
                     "concept_id": mem_row.concept_id or "",
@@ -265,10 +251,11 @@ class CerbylMemoryService:
                     "memory_type": mem_row.memory_type,
                     "importance_score": float(mem_row.importance_score),
                     "created_at": mem_row.created_at.isoformat() if mem_row.created_at else "",
-                }],
+                },
+                user_id=student_id,
             )
         except Exception as e:
-            logger.warning(f"[Memory] ChromaDB upsert failed: {e}")
+            logger.warning(f"[Memory] vector_store upsert failed: {e}")
 
     def _fetch_preference_memories(self, db, student_id: str, now: datetime) -> List[Memory]:
         """Always-on: fetch all stored user preferences regardless of query."""
@@ -314,32 +301,31 @@ class CerbylMemoryService:
         now = datetime.now(timezone.utc)
 
         try:
-            coll = self._collection(student_id)
-            if not coll:
-                raise ValueError("no collection")
+            import vector_store as vs
+            if not vs.available():
+                raise ValueError("vector_store unavailable")
 
             query_embedding = self._embed(query)
             if hasattr(query_embedding, "tolist"):
                 query_embedding = query_embedding.tolist()
 
-            where: Dict[str, Any] = {"student_id": student_id}
+            where_filter: Dict[str, Any] = {}
             if source_filter:
-                where["source"] = source_filter
+                where_filter["source"] = source_filter
 
-            chroma_results = coll.query(
-                query_embeddings=[query_embedding],
-                n_results=min(top_k * 2, 20),
-                where=where if len(where) > 0 else None,
+            vs_results = vs.search(
+                "memories",
+                query_embedding,
+                min(top_k * 2, 20),
+                user_id=student_id,
+                where=where_filter or None,
             )
 
-            ids = chroma_results.get("ids", [[]])[0]
-            distances = chroma_results.get("distances", [[]])[0]
-            metadatas = chroma_results.get("metadatas", [[]])[0]
-
             scored: List[tuple] = []
-            for i, mem_hash in enumerate(ids):
-                sim = 1.0 - distances[i] if distances else 0.5
-                meta = metadatas[i] if metadatas else {}
+            for r in vs_results:
+                meta = r["metadata"]
+                mem_hash = r["id"]
+                sim = max(0.0, 1.0 - r["distance"])
                 importance = float(meta.get("importance_score", 0.3))
 
                 try:
