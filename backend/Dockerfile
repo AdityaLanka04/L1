@@ -1,9 +1,8 @@
-# Backend Dockerfile
+# Backend Dockerfile — production (Azure Container Apps)
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for media processing
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libpq-dev \
@@ -11,20 +10,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
+# CPU-only torch kept slim; extra-index-url in requirements.txt handles this
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Pre-download embedding model so cold starts don't hit HuggingFace
+RUN python -c "\
+from sentence_transformers import SentenceTransformer; \
+try: \
+    SentenceTransformer('BAAI/bge-small-en-v1.5'); \
+    print('bge-small-en-v1.5 cached'); \
+except Exception as e: \
+    print(f'bge fallback: {e}'); \
+    SentenceTransformer('all-MiniLM-L6-v2'); \
+    print('all-MiniLM-L6-v2 cached') \
+"
+
 COPY . .
 
-# Create uploads directory
 RUN mkdir -p uploads attachments exports
 
-# Expose port
 EXPOSE 8000
 
-# Run the application
-CMD ["gunicorn", "main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "120", "--keep-alive", "5"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
+CMD ["gunicorn", "main:app", \
+     "--workers", "2", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--bind", "0.0.0.0:8000", \
+     "--timeout", "120", \
+     "--keep-alive", "5", \
+     "--access-logfile", "-"]

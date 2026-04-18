@@ -35,7 +35,8 @@ neo4j>=5.0.0
 # Observability (optional - for LangSmith tracing)
 langsmith>=0.1.0
 
-# AI/ML - Transformers (optional)
+# AI/ML - Transformers (CPU-only torch for containerized deployment)
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.2.0
 transformers>=4.40.0
 sentence-transformers>=2.7.0
@@ -44,13 +45,6 @@ scipy>=1.13.0
 
 # Spaced Repetition - FSRS (Free Spaced Repetition Scheduler)
 fsrs>=6.0.0
-
-# Vector Database
-chromadb>=0.4.0
-
-# Re-ranking (for Advanced RAG)
-# Cross-encoder models for improved retrieval
-# sentence-transformers already included above
 
 # Data Processing
 numpy>=1.21.0
