@@ -15,17 +15,10 @@ COPY requirements.txt .
 # CPU-only torch kept slim; extra-index-url in requirements.txt handles this
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY download_model.py .
+
 # Pre-download embedding model so cold starts don't hit HuggingFace
-RUN python -c "\
-from sentence_transformers import SentenceTransformer; \
-try: \
-    SentenceTransformer('BAAI/bge-small-en-v1.5'); \
-    print('bge-small-en-v1.5 cached'); \
-except Exception as e: \
-    print(f'bge fallback: {e}'); \
-    SentenceTransformer('all-MiniLM-L6-v2'); \
-    print('all-MiniLM-L6-v2 cached') \
-"
+RUN python download_model.py
 
 COPY . .
 
