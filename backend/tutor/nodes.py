@@ -264,8 +264,7 @@ async def fetch_student_state(state: TutorState) -> dict:
             logger.warning(f"DB fetch failed: {e}")
 
     last_session_summary = None
-    intent = state.get("intent", "")
-    if is_new_session and intent not in ("greeting", "returning_greeting"):
+    if is_new_session:
         last_session_summary = _fetch_last_session_summary(db_factory, user_id, current_chat_id=chat_id)
 
     return {
@@ -690,25 +689,14 @@ def _fetch_last_session_summary(db_factory, user_id: str, current_chat_id=None) 
                         topics.append(c)
                 topics = topics[:8]
 
-                # Fallback to raw user messages when no concept signals recorded
-                if not topics:
-                    msgs = (
-                        db.query(ChatMessage)
-                        .filter(ChatMessage.chat_session_id == sess.id)
-                        .order_by(ChatMessage.timestamp.asc())
-                        .limit(12)
-                        .all()
-                    )
-                    topics = _extract_message_topics(msgs)
-
                 msg_count = (
                     db.query(ChatMessage)
                     .filter(ChatMessage.chat_session_id == sess.id)
                     .count()
                 )
 
-                # Skip sessions that were just greetings / no real work
-                if not topics and msg_count <= 2:
+                # Only surface sessions where ML explicitly detected user-driven concepts
+                if not topics:
                     continue
 
                 date_str = sess.created_at.strftime("%b %d") if sess.created_at else "recently"
