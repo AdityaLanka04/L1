@@ -264,7 +264,8 @@ async def fetch_student_state(state: TutorState) -> dict:
             logger.warning(f"DB fetch failed: {e}")
 
     last_session_summary = None
-    if is_new_session:
+    intent = state.get("intent", "")
+    if is_new_session and intent not in ("greeting", "returning_greeting"):
         last_session_summary = _fetch_last_session_summary(db_factory, user_id, current_chat_id=chat_id)
 
     return {

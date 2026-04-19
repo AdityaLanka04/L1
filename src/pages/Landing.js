@@ -346,7 +346,7 @@ function SlideTeam({ navigate }) {
   );
 }
 
-const SLIDES = [SlideHome, SlideTeam, SlideProblem, SlideArchitecture, SlideFeatures, SlideMarket, SlideCompetition, SlideBusiness];
+const SLIDES = [SlideHome, SlideTeam, SlideProblem, SlideArchitecture, SlideFeatures];
 
 export default function Landing() {
   const [slide, setSlide] = useState(0);
