@@ -1168,9 +1168,10 @@ def _build_instructional_task(state: TutorState) -> str:
     if intent == "off_topic":
         return (
             "The student sent a message that is not about a learning topic. "
-            "Respond warmly in 1 sentence and ask what they would like to study today. "
-            "Do NOT suggest any specific topics, subjects, equations, or examples. "
-            "Wait for the student to tell you what they want to learn."
+            "Respond warmly and redirect them toward learning. "
+            "If STRUCTURED LEARNING DATA contains their weak areas, past topics, notes, or flashcard sets — "
+            "reference those specifically to suggest what to work on next. "
+            "If there is NO data about them yet, just ask what they want to study — do NOT invent topics."
         )
 
     if hint:
@@ -1223,8 +1224,9 @@ def build_prompt_and_respond(state: TutorState) -> dict:
         "Do NOT write things like 'Common mistakes to address:', 'For the style he prefers, I will:', "
         "'Let me think about this:', or any meta-commentary about how you are structuring your answer. "
         "Go directly to the answer — no preamble, no self-narration. "
-        "When reporting on the student's activity, always use the STRUCTURED LEARNING DATA provided — "
-        "never fabricate or guess information about past conversations. "
+        "When suggesting topics, weak areas, or past work — ONLY reference what appears in STRUCTURED LEARNING DATA. "
+        "If no data exists for the student, ask what they want to study. "
+        "NEVER invent topics, subjects, or examples that are not in the student's data. "
         "MATH FORMATTING — THIS IS MANDATORY: Every mathematical expression MUST be wrapped in LaTeX delimiters. "
         "Use \\( ... \\) for inline math and \\[ ... \\] for display/block equations. "
         "NEVER write bare math like: ax^2 + bx + c = 0. ALWAYS write: \\(ax^2 + bx + c = 0\\). "
