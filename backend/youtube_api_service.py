@@ -19,6 +19,13 @@ from typing import Dict, Optional, Any, List
 from pathlib import Path
 import asyncio
 
+from ytdlp_utils import (
+    classify_ytdlp_error,
+    get_ytdlp_common_args,
+    summarize_ytdlp_error,
+    ytdlp_auth_args,
+)
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -375,97 +382,133 @@ class YouTubeAPIService:
             url = f"https://www.youtube.com/watch?v={video_id}"
             
             with tempfile.TemporaryDirectory() as tmpdir:
-                list_cmd = [
-                    "yt-dlp",
-                    "--list-subs",
-                    url
-                ]
-                
-                logger.info(f"Checking available subtitles for video: {video_id}")
-                
                 loop = asyncio.get_event_loop()
-                list_process = await loop.run_in_executor(
-                    None,
-                    lambda: subprocess.run(
-                        list_cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=30
-                    )
-                )
-                
-                logger.info(f"Available subtitles output: {list_process.stdout[:500]}")
-                
-                sub_lang_options = [
-                    f"{language},en",
-                    "en",
-                    "en-US,en-GB,en",
-                    "*",
-                ]
-                
+                sub_lang_options = [f"{language},en", "en", "en-US,en-GB,en", "*"]
                 subtitle_file = None
                 video_info = {}
-                
-                for sub_langs in sub_lang_options:
-                    logger.info(f"Trying subtitle languages: {sub_langs}")
-                    
-                    cmd = [
+
+                terminal_codes = {
+                    "age_restricted",
+                    "bot_challenge",
+                    "signin_required",
+                    "rate_limited",
+                    "video_unavailable",
+                    "geo_restricted",
+                    "forbidden",
+                    "extractor_error",
+                    "network_error",
+                }
+                last_error = {"code": "unknown", "message": "No captions available for this video"}
+
+                with ytdlp_auth_args(logger) as auth_args:
+                    common_args = get_ytdlp_common_args()
+                    list_cmd = [
                         "yt-dlp",
-                        "--write-auto-sub",
-                        "--write-sub",
-                        "--sub-lang", sub_langs,
-                        "--sub-format", "vtt",
-                        "--skip-download",
-                        "--print-json",
-                        "-o", f"{tmpdir}/%(id)s.%(ext)s",
-                        url
+                        "--no-playlist",
+                        *common_args,
+                        *auth_args,
+                        "--list-subs",
+                        url,
                     ]
-                    
+
+                    logger.info("Checking available subtitles for video: %s", video_id)
                     process = await loop.run_in_executor(
                         None,
                         lambda: subprocess.run(
-                            cmd,
+                            list_cmd,
                             capture_output=True,
                             text=True,
-                            timeout=60
+                            timeout=45
                         )
                     )
-                    
-                    if process.returncode != 0:
-                        error_msg = process.stderr or "Unknown error"
-                        logger.warning(f"yt-dlp attempt failed with {sub_langs}: {error_msg[:200]}")
-                        
-                        if "Video unavailable" in error_msg:
-                            return {"success": False, "error": "Video is unavailable or private"}
-                        if "Sign in" in error_msg:
-                            return {"success": False, "error": "Video requires sign-in (age-restricted)"}
-                        
-                        continue
-                    
+
                     if process.stdout:
-                        try:
-                            video_info = json.loads(process.stdout)
-                        except json.JSONDecodeError:
-                            pass
-                    
-                    tmppath = Path(tmpdir)
-                    
-                    vtt_files = list(tmppath.glob("*.vtt"))
-                    if vtt_files:
-                        subtitle_file = vtt_files[0]
-                        logger.info(f"Found subtitle file: {subtitle_file.name}")
-                        break
-                    
-                    for pattern in ["*.en.vtt", "*.en-*.vtt", f"*.{language}.vtt", "*auto*.vtt"]:
-                        matches = list(tmppath.glob(pattern))
-                        if matches:
-                            subtitle_file = matches[0]
-                            logger.info(f"Found subtitle file with pattern {pattern}: {subtitle_file.name}")
+                        logger.info("Available subtitles output: %s", summarize_ytdlp_error(process.stdout, max_len=500))
+                    if process.returncode != 0:
+                        classified = classify_ytdlp_error(process.stderr or process.stdout or "yt-dlp failed")
+                        logger.warning(
+                            "yt-dlp --list-subs failed code=%s detail=%s",
+                            classified["code"],
+                            classified["detail"],
+                        )
+                        if classified["code"] in terminal_codes:
+                            return {"success": False, "error": classified["message"], "error_code": classified["code"]}
+
+                    for sub_langs in sub_lang_options:
+                        logger.info("Trying subtitle languages: %s", sub_langs)
+
+                        cmd = [
+                            "yt-dlp",
+                            "--no-playlist",
+                            *common_args,
+                            *auth_args,
+                            "--write-auto-sub",
+                            "--write-sub",
+                            "--sub-lang",
+                            sub_langs,
+                            "--sub-format",
+                            "vtt",
+                            "--skip-download",
+                            "--print-json",
+                            "-o",
+                            f"{tmpdir}/%(id)s.%(ext)s",
+                            url,
+                        ]
+
+                        process = await loop.run_in_executor(
+                            None,
+                            lambda: subprocess.run(
+                                cmd,
+                                capture_output=True,
+                                text=True,
+                                timeout=90
+                            )
+                        )
+
+                        if process.returncode != 0:
+                            classified = classify_ytdlp_error(process.stderr or process.stdout or "Unknown error")
+                            logger.warning(
+                                "yt-dlp subtitle attempt failed lang=%s code=%s detail=%s",
+                                sub_langs,
+                                classified["code"],
+                                classified["detail"],
+                            )
+                            last_error = classified
+                            if classified["code"] in terminal_codes:
+                                return {
+                                    "success": False,
+                                    "error": classified["message"],
+                                    "error_code": classified["code"],
+                                }
+                            continue
+
+                        if process.stdout:
+                            for line in reversed(process.stdout.splitlines()):
+                                line = line.strip()
+                                if line.startswith("{") and line.endswith("}"):
+                                    try:
+                                        video_info = json.loads(line)
+                                        break
+                                    except json.JSONDecodeError:
+                                        continue
+
+                        tmppath = Path(tmpdir)
+                        vtt_files = list(tmppath.glob("*.vtt"))
+                        if vtt_files:
+                            subtitle_file = vtt_files[0]
+                            logger.info("Found subtitle file: %s", subtitle_file.name)
                             break
-                    
-                    if subtitle_file:
-                        break
-                
+
+                        for pattern in ["*.en.vtt", "*.en-*.vtt", f"*.{language}.vtt", "*auto*.vtt"]:
+                            matches = list(tmppath.glob(pattern))
+                            if matches:
+                                subtitle_file = matches[0]
+                                logger.info("Found subtitle file with pattern %s: %s", pattern, subtitle_file.name)
+                                break
+
+                        if subtitle_file:
+                            break
+
                 if not subtitle_file:
                     if video_info:
                         subs = video_info.get("subtitles", {})
@@ -475,18 +518,23 @@ class YouTubeAPIService:
                             available_langs = list(subs.keys()) + list(auto_subs.keys())
                             logger.error(f"Subtitles exist ({available_langs}) but could not be downloaded")
                             return {
-                                "success": False, 
-                                "error": f"Subtitles exist ({', '.join(available_langs[:5])}) but could not be downloaded. Please try again."
+                                "success": False,
+                                "error": f"Subtitles exist ({', '.join(available_langs[:5])}) but could not be downloaded. Please try again.",
+                                "error_code": "subtitle_download_failed",
                             }
                     
                     logger.error("No subtitle files found after all attempts")
-                    return {"success": False, "error": "No captions available for this video"}
+                    return {
+                        "success": False,
+                        "error": last_error.get("message", "No captions available for this video"),
+                        "error_code": last_error.get("code", "no_captions"),
+                    }
                 
                 transcript_data = self._parse_vtt(subtitle_file)
                 
                 if not transcript_data.get("segments"):
                     logger.error("Could not parse subtitle file")
-                    return {"success": False, "error": "Could not parse subtitle file"}
+                    return {"success": False, "error": "Could not parse subtitle file", "error_code": "parse_error"}
                 
                 title = video_info.get("title", f"YouTube Video {video_id}")
                 author = video_info.get("uploader", video_info.get("channel", "Unknown"))
@@ -512,13 +560,17 @@ class YouTubeAPIService:
                 
         except subprocess.TimeoutExpired:
             logger.error("yt-dlp request timed out")
-            return {"success": False, "error": "Request timed out. Please try again."}
+            return {"success": False, "error": "Request timed out. Please try again.", "error_code": "timeout"}
         except FileNotFoundError:
             logger.error("yt-dlp not found")
-            return {"success": False, "error": "yt-dlp not installed. Please install it: pip install yt-dlp"}
+            return {
+                "success": False,
+                "error": "yt-dlp not installed. Please install it: pip install yt-dlp",
+                "error_code": "missing_binary",
+            }
         except Exception as e:
             logger.error(f"yt-dlp fetch error: {e}", exc_info=True)
-            return {"success": False, "error": f"Error processing video: {str(e)}"}
+            return {"success": False, "error": f"Error processing video: {str(e)}", "error_code": "exception"}
     
     def _parse_vtt(self, vtt_path: Path) -> Dict:
         """Parse VTT subtitle file to transcript"""
@@ -636,27 +688,41 @@ class YouTubeAPIService:
         """Get video info using yt-dlp (no download)"""
         try:
             url = f"https://www.youtube.com/watch?v={video_id}"
-            
-            cmd = [
-                "yt-dlp",
-                "--dump-json",
-                "--no-download",
-                url
-            ]
-            
             loop = asyncio.get_event_loop()
-            process = await loop.run_in_executor(
-                None,
-                lambda: subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30
+
+            with ytdlp_auth_args(logger) as auth_args:
+                cmd = [
+                    "yt-dlp",
+                    "--no-playlist",
+                    *get_ytdlp_common_args(),
+                    *auth_args,
+                    "--dump-json",
+                    "--no-download",
+                    url,
+                ]
+
+                process = await loop.run_in_executor(
+                    None,
+                    lambda: subprocess.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=45
+                    )
                 )
-            )
             
             if process.returncode == 0 and process.stdout:
-                info = json.loads(process.stdout)
+                info = {}
+                for line in reversed(process.stdout.splitlines()):
+                    line = line.strip()
+                    if line.startswith("{") and line.endswith("}"):
+                        try:
+                            info = json.loads(line)
+                            break
+                        except json.JSONDecodeError:
+                            continue
+                if not info:
+                    return self._fallback_video_info(video_id)
                 return {
                     "success": True,
                     "title": info.get("title", f"YouTube Video {video_id}"),
@@ -666,6 +732,9 @@ class YouTubeAPIService:
                     "description": info.get("description", "")[:500]
                 }
             
+            if process.returncode != 0:
+                classified = classify_ytdlp_error(process.stderr or process.stdout or "yt-dlp failed")
+                logger.warning("get_video_info yt-dlp failed code=%s detail=%s", classified["code"], classified["detail"])
             return self._fallback_video_info(video_id)
             
         except Exception as e:

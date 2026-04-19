@@ -60,6 +60,12 @@ except ImportError:
 
 from youtube_api_service import youtube_service, YouTubeAPIService
 from rate_limiter import rate_limiter
+from ytdlp_utils import (
+    classify_ytdlp_error,
+    get_ytdlp_common_args,
+    summarize_ytdlp_error,
+    ytdlp_auth_args,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +156,7 @@ class AIMediaProcessor:
 
             normalized_url = url.strip()
             download_result = await self._download_youtube_audio(normalized_url)
+            primary_error = download_result.get("error")
 
             if download_result.get("success"):
                 temp_dir = download_result.get("temp_dir")
@@ -201,13 +208,15 @@ class AIMediaProcessor:
             else:
                 logger.warning(
                     "Primary YouTube audio download failed, trying caption fallback: %s",
-                    download_result.get("error", "Unknown download error")
+                    primary_error or "Unknown download error"
                 )
 
             caption_result = await self.youtube_service.process_video(normalized_url)
             if not caption_result.get("success"):
                 error_msg = caption_result.get("error", "Failed to process YouTube video")
                 logger.error(f"Caption fallback failed: {error_msg}")
+                if primary_error and primary_error != error_msg:
+                    raise ValueError(f"{error_msg}. Audio path failed first: {primary_error}")
                 raise ValueError(error_msg)
 
             video_info = caption_result.get("video_info", {})
@@ -246,16 +255,6 @@ class AIMediaProcessor:
         """Download YouTube audio with yt-dlp for ASR transcription."""
         temp_dir = tempfile.mkdtemp(prefix="yt_audio_")
         output_template = os.path.join(temp_dir, "%(id)s.%(ext)s")
-        base_cmd = [
-            "yt-dlp",
-            "--no-playlist",
-            "--restrict-filenames",
-            "--extractor-args",
-            "youtube:player_client=android,web",
-            "--print-json",
-            "-o",
-            output_template,
-        ]
         format_attempts = [
             ["-f", "bestaudio/best"],
             ["-f", "best"],
@@ -265,84 +264,113 @@ class AIMediaProcessor:
         try:
             loop = asyncio.get_event_loop()
             final_error = "yt-dlp failed to download audio"
-            for fmt_args in format_attempts:
-                cmd = base_cmd + fmt_args + [url]
-                process = await loop.run_in_executor(
-                    None,
-                    lambda: subprocess.run(
-                        cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=180
-                    )
-                )
+            final_error_code = "unknown"
+            terminal_codes = {
+                "age_restricted",
+                "bot_challenge",
+                "signin_required",
+                "rate_limited",
+                "video_unavailable",
+                "geo_restricted",
+                "forbidden",
+                "extractor_error",
+                "network_error",
+            }
 
-                if process.returncode != 0:
-                    error_msg = (process.stderr or process.stdout or "yt-dlp failed").strip()
-                    logger.warning("yt-dlp audio attempt failed (%s): %s", " ".join(fmt_args) or "default", error_msg[:240])
-
-                    if "Sign in to confirm your age" in error_msg or "Sign in" in error_msg:
-                        final_error = "Video requires sign-in (age-restricted)"
-                        break
-                    if "429" in error_msg or "Too Many Requests" in error_msg:
-                        final_error = "YouTube rate limit reached. Please retry later."
-                        break
-                    if "Video unavailable" in error_msg:
-                        final_error = "Video is unavailable or private"
-                        break
-
-                    final_error = error_msg
-                    continue
-
-                metadata = {}
-                for line in reversed(process.stdout.splitlines()):
-                    line = line.strip()
-                    if line.startswith("{") and line.endswith("}"):
-                        try:
-                            metadata = json.loads(line)
-                            break
-                        except json.JSONDecodeError:
-                            continue
-
-                audio_candidates = [
-                    p for p in os.listdir(temp_dir)
-                    if os.path.isfile(os.path.join(temp_dir, p))
-                    and not p.endswith(".part")
-                    and not p.endswith(".ytdl")
-                    and os.path.splitext(p)[1].lower() in {".m4a", ".webm", ".mp3", ".wav", ".ogg", ".opus", ".mp4"}
+            with ytdlp_auth_args(logger) as auth_args:
+                base_cmd = [
+                    "yt-dlp",
+                    "--no-playlist",
+                    "--restrict-filenames",
+                    *get_ytdlp_common_args(),
+                    *auth_args,
+                    "--print-json",
+                    "-o",
+                    output_template,
                 ]
 
-                if not audio_candidates:
-                    final_error = "Downloaded audio file not found"
-                    continue
+                for fmt_args in format_attempts:
+                    cmd = base_cmd + fmt_args + [url]
+                    process = await loop.run_in_executor(
+                        None,
+                        lambda: subprocess.run(
+                            cmd,
+                            capture_output=True,
+                            text=True,
+                            timeout=180
+                        )
+                    )
 
-                audio_candidates.sort(
-                    key=lambda name: os.path.getmtime(os.path.join(temp_dir, name)),
-                    reverse=True
-                )
-                audio_path = os.path.join(temp_dir, audio_candidates[0])
+                    if process.returncode != 0:
+                        error_msg = (process.stderr or process.stdout or "yt-dlp failed").strip()
+                        classified = classify_ytdlp_error(error_msg)
+                        logger.warning(
+                            "yt-dlp audio attempt failed (%s) code=%s detail=%s",
+                            " ".join(fmt_args) or "default",
+                            classified["code"],
+                            summarize_ytdlp_error(error_msg),
+                        )
 
-                video_id = metadata.get("id") or self.youtube_service.extract_video_id(url)
-                return {
-                    "success": True,
-                    "audio_path": audio_path,
-                    "temp_dir": temp_dir,
-                    "metadata": metadata,
-                    "video_id": video_id
-                }
+                        final_error = classified["message"]
+                        final_error_code = classified["code"]
+                        if classified["code"] in terminal_codes:
+                            break
+                        continue
+
+                    metadata = {}
+                    for line in reversed(process.stdout.splitlines()):
+                        line = line.strip()
+                        if line.startswith("{") and line.endswith("}"):
+                            try:
+                                metadata = json.loads(line)
+                                break
+                            except json.JSONDecodeError:
+                                continue
+
+                    audio_candidates = [
+                        p for p in os.listdir(temp_dir)
+                        if os.path.isfile(os.path.join(temp_dir, p))
+                        and not p.endswith(".part")
+                        and not p.endswith(".ytdl")
+                        and os.path.splitext(p)[1].lower() in {".m4a", ".webm", ".mp3", ".wav", ".ogg", ".opus", ".mp4"}
+                    ]
+
+                    if not audio_candidates:
+                        final_error = "Downloaded audio file not found"
+                        final_error_code = "missing_output"
+                        continue
+
+                    audio_candidates.sort(
+                        key=lambda name: os.path.getmtime(os.path.join(temp_dir, name)),
+                        reverse=True
+                    )
+                    audio_path = os.path.join(temp_dir, audio_candidates[0])
+
+                    video_id = metadata.get("id") or self.youtube_service.extract_video_id(url)
+                    return {
+                        "success": True,
+                        "audio_path": audio_path,
+                        "temp_dir": temp_dir,
+                        "metadata": metadata,
+                        "video_id": video_id
+                    }
 
             shutil.rmtree(temp_dir, ignore_errors=True)
-            return {"success": False, "error": final_error}
+            return {"success": False, "error": final_error, "error_code": final_error_code}
         except subprocess.TimeoutExpired:
             shutil.rmtree(temp_dir, ignore_errors=True)
-            return {"success": False, "error": "Audio download timed out"}
+            return {"success": False, "error": "Audio download timed out", "error_code": "timeout"}
         except FileNotFoundError:
             shutil.rmtree(temp_dir, ignore_errors=True)
-            return {"success": False, "error": "yt-dlp not installed. Please install it: pip install yt-dlp"}
+            return {
+                "success": False,
+                "error": "yt-dlp not installed. Please install it: pip install yt-dlp",
+                "error_code": "missing_binary",
+            }
         except Exception as e:
             logger.error(f"YouTube audio download error: {str(e)}", exc_info=True)
             shutil.rmtree(temp_dir, ignore_errors=True)
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": str(e), "error_code": "exception"}
     
     async def transcribe_audio_groq(self, audio_path: str) -> Dict:
         """Transcribe audio using Groq Whisper (FREE)"""
