@@ -577,33 +577,27 @@ const AIChat = ({ sharedMode = false }) => {
   }
   };
 
-  const handleNewChat = () => {
-    
+  const handleNewChat = async () => {
     if (sidebarNavRef.current) {
-      sidebarNavRef.current.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
+      sidebarNavRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    
-    
     scrollToTop();
-    
-    
+
     const existingNewChat = chatSessions.find(chat => chat.title === 'New Chat');
-    
+
     if (existingNewChat) {
-      
+      setMessages([]);
+      setActiveChatId(existingNewChat.id);
       isLoadingRef.current = false;
       navigate(`/ai-chat/${existingNewChat.id}`);
     } else {
-      
-      createNewChat().then(newChatId => {
-        if (newChatId) {
-          isLoadingRef.current = false;
-          navigate(`/ai-chat/${newChatId}`);
-        }
-      });
+      const newChatId = await createNewChat();
+      if (newChatId) {
+        setMessages([]);
+        setActiveChatId(newChatId);
+        isLoadingRef.current = false;
+        navigate(`/ai-chat/${newChatId}`);
+      }
     }
   };
 
@@ -1713,14 +1707,10 @@ const AIChat = ({ sharedMode = false }) => {
       // Only load messages if this is a different chat than what we have active
       if (activeChatId !== numericChatId) {
         setActiveChatId(numericChatId);
-        // Only clear and reload if we're switching to a different existing chat
         if (!isLoadingRef.current) {
           isLoadingRef.current = true;
-          setMessages([]);
           loadChatMessages(numericChatId);
-        } else {
         }
-      } else {
       }
     } else if (chatId === undefined || chatId === null) {
       // Only reset if we're at /ai-chat with no ID (fresh start)

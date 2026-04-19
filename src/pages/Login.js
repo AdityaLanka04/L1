@@ -165,7 +165,6 @@ function Login() {
         <div className="lg-card">
           <div className="lg-brand">
             <div className="lg-brand-name">cerbyl</div>
-            <div className="lg-brand-sub">AI Learning Workspace</div>
           </div>
 
           <div className="lg-title">Sign in to continue</div>

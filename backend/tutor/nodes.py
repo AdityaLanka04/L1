@@ -1166,7 +1166,12 @@ def _build_instructional_task(state: TutorState) -> str:
         )
 
     if intent == "off_topic":
-        return "Gently redirect the student toward a learning topic."
+        return (
+            "The student sent a message that is not about a learning topic. "
+            "Respond warmly in 1 sentence and ask what they would like to study today. "
+            "Do NOT suggest any specific topics, subjects, equations, or examples. "
+            "Wait for the student to tell you what they want to learn."
+        )
 
     if hint:
         style      = student.preferred_style if student else "balanced"

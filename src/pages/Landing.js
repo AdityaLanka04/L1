@@ -10,7 +10,7 @@ import adiImg from '../assets/Adi.jpeg';
 import parthavImg from '../assets/Parthav.png';
 import './Landing.css';
 
-const NAV = ['HOME','TEAM','PROBLEM','ARCHITECTURE','FEATURES','MARKET','COMPETITION','BUSINESS'];
+const NAV = ['HOME','TEAM','PROBLEM','ARCHITECTURE','FEATURES','WHY CERBYL','COMPETITION'];
 
 const FEATURES = [
   { icon: <Brain size={19}/>,    title: 'Memory-Aware AI Tutor',   desc: 'Reads your past sessions and weak topics before every reply. A tutor with actual memory.' },
@@ -346,7 +346,34 @@ function SlideTeam({ navigate }) {
   );
 }
 
-const SLIDES = [SlideHome, SlideTeam, SlideProblem, SlideArchitecture, SlideFeatures];
+function SlideWhyCerbyl({ navigate }) {
+  const reasons = [
+    { num: '01', title: 'Built by students', desc: 'We were the students losing hours to four apps that never talked to each other. Cerbyl is the single workspace we wished existed.' },
+    { num: '02', title: 'AI that remembers you', desc: 'Every quiz score, note, and chat session is stored in your personal knowledge graph. The AI reads your actual history before every reply — not just the current message.' },
+    { num: '03', title: 'The full study loop', desc: 'Tutor → Notes → Flashcards → Quizzes → Battles → Roadmaps. One platform, one profile, zero app switching.' },
+    { num: '04', title: 'Science-backed scheduling', desc: 'FSRS-6 spaced repetition and Neo4j prerequisite graphs ensure you study the right thing at the right time — always.' },
+  ];
+  return (
+    <div className="lnd-slide lnd-slide--why">
+      <div className="lnd-slide-label">WHY CERBYL</div>
+      <h2 className="lnd-slide-title">One AI workspace that actually knows you.</h2>
+      <div className="lnd-why-grid">
+        {reasons.map(r => (
+          <div key={r.num} className="lnd-why-card">
+            <div className="lnd-why-num">{r.num}</div>
+            <div className="lnd-why-title">{r.title}</div>
+            <div className="lnd-why-desc">{r.desc}</div>
+          </div>
+        ))}
+      </div>
+      <button className="lnd-cta-btn" onClick={() => navigate('/register')}>
+        Get started free <ArrowRight size={14}/>
+      </button>
+    </div>
+  );
+}
+
+const SLIDES = [SlideHome, SlideTeam, SlideProblem, SlideArchitecture, SlideFeatures, SlideWhyCerbyl, SlideCompetition];
 
 export default function Landing() {
   const [slide, setSlide] = useState(0);

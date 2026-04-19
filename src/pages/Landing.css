@@ -979,3 +979,37 @@
 }
 
 .lnd-sep { opacity: 0.35; }
+
+.lnd-why-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  max-width: 720px;
+  margin: 24px auto 28px;
+}
+.lnd-why-card {
+  background: rgba(215,179,140,0.05);
+  border: 1px solid rgba(215,179,140,0.15);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lnd-why-num {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: rgba(215,179,140,0.5);
+  letter-spacing: 0.08em;
+}
+.lnd-why-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent, #D7B38C);
+}
+.lnd-why-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #B8C0CC);
+  line-height: 1.55;
+}
