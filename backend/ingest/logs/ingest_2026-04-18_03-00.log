@@ -1,0 +1,171 @@
+23:00:34 INFO     ============================================================
+23:00:34 INFO       Brainwave Curriculum Ingest — LIVE
+23:00:34 INFO       Source:  all
+23:00:34 INFO       Docs:    71 entries
+23:00:34 INFO       Mode:    resume=yes
+23:00:34 INFO       Log:     D:\Brainwave\L1\backend\ingest\logs\ingest_2026-04-18_03-00.log
+23:00:34 INFO     ============================================================
+23:00:37 INFO     Using SQLite database
+23:00:37 INFO     Initializing ChromaDB + embedding model...
+23:00:46 INFO     Use pytorch device_name: cpu
+23:00:46 INFO     Load pretrained SentenceTransformer: BAAI/bge-small-en-v1.5
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+23:00:47 WARNING  Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/modules.json "HTTP/1.1 200 OK"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config_sentence_transformers.json "HTTP/1.1 200 OK"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config_sentence_transformers.json "HTTP/1.1 200 OK"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/README.md "HTTP/1.1 200 OK"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/modules.json "HTTP/1.1 200 OK"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/sentence_bert_config.json "HTTP/1.1 200 OK"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+23:00:47 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config.json "HTTP/1.1 200 OK"
+23:00:48 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+23:00:48 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config.json "HTTP/1.1 200 OK"
+23:00:48 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+23:00:48 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/tokenizer_config.json "HTTP/1.1 200 OK"
+23:00:48 INFO     HTTP Request: GET https://huggingface.co/api/models/BAAI/bge-small-en-v1.5/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+23:00:48 INFO     HTTP Request: GET https://huggingface.co/api/models/BAAI/bge-small-en-v1.5/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+23:00:48 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+23:00:48 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+23:00:48 INFO     HTTP Request: GET https://huggingface.co/api/models/BAAI/bge-small-en-v1.5 "HTTP/1.1 200 OK"
+23:00:48 INFO     Chroma store initialised with BAAI/bge-small-en-v1.5
+23:00:48 INFO     context_store initialized.
+23:01:07 INFO     Redis unavailable (Timeout connecting to server) — using in-memory fallback cache
+23:01:07 INFO     Loaded state: 22 previously ingested docs will be skipped.
+23:01:07 INFO     [1/71] Skipping (already ingested): Biology 2e
+23:01:07 INFO     [2/71] Skipping (already ingested): Chemistry 2e
+23:01:07 INFO     [3/71] Skipping (already ingested): College Algebra 2e
+23:01:07 INFO     [4/71] Skipping (already ingested): Calculus Volume 1
+23:01:07 INFO     [5/71] Skipping (already ingested): Calculus Volume 2
+23:01:07 INFO     [6/71] Skipping (already ingested): Introductory Statistics
+23:01:07 INFO     [7/71] Skipping (already ingested): Introduction to Psychology
+23:01:07 INFO     [8/71] Ingesting: Algebra and Trigonometry 2e
+23:01:07 INFO       Downloading: Algebra and Trigonometry 2e
+23:01:07 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB_EBPcvmG.pdf "HTTP/1.1 403 Forbidden"
+23:01:07 WARNING  Download attempt 1 failed for https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB_EBPcvmG.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB_EBPcvmG.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 1s
+23:01:09 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB_EBPcvmG.pdf "HTTP/1.1 403 Forbidden"
+23:01:09 WARNING  Download attempt 2 failed for https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB_EBPcvmG.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB_EBPcvmG.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 2s
+23:01:12 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB_EBPcvmG.pdf "HTTP/1.1 403 Forbidden"
+23:01:12 ERROR    [8/71] FAILED: Algebra and Trigonometry 2e — Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB_EBPcvmG.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB_EBPcvmG.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+23:01:12 INFO     [9/71] Ingesting: Precalculus 2e
+23:01:12 INFO       Downloading: Precalculus 2e
+23:01:12 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus2e-WEB_rNsEQ3h.pdf "HTTP/1.1 403 Forbidden"
+23:01:12 WARNING  Download attempt 1 failed for https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus2e-WEB_rNsEQ3h.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus2e-WEB_rNsEQ3h.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 1s
+23:01:14 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus2e-WEB_rNsEQ3h.pdf "HTTP/1.1 403 Forbidden"
+23:01:14 WARNING  Download attempt 2 failed for https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus2e-WEB_rNsEQ3h.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus2e-WEB_rNsEQ3h.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 2s
+23:01:17 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus2e-WEB_rNsEQ3h.pdf "HTTP/1.1 403 Forbidden"
+23:01:17 ERROR    [9/71] FAILED: Precalculus 2e — Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus2e-WEB_rNsEQ3h.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus2e-WEB_rNsEQ3h.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+23:01:17 INFO     [10/71] Ingesting: U.S. History
+23:01:17 INFO       Downloading: U.S. History
+23:01:17 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:17 WARNING  Download attempt 1 failed for https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 1s
+23:01:19 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:19 WARNING  Download attempt 2 failed for https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 2s
+23:01:22 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:22 ERROR    [10/71] FAILED: U.S. History — Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+23:01:22 INFO     [11/71] Ingesting: World History Volume 1
+23:01:22 INFO       Downloading: World History Volume 1
+23:01:22 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume1-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:22 WARNING  Download attempt 1 failed for https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume1-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume1-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 1s
+23:01:24 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume1-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:24 WARNING  Download attempt 2 failed for https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume1-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume1-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 2s
+23:01:26 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume1-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:26 ERROR    [11/71] FAILED: World History Volume 1 — Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume1-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume1-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+23:01:26 INFO     [12/71] Ingesting: World History Volume 2
+23:01:26 INFO       Downloading: World History Volume 2
+23:01:27 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume2-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:27 WARNING  Download attempt 1 failed for https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume2-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume2-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 1s
+23:01:29 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume2-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:29 WARNING  Download attempt 2 failed for https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume2-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume2-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 2s
+23:01:31 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume2-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:31 ERROR    [12/71] FAILED: World History Volume 2 — Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume2-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/WorldHistoryVolume2-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+23:01:31 INFO     [13/71] Ingesting: Introduction to Sociology 3e
+23:01:31 INFO       Downloading: Introduction to Sociology 3e
+23:01:32 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/IntroductionToSociology3e-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:32 WARNING  Download attempt 1 failed for https://assets.openstax.org/oscms-prodcms/media/documents/IntroductionToSociology3e-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/IntroductionToSociology3e-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 1s
+23:01:33 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/IntroductionToSociology3e-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:33 WARNING  Download attempt 2 failed for https://assets.openstax.org/oscms-prodcms/media/documents/IntroductionToSociology3e-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/IntroductionToSociology3e-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 2s
+23:01:36 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/IntroductionToSociology3e-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:36 ERROR    [13/71] FAILED: Introduction to Sociology 3e — Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/IntroductionToSociology3e-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/IntroductionToSociology3e-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+23:01:36 INFO     [14/71] Ingesting: Principles of Economics 3e
+23:01:36 INFO       Downloading: Principles of Economics 3e
+23:01:36 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/PrinciplesOfEconomics3e-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:36 WARNING  Download attempt 1 failed for https://assets.openstax.org/oscms-prodcms/media/documents/PrinciplesOfEconomics3e-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/PrinciplesOfEconomics3e-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 1s
+23:01:38 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/PrinciplesOfEconomics3e-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:38 WARNING  Download attempt 2 failed for https://assets.openstax.org/oscms-prodcms/media/documents/PrinciplesOfEconomics3e-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/PrinciplesOfEconomics3e-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 2s
+23:01:41 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/PrinciplesOfEconomics3e-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:41 ERROR    [14/71] FAILED: Principles of Economics 3e — Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/PrinciplesOfEconomics3e-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/PrinciplesOfEconomics3e-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+23:01:41 INFO     [15/71] Ingesting: Anatomy and Physiology
+23:01:41 INFO       Downloading: Anatomy and Physiology
+23:01:41 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:41 WARNING  Download attempt 1 failed for https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 1s
+23:01:43 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:43 WARNING  Download attempt 2 failed for https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 2s
+23:01:46 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:01:46 ERROR    [15/71] FAILED: Anatomy and Physiology — Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+23:01:46 INFO     [16/71] Ingesting: College Physics 2e
+23:01:46 INFO       Downloading: College Physics 2e
+23:01:46 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/College_Physics_2e-WEB.pdf "HTTP/1.1 200 OK"
+23:01:55 INFO       Downloaded 273828 KB from https://assets.openstax.org/oscms-prodcms/media/documents/College_Physics_2e-WEB.pdf
+23:01:55 INFO       Processing: College Physics 2e
+23:23:38 INFO     Per-page extraction selected parser=pdfplumber pages=1697 score=231114.4
+23:23:39 INFO       Extracted 7728 chunks from 1697 pages
+23:23:39 INFO       Embedding + storing: College Physics 2e
+23:46:15 INFO       Stored 7728 chunks for College Physics 2e
+23:46:15 INFO     [16/71] OK: College Physics 2e — 7728 chunks in 2669.4s
+23:46:15 INFO     [17/71] Ingesting: University Physics Volume 1
+23:46:15 INFO       Downloading: University Physics Volume 1
+23:46:17 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume1-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:46:17 WARNING  Download attempt 1 failed for https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume1-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume1-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 1s
+23:46:20 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume1-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:46:20 WARNING  Download attempt 2 failed for https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume1-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume1-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 2s
+23:46:23 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume1-WEB.pdf "HTTP/1.1 403 Forbidden"
+23:46:23 ERROR    [17/71] FAILED: University Physics Volume 1 — Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume1-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume1-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+23:46:23 INFO     [18/71] Ingesting: University Physics Volume 2
+23:46:23 INFO       Downloading: University Physics Volume 2
+23:46:25 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume2-WEB.pdf "HTTP/1.1 200 OK"
+23:46:28 INFO       Downloaded 60698 KB from https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume2-WEB.pdf
+23:46:28 INFO       Processing: University Physics Volume 2
+00:00:47 INFO     Per-page extraction selected parser=pdfplumber pages=805 score=231102.8
+00:00:47 INFO       Extracted 3271 chunks from 805 pages
+00:00:47 INFO       Embedding + storing: University Physics Volume 2
+00:16:14 INFO       Stored 3271 chunks for University Physics Volume 2
+00:16:14 INFO     [18/71] OK: University Physics Volume 2 — 3271 chunks in 1791.0s
+00:16:14 INFO     [19/71] Ingesting: University Physics Volume 3
+00:16:14 INFO       Downloading: University Physics Volume 3
+00:16:17 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume3-WEB.pdf "HTTP/1.1 200 OK"
+00:16:20 INFO       Downloaded 50815 KB from https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVolume3-WEB.pdf
+00:16:20 INFO       Processing: University Physics Volume 3

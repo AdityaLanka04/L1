@@ -1,0 +1,156 @@
+22:43:50 INFO     ============================================================
+22:43:50 INFO       Brainwave Curriculum Ingest — LIVE
+22:43:50 INFO       Source:  all
+22:43:50 INFO       Docs:    31 entries
+22:43:50 INFO       Mode:    resume=yes
+22:43:50 INFO       Log:     D:\Brainwave\L1\backend\ingest\logs\ingest_2026-04-18_02-43.log
+22:43:50 INFO     ============================================================
+22:43:58 INFO     Using SQLite database
+22:43:58 INFO     Initializing ChromaDB + embedding model...
+22:44:17 INFO     Use pytorch device_name: cpu
+22:44:17 INFO     Load pretrained SentenceTransformer: BAAI/bge-small-en-v1.5
+22:44:17 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+22:44:17 WARNING  Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+22:44:17 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/modules.json "HTTP/1.1 200 OK"
+22:44:17 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+22:44:17 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config_sentence_transformers.json "HTTP/1.1 200 OK"
+22:44:17 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+22:44:17 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config_sentence_transformers.json "HTTP/1.1 200 OK"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/README.md "HTTP/1.1 200 OK"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/modules.json "HTTP/1.1 200 OK"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/sentence_bert_config.json "HTTP/1.1 200 OK"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config.json "HTTP/1.1 200 OK"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config.json "HTTP/1.1 200 OK"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+22:44:18 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/tokenizer_config.json "HTTP/1.1 200 OK"
+22:44:18 INFO     HTTP Request: GET https://huggingface.co/api/models/BAAI/bge-small-en-v1.5/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+22:44:19 INFO     HTTP Request: GET https://huggingface.co/api/models/BAAI/bge-small-en-v1.5/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+22:44:19 INFO     HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+22:44:19 INFO     HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+22:44:19 INFO     HTTP Request: GET https://huggingface.co/api/models/BAAI/bge-small-en-v1.5 "HTTP/1.1 200 OK"
+22:44:19 INFO     Chroma store initialised with BAAI/bge-small-en-v1.5
+22:44:19 INFO     context_store initialized.
+22:44:45 INFO     Redis unavailable (Timeout connecting to server) — using in-memory fallback cache
+22:44:45 INFO     Loaded state: 22 previously ingested docs will be skipped.
+22:44:45 INFO     [1/31] Skipping (already ingested): Biology 2e
+22:44:45 INFO     [2/31] Skipping (already ingested): Chemistry 2e
+22:44:45 INFO     [3/31] Skipping (already ingested): College Algebra 2e
+22:44:45 INFO     [4/31] Ingesting: Algebra and Trigonometry 2e
+22:44:45 INFO       Downloading: Algebra and Trigonometry 2e
+22:44:46 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf "HTTP/1.1 403 Forbidden"
+22:44:46 WARNING  Download attempt 1 failed for https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 1s
+22:44:49 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf "HTTP/1.1 403 Forbidden"
+22:44:49 WARNING  Download attempt 2 failed for https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403 — retrying in 2s
+22:44:52 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf "HTTP/1.1 403 Forbidden"
+22:44:52 ERROR    [4/31] FAILED: Algebra and Trigonometry 2e — Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+22:44:52 INFO     [5/31] Ingesting: Precalculus 2e
+22:44:52 INFO       Downloading: Precalculus 2e
+22:44:54 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus_2e-WEB.pdf "HTTP/1.1 200 OK"
+22:44:59 INFO       Downloaded 109362 KB from https://assets.openstax.org/oscms-prodcms/media/documents/Precalculus_2e-WEB.pdf
+22:44:59 INFO       Processing: Precalculus 2e
+23:02:19 INFO     Per-page extraction selected parser=pdfplumber pages=1460 score=231053.7
+23:02:19 INFO       Extracted 3838 chunks from 1460 pages
+23:02:19 INFO       Embedding + storing: Precalculus 2e
+23:02:20 INFO     Created system ingest user with id=2
+23:06:40 INFO       Stored 3838 chunks for Precalculus 2e
+23:06:40 INFO     [5/31] OK: Precalculus 2e — 3838 chunks in 1307.9s
+23:06:40 INFO     [6/31] Skipping (already ingested): Calculus Volume 1
+23:06:40 INFO     [7/31] Skipping (already ingested): Calculus Volume 2
+23:06:40 INFO     [8/31] Skipping (already ingested): Introductory Statistics
+23:06:40 INFO     [9/31] Ingesting: U.S. History
+23:06:40 INFO       Downloading: U.S. History
+23:06:40 INFO     Fetching OpenStax book page: https://openstax.org/details/books/us-history
+23:06:42 INFO     HTTP Request: GET https://openstax.org/details/books/us-history "HTTP/1.1 200 OK"
+23:06:42 ERROR    [9/31] FAILED: U.S. History — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/us-history. Check the page manually and add direct_url to the catalog entry.
+23:06:42 INFO     [10/31] Ingesting: World History Volume 1
+23:06:42 INFO       Downloading: World History Volume 1
+23:06:42 INFO     Fetching OpenStax book page: https://openstax.org/details/books/world-history-volume-1
+23:06:44 INFO     HTTP Request: GET https://openstax.org/details/books/world-history-volume-1 "HTTP/1.1 200 OK"
+23:06:44 ERROR    [10/31] FAILED: World History Volume 1 — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-1. Check the page manually and add direct_url to the catalog entry.
+23:06:44 INFO     [11/31] Ingesting: World History Volume 2
+23:06:44 INFO       Downloading: World History Volume 2
+23:06:44 INFO     Fetching OpenStax book page: https://openstax.org/details/books/world-history-volume-2
+23:06:45 INFO     HTTP Request: GET https://openstax.org/details/books/world-history-volume-2 "HTTP/1.1 200 OK"
+23:06:45 ERROR    [11/31] FAILED: World History Volume 2 — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-2. Check the page manually and add direct_url to the catalog entry.
+23:06:45 INFO     [12/31] Skipping (already ingested): Introduction to Psychology
+23:06:45 INFO     [13/31] Ingesting: Introduction to Sociology
+23:06:45 INFO       Downloading: Introduction to Sociology
+23:06:47 INFO     HTTP Request: GET https://opentextbc.ca/introductiontosociology2ndedition/open/download?type=pdf "HTTP/1.1 200 OK"
+23:07:23 INFO       Downloaded 69676 KB from https://opentextbc.ca/introductiontosociology2ndedition/open/download?type=pdf
+23:07:23 INFO       Processing: Introduction to Sociology
+23:13:50 INFO     Per-page extraction selected parser=pdfplumber pages=972 score=231164.4
+23:13:51 INFO       Extracted 4682 chunks from 972 pages
+23:13:51 INFO       Embedding + storing: Introduction to Sociology
+23:21:03 INFO       Stored 4682 chunks for Introduction to Sociology
+23:21:03 INFO     [13/31] OK: Introduction to Sociology — 4682 chunks in 858.0s
+23:21:03 INFO     [14/31] Ingesting: Principles of Economics 3e
+23:21:03 INFO       Downloading: Principles of Economics 3e
+23:21:03 INFO     Fetching OpenStax book page: https://openstax.org/details/books/principles-economics-3e
+23:21:05 INFO     HTTP Request: GET https://openstax.org/details/books/principles-economics-3e "HTTP/1.1 200 OK"
+23:21:05 ERROR    [14/31] FAILED: Principles of Economics 3e — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/principles-economics-3e. Check the page manually and add direct_url to the catalog entry.
+23:21:05 INFO     [15/31] Ingesting: Anatomy and Physiology
+23:21:05 INFO       Downloading: Anatomy and Physiology
+23:21:05 INFO     Fetching OpenStax book page: https://openstax.org/details/books/anatomy-and-physiology
+23:21:06 INFO     HTTP Request: GET https://openstax.org/details/books/anatomy-and-physiology "HTTP/1.1 301 Moved Permanently"
+23:21:07 INFO     HTTP Request: GET https://openstax.org/details/books/anatomy-and-physiology-2e "HTTP/1.1 200 OK"
+23:21:07 ERROR    [15/31] FAILED: Anatomy and Physiology — Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/anatomy-and-physiology. Check the page manually and add direct_url to the catalog entry.
+23:21:07 INFO     [16/31] Ingesting: College Physics 2e
+23:21:07 INFO       Downloading: College Physics 2e
+23:21:08 INFO     HTTP Request: GET https://assets.openstax.org/oscms-prodcms/media/documents/College_Physics_2e-WEB.pdf "HTTP/1.1 200 OK"
+23:21:39 INFO       Downloaded 273828 KB from https://assets.openstax.org/oscms-prodcms/media/documents/College_Physics_2e-WEB.pdf
+23:21:39 INFO       Processing: College Physics 2e
+00:05:36 INFO     Per-page extraction selected parser=pdfplumber pages=1697 score=231114.4
+00:05:43 INFO       Extracted 7728 chunks from 1697 pages
+00:05:43 INFO       Embedding + storing: College Physics 2e
+00:23:30 INFO       Stored 7728 chunks for College Physics 2e
+00:23:30 INFO     [16/31] OK: College Physics 2e — 7728 chunks in 3743.7s
+00:23:30 INFO     [17/31] Skipping (already ingested): AQA GCSE Biology Specification
+00:23:30 INFO     [18/31] Skipping (already ingested): AQA GCSE Chemistry Specification
+00:23:30 INFO     [19/31] Skipping (already ingested): AQA GCSE Physics Specification
+00:23:30 INFO     [20/31] Skipping (already ingested): AQA GCSE Mathematics Specification
+00:23:30 INFO     [21/31] Skipping (already ingested): AQA GCSE English Language Specification
+00:23:30 INFO     [22/31] Skipping (already ingested): AQA GCSE Geography Specification
+00:23:30 INFO     [23/31] Skipping (already ingested): AQA GCSE History Specification
+00:23:30 INFO     [24/31] Skipping (already ingested): AQA GCSE Economics Specification
+00:23:30 INFO     [25/31] Skipping (already ingested): AQA GCSE Psychology Specification
+00:23:30 INFO     [26/31] Skipping (already ingested): AQA A-Level Biology Specification
+00:23:30 INFO     [27/31] Skipping (already ingested): AQA A-Level Chemistry Specification
+00:23:30 INFO     [28/31] Skipping (already ingested): AQA A-Level Physics Specification
+00:23:30 INFO     [29/31] Skipping (already ingested): AQA A-Level Mathematics Specification
+00:23:30 INFO     [30/31] Skipping (already ingested): AQA A-Level Economics Specification
+00:23:30 INFO     [31/31] Skipping (already ingested): AQA A-Level Psychology Specification
+00:23:30 INFO     
+--- Final spot-check on remaining 3 docs ---
+00:23:30 INFO       Spot checking: Introduction to Sociology
+00:23:37 INFO       Spot check [PASS] Introduction to Sociology: 3/3 samples passed
+00:23:37 INFO     
+00:23:37 INFO     ============================================================
+00:23:37 INFO       INGEST COMPLETE
+00:23:37 INFO       Total:     31
+00:23:37 INFO       Succeeded: 3
+00:23:37 INFO       Failed:    6
+00:23:37 INFO       Skipped:   22 (already ingested)
+00:23:37 INFO       Duration:  5932s (98.9 min)
+00:23:37 INFO     
+00:23:37 INFO       Spot checks: 1 run
+00:23:37 INFO         Passed: 1
+00:23:37 INFO         Failed: 0
+00:23:37 INFO     ============================================================
+00:23:37 INFO     
+Failed entries:
+00:23:37 INFO       - Algebra and Trigonometry 2e (algebra-and-trigonometry-2e): Download failed: Download failed after 3 attempts for https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf: Client error '403 Forbidden' for url 'https://assets.openstax.org/oscms-prodcms/media/documents/AlgebraAndTrigonometry2e-WEB.pdf'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+00:23:37 INFO       - U.S. History (us-history): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/us-history. Check the page manually and add direct_url to the catalog entry.
+00:23:37 INFO       - World History Volume 1 (world-history-volume-1): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-1. Check the page manually and add direct_url to the catalog entry.
+00:23:37 INFO       - World History Volume 2 (world-history-volume-2): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/world-history-volume-2. Check the page manually and add direct_url to the catalog entry.
+00:23:37 INFO       - Principles of Economics 3e (principles-economics-3e): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/principles-economics-3e. Check the page manually and add direct_url to the catalog entry.
+00:23:37 INFO       - Anatomy and Physiology (anatomy-and-physiology): Download failed: No PDF link found on OpenStax page https://openstax.org/details/books/anatomy-and-physiology. Check the page manually and add direct_url to the catalog entry.

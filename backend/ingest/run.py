@@ -84,11 +84,11 @@ def _print_report(stats, elapsed: float) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Ingest curriculum resources into the shared hs_curriculum ChromaDB collection."
+        description="Ingest curriculum resources into the shared hs_curriculum pgvector collection."
     )
     parser.add_argument(
         "--source",
-        choices=["openstax", "gcse", "alevel", "uk", "us", "all"],
+        choices=["openstax", "gcse", "alevel", "uk", "us", "bccampus", "oer", "all"],
         default="all",
         help="Which catalog to ingest (default: all)",
     )

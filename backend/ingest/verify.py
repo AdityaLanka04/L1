@@ -1,17 +1,8 @@
 """
 verify.py — Spot-check verification for ingested curriculum documents.
 
-After ingesting a document, this module randomly samples N chunks from the
-ChromaDB collection and verifies each one appears in the top search results
-when queried by its own text. This confirms:
-  - Embeddings were stored correctly
-  - Search returns meaningful results
-  - The doc is findable in the shared hs_curriculum collection
-
-Usage:
-    result = spot_check_doc(doc_id, subject, curriculum, n_samples=3)
-    if not result["passed"]:
-        logger.warning(f"Spot check failed: {result['failures']}")
+After ingesting a document, samples N chunks from the pgvector collection
+and verifies each appears in top search results when queried by its own text.
 """
 
 from __future__ import annotations
@@ -19,7 +10,6 @@ from __future__ import annotations
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -61,18 +51,19 @@ def spot_check_doc(
 
     For each sampled chunk:
       1. Use the chunk text as a search query against hs_curriculum
-      2. Verify the original chunk appears within the top (n_samples * 3) results
-      3. Pass threshold: distance < max_distance
+      2. Verify the original chunk's doc_id appears in the top results
+      3. Pass threshold: result found within top (n_samples * 5) results
 
     Returns SpotCheckResult with pass/fail details.
     """
     try:
         import context_store
-    except ImportError:
+        import vector_store as vs
+    except ImportError as e:
         return SpotCheckResult(
             doc_id=doc_id, title=title, passed=False,
             samples_tested=0, samples_passed=0,
-            skipped=True, skip_reason="context_store not importable",
+            skipped=True, skip_reason=f"Import failed: {e}",
         )
 
     if not context_store.available():
@@ -83,31 +74,32 @@ def spot_check_doc(
         )
 
     try:
-        col = context_store._get_collection(context_store.HS_CURRICULUM_COLLECTION)
-        if col.count() == 0:
+        total = vs.count(context_store.HS_CURRICULUM_COLLECTION)
+        if total == 0:
             return SpotCheckResult(
                 doc_id=doc_id, title=title, passed=False,
                 samples_tested=0, samples_passed=0,
                 skipped=True, skip_reason="hs_curriculum collection is empty",
             )
 
-        all_chunks = col.get(
-            where={"doc_id": doc_id},
-            include=["documents", "metadatas"],
+        rows = vs.get_by_metadata(
+            context_store.HS_CURRICULUM_COLLECTION,
+            {"doc_id": doc_id},
         )
-        docs = all_chunks.get("documents") or []
+        docs = [r["content"] for r in rows if r.get("content")]
+
         if not docs:
             return SpotCheckResult(
                 doc_id=doc_id, title=title, passed=False,
                 samples_tested=0, samples_passed=0,
-                skipped=True, skip_reason=f"No chunks found for doc_id={doc_id} in hs_curriculum",
+                skipped=True, skip_reason=f"No chunks found for doc_id={doc_id}",
             )
 
     except Exception as e:
         return SpotCheckResult(
             doc_id=doc_id, title=title, passed=False,
             samples_tested=0, samples_passed=0,
-            skipped=True, skip_reason=f"ChromaDB fetch failed: {e}",
+            skipped=True, skip_reason=f"pgvector fetch failed: {e}",
         )
 
     sample_size = min(n_samples, len(docs))
@@ -152,7 +144,7 @@ def spot_check_doc(
             logger.debug(f"Spot check {doc_id} sample {i+1}: PASS")
         else:
             failures.append(
-                f"Sample {i+1}: chunk not found in top-{n_samples * 3} results "
+                f"Sample {i+1}: chunk not found in top results "
                 f"(query: {query[:60]!r}...)"
             )
             logger.debug(f"Spot check {doc_id} sample {i+1}: FAIL")
@@ -178,8 +170,6 @@ def spot_check_batch(
     Randomly spot-check ~sample_rate fraction of a batch of ingested docs.
 
     results: list of dicts with keys: doc_id, title, subject, curriculum
-    sample_rate: fraction to check (0.15 = ~15%)
-    min_checks: always check at least this many docs per batch
     """
     if not results:
         return []

@@ -29,21 +29,25 @@ _SUBJECT_ALIASES: list[tuple[str, list[str]]] = [
     ("World History", ["world history", "world hist"]),
     ("History", ["history", "hist"]),
     ("Pre-Calculus", ["precalculus", "pre-calc", "pre calc", "precalc", "pre calculus"]),
-    ("Calculus", ["calculus", "calc"]),
-    ("Statistics", ["statistics", "stats", "stat"]),
-    ("Algebra", ["algebra", "alg"]),
+    ("Calculus", ["calculus", "calc", "differential equations", "multivariable"]),
+    ("Statistics", ["statistics", "stats", "stat", "probability"]),
+    ("Algebra", ["algebra", "alg", "prealgebra", "pre-algebra", "intermediate algebra", "elementary algebra"]),
+    ("Mathematics", ["mathematics", "math", "discrete math", "linear algebra"]),
     ("Geometry", ["geometry", "geom"]),
-    ("Biology", ["biology", "bio"]),
-    ("Chemistry", ["chemistry", "chem"]),
-    ("Physics", ["physics", "phys"]),
-    ("Earth Science", ["earth science", "geology", "geoscience", "geosci"]),
-    ("Environmental Science", ["environmental science", "environmental", "env sci", "environ"]),
-    ("Anatomy", ["anatomy"]),
-    ("Psychology", ["psychology", "psych"]),
-    ("Sociology", ["sociology", "socio"]),
-    ("Economics", ["economics", "econ"]),
-    ("Government", ["government", "gov", "civics"]),
-    ("English", ["english", "ela", "literature", "lit", "language arts"]),
+    ("Biology", ["biology", "bio", "microbiology", "genetics", "cell biology"]),
+    ("Chemistry", ["chemistry", "chem", "organic chemistry", "biochemistry"]),
+    ("Physics", ["physics", "phys", "mechanics", "thermodynamics", "electromagnetism"]),
+    ("Astronomy", ["astronomy", "astrophysics", "cosmology"]),
+    ("Earth Science", ["earth science", "geology", "geoscience", "geosci", "geography"]),
+    ("Environmental Science", ["environmental science", "environmental", "env sci", "environ", "ecology"]),
+    ("Anatomy", ["anatomy", "physiology", "anatomy and physiology", "nursing", "pharmacology"]),
+    ("Psychology", ["psychology", "psych", "cognitive", "behavioral", "lifespan development"]),
+    ("Sociology", ["sociology", "socio", "anthropology", "social science", "ethnic studies"]),
+    ("Economics", ["economics", "econ", "accounting", "business", "finance", "management", "marketing", "entrepreneurship"]),
+    ("Government", ["government", "gov", "civics", "political science", "politics"]),
+    ("English", ["english", "ela", "literature", "lit", "language arts", "writing", "composition"]),
+    ("Computer Science", ["computer science", "cs", "programming", "coding", "software"]),
+    ("Philosophy", ["philosophy", "ethics", "logic", "critical thinking"]),
 ]
 
 _KNOWN_SUBJECTS = {canon for canon, _ in _SUBJECT_ALIASES}
@@ -161,6 +165,7 @@ def add_document_chunks(
     chunk_pages: list[dict] | None = None,
     curriculum: str = "",
     source_type: str = "",
+    book_title: str = "",
 ) -> int:
     if not available():
         raise RuntimeError("context_store not initialized")
@@ -170,6 +175,7 @@ def add_document_chunks(
     timestamp = datetime.now(timezone.utc).isoformat()
     clean_subject = canonicalize_subject(subject) if subject else ""
     clean_grade = (grade_level or "").strip()
+    clean_book_title = (book_title or filename.replace(".pdf", "").replace(".txt", "").replace(".md", "")).strip()[:200]
     cleaned_chunks = [c.strip() for c in chunks if c and c.strip()]
     if not cleaned_chunks:
         raise ValueError("No non-empty chunks provided")
@@ -202,6 +208,7 @@ def add_document_chunks(
             meta: dict = {
                 "doc_id": doc_id,
                 "filename": filename[:200],
+                "book_title": clean_book_title,
                 "subject": clean_subject[:100] if clean_subject else "",
                 "grade_level": clean_grade[:50] if clean_grade else "",
                 "scope": scope,

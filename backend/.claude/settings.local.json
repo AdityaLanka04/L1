@@ -7,7 +7,22 @@
       "Bash(python -c \"import models; print\\('models OK'\\)\")",
       "Bash(python:*)",
       "Bash(.venv/Scripts/pip install:*)",
-      "Bash(.venv/Scripts/pip show:*)"
+      "Bash(.venv/Scripts/pip show:*)",
+      "WebFetch(domain:opentextbc.ca)",
+      "WebFetch(domain:www.openintro.org)",
+      "WebFetch(domain:www.apexcalculus.com)",
+      "WebFetch(domain:activecalculus.org)",
+      "WebFetch(domain:greenteapress.com)",
+      "WebFetch(domain:aimath.org)",
+      "WebFetch(domain:www.core-econ.org)",
+      "WebFetch(domain:textbooks.aimath.org)",
+      "WebSearch",
+      "WebFetch(domain:tutorial.math.lamar.edu)",
+      "WebFetch(domain:scholarworks.gvsu.edu)",
+      "WebFetch(domain:www.math.ubc.ca)",
+      "WebFetch(domain:personal.math.ubc.ca)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.tgmmfookfpyrgvozgvuc:Parthav%4005@aws-1-us-east-2.pooler.supabase.com:5432/postgres\" python -m ingest.seed_and_test)",
+      "Bash(xargs wc *)"
     ]
   }
 }

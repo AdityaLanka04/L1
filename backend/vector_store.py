@@ -103,7 +103,7 @@ def upsert(
         conn.execute(
             text("""
                 INSERT INTO embeddings (id, collection, user_id, content, embedding, metadata)
-                VALUES (:id, :col, :uid, :content, :emb::vector, :meta::jsonb)
+                VALUES (:id, :col, :uid, :content, CAST(:emb AS vector), CAST(:meta AS jsonb))
                 ON CONFLICT (collection, id) DO UPDATE
                     SET content    = EXCLUDED.content,
                         embedding  = EXCLUDED.embedding,
@@ -136,7 +136,7 @@ def bulk_upsert(rows: list[dict]) -> None:
             conn.execute(
                 text("""
                     INSERT INTO embeddings (id, collection, user_id, content, embedding, metadata)
-                    VALUES (:id, :col, :uid, :content, :emb::vector, :meta::jsonb)
+                    VALUES (:id, :col, :uid, :content, CAST(:emb AS vector), CAST(:meta AS jsonb))
                     ON CONFLICT (collection, id) DO UPDATE
                         SET content    = EXCLUDED.content,
                             embedding  = EXCLUDED.embedding,
@@ -176,10 +176,10 @@ def search(
 
     sql = f"""
         SELECT id, content, metadata,
-               (embedding <=> :emb::vector) AS distance
+               (embedding <=> CAST(:emb AS vector)) AS distance
         FROM embeddings
         {where_clause}
-        ORDER BY embedding <=> :emb::vector
+        ORDER BY embedding <=> CAST(:emb AS vector)
         LIMIT :top_k
     """
     with _engine.connect() as conn:

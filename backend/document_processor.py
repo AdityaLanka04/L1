@@ -36,8 +36,8 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 700
-CHUNK_OVERLAP = 80
+CHUNK_SIZE = 1200
+CHUNK_OVERLAP = 150
 MIN_CHUNK_LEN = 80
 MAX_HEADING_LEN = 90
 

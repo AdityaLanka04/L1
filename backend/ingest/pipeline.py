@@ -271,6 +271,7 @@ class IngestPipeline:
                 chunk_pages=chunk_pages if chunk_pages else None,
                 curriculum=curriculum,
                 source_type=source_type,
+                book_title=title,
             )
             result.chunk_count = stored
             logger.info(f"  Stored {stored} chunks for {title}")
