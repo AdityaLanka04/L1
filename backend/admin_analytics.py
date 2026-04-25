@@ -1,8 +1,9 @@
 """
 Admin Analytics API - Track user activity, tool usage, and token consumption
 """
-from fastapi import HTTPException, Header, Query
+from fastapi import Depends, HTTPException, Header, Query
 from fastapi.responses import StreamingResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import sqlite3
 import csv
 import io
@@ -10,7 +11,7 @@ import json
 from datetime import datetime, timedelta
 import os
 from typing import Optional
-from activity_logger import resolve_user_id
+from jose import JWTError, jwt
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
 
@@ -49,37 +50,52 @@ def _is_ai_activity(tool_name: str, action: str, metadata: dict) -> bool:
         return True
     return False
 
-def check_admin(x_user_id: Optional[str] = Header(None)):
-    """Check if user is admin by resolving the header value to a DB user and checking email."""
-    ADMIN_EMAILS = ['aditya.s.lanka@gmail.com', 'asphar057@gmail.com']
+_admin_bearer = HTTPBearer()
 
-    if not x_user_id:
-        raise HTTPException(status_code=403, detail='Admin access required')
+ADMIN_EMAILS = frozenset(os.getenv("ADMIN_EMAILS", "").split(",")) - {""}
 
-    # Never trust the header value directly — always resolve to a DB record first
-    resolved = resolve_user_id(x_user_id)
-    if resolved:
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT email FROM users WHERE id = ?", (resolved,))
-            row = cursor.fetchone()
-            conn.close()
-            if row and row['email'] in ADMIN_EMAILS:
-                return x_user_id
-        except Exception:
-            pass
+def _get_secret_key():
+    key = os.getenv("SECRET_KEY")
+    if not key:
+        raise HTTPException(status_code=500, detail="Server configuration error")
+    return key
 
-    raise HTTPException(status_code=403, detail='Admin access required')
+def check_admin(credentials: HTTPAuthorizationCredentials = Depends(_admin_bearer)):
+    """Verify JWT and confirm the user's email is in the ADMIN_EMAILS env var."""
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            _get_secret_key(),
+            algorithms=["HS256"],
+            audience="brainwave-client",
+            issuer="brainwave-backend",
+        )
+        sub = payload.get("sub")
+        if not sub:
+            raise HTTPException(status_code=403, detail="Admin access required")
+    except JWTError:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT email FROM users WHERE username = ? OR email = ?", (sub, sub))
+        row = cursor.fetchone()
+        conn.close()
+        if row and row["email"] in ADMIN_EMAILS:
+            return row["email"]
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=403, detail="Admin access required")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-async def get_analytics_overview(days: int = Query(30), user_id: str = Header(None, alias="X-User-Id")):
+async def get_analytics_overview(days: int = 30):
     """Get overall analytics overview"""
-    check_admin(user_id)
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -529,11 +545,10 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
             'date_range': days
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-async def get_user_analytics(days: int = Query(30), user_id: str = Header(None, alias="X-User-Id")):
+async def get_user_analytics(days: int = 30):
     """Get per-user analytics"""
-    check_admin(user_id)
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -641,11 +656,10 @@ async def get_user_analytics(days: int = Query(30), user_id: str = Header(None, 
 
         return {'users': enriched_users}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-async def get_user_detail(target_user_id: int, user_id: str = Header(None, alias="X-User-Id")):
+async def get_user_detail(target_user_id: int):
     """Get detailed analytics for specific user"""
-    check_admin(user_id)
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -787,11 +801,10 @@ async def get_user_detail(target_user_id: int, user_id: str = Header(None, alias
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-async def export_analytics_csv(days: int = Query(30), user_id: str = Header(None, alias="X-User-Id")):
+async def export_analytics_csv(days: int = 30):
     """Export all analytics to CSV file"""
-    check_admin(user_id)
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -858,11 +871,10 @@ async def export_analytics_csv(days: int = Query(30), user_id: str = Header(None
             }
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-async def export_user_csv(target_user_id: int, user_id: str = Header(None, alias="X-User-Id")):
+async def export_user_csv(target_user_id: int):
     """Export specific user's analytics to CSV"""
-    check_admin(user_id)
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -924,7 +936,7 @@ async def export_user_csv(target_user_id: int, user_id: str = Header(None, alias
             }
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 def init_activity_log_table():
     """Create activity log table if it doesn't exist"""

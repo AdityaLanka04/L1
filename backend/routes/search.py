@@ -722,7 +722,7 @@ async def search_content(
         logger.error(f"Search error: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/autocomplete")
 async def autocomplete(

@@ -147,7 +147,7 @@ async def get_playlists(
         return {"playlists": result}
     except Exception as e:
         logger.error(f"Error getting playlists: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/playlists")
 async def create_playlist(
@@ -197,7 +197,7 @@ async def create_playlist(
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating playlist: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/playlists/{playlist_id}")
 async def get_playlist_detail(
@@ -280,7 +280,7 @@ async def get_playlist_detail(
         raise
     except Exception as e:
         logger.error(f"Error getting playlist: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/playlists/{playlist_id}/items")
 async def add_playlist_item(
@@ -328,7 +328,7 @@ async def add_playlist_item(
     except Exception as e:
         db.rollback()
         logger.error(f"Error adding item: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/playlists/{playlist_id}/items/{item_id}")
 async def delete_playlist_item(
@@ -367,7 +367,7 @@ async def delete_playlist_item(
     except Exception as e:
         db.rollback()
         logger.error(f"Error deleting item: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/playlists/{playlist_id}/follow")
 async def follow_playlist(
@@ -409,7 +409,7 @@ async def follow_playlist(
     except Exception as e:
         db.rollback()
         logger.error(f"Error following playlist: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/playlists/{playlist_id}/follow")
 async def unfollow_playlist(
@@ -445,7 +445,7 @@ async def unfollow_playlist(
     except Exception as e:
         db.rollback()
         logger.error(f"Error unfollowing playlist: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/playlists/{playlist_id}/fork")
 async def fork_playlist(
@@ -513,7 +513,7 @@ async def fork_playlist(
     except Exception as e:
         db.rollback()
         logger.error(f"Error forking playlist: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/playlists/{playlist_id}/items/{item_id}/view")
 async def view_playlist_item(
@@ -598,7 +598,7 @@ async def view_playlist_item(
         raise
     except Exception as e:
         logger.error(f"Error viewing playlist item: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/playlists/{playlist_id}/progress")
 async def update_playlist_progress(
@@ -658,4 +658,4 @@ async def update_playlist_progress(
     except Exception as e:
         db.rollback()
         logger.error(f"Error updating progress: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

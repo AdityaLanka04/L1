@@ -618,20 +618,23 @@ def _extract_pdf_text(raw: bytes) -> str:
 
 
 @router.post("/test_ai_simple")
-async def test_ai_simple(question: str = Form(...)):
+async def test_ai_simple(
+    question: str = Form(...),
+    current_user: models.User = Depends(get_current_user),
+):
     try:
         response = call_ai(f"Answer this question in one sentence: {question}", max_tokens=200)
         return {"answer": response, "status": "success"}
-    except Exception as e:
-        return {"answer": f"Error: {str(e)}", "status": "error"}
+    except Exception:
+        return {"answer": "Error generating response", "status": "error"}
 
 @router.post("/create_chat_session")
-def create_chat_session(session_data: ChatSessionCreate, db: Session = Depends(get_db)):
-    user = get_user_by_username(db, session_data.user_id) or get_user_by_email(db, session_data.user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    chat_session = models.ChatSession(user_id=user.id, title=session_data.title)
+def create_chat_session(
+    session_data: ChatSessionCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    chat_session = models.ChatSession(user_id=current_user.id, title=session_data.title)
     db.add(chat_session)
     db.commit()
     db.refresh(chat_session)
@@ -646,13 +649,20 @@ def create_chat_session(session_data: ChatSessionCreate, db: Session = Depends(g
     }
 
 @router.put("/rename_chat_session")
-def rename_chat_session(data: dict, db: Session = Depends(get_db)):
+def rename_chat_session(
+    data: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     chat_id = data.get("chat_id")
     new_title = data.get("new_title")
     if not chat_id or not new_title:
         raise HTTPException(status_code=400, detail="chat_id and new_title are required")
 
-    chat_session = db.query(models.ChatSession).filter(models.ChatSession.id == chat_id).first()
+    chat_session = db.query(models.ChatSession).filter(
+        models.ChatSession.id == chat_id,
+        models.ChatSession.user_id == current_user.id,
+    ).first()
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
 
@@ -663,14 +673,13 @@ def rename_chat_session(data: dict, db: Session = Depends(get_db)):
     return {"status": "success", "chat_id": chat_id, "new_title": new_title}
 
 @router.get("/get_chat_sessions")
-def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
-    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+def get_chat_sessions(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     sessions = (
         db.query(models.ChatSession)
-        .filter(models.ChatSession.user_id == user.id)
+        .filter(models.ChatSession.user_id == current_user.id)
         .order_by(models.ChatSession.updated_at.desc())
         .all()
     )
@@ -689,7 +698,18 @@ def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
     }
 
 @router.get("/get_chat_messages")
-def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
+def get_chat_messages(
+    chat_id: int = Query(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    session = db.query(models.ChatSession).filter(
+        models.ChatSession.id == chat_id,
+        models.ChatSession.user_id == current_user.id,
+    ).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
     messages = (
         db.query(models.ChatMessage)
         .filter(models.ChatMessage.chat_session_id == chat_id)
@@ -715,11 +735,22 @@ def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
     return result
 
 @router.get("/get_chat_history/{session_id}")
-async def get_chat_history(session_id: str, db: Session = Depends(get_db)):
+async def get_chat_history(
+    session_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     try:
         session_id_int = int(session_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid session ID")
+
+    chat_session = db.query(models.ChatSession).filter(
+        models.ChatSession.id == session_id_int,
+        models.ChatSession.user_id == current_user.id,
+    ).first()
+    if not chat_session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
 
     messages = (
         db.query(models.ChatMessage)

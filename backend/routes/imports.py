@@ -21,23 +21,39 @@ except ImportError:
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["imports"])
 
+_MAX_IMPORT_SIZE = 20 * 1024 * 1024  # 20 MB
+_ALLOWED_IMPORT_EXTENSIONS = {'pdf', 'docx', 'doc'}
+_ALLOWED_IMPORT_MIMES = {
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword',
+    'application/octet-stream',
+}
+
 @router.post("/import_document")
 async def import_document(
     file: UploadFile = File(...),
-    user_id: str = Form(...),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        user = current_user
 
         content = await file.read()
-        file_extension = file.filename.split('.')[-1].lower()
+
+        if len(content) > _MAX_IMPORT_SIZE:
+            raise HTTPException(status_code=413, detail="File too large. Maximum 20 MB.")
+
+        filename = file.filename or ""
+        file_extension = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        if file_extension not in _ALLOWED_IMPORT_EXTENSIONS:
+            raise HTTPException(status_code=400, detail="Unsupported file type. Supported: PDF, DOCX")
 
         extracted_text = ""
 
         if file_extension == 'pdf':
+            if content[:4] != b'%PDF':
+                raise HTTPException(status_code=400, detail="Invalid PDF file")
             if PyPDF2 is None:
                 raise HTTPException(status_code=500, detail="PyPDF2 not installed")
             pdf_file = io.BytesIO(content)
@@ -59,10 +75,7 @@ async def import_document(
                 )
 
         else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported file type: {file_extension}. Supported: PDF, DOCX"
-            )
+            raise HTTPException(status_code=400, detail="Unsupported file type. Supported: PDF, DOCX")
 
         if not extracted_text.strip():
             raise HTTPException(status_code=400, detail="No text could be extracted from the file")
@@ -103,32 +116,32 @@ async def import_document(
         raise
     except Exception as e:
         logger.error(f"Error importing document: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to import document: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to import document")
 
 @router.post("/upload-attachment")
 async def upload_attachment(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     try:
-        file_extension = file.filename.split('.')[-1].lower()
-        if file_extension not in ['pdf', 'docx', 'doc']:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported file type: {file_extension}. Supported: PDF, DOCX"
-            )
-
-        attachments_dir = Path("backend/attachments")
-        attachments_dir.mkdir(exist_ok=True)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_filename = "".join(
-            c for c in file.filename if c.isalnum() or c in (' ', '.', '_', '-')
-        ).rstrip()
-        unique_filename = f"{timestamp}_{safe_filename}"
-        file_path = attachments_dir / unique_filename
+        filename = file.filename or ""
+        file_extension = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        if file_extension not in _ALLOWED_IMPORT_EXTENSIONS:
+            raise HTTPException(status_code=400, detail="Unsupported file type. Supported: PDF, DOCX")
 
         content = await file.read()
+        if len(content) > _MAX_IMPORT_SIZE:
+            raise HTTPException(status_code=413, detail="File too large. Maximum 20 MB.")
+
+        attachments_dir = Path("backend/attachments").resolve()
+        attachments_dir.mkdir(exist_ok=True)
+
+        import secrets as _sec
+        safe_stem = "".join(c for c in (filename.rsplit('.', 1)[0] if '.' in filename else filename) if c.isalnum() or c in ('_', '-'))[:60]
+        unique_filename = f"{current_user.id}_{_sec.token_hex(8)}_{safe_stem}.{file_extension}"
+        file_path = attachments_dir / unique_filename
+
         with open(file_path, "wb") as f:
             f.write(content)
 
@@ -149,17 +162,27 @@ async def upload_attachment(
         raise
     except Exception as e:
         logger.error(f"Error uploading attachment: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to upload attachment: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload attachment")
 
-@router.get("/attachments/{filename}")
-async def get_attachment(filename: str):
+@router.get("/attachments/{filename:path}")
+async def get_attachment(
+    filename: str,
+    current_user: models.User = Depends(get_current_user),
+):
     try:
-        file_path = Path("backend/attachments") / filename
+        attachments_dir = Path("backend/attachments").resolve()
+        requested = (attachments_dir / filename).resolve()
 
-        if not file_path.exists():
+        if not str(requested).startswith(str(attachments_dir)):
+            raise HTTPException(status_code=400, detail="Invalid filename")
+
+        if not requested.exists() or not requested.is_file():
             raise HTTPException(status_code=404, detail="File not found")
 
-        file_extension = filename.split('.')[-1].lower()
+        file_extension = requested.suffix.lstrip('.').lower()
+        if file_extension not in _ALLOWED_IMPORT_EXTENSIONS:
+            raise HTTPException(status_code=400, detail="File type not allowed")
+
         content_types = {
             'pdf': 'application/pdf',
             'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -167,17 +190,13 @@ async def get_attachment(filename: str):
         }
         content_type = content_types.get(file_extension, 'application/octet-stream')
 
-        return FileResponse(
-            path=file_path,
-            media_type=content_type,
-            filename=filename
-        )
+        return FileResponse(path=requested, media_type=content_type, filename=requested.name)
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error serving attachment: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to serve attachment: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to serve attachment")
 
 @router.post("/import_export/notes_to_flashcards")
 async def convert_notes_to_flashcards(
@@ -216,7 +235,7 @@ async def convert_notes_to_flashcards(
         return result
     except Exception as e:
         logger.error(f"Error in notes_to_flashcards: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/notes_to_questions")
 async def convert_notes_to_questions(
@@ -255,7 +274,7 @@ async def convert_notes_to_questions(
         return result
     except Exception as e:
         logger.error(f"Error in notes_to_questions: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/flashcards_to_notes")
 async def convert_flashcards_to_notes(
@@ -292,7 +311,7 @@ async def convert_flashcards_to_notes(
         return result
     except Exception as e:
         logger.error(f"Error in flashcards_to_notes: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/flashcards_to_questions")
 async def convert_flashcards_to_questions(
@@ -327,7 +346,7 @@ async def convert_flashcards_to_questions(
         return result
     except Exception as e:
         logger.error(f"Error in flashcards_to_questions: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/questions_to_flashcards")
 async def convert_questions_to_flashcards(
@@ -362,7 +381,7 @@ async def convert_questions_to_flashcards(
         return result
     except Exception as e:
         logger.error(f"Error in questions_to_flashcards: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/questions_to_notes")
 async def convert_questions_to_notes(
@@ -397,7 +416,7 @@ async def convert_questions_to_notes(
         return result
     except Exception as e:
         logger.error(f"Error in questions_to_notes: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/media_to_questions")
 async def convert_media_to_questions(
@@ -434,7 +453,7 @@ async def convert_media_to_questions(
         return result
     except Exception as e:
         logger.error(f"Error in media_to_questions: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/playlist_to_notes")
 async def convert_playlist_to_notes(
@@ -469,7 +488,7 @@ async def convert_playlist_to_notes(
         return result
     except Exception as e:
         logger.error(f"Error in playlist_to_notes: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/playlist_to_flashcards")
 async def convert_playlist_to_flashcards(
@@ -506,7 +525,7 @@ async def convert_playlist_to_flashcards(
         return result
     except Exception as e:
         logger.error(f"Error in playlist_to_flashcards: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/merge_notes")
 async def merge_multiple_notes(
@@ -543,7 +562,7 @@ async def merge_multiple_notes(
         return result
     except Exception as e:
         logger.error(f"Error in merge_notes: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/export_flashcards_csv")
 async def export_flashcards_csv(
@@ -576,7 +595,7 @@ async def export_flashcards_csv(
         return result
     except Exception as e:
         logger.error(f"Error exporting flashcards to CSV: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/export_questions_pdf")
 async def export_questions_pdf(
@@ -609,7 +628,7 @@ async def export_questions_pdf(
         return result
     except Exception as e:
         logger.error(f"Error exporting questions to PDF: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/import_export/export_notes_markdown")
 async def export_notes_markdown(
@@ -642,7 +661,7 @@ async def export_notes_markdown(
         return result
     except Exception as e:
         logger.error(f"Error exporting notes to markdown: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/import_export/history")
 async def get_import_export_history(
@@ -672,4 +691,4 @@ async def get_import_export_history(
         }
     except Exception as e:
         logger.error(f"Error getting import/export history: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

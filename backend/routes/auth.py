@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import re
 import threading
 from collections import defaultdict
@@ -155,8 +156,10 @@ async def register(request: Request, payload: RegisterPayload, db: Session = Dep
     _check_auth_rate_limit(request)
     logger.info(f"Registering user: {payload.username}")
 
-    if len(payload.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long")
+    if len(payload.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+    if not any(c.isupper() for c in payload.password) or not any(c.isdigit() or not c.isalpha() for c in payload.password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter and one number or special character")
 
     if get_user_by_username(db, payload.username):
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -247,13 +250,13 @@ async def login_form(request: Request, username: str = Form(...), password: str 
 @router.post("/google-auth")
 async def google_auth(request: Request, auth_data: GoogleAuth, db: Session = Depends(get_db)):
     _check_auth_rate_limit(request)
+    import secrets as _secrets
     try:
-        try:
-            url = f"https://oauth2.googleapis.com/tokeninfo?id_token={auth_data.token}"
-            response = requests.get(url)
-            user_info = response.json() if response.status_code == 200 else verify_google_token(auth_data.token)
-        except Exception:
-            user_info = verify_google_token(auth_data.token)
+        user_info = verify_google_token(auth_data.token)
+
+        aud = user_info.get("aud")
+        if GOOGLE_CLIENT_ID and aud != GOOGLE_CLIENT_ID:
+            raise HTTPException(status_code=400, detail="Token audience mismatch")
 
         email = user_info.get('email')
         if not email:
@@ -267,7 +270,7 @@ async def google_auth(request: Request, auth_data: GoogleAuth, db: Session = Dep
                 last_name=user_info.get('family_name', ''),
                 email=email,
                 username=email,
-                hashed_password=get_password_hash("google_oauth"),
+                hashed_password=get_password_hash(_secrets.token_hex(32)),
                 picture_url=user_info.get('picture', ''),
                 google_user=True
             )
@@ -302,6 +305,7 @@ async def google_auth(request: Request, auth_data: GoogleAuth, db: Session = Dep
 @router.post("/firebase-auth")
 async def firebase_authentication(request: Request, db: Session = Depends(get_db)):
     _check_auth_rate_limit(request)
+    import secrets as _secrets
     from database import DATABASE_URL as db_url
     max_retries = 2
     for attempt in range(max_retries):
@@ -315,6 +319,29 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
 
             if not id_token or not email:
                 raise HTTPException(status_code=400, detail="Missing required fields")
+
+            try:
+                import firebase_admin
+                from firebase_admin import auth as firebase_auth, credentials as firebase_creds
+                if not firebase_admin._apps:
+                    firebase_project_id = os.getenv("FIREBASE_PROJECT_ID")
+                    if not firebase_project_id:
+                        raise RuntimeError("FIREBASE_PROJECT_ID env var not set")
+                    cred = firebase_creds.ApplicationDefault()
+                    firebase_admin.initialize_app(cred, {"projectId": firebase_project_id})
+                decoded = firebase_auth.verify_id_token(id_token)
+                if decoded.get("email") != email:
+                    raise HTTPException(status_code=400, detail="Token email mismatch")
+                uid = decoded.get("uid")
+            except ImportError:
+                logger.warning("firebase-admin SDK not installed — skipping Firebase token verification")
+            except firebase_admin.auth.InvalidIdTokenError:
+                raise HTTPException(status_code=401, detail="Invalid Firebase token")
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Firebase token verification error: {e}")
+                raise HTTPException(status_code=401, detail="Firebase token verification failed")
 
             user = get_user_by_email(db, email)
             is_new_user = False
@@ -330,7 +357,7 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                     last_name=last_name,
                     email=email,
                     username=email,
-                    hashed_password=get_password_hash(f"firebase_{uid}"),
+                    hashed_password=get_password_hash(_secrets.token_hex(32)),
                     picture_url=photo_url,
                     google_user=True
                 )
@@ -706,7 +733,7 @@ async def update_comprehensive_profile(
     db: Session = Depends(get_db)
 ):
     try:
-        logger.info(f"Received profile update payload: {payload}")
+        logger.info("Received profile update request")
 
         user_id = payload.get("user_id")
         if not user_id:

@@ -493,7 +493,7 @@ async def generate_learning_path(
     except Exception as e:
         db.rollback()
         logger.error(f"Error generating learning path: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("")
 async def get_learning_paths(

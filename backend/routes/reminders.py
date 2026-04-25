@@ -137,7 +137,7 @@ async def create_reminder_list(
     except Exception as e:
         logger.error(f"Error creating reminder list: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_reminder_lists")
 async def get_reminder_lists(
@@ -245,7 +245,7 @@ async def get_reminder_lists(
         return {"lists": result, "smart_lists": smart_lists}
     except Exception as e:
         logger.error(f"Error getting reminder lists: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/update_reminder_list/{list_id}")
 async def update_reminder_list(
@@ -276,7 +276,7 @@ async def update_reminder_list(
     except Exception as e:
         logger.error(f"Error updating reminder list: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/delete_reminder_list/{list_id}")
 async def delete_reminder_list(
@@ -297,7 +297,7 @@ async def delete_reminder_list(
     except Exception as e:
         logger.error(f"Error deleting reminder list: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/create_reminder")
 async def create_reminder(
@@ -395,7 +395,7 @@ async def create_reminder(
     except Exception as e:
         logger.error(f"Error creating reminder: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_reminders")
 async def get_reminders(
@@ -468,7 +468,7 @@ async def get_reminders(
         return [serialize_reminder(r) for r in reminders]
     except Exception as e:
         logger.error(f"Error getting reminders: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/update_reminder/{reminder_id}")
 async def update_reminder(
@@ -569,7 +569,7 @@ async def update_reminder(
     except Exception as e:
         logger.error(f"Error updating reminder: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/delete_reminder/{reminder_id}")
 async def delete_reminder(
@@ -590,7 +590,7 @@ async def delete_reminder(
     except Exception as e:
         logger.error(f"Error deleting reminder: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/add_subtask/{reminder_id}")
 async def add_subtask(
@@ -619,7 +619,7 @@ async def add_subtask(
     except Exception as e:
         logger.error(f"Error adding subtask: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/toggle_reminder_flag/{reminder_id}")
 async def toggle_reminder_flag(
@@ -641,7 +641,7 @@ async def toggle_reminder_flag(
     except Exception as e:
         logger.error(f"Error toggling flag: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_upcoming_reminders")
 async def get_upcoming_reminders(
@@ -674,7 +674,7 @@ async def get_upcoming_reminders(
         return [serialize_reminder(r) for r in reminders]
     except Exception as e:
         logger.error(f"Error getting upcoming reminders: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/search_reminders")
 async def search_reminders(
@@ -703,4 +703,4 @@ async def search_reminders(
         return [serialize_reminder(r) for r in reminders]
     except Exception as e:
         logger.error(f"Error searching reminders: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

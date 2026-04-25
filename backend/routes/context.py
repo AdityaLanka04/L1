@@ -113,10 +113,29 @@ def _parse_ai_topics(raw: str) -> list[str]:
 _BLOCKED_HOSTS = {
     "localhost", "127.0.0.1", "::1", "[::1]",
     "metadata.google.internal", "metadata.goog",
-    "169.254.169.254",   # AWS/GCP/Azure instance metadata
-    "100.100.100.200",   # Alibaba Cloud metadata
-    "fd00:ec2::254",     # AWS IPv6 metadata
+    "169.254.169.254",
+    "100.100.100.200",
+    "fd00:ec2::254",
 }
+
+import socket as _socket
+
+def _resolve_and_check_ip(host: str) -> bool:
+    """Resolve hostname to IP and reject private/loopback addresses (blocks DNS rebinding)."""
+    try:
+        infos = _socket.getaddrinfo(host, None)
+        for info in infos:
+            addr = info[4][0]
+            try:
+                ip = ipaddress.ip_address(addr)
+                if (ip.is_private or ip.is_loopback or ip.is_reserved
+                        or ip.is_link_local or ip.is_multicast):
+                    return False
+            except ValueError:
+                return False
+        return True
+    except Exception:
+        return False
 
 def _is_safe_url(url: str) -> bool:
     if not url or len(url) > 2048:
@@ -141,7 +160,8 @@ def _is_safe_url(url: str) -> bool:
                     or ip.is_link_local or ip.is_multicast):
                 return False
         except ValueError:
-            pass
+            if not _resolve_and_check_ip(host_lower):
+                return False
         return True
     except Exception:
         return False
@@ -165,9 +185,14 @@ def _filename_from_disposition(value: str) -> str:
 
 def _download_url(url: str) -> tuple[bytes, str, str]:
     try:
-        resp = requests.get(url, stream=True, timeout=30, headers=_DEFAULT_HEADERS)
+        resp = requests.get(url, stream=True, timeout=30, headers=_DEFAULT_HEADERS, allow_redirects=False)
+        if resp.is_redirect or resp.is_permanent_redirect:
+            location = resp.headers.get("Location", "")
+            if not location or not _is_safe_url(location):
+                raise HTTPException(status_code=400, detail="Redirect to unsafe URL blocked")
+            resp = requests.get(location, stream=True, timeout=30, headers=_DEFAULT_HEADERS, allow_redirects=False)
         if resp.status_code in (401, 403, 406):
-            resp = requests.get(url, stream=True, timeout=30, headers={**_DEFAULT_HEADERS, "Referer": url})
+            resp = requests.get(url, stream=True, timeout=30, headers={**_DEFAULT_HEADERS, "Referer": url}, allow_redirects=False)
     except requests.exceptions.RequestException as e:
         logger.warning(f"URL fetch failed: {e}")
         raise HTTPException(status_code=400, detail="Failed to fetch the URL. The resource may be unavailable or blocked.")
@@ -757,7 +782,7 @@ def search_context_endpoint(
         return {"query": query, "results": cleaned, "chunk_count": len(cleaned)}
     except Exception as e:
         logger.error(f"context search endpoint failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/related-topics")
 def related_topics_endpoint(

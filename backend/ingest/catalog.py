@@ -138,7 +138,7 @@ OPENSTAX_BOOKS: list[dict] = [
         "source_name": "OpenStax",
         "license": "CC-BY 4.0",
         "page_url": "https://openstax.org/details/books/us-history",
-        "direct_url": "https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf",
+        "direct_url": "https://archive.org/download/openstax-us-history-2e/OpenStax_USHistory2e_WEB.pdf",
     },
     {
         "slug": "world-history-volume-1",

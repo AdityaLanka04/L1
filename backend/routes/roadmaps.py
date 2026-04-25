@@ -114,7 +114,7 @@ async def create_knowledge_roadmap(
     except Exception as e:
         logger.error(f"Error creating roadmap: {str(e)}", exc_info=True)
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to create roadmap: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/create_roadmap_from_chat")
 async def create_roadmap_from_chat(
@@ -170,7 +170,7 @@ Topic:"""
 
     except Exception as e:
         logger.error(f"Error creating roadmap from chat: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/expand_knowledge_node/{node_id}")
 async def expand_knowledge_node(
@@ -337,7 +337,7 @@ Generate 4-5 specific subtopics (more specific than parent, 2-5 words each).
             node.expansion_status = "unexpanded"
             db.commit()
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to expand node: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/explore_node/{node_id}")
 async def explore_node(
@@ -459,7 +459,7 @@ Level: {user_profile.get('difficulty_level', 'intermediate')}
     except Exception as e:
         logger.error(f"Error exploring node: {str(e)}", exc_info=True)
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to explore node: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_knowledge_roadmap/{roadmap_id}")
 async def get_knowledge_roadmap(
@@ -555,7 +555,7 @@ async def get_knowledge_roadmap(
         raise
     except Exception as e:
         logger.error(f"Error getting roadmap: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to get roadmap: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_user_roadmaps")
 async def get_user_roadmaps(
@@ -648,7 +648,7 @@ async def save_node_notes(
     except Exception as e:
         logger.error(f"Error saving notes: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/delete_roadmap/{roadmap_id}")
 async def delete_roadmap(
@@ -690,7 +690,7 @@ async def delete_roadmap(
     except Exception as e:
         logger.error(f"Error deleting roadmap: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/add_manual_node")
 async def add_manual_node(
@@ -761,7 +761,7 @@ async def add_manual_node(
     except Exception as e:
         logger.error(f"Error adding manual node: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/delete_roadmap_node/{node_id}")
 async def delete_roadmap_node(
@@ -823,7 +823,7 @@ async def delete_roadmap_node(
     except Exception as e:
         logger.error(f"Error deleting node: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/get_learning_hints")
 async def get_learning_hints(
@@ -892,7 +892,7 @@ Generate hint now:"""
 
     except Exception as e:
         logger.error(f"Error generating hints: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate hints: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_concept_web")
 async def get_concept_web(
@@ -1204,7 +1204,7 @@ async def generate_concept_web(
     except Exception as e:
         logger.error(f"Error generating concept web: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/add_concept_node")
 async def add_concept_node(
@@ -1311,7 +1311,7 @@ async def add_concept_node(
     except Exception as e:
         logger.error(f"Error adding concept node: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/update_node_position")
 async def update_node_position(
@@ -1337,7 +1337,7 @@ async def update_node_position(
     except Exception as e:
         logger.error(f"Error updating node position: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/update_concept_mastery")
 async def update_concept_mastery(
@@ -1364,7 +1364,7 @@ async def update_concept_mastery(
     except Exception as e:
         logger.error(f"Error updating mastery level: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/generate_concept_notes")
 async def generate_concept_notes(
@@ -1439,7 +1439,7 @@ Format as clear, organized study notes."""
     except Exception as e:
         logger.error(f"Error generating notes: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/generate_concept_flashcards")
 async def generate_concept_flashcards(
@@ -1528,7 +1528,7 @@ Make questions clear and answers concise."""
     except Exception as e:
         logger.error(f"Error generating flashcards: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/generate_concept_quiz")
 async def generate_concept_quiz(
@@ -1616,7 +1616,7 @@ Return ONLY a JSON array:
     except Exception as e:
         logger.error(f"Error generating quiz: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/delete_concept_node/{node_id}")
 async def delete_concept_node(
@@ -1638,7 +1638,7 @@ async def delete_concept_node(
     except Exception as e:
         logger.error(f"Error deleting concept node: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/delete_all_concepts")
 async def delete_all_concepts(
@@ -1663,4 +1663,4 @@ async def delete_all_concepts(
     except Exception as e:
         logger.error(f"Error deleting all concepts: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

@@ -1090,45 +1090,83 @@ const Dashboard = () => {
                   const startX = 30;
                   const spacing = 37;
                   
+                  const points = validWeeklyProgress.map((val, i) => ({
+                    x: startX + (i * spacing),
+                    y: 80 - (val / maxRounded) * 60,
+                  }));
+
+                  // smooth catmull-rom-ish bezier path (premium curve)
+                  const smoothPath = points.reduce((acc, p, i) => {
+                    if (i === 0) return `M ${p.x} ${p.y}`;
+                    const prev = points[i - 1];
+                    const cx1 = prev.x + (p.x - prev.x) * 0.45;
+                    const cx2 = p.x - (p.x - prev.x) * 0.45;
+                    return `${acc} C ${cx1} ${prev.y}, ${cx2} ${p.y}, ${p.x} ${p.y}`;
+                  }, '');
+
+                  const areaPath = `${smoothPath} L ${startX + 6 * spacing} 80 L ${startX} 80 Z`;
+
                   return (
                     <>
+                      <defs>
+                        <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={streakColor} stopOpacity="0.35" />
+                          <stop offset="60%" stopColor={streakColor} stopOpacity="0.12" />
+                          <stop offset="100%" stopColor={streakColor} stopOpacity="0.02" />
+                        </linearGradient>
+                        <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor={streakColor} stopOpacity="0.0" />
+                          <stop offset="8%" stopColor={streakColor} stopOpacity="0.85" />
+                          <stop offset="92%" stopColor={streakColor} stopOpacity="0.85" />
+                          <stop offset="100%" stopColor={streakColor} stopOpacity="0.0" />
+                        </linearGradient>
+                        <filter id="lineGlow" x="-20%" y="-50%" width="140%" height="200%">
+                          <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+                          <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                          </feMerge>
+                        </filter>
+                        <radialGradient id="dotGlow" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor={streakColor} stopOpacity="0.5" />
+                          <stop offset="100%" stopColor={streakColor} stopOpacity="0" />
+                        </radialGradient>
+                      </defs>
+
+                      <path d={areaPath} fill="url(#areaGradient)" />
+
                       <path
-                        d={`M ${startX} 80 ${validWeeklyProgress.map((val, i) => {
-                          const x = startX + (i * spacing);
-                          const y = 80 - (val / maxRounded) * 60;
-                          return `L ${x} ${y}`;
-                        }).join(' ')} L ${startX + 6 * spacing} 80 Z`}
-                        fill={`url(#areaGradient)`}
+                        d={smoothPath}
+                        fill="none"
+                        stroke="url(#lineGradient)"
+                        strokeWidth="1.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        filter="url(#lineGlow)"
+                        opacity="0.55"
                       />
                       <path
-                        d={`M ${validWeeklyProgress.map((val, i) => {
-                          const x = startX + (i * spacing);
-                          const y = 80 - (val / maxRounded) * 60;
-                          return `${i === 0 ? '' : 'L '}${x} ${y}`;
-                        }).join(' ')}`}
+                        d={smoothPath}
                         fill="none"
                         stroke={streakColor}
-                        strokeWidth="2"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       />
-                      {validWeeklyProgress.map((val, i) => {
-                        const x = startX + (i * spacing);
-                        const y = 80 - (val / maxRounded) * 60;
-                        return (
-                          <circle key={i} cx={x} cy={y} r="3" fill={streakColor} stroke={bgPrimary} strokeWidth="2" />
-                        );
-                      })}
+
+                      {points.map((p, i) => (
+                        <g key={i}>
+                          <circle cx={p.x} cy={p.y} r="8" fill="url(#dotGlow)" />
+                          <circle cx={p.x} cy={p.y} r="2.6" fill={streakColor} stroke={bgPrimary} strokeWidth="1.4" />
+                        </g>
+                      ))}
+
                       {dayLabels.map((day, i) => {
                         const x = startX + (i * spacing);
                         return (
-                          <text key={i} x={x} y="95" fontSize="10" fill={textSecondary} textAnchor="middle">{day}</text>
+                          <text key={i} x={x} y="95" fontSize="10" fill={textSecondary} textAnchor="middle" letterSpacing="1">{day}</text>
                         );
                       })}
-                      <defs>
-                        <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={streakColor} stopOpacity="0.3" />
-                          <stop offset="100%" stopColor={streakColor} stopOpacity="0.05" />
-                        </linearGradient>
-                      </defs>
                     </>
                   );
                 })()}
@@ -1369,21 +1407,46 @@ const Dashboard = () => {
                   { label: 'NOTES',   val: weeklyStats.weeklyNotes || 0,          goal: gf.weekly_note_goal || 5 },
                   { label: 'CARDS',   val: weeklyStats.weeklyFlashcards || 0,     goal: gf.weekly_flashcard_goal || 20 },
                   { label: 'QUIZZES', val: gf.weekly_quizzes_completed || 0,      goal: gf.weekly_quiz_goal || 5 },
-                ].map(({ label, val, goal }) => {
+                ].map(({ label, val, goal }, ringIdx) => {
                   const pct = Math.min(val / Math.max(goal, 1), 1);
                   const done = pct >= 1;
                   const ringColor = done ? '#4ade80' : ac;
+                  const gradId = `qhRing-${ringIdx}`;
+                  const glowId = `qhRingGlow-${ringIdx}`;
                   return (
                     <div key={label} className="ds-qh-ring-tile">
                       <div className="ds-qh-ring-svg-wrap">
                         <svg viewBox="0 0 36 36" width="90" height="90">
-                          <circle cx="18" cy="18" r="15.9155" fill="none" stroke="var(--border)" strokeWidth="2" />
+                          <defs>
+                            <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stopColor={ringColor} stopOpacity="1" />
+                              <stop offset="100%" stopColor={ringColor} stopOpacity="0.65" />
+                            </linearGradient>
+                            <filter id={glowId} x="-30%" y="-30%" width="160%" height="160%">
+                              <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" result="blur" />
+                              <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                              </feMerge>
+                            </filter>
+                          </defs>
+                          {/* outer halo ring (soft depth) */}
+                          <circle cx="18" cy="18" r="17.4" fill="none"
+                            stroke={ringColor} strokeOpacity="0.08" strokeWidth="0.5" />
+                          {/* track */}
                           <circle cx="18" cy="18" r="15.9155" fill="none"
-                            stroke={ringColor} strokeWidth="2.5"
+                            stroke="var(--border)" strokeWidth="1.6" strokeOpacity="0.55" />
+                          {/* inner concentric depth ring */}
+                          <circle cx="18" cy="18" r="13.6" fill="none"
+                            stroke={ringColor} strokeOpacity="0.06" strokeWidth="0.4" />
+                          {/* progress arc */}
+                          <circle cx="18" cy="18" r="15.9155" fill="none"
+                            stroke={`url(#${gradId})`} strokeWidth="2.6"
                             strokeDasharray={`${pct * 100} 100`}
                             strokeLinecap="round"
                             transform="rotate(-90 18 18)"
-                            style={{ transition: 'stroke-dasharray 0.8s ease' }}
+                            filter={`url(#${glowId})`}
+                            style={{ transition: 'stroke-dasharray 0.9s cubic-bezier(0.22, 1, 0.36, 1)' }}
                           />
                         </svg>
                         <div className="ds-qh-ring-inner">

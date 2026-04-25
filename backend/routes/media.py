@@ -184,13 +184,13 @@ async def transcribe_audio(
             raise
         except Exception as groq_error:
             logger.error(f"Groq API error: {str(groq_error)}")
-            raise HTTPException(status_code=500, detail=f"Transcription failed: {str(groq_error)}")
+            raise HTTPException(status_code=500, detail="Transcription failed")
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Unexpected error in transcribe_audio: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to transcribe audio: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to transcribe audio")
     finally:
         if temp_audio_path and os.path.exists(temp_audio_path):
             try:
@@ -228,7 +228,7 @@ async def transcribe_audio_test(
         raise
     except Exception as e:
         logger.error(f"Test endpoint error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/media/process")
 async def process_media(
@@ -391,7 +391,7 @@ async def process_media(
         raise
     except Exception as e:
         logger.error(f"Media processing error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Processing failed")
 
 @router.post("/media/save-notes")
 async def save_media_notes(
@@ -463,7 +463,7 @@ async def save_media_notes(
         raise
     except Exception as e:
         logger.error(f"Error saving notes: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to save notes: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to save notes")
 
 @router.post("/media/regenerate-notes")
 async def regenerate_notes(
@@ -504,7 +504,7 @@ async def regenerate_notes(
         raise
     except Exception as e:
         logger.error(f"Error regenerating notes: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to regenerate notes: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to regenerate notes")
 
 @router.get("/media/estimate-cost")
 async def estimate_processing_cost(
@@ -546,11 +546,13 @@ Return ONLY the title, nothing else. Make it descriptive and catchy."""
 @router.get("/get_note/{note_id}")
 async def get_single_note(
     note_id: int,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
         note = db.query(models.Note).filter(
             models.Note.id == note_id,
+            models.Note.user_id == current_user.id,
             models.Note.is_deleted == False,
         ).first()
 
@@ -606,7 +608,7 @@ async def get_single_note(
         raise
     except Exception as e:
         logger.error(f"Error fetching note {note_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/media/history")
 async def get_media_history(
@@ -660,27 +662,37 @@ async def get_media_history(
         raise
     except Exception as e:
         logger.error(f"History fetch error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+_MAX_SLIDE_SIZE = 50 * 1024 * 1024  # 50 MB per file
+_ALLOWED_SLIDE_EXTENSIONS = {".pdf", ".ppt", ".pptx"}
+_SLIDE_MAGIC_BYTES = {
+    b'%PDF': 'pdf',
+    b'PK\x03\x04': 'pptx',
+    b'\xd0\xcf\x11\xe0': 'ppt',
+}
 
 @router.post("/upload_slides")
 async def upload_slides(
-    user_id: str = Form(...),
     files: List[UploadFile] = File(...),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        user = current_user
 
         uploaded_slides = []
 
         for file in files:
-            if not file.filename.lower().endswith((".pdf", ".ppt", ".pptx")):
+            ext = Path(file.filename or "").suffix.lower()
+            if ext not in _ALLOWED_SLIDE_EXTENSIONS:
                 continue
 
             file_content = await file.read()
             file_size = len(file_content)
+
+            if file_size > _MAX_SLIDE_SIZE:
+                raise HTTPException(status_code=413, detail=f"File {file.filename} exceeds 50 MB limit")
 
             timestamp = int(datetime.now(timezone.utc).timestamp())
             clean_name = "".join(c for c in (file.filename or "upload") if c.isalnum() or c in (".", "_", "-"))
@@ -752,7 +764,7 @@ async def upload_slides(
     except Exception as e:
         logger.error(f"Error uploading slides: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to upload slides: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload slides")
 
 @router.get("/get_uploaded_slides")
 def get_uploaded_slides(
@@ -796,18 +808,22 @@ def get_uploaded_slides(
 @router.delete("/delete_slide/{slide_id}")
 def delete_slide(
     slide_id: int,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
         slide = db.query(models.UploadedSlide).filter(
-            models.UploadedSlide.id == slide_id
+            models.UploadedSlide.id == slide_id,
+            models.UploadedSlide.user_id == current_user.id,
         ).first()
 
         if not slide:
             raise HTTPException(status_code=404, detail="Slide not found")
 
-        if Path(slide.file_path).exists():
-            Path(slide.file_path).unlink()
+        file_path = Path(slide.file_path).resolve()
+        allowed_dir = Path("uploads/slides").resolve()
+        if str(file_path).startswith(str(allowed_dir)) and file_path.exists():
+            file_path.unlink()
 
         db.delete(slide)
         db.commit()
@@ -822,7 +838,7 @@ def delete_slide(
     except Exception as e:
         logger.error(f"Error deleting slide: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to delete slide")
 
 @router.get("/analyze_slide/{slide_id}")
 async def analyze_slide(
@@ -903,16 +919,18 @@ async def analyze_slide(
     except Exception as e:
         logger.error(f"Error analyzing slide: {str(e)}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error analyzing slide: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error analyzing slide")
 
 @router.get("/slide_file/{slide_id}")
 async def get_slide_file(
     slide_id: int,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
         slide = db.query(models.UploadedSlide).filter(
-            models.UploadedSlide.id == slide_id
+            models.UploadedSlide.id == slide_id,
+            models.UploadedSlide.user_id == current_user.id,
         ).first()
 
         if not slide:
@@ -945,19 +963,21 @@ async def get_slide_file(
         raise
     except Exception as e:
         logger.error(f"Error serving slide file: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error serving slide file: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error serving slide file")
 
 @router.get("/slide_image/{slide_id}/{page_number}")
 async def get_slide_image(
     slide_id: int,
     page_number: int,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     import base64
 
     try:
         slide = db.query(models.UploadedSlide).filter(
-            models.UploadedSlide.id == slide_id
+            models.UploadedSlide.id == slide_id,
+            models.UploadedSlide.user_id == current_user.id,
         ).first()
 
         if not slide:
@@ -993,7 +1013,7 @@ async def get_slide_image(
                 raise
             except Exception as e:
                 logger.error(f"Error rendering PDF page: {e}")
-                raise HTTPException(status_code=500, detail=f"Error rendering PDF: {str(e)}")
+                raise HTTPException(status_code=500, detail="Error rendering PDF")
 
         elif slide.original_filename.lower().endswith((".ppt", ".pptx")):
             try:
@@ -1173,7 +1193,7 @@ async def get_slide_image(
                 raise
             except Exception as e:
                 logger.error(f"Error rendering PowerPoint: {e}")
-                raise HTTPException(status_code=500, detail=f"Error rendering PowerPoint: {str(e)}")
+                raise HTTPException(status_code=500, detail="Error rendering PowerPoint")
 
         else:
             raise HTTPException(status_code=400, detail="Unsupported file type")
@@ -1182,7 +1202,7 @@ async def get_slide_image(
         raise
     except Exception as e:
         logger.error(f"Error getting slide image: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error getting slide image: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error getting slide image")
 
 
 @router.get("/media/podcast/voice-modes")
@@ -1241,7 +1261,7 @@ async def start_media_podcast(
         )
         return {"success": True, **session_data}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Failed to start media podcast: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to start podcast session")
@@ -1267,7 +1287,7 @@ async def next_media_podcast_segment(
         )
         return {"success": True, **segment_data}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Not found")
     except Exception as e:
         logger.error("Failed to fetch next podcast segment: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch next podcast segment")
@@ -1299,7 +1319,7 @@ async def ask_media_podcast_question(
         )
         return {"success": True, **answer_data}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Podcast question handling failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to answer podcast question")
@@ -1326,7 +1346,7 @@ async def set_media_podcast_voice_mode(
         )
         return {"success": True, **mode_data}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Failed to update podcast voice mode: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to update podcast voice mode")
@@ -1357,7 +1377,7 @@ async def update_media_podcast_settings(
         )
         return {"success": True, **settings_data}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Failed to update podcast settings: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to update podcast settings")
@@ -1391,7 +1411,7 @@ async def add_media_podcast_bookmark(
         )
         return {"success": True, "bookmark": bookmark, "bookmarks": bookmarks}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Failed to add podcast bookmark: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to add podcast bookmark")
@@ -1442,7 +1462,7 @@ async def replay_media_podcast_bookmark(
         )
         return {"success": True, **replay_data}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Failed to replay bookmark: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to replay bookmark")
@@ -1469,7 +1489,7 @@ async def jump_media_podcast_chapter(
         )
         return {"success": True, **jump_data}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Failed to jump podcast chapter: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to jump podcast chapter")
@@ -1496,7 +1516,7 @@ async def start_media_podcast_mcq(
         )
         return {"success": True, **mcq_data}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Failed to start podcast mcq drill: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to start podcast mcq drill")
@@ -1524,7 +1544,7 @@ async def answer_media_podcast_mcq(
         )
         return {"success": True, **mcq_data}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Failed to answer podcast mcq: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to answer podcast mcq")
@@ -1551,7 +1571,7 @@ async def export_media_podcast_session(
         )
         return {"success": True, **export_data}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Failed to export podcast session: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to export podcast session")
@@ -1602,7 +1622,7 @@ async def resume_media_podcast_session(
         )
         return {"success": True, **resume_data}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Not found")
     except Exception as e:
         logger.error("Failed to resume podcast session: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to resume podcast session")
@@ -1628,7 +1648,7 @@ async def stop_media_podcast(
         )
         return {"success": True, **stop_data}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Bad request")
     except Exception as e:
         logger.error("Failed to stop podcast session: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to stop podcast session")
@@ -1654,7 +1674,7 @@ async def get_media_podcast_state(
         )
         return {"success": True, **state_data}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Not found")
     except Exception as e:
         logger.error("Failed to fetch podcast session state: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch podcast session state")

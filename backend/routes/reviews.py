@@ -186,7 +186,7 @@ async def create_learning_review(
     except Exception as e:
         logger.error(f"Error creating review: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to create learning review: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/update_learning_review")
 async def update_learning_review(
@@ -235,7 +235,7 @@ async def update_learning_review(
     except Exception as e:
         logger.error(f"Error updating review: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_hints/{question_id}")
 def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
@@ -355,7 +355,7 @@ async def submit_review_response(
     except Exception as e:
         logger.error(f"Error submitting review response: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/save_archetype_profile")
 async def save_archetype_profile(
@@ -407,7 +407,7 @@ async def save_archetype_profile(
 
     except Exception as e:
         logger.error(f"Error saving archetype: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to save archetype: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_comprehensive_profile")
 async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -461,7 +461,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
 
     except Exception as e:
         logger.error(f"Error getting profile: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/update_comprehensive_profile")
 async def update_comprehensive_profile(
@@ -534,7 +534,7 @@ async def update_comprehensive_profile(
     except Exception as e:
         logger.error(f"Error updating profile: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/suggest_subjects")
 async def suggest_subjects(
@@ -701,4 +701,4 @@ Keep it brief and friendly."""
     except Exception as e:
         logger.error(f"Error saving complete profile: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

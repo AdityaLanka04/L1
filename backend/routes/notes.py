@@ -552,13 +552,21 @@ async def notes_agent(
         return {"success": False, "error": str(e)}
 
 @router.put("/update_shared_note/{note_id}")
-def update_shared_note(note_id: int, data: dict, db: Session = Depends(get_db)):
-    note = db.query(models.Note).filter(models.Note.id == note_id).first()
+def update_shared_note(
+    note_id: int,
+    data: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    note = db.query(models.Note).filter(
+        models.Note.id == note_id,
+        models.Note.user_id == current_user.id,
+    ).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
 
     if "title" in data:
-        note.title = data["title"]
+        note.title = str(data["title"])[:500]
     if "content" in data:
         note.content = data["content"]
     note.updated_at = datetime.now(timezone.utc)

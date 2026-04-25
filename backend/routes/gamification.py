@@ -85,7 +85,7 @@ async def track_gamification_activity(
     except Exception as e:
         logger.error(f"Error tracking gamification activity: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_gamification_stats")
 async def get_gamification_stats(
@@ -103,7 +103,7 @@ async def get_gamification_stats(
 
     except Exception as e:
         logger.error(f"Error getting gamification stats: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/xp_roadmap/personalized")
 async def get_personalized_xp_roadmap(
@@ -129,7 +129,7 @@ async def get_personalized_xp_roadmap(
 
     except Exception as e:
         logger.error(f"Error getting personalized roadmap: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/set_weekly_goals")
 async def set_weekly_goals(
@@ -161,7 +161,7 @@ async def set_weekly_goals(
         return {"status": "success"}
     except Exception as e:
         logger.error(f"Error setting weekly goals: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_dashboard_data")
 async def get_dashboard_data(
@@ -198,7 +198,7 @@ async def get_dashboard_data(
 
     except Exception as e:
         logger.error(f"Error getting dashboard data: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/check_missed_achievements")
 async def check_missed_achievements(
@@ -236,7 +236,7 @@ async def check_missed_achievements(
 
     except Exception as e:
         logger.error(f"Error checking missed achievements: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_weekly_bingo_stats")
 async def get_weekly_bingo_stats(
@@ -274,7 +274,7 @@ async def get_weekly_bingo_stats(
 
     except Exception as e:
         logger.error(f"Error getting bingo stats: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_weekly_activity_progress")
 async def get_weekly_activity_progress(
@@ -317,7 +317,7 @@ async def get_weekly_activity_progress(
 
     except Exception as e:
         logger.error(f"Error getting weekly progress: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_recent_point_activities")
 async def get_recent_point_activities(
@@ -360,7 +360,7 @@ async def get_recent_point_activities(
 
     except Exception as e:
         logger.error(f"Error getting recent activities: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_daily_challenge")
 async def get_daily_challenge(
@@ -412,7 +412,7 @@ async def get_daily_challenge(
 
     except Exception as e:
         logger.error(f"Error getting daily challenge: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_leaderboard")
 async def get_leaderboard(
@@ -455,7 +455,7 @@ async def get_leaderboard(
 
     except Exception as e:
         logger.error(f"Error getting leaderboard: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/admin/recalculate_gamification")
 async def recalculate_gamification(db: Session = Depends(get_db)):
@@ -471,4 +471,4 @@ async def recalculate_gamification(db: Session = Depends(get_db)):
 
     except Exception as e:
         logger.error(f"Recalculation error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

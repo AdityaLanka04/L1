@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Body, Depends, Form, Header, HTTPException, Query
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
+from admin_analytics import check_admin
 
 import models
 from database import get_db
@@ -691,29 +692,44 @@ def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get
         return {"questions_today": 0, "daily_goal": 20, "percentage": 0, "streak": 0}
 
 @router.get("/admin/analytics/overview")
-async def admin_analytics_overview(days: int = Query(30), x_user_id: str = Header(None, alias="X-User-Id")):
+async def admin_analytics_overview(
+    days: int = Query(30),
+    _: str = Depends(check_admin),
+):
     from admin_analytics import get_analytics_overview
-    return await get_analytics_overview(days, x_user_id)
+    return await get_analytics_overview(days)
 
 @router.get("/admin/analytics/users")
-async def admin_analytics_users(days: int = Query(30), x_user_id: str = Header(None, alias="X-User-Id")):
+async def admin_analytics_users(
+    days: int = Query(30),
+    _: str = Depends(check_admin),
+):
     from admin_analytics import get_user_analytics
-    return await get_user_analytics(days, x_user_id)
+    return await get_user_analytics(days)
 
 @router.get("/admin/analytics/user/{target_user_id}")
-async def admin_analytics_user_detail(target_user_id: int, x_user_id: str = Header(None, alias="X-User-Id")):
+async def admin_analytics_user_detail(
+    target_user_id: int,
+    _: str = Depends(check_admin),
+):
     from admin_analytics import get_user_detail
-    return await get_user_detail(target_user_id, x_user_id)
+    return await get_user_detail(target_user_id)
 
 @router.get("/admin/analytics/export/csv")
-async def admin_analytics_export_csv(days: int = Query(30), x_user_id: str = Header(None, alias="X-User-Id")):
+async def admin_analytics_export_csv(
+    days: int = Query(30),
+    _: str = Depends(check_admin),
+):
     from admin_analytics import export_analytics_csv
-    return await export_analytics_csv(days, x_user_id)
+    return await export_analytics_csv(days)
 
 @router.get("/admin/analytics/export/user/{target_user_id}/csv")
-async def admin_analytics_export_user_csv(target_user_id: int, x_user_id: str = Header(None, alias="X-User-Id")):
+async def admin_analytics_export_user_csv(
+    target_user_id: int,
+    _: str = Depends(check_admin),
+):
     from admin_analytics import export_user_csv
-    return await export_user_csv(target_user_id, x_user_id)
+    return await export_user_csv(target_user_id)
 
 @router.get("/study_insights/comprehensive")
 async def get_comprehensive_insights(
@@ -954,7 +970,7 @@ async def get_comprehensive_insights(
     except Exception as e:
         logger.error(f"Comprehensive insights error: {e}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/study_insights/session_summary")
 async def get_study_session_summary(
@@ -977,7 +993,7 @@ async def get_study_session_summary(
         }
     except Exception as e:
         logger.error(f"Error getting study session summary: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/study_insights/ai_summary")
 async def get_ai_study_summary(
@@ -1000,7 +1016,7 @@ async def get_ai_study_summary(
         }
     except Exception as e:
         logger.error(f"Error getting AI study summary: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/study_insights/strengths_weaknesses")
 async def get_strengths_weaknesses(
@@ -1020,7 +1036,7 @@ async def get_strengths_weaknesses(
     except Exception as e:
         logger.error(f"Error getting comprehensive strengths/weaknesses: {str(e)}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/study_insights/topic_suggestions")
 async def get_topic_suggestions(
@@ -1041,7 +1057,7 @@ async def get_topic_suggestions(
     except Exception as e:
         logger.error(f"Error generating topic suggestions: {str(e)}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/study_insights/similar_questions")
 async def get_similar_questions(
@@ -1062,7 +1078,7 @@ async def get_similar_questions(
     except Exception as e:
         logger.error(f"Error finding similar questions: {str(e)}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/study_insights/recommendations")
 async def get_study_recommendations(
@@ -1085,7 +1101,7 @@ async def get_study_recommendations(
         }
     except Exception as e:
         logger.error(f"Error getting study recommendations: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/study_insights/debug_session")
 async def debug_session_tracking(
@@ -1144,7 +1160,7 @@ async def debug_session_tracking(
         }
     except Exception as e:
         logger.error(f"Error in debug session: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/study_insights/reset_stats")
 async def reset_user_stats(
@@ -1178,7 +1194,7 @@ async def reset_user_stats(
     except Exception as e:
         logger.error(f"Error resetting stats: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/study_insights/generate_content")
 async def generate_study_content(
@@ -1301,7 +1317,7 @@ Make it suitable for exam preparation."""
 
     except Exception as e:
         logger.error(f"Error generating study content: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/study_insights/welcome_notification")
 async def get_welcome_notification(

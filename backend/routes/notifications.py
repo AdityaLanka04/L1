@@ -205,7 +205,7 @@ async def mark_notification_read(
         return {"status": "success", "message": "Notification marked as read"}
     except Exception as e:
         logger.error(f"Error marking notification as read: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/mark_all_notifications_read")
 async def mark_all_notifications_read(
@@ -227,7 +227,7 @@ async def mark_all_notifications_read(
         return {"status": "success", "message": "All notifications marked as read"}
     except Exception as e:
         logger.error(f"Error marking all notifications as read: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/create_notification")
 async def create_notification(
@@ -262,7 +262,7 @@ async def create_notification(
         }
     except Exception as e:
         logger.error(f"Error creating notification: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/debug_notifications")
 async def debug_notifications(
@@ -316,7 +316,7 @@ async def delete_notification(
         return {"status": "success", "message": "Notification deleted"}
     except Exception as e:
         logger.error(f"Error deleting notification: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/clear_old_notifications")
 async def clear_old_notifications(

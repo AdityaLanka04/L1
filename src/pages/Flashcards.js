@@ -2017,16 +2017,57 @@ const Flashcards = () => {
     if (showStudyResults) {
       const totalReviewed = studySessionStats.correct + studySessionStats.incorrect;
       const knownPercentage = totalReviewed > 0 ? Math.round((studySessionStats.correct / totalReviewed) * 100) : 0;
-      
+      const ringRadius = 52;
+      const ringCircumference = 2 * Math.PI * ringRadius;
+      const ringOffset = ringCircumference - (knownPercentage / 100) * ringCircumference;
+      const ringColor = totalReviewed === 0
+        ? 'var(--fc-accent)'
+        : knownPercentage >= 70 ? '#22c55e'
+        : knownPercentage >= 50 ? '#f59e0b'
+        : 'var(--fc-danger)';
+      const performanceTier = totalReviewed === 0 ? null
+        : knownPercentage >= 90 ? { label: 'Perfect', color: '#22c55e' }
+        : knownPercentage >= 70 ? { label: 'Great', color: 'var(--fc-accent)' }
+        : knownPercentage >= 50 ? { label: 'Good', color: '#f59e0b' }
+        : { label: 'Keep Going', color: 'var(--fc-danger)' };
+
       return (
         <div className="flashcards-page">
           <div className="fc-study-mode">
             <div className="fc-results">
               <div className="fc-results-card">
-                <div className="fc-results-icon">{Icons.celebration}</div>
-                <h2>Review Complete!</h2>
-                <p className="fc-results-subtitle">{currentSetInfo?.setTitle || 'Preview Session'}</p>
-                
+                <div className="fc-results-orb fc-results-orb--tl" />
+                <div className="fc-results-orb fc-results-orb--br" />
+
+                <div className="fc-results-header">
+                  <div className="fc-results-icon">{Icons.celebration}</div>
+                  <h2>Review Complete!</h2>
+                  <p className="fc-results-subtitle">{currentSetInfo?.setTitle || 'Preview Session'}</p>
+                </div>
+
+                <div className="fc-results-score-section">
+                  <div className="fc-results-ring-wrap">
+                    <svg className="fc-results-ring" viewBox="0 0 120 120">
+                      <circle className="fc-ring-track" cx="60" cy="60" r={ringRadius} />
+                      <circle
+                        className="fc-ring-fill"
+                        cx="60" cy="60" r={ringRadius}
+                        strokeDasharray={ringCircumference}
+                        style={{ strokeDashoffset: ringOffset, '--dash-offset': ringOffset, stroke: ringColor }}
+                      />
+                    </svg>
+                    <div className="fc-ring-center">
+                      <span className="fc-ring-pct">{knownPercentage}%</span>
+                      <span className="fc-ring-lbl">mastered</span>
+                    </div>
+                  </div>
+                  {performanceTier && (
+                    <div className="fc-results-badge" style={{ '--badge-color': performanceTier.color }}>
+                      {performanceTier.label}
+                    </div>
+                  )}
+                </div>
+
                 <div className="fc-results-stats">
                   <div className="fc-result-stat correct">
                     <div className="fc-result-stat-icon">{Icons.check}</div>
@@ -2061,10 +2102,9 @@ const Flashcards = () => {
                   <button className="fc-btn fc-btn-secondary" onClick={restartStudy}>
                     {Icons.refresh} Review Again
                   </button>
-                  <button 
-                    className="fc-btn fc-btn-primary" 
+                  <button
+                    className="fc-btn fc-btn-primary"
                     onClick={() => {
-                      
                       setPreviewMode(false);
                       setShowStudyResults(false);
                       setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });

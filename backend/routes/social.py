@@ -115,7 +115,7 @@ async def search_users(
 
     except Exception as e:
         logger.error(f"Error searching users: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/send_friend_request")
 async def send_friend_request(
@@ -184,7 +184,7 @@ async def send_friend_request(
     except Exception as e:
         logger.error(f"Error sending friend request: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/friend_requests")
 async def get_friend_requests(
@@ -245,7 +245,7 @@ async def get_friend_requests(
 
     except Exception as e:
         logger.error(f"Error getting friend requests: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/respond_friend_request")
 async def respond_friend_request(
@@ -332,7 +332,7 @@ async def respond_friend_request(
     except Exception as e:
         logger.error(f"Error responding to friend request: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/friends")
 async def get_friends(
@@ -389,7 +389,7 @@ async def get_friends(
 
     except Exception as e:
         logger.error(f"Error getting friends: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/remove_friend")
 async def remove_friend(
@@ -439,7 +439,7 @@ async def remove_friend(
     except Exception as e:
         logger.error(f"Error removing friend: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/friend_activity_feed")
 async def get_friend_activity_feed(
@@ -500,7 +500,7 @@ async def get_friend_activity_feed(
 
     except Exception as e:
         logger.error(f"Error fetching friend activity feed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/give_kudos")
 async def give_kudos(
@@ -543,7 +543,7 @@ async def give_kudos(
     except Exception as e:
         logger.error(f"Error giving kudos: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/create_activity")
 async def create_activity(
@@ -573,7 +573,7 @@ async def create_activity(
     except Exception as e:
         logger.error(f"Error creating activity: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/leaderboard")
 async def get_leaderboard(
@@ -647,7 +647,7 @@ async def get_leaderboard(
 
     except Exception as e:
         logger.error(f"Error fetching leaderboard: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/create_quiz_battle")
 async def create_quiz_battle(
@@ -741,7 +741,7 @@ async def create_quiz_battle(
     except Exception as e:
         logger.error(f"Error creating battle: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/quiz_battles")
 async def get_quiz_battles(
@@ -796,7 +796,7 @@ async def get_quiz_battles(
 
     except Exception as e:
         logger.error(f"Error fetching quiz battles: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/complete_quiz_battle")
 async def complete_quiz_battle(
@@ -908,7 +908,7 @@ async def complete_quiz_battle(
     except Exception as e:
         logger.error(f"Error completing quiz battle: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/create_challenge")
 async def create_challenge(
@@ -945,7 +945,7 @@ async def create_challenge(
     except Exception as e:
         logger.error(f"Error creating challenge: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/challenges")
 async def get_challenges(
@@ -1004,7 +1004,7 @@ async def get_challenges(
 
     except Exception as e:
         logger.error(f"Error fetching challenges: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/join_challenge")
 async def join_challenge(
@@ -1058,7 +1058,7 @@ async def join_challenge(
     except Exception as e:
         logger.error(f"Error joining challenge: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/quiz_battle/{battle_id}")
 async def get_quiz_battle_detail(
@@ -1141,7 +1141,7 @@ async def get_quiz_battle_detail(
         raise
     except Exception as e:
         logger.error(f"Error getting battle detail: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/generate_battle_questions")
 async def generate_battle_questions(
@@ -1266,7 +1266,7 @@ Requirements:
     except Exception as e:
         db.rollback()
         logger.error(f"Error generating battle questions: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/challenge/{challenge_id}")
 async def get_challenge_detail(
@@ -1327,7 +1327,7 @@ async def get_challenge_detail(
         raise
     except Exception as e:
         logger.error(f"Error getting challenge detail: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/generate_challenge_questions")
 async def generate_challenge_questions(
@@ -1455,7 +1455,7 @@ Requirements:
     except Exception as e:
         db.rollback()
         logger.error(f"Error generating challenge questions: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/update_challenge_progress")
 async def update_challenge_progress(
@@ -1556,7 +1556,7 @@ async def update_challenge_progress(
     except Exception as e:
         db.rollback()
         logger.error(f"Error updating challenge progress: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/share_content")
 async def share_content(
@@ -1656,7 +1656,7 @@ async def share_content(
     except Exception as e:
         logger.error(f"Error sharing content: {str(e)}", exc_info=True)
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/shared_with_me")
 def get_shared_with_me(
@@ -1721,7 +1721,7 @@ def get_shared_with_me(
 
     except Exception as e:
         logger.error(f"Error getting shared content: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/debug_friendships")
 def debug_friendships(
@@ -1861,7 +1861,7 @@ def get_shared_content(
         raise
     except Exception as e:
         logger.error(f"Error getting shared content: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/debug_shared_content")
 def debug_shared_content(
@@ -1954,7 +1954,7 @@ def remove_shared_access(
     except Exception as e:
         logger.error(f"Error removing shared access: {str(e)}", exc_info=True)
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/update_shared_note/{note_id}")
 def update_shared_note(
@@ -2011,7 +2011,7 @@ def update_shared_note(
     except Exception as e:
         logger.error(f"Error updating shared note: {str(e)}", exc_info=True)
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/accept_quiz_battle")
 async def accept_quiz_battle(
@@ -2086,7 +2086,7 @@ async def accept_quiz_battle(
     except Exception as e:
         logger.error(f"Error accepting battle: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/decline_quiz_battle")
 async def decline_quiz_battle(
@@ -2147,7 +2147,7 @@ async def decline_quiz_battle(
     except Exception as e:
         logger.error(f"Error declining battle: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/submit_battle_answer")
 async def submit_battle_answer(
@@ -2200,7 +2200,7 @@ async def submit_battle_answer(
 
     except Exception as e:
         logger.error(f"Error submitting answer: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/create_solo_quiz")
 async def create_solo_quiz(
@@ -2272,7 +2272,7 @@ async def create_solo_quiz(
     except Exception as e:
         logger.error(f"Error creating solo quiz: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/solo_quiz/{quiz_id}")
 async def get_solo_quiz(
@@ -2316,7 +2316,7 @@ async def get_solo_quiz(
 
     except Exception as e:
         logger.error(f"Error getting solo quiz: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/complete_solo_quiz")
 async def complete_solo_quiz(
@@ -2486,7 +2486,7 @@ async def complete_solo_quiz(
     except Exception as e:
         logger.error(f"Error completing solo quiz: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/debug/websocket-connections")
 async def debug_websocket_connections(username: str = Depends(verify_token)):

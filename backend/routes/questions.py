@@ -242,7 +242,7 @@ Generate exactly {question_count} high-quality questions:"""
     except Exception as e:
         logger.error(f"Error generating practice questions: {str(e)}", exc_info=True)
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/generate_questions")
 async def generate_questions(
@@ -412,7 +412,7 @@ Generate exactly {question_count} questions:"""
     except Exception as e:
         logger.error(f"Error generating questions: {str(e)}", exc_info=True)
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_question_sets")
 def get_question_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -506,7 +506,7 @@ def delete_question_set(
     except Exception as e:
         logger.error(f"Error deleting question set: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to delete question set: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/submit_question_answers")
 async def submit_question_answers(
@@ -680,7 +680,7 @@ async def submit_question_answers(
     except Exception as e:
         logger.error(f"Error submitting answers: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_question_set_details/{question_set_id}")
 def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)):
@@ -724,7 +724,7 @@ def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)
 
     except Exception as e:
         logger.error(f"Error getting question set details: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/submit_learning_response")
 async def submit_learning_response(
@@ -857,7 +857,7 @@ async def submit_learning_response(
         logger.error(f"Error submitting learning response: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to evaluate learning response: {str(e)}",
+            detail="Failed to evaluate learning response",
         )
 
 @router.get("/get_generated_questions")
@@ -941,7 +941,7 @@ def get_question_set_with_questions(question_set_id: int, db: Session = Depends(
 
     except Exception as e:
         logger.error(f"Error getting question set: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/submit_answers")
 async def submit_answers(payload: dict = Body(...), db: Session = Depends(get_db)):
@@ -1030,7 +1030,7 @@ async def submit_answers(payload: dict = Body(...), db: Session = Depends(get_db
     except Exception as e:
         logger.error(f"Error submitting answers: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_hints/{question_id}")
 def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):

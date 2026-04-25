@@ -9,6 +9,9 @@ from __future__ import annotations
 import os, sys, time, textwrap
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
 import logging
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 
@@ -61,18 +64,6 @@ DEMO_BOOKS = [
         "page_url": "https://openstax.org/details/books/introductory-statistics",
         "direct_url": "https://assets.openstax.org/oscms-prodcms/media/documents/Statistics-WEB.pdf",
     },
-    {
-        "slug": "us-history",
-        "title": "U.S. History",
-        "subject": "US History",
-        "grade_level": "AP",
-        "curriculum": "us",
-        "source_type": "direct",
-        "source_name": "OpenStax",
-        "license": "CC-BY 4.0",
-        "page_url": "https://openstax.org/details/books/us-history",
-        "direct_url": "https://assets.openstax.org/oscms-prodcms/media/documents/USHistory-WEB.pdf",
-    },
 ]
 
 QUERIES = [
@@ -88,8 +79,6 @@ QUERIES = [
     ("Calculus",   "Explain limits: what does lim x->0 of sin(x)/x equal and why?"),
     ("Statistics", "What is the central limit theorem and why does it matter?"),
     ("Statistics", "Explain the difference between type I and type II errors in hypothesis testing"),
-    ("US History", "What were the causes of the American Civil War?"),
-    ("US History", "How did the Constitutional Convention of 1787 shape American government?"),
     (None,         "What is osmosis and how does it work across a semi-permeable membrane?"),
     (None,         "Explain entropy and the second law of thermodynamics"),
 ]

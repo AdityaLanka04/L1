@@ -20,9 +20,10 @@ logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
-    logger.critical("SECRET_KEY env var is not set — using insecure placeholder. Set a strong random SECRET_KEY before deploying to production.")
-    SECRET_KEY = "your-super-secret-key-change-this-in-production"
+    raise RuntimeError("SECRET_KEY environment variable is not set. Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\"")
 ALGORITHM = "HS256"
+JWT_ISSUER = "brainwave-backend"
+JWT_AUDIENCE = "brainwave-client"
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 ph = PasswordHasher()
@@ -87,13 +88,20 @@ def get_password_hash(password: str) -> str:
 
 def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(hours=24))
-    to_encode.update({"exp": expire})
+    now = datetime.now(timezone.utc)
+    expire = now + (expires_delta or timedelta(hours=8))
+    to_encode.update({"exp": expire, "iat": now, "iss": JWT_ISSUER, "aud": JWT_AUDIENCE})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            credentials.credentials,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            audience=JWT_AUDIENCE,
+            issuer=JWT_ISSUER,
+        )
         username: str = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
@@ -119,7 +127,11 @@ def authenticate_user(db: Session, username: str, password: str):
     user = get_user_by_username(db, username)
     if not user:
         user = get_user_by_email(db, username)
-    if not user or not verify_password(password, user.hashed_password):
+    if not user:
+        return False
+    if getattr(user, "google_user", False):
+        return False
+    if not verify_password(password, user.hashed_password):
         return False
     return user
 
@@ -132,7 +144,7 @@ def verify_google_token(token: str):
             raise ValueError("Wrong issuer.")
         return idinfo
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid token: {str(e)}")
+        raise HTTPException(status_code=400, detail="Invalid token")
 
 def get_comprehensive_profile_safe(db: Session, user_id: int):
     try:
