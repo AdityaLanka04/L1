@@ -32,6 +32,7 @@ import document_processor
 import redis_cache
 import vector_store
 from database import SessionLocal, engine, Base
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
@@ -156,8 +157,34 @@ class IngestPipeline:
         self._system_user_id: Optional[int] = None
         self._state: dict = {}
 
+    def _ensure_sqlite_schema_compat(self) -> None:
+        db_url = os.environ.get("DATABASE_URL", "")
+        if "sqlite" not in db_url:
+            return
+
+        # Ingest runs outside FastAPI main.py, so apply the same compatibility
+        # columns needed by current ContextDocument model.
+        Base.metadata.create_all(bind=engine)
+        with engine.connect() as conn:
+            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(context_documents)"))}
+            additions = {
+                "source_name": "VARCHAR(200)",
+                "license": "VARCHAR(80)",
+                "curriculum": "VARCHAR(20)",
+                "source_type": "VARCHAR(40)",
+                "ai_summary": "TEXT",
+                "key_concepts": "TEXT",
+                "topic_tags": "TEXT",
+            }
+            for col, col_type in additions.items():
+                if col not in cols:
+                    conn.execute(text(f"ALTER TABLE context_documents ADD COLUMN {col} {col_type}"))
+                    logger.info("Added column context_documents.%s", col)
+            conn.commit()
+
     def setup(self) -> None:
         """Initialize vector_store (pgvector) + embedding model, context_store, and DB."""
+        self._ensure_sqlite_schema_compat()
         logger.info("Initializing vector_store + embedding model...")
         try:
             from sentence_transformers import SentenceTransformer

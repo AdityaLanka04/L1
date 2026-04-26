@@ -263,12 +263,55 @@ def _generate_doc_summary(doc_id: str, chunks: list[str], filename: str, subject
             "Return ONLY the JSON object, no markdown fences, no other text."
         )
         raw = call_ai(prompt, max_tokens=400, temperature=0.2)
-        raw = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
-        data = json.loads(raw)
+        cleaned = (raw or "").strip()
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*```$", "", cleaned).strip()
+
+        data = None
+        candidates = [cleaned]
+
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            candidates.append(cleaned[start : end + 1])
+
+        for candidate in candidates:
+            if not candidate:
+                continue
+            try:
+                parsed = json.loads(candidate)
+                if isinstance(parsed, dict):
+                    data = parsed
+                    break
+            except Exception:
+                try:
+                    import ast
+                    parsed = ast.literal_eval(candidate)
+                    if isinstance(parsed, dict):
+                        data = parsed
+                        break
+                except Exception:
+                    continue
+
+        if not isinstance(data, dict):
+            # Non-fatal fallback: still persist a usable summary instead of failing the background task.
+            data = {
+                "title": "",
+                "description": cleaned[:600],
+                "key_concepts": [],
+                "topic_tags": [],
+            }
 
         ai_summary   = str(data.get("description") or data.get("title") or "")[:1000]
-        key_concepts = json.dumps(data.get("key_concepts") or [])[:2000]
-        topic_tags   = json.dumps(data.get("topic_tags") or [])[:500]
+        key_concepts_val = data.get("key_concepts") or []
+        topic_tags_val = data.get("topic_tags") or []
+        if not isinstance(key_concepts_val, list):
+            key_concepts_val = [str(key_concepts_val)]
+        if not isinstance(topic_tags_val, list):
+            topic_tags_val = [str(topic_tags_val)]
+
+        key_concepts = json.dumps(key_concepts_val)[:2000]
+        topic_tags   = json.dumps(topic_tags_val)[:500]
 
         db = db_session_factory()
         try:

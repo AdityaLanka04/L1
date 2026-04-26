@@ -238,8 +238,8 @@ def add_document_chunks(
                 "metadata": meta,
             })
 
-        vs.bulk_upsert(rows)
-        return len(rows)
+        inserted = vs.bulk_upsert(rows)
+        return inserted
 
     stored = _write_to("user_docs", str(user_id))
 

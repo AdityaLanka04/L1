@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import math
 from typing import Optional
 
 from sqlalchemy import create_engine, text
@@ -24,6 +25,157 @@ logger = logging.getLogger(__name__)
 
 _engine = None
 _embed_model = None
+
+_UPSERT_SQL_PG = text("""
+    INSERT INTO embeddings (id, collection, user_id, content, embedding, metadata)
+    VALUES (:id, :col, :uid, :content, CAST(:emb AS vector), CAST(:meta AS jsonb))
+    ON CONFLICT (collection, id) DO UPDATE
+        SET content    = EXCLUDED.content,
+            embedding  = EXCLUDED.embedding,
+            metadata   = EXCLUDED.metadata,
+            user_id    = EXCLUDED.user_id,
+            created_at = NOW()
+""")
+
+_UPSERT_SQL_SQLITE = text("""
+    INSERT INTO embeddings (id, collection, user_id, content, embedding, metadata)
+    VALUES (:id, :col, :uid, :content, :emb, :meta)
+    ON CONFLICT (collection, id) DO UPDATE
+        SET content    = excluded.content,
+            embedding  = excluded.embedding,
+            metadata   = excluded.metadata,
+            user_id    = excluded.user_id,
+            created_at = CURRENT_TIMESTAMP
+""")
+
+
+def _is_sqlite() -> bool:
+    return _engine is not None and _engine.dialect.name == "sqlite"
+
+
+def _sanitize_text(value: Optional[str]) -> str:
+    if value is None:
+        return ""
+    text_value = str(value).replace("\x00", "")
+    return text_value.encode("utf-8", errors="ignore").decode("utf-8", errors="ignore")
+
+
+def _sanitize_embedding(values: list[float]) -> list[float]:
+    cleaned: list[float] = []
+    for raw in values or []:
+        try:
+            number = float(raw)
+        except Exception:
+            number = 0.0
+        if not math.isfinite(number):
+            number = 0.0
+        cleaned.append(number)
+    if len(cleaned) < 384:
+        cleaned.extend([0.0] * (384 - len(cleaned)))
+    elif len(cleaned) > 384:
+        cleaned = cleaned[:384]
+    return cleaned
+
+
+def _row_params(row: dict) -> dict:
+    metadata = row.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    return {
+        "id": _sanitize_text(row.get("id", "")),
+        "col": _sanitize_text(row.get("collection", "")),
+        "uid": _sanitize_text(row.get("user_id", "")) or None,
+        "content": _sanitize_text(row.get("content", "")),
+        "emb": json.dumps(_sanitize_embedding(row.get("embedding") or [])),
+        "meta": json.dumps(metadata),
+    }
+
+
+def _parse_metadata(value) -> dict:
+    if isinstance(value, dict):
+        return value
+    if value is None:
+        return {}
+    try:
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode("utf-8", errors="ignore")
+        if isinstance(value, str):
+            return json.loads(value or "{}")
+    except Exception:
+        return {}
+    return {}
+
+
+def _parse_embedding(value) -> list[float]:
+    if isinstance(value, list):
+        return _sanitize_embedding(value)
+    if value is None:
+        return [0.0] * 384
+    try:
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode("utf-8", errors="ignore")
+        if isinstance(value, str):
+            return _sanitize_embedding(json.loads(value or "[]"))
+    except Exception:
+        return [0.0] * 384
+    return [0.0] * 384
+
+
+def _cosine_distance(a: list[float], b: list[float]) -> float:
+    va = _sanitize_embedding(a)
+    vb = _sanitize_embedding(b)
+    dot = sum(x * y for x, y in zip(va, vb))
+    na = math.sqrt(sum(x * x for x in va))
+    nb = math.sqrt(sum(y * y for y in vb))
+    if na == 0.0 or nb == 0.0:
+        return 1.0
+    cos_sim = dot / (na * nb)
+    cos_sim = max(-1.0, min(1.0, cos_sim))
+    return 1.0 - cos_sim
+
+
+def _where_matches(where: Optional[dict], metadata: dict) -> bool:
+    if not where:
+        return True
+    if "$and" in where:
+        return all(_where_matches(clause, metadata) for clause in where.get("$and", []))
+    for key, val in where.items():
+        if str(metadata.get(key, "")) != str(val):
+            return False
+    return True
+
+
+def _execute_upsert(conn, params: dict) -> None:
+    upsert_sql = _UPSERT_SQL_SQLITE if _is_sqlite() else _UPSERT_SQL_PG
+    try:
+        conn.execute(upsert_sql, params)
+    except Exception as e:
+        # Backward compatibility: old schemas may miss the (collection, id) unique
+        # target needed by ON CONFLICT. Fall back to delete+insert semantics.
+        msg = str(e).lower()
+        if "no unique or exclusion constraint matching the on conflict specification" in msg:
+            conn.execute(
+                text("DELETE FROM embeddings WHERE collection = :col AND id = :id"),
+                {"col": params["col"], "id": params["id"]},
+            )
+            if _is_sqlite():
+                conn.execute(
+                    text("""
+                        INSERT INTO embeddings (id, collection, user_id, content, embedding, metadata)
+                        VALUES (:id, :col, :uid, :content, :emb, :meta)
+                    """),
+                    params,
+                )
+            else:
+                conn.execute(
+                    text("""
+                        INSERT INTO embeddings (id, collection, user_id, content, embedding, metadata)
+                        VALUES (:id, :col, :uid, :content, CAST(:emb AS vector), CAST(:meta AS jsonb))
+                    """),
+                    params,
+                )
+            return
+        raise
 
 
 def initialize(embed_model) -> None:
@@ -42,8 +194,16 @@ def initialize(embed_model) -> None:
 
     _engine = create_engine(sync_url, pool_size=5, max_overflow=10, pool_pre_ping=True)
     _embed_model = embed_model
-    _ensure_schema()
-    logger.info("vector_store initialized (pgvector)")
+    try:
+        _ensure_schema()
+    except Exception:
+        _engine = None
+        _embed_model = None
+        raise
+    if _is_sqlite():
+        logger.info("vector_store initialized (sqlite fallback)")
+    else:
+        logger.info("vector_store initialized (pgvector)")
 
 
 def available() -> bool:
@@ -52,6 +212,33 @@ def available() -> bool:
 
 def _ensure_schema() -> None:
     with _engine.begin() as conn:
+        if _is_sqlite():
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS embeddings (
+                    id          TEXT        NOT NULL,
+                    collection  TEXT        NOT NULL,
+                    user_id     TEXT,
+                    content     TEXT        NOT NULL,
+                    embedding   TEXT,
+                    metadata    TEXT        DEFAULT '{}',
+                    created_at  DATETIME    DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (collection, id)
+                )
+            """))
+            existing = {r[1] for r in conn.execute(text("PRAGMA table_info(embeddings)"))}
+            additions = {
+                "user_id": "TEXT",
+                "content": "TEXT",
+                "embedding": "TEXT",
+                "metadata": "TEXT DEFAULT '{}'",
+                "created_at": "DATETIME DEFAULT CURRENT_TIMESTAMP",
+            }
+            for col, col_type in additions.items():
+                if col not in existing:
+                    conn.execute(text(f"ALTER TABLE embeddings ADD COLUMN {col} {col_type}"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_emb_col_user ON embeddings (collection, user_id)"))
+            return
+
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS embeddings (
@@ -65,6 +252,14 @@ def _ensure_schema() -> None:
                 PRIMARY KEY (collection, id)
             )
         """))
+        # Backward-compatible drift fix for older deployments:
+        # ensure all columns/upsert conflict target used by current code exist.
+        conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS user_id TEXT"))
+        conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS content TEXT"))
+        conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS embedding vector(384)"))
+        conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb"))
+        conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()"))
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_embeddings_collection_id ON embeddings (collection, id)"))
         conn.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_emb_col_user
                 ON embeddings (collection, user_id)
@@ -100,62 +295,57 @@ def upsert(
     user_id: Optional[str] = None,
 ) -> None:
     with _engine.begin() as conn:
-        conn.execute(
-            text("""
-                INSERT INTO embeddings (id, collection, user_id, content, embedding, metadata)
-                VALUES (:id, :col, :uid, :content, CAST(:emb AS vector), CAST(:meta AS jsonb))
-                ON CONFLICT (collection, id) DO UPDATE
-                    SET content    = EXCLUDED.content,
-                        embedding  = EXCLUDED.embedding,
-                        metadata   = EXCLUDED.metadata,
-                        user_id    = EXCLUDED.user_id,
-                        created_at = NOW()
-            """),
-            {
-                "id": id_,
-                "col": collection,
-                "uid": user_id,
-                "content": content,
-                "emb": json.dumps(embedding),
-                "meta": json.dumps(metadata),
-            },
+        _execute_upsert(
+            conn,
+            _row_params(
+                {
+                    "id": id_,
+                    "collection": collection,
+                    "user_id": user_id,
+                    "content": content,
+                    "embedding": embedding,
+                    "metadata": metadata,
+                }
+            ),
         )
 
 
-def bulk_upsert(rows: list[dict]) -> None:
+def bulk_upsert(rows: list[dict]) -> int:
     """
     rows: list of {id, collection, user_id?, content, embedding, metadata}
     Inserts in batches of 200.
     """
     if not rows:
-        return
+        return 0
     batch_size = 200
+    inserted = 0
     with _engine.begin() as conn:
+        upsert_sql = _UPSERT_SQL_SQLITE if _is_sqlite() else _UPSERT_SQL_PG
         for start in range(0, len(rows), batch_size):
             batch = rows[start: start + batch_size]
-            conn.execute(
-                text("""
-                    INSERT INTO embeddings (id, collection, user_id, content, embedding, metadata)
-                    VALUES (:id, :col, :uid, :content, CAST(:emb AS vector), CAST(:meta AS jsonb))
-                    ON CONFLICT (collection, id) DO UPDATE
-                        SET content    = EXCLUDED.content,
-                            embedding  = EXCLUDED.embedding,
-                            metadata   = EXCLUDED.metadata,
-                            user_id    = EXCLUDED.user_id,
-                            created_at = NOW()
-                """),
-                [
-                    {
-                        "id": r["id"],
-                        "col": r["collection"],
-                        "uid": r.get("user_id"),
-                        "content": r["content"],
-                        "emb": json.dumps(r["embedding"]),
-                        "meta": json.dumps(r["metadata"]),
-                    }
-                    for r in batch
-                ],
-            )
+            params_batch = [_row_params(r) for r in batch]
+            try:
+                conn.execute(upsert_sql, params_batch)
+                inserted += len(params_batch)
+            except Exception as batch_error:
+                logger.warning(
+                    "bulk_upsert batch failed at start=%s size=%s; retrying row-wise. error=%s",
+                    start,
+                    len(params_batch),
+                    batch_error,
+                )
+                for p in params_batch:
+                    try:
+                        _execute_upsert(conn, p)
+                        inserted += 1
+                    except Exception as row_error:
+                        logger.warning(
+                            "bulk_upsert row failed id=%s collection=%s error=%s",
+                            p.get("id"),
+                            p.get("col"),
+                            row_error,
+                        )
+    return inserted
 
 
 def search(
@@ -170,8 +360,33 @@ def search(
     distance: 0 = identical, 2 = opposite (pgvector cosine distance).
     where: {key: value} or {"$and": [{k: v}, ...]} — JSONB containment filter.
     """
+    if _is_sqlite():
+        params: dict = {"col": collection}
+        sql = "SELECT id, content, embedding, metadata FROM embeddings WHERE collection = :col"
+        if user_id is not None:
+            sql += " AND user_id = :uid"
+            params["uid"] = user_id
+        with _engine.connect() as conn:
+            rows = conn.execute(text(sql), params).fetchall()
+
+        query_vec = _sanitize_embedding(query_embedding)
+        scored: list[dict] = []
+        for r in rows:
+            meta = _parse_metadata(r[3])
+            if not _where_matches(where, meta):
+                continue
+            dist = _cosine_distance(query_vec, _parse_embedding(r[2]))
+            scored.append({
+                "id": r[0],
+                "content": r[1],
+                "metadata": meta,
+                "distance": float(dist),
+            })
+        scored.sort(key=lambda x: x["distance"])
+        return scored[:top_k]
+
     where_clause, params = _build_where(collection, user_id, where)
-    params["emb"] = json.dumps(query_embedding)
+    params["emb"] = json.dumps(_sanitize_embedding(query_embedding))
     params["top_k"] = top_k
 
     sql = f"""
@@ -189,7 +404,7 @@ def search(
         {
             "id": r[0],
             "content": r[1],
-            "metadata": r[2] if isinstance(r[2], dict) else json.loads(r[2] or "{}"),
+            "metadata": _parse_metadata(r[2]),
             "distance": float(r[3]),
         }
         for r in rows
@@ -202,6 +417,21 @@ def get_by_metadata(
     user_id: Optional[str] = None,
 ) -> list[dict]:
     """Retrieve rows by metadata filter without vector similarity."""
+    if _is_sqlite():
+        params: dict = {"col": collection}
+        sql = "SELECT id, content, metadata FROM embeddings WHERE collection = :col"
+        if user_id is not None:
+            sql += " AND user_id = :uid"
+            params["uid"] = user_id
+        with _engine.connect() as conn:
+            rows = conn.execute(text(sql), params).fetchall()
+        out: list[dict] = []
+        for r in rows:
+            meta = _parse_metadata(r[2])
+            if _where_matches(filters, meta):
+                out.append({"id": r[0], "content": r[1], "metadata": meta})
+        return out
+
     where_clause, params = _build_where(collection, user_id, filters)
     sql = f"SELECT id, content, metadata FROM embeddings {where_clause}"
     with _engine.connect() as conn:
@@ -210,7 +440,7 @@ def get_by_metadata(
         {
             "id": r[0],
             "content": r[1],
-            "metadata": r[2] if isinstance(r[2], dict) else json.loads(r[2] or "{}"),
+            "metadata": _parse_metadata(r[2]),
         }
         for r in rows
     ]
@@ -230,6 +460,44 @@ def delete(
     doc_id: Optional[str] = None,
 ) -> None:
     """Delete by explicit ID list, metadata doc_id, or both. user_id scopes the delete."""
+    if _is_sqlite():
+        conditions = ["collection = :col"]
+        params: dict = {"col": collection}
+        if user_id is not None:
+            conditions.append("user_id = :uid")
+            params["uid"] = user_id
+        base_where = " AND ".join(conditions)
+        with _engine.begin() as conn:
+            if ids is not None:
+                if not ids:
+                    return
+                placeholders = ", ".join([f":id_{i}" for i in range(len(ids))])
+                id_params = {f"id_{i}": ids[i] for i in range(len(ids))}
+                conn.execute(
+                    text(f"DELETE FROM embeddings WHERE {base_where} AND id IN ({placeholders})"),
+                    {**params, **id_params},
+                )
+                return
+
+            if doc_id is not None:
+                rows = conn.execute(
+                    text(f"SELECT id, metadata FROM embeddings WHERE {base_where}"),
+                    params,
+                ).fetchall()
+                to_delete = [r[0] for r in rows if str(_parse_metadata(r[1]).get("doc_id", "")) == str(doc_id)]
+                if not to_delete:
+                    return
+                placeholders = ", ".join([f":did_{i}" for i in range(len(to_delete))])
+                del_params = {f"did_{i}": to_delete[i] for i in range(len(to_delete))}
+                conn.execute(
+                    text(f"DELETE FROM embeddings WHERE {base_where} AND id IN ({placeholders})"),
+                    {**params, **del_params},
+                )
+                return
+
+            logger.warning("delete called with no ids/doc_id for sqlite — skipping to avoid full wipe")
+            return
+
     conditions = ["collection = :col"]
     params: dict = {"col": collection}
 
