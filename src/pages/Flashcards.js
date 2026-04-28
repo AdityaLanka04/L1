@@ -10,6 +10,7 @@ import MathRenderer from '../components/MathRenderer';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
+import AbstractFx from '../components/AbstractFx';
 
 const Flashcards = () => {
   const navigate = useNavigate();
@@ -1853,6 +1854,7 @@ const Flashcards = () => {
     
     return (
       <div className="flashcards-page">
+        <AbstractFx variant="flashcards" />
         <div className="fc-study-mode fc-edit-mode">
           <div className="fc-study-header fc-create-header">
             <div className="fc-study-title">
@@ -2033,6 +2035,7 @@ const Flashcards = () => {
 
       return (
         <div className="flashcards-page">
+          <AbstractFx variant="flashcards-light" />
           <div className="fc-study-mode">
             <div className="fc-results">
               <div className="fc-results-card">
@@ -2130,6 +2133,7 @@ const Flashcards = () => {
     
     return (
       <div className="flashcards-page">
+        <AbstractFx variant="flashcards" />
         <div className="fc-study-mode">
           <div className="fc-study-header fc-create-header">
             <div className="fc-study-title">

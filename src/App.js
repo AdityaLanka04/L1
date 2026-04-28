@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from './pages/Dashboard';
+import DashboardCerbyl from './pages/DashboardCerbyl';
 import AIChat from './pages/AIChat';
 import Homepage from './pages/Homepage';
 import LearningReviewHub from './pages/LearningReviewHub';
@@ -97,6 +98,7 @@ function App() {
               <Route path="/homepage" element={<ProtectedRoute><Homepage /></ProtectedRoute>} />
               <Route path="/profile-quiz" element={<ProtectedRoute><ProfileQuiz /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard-cerbyl" element={<ProtectedRoute><DashboardCerbyl /></ProtectedRoute>} />
               <Route path="/study-insights" element={<ProtectedRoute><StudyInsights /></ProtectedRoute>} />
               <Route path="/weaknesses" element={<ProtectedRoute><Weaknesses /></ProtectedRoute>} />
               <Route path="/weakness-practice" element={<ProtectedRoute><WeaknessPractice /></ProtectedRoute>} />

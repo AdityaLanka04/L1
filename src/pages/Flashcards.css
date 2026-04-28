@@ -1853,6 +1853,15 @@
   flex-direction: column;
 }
 
+/* Let the abstract fx layer show through in edit & preview modes */
+.flashcards-page .fc-edit-mode,
+.flashcards-page:has(.afx) .fc-study-mode {
+  background: transparent;
+}
+
+.flashcards-page .afx { z-index: 1; }
+.flashcards-page .fc-study-mode { z-index: 10000; }
+
 .fc-study-header {
   display: flex;
   align-items: center;

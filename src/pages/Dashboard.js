@@ -937,6 +937,15 @@ const Dashboard = () => {
               <Settings size={14} />
               CUSTOMIZE
             </button>
+
+            <button
+              className="ds-customize-btn"
+              onClick={() => navigate('/dashboard-cerbyl')}
+              title="Open Cerbyl dashboard"
+            >
+              <Sparkles size={14} />
+              CERBYL
+            </button>
           </div>
         </div>
       </header>
