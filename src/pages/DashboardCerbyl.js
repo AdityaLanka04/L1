@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Plus, ChevronRight, FileText, Mic } from 'lucide-react';
+import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library } from 'lucide-react';
 import { API_URL } from '../config/api';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import logo from '../assets/logo.svg';
@@ -363,8 +363,8 @@ const DashboardCerbyl = () => {
                 <div className="cb-stat-num">{stats.questions}</div>
                 <div className="cb-stat-lbl">QUESTIONS</div>
               </div>
-              <button className="cb-ai-cta" onClick={() => navigate('/ai-chat')}>
-                AI Session <ArrowUpRight size={16} />
+              <button className="cb-ai-cta" onClick={() => navigate('/vault')}>
+                <Library size={15} /> Vault <ArrowUpRight size={16} />
               </button>
             </div>
 
