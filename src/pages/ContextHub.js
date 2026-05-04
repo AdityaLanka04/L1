@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   BookOpen, Globe, Plus, ChevronRight, ChevronLeft, FileText, Upload,
@@ -10,7 +10,7 @@ import {
   Palette, Wrench, Dumbbell, Music, Tv, Brain, Scale, Hash,
   Triangle, Heart, Film, Leaf, Mic2, Languages, Building2, Sun,
   MessageCircle, Globe2, Sigma, Clock, Menu, Send,
-  Tag, ArrowRight
+  Tag, ArrowRight, CheckSquare, Square, Filter
 } from 'lucide-react';
 import contextService from '../services/contextService';
 import './ContextHub.css';
@@ -247,6 +247,25 @@ function fmtBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function normalizeStr(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getDocKey(doc) {
+  return doc.doc_id || doc.id || `${doc.filename || 'doc'}-${doc.created_at || ''}`;
+}
+
+const SELECTED_DOCS_KEY = 'ctx_selected_doc_ids';
+
+function loadSelectedDocIds() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SELECTED_DOCS_KEY) || '[]');
+    return Array.isArray(raw) ? raw.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
 
 // ─── SUB-COMPONENTS ──────────────────────────────────────────────────────────
 
@@ -287,9 +306,10 @@ function Breadcrumb({ curriculum, grade, subject, onLanding, onCurriculum, onGra
   );
 }
 
-function DocCard({ doc, viewMode, onDelete, isOwn }) {
+function DocCard({ doc, viewMode, onDelete, isOwn, isSelected, onToggleSelect }) {
   const IconComp = FileText;
   const isPublic = doc.scope === 'public' || doc.scope === 'community';
+  const docId = doc.doc_id || doc.id;
   if (viewMode === 'list') {
     return (
       <div className={`ch-doc-row ${isOwn ? 'ch-doc-row--mine' : ''}`}>
@@ -303,8 +323,17 @@ function DocCard({ doc, viewMode, onDelete, isOwn }) {
           </span>
         </div>
         <div className="ch-doc-row-actions">
+          {docId && (
+            <button
+              className="ch-doc-action ch-doc-action--select"
+              onClick={() => onToggleSelect(docId)}
+              title={isSelected ? 'Remove from context selection' : 'Use for context'}
+            >
+              {isSelected ? <CheckSquare size={13} /> : <Square size={13} />}
+            </button>
+          )}
           {isOwn && (
-            <button className="ch-doc-action ch-doc-action--delete" onClick={() => onDelete(doc.id)} title="Delete">
+            <button className="ch-doc-action ch-doc-action--delete" onClick={() => onDelete(doc.doc_id || doc.id)} title="Delete">
               <Trash2 size={13} />
             </button>
           )}
@@ -321,6 +350,16 @@ function DocCard({ doc, viewMode, onDelete, isOwn }) {
             ? <span className="ch-badge ch-badge--community"><Users size={9} />Community</span>
             : <span className="ch-badge ch-badge--private"><Lock size={9} />Private</span>}
           {isOwn && <span className="ch-badge ch-badge--mine"><Star size={9} />Mine</span>}
+          {docId && (
+            <button
+              className={`ch-doc-select-chip ${isSelected ? 'ch-doc-select-chip--selected' : ''}`}
+              onClick={() => onToggleSelect(docId)}
+              title={isSelected ? 'Selected for context' : 'Select for context'}
+            >
+              {isSelected ? <CheckSquare size={11} /> : <Square size={11} />}
+              {isSelected ? 'Selected' : 'Select'}
+            </button>
+          )}
         </div>
       </div>
       <div className="ch-doc-card-body">
@@ -341,7 +380,7 @@ function DocCard({ doc, viewMode, onDelete, isOwn }) {
       </div>
       {isOwn && (
         <div className="ch-doc-card-footer">
-          <button className="ch-doc-action ch-doc-action--delete" onClick={() => onDelete(doc.id)}>
+          <button className="ch-doc-action ch-doc-action--delete" onClick={() => onDelete(doc.doc_id || doc.id)}>
             <Trash2 size={12} /> Delete
           </button>
         </div>
@@ -533,6 +572,7 @@ export default function ContextHub() {
   const [searchQuery, setSearchQuery]     = useState('');
   const [viewMode, setViewMode]           = useState('grid');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedDocIds, setSelectedDocIds] = useState(loadSelectedDocIds);
 
   const [activeContext, setActiveContext] = useState(() => {
     try { return JSON.parse(localStorage.getItem('active_context') || 'null'); } catch { return null; }
@@ -578,6 +618,25 @@ export default function ContextHub() {
       setCommunityDocs(Array.isArray(data) ? data : (data.documents || []));
     } catch { /* silenced */ }
   }, []);
+
+  const persistSelectedDocs = useCallback((ids) => {
+    localStorage.setItem(SELECTED_DOCS_KEY, JSON.stringify(ids));
+  }, []);
+
+  const toggleDocSelection = useCallback((docId) => {
+    if (!docId) return;
+    setSelectedDocIds(prev => {
+      const exists = prev.includes(docId);
+      const next = exists ? prev.filter(id => id !== docId) : [...prev, docId];
+      persistSelectedDocs(next);
+      return next;
+    });
+  }, [persistSelectedDocs]);
+
+  const clearSelectedDocs = useCallback(() => {
+    setSelectedDocIds([]);
+    persistSelectedDocs([]);
+  }, [persistSelectedDocs]);
 
   useEffect(() => {
     if (view === 'subject' && selectedSubject) {
@@ -639,31 +698,111 @@ export default function ContextHub() {
     if (!window.confirm('Delete this document?')) return;
     try {
       await contextService.deleteDocument(docId);
-      setMyDocs(prev => prev.filter(d => d.id !== docId));
+      setMyDocs(prev => prev.filter(d => (d.doc_id || d.id) !== docId));
+      setCommunityDocs(prev => prev.filter(d => (d.doc_id || d.id) !== docId));
+      setSelectedDocIds(prev => {
+        const next = prev.filter(id => id !== docId);
+        persistSelectedDocs(next);
+        return next;
+      });
     } catch (e) {
       alert(e.message || 'Delete failed');
     }
-  }, []);
+  }, [persistSelectedDocs]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const filteredSubjects = gradeInfo
-    ? gradeInfo.subjects.filter(s => {
-        if (EXCLUDED_CATEGORIES.has(s.category)) return false;
-        const matchCat    = categoryFilter === 'all' || s.category === categoryFilter;
-        const matchSearch = !searchQuery || s.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchCat && matchSearch;
-      })
-    : [];
+  const filteredSubjects = useMemo(() => (
+    gradeInfo
+      ? gradeInfo.subjects.filter(s => {
+          if (EXCLUDED_CATEGORIES.has(s.category)) return false;
+          const matchCat = categoryFilter === 'all' || s.category === categoryFilter;
+          const matchSearch = !searchQuery || s.name.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchCat && matchSearch;
+        })
+      : []
+  ), [gradeInfo, categoryFilter, searchQuery]);
 
-  const filteredDocs = (() => {
+  const filteredDocs = useMemo(() => {
     let base = docTab === 'community' ? communityDocs
       : docTab === 'mine' ? myDocs
       : [...communityDocs, ...myDocs];
-    if (searchQuery) base = base.filter(d =>
-      (d.title || d.filename || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+
+    if (docTab === 'all') {
+      const seen = new Set();
+      base = base.filter((doc) => {
+        const key = getDocKey(doc);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    if (selectedSubject?.id) {
+      const selectedSubjectId = normalizeStr(selectedSubject.id);
+      const selectedSubjectName = normalizeStr(selectedSubject.name);
+      const selectedGradeStr = selectedGrade ? String(selectedGrade) : '';
+      base = base.filter((doc) => {
+        const docSubject = normalizeStr(doc.subject);
+        const tags = Array.isArray(doc.topic_tags) ? doc.topic_tags.map(normalizeStr) : [];
+        const subjectMatches = docSubject === selectedSubjectId || tags.includes(selectedSubjectId) || tags.includes(selectedSubjectName);
+        if (!subjectMatches) return false;
+        if (selectedGradeStr && doc.grade_level && String(doc.grade_level) !== selectedGradeStr) return false;
+        return true;
+      });
+    }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      base = base.filter(d => (d.title || d.filename || '').toLowerCase().includes(query));
+    }
     return base;
-  })();
+  }, [docTab, communityDocs, myDocs, selectedSubject, selectedGrade, searchQuery]);
+
+  const MAX_RENDERED_DOCS = 250;
+  const visibleDocs = useMemo(() => filteredDocs.slice(0, MAX_RENDERED_DOCS), [filteredDocs]);
+  const selectedDocIdSet = useMemo(() => new Set(selectedDocIds), [selectedDocIds]);
+  const filteredDocIds = useMemo(
+    () => filteredDocs.map(d => d.doc_id || d.id).filter(Boolean),
+    [filteredDocs]
+  );
+  const filteredSelectedCount = useMemo(
+    () => filteredDocIds.filter(id => selectedDocIdSet.has(id)).length,
+    [filteredDocIds, selectedDocIdSet]
+  );
+
+  const selectFilteredDocs = useCallback(() => {
+    if (filteredDocIds.length === 0) return;
+    setSelectedDocIds(prev => {
+      const merged = Array.from(new Set([...prev, ...filteredDocIds]));
+      persistSelectedDocs(merged);
+      return merged;
+    });
+  }, [filteredDocIds, persistSelectedDocs]);
+
+  const clearFilteredDocs = useCallback(() => {
+    if (filteredDocIds.length === 0) return;
+    setSelectedDocIds(prev => {
+      const removeSet = new Set(filteredDocIds);
+      const next = prev.filter(id => !removeSet.has(id));
+      persistSelectedDocs(next);
+      return next;
+    });
+  }, [filteredDocIds, persistSelectedDocs]);
+
+  useEffect(() => {
+    if (myDocs.length === 0 && communityDocs.length === 0) return;
+    const knownDocIds = new Set(
+      [...myDocs, ...communityDocs]
+        .map(d => d.doc_id || d.id)
+        .filter(Boolean)
+    );
+    setSelectedDocIds(prev => {
+      const next = prev.filter(id => knownDocIds.has(id));
+      if (next.length === prev.length) return prev;
+      persistSelectedDocs(next);
+      return next;
+    });
+  }, [myDocs, communityDocs, persistSelectedDocs]);
 
   const activeCtxCurr  = activeContext?.curriculum ? CURRICULA[activeContext.curriculum] : null;
   const activeCtxGrade = activeCtxCurr && activeContext?.grade ? activeCtxCurr.grades[activeContext.grade] : null;
@@ -740,12 +879,16 @@ export default function ContextHub() {
                 const rCurr = CURRICULA[r.curriculum];
                 const rGrade = rCurr?.grades[r.grade];
                 if (!rCurr || !rGrade) return null;
-                const isActive = urlC === r.curriculum && urlG === r.grade && urlS === r.subject;
+                const isActive = urlC === r.curriculum && urlG === Number(r.grade) && urlS === r.subject;
                 return (
                   <button
                     key={i}
                     className={`ch-sidebar-nav-item ch-sidebar-nav-item--recent ${isActive ? 'ch-sidebar-nav-item--active' : ''}`}
-                    onClick={() => setSearchParams({ c: r.curriculum, g: String(r.grade), s: r.subject })}
+                    onClick={() => {
+                      setDocTab('all');
+                      setSearchQuery('');
+                      setSearchParams({ c: r.curriculum, g: String(r.grade), s: r.subject });
+                    }}
                   >
                     <Clock size={13} className="ch-sidebar-recent-icon" />
                     <span className="ch-sidebar-recent-text">
@@ -1158,6 +1301,23 @@ export default function ContextHub() {
           </div>
 
           <div className="ch-docs-controls-right">
+            <div className="ch-doc-select-toolbar">
+              <span className="ch-doc-select-status">
+                <Filter size={12} />
+                {selectedDocIds.length > 0
+                  ? `${selectedDocIds.length} selected`
+                  : 'Using all docs'}
+              </span>
+              <button className="ch-doc-select-btn" onClick={selectFilteredDocs} disabled={filteredDocs.length === 0}>
+                Select Visible
+              </button>
+              <button className="ch-doc-select-btn" onClick={clearFilteredDocs} disabled={filteredSelectedCount === 0}>
+                Clear Visible
+              </button>
+              <button className="ch-doc-select-btn ch-doc-select-btn--danger" onClick={clearSelectedDocs} disabled={selectedDocIds.length === 0}>
+                Clear All
+              </button>
+            </div>
             <div className="ch-search-bar">
               <Search size={14} />
               <input type="text" placeholder="Search documents…" value={searchQuery}
@@ -1172,6 +1332,10 @@ export default function ContextHub() {
             </div>
             <button className="ch-icon-btn" onClick={loadDocs} title="Refresh"><RefreshCw size={14} /></button>
           </div>
+        </div>
+
+        <div className="ch-docs-selection-hint">
+          Context retrieval uses only selected documents when any are selected.
         </div>
 
         {docsLoading ? (
@@ -1192,12 +1356,23 @@ export default function ContextHub() {
             </button>
           </div>
         ) : (
-          <div className={viewMode === 'grid' ? 'ch-docs-grid' : 'ch-docs-list'}>
-            {filteredDocs.map(doc => (
-              <DocCard key={doc.id} doc={doc} viewMode={viewMode}
-                onDelete={handleDelete} isOwn={doc.owner_is_me !== false} />
+          <>
+            {filteredDocs.length > MAX_RENDERED_DOCS && (
+              <div className="ch-docs-truncated-note">
+                Showing first {MAX_RENDERED_DOCS} results. Use search to narrow down.
+              </div>
+            )}
+            <div className={viewMode === 'grid' ? 'ch-docs-grid' : 'ch-docs-list'}>
+            {visibleDocs.map(doc => (
+              <DocCard key={getDocKey(doc)} doc={doc} viewMode={viewMode}
+                onDelete={handleDelete}
+                isOwn={doc.owner_is_me !== false}
+                isSelected={selectedDocIdSet.has(doc.doc_id || doc.id)}
+                onToggleSelect={toggleDocSelection}
+              />
             ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
     );
@@ -1256,7 +1431,15 @@ export default function ContextHub() {
         ) : (
           <div className="ch-docs-list">
             {myDocs.map(doc => (
-              <DocCard key={doc.id} doc={doc} viewMode="list" onDelete={handleDelete} isOwn />
+              <DocCard
+                key={getDocKey(doc)}
+                doc={doc}
+                viewMode="list"
+                onDelete={handleDelete}
+                isOwn
+                isSelected={selectedDocIdSet.has(doc.doc_id || doc.id)}
+                onToggleSelect={toggleDocSelection}
+              />
             ))}
           </div>
         )}
@@ -1391,7 +1574,12 @@ export default function ContextHub() {
         <p className="ch-ask-hint">
           {myDocs.length === 0
             ? <>No documents uploaded yet. <button className="ch-ask-hint-link" onClick={() => setUploadOpen(true)}>Upload one</button> to get started.</>
-            : <>Searching across {myDocs.length} document{myDocs.length !== 1 ? 's' : ''}{askUseHs ? ' + curriculum' : ''}. Press Enter to send.</>
+            : <>
+                {selectedDocIds.length > 0
+                  ? <>Using {selectedDocIds.length} selected source{selectedDocIds.length !== 1 ? 's' : ''}</>
+                  : <>Searching across {myDocs.length} document{myDocs.length !== 1 ? 's' : ''}</>}
+                {askUseHs ? ' + curriculum' : ''}. Press Enter to send.
+              </>
           }
         </p>
       </div>

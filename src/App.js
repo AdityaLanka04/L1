@@ -150,8 +150,9 @@ function App() {
               <Route path="/customize-dashboard" element={<ProtectedRoute><CustomizeDashboard /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
-              <Route path="/context" element={<ProtectedRoute><Vault /></ProtectedRoute>} />
-              <Route path="/vault" element={<ProtectedRoute><Vault /></ProtectedRoute>} />
+              <Route path="/contexthub" element={<ProtectedRoute><Vault /></ProtectedRoute>} />
+              <Route path="/context" element={<Navigate to="/contexthub" replace />} />
+              <Route path="/vault" element={<Navigate to="/contexthub" replace />} />
               <Route path="/canvas" element={<ProtectedRoute><CanvasHub /></ProtectedRoute>} />
               <Route path="/home" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />

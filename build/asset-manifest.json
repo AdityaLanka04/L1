@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.4c6121bc.css",
-    "main.js": "/static/js/main.a224922f.js",
+    "main.css": "/static/css/main.9cd6c890.css",
+    "main.js": "/static/js/main.28d66063.js",
     "static/js/204.08456538.chunk.js": "/static/js/204.08456538.chunk.js",
     "static/js/989.c1d0d092.chunk.js": "/static/js/989.c1d0d092.chunk.js",
     "static/js/579.e2390254.chunk.js": "/static/js/579.e2390254.chunk.js",
@@ -43,6 +43,8 @@
     "static/js/949.49bdfbab.chunk.js": "/static/js/949.49bdfbab.chunk.js",
     "static/js/362.822b34c8.chunk.js": "/static/js/362.822b34c8.chunk.js",
     "static/js/8.1a2e7f75.chunk.js": "/static/js/8.1a2e7f75.chunk.js",
+    "static/media/Parthav.png": "/static/media/Parthav.26c209f6ddda24924b9a.png",
+    "static/media/Adi.jpeg": "/static/media/Adi.de83f41aa5ada9103764.jpeg",
     "static/media/KaTeX_AMS-Regular.ttf": "/static/media/KaTeX_AMS-Regular.853be92419a6c3766b9a.ttf",
     "static/media/KaTeX_Main-Regular.ttf": "/static/media/KaTeX_Main-Regular.9eba1d77abcf2aa6e94e.ttf",
     "static/media/KaTeX_Main-Bold.ttf": "/static/media/KaTeX_Main-Bold.8169508bf58f8bd92ad8.ttf",
@@ -107,7 +109,7 @@
     "index.html": "/index.html"
   },
   "entrypoints": [
-    "static/css/main.4c6121bc.css",
-    "static/js/main.a224922f.js"
+    "static/css/main.9cd6c890.css",
+    "static/js/main.28d66063.js"
   ]
 }

@@ -1470,6 +1470,8 @@
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .ch-view-toggle {
@@ -1508,6 +1510,12 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.ch-docs-truncated-note {
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 /* Document card (grid) */
@@ -1669,6 +1677,14 @@
   gap: 6px;
 }
 
+.ch-doc-action--select {
+  color: var(--accent);
+}
+
+.ch-doc-action--select:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
 /* Doc action buttons */
 .ch-doc-action {
   display: inline-flex;
@@ -1691,6 +1707,75 @@
 .ch-doc-action--delete:hover {
   color: #ef4444;
   background: color-mix(in srgb, #ef4444 12%, transparent);
+}
+
+.ch-doc-select-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--ch-border);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.ch-doc-select-chip:hover {
+  border-color: var(--ch-border-strong);
+  color: var(--text-primary);
+}
+
+.ch-doc-select-chip--selected {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.ch-doc-select-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ch-doc-select-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.ch-doc-select-btn {
+  border: 1px solid var(--ch-border);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ch-doc-select-btn:hover:not(:disabled) {
+  border-color: var(--ch-border-strong);
+  color: var(--text-primary);
+}
+
+.ch-doc-select-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ch-doc-select-btn--danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, #ef4444 45%, transparent);
+  color: #ef4444;
+}
+
+.ch-docs-selection-hint {
+  margin: 8px 0 14px;
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
 /* States */
@@ -2176,6 +2261,7 @@
   .ch-docs-controls-right {
     margin-left: 0;
     width: 100%;
+    justify-content: flex-start;
   }
 
   .ch-search-bar { min-width: 0; flex: 1; }

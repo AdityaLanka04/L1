@@ -114,10 +114,14 @@ class ContextService {
   }
 
   async askKnowledgeBase(question, { useHs = true, topK = 6 } = {}) {
+    const docIds = this._getSelectedDocIds();
+    const payload = { question, use_hs: useHs, top_k: topK };
+    if (docIds) payload.doc_ids = docIds;
+
     const response = await fetch(`${API_URL}/context/ask`, {
       method: 'POST',
       headers: this._headers(),
-      body: JSON.stringify({ question, use_hs: useHs, top_k: topK }),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));

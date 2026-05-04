@@ -814,7 +814,7 @@ const Vault = () => {
         <button className="vlt-back-btn" onClick={() => navigate('/dashboard-cerbyl')}>
           <ArrowLeft size={15} /> Dashboard
         </button>
-        <div className="vlt-topbar-brand">vault<span className="vlt-period">.</span></div>
+        <div className="vlt-topbar-brand">contexthub<span className="vlt-period">.</span></div>
         <div className="vlt-topbar-right">
           <button className="vlt-nav-link" onClick={() => navigate('/search-hub')}>Search Hub</button>
           <button className="vlt-nav-link" onClick={() => navigate('/ai-chat')}>AI Chat</button>
@@ -825,7 +825,7 @@ const Vault = () => {
         {/* Hero */}
         <section className="vlt-hero">
           <div className="vlt-hero-left">
-            <div className="vlt-eyebrow">KNOWLEDGE VAULT</div>
+            <div className="vlt-eyebrow">CONTEXT HUB</div>
             <h1 className="vlt-title">Your Context<span className="vlt-period">.</span></h1>
             <p className="vlt-subtitle">Manage your documents, curriculum books, and AI context deck</p>
           </div>

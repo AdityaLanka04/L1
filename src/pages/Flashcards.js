@@ -1022,6 +1022,19 @@ const Flashcards = () => {
   }, [userName, location.search, loadChatSessions, loadFlashcardStats, loadReviewCards, loadFlashcardSetByCode]);
 
   useEffect(() => {
+    const openPanel = location.state?.openPanel;
+    const initialTopic = location.state?.initialTopic;
+    const requestedMode = location.state?.generationMode;
+    if (!userName || openPanel !== 'generator') return;
+
+    setActivePanel('generator');
+    if (requestedMode === 'topic') setGenerationMode('topic');
+    if (typeof initialTopic === 'string') setTopic(initialTopic);
+
+    navigate('/flashcards', { replace: true, state: {} });
+  }, [location.state, userName, navigate]);
+
+  useEffect(() => {
     const savedStreak = localStorage.getItem('flashcardStreak');
     const lastStudyDate = localStorage.getItem('lastFlashcardStudy');
     const today = new Date().toDateString();
@@ -3689,4 +3702,3 @@ const Flashcards = () => {
 };
 
 export default Flashcards;
-

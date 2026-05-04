@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library, Search } from 'lucide-react';
+import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check } from 'lucide-react';
 import { API_URL } from '../config/api';
 import ThemeSwitcher from '../components/ThemeSwitcher';
-import logo from '../assets/logo.svg';
 import './DashboardCerbyl.css';
 
 const MODULES = [
@@ -54,12 +53,74 @@ const fetchJson = async (url) => {
 };
 
 const DAY_LABELS = ['S','M','T','W','T','F','S'];
+const QUICK_ASK_PROMPT = 'Explain quantum mechanics in simple terms.';
+const PRESET_PFPS = [
+  { id: 'cat', label: 'Cat', src: '/pfp/cat.png' },
+  { id: 'woman', label: 'Woman', src: '/pfp/woman.png' }
+];
+const isPresetPfp = (src) => PRESET_PFPS.some((p) => p.src === src);
+const PFP_DEFAULT_KEY = 'cerbyl.defaultPfp';
+const PFP_CUSTOM_KEY = 'cerbyl.customPfp';
+const DISPLAY_NAME_KEY = 'cerbyl.displayName';
+
+const hydrateProfile = (parsedProfile = {}, username = '') => {
+  const parsed = parsedProfile || {};
+  const storedDefault = localStorage.getItem(PFP_DEFAULT_KEY) || '';
+  const storedCustom = localStorage.getItem(PFP_CUSTOM_KEY) || '';
+  const storedDisplayName = localStorage.getItem(DISPLAY_NAME_KEY) || '';
+
+  const pictureCandidate =
+    parsed.picture_url ||
+    parsed.picture ||
+    parsed.photoURL ||
+    parsed.photo_url ||
+    '';
+
+  const parsedCustom = parsed.customPfp && isPresetPfp(parsed.customPfp) ? parsed.customPfp : '';
+  const customPfp =
+    parsedCustom ||
+    (isPresetPfp(storedCustom) ? storedCustom : '') ||
+    (isPresetPfp(pictureCandidate) ? pictureCandidate : '');
+
+  const defaultPfp =
+    parsed.defaultPfp ||
+    parsed.googlePicture ||
+    storedDefault ||
+    (isPresetPfp(pictureCandidate) ? '' : pictureCandidate) ||
+    '';
+
+  const activePfp = customPfp || defaultPfp;
+  const resolvedName =
+    parsed.firstName ||
+    parsed.first_name ||
+    storedDisplayName ||
+    (username ? username.split('@')[0] : '');
+
+  return {
+    ...parsed,
+    firstName: parsed.firstName || resolvedName,
+    first_name: parsed.first_name || resolvedName,
+    defaultPfp,
+    customPfp,
+    picture: activePfp,
+    picture_url: activePfp
+  };
+};
 
 const DashboardCerbyl = () => {
   const navigate = useNavigate();
 
-  const [userName, setUserName] = useState('');
-  const [profile, setProfile] = useState(null);
+  const [userName, setUserName] = useState(() => localStorage.getItem('username') || '');
+  const [profile, setProfile] = useState(() => {
+    const username = localStorage.getItem('username') || '';
+    const prof = localStorage.getItem('userProfile');
+    if (!prof) return hydrateProfile({}, username);
+    try {
+      return hydrateProfile(JSON.parse(prof), username);
+    } catch (e) {
+      return hydrateProfile({}, username);
+    }
+  });
   const [stats, setStats] = useState({
     streak: 0,
     level: 1,
@@ -79,6 +140,7 @@ const DashboardCerbyl = () => {
   const [recentNotes, setRecentNotes] = useState([]);
   const [recentMedia, setRecentMedia] = useState([]);
   const [recentSets, setRecentSets] = useState([]);
+  const [isPfpModalOpen, setIsPfpModalOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -87,7 +149,11 @@ const DashboardCerbyl = () => {
     if (!token) { navigate('/login'); return; }
     if (username) setUserName(username);
     if (prof) {
-      try { setProfile(JSON.parse(prof)); } catch (e) {}
+      try {
+        setProfile(hydrateProfile(JSON.parse(prof), username || ''));
+      } catch (e) {}
+    } else {
+      setProfile(hydrateProfile({}, username || ''));
     }
   }, [navigate]);
 
@@ -200,9 +266,23 @@ const DashboardCerbyl = () => {
   }, [userName]);
 
   const greet = greetingForHour(now.getHours()).toUpperCase();
-  const displayName = profile?.firstName || profile?.first_name ||
+  const displayName =
+    profile?.firstName ||
+    profile?.first_name ||
+    localStorage.getItem(DISPLAY_NAME_KEY) ||
     (userName ? userName.split('@')[0] : 'there');
   const initial = (displayName[0] || 'A').toUpperCase();
+  const profilePhoto = profile?.picture || profile?.picture_url || profile?.photoURL || profile?.photo_url || '';
+  const defaultUserPfp = profile?.defaultPfp || '';
+  const activeCustomPfp = profile?.customPfp || '';
+
+  useEffect(() => {
+    if (!profile) return;
+    if (profile.defaultPfp) localStorage.setItem(PFP_DEFAULT_KEY, profile.defaultPfp);
+    if (profile.customPfp) localStorage.setItem(PFP_CUSTOM_KEY, profile.customPfp);
+    const resolvedName = profile.firstName || profile.first_name || (userName ? userName.split('@')[0] : '');
+    if (resolvedName) localStorage.setItem(DISPLAY_NAME_KEY, resolvedName);
+  }, [profile, userName]);
 
   const heatmapWeeks = useMemo(() => {
     if (!heatmap.length) return [];
@@ -259,6 +339,102 @@ const DashboardCerbyl = () => {
     return [...Array(7)].map((_, i) => offset(i));
   })();
 
+  const runQuickAskPrompt = (e) => {
+    e.stopPropagation();
+    navigate('/ai-chat', { state: { initialMessage: QUICK_ASK_PROMPT } });
+  };
+
+  const normalizeFlashcardTopic = (value = '') =>
+    String(value || '').replace(/^flashcards:\s*/i, '').trim();
+
+  const openFlashcardMasterTopic = (e, rawTopic = '') => {
+    e.stopPropagation();
+    const topicText = normalizeFlashcardTopic(rawTopic);
+    navigate('/flashcards', {
+      state: {
+        openPanel: 'generator',
+        generationMode: 'topic',
+        initialTopic: topicText
+      }
+    });
+  };
+
+  const closePfpModal = () => setIsPfpModalOpen(false);
+
+  const saveProfile = (nextProfile) => {
+    let baseProfile = {};
+    const raw = localStorage.getItem('userProfile');
+    if (raw) {
+      try { baseProfile = JSON.parse(raw) || {}; } catch (e) {}
+    }
+    const mergedProfile = hydrateProfile({ ...baseProfile, ...nextProfile }, userName);
+    setProfile(mergedProfile);
+    localStorage.setItem('userProfile', JSON.stringify(mergedProfile));
+
+    if (mergedProfile.defaultPfp) localStorage.setItem(PFP_DEFAULT_KEY, mergedProfile.defaultPfp);
+    if (mergedProfile.customPfp) localStorage.setItem(PFP_CUSTOM_KEY, mergedProfile.customPfp);
+    else localStorage.removeItem(PFP_CUSTOM_KEY);
+
+    const resolvedName = mergedProfile.firstName || mergedProfile.first_name || '';
+    if (resolvedName) localStorage.setItem(DISPLAY_NAME_KEY, resolvedName);
+  };
+
+  const openPfpModal = (e) => {
+    e.stopPropagation();
+    setIsPfpModalOpen(true);
+  };
+
+  const selectPresetPfp = (src) => {
+    const current = profile || {};
+    const inferredDefault =
+      current.defaultPfp ||
+      current.googlePicture ||
+      current.photoURL ||
+      current.photo_url ||
+      (isPresetPfp(current.picture_url || current.picture || '') ? '' : (current.picture_url || current.picture || '')) ||
+      '';
+
+    const nextProfile = {
+      ...current,
+      defaultPfp: inferredDefault,
+      customPfp: src,
+      picture: src,
+      picture_url: src
+    };
+    saveProfile(nextProfile);
+    closePfpModal();
+  };
+
+  const selectDefaultPfp = () => {
+    const current = profile || {};
+    const fallbackDefault =
+      current.defaultPfp ||
+      current.googlePicture ||
+      current.photoURL ||
+      current.photo_url ||
+      (isPresetPfp(current.picture_url || current.picture || '') ? '' : (current.picture_url || current.picture || '')) ||
+      '';
+
+    const nextProfile = {
+      ...current,
+      defaultPfp: fallbackDefault,
+      customPfp: '',
+      picture: fallbackDefault,
+      picture_url: fallbackDefault
+    };
+    saveProfile(nextProfile);
+    closePfpModal();
+  };
+
+  useEffect(() => {
+    if (!isPfpModalOpen) return undefined;
+    const onKeyDown = (ev) => {
+      if (ev.key === 'Escape') setIsPfpModalOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isPfpModalOpen]);
+
   return (
     <div className="cb-root">
       {/* Background effects (gradient orbs + dot grid) */}
@@ -289,8 +465,28 @@ const DashboardCerbyl = () => {
             <span className="cb-brand-name">cerbyl</span>
           </div>
 
-          <div className="cb-logo-wrap" aria-hidden>
-            <div className="cb-logo-img" style={{ WebkitMaskImage: `url(${logo})`, maskImage: `url(${logo})` }} />
+          <div className="cb-logo-wrap">
+            {profilePhoto ? (
+              <img
+                src={profilePhoto}
+                alt={`${displayName} profile`}
+                className="cb-brand-pfp"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="cb-brand-pfp cb-brand-pfp--fallback" aria-label="Profile avatar">
+                {initial}
+              </div>
+            )}
+            <button
+              className="cb-pfp-edit-btn"
+              onClick={openPfpModal}
+              aria-label="Edit profile picture"
+              title="Choose profile picture"
+            >
+              <Pencil size={12} />
+              Edit PFP
+            </button>
           </div>
 
           <div className="cb-side-sections">
@@ -327,7 +523,6 @@ const DashboardCerbyl = () => {
           </nav>
 
           <button className="cb-user-chip" onClick={() => navigate('/profile')}>
-            <span className="cb-avatar">{initial}</span>
             <span className="cb-user-meta">
               <span className="cb-user-name">{displayName}</span>
               <span className="cb-user-sub">Level {stats.level} · {stats.xp} XP</span>
@@ -368,8 +563,8 @@ const DashboardCerbyl = () => {
               <button className="cb-ai-cta" onClick={() => navigate('/search-hub')}>
                 <Search size={15} /> Search Hub <ArrowUpRight size={16} />
               </button>
-              <button className="cb-ai-cta cb-ai-cta--ghost" onClick={() => navigate('/vault')}>
-                <Library size={15} /> Vault <ArrowUpRight size={16} />
+              <button className="cb-ai-cta cb-ai-cta--ghost" onClick={() => navigate('/contexthub')}>
+                <Library size={15} /> ContextHub <ArrowUpRight size={16} />
               </button>
             </div>
 
@@ -384,34 +579,46 @@ const DashboardCerbyl = () => {
               <div className="cb-feat-tag">AI CHAT</div>
               <div className="cb-feat-title">Ask<br />Anything</div>
               <div className="cb-feat-desc">Instant AI guidance on any topic</div>
-              <div className="cb-feat-typing">
-                <span className="cb-typing-dots"><i/><i/><i/></span>
-                <div className="cb-typing-bubble">Explain quantum</div>
-                <div className="cb-typing-input">Quantum mechanics describes…</div>
+              <div className="cb-feat-typing cb-feat-typing--chat">
+                <button className="cb-typing-prompt cb-typing-prompt--user" onClick={runQuickAskPrompt}>
+                  {QUICK_ASK_PROMPT}
+                </button>
+                <div className="cb-typing-row" aria-hidden>
+                  <span className="cb-typing-dots"><i/><i/><i/></span>
+                </div>
               </div>
               <span className="cb-feat-arrow"><ArrowUpRight size={16}/></span>
             </div>
 
-            <div className="cb-feat" onClick={() => navigate('/flashcards')} role="button" tabIndex={0}>
+            <div
+              className="cb-feat"
+              onClick={(e) => openFlashcardMasterTopic(e, recentSets[0]?.title || '')}
+              role="button"
+              tabIndex={0}
+            >
               <div className="cb-feat-tag">FLASHCARDS</div>
               <div className="cb-feat-title">Master<br />Any Topic</div>
               <div className="cb-feat-desc">Spaced repetition · AI card sets</div>
               <div className="cb-recent-list">
                 {recentSets.length === 0 ? (
-                  <div className="cb-recent-empty">No card sets yet. Tap to create one.</div>
+                  <button
+                    className="cb-recent-empty cb-recent-empty-btn"
+                    onClick={(e) => openFlashcardMasterTopic(e, '')}
+                  >
+                    No card sets yet. Tap to create one.
+                  </button>
                 ) : recentSets.map(s => (
-                  <div
+                  <button
                     key={s.set_id}
                     className="cb-recent-item"
                     onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/flashcards?set=${s.set_id}`);
+                      openFlashcardMasterTopic(e, s.title);
                     }}
                   >
                     <span className="cb-recent-icon"><FileText size={12}/></span>
                     <span className="cb-recent-title">{s.title}</span>
                     <span className="cb-recent-meta">{s.count}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
               <span className="cb-feat-arrow"><ArrowUpRight size={16}/></span>
@@ -603,6 +810,53 @@ const DashboardCerbyl = () => {
           </section>
         </main>
       </div>
+
+      {isPfpModalOpen && (
+        <div className="cb-pfp-modal-overlay" onClick={closePfpModal}>
+          <section className="cb-pfp-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Select profile picture">
+            <div className="cb-pfp-modal-head">
+              <div>
+                <div className="cb-pfp-modal-kicker">PROFILE PERSONALIZATION</div>
+                <h3 className="cb-pfp-modal-title">Select Your PFP</h3>
+              </div>
+              <button className="cb-pfp-modal-close" onClick={closePfpModal} aria-label="Close avatar picker">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="cb-pfp-grid">
+              <button
+                className={`cb-pfp-card ${activeCustomPfp ? '' : 'cb-pfp-card--active'}`}
+                onClick={selectDefaultPfp}
+              >
+                <div className="cb-pfp-card-media">
+                  {defaultUserPfp ? (
+                    <img src={defaultUserPfp} alt="Default profile" className="cb-pfp-card-img" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="cb-pfp-card-fallback">{initial}</div>
+                  )}
+                </div>
+                <div className="cb-pfp-card-label">Default</div>
+                {!activeCustomPfp && <span className="cb-pfp-card-check"><Check size={12} /></span>}
+              </button>
+
+              {PRESET_PFPS.map((preset) => (
+                <button
+                  key={preset.id}
+                  className={`cb-pfp-card ${activeCustomPfp === preset.src ? 'cb-pfp-card--active' : ''}`}
+                  onClick={() => selectPresetPfp(preset.src)}
+                >
+                  <div className="cb-pfp-card-media">
+                    <img src={preset.src} alt={`${preset.label} avatar`} className="cb-pfp-card-img" />
+                  </div>
+                  <div className="cb-pfp-card-label">{preset.label}</div>
+                  {activeCustomPfp === preset.src && <span className="cb-pfp-card-check"><Check size={12} /></span>}
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 };

@@ -242,6 +242,7 @@ class AskRequest(BaseModel):
     question: str
     use_hs: bool = True
     top_k: int = 6
+    doc_ids: Optional[list[str]] = None
 
 def _generate_doc_summary(doc_id: str, chunks: list[str], filename: str, subject: str, db_session_factory):
     """
@@ -1027,6 +1028,10 @@ def ask_knowledge_base(
         raise HTTPException(status_code=503, detail="Knowledge base unavailable. Please try again later.")
 
     top_k = max(1, min(payload.top_k or 6, 12))
+    selected_doc_ids = [d.strip() for d in (payload.doc_ids or []) if isinstance(d, str) and d.strip()]
+    if selected_doc_ids:
+        # Keep request bounded and deterministic.
+        selected_doc_ids = selected_doc_ids[:200]
 
     try:
         results = context_store.search_context(
@@ -1034,6 +1039,7 @@ def ask_knowledge_base(
             user_id=str(current_user.id),
             use_hs=payload.use_hs,
             top_k=top_k,
+            doc_ids=selected_doc_ids or None,
         )
     except Exception as e:
         logger.error(f"context/ask search failed: {e}")

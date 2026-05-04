@@ -79,7 +79,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
 
   const goToHub = () => {
     onClose();
-    navigate('/context');
+    navigate('/contexthub');
   };
 
   const contextLabel = activeContext
@@ -260,7 +260,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
         <div className="cp-footer">
           <button className="cp-hub-btn" onClick={goToHub}>
             <ExternalLink size={14} />
-            Open Vault
+            Open ContextHub
           </button>
         </div>
 

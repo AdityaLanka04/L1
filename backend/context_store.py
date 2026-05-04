@@ -270,9 +270,14 @@ def search_context(
     if not available():
         return []
 
+    normalized_doc_ids = None
+    if doc_ids:
+        normalized_doc_ids = sorted({str(d).strip() for d in doc_ids if str(d).strip()})
+
     _cache_kwargs = dict(
         use_hs=use_hs, top_k=top_k,
         subject=subject or "", grade_level=grade_level or "", curriculum=curriculum or "",
+        doc_ids=",".join(normalized_doc_ids or []),
     )
     cached = redis_cache.get_search(query, user_id, **_cache_kwargs)
     if cached is not None:
@@ -370,10 +375,10 @@ def search_context(
         if len(with_overlap) >= top_k:
             ranked = with_overlap
 
-    cleaned = [{k: v for k, v in r.items() if not k.startswith("_")} for r in ranked[:top_k]]
+    if normalized_doc_ids:
+        ranked = [r for r in ranked if r.get("metadata", {}).get("doc_id") in normalized_doc_ids]
 
-    if doc_ids:
-        cleaned = [r for r in cleaned if r.get("metadata", {}).get("doc_id") in doc_ids]
+    cleaned = [{k: v for k, v in r.items() if not k.startswith("_")} for r in ranked[:top_k]]
 
     try:
         redis_cache.set_search(query, user_id, cleaned, **_cache_kwargs)
