@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, BookOpen, FileText, Trash2, ExternalLink, Sparkles, Lock, Users } from 'lucide-react';
+import { X, BookOpen, FileText, Trash2, ExternalLink, Sparkles, Lock, Users, CheckSquare, Square, Filter } from 'lucide-react';
 import contextService from '../services/contextService';
 import './ContextPanel.css';
+
+const SELECTED_KEY = 'ctx_selected_doc_ids';
+
+const loadSelected = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(SELECTED_KEY) || '[]')); }
+  catch { return new Set(); }
+};
+
+const saveSelected = (set) => {
+  localStorage.setItem(SELECTED_KEY, JSON.stringify([...set]));
+};
 
 const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }) => {
   const navigate = useNavigate();
@@ -11,6 +22,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
   const [hsDocs, setHsDocs]     = useState([]);
   const [loading, setLoading]   = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(loadSelected);
 
   const activeContext = (() => {
     try { return JSON.parse(localStorage.getItem('active_context') || 'null'); } catch { return null; }
@@ -31,12 +43,33 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
     if (isOpen) loadDocs();
   }, [isOpen, loadDocs]);
 
+  const toggleDoc = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      saveSelected(next);
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    saveSelected(new Set());
+  };
+
   const handleDelete = async (docId, filename) => {
     if (!window.confirm(`Delete "${filename}"?`)) return;
     setDeleting(docId);
     try {
       await contextService.deleteDocument(docId);
       setDocs(prev => prev.filter(d => (d.doc_id || d.id) !== docId));
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        next.delete(docId);
+        saveSelected(next);
+        return next;
+      });
     } catch (e) {
       alert(e.message || 'Delete failed');
     } finally {
@@ -56,6 +89,9 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
         activeContext.subject ? activeContext.subject.replace(/_/g, ' ') : null,
       ].filter(Boolean).join(' · ')
     : null;
+
+  const selCount = selectedIds.size;
+  const allDocIds = [...docs.map(d => d.doc_id || d.id), ...hsDocs.map(d => d.doc_id || d.id)];
 
   return (
     <>
@@ -98,6 +134,15 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             </div>
           </div>
 
+          {/* Context filter status banner */}
+          {selCount > 0 && (
+            <div className="cp-filter-banner">
+              <Filter size={13} />
+              <span>Using <strong>{selCount}</strong> selected {selCount === 1 ? 'source' : 'sources'} only</span>
+              <button className="cp-clear-sel" onClick={clearSelection}>Clear</button>
+            </div>
+          )}
+
           {/* Active context */}
           <div className="cp-section">
             <div className="cp-section-title">Active Context</div>
@@ -114,13 +159,26 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
           {/* HS Curriculum documents */}
           {hsDocs.length > 0 && (
             <div className="cp-section">
-              <div className="cp-section-title">Curriculum Documents</div>
+              <div className="cp-section-title">
+                Curriculum Documents
+                <span className="cp-sel-hint">Tap to select</span>
+              </div>
               <div className="cp-doc-list">
                 {hsDocs.map(doc => {
                   const id   = doc.doc_id || doc.id;
                   const name = doc.filename || 'Untitled';
+                  const sel  = selectedIds.has(id);
                   return (
-                    <div key={id} className="cp-doc-item">
+                    <div
+                      key={id}
+                      className={`cp-doc-item cp-doc-item--selectable ${sel ? 'cp-doc-item--selected' : ''}`}
+                      onClick={() => toggleDoc(id)}
+                      role="checkbox"
+                      aria-checked={sel}
+                    >
+                      <span className="cp-doc-check">
+                        {sel ? <CheckSquare size={15} /> : <Square size={15} />}
+                      </span>
                       <FileText size={14} className="cp-doc-icon" />
                       <div className="cp-doc-info">
                         <div className="cp-doc-name" title={name}>{name}</div>
@@ -140,7 +198,10 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
 
           {/* User's private documents */}
           <div className="cp-section">
-            <div className="cp-section-title">Your Documents</div>
+            <div className="cp-section-title">
+              Your Documents
+              {docs.length > 0 && <span className="cp-sel-hint">Tap to select</span>}
+            </div>
             {loading ? (
               <p className="cp-empty-msg">Loading…</p>
             ) : docs.length === 0 ? (
@@ -150,8 +211,18 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
                 {docs.map(doc => {
                   const id   = doc.doc_id || doc.id;
                   const name = doc.filename || doc.title || 'Untitled';
+                  const sel  = selectedIds.has(id);
                   return (
-                    <div key={id} className="cp-doc-item">
+                    <div
+                      key={id}
+                      className={`cp-doc-item cp-doc-item--selectable ${sel ? 'cp-doc-item--selected' : ''}`}
+                      onClick={() => toggleDoc(id)}
+                      role="checkbox"
+                      aria-checked={sel}
+                    >
+                      <span className="cp-doc-check">
+                        {sel ? <CheckSquare size={15} /> : <Square size={15} />}
+                      </span>
                       <FileText size={14} className="cp-doc-icon" />
                       <div className="cp-doc-info">
                         <div className="cp-doc-name" title={name}>{name}</div>
@@ -162,7 +233,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
                       </div>
                       <button
                         className="cp-delete-btn"
-                        onClick={() => handleDelete(id, name)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(id, name); }}
                         disabled={deleting === id}
                         aria-label="Delete"
                       >
@@ -175,13 +246,21 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             )}
           </div>
 
+          {/* Selection instructions */}
+          <div className="cp-section cp-sel-instructions">
+            <p>
+              <strong>Select specific books/docs</strong> above to restrict AI context to only those sources.
+              When nothing is selected, all available context is used.
+            </p>
+          </div>
+
         </div>
 
-        {/* Footer — go to context hub */}
+        {/* Footer */}
         <div className="cp-footer">
           <button className="cp-hub-btn" onClick={goToHub}>
             <ExternalLink size={14} />
-            Manage in Context Hub
+            Open Vault
           </button>
         </div>
 

@@ -23,6 +23,24 @@
 .afx--flashcards .afx-svg { opacity: 0.6; }
 .afx--flashcards-light .afx-svg { opacity: 0.4; }
 
+.afx--circles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.afx-circles-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--accent, #d7b38c);
+  opacity: 0.08;
+  animation: afx-drift 28s ease-in-out infinite alternate;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .afx-svg { animation: none; }
 }

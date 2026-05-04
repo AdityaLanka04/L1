@@ -733,3 +733,97 @@
   gap: 8px;
   font-family: 'Inter', sans-serif;
 }
+
+/* ===== Selection styles ===== */
+
+.cp-filter-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: color-mix(in srgb, var(--accent, #7c6ff7) 14%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent, #7c6ff7) 25%, transparent);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent, #7c6ff7);
+  font-family: 'Inter', sans-serif;
+}
+
+.cp-filter-banner svg { flex-shrink: 0; }
+
+.cp-filter-banner strong {
+  font-weight: 800;
+}
+
+.cp-clear-sel {
+  margin-left: auto;
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--accent, #7c6ff7) 35%, transparent);
+  border-radius: 6px;
+  color: var(--accent, #7c6ff7);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s;
+}
+
+.cp-clear-sel:hover {
+  background: color-mix(in srgb, var(--accent, #7c6ff7) 16%, transparent);
+}
+
+.cp-sel-hint {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--text-secondary, rgba(255,255,255,0.25));
+  font-family: 'Inter', sans-serif;
+}
+
+.cp-doc-item--selectable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.cp-doc-item--selected {
+  background: color-mix(in srgb, var(--accent, #7c6ff7) 12%, rgba(255,255,255,0.03)) !important;
+  border-color: color-mix(in srgb, var(--accent, #7c6ff7) 35%, transparent) !important;
+}
+
+.cp-doc-check {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary, rgba(255,255,255,0.2));
+  transition: color 0.15s;
+}
+
+.cp-doc-item--selected .cp-doc-check {
+  color: var(--accent, #7c6ff7);
+}
+
+.cp-doc-item--selectable:hover .cp-doc-check {
+  color: var(--text-primary, rgba(255,255,255,0.7));
+}
+
+.cp-sel-instructions {
+  border-bottom: none;
+}
+
+.cp-sel-instructions p {
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--text-secondary, rgba(255,255,255,0.28));
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.cp-sel-instructions strong {
+  color: var(--text-secondary, rgba(255,255,255,0.45));
+  font-weight: 600;
+}

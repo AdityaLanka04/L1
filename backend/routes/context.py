@@ -24,6 +24,8 @@ import ipaddress
 import re
 import requests
 
+from typing import Optional
+
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import func
@@ -796,6 +798,7 @@ def search_context_endpoint(
     subject: str = Query("", description="Optional HS subject filter (e.g., Biology)"),
     grade_level: str = Query("", description="Optional grade level filter (e.g., 9-12, AP)"),
     top_k: int = Query(5, ge=1, le=20, description="Number of results to return"),
+    doc_ids: Optional[str] = Query(None, description="Comma-separated doc_ids to restrict results to"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -810,6 +813,7 @@ def search_context_endpoint(
     }
     """
     try:
+        parsed_doc_ids = doc_ids.split(",") if doc_ids else None
         results = context_store.search_context(
             query=query,
             user_id=str(current_user.id),
@@ -817,6 +821,7 @@ def search_context_endpoint(
             top_k=top_k,
             subject=subject or None,
             grade_level=grade_level or None,
+            doc_ids=parsed_doc_ids,
         )
         cleaned = [
             {"text": r["text"], "metadata": r["metadata"], "source": r["source"]}

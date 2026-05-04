@@ -234,6 +234,7 @@ async def generate_flashcards_endpoint(
     depth_level: str = Form("standard"),
     additional_specs: str = Form(""),
     use_hs_context: bool = Form(True),
+    context_doc_ids: Optional[str] = Form(None),
     set_title: str = Form(None),
     is_public: bool = Form(False),
     db: Session = Depends(get_db),
@@ -261,6 +262,7 @@ async def generate_flashcards_endpoint(
         raise HTTPException(status_code=404, detail="User not found")
 
     hs_flag = bool(_coerce_bool(_unwrap_form_value(use_hs_context), default=True))
+    doc_ids_list = [x.strip() for x in context_doc_ids.split(",") if x.strip()] if context_doc_ids else []
     logger.info(
         f"[FLASHCARD ROUTE] generate request | topic='{topic}' user={user.id} "
         f"HS_MODE={'ON  <-- curriculum RAG will run' if hs_flag else 'OFF <-- no RAG, model-only'}"
@@ -297,6 +299,7 @@ async def generate_flashcards_endpoint(
             depth_level=depth_level,
             additional_specs=additional_specs,
             use_hs_context=bool(use_hs_context),
+            context_doc_ids=doc_ids_list,
         )
     else:
         prompt = (

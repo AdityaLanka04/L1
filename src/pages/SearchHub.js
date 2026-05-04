@@ -7,6 +7,7 @@ import { API_URL } from '../config/api';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
+import AbstractFx from '../components/AbstractFx';
 
 const SearchHub = () => {
   const navigate = useNavigate();
@@ -194,7 +195,7 @@ const SearchHub = () => {
   useEffect(() => {
     
     const handleClickOutside = (e) => {
-      const searchWrapper = searchInputRef.current?.closest('.search-box-wrapper');
+      const searchWrapper = searchInputRef.current?.closest('.sh-search-wrap');
       if (searchWrapper && !searchWrapper.contains(e.target)) {
         setShowAutocomplete(false);
         setShowSuggestions(false);
@@ -211,7 +212,7 @@ const SearchHub = () => {
   useEffect(() => {
     
     let scrollTimeout;
-    const pageElement = document.querySelector('.search-hub-page');
+    const pageElement = document.querySelector('.sh-root');
     
     const handleScroll = () => {
       if (pageElement) {
@@ -2464,296 +2465,226 @@ const SearchHub = () => {
     return count;
   };
 
+  const GeometricGrid = () => {
+    const W = 1600, H = 1000, STEP = 80;
+    const lines = [];
+    const nums = [];
+    let lineKey = 0;
+    for (let x = 0; x <= W; x += STEP) {
+      lines.push(<line key={`v${lineKey++}`} x1={x} y1={0} x2={x} y2={H} />);
+    }
+    for (let y = 0; y <= H; y += STEP) {
+      lines.push(<line key={`h${lineKey++}`} x1={0} y1={y} x2={W} y2={y} />);
+    }
+    let n = 1;
+    for (let r = 0; r <= H; r += STEP * 3) {
+      for (let c = 0; c <= W; c += STEP * 3) {
+        nums.push(<text key={`n${c}${r}`} x={c + 3} y={r + 11}>{String(n++ % 99 + 1).padStart(2, '0')}</text>);
+      }
+    }
+    return (
+      <svg className="sh-bg-geo" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
+        <g className="sh-bg-geo-lines">{lines}</g>
+        <g className="sh-bg-geo-nums">{nums}</g>
+      </svg>
+    );
+  };
+
   return (
-    <div className="search-hub-page">
-      <header className="search-hub-header">
-        <div className="header-content">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
+    <div className="sh-root">
+      <div className="sh-bg-fx" aria-hidden>
+        <div className="sh-bg-orb sh-bg-orb-1" />
+        <div className="sh-bg-orb sh-bg-orb-2" />
+        <GeometricGrid />
+        <AbstractFx variant="circles" />
+        <div className="sh-bg-vignette" />
+      </div>
+
+      <div className="sh-topbar">
+        <div className="sh-tagline">accelerate <span>your learning</span></div>
+        <div className="sh-topbar-right">
+          <button className="sh-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={18} />
           </button>
-          <div className="header-buttons">
-            {!userName && (
-              <>
-                <button className="header-text-btn login-signup-btn" onClick={() => navigate('/login')}>Login</button>
-                <button className="header-text-btn login-signup-btn" onClick={() => navigate('/register')}>Sign Up</button>
-              </>
-            )}
-            {userName ? (
-              <>
-                <button className="header-text-btn login-signup-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
-                <button className="header-text-btn login-signup-btn" onClick={handleLogout}>Logout</button>
-              </>
-            ) : (
-              <button className="header-text-btn login-signup-btn" onClick={handleShowLoginMessage}>Dashboard</button>
-            )}
-            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-          </div>
+          {!userName ? (
+            <>
+              <button className="sh-nav-btn" onClick={() => navigate('/login')}>Login</button>
+              <button className="sh-nav-btn sh-nav-btn--accent" onClick={() => navigate('/register')}>Sign Up</button>
+            </>
+          ) : (
+            <>
+              <button className="sh-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="sh-nav-btn" onClick={handleLogout}>Logout</button>
+            </>
+          )}
+          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
         </div>
-      </header>
+      </div>
 
       {showLoginMessage && (
-        <div className="login-required-message">
-          PLEASE LOGIN TO CONTINUE
-        </div>
+        <div className="sh-login-msg">PLEASE LOGIN TO CONTINUE</div>
       )}
 
-      {hsMode && (
-        <div className="hs-mode-banner">
-          <span className="hs-mode-banner-icon">📚</span>
-          <span>HS Mode active — curriculum context is enriching your results</span>
-          <button className="hs-mode-banner-dismiss" onClick={() => handleHsModeToggle(false)}>✕</button>
-        </div>
-      )}
-
-      <main className="search-hub-content">
+      <main className="sh-main">
         {!searchResults && !isSearching && !isCreating ? (
           isLoadingPrompts ? (
-            <div className="initial-loader">
-              <div className="pulse-loader">
-                <div className="pulse-block pulse-block-1"></div>
-                <div className="pulse-block pulse-block-2"></div>
-                <div className="pulse-block pulse-block-3"></div>
-              </div>
+            <div className="sh-loading-init">
+              <div className="sh-pulse"><i /><i /><i /></div>
             </div>
           ) : (
-            <div className="hero-section">
-              <div className="geometric-background">
-                <div className="brain-circle brain-circle-1"></div>
-                <div className="brain-circle brain-circle-2"></div>
-                <div className="brain-circle brain-circle-3"></div>
-                <div className="neural-path neural-path-1"></div>
-                <div className="neural-path neural-path-2"></div>
-                <div className="neural-path neural-path-3"></div>
-              </div>
+            <div className="sh-hero">
+              <div className="sh-eyebrow">AI LEARNING COMMAND CENTER</div>
+              <h1 className="sh-brand">cerbyl<span className="sh-period">.</span></h1>
 
-              <div className="hero-content">
-                {personalizedPrompts.length > 0 && (
-                  <div className="recommendations-section">
-                    <div className="view-heading">
-                      <span className="view-kicker">Personalized</span>
-                      <h2 className="view-title">Recommendations</h2>
-                      <p className="view-sub">Topics curated from your learning history</p>
-                    </div>
-
-                    <div className="recommendations-grid">
-                      {personalizedPrompts.map((prompt, index) => {
-                      const icons = {
-                        high: <Brain className="rec-icon" />,
-                        medium: <Target className="rec-icon" />,
-                        low: <Zap className="rec-icon" />
-                      };
-                      
-                      return (
-                        <button
-                          key={index}
-                          className="recommendation-card"
-                          data-priority={prompt.priority}
-                          onClick={() => {
-                            markRecommendationUsed(userName, prompt);
-                            setSearchQuery(prompt.text);
-                            handleSearch(prompt.text);
-                          }}
-                        >
-                          <div className="rec-icon-wrapper">
-                            {icons[prompt.priority] || <Sparkles className="rec-icon" />}
-                          </div>
-                          <div className="rec-content">
-                            <span className="rec-category">{prompt.priority || 'Suggestion'}</span>
-                            <span className="rec-text">{
-                            prompt.label || (
-                              prompt.text?.startsWith('/')
-                                ? prompt.text.slice(1)
-                                : prompt.text?.startsWith('> ')
-                                  ? prompt.text.slice(2)
-                                  : prompt.text
-                            )
-                          }</span>
-                            {prompt.reason && <span className="rec-reason">{prompt.reason}</span>}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                )}
-
-                <div className="logo-search-container">
-                <div className="giant-logo">
-                  <span className="logo-text">
-                    <img src="/logo.svg" alt="" style={{ height: '48px', marginRight: '12px', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
-                    cerbyl
-                  </span>
-                  <div className="search-box-wrapper">
-                    <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className={`search-box-cutout ${showAutocomplete && autocompleteResults.length > 0 ? 'dropdown-open' : ''}`}>
-                      <input
-                        ref={searchInputRef}
-                        id="search-input"
-                        type="text"
-                        value={searchQuery}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        onClick={() => {
-                          
-                          setHasUserInteracted(true);
-                          
-                          if (!searchQuery || searchQuery.trim() === '') {
-                            showPersonalizedRecommendations();
-                          } else {
-                            handleAutocomplete(searchQuery);
-                          }
-                        }}
-                        onFocus={() => {
-                          
-                          if (hasUserInteracted) {
-                            if (!searchQuery || searchQuery.trim() === '') {
-                              showPersonalizedRecommendations();
-                            } else {
-                              handleAutocomplete(searchQuery);
-                            }
-                          }
-                        }}
-                        placeholder="Ask me anything... or type /help"
-                        className="hero-search-input"
-                        autoComplete="off"
-                      />
-                      <button type="submit" className="search-submit-btn" aria-label="Search">
-                        <Search size={20} />
-                      </button>
-                    </form>
-                    {showAutocomplete && autocompleteResults.length > 0 && (
-                      <div className="autocomplete-dropdown">
-                        {autocompleteResults.map((suggestion, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            className={`autocomplete-item ${index === selectedAutocompleteIndex ? 'selected' : ''} ${suggestion.source === 'nlp' ? 'nlp-suggestion' : ''}`}
-                            onClick={() => {
-                              setSearchQuery(suggestion.text);
-                              handleSearch(suggestion.text);
-                              setShowAutocomplete(false);
-                            }}
-                          >
-                            <span className="suggestion-text">{suggestion.text}</span>
-                            {suggestion.category && (
-                              <span className={`suggestion-type ${suggestion.type}`}>
-                                {suggestion.category}
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                        <div className="autocomplete-footer">
-                          <kbd>↑</kbd><kbd>↓</kbd> Navigate
-                          <span style={{ margin: '0 4px' }}>•</span>
-                          <kbd>Enter</kbd> Select
-                          <span style={{ margin: '0 4px' }}>•</span>
-                          <kbd>Esc</kbd> Close
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <p className="search-helper-text">
-                    Type a command or ask naturally. Try "/flashcards &lt;topic&gt;" • Press ? for commands
-                  </p>
-                  <button
-                    type="button"
-                    className="command-toggle-btn"
-                    onClick={() => setShowCommandGuide(prev => !prev)}
-                    aria-expanded={showCommandGuide}
-                    aria-controls="command-guide"
-                    title="Shortcut: ?"
-                  >
-                    Commands <span className="command-toggle-hint">?</span>
+              <div className="sh-search-wrap">
+                <form
+                  onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
+                  className={`sh-form ${showAutocomplete && autocompleteResults.length > 0 ? 'sh-form--open' : ''}`}
+                >
+                  <Search size={15} className="sh-search-icon" />
+                  <input
+                    ref={searchInputRef}
+                    id="search-input"
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    onClick={() => {
+                      setHasUserInteracted(true);
+                      if (!searchQuery || searchQuery.trim() === '') {
+                        showPersonalizedRecommendations();
+                      } else {
+                        handleAutocomplete(searchQuery);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (hasUserInteracted) {
+                        if (!searchQuery || searchQuery.trim() === '') {
+                          showPersonalizedRecommendations();
+                        } else {
+                          handleAutocomplete(searchQuery);
+                        }
+                      }
+                    }}
+                    placeholder="Ask me anything... or type /help"
+                    className="sh-input"
+                    autoComplete="off"
+                  />
+                  <button type="submit" className="sh-submit" aria-label="Search">
+                    <ChevronRight size={16} />
                   </button>
-                  {showCommandGuide && (
-                    <div id="command-guide" className="command-console" role="region" aria-label="SearchHub commands">
-                      <div className="command-console-header">COMMANDS</div>
-                      <div className="command-console-body">
-                        {getQuickCommands().map((cmd, index) => (
-                          <div key={`${cmd.syntax}-${index}`} className="command-line">
-                            <span className="command-syntax">{cmd.syntax}</span>
-                            <span className="command-desc">{cmd.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+                </form>
 
-              <p className="hero-subtitle">
-                Search your learning materials and explore public content
-              </p>
-
-              <div className="keyboard-hint">
-                Press <kbd>/</kbd> to search
-              </div>
-
-            </div>
-
-            <div className="content-section">
-              {recentSearches.length > 0 && (
-                <div className="recent-searches-section">
-                  <div className="view-heading">
-                    <span className="view-kicker">History</span>
-                    <h2 className="view-title">Recent Searches</h2>
-                  </div>
-
-                  <div className="recent-searches-list">
-                    {recentSearches.map((search, index) => (
+                {showAutocomplete && autocompleteResults.length > 0 && (
+                  <div className="sh-autocomplete">
+                    {autocompleteResults.map((suggestion, index) => (
                       <button
                         key={index}
-                        className="recent-search-btn"
+                        type="button"
+                        className={`sh-ac-item ${index === selectedAutocompleteIndex ? 'sh-ac-item--sel' : ''} ${suggestion.source === 'nlp' ? 'sh-ac-item--nlp' : ''}`}
                         onClick={() => {
-                          setSearchQuery(search);
-                          handleSearch(search);
+                          setSearchQuery(suggestion.text);
+                          handleSearch(suggestion.text);
+                          setShowAutocomplete(false);
                         }}
                       >
-                        <Clock size={16} />
-                        {search}
+                        <span className="sh-ac-text">{suggestion.text}</span>
+                        {suggestion.category && (
+                          <span className={`sh-ac-badge ${suggestion.type}`}>{suggestion.category}</span>
+                        )}
+                      </button>
+                    ))}
+                    <div className="sh-ac-footer">
+                      <kbd>↑↓</kbd> Navigate <kbd>↵</kbd> Select <kbd>Esc</kbd> Close
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <p className="sh-helper">
+                Type a command or ask naturally · <code>/flashcards</code> · <code>/notes</code> · <code>/quiz</code> · press <kbd>?</kbd> for all commands
+              </p>
+
+              <button
+                type="button"
+                className="sh-cmd-toggle"
+                onClick={() => setShowCommandGuide(prev => !prev)}
+                aria-expanded={showCommandGuide}
+              >
+                Commands <span className="sh-cmd-hint">?</span>
+              </button>
+
+              {showCommandGuide && (
+                <div className="sh-cmd-console">
+                  <div className="sh-cmd-header">COMMANDS</div>
+                  <div className="sh-cmd-body">
+                    {getQuickCommands().map((cmd, index) => (
+                      <div key={`${cmd.syntax}-${index}`} className="sh-cmd-line">
+                        <span className="sh-cmd-syntax">{cmd.syntax}</span>
+                        <span className="sh-cmd-desc">{cmd.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {personalizedPrompts.length > 0 && (
+                <div className="sh-chips-wrap">
+                  <div className="sh-chips-eyebrow">SUGGESTED FOR YOU</div>
+                  <div className="sh-chips">
+                    {personalizedPrompts.map((prompt, index) => (
+                      <button
+                        key={index}
+                        className={`sh-chip sh-chip--${prompt.priority || 'medium'}`}
+                        onClick={() => {
+                          markRecommendationUsed(userName, prompt);
+                          setSearchQuery(prompt.text);
+                          handleSearch(prompt.text);
+                        }}
+                      >
+                        <span className="sh-chip-num">{String(index + 1).padStart(2, '0')}</span>
+                        <span className="sh-chip-text">{
+                          prompt.label || (
+                            prompt.text?.startsWith('/')
+                              ? prompt.text.slice(1)
+                              : prompt.text?.startsWith('> ')
+                                ? prompt.text.slice(2)
+                                : prompt.text
+                          )
+                        }</span>
+                        {prompt.reason && <span className="sh-chip-reason">{prompt.reason}</span>}
+                        <ChevronRight size={11} className="sh-chip-arrow" />
                       </button>
                     ))}
                   </div>
                 </div>
               )}
             </div>
-          </div>
           )
         ) : isCreating ? (
-          <div className="creating-content">
-            <div className="creating-content-container">
-              <div className="pulse-loader">
-                <div className="pulse-square pulse-1"></div>
-                <div className="pulse-square pulse-2"></div>
-                <div className="pulse-square pulse-3"></div>
-              </div>
-              <h2>{creatingMessage}</h2>
-              <p>Please wait while we set things up...</p>
-            </div>
+          <div className="sh-creating">
+            <div className="sh-pulse"><i /><i /><i /></div>
+            <div className="sh-creating-msg">{creatingMessage}</div>
+            <p className="sh-creating-sub">Setting things up...</p>
           </div>
         ) : isSearching ? (
-          <div className="loading-state">
-            <div className="pulse-loader">
-              <div className="pulse-square pulse-1"></div>
-              <div className="pulse-square pulse-2"></div>
-              <div className="pulse-square pulse-3"></div>
-            </div>
-            <p>Loading...</p>
+          <div className="sh-searching">
+            <div className="sh-pulse"><i /><i /><i /></div>
+            <p className="sh-searching-text">Searching...</p>
           </div>
         ) : (
-          <div className="results-container">
-            <div className="results-header">
-              <div className="results-info">
+          <div className="sh-results">
+            <div className="sh-results-header">
+              <div className="sh-results-info">
                 {aiSuggestion && searchResults?.has_ai_description ? (
-                  <p>Exploring "<strong>{searchQuery}</strong>"</p>
+                  <p>Exploring <strong>"{searchQuery}"</strong></p>
                 ) : (
-                  <p>
-                    Found <strong>{searchResults?.total_results || 0}</strong> results for "<strong>{searchQuery}</strong>"
-                  </p>
+                  <p>Found <strong>{searchResults?.total_results || 0}</strong> results for <strong>"{searchQuery}"</strong></p>
                 )}
               </div>
-              <div className="results-actions">
-                <button 
-                  className="back-btn-compact"
+              <div className="sh-results-actions">
+                <button
+                  className="sh-back-btn"
                   onClick={() => {
                     setSearchResults(null);
                     setAiSuggestion(null);
@@ -2761,30 +2692,24 @@ const SearchHub = () => {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
-                  <ChevronLeft size={16} />
-                  Back
+                  <ChevronLeft size={14} /> Back
                 </button>
-                <button 
-                  className={`filter-btn ${showFilters ? 'active' : ''}`}
+                <button
+                  className={`sh-filter-btn ${showFilters ? 'sh-filter-btn--active' : ''}`}
                   onClick={() => setShowFilters(!showFilters)}
                 >
-                  <Filter size={16} />
-                  FILTERS
-                  {activeFilterCount() > 0 && (
-                    <span className="filter-badge">{activeFilterCount()}</span>
-                  )}
+                  <Filter size={13} />
+                  Filters
+                  {activeFilterCount() > 0 && <span className="sh-filter-badge">{activeFilterCount()}</span>}
                 </button>
               </div>
             </div>
 
             {showFilters && (
-              <div className="filters-panel">
-                <div className="filter-group">
+              <div className="sh-filters">
+                <div className="sh-filter-group">
                   <label>Content Type</label>
-                  <select 
-                    value={filters.content_types}
-                    onChange={(e) => setFilters({...filters, content_types: e.target.value})}
-                  >
+                  <select value={filters.content_types} onChange={(e) => setFilters({...filters, content_types: e.target.value})}>
                     <option value="all">All</option>
                     <option value="flashcards">Flashcards</option>
                     <option value="notes">Notes</option>
@@ -2792,172 +2717,94 @@ const SearchHub = () => {
                     <option value="roadmaps">Roadmaps</option>
                   </select>
                 </div>
-
-                <div className="filter-group">
+                <div className="sh-filter-group">
                   <label>Sort By</label>
-                  <select 
-                    value={filters.sort_by}
-                    onChange={(e) => setFilters({...filters, sort_by: e.target.value})}
-                  >
+                  <select value={filters.sort_by} onChange={(e) => setFilters({...filters, sort_by: e.target.value})}>
                     <option value="relevance">Relevance</option>
                     <option value="date">Date</option>
                     <option value="name">Name</option>
                   </select>
                 </div>
-
-                <div className="filter-group">
+                <div className="sh-filter-group">
                   <label>Date From</label>
-                  <input 
-                    type="date"
-                    value={filters.date_from}
-                    onChange={(e) => setFilters({...filters, date_from: e.target.value})}
-                  />
+                  <input type="date" value={filters.date_from} onChange={(e) => setFilters({...filters, date_from: e.target.value})} />
                 </div>
-
-                <div className="filter-group">
+                <div className="sh-filter-group">
                   <label>Date To</label>
-                  <input 
-                    type="date"
-                    value={filters.date_to}
-                    onChange={(e) => setFilters({...filters, date_to: e.target.value})}
-                  />
+                  <input type="date" value={filters.date_to} onChange={(e) => setFilters({...filters, date_to: e.target.value})} />
                 </div>
-
-                <button 
-                  className="apply-filters-btn"
-                  onClick={() => handleSearch()}
-                >
-                  <RefreshCw size={16} />
-                  Apply Filters
+                <button className="sh-apply-filters" onClick={() => handleSearch()}>
+                  <RefreshCw size={13} /> Apply Filters
                 </button>
               </div>
             )}
 
-            <div className="results-content">
+            <div className="sh-results-content">
               {aiSuggestion && aiSuggestion.description && (
-                <div className="ai-description-section">
-                  <div className="ai-description-header">
-                    <Sparkles size={20} />
-                    <h3>AI Overview</h3>
+                <div className="sh-ai-panel">
+                  <div className="sh-ai-panel-head">
+                    <Sparkles size={14} />
+                    <span>AI Overview</span>
                   </div>
-                  <p className="ai-description-text">{aiSuggestion.description}</p>
-                  
+                  <p className="sh-ai-text">{aiSuggestion.description}</p>
                   <button
-                    className="continue-chat-btn"
+                    className="sh-ai-chat-btn"
                     onClick={() => {
-                      if (!userName) {
-                        setShowLoginModal(true);
-                        return;
-                      }
-                      navigate('/ai-chat', { 
-                        state: { 
-                          initialMessage: `Tell me more about ${searchQuery}`
-                        } 
-                      });
+                      if (!userName) { setShowLoginModal(true); return; }
+                      navigate('/ai-chat', { state: { initialMessage: `Tell me more about ${searchQuery}` } });
                     }}
                   >
-                    <MessageCircle size={16} />
-                    Continue in AI Chat
+                    <MessageCircle size={13} /> Continue in AI Chat
                   </button>
                 </div>
               )}
 
               {searchResults && searchResults.results && searchResults.results.length > 0 ? (
                 <>
-                  <div className="results-section-header">
-                    <h3>User Results</h3>
-                    <p>Study materials created by the community</p>
+                  <div className="sh-results-section-head">
+                    <span className="sh-results-section-title">Results</span>
+                    <span className="sh-results-section-sub">Community study materials</span>
                   </div>
-
-                  <div className="results-grid">
+                  <div className="sh-results-grid">
                     {searchResults.results.map((result, index) => (
                       <div
                         key={result.id || index}
-                        className={`result-card ${result.featured ? 'featured' : ''}`}
-                        data-priority={result.priority}
+                        className={`sh-result-card ${result.featured ? 'sh-result-card--featured' : ''}`}
                         onClick={() => handleResultClick(result)}
                       >
-                        <div className="result-icon">
-                          {getContentTypeIcon(result.type)}
-                        </div>
-                        <div className="result-details">
-                          <h3 className="result-title">{result.title || result.name}</h3>
-                          
-                          {result.description && (
-                            <p className="result-description">{result.description}</p>
-                          )}
-                          
-                          {result.card_count !== undefined && (
-                            <p className="result-card-count">{result.card_count} cards</p>
-                          )}
-                          
-                          {result.question_count !== undefined && (
-                            <p className="result-card-count">{result.question_count} questions</p>
-                          )}
-                          
-                          <div className="result-meta">
-                            {result.author && (
-                              <span className="result-author">
-                                <Users size={14} />
-                                Created by {result.is_own ? 'You' : result.author}
-                              </span>
-                            )}
-                            {result.created_at && (
-                              <span className="result-date">
-                                <Clock size={14} />
-                                {formatDate(result.created_at)}
-                              </span>
-                            )}
-                            {result.source_type && result.source_type !== 'ai_generated' && (
-                              <span className="result-source">
-                                ✍️ Manual
-                              </span>
-                            )}
-                            {result.is_public !== undefined && (
-                              <span className={`result-visibility ${result.is_public ? 'public' : 'private'}`}>
-                                {result.is_public ? '🌍 Public' : '🔒 Private'}
-                              </span>
-                            )}
+                        <div className="sh-result-icon">{getContentTypeIcon(result.type)}</div>
+                        <div className="sh-result-details">
+                          <h3 className="sh-result-title">{result.title || result.name}</h3>
+                          {result.description && <p className="sh-result-desc">{result.description}</p>}
+                          {result.card_count !== undefined && <p className="sh-result-count">{result.card_count} cards</p>}
+                          {result.question_count !== undefined && <p className="sh-result-count">{result.question_count} questions</p>}
+                          <div className="sh-result-meta">
+                            {result.author && <span><Users size={11} /> {result.is_own ? 'You' : result.author}</span>}
+                            {result.created_at && <span><Clock size={11} /> {formatDate(result.created_at)}</span>}
+                            {result.is_public !== undefined && <span>{result.is_public ? '🌍 Public' : '🔒 Private'}</span>}
                           </div>
-                          
-                          <span className="result-type-badge">{result.type.replace('_', ' ')}</span>
-                          
+                          <span className="sh-result-badge">{result.type.replace('_', ' ')}</span>
                           {result.smart_actions && result.smart_actions.length > 0 && (
-                            <div className="smart-actions">
-                              {result.smart_actions.map((action, actionIndex) => (
-                                <button
-                                  key={actionIndex}
-                                  className="smart-action-btn"
-                                  onClick={(e) => handleSmartAction(e, result, action)}
-                                  title={action.label}
-                                >
-                                  {getSmartActionIcon(action.icon)}
-                                  <span>{action.label}</span>
+                            <div className="sh-smart-actions">
+                              {result.smart_actions.map((action, ai) => (
+                                <button key={ai} className="sh-smart-btn" onClick={(e) => handleSmartAction(e, result, action)}>
+                                  {getSmartActionIcon(action.icon)} {action.label}
                                 </button>
                               ))}
                             </div>
                           )}
                         </div>
-                        <ChevronRight size={20} className="result-arrow" />
+                        <ChevronRight size={15} className="sh-result-arrow" />
                       </div>
                     ))}
                   </div>
-                  
                   {relatedSearches && relatedSearches.length > 0 && (
-                    <div className="related-searches">
-                      <h4>Related Searches</h4>
-                      <div className="related-searches-list">
+                    <div className="sh-related">
+                      <div className="sh-related-head">Related Searches</div>
+                      <div className="sh-related-list">
                         {relatedSearches.map((related, index) => (
-                          <button
-                            key={index}
-                            className="related-search-btn"
-                            onClick={() => {
-                              setSearchQuery(related);
-                              handleSearch(related);
-                            }}
-                          >
-                            <Search size={14} />
-                            {related}
+                          <button key={index} className="sh-related-btn" onClick={() => { setSearchQuery(related); handleSearch(related); }}>
+                            <Search size={11} /> {related}
                           </button>
                         ))}
                       </div>
@@ -2965,188 +2812,89 @@ const SearchHub = () => {
                   )}
                 </>
               ) : searchResults?.has_ai_description ? (
-                
-                <div className="no-results-with-ai">
-                  <div className="create-options">
-                    <h4>Create study materials or explore this topic:</h4>
-                    <div className="create-options-grid">
-                      <button
-                        className="create-option-card"
-                        onClick={() => {
-                          if (!userName) {
-                            setShowLoginModal(true);
-                            return;
-                          }
-                          setIsCreating(true);
-                          setCreatingMessage(`Generating learning path for ${searchQuery}...`);
-                          setTimeout(() => {
-                            setIsCreating(false);
-                            navigate('/learning-paths', { 
-                              state: { 
-                                autoGenerate: true,
-                                topic: searchQuery,
-                                difficulty: 'intermediate',
-                                length: 'medium'
-                              } 
-                            });
-                          }, 800);
-                        }}
-                      >
-                        <Target size={32} />
-                        <h5>Create Learning Path</h5>
-                        <p>Structured roadmap to master this</p>
+                <div className="sh-create-options">
+                  <div className="sh-create-options-head">Create study materials or explore this topic:</div>
+                  <div className="sh-create-grid">
+                    {[
+                      { icon: <Target size={22} />, label: 'Learning Path', desc: 'Structured roadmap', num: '01', action: () => {
+                        if (!userName) { setShowLoginModal(true); return; }
+                        setIsCreating(true);
+                        setCreatingMessage(`Generating learning path for ${searchQuery}...`);
+                        setTimeout(() => {
+                          setIsCreating(false);
+                          navigate('/learning-paths', { state: { autoGenerate: true, topic: searchQuery, difficulty: 'intermediate', length: 'medium' } });
+                        }, 800);
+                      }},
+                      { icon: <Layers size={22} />, label: 'Flashcards', desc: 'Build a study deck', num: '02', action: () => handleCreateContent('flashcards') },
+                      { icon: <FileText size={22} />, label: 'Notes', desc: 'Document your learning', num: '03', action: () => handleCreateContent('notes') },
+                      { icon: <MessageCircle size={22} />, label: 'Ask AI', desc: 'Talk to your tutor', num: '04', action: () => handleCreateContent('ai-chat') },
+                      { icon: <BarChart3 size={22} />, label: 'Progress', desc: 'Track your journey', num: '05', action: () => { if (!userName) { setShowLoginModal(true); return; } navigate('/dashboard'); } },
+                    ].map((opt, i) => (
+                      <button key={i} className="sh-create-card" onClick={opt.action}>
+                        <span className="sh-create-card-num">{opt.num}</span>
+                        {opt.icon}
+                        <span className="sh-create-label">{opt.label}</span>
+                        <span className="sh-create-desc">{opt.desc}</span>
                       </button>
-                      <button
-                        className="create-option-card"
-                        onClick={() => handleCreateContent('flashcards')}
-                      >
-                        <Layers size={32} />
-                        <h5>Create Flashcards</h5>
-                        <p>Build a deck to study this topic</p>
-                      </button>
-                      <button
-                        className="create-option-card"
-                        onClick={() => handleCreateContent('notes')}
-                      >
-                        <FileText size={32} />
-                        <h5>Take Notes</h5>
-                        <p>Start documenting your learning</p>
-                      </button>
-                      <button
-                        className="create-option-card"
-                        onClick={() => handleCreateContent('ai-chat')}
-                      >
-                        <MessageCircle size={32} />
-                        <h5>Ask AI</h5>
-                        <p>Get help from your AI tutor</p>
-                      </button>
-                      <button
-                        className="create-option-card"
-                        onClick={() => {
-                          if (!userName) {
-                            setShowLoginModal(true);
-                            return;
-                          }
-                          navigate('/dashboard');
-                        }}
-                      >
-                        <BarChart3 size={32} />
-                        <h5>View Progress</h5>
-                        <p>Track your learning journey</p>
-                      </button>
-                    </div>
+                    ))}
                   </div>
                 </div>
               ) : searchResults?.action_executed ? (
-                <div className="ai-response-section">
-                  <div className="ai-suggestion">
-                    <div className="ai-suggestion-header">
-                      <Sparkles size={24} />
-                      <h3>AI Assistant</h3>
-                    </div>
-                    <p className="ai-description">{aiSuggestion.description}</p>
-                    
-                    <div className="create-options">
-                      <h4>Or create something new:</h4>
-                      <div className="create-options-grid">
-                        <button
-                          className="create-option-card"
-                          onClick={() => handleCreateContent('flashcards')}
-                        >
-                          <Layers size={32} />
-                          <h5>Create Flashcards</h5>
-                          <p>Build a deck to study this topic</p>
-                        </button>
-                        <button
-                          className="create-option-card"
-                          onClick={() => handleCreateContent('notes')}
-                        >
-                          <FileText size={32} />
-                          <h5>Take Notes</h5>
-                          <p>Start documenting your learning</p>
-                        </button>
-                        <button
-                          className="create-option-card"
-                          onClick={() => handleCreateContent('ai-chat')}
-                        >
-                          <Sparkles size={32} />
-                          <h5>Ask AI</h5>
-                          <p>Get help from your AI tutor</p>
-                        </button>
-                      </div>
-                    </div>
+                <div className="sh-ai-response">
+                  <div className="sh-ai-panel">
+                    <div className="sh-ai-panel-head"><Sparkles size={14} /> <span>AI Assistant</span></div>
+                    <p className="sh-ai-text">{aiSuggestion?.description}</p>
+                  </div>
+                  <div className="sh-create-grid sh-create-grid--sm">
+                    {[
+                      { icon: <Layers size={22} />, label: 'Flashcards', desc: 'Study deck', num: '01', action: () => handleCreateContent('flashcards') },
+                      { icon: <FileText size={22} />, label: 'Notes', desc: 'Document it', num: '02', action: () => handleCreateContent('notes') },
+                      { icon: <Sparkles size={22} />, label: 'Ask AI', desc: 'Get help', num: '03', action: () => handleCreateContent('ai-chat') },
+                    ].map((opt, i) => (
+                      <button key={i} className="sh-create-card" onClick={opt.action}>
+                        <span className="sh-create-card-num">{opt.num}</span>
+                        {opt.icon}
+                        <span className="sh-create-label">{opt.label}</span>
+                        <span className="sh-create-desc">{opt.desc}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               ) : (
-                <div className="no-results">
-                  <div className="no-results-icon">
-                    {searchResults.action_executed === 'show_weak_areas' ? (
-                      <Sparkles size={48} />
-                    ) : (
-                      <Search size={48} />
-                    )}
+                <div className="sh-no-results">
+                  <div className="sh-no-results-icon">
+                    {searchResults.action_executed === 'show_weak_areas' ? <Sparkles size={34} /> : <Search size={34} />}
                   </div>
-                  <h2>
-                    {searchResults.action_executed === 'show_weak_areas' 
-                      ? "Great job! You don't have any weak areas yet!" 
-                      : `No results found for "${searchQuery}"`}
+                  <h2 className="sh-no-results-title">
+                    {searchResults.action_executed === 'show_weak_areas'
+                      ? "No weak areas yet — great work!"
+                      : `No results for "${searchQuery}"`}
                   </h2>
-                  
                   {didYouMean && (
-                    <div className="did-you-mean">
-                      <span>Did you mean: </span>
-                      <button 
-                        className="did-you-mean-btn"
-                        onClick={() => {
-                          setSearchQuery(didYouMean);
-                          handleSearch(didYouMean);
-                        }}
-                      >
-                        {didYouMean}
-                      </button>
+                    <div className="sh-did-you-mean">
+                      Did you mean: <button className="sh-dym-btn" onClick={() => { setSearchQuery(didYouMean); handleSearch(didYouMean); }}>{didYouMean}</button>
                     </div>
                   )}
-                  
                   {aiSuggestion && (
-                    <div className="ai-suggestion">
-                      <div className="ai-suggestion-header">
-                        <Sparkles size={24} />
-                        <h3>
-                          {searchResults.action_executed === 'show_weak_areas' 
-                            ? 'Recommended Next Steps' 
-                            : 'AI Assistant'}
-                        </h3>
+                    <div className="sh-ai-panel">
+                      <div className="sh-ai-panel-head">
+                        <Sparkles size={14} />
+                        <span>{searchResults.action_executed === 'show_weak_areas' ? 'Recommended Next Steps' : 'AI Assistant'}</span>
                       </div>
-                      <p className="ai-description">{aiSuggestion.description}</p>
-                      
-                      <div className="create-options">
-                        <h4>Or create something new:</h4>
-                        <div className="create-options-grid">
-                          <button
-                            className="create-option-card"
-                            onClick={() => handleCreateContent('flashcards')}
-                          >
-                            <Layers size={32} />
-                            <h5>Create Flashcards</h5>
-                            <p>Build a deck to study this topic</p>
+                      <p className="sh-ai-text">{aiSuggestion.description}</p>
+                      <div className="sh-create-grid sh-create-grid--sm">
+                        {[
+                          { icon: <Layers size={22} />, label: 'Flashcards', desc: 'Study deck', num: '01', action: () => handleCreateContent('flashcards') },
+                          { icon: <FileText size={22} />, label: 'Notes', desc: 'Document it', num: '02', action: () => handleCreateContent('notes') },
+                          { icon: <Sparkles size={22} />, label: 'Ask AI', desc: 'Get help', num: '03', action: () => handleCreateContent('ai-chat') },
+                        ].map((opt, i) => (
+                          <button key={i} className="sh-create-card" onClick={opt.action}>
+                            <span className="sh-create-card-num">{opt.num}</span>
+                            {opt.icon}
+                            <span className="sh-create-label">{opt.label}</span>
+                            <span className="sh-create-desc">{opt.desc}</span>
                           </button>
-                          <button
-                            className="create-option-card"
-                            onClick={() => handleCreateContent('notes')}
-                          >
-                            <FileText size={32} />
-                            <h5>Take Notes</h5>
-                            <p>Start documenting your learning</p>
-                          </button>
-                          <button
-                            className="create-option-card"
-                            onClick={() => handleCreateContent('ai-chat')}
-                          >
-                            <Sparkles size={32} />
-                            <h5>Ask AI</h5>
-                            <p>Get help from your AI tutor</p>
-                          </button>
-                        </div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -3158,35 +2906,21 @@ const SearchHub = () => {
       </main>
 
       {showLoginModal && (
-        <div className="login-required-modal" onClick={() => setShowLoginModal(false)}>
-          <div className="login-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="login-modal-header">
-              <Sparkles size={28} />
+        <div className="sh-modal-overlay" onClick={() => setShowLoginModal(false)}>
+          <div className="sh-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sh-modal-head">
+              <Sparkles size={20} />
               <h3>Sign In Required</h3>
             </div>
-            <p className="login-modal-text">
-              To unlock the full power of Cerbyl and access personalized learning features, you'll need to create an account or sign in. 
-              Join thousands of learners who are already mastering their subjects with AI-powered study tools, adaptive flashcards, 
-              intelligent progress tracking, and personalized learning paths tailored just for you.
+            <p className="sh-modal-text">
+              Unlock personalized learning with AI-powered flashcards, notes, quizzes, and progress tracking — all tailored to you.
             </p>
-            <div className="login-modal-actions">
-              <button 
-                className="login-modal-btn"
-                onClick={() => {
-                  setShowLoginModal(false);
-                  navigate('/login');
-                }}
-              >
-                Sign In
+            <div className="sh-modal-actions">
+              <button className="sh-modal-btn" onClick={() => { setShowLoginModal(false); navigate('/login'); }}>
+                <LogIn size={14} /> Sign In
               </button>
-              <button 
-                className="login-modal-btn secondary"
-                onClick={() => {
-                  setShowLoginModal(false);
-                  navigate('/register');
-                }}
-              >
-                Create Account
+              <button className="sh-modal-btn sh-modal-btn--sec" onClick={() => { setShowLoginModal(false); navigate('/register'); }}>
+                <UserPlus size={14} /> Create Account
               </button>
             </div>
           </div>

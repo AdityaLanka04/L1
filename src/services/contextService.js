@@ -62,19 +62,32 @@ class ContextService {
     return response.json();
   }
 
-  
+  _getSelectedDocIds() {
+    try {
+      const raw = localStorage.getItem('ctx_selected_doc_ids');
+      const arr = JSON.parse(raw || '[]');
+      return Array.isArray(arr) && arr.length > 0 ? arr : null;
+    } catch { return null; }
+  }
+
   async searchContext(query, useHs = true, topK = 5) {
     const params = new URLSearchParams({
       query,
       use_hs: useHs,
       top_k: topK,
     });
+    const docIds = this._getSelectedDocIds();
+    if (docIds) params.set('doc_ids', docIds.join(','));
     const response = await fetch(`${API_URL}/context/search?${params}`, {
       headers: this._headers(),
       cache: 'no-store',
     });
     if (!response.ok) throw new Error(`Search failed (${response.status})`);
     return response.json();
+  }
+
+  getSelectedDocIds() {
+    return this._getSelectedDocIds();
   }
 
   

@@ -15,7 +15,7 @@ import logging
 import math
 import re
 from datetime import datetime, timezone
-from typing import Optional
+from typing import List, Optional
 
 import redis_cache
 import vector_store as vs
@@ -265,6 +265,7 @@ def search_context(
     subject: Optional[str] = None,
     grade_level: Optional[str] = None,
     curriculum: Optional[str] = None,
+    doc_ids: Optional[List[str]] = None,
 ) -> list[dict]:
     if not available():
         return []
@@ -370,6 +371,9 @@ def search_context(
             ranked = with_overlap
 
     cleaned = [{k: v for k, v in r.items() if not k.startswith("_")} for r in ranked[:top_k]]
+
+    if doc_ids:
+        cleaned = [r for r in cleaned if r.get("metadata", {}).get("doc_id") in doc_ids]
 
     try:
         redis_cache.set_search(query, user_id, cleaned, **_cache_kwargs)

@@ -22,6 +22,7 @@ class NoteGenState(TypedDict, total=False):
     common_mistakes: list[str]
     rag_context: list[str]
     use_hs_context: bool
+    context_doc_ids: list[str]
     built_prompt: str
     note_content: str
     _ai_client: Any
@@ -92,6 +93,7 @@ async def fetch_context(state: NoteGenState) -> dict:
 
     rag_chunks: list[str] = []
     use_hs = state.get("use_hs_context", True)
+    context_doc_ids = state.get("context_doc_ids") or []
     logger.info(f"[NOTE RAG] topic='{topic}' use_hs_context={use_hs} user_id={user_id}")
     if topic and use_hs:
         try:
@@ -102,6 +104,7 @@ async def fetch_context(state: NoteGenState) -> dict:
                     user_id=user_id,
                     use_hs=True,
                     top_k=5,
+                    doc_ids=context_doc_ids or None,
                 )
                 rag_chunks = [r["text"] for r in results]
                 if rag_chunks:
@@ -303,6 +306,7 @@ class NoteGraph:
         tone: str = "professional",
         additional_specs: str = "",
         use_hs_context: bool = True,
+        context_doc_ids: list = None,
     ) -> str:
         initial_state: NoteGenState = {
             "user_id": user_id,
@@ -313,6 +317,7 @@ class NoteGraph:
             "tone": tone,
             "additional_specs": additional_specs,
             "use_hs_context": use_hs_context,
+            "context_doc_ids": context_doc_ids or [],
             "_ai_client": self.ai_client,
             "_hs_ai_client": self.hs_ai_client,
             "_db_factory": self.db_factory,

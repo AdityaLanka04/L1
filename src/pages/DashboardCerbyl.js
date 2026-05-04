@@ -1,26 +1,28 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library } from 'lucide-react';
+import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library, Search } from 'lucide-react';
 import { API_URL } from '../config/api';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import logo from '../assets/logo.svg';
 import './DashboardCerbyl.css';
 
 const MODULES = [
-  { num: '04', label: 'Roadmap',       sub: 'KNOWLEDGE',    route: '/knowledge-roadmap' },
-  { num: '05', label: 'Questions',     sub: 'PRACTICE',     route: '/question-bank' },
-  { num: '06', label: 'Slides',        sub: 'PRESENT',      route: '/slide-explorer' },
-  { num: '07', label: 'Weak Areas',    sub: 'IMPROVE',      route: '/weaknesses' },
-  { num: '08', label: 'Social Hub',    sub: 'COMMUNITY',    route: '/social' },
-  { num: '09', label: 'Timeline',      sub: 'ACTIVITY LOG', route: '/activity-timeline' },
-  { num: '10', label: 'Learning Path', sub: 'PROGRESSION',  route: '/learning-paths' },
-  { num: '11', label: 'XP Roadmap',    sub: 'MILESTONES',   route: '/xp-roadmap' },
-  { num: '12', label: 'Quiz Hub',      sub: 'CHALLENGE',    route: '/quiz-hub' },
-  { num: '13', label: 'Concept Web',   sub: 'NETWORK',      route: '/concept-web' },
-  { num: '14', label: 'Playlists',     sub: 'COLLECTIONS',  route: '/playlists' }
+  { num: '04', label: 'Search Hub',    sub: 'EXPLORE',      route: '/search-hub' },
+  { num: '05', label: 'Roadmap',       sub: 'KNOWLEDGE',    route: '/knowledge-roadmap' },
+  { num: '06', label: 'Questions',     sub: 'PRACTICE',     route: '/question-bank' },
+  { num: '07', label: 'Slides',        sub: 'PRESENT',      route: '/slide-explorer' },
+  { num: '08', label: 'Weak Areas',    sub: 'IMPROVE',      route: '/weaknesses' },
+  { num: '09', label: 'Social Hub',    sub: 'COMMUNITY',    route: '/social' },
+  { num: '10', label: 'Timeline',      sub: 'ACTIVITY LOG', route: '/activity-timeline' },
+  { num: '11', label: 'Learning Path', sub: 'PROGRESSION',  route: '/learning-paths' },
+  { num: '12', label: 'XP Roadmap',    sub: 'MILESTONES',   route: '/xp-roadmap' },
+  { num: '13', label: 'Quiz Hub',      sub: 'CHALLENGE',    route: '/quiz-hub' },
+  { num: '14', label: 'Concept Web',   sub: 'NETWORK',      route: '/concept-web' },
+  { num: '15', label: 'Playlists',     sub: 'COLLECTIONS',  route: '/playlists' }
 ];
 
 const SIDE_LINKS = [
+  { label: 'Search Hub',        route: '/search-hub' },
   { label: 'Roadmap',           route: '/knowledge-roadmap' },
   { label: 'Questions',         route: '/question-bank' },
   { label: 'Slides',            route: '/slide-explorer' },
@@ -363,7 +365,10 @@ const DashboardCerbyl = () => {
                 <div className="cb-stat-num">{stats.questions}</div>
                 <div className="cb-stat-lbl">QUESTIONS</div>
               </div>
-              <button className="cb-ai-cta" onClick={() => navigate('/vault')}>
+              <button className="cb-ai-cta" onClick={() => navigate('/search-hub')}>
+                <Search size={15} /> Search Hub <ArrowUpRight size={16} />
+              </button>
+              <button className="cb-ai-cta cb-ai-cta--ghost" onClick={() => navigate('/vault')}>
                 <Library size={15} /> Vault <ArrowUpRight size={16} />
               </button>
             </div>

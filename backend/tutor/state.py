@@ -41,6 +41,7 @@ class TutorState(TypedDict, total=False):
     structured_context: list[str]
     rag_context: list[str]
     use_hs_context: bool
+    context_doc_ids: list[str]
     retrieval_gated: bool
     language_analysis: dict
     is_new_session: bool

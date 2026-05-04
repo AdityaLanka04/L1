@@ -28,6 +28,7 @@ class CreateNoteRequest(BaseModel):
     depth: str = "standard"
     tone: str = "professional"
     use_hs_context: bool = True
+    context_doc_ids: list[str] = []
 
 class CreateFlashcardsRequest(BaseModel):
     user_id: str
@@ -645,6 +646,7 @@ async def _create_note_with_ai(
     depth: str,
     tone: str,
     use_hs_context: bool = True,
+    context_doc_ids: list = None,
 ) -> dict:
     note_title = topic.strip() if topic else "New Note"
     logger.info(
@@ -663,6 +665,7 @@ async def _create_note_with_ai(
                     depth=depth or "standard",
                     tone=tone or "professional",
                     use_hs_context=use_hs_context,
+                    context_doc_ids=context_doc_ids or [],
                 )
         except Exception as e:
             logger.warning(f"Note graph invoke failed: {e}")
@@ -952,6 +955,7 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
             note_depth or "standard",
             note_tone or "professional",
             use_hs_context=request.use_hs_context,
+            context_doc_ids=[],
         )
         return {
             "success": True,
@@ -1102,6 +1106,7 @@ async def create_note_endpoint(request: CreateNoteRequest, db: Session = Depends
         depth=request.depth,
         tone=request.tone,
         use_hs_context=request.use_hs_context,
+        context_doc_ids=request.context_doc_ids or [],
     )
 
     return {

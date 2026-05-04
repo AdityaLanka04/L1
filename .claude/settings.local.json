@@ -6,7 +6,11 @@
       "Bash(pip install:*)",
       "Bash(find:*)",
       "Bash(.venv/Scripts/python -c ':*)",
-      "Bash(npx react-scripts:*)"
+      "Bash(npx react-scripts:*)",
+      "Bash(head -n 2939 \"D:/Brainwave/L1/src/pages/SearchHub.js\")",
+      "Read(//tmp/**)",
+      "Bash(node --input-type=module --eval ' *)",
+      "Bash(tasklist)"
     ]
   }
 }

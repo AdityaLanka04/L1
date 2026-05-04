@@ -434,7 +434,6 @@
 }
 
 .cb-ai-cta {
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -451,10 +450,27 @@
   box-shadow: 0 6px 24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
+.cb-ai-cta:first-of-type {
+  margin-left: auto;
+}
+
 .cb-ai-cta:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
   box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.cb-ai-cta--ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--cb-line-strong);
+  box-shadow: none;
+}
+
+.cb-ai-cta--ghost:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: none;
 }
 
 .cb-xp-track {

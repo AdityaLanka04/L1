@@ -1854,7 +1854,7 @@ const Flashcards = () => {
     
     return (
       <div className="flashcards-page">
-        <AbstractFx variant="flashcards" />
+        <AbstractFx variant="circles" />
         <div className="fc-study-mode fc-edit-mode">
           <div className="fc-study-header fc-create-header">
             <div className="fc-study-title">
@@ -2035,7 +2035,7 @@ const Flashcards = () => {
 
       return (
         <div className="flashcards-page">
-          <AbstractFx variant="flashcards-light" />
+          <AbstractFx variant="circles" />
           <div className="fc-study-mode">
             <div className="fc-results">
               <div className="fc-results-card">
@@ -2133,7 +2133,7 @@ const Flashcards = () => {
     
     return (
       <div className="flashcards-page">
-        <AbstractFx variant="flashcards" />
+        <AbstractFx variant="circles" />
         <div className="fc-study-mode">
           <div className="fc-study-header fc-create-header">
             <div className="fc-study-title">

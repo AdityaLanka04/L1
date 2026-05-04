@@ -50,6 +50,7 @@ class TutorGraph:
         chat_history: list[dict] | None = None,
         use_hs_context: bool = True,
         ml_addendum: str = "",
+        context_doc_ids: list = None,
     ) -> dict:
         initial_state: TutorState = {
             "user_id": user_id,
@@ -57,6 +58,7 @@ class TutorGraph:
             "chat_id": chat_id,
             "chat_history": chat_history or [],
             "use_hs_context": use_hs_context,
+            "context_doc_ids": context_doc_ids or [],
             "intelligence_context": ml_addendum or None,
             "_ai_client": self.ai_client,
             "_hs_ai_client": self.hs_ai_client,

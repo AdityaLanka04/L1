@@ -76,6 +76,13 @@ async def generate_practice_questions(
         generation_type = payload.get("generation_type", "topic")
         additional_specs = payload.get("additional_specs", "")
         use_hs_context = bool(payload.get("use_hs_context", True))
+        raw_doc_ids = payload.get("context_doc_ids", None)
+        if isinstance(raw_doc_ids, str):
+            doc_ids_list = [x.strip() for x in raw_doc_ids.split(",") if x.strip()]
+        elif isinstance(raw_doc_ids, list):
+            doc_ids_list = [str(x).strip() for x in raw_doc_ids if str(x).strip()]
+        else:
+            doc_ids_list = []
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -104,6 +111,7 @@ async def generate_practice_questions(
                     question_types=question_types,
                     additional_specs=additional_specs,
                     use_hs_context=use_hs_context,
+                    context_doc_ids=doc_ids_list,
                 )
         except Exception as graph_err:
             logger.warning(f"Quiz graph invoke failed, falling back to direct: {graph_err}")

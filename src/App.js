@@ -36,7 +36,6 @@ import Register from './pages/Register';
 import Profile from './pages/profile';
 import ProfileQuiz from './pages/ProfileQuiz';
 import SearchHub from './pages/SearchHub';
-import Atlas from './pages/Atlas';
 import Landing from './pages/Landing';
 import StudyInsights from './pages/StudyInsights';
 import Weaknesses from './pages/Weaknesses';
@@ -93,7 +92,7 @@ function App() {
             )}
             <Routes>
               <Route path="/" element={<Landing />} />
-              <Route path="/search-hub" element={<ProtectedRoute><Atlas /></ProtectedRoute>} />
+              <Route path="/search-hub" element={<ProtectedRoute><SearchHub /></ProtectedRoute>} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/homepage" element={<ProtectedRoute><Homepage /></ProtectedRoute>} />
@@ -151,7 +150,7 @@ function App() {
               <Route path="/customize-dashboard" element={<ProtectedRoute><CustomizeDashboard /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
-              <Route path="/context" element={<ProtectedRoute><ContextHub /></ProtectedRoute>} />
+              <Route path="/context" element={<ProtectedRoute><Vault /></ProtectedRoute>} />
               <Route path="/vault" element={<ProtectedRoute><Vault /></ProtectedRoute>} />
               <Route path="/canvas" element={<ProtectedRoute><CanvasHub /></ProtectedRoute>} />
               <Route path="/home" element={<Navigate to="/dashboard" replace />} />

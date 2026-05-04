@@ -915,6 +915,7 @@ def gate_and_retrieve(state: TutorState) -> dict:
 
     rag_chunks: list[str] = []
     use_hs = state.get("use_hs_context", True)
+    context_doc_ids = state.get("context_doc_ids") or []
     logger.info(f"[TUTOR RAG] query='{user_input[:80]}' use_hs_context={use_hs} user_id={user_id}")
     if use_hs:
         try:
@@ -925,6 +926,7 @@ def gate_and_retrieve(state: TutorState) -> dict:
                     user_id=user_id,
                     use_hs=True,
                     top_k=5,
+                    doc_ids=context_doc_ids or None,
                 )
                 rag_chunks = [r["text"] for r in rag_results]
                 if rag_chunks:
