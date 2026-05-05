@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus , Menu} from 'lucide-react';
+import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus, Plus } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import './SearchHub.css';
 import { API_URL } from '../config/api';
@@ -57,6 +57,7 @@ const SearchHub = () => {
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
   const [userDocCount, setUserDocCount] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   
   const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
@@ -2490,6 +2491,88 @@ const SearchHub = () => {
     );
   };
 
+  const sideSections = [
+    { label: 'AI Chat', route: '/ai-chat' },
+    { label: 'Flashcards', route: '/flashcards' },
+    { label: 'Notes', route: '/notes' }
+  ];
+
+  const userEmail = localStorage.getItem('email');
+  const sideNavGroups = [
+    {
+      title: 'Main',
+      items: [
+        { label: 'Dashboard', route: '/dashboard-cerbyl' },
+        { label: 'Atlas', route: '/search-hub' }
+      ]
+    },
+    {
+      title: 'Learning Tools',
+      items: [
+        { label: 'AI Chat', route: '/ai-chat' },
+        { label: 'Context Hub', route: '/context' },
+        { label: 'Notes', route: '/notes-redesign' },
+        { label: 'Flashcards', route: '/flashcards' },
+        { label: 'Quiz Hub', route: '/quiz-hub' },
+        { label: 'Slide Explorer', route: '/slide-explorer' },
+        { label: 'Media Notes', route: '/ai-media-notes' }
+      ]
+    },
+    {
+      title: 'Practice & Assessment',
+      items: [
+        { label: 'Question Bank', route: '/question-bank' },
+        { label: 'Solo Quiz', route: '/solo-quiz' },
+        { label: 'Quiz Battle', route: '/quiz-battle' },
+        { label: 'Weak Areas', route: '/weaknesses' },
+        { label: 'Weakness Practice', route: '/weakness-practice' },
+        { label: 'Challenges', route: '/challenges' }
+      ]
+    },
+    {
+      title: 'Progress & Analytics',
+      items: [
+        { label: 'Analytics', route: '/analytics' },
+        { label: 'Study Insights', route: '/study-insights' },
+        { label: 'XP Roadmap', route: '/xp-roadmap' },
+        { label: 'Knowledge Roadmap', route: '/knowledge-roadmap' },
+        { label: 'Activity Timeline', route: '/activity-timeline' }
+      ]
+    },
+    {
+      title: 'Learning Paths',
+      items: [
+        { label: 'All Paths', route: '/learning-paths' },
+        { label: 'Playlists', route: '/playlists' },
+        { label: 'Learning Path', route: '/concept-web' },
+        { label: 'Review Hub', route: '/learning-review-hub' }
+      ]
+    },
+    {
+      title: 'Social & Gamification',
+      items: [
+        { label: 'Social Hub', route: '/social' },
+        { label: 'Friends', route: '/friends-dashboard' },
+        { label: 'Leaderboards', route: '/leaderboards' },
+        { label: 'Games', route: '/games' },
+        { label: 'Shared Content', route: '/shared-content' }
+      ]
+    },
+    {
+      title: 'Profile & Settings',
+      items: [
+        { label: 'Profile', route: '/profile' },
+        { label: 'Customize', route: '/customize-dashboard' }
+      ]
+    },
+    ...(['aditya.s.lanka@gmail.com', 'asphar057@gmail.com'].includes(userEmail) ? [{
+      title: 'Admin',
+      items: [
+        { label: 'Analytics Dashboard', route: '/admin/analytics' }
+      ]
+    }] : [])
+  ];
+
   return (
     <div className="sh-root">
       <div className="sh-bg-fx" aria-hidden>
@@ -2502,10 +2585,20 @@ const SearchHub = () => {
 
       <div className="sh-topbar">
         <div className="sh-tagline">accelerate <span>your learning</span></div>
-        <div className="sh-topbar-right">
-          <button className="sh-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={18} />
+        <div className="sh-topbar-right-desktop">
+          {userName && (
+            <button className="sh-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+          )}
+          <button
+            className="sh-side-toggle-btn"
+            onClick={() => setIsSidebarOpen(prev => !prev)}
+            aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          >
+            {isSidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+            {isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
           </button>
+        </div>
+        <div className="sh-topbar-right sh-topbar-right--mobile">
           {!userName ? (
             <>
               <button className="sh-nav-btn" onClick={() => navigate('/login')}>Login</button>
@@ -2513,7 +2606,7 @@ const SearchHub = () => {
             </>
           ) : (
             <>
-              <button className="sh-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="sh-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
               <button className="sh-nav-btn" onClick={handleLogout}>Logout</button>
             </>
           )}
@@ -2525,7 +2618,71 @@ const SearchHub = () => {
         <div className="sh-login-msg">PLEASE LOGIN TO CONTINUE</div>
       )}
 
-      <main className="sh-main">
+      <div className={`sh-shell ${isSidebarOpen ? '' : 'sh-shell--collapsed'}`}>
+        {isSidebarOpen && (
+        <aside className="sh-side">
+          <div className="sh-side-brand">
+            <span className="sh-side-brand-name">cerbyl</span>
+            <button
+              className="sh-side-close-btn"
+              onClick={() => setIsSidebarOpen(false)}
+              aria-label="Close sidebar"
+            >
+              <ChevronLeft size={14} />
+            </button>
+          </div>
+
+          <div className="sh-side-sections">
+            {sideSections.map((section) => (
+              <div key={section.label} className="sh-side-section" onClick={() => navigate(section.route)}>
+                <span className="sh-side-dot" />
+                <span className="sh-side-label">{section.label}</span>
+                <button
+                  className="sh-side-plus"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(section.route);
+                  }}
+                  aria-label={`Open ${section.label}`}
+                >
+                  <Plus size={11} strokeWidth={2.4} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <nav className="sh-side-nav">
+            {sideNavGroups.map((group) => (
+              <div key={group.title} className="sh-side-group">
+                <div className="sh-side-group-title">{group.title}</div>
+                {group.items.map((link) => (
+                  <button key={`${group.title}-${link.label}`} className="sh-side-link" onClick={() => navigate(link.route)}>
+                    <span className="sh-side-link-dot" />
+                    {link.label}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </nav>
+
+          <div className="sh-side-footer">
+            {!userName ? (
+              <div className="sh-side-auth">
+                <button className="sh-nav-btn" onClick={() => navigate('/login')}>Login</button>
+                <button className="sh-nav-btn sh-nav-btn--accent" onClick={() => navigate('/register')}>Sign Up</button>
+              </div>
+            ) : (
+              <div className="sh-side-auth">
+                <button className="sh-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+                <button className="sh-nav-btn" onClick={handleLogout}>Logout</button>
+              </div>
+            )}
+            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+          </div>
+        </aside>
+        )}
+
+        <main className="sh-main">
         {!searchResults && !isSearching && !isCreating ? (
           isLoadingPrompts ? (
             <div className="sh-loading-init">
@@ -2632,30 +2789,38 @@ const SearchHub = () => {
                 <div className="sh-chips-wrap">
                   <div className="sh-chips-eyebrow">SUGGESTED FOR YOU</div>
                   <div className="sh-chips">
-                    {personalizedPrompts.map((prompt, index) => (
-                      <button
-                        key={index}
-                        className={`sh-chip sh-chip--${prompt.priority || 'medium'}`}
-                        onClick={() => {
-                          markRecommendationUsed(userName, prompt);
-                          setSearchQuery(prompt.text);
-                          handleSearch(prompt.text);
-                        }}
-                      >
-                        <span className="sh-chip-num">{String(index + 1).padStart(2, '0')}</span>
-                        <span className="sh-chip-text">{
-                          prompt.label || (
-                            prompt.text?.startsWith('/')
-                              ? prompt.text.slice(1)
-                              : prompt.text?.startsWith('> ')
-                                ? prompt.text.slice(2)
-                                : prompt.text
-                          )
-                        }</span>
-                        {prompt.reason && <span className="sh-chip-reason">{prompt.reason}</span>}
-                        <ChevronRight size={11} className="sh-chip-arrow" />
-                      </button>
-                    ))}
+                    {personalizedPrompts.map((prompt, index) => {
+                      const chipLabel = prompt.label || (
+                        prompt.text?.startsWith('/')
+                          ? prompt.text.slice(1)
+                          : prompt.text?.startsWith('> ')
+                            ? prompt.text.slice(2)
+                            : prompt.text
+                      );
+                      const chipPreview = prompt.reason
+                        ? `${chipLabel} — ${prompt.reason}`
+                        : chipLabel;
+
+                      return (
+                        <button
+                          key={index}
+                          className={`sh-chip sh-chip--${prompt.priority || 'medium'}`}
+                          title={chipPreview}
+                          onClick={() => {
+                            markRecommendationUsed(userName, prompt);
+                            setSearchQuery(prompt.text);
+                            handleSearch(prompt.text);
+                          }}
+                        >
+                          <span className="sh-chip-num">{String(index + 1).padStart(2, '0')}</span>
+                          <span className="sh-chip-main">
+                            <span className="sh-chip-text">{chipLabel}</span>
+                            {prompt.reason && <span className="sh-chip-reason">{prompt.reason}</span>}
+                          </span>
+                          <ChevronRight size={11} className="sh-chip-arrow" />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -2828,7 +2993,7 @@ const SearchHub = () => {
                       { icon: <Layers size={22} />, label: 'Flashcards', desc: 'Build a study deck', num: '02', action: () => handleCreateContent('flashcards') },
                       { icon: <FileText size={22} />, label: 'Notes', desc: 'Document your learning', num: '03', action: () => handleCreateContent('notes') },
                       { icon: <MessageCircle size={22} />, label: 'Ask AI', desc: 'Talk to your tutor', num: '04', action: () => handleCreateContent('ai-chat') },
-                      { icon: <BarChart3 size={22} />, label: 'Progress', desc: 'Track your journey', num: '05', action: () => { if (!userName) { setShowLoginModal(true); return; } navigate('/dashboard'); } },
+                      { icon: <BarChart3 size={22} />, label: 'Progress', desc: 'Track your journey', num: '05', action: () => { if (!userName) { setShowLoginModal(true); return; } navigate('/dashboard-cerbyl'); } },
                     ].map((opt, i) => (
                       <button key={i} className="sh-create-card" onClick={opt.action}>
                         <span className="sh-create-card-num">{opt.num}</span>
@@ -2903,7 +3068,8 @@ const SearchHub = () => {
             </div>
           </div>
         )}
-      </main>
+        </main>
+      </div>
 
       {showLoginModal && (
         <div className="sh-modal-overlay" onClick={() => setShowLoginModal(false)}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check } from 'lucide-react';
 import { API_URL } from '../config/api';
@@ -136,11 +136,35 @@ const DashboardCerbyl = () => {
   });
   const [heatmap, setHeatmap] = useState([]);
   const [weekly, setWeekly] = useState([]);
+  const [weeklyDisplay, setWeeklyDisplay] = useState([]);
   const [now, setNow] = useState(new Date());
   const [recentNotes, setRecentNotes] = useState([]);
   const [recentMedia, setRecentMedia] = useState([]);
   const [recentSets, setRecentSets] = useState([]);
   const [isPfpModalOpen, setIsPfpModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [chatPromptDisplay, setChatPromptDisplay] = useState(QUICK_ASK_PROMPT);
+  const [isChatTypingAnim, setIsChatTypingAnim] = useState(false);
+  const [flashCountsDisplay, setFlashCountsDisplay] = useState({});
+  const [isFlashAnimating, setIsFlashAnimating] = useState(false);
+  const [flashActiveSetId, setFlashActiveSetId] = useState('');
+  const [isNotesAnimating, setIsNotesAnimating] = useState(false);
+  const [notesTitleProgress, setNotesTitleProgress] = useState({});
+  const [notesActiveKey, setNotesActiveKey] = useState('');
+  const [progressDisplay, setProgressDisplay] = useState({ chats: 0, notes: 0, cards: 0, quizzes: 0 });
+  const [rankDisplay, setRankDisplay] = useState(1);
+  const [rankPointsDisplay, setRankPointsDisplay] = useState([250, 500, 200]);
+  const [isRankAnimating, setIsRankAnimating] = useState(false);
+  const [typedName, setTypedName] = useState('');
+  const [isNameTyping, setIsNameTyping] = useState(true);
+  const chatTypeTimerRef = useRef(null);
+  const flashAnimFrameRef = useRef(null);
+  const flashResetTimerRef = useRef(null);
+  const notesAnimTimerRef = useRef(null);
+  const notesTypeTimerRef = useRef(null);
+  const progressAnimFrameRef = useRef(null);
+  const weeklyAnimTimerRef = useRef(null);
+  const rankAnimFrameRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -277,6 +301,29 @@ const DashboardCerbyl = () => {
   const activeCustomPfp = profile?.customPfp || '';
 
   useEffect(() => {
+    const fullName = String(displayName || '').trim();
+    if (!fullName) {
+      setTypedName('');
+      setIsNameTyping(false);
+      return undefined;
+    }
+
+    setTypedName('');
+    setIsNameTyping(true);
+    let idx = 0;
+    const timer = setInterval(() => {
+      idx += 1;
+      setTypedName(fullName.slice(0, idx));
+      if (idx >= fullName.length) {
+        clearInterval(timer);
+        setIsNameTyping(false);
+      }
+    }, 130);
+
+    return () => clearInterval(timer);
+  }, [displayName]);
+
+  useEffect(() => {
     if (!profile) return;
     if (profile.defaultPfp) localStorage.setItem(PFP_DEFAULT_KEY, profile.defaultPfp);
     if (profile.customPfp) localStorage.setItem(PFP_CUSTOM_KEY, profile.customPfp);
@@ -310,24 +357,373 @@ const DashboardCerbyl = () => {
     const w = 320, h = 90, padX = 16, padTop = 14, padBot = 22;
     const innerW = w - padX * 2;
     const innerH = h - padTop - padBot;
-    const max = Math.max(1, ...weekly.map(d => d.total));
-    const step = innerW / Math.max(1, weekly.length - 1);
-    const points = weekly.map((d, i) => {
+    const fullTotals = weeklyDisplay
+      .map(d => d.total)
+      .filter(v => typeof v === 'number');
+    const max = Math.max(1, ...fullTotals);
+    const step = innerW / Math.max(1, weeklyDisplay.length - 1);
+    const points = weeklyDisplay.reduce((acc, d, i) => {
+      if (typeof d.total !== 'number') return acc;
       const x = padX + i * step;
       const y = padTop + innerH - (d.total / max) * innerH;
-      return { x, y, total: d.total, date: d.date };
-    });
+      acc.push({ x, y, total: d.total, date: d.date, index: i });
+      return acc;
+    }, []);
     const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-    const area = points.length
+    const area = points.length > 1
       ? `${path} L ${points[points.length - 1].x.toFixed(1)} ${padTop + innerH} L ${points[0].x.toFixed(1)} ${padTop + innerH} Z`
       : '';
     return { w, h, padX, padTop, padBot, innerH, points, path, area };
-  }, [weekly]);
+  }, [weeklyDisplay]);
 
   const xpPct = Math.min(100, stats.nextXp ? (stats.xp / stats.nextXp) * 100 : 0);
   const sessionsTotal = (stats.chats || 0) + (stats.quizzes || 0);
   const pct = (n, d) => d > 0 ? Math.min(100, Math.round((n / d) * 100)) : 0;
   const ringTargets = { chats: 50, notes: 50, cards: 100, quizzes: 50 };
+  const progressRings = [
+    { key: 'chats', k: 'CHATS', v: progressDisplay.chats, t: ringTargets.chats },
+    { key: 'notes', k: 'NOTES', v: progressDisplay.notes, t: ringTargets.notes },
+    { key: 'cards', k: 'CARDS', v: progressDisplay.cards, t: ringTargets.cards },
+    { key: 'quizzes', k: 'QUIZZES', v: progressDisplay.quizzes, t: ringTargets.quizzes }
+  ];
+
+  useEffect(() => {
+    setProgressDisplay({
+      chats: stats.chats || 0,
+      notes: stats.notes || 0,
+      cards: stats.cards || 0,
+      quizzes: stats.quizzes || 0
+    });
+  }, [stats.chats, stats.notes, stats.cards, stats.quizzes]);
+
+  useEffect(() => {
+    setRankDisplay(stats.rank || 1);
+    setRankPointsDisplay([250, 500, 200]);
+  }, [stats.rank]);
+
+  useEffect(() => {
+    const counts = {};
+    recentSets.forEach((s) => { counts[s.set_id] = s.count || 0; });
+    setFlashCountsDisplay(counts);
+  }, [recentSets]);
+
+  useEffect(() => {
+    const progress = {};
+    recentNotes.slice(0, 2).forEach((n) => {
+      const key = `n-${n.id}`;
+      const title = n.title || 'Untitled note';
+      progress[key] = title.length;
+    });
+    recentMedia.slice(0, 2).forEach((m) => {
+      const key = `m-${m.id}`;
+      const title = m.title || 'Media note';
+      progress[key] = title.length;
+    });
+    setNotesTitleProgress(progress);
+  }, [recentNotes, recentMedia]);
+
+  useEffect(() => {
+    setWeeklyDisplay(weekly);
+  }, [weekly]);
+
+  useEffect(() => () => {
+    if (chatTypeTimerRef.current) {
+      clearInterval(chatTypeTimerRef.current);
+    }
+    if (flashAnimFrameRef.current) {
+      cancelAnimationFrame(flashAnimFrameRef.current);
+    }
+    if (flashResetTimerRef.current) {
+      clearTimeout(flashResetTimerRef.current);
+    }
+    if (notesAnimTimerRef.current) {
+      clearTimeout(notesAnimTimerRef.current);
+    }
+    if (notesTypeTimerRef.current) {
+      clearInterval(notesTypeTimerRef.current);
+    }
+    if (progressAnimFrameRef.current) {
+      cancelAnimationFrame(progressAnimFrameRef.current);
+    }
+    if (weeklyAnimTimerRef.current) {
+      clearInterval(weeklyAnimTimerRef.current);
+    }
+    if (rankAnimFrameRef.current) {
+      cancelAnimationFrame(rankAnimFrameRef.current);
+    }
+  }, []);
+
+  const runProgressHoverAnimation = () => {
+    const targets = {
+      chats: stats.chats || 0,
+      notes: stats.notes || 0,
+      cards: stats.cards || 0,
+      quizzes: stats.quizzes || 0
+    };
+    const durationMs = 1250;
+    const startedAt = performance.now();
+
+    if (progressAnimFrameRef.current) {
+      cancelAnimationFrame(progressAnimFrameRef.current);
+    }
+
+    setProgressDisplay({ chats: 0, notes: 0, cards: 0, quizzes: 0 });
+
+    const step = (now) => {
+      const t = Math.min(1, (now - startedAt) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      setProgressDisplay({
+        chats: Math.round(targets.chats * eased),
+        notes: Math.round(targets.notes * eased),
+        cards: Math.round(targets.cards * eased),
+        quizzes: Math.round(targets.quizzes * eased)
+      });
+
+      if (t < 1) {
+        progressAnimFrameRef.current = requestAnimationFrame(step);
+      } else {
+        setProgressDisplay(targets);
+      }
+    };
+
+    progressAnimFrameRef.current = requestAnimationFrame(step);
+  };
+
+  const runChatCardHoverAnimation = () => {
+    const full = QUICK_ASK_PROMPT;
+    let idx = 0;
+
+    if (chatTypeTimerRef.current) {
+      clearInterval(chatTypeTimerRef.current);
+    }
+
+    setIsChatTypingAnim(true);
+    setChatPromptDisplay('');
+
+    chatTypeTimerRef.current = setInterval(() => {
+      idx += 1;
+      setChatPromptDisplay(full.slice(0, idx));
+      if (idx >= full.length) {
+        clearInterval(chatTypeTimerRef.current);
+        chatTypeTimerRef.current = null;
+        setIsChatTypingAnim(false);
+      }
+    }, 35);
+  };
+
+  const runFlashcardsCardHoverAnimation = () => {
+    if (!recentSets.length) return;
+    const durationPerSetMs = 680;
+    const durationMs = durationPerSetMs * recentSets.length;
+    const startedAt = performance.now();
+    const targets = {};
+    recentSets.forEach((s) => { targets[s.set_id] = s.count || 0; });
+
+    if (flashAnimFrameRef.current) {
+      cancelAnimationFrame(flashAnimFrameRef.current);
+    }
+    if (flashResetTimerRef.current) {
+      clearTimeout(flashResetTimerRef.current);
+    }
+
+    setIsFlashAnimating(true);
+    setFlashCountsDisplay(Object.fromEntries(recentSets.map((s) => [s.set_id, s.count || 0])));
+    setFlashActiveSetId(recentSets[0]?.set_id || '');
+
+    const step = (now) => {
+      const t = Math.min(1, (now - startedAt) / durationMs);
+      const elapsed = now - startedAt;
+      const nextCounts = {};
+      let activeId = '';
+
+      recentSets.forEach((s, idx) => {
+        const setStart = idx * durationPerSetMs;
+        const local = Math.max(0, Math.min(1, (elapsed - setStart) / durationPerSetMs));
+        const eased = 1 - Math.pow(1 - local, 3);
+        const total = targets[s.set_id] || 0;
+
+        if (local > 0 && local < 1 && !activeId) {
+          activeId = s.set_id;
+        }
+
+        if (local <= 0) {
+          nextCounts[s.set_id] = total;
+        } else if (local >= 1) {
+          nextCounts[s.set_id] = 0;
+        } else {
+          nextCounts[s.set_id] = Math.max(0, Math.round(total * (1 - eased)));
+        }
+      });
+
+      setFlashActiveSetId(activeId || recentSets[recentSets.length - 1]?.set_id || '');
+      setFlashCountsDisplay(nextCounts);
+
+      if (t < 1) {
+        flashAnimFrameRef.current = requestAnimationFrame(step);
+      } else {
+        setFlashActiveSetId('');
+        flashResetTimerRef.current = setTimeout(() => {
+          setFlashCountsDisplay(targets);
+          setIsFlashAnimating(false);
+        }, 420);
+      }
+    };
+
+    flashAnimFrameRef.current = requestAnimationFrame(step);
+  };
+
+  const runNotesCardHoverAnimation = () => {
+    const entries = [
+      ...recentNotes.slice(0, 2).map((n) => ({
+        key: `n-${n.id}`,
+        title: n.title || 'Untitled note'
+      })),
+      ...recentMedia.slice(0, 2).map((m) => ({
+        key: `m-${m.id}`,
+        title: m.title || 'Media note'
+      }))
+    ];
+
+    if (!entries.length) return;
+
+    if (notesAnimTimerRef.current) {
+      clearTimeout(notesAnimTimerRef.current);
+    }
+    if (notesTypeTimerRef.current) {
+      clearInterval(notesTypeTimerRef.current);
+    }
+
+    setIsNotesAnimating(true);
+    setNotesActiveKey(entries[0].key);
+    setNotesTitleProgress(Object.fromEntries(entries.map((e) => [e.key, 0])));
+
+    let entryIndex = 0;
+    let charIndex = 0;
+    let holdTicks = 0;
+
+    notesTypeTimerRef.current = setInterval(() => {
+      const current = entries[entryIndex];
+      if (!current) {
+        clearInterval(notesTypeTimerRef.current);
+        notesTypeTimerRef.current = null;
+        setNotesActiveKey('');
+        setIsNotesAnimating(false);
+        setNotesTitleProgress(Object.fromEntries(entries.map((e) => [e.key, e.title.length])));
+        return;
+      }
+
+      setNotesActiveKey(current.key);
+      if (charIndex < current.title.length) {
+        charIndex += 1;
+        setNotesTitleProgress((prev) => ({ ...prev, [current.key]: charIndex }));
+        return;
+      }
+
+      if (holdTicks < 3) {
+        holdTicks += 1;
+        return;
+      }
+
+      entryIndex += 1;
+      charIndex = 0;
+      holdTicks = 0;
+    }, 34);
+  };
+
+  const stopNotesCardHoverAnimation = () => {
+    if (notesAnimTimerRef.current) {
+      clearTimeout(notesAnimTimerRef.current);
+      notesAnimTimerRef.current = null;
+    }
+    if (notesTypeTimerRef.current) {
+      clearInterval(notesTypeTimerRef.current);
+      notesTypeTimerRef.current = null;
+    }
+
+    const entries = [
+      ...recentNotes.slice(0, 2).map((n) => ({
+        key: `n-${n.id}`,
+        title: n.title || 'Untitled note'
+      })),
+      ...recentMedia.slice(0, 2).map((m) => ({
+        key: `m-${m.id}`,
+        title: m.title || 'Media note'
+      }))
+    ];
+
+    setIsNotesAnimating(false);
+    setNotesActiveKey('');
+    setNotesTitleProgress(Object.fromEntries(entries.map((e) => [e.key, e.title.length])));
+  };
+
+  const runWeeklyHoverAnimation = () => {
+    if (!weekly.length) return;
+
+    if (weeklyAnimTimerRef.current) {
+      clearInterval(weeklyAnimTimerRef.current);
+    }
+
+    const target = weekly.map((d) => ({ ...d }));
+    const staged = target.map((d) => ({ ...d, total: null }));
+    setWeeklyDisplay(staged);
+
+    let idx = -1;
+    weeklyAnimTimerRef.current = setInterval(() => {
+      idx += 1;
+      setWeeklyDisplay((prev) => prev.map((d, i) => (
+        i <= idx ? { ...d, total: target[i].total } : d
+      )));
+
+      if (idx >= target.length - 1) {
+        clearInterval(weeklyAnimTimerRef.current);
+        weeklyAnimTimerRef.current = null;
+        setWeeklyDisplay(target);
+      }
+    }, 170);
+  };
+
+  const runRankHoverAnimation = () => {
+    const targetRank = stats.rank || 1;
+    const startRank = Math.max(targetRank + 75, Math.ceil(targetRank * 1.12));
+    const pointTargets = [250, 500, 200];
+    const pointStagger = [0, 0.18, 0.34];
+    const durationMs = 1200;
+    const startedAt = performance.now();
+
+    if (rankAnimFrameRef.current) {
+      cancelAnimationFrame(rankAnimFrameRef.current);
+    }
+
+    setIsRankAnimating(true);
+    setRankDisplay(startRank);
+    setRankPointsDisplay([0, 0, 0]);
+
+    const step = (now) => {
+      const t = Math.min(1, (now - startedAt) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      const rankValue = Math.round(startRank - (startRank - targetRank) * eased);
+      setRankDisplay(rankValue);
+
+      setRankPointsDisplay(pointTargets.map((target, i) => {
+        const delay = pointStagger[i];
+        const localT = Math.max(0, Math.min(1, (t - delay) / (1 - delay)));
+        const localEased = 1 - Math.pow(1 - localT, 3);
+        return Math.round(target * localEased);
+      }));
+
+      if (t < 1) {
+        rankAnimFrameRef.current = requestAnimationFrame(step);
+      } else {
+        setRankDisplay(targetRank);
+        setRankPointsDisplay(pointTargets);
+        setIsRankAnimating(false);
+      }
+    };
+
+    rankAnimFrameRef.current = requestAnimationFrame(step);
+  };
 
   const todayLabel = (() => {
     const d = new Date();
@@ -450,6 +846,13 @@ const DashboardCerbyl = () => {
       <div className="cb-topbar">
         <div className="cb-tagline">accelerate <span>your learning</span></div>
         <div className="cb-topbar-right">
+          <button
+            className="cb-side-toggle-btn"
+            onClick={() => setIsSidebarOpen(prev => !prev)}
+            aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          >
+            {isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
+          </button>
           <button className="cb-classic-link" onClick={() => navigate('/dashboard')}>
             ← Classic
           </button>
@@ -458,8 +861,10 @@ const DashboardCerbyl = () => {
         </div>
       </div>
 
-      <div className="cb-shell">
+      <div className={`cb-shell ${isSidebarOpen ? '' : 'cb-shell--collapsed'}`}>
         {/* Sidebar */}
+        {isSidebarOpen && (
+        <div className="cb-side-slot">
         <aside className="cb-side">
           <div className="cb-brand">
             <span className="cb-brand-name">cerbyl</span>
@@ -529,6 +934,8 @@ const DashboardCerbyl = () => {
             </span>
           </button>
         </aside>
+        </div>
+        )}
 
         {/* Main */}
         <main className="cb-main">
@@ -536,7 +943,14 @@ const DashboardCerbyl = () => {
           <section className="cb-hero">
             <div className="cb-hero-text">
               <div className="cb-eyebrow">{greet}</div>
-              <h1 className="cb-name">{displayName}<span className="cb-period">.</span></h1>
+              <h1 className="cb-name">
+                {isNameTyping ? typedName : displayName}
+                {isNameTyping ? (
+                  <span className="cb-name-cursor" aria-hidden="true" />
+                ) : (
+                  <span className="cb-period">.</span>
+                )}
+              </h1>
             </div>
 
             <div className="cb-stat-row">
@@ -575,13 +989,13 @@ const DashboardCerbyl = () => {
 
           {/* Three feature cards */}
           <section className="cb-features">
-            <div className="cb-feat" onClick={() => navigate('/ai-chat')} role="button" tabIndex={0}>
+            <div className="cb-feat cb-feat--chat" onMouseEnter={runChatCardHoverAnimation} onClick={() => navigate('/ai-chat')} role="button" tabIndex={0}>
               <div className="cb-feat-tag">AI CHAT</div>
               <div className="cb-feat-title">Ask<br />Anything</div>
               <div className="cb-feat-desc">Instant AI guidance on any topic</div>
-              <div className="cb-feat-typing cb-feat-typing--chat">
+              <div className={`cb-feat-typing cb-feat-typing--chat ${isChatTypingAnim ? 'is-animating' : ''}`}>
                 <button className="cb-typing-prompt cb-typing-prompt--user" onClick={runQuickAskPrompt}>
-                  {QUICK_ASK_PROMPT}
+                  {chatPromptDisplay}
                 </button>
                 <div className="cb-typing-row" aria-hidden>
                   <span className="cb-typing-dots"><i/><i/><i/></span>
@@ -591,7 +1005,8 @@ const DashboardCerbyl = () => {
             </div>
 
             <div
-              className="cb-feat"
+              className={`cb-feat cb-feat--flash ${isFlashAnimating ? 'is-animating' : ''}`}
+              onMouseEnter={runFlashcardsCardHoverAnimation}
               onClick={(e) => openFlashcardMasterTopic(e, recentSets[0]?.title || '')}
               role="button"
               tabIndex={0}
@@ -599,6 +1014,15 @@ const DashboardCerbyl = () => {
               <div className="cb-feat-tag">FLASHCARDS</div>
               <div className="cb-feat-title">Master<br />Any Topic</div>
               <div className="cb-feat-desc">Spaced repetition · AI card sets</div>
+              <div className={`cb-flash-preview ${isFlashAnimating ? 'is-animating' : ''}`} aria-hidden>
+                <span className="cb-flash-preview-face cb-flash-preview-face--q">Q</span>
+                <span className="cb-flash-preview-face cb-flash-preview-face--a">A</span>
+              </div>
+              <div className={`cb-flash-stack ${isFlashAnimating ? 'is-animating' : ''}`} aria-hidden>
+                <span className="cb-flash-card cb-flash-card--1" />
+                <span className="cb-flash-card cb-flash-card--2" />
+                <span className="cb-flash-card cb-flash-card--3" />
+              </div>
               <div className="cb-recent-list">
                 {recentSets.length === 0 ? (
                   <button
@@ -610,24 +1034,41 @@ const DashboardCerbyl = () => {
                 ) : recentSets.map(s => (
                   <button
                     key={s.set_id}
-                    className="cb-recent-item"
+                    className={`cb-recent-item ${flashActiveSetId === s.set_id ? 'is-reviewing' : ''}`}
                     onClick={(e) => {
                       openFlashcardMasterTopic(e, s.title);
                     }}
                   >
                     <span className="cb-recent-icon"><FileText size={12}/></span>
                     <span className="cb-recent-title">{s.title}</span>
-                    <span className="cb-recent-meta">{s.count}</span>
+                    <span className="cb-recent-meta">
+                      {isFlashAnimating
+                        ? `${Math.max(0, (s.count || 0) - ((flashCountsDisplay[s.set_id] ?? s.count) || 0))}/${s.count || 0}`
+                        : (s.count || 0)}
+                    </span>
                   </button>
                 ))}
               </div>
               <span className="cb-feat-arrow"><ArrowUpRight size={16}/></span>
             </div>
 
-            <div className="cb-feat" onClick={() => navigate('/notes')} role="button" tabIndex={0}>
+            <div
+              className={`cb-feat cb-feat--notes ${isNotesAnimating ? 'is-animating' : ''}`}
+              onMouseEnter={runNotesCardHoverAnimation}
+              onMouseLeave={stopNotesCardHoverAnimation}
+              onClick={() => navigate('/notes')}
+              role="button"
+              tabIndex={0}
+            >
               <div className="cb-feat-tag">NOTES</div>
               <div className="cb-feat-title">Your<br />Knowledge</div>
               <div className="cb-feat-desc">Written notes · AI media notes</div>
+              <div className={`cb-notes-ink ${isNotesAnimating ? 'is-animating' : ''}`} aria-hidden>
+                <span />
+                <span />
+                <span />
+                <i className="cb-notes-caret" />
+              </div>
               <div className="cb-recent-list">
                 {recentNotes.length === 0 && recentMedia.length === 0 ? (
                   <div className="cb-recent-empty">No notes yet. Tap to start writing.</div>
@@ -636,28 +1077,48 @@ const DashboardCerbyl = () => {
                     {recentNotes.slice(0, 2).map(n => (
                       <div
                         key={`n-${n.id}`}
-                        className="cb-recent-item"
+                        className={`cb-recent-item ${notesActiveKey === `n-${n.id}` ? 'is-writing' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/notes/editor/${n.id}`);
                         }}
                       >
                         <span className="cb-recent-icon"><FileText size={12}/></span>
-                        <span className="cb-recent-title">{n.title || 'Untitled note'}</span>
+                        <span className="cb-recent-title">
+                          {(n.title || 'Untitled note').slice(
+                            0,
+                            notesTitleProgress[`n-${n.id}`] ?? (n.title || 'Untitled note').length
+                          )}
+                          {isNotesAnimating &&
+                          notesActiveKey === `n-${n.id}` &&
+                          (notesTitleProgress[`n-${n.id}`] ?? 0) < (n.title || 'Untitled note').length ? (
+                            <i className="cb-inline-caret" aria-hidden />
+                          ) : null}
+                        </span>
                         <span className="cb-recent-meta">note</span>
                       </div>
                     ))}
                     {recentMedia.slice(0, 2).map(m => (
                       <div
                         key={`m-${m.id}`}
-                        className="cb-recent-item"
+                        className={`cb-recent-item ${notesActiveKey === `m-${m.id}` ? 'is-writing' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/notes/ai-media/${m.id}`);
                         }}
                       >
                         <span className="cb-recent-icon"><Mic size={12}/></span>
-                        <span className="cb-recent-title">{m.title || 'Media note'}</span>
+                        <span className="cb-recent-title">
+                          {(m.title || 'Media note').slice(
+                            0,
+                            notesTitleProgress[`m-${m.id}`] ?? (m.title || 'Media note').length
+                          )}
+                          {isNotesAnimating &&
+                          notesActiveKey === `m-${m.id}` &&
+                          (notesTitleProgress[`m-${m.id}`] ?? 0) < (m.title || 'Media note').length ? (
+                            <i className="cb-inline-caret" aria-hidden />
+                          ) : null}
+                        </span>
                         <span className="cb-recent-meta">media</span>
                       </div>
                     ))}
@@ -693,7 +1154,7 @@ const DashboardCerbyl = () => {
 
           {/* Top analytics row: 3 panels */}
           <section className="cb-bottom">
-            <div className="cb-panel cb-panel--act">
+            <div className="cb-panel cb-panel--act" onMouseEnter={runWeeklyHoverAnimation}>
               <div className="cb-panel-head">
                 <span className="cb-panel-title">Past Week Activity</span>
                 <button className="cb-panel-link" onClick={() => navigate('/analytics')}>
@@ -719,29 +1180,26 @@ const DashboardCerbyl = () => {
               </svg>
             </div>
 
-            <div className="cb-panel cb-panel--prog">
+            <div className="cb-panel cb-panel--prog" onMouseEnter={runProgressHoverAnimation}>
               <div className="cb-panel-head">
                 <span className="cb-panel-title">Progress</span>
               </div>
               <div className="cb-rings">
-                {[
-                  { k: 'CHATS', v: stats.chats, t: ringTargets.chats },
-                  { k: 'NOTES', v: stats.notes, t: ringTargets.notes },
-                  { k: 'CARDS', v: stats.cards, t: ringTargets.cards },
-                  { k: 'QUIZZES', v: stats.quizzes, t: ringTargets.quizzes }
-                ].map(r => {
+                {progressRings.map(r => {
                   const p = pct(r.v, r.t);
                   const C = 2 * Math.PI * 18;
                   const dash = (p / 100) * C;
                   return (
-                    <div className="cb-ring" key={r.k}>
-                      <svg viewBox="0 0 44 44" className="cb-ring-svg">
-                        <circle cx="22" cy="22" r="18" stroke="var(--border)" strokeWidth="3" fill="none"/>
-                        <circle cx="22" cy="22" r="18" stroke="var(--accent)" strokeWidth="3" fill="none"
-                          strokeDasharray={`${dash} ${C}`} strokeLinecap="round"
-                          transform="rotate(-90 22 22)"/>
-                      </svg>
-                      <div className="cb-ring-num">{r.v}</div>
+                    <div className="cb-ring" key={r.key}>
+                      <div className="cb-ring-meter">
+                        <svg viewBox="0 0 44 44" className="cb-ring-svg">
+                          <circle cx="22" cy="22" r="18" stroke="var(--border)" strokeWidth="3" fill="none"/>
+                          <circle cx="22" cy="22" r="18" stroke="var(--accent)" strokeWidth="3" fill="none"
+                            strokeDasharray={`${dash} ${C}`} strokeLinecap="round"
+                            transform="rotate(-90 22 22)"/>
+                        </svg>
+                        <div className="cb-ring-num">{r.v}</div>
+                      </div>
                       <div className="cb-ring-lbl">{r.k}</div>
                     </div>
                   );
@@ -749,26 +1207,26 @@ const DashboardCerbyl = () => {
               </div>
             </div>
 
-            <div className="cb-panel cb-panel--rank">
+            <div className={`cb-panel cb-panel--rank ${isRankAnimating ? 'is-animating' : ''}`} onMouseEnter={runRankHoverAnimation}>
               <div className="cb-panel-head">
                 <span className="cb-panel-title">Global Rank</span>
-                <span className="cb-rank-num">#{stats.rank || 1}</span>
+                <span className="cb-rank-num">#{rankDisplay}</span>
               </div>
               <ul className="cb-rank-list">
                 <li>
                   <span className="cb-rank-dot" />
                   <span className="cb-rank-name">Perfect Score</span>
-                  <span className="cb-rank-pts">+250</span>
+                  <span className="cb-rank-pts">+{rankPointsDisplay[0]}</span>
                 </li>
                 <li>
                   <span className="cb-rank-dot" />
                   <span className="cb-rank-name">Study Streak</span>
-                  <span className="cb-rank-pts">+500</span>
+                  <span className="cb-rank-pts">+{rankPointsDisplay[1]}</span>
                 </li>
                 <li>
                   <span className="cb-rank-dot" />
                   <span className="cb-rank-name">Note Taker</span>
-                  <span className="cb-rank-pts">+200</span>
+                  <span className="cb-rank-pts">+{rankPointsDisplay[2]}</span>
                 </li>
               </ul>
               <button className="cb-rank-cta" onClick={() => navigate('/leaderboards')}>
