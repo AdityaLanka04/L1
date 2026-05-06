@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check } from 'lucide-react';
+import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check, User } from 'lucide-react';
 import { API_URL } from '../config/api';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import './DashboardCerbyl.css';
@@ -847,17 +847,24 @@ const DashboardCerbyl = () => {
         <div className="cb-tagline">accelerate <span>your learning</span></div>
         <div className="cb-topbar-right">
           <button
-            className="cb-side-toggle-btn"
+            className="cb-topbar-text-btn"
             onClick={() => setIsSidebarOpen(prev => !prev)}
             aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           >
-            {isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
+            {isSidebarOpen ? 'HIDE SIDEBAR' : 'SHOW SIDEBAR'}
           </button>
-          <button className="cb-classic-link" onClick={() => navigate('/dashboard')}>
-            ← Classic
+          <button className="cb-topbar-text-btn" onClick={() => navigate('/dashboard')}>
+            CLASSIC
           </button>
           <div className="cb-date">{formatDateLong(now)}</div>
           <ThemeSwitcher />
+          <button className="cb-profile-btn" onClick={() => navigate('/profile')} aria-label="Profile">
+            {profilePhoto ? (
+              <img src={profilePhoto} alt={displayName} className="cb-profile-btn-img" referrerPolicy="no-referrer" />
+            ) : (
+              <span className="cb-profile-btn-initial">{(displayName[0] || 'A').toUpperCase()}</span>
+            )}
+          </button>
         </div>
       </div>
 

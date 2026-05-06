@@ -8,6 +8,7 @@ import {
 import './Analytics.css';
 import { API_URL } from '../config';
 import { useTheme } from '../contexts/ThemeContext';
+import GeoBackground from '../components/GeoBackground';
 
 const Analytics = () => {
   const navigate = useNavigate();
@@ -181,6 +182,7 @@ const Analytics = () => {
 
   return (
     <div className="analytics-page">
+      <GeoBackground />
       <header className="analytics-header">
         <div className="analytics-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">

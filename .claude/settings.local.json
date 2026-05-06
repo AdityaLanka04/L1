@@ -10,7 +10,9 @@
       "Bash(head -n 2939 \"D:/Brainwave/L1/src/pages/SearchHub.js\")",
       "Read(//tmp/**)",
       "Bash(node --input-type=module --eval ' *)",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Brainwave\\\\L1\\\\src\" -Recurse -File)",
+      "Bash(Select-Object -First 50)"
     ]
   }
 }

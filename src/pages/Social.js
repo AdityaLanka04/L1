@@ -4,6 +4,7 @@ import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, U
 import ShareModal from './SharedModal';
 import './Social.css';
 import { API_URL } from '../config';
+import GeoBackground from '../components/GeoBackground';
 
 const Social = () => {
   const navigate = useNavigate();
@@ -443,6 +444,7 @@ const Social = () => {
 
   return (
     <div className="hub-page">
+      <GeoBackground />
       <header className="gm-header">
         <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">

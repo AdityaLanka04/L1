@@ -16,6 +16,7 @@ import ImportExportModal from '../components/ImportExportModal';
 import { useNotifications } from '../contexts/NotificationContext';
 import { API_URL } from '../config';
 import logo from '../assets/logo.svg';
+import GeoBackground from '../components/GeoBackground';
 
 const DEFAULT_LAYOUT_WIDGETS = [
   { id: 'ai-tutor', col: 1, row: 1, cols: 1, rows: 3, color: null, size: 'M' },
@@ -950,10 +951,7 @@ const Dashboard = () => {
         </div>
       </header>
       
-      <div className="ds-background-effects">
-        <div className="ds-bg-gradient-orb ds-bg-orb-1" style={{ background: `radial-gradient(circle, ${rgbaFromHex(accent, 0.2)} 0%, transparent 70%)` }}></div>
-        <div className="ds-bg-gradient-orb ds-bg-orb-2" style={{ background: `radial-gradient(circle, ${rgbaFromHex(accent, 0.15)} 0%, transparent 70%)` }}></div>
-      </div>
+      <GeoBackground />
       
       <div className="ds-grid-container">
         
@@ -1531,6 +1529,20 @@ const Dashboard = () => {
                   <div className="ds-qh-nav-copy">
                     <span>Learning Path</span>
                     <small>Track concepts step by step</small>
+                  </div>
+                  <ChevronRight size={12} />
+                </div>
+                <div
+                  className="ds-qh-nav-item"
+                  onClick={() => navigate('/dashboard-cerbyl')}
+                  onMouseEnter={setQuickNavItem('cerbyl')}
+                  onFocus={setQuickNavItem('cerbyl')}
+                  tabIndex={0}
+                >
+                  <Sparkles size={13} style={{ color: ac }} />
+                  <div className="ds-qh-nav-copy">
+                    <span>Cerbyl Dashboard</span>
+                    <small>AI insights & overview</small>
                   </div>
                   <ChevronRight size={12} />
                 </div>

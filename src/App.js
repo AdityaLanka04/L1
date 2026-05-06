@@ -33,7 +33,7 @@ import AIMediaNotes from './pages/AIMediaNotes';
 import MyNotes from './pages/MyNotes';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Profile from './pages/profile';
+import Profile from './pages/ProfileNew';
 import ProfileQuiz from './pages/ProfileQuiz';
 import SearchHub from './pages/SearchHub';
 import Landing from './pages/Landing';
@@ -60,7 +60,7 @@ import CanvasHub from './pages/CanvasHub';
 import Vault from './pages/Vault';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
-import GlobalNavSidebar from './components/GlobalNavSidebar';
+import CerbylNavSidebar from './components/CerbylNavSidebar';
 import { useGlobalNav } from './hooks/useGlobalNav';
 import GlobalNotifications from './components/GlobalNotifications';
 
@@ -80,7 +80,7 @@ function App() {
       <NotificationProvider>
         <ToastProvider>
           <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
-            <GlobalNavSidebar isOpen={isOpen} onClose={closeNav} />
+            <CerbylNavSidebar isOpen={isOpen} onClose={closeNav} />
             <GlobalNotifications />
             {notification && (
               <ProactiveNotification
