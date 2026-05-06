@@ -18,10 +18,16 @@ const hydrateProfile = (parsed = {}, username = '') => {
   const storedDefault = localStorage.getItem(PFP_DEFAULT_KEY) || '';
   const storedCustom = localStorage.getItem(PFP_CUSTOM_KEY) || '';
   const storedDisplayName = localStorage.getItem(DISPLAY_NAME_KEY) || '';
+  const hasExplicitCustom = Object.prototype.hasOwnProperty.call(p, 'customPfp');
+  const hasExplicitDefault = Object.prototype.hasOwnProperty.call(p, 'defaultPfp');
   const picCandidate = p.picture_url || p.picture || p.photoURL || p.photo_url || '';
   const parsedCustom = p.customPfp && isPresetPfp(p.customPfp) ? p.customPfp : '';
-  const customPfp = parsedCustom || (isPresetPfp(storedCustom) ? storedCustom : '') || (isPresetPfp(picCandidate) ? picCandidate : '');
-  const defaultPfp = p.defaultPfp || p.googlePicture || storedDefault || (isPresetPfp(picCandidate) ? '' : picCandidate) || '';
+  const customPfp = hasExplicitCustom
+    ? parsedCustom
+    : (parsedCustom || (isPresetPfp(storedCustom) ? storedCustom : '') || (isPresetPfp(picCandidate) ? picCandidate : ''));
+  const defaultPfp = hasExplicitDefault
+    ? (p.defaultPfp || '')
+    : (p.defaultPfp || p.googlePicture || storedDefault || (isPresetPfp(picCandidate) ? '' : picCandidate) || '');
   const activePfp = customPfp || defaultPfp;
   const resolvedName = p.firstName || p.first_name || storedDisplayName || (username ? username.split('@')[0] : '');
   return { ...p, firstName: p.firstName || resolvedName, first_name: p.first_name || resolvedName, defaultPfp, customPfp, picture: activePfp, picture_url: activePfp };

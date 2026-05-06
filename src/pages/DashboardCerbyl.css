@@ -895,6 +895,9 @@
   border: 1px solid var(--cb-line-soft);
   border-radius: 14px 14px 14px 4px;
   background: var(--cb-panel-2);
+  min-height: 34px;
+  display: flex;
+  align-items: center;
 }
 
 .cb-typing-dots {
@@ -913,6 +916,31 @@
 
 .cb-typing-dots i:nth-child(2) { animation-delay: 0.2s; }
 .cb-typing-dots i:nth-child(3) { animation-delay: 0.4s; }
+
+.cb-typing-row--answer {
+  border-color: var(--cb-line-strong);
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%),
+    var(--cb-panel-2);
+}
+
+.cb-typing-answer {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--cb-text);
+  display: inline-flex;
+  align-items: center;
+}
+
+.cb-typing-answer.is-typing::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: .92em;
+  margin-left: 5px;
+  background: var(--accent);
+  animation: cb-chat-caret-blink .8s steps(1, end) infinite;
+}
 
 @keyframes cb-blink {
   0%, 80%, 100% { opacity: 0.25; }

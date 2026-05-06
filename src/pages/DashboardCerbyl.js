@@ -54,6 +54,7 @@ const fetchJson = async (url) => {
 
 const DAY_LABELS = ['S','M','T','W','T','F','S'];
 const QUICK_ASK_PROMPT = 'Explain quantum mechanics in simple terms.';
+const QUICK_REPLY_PREVIEW = 'Sure. Let us break it into three simple ideas.';
 const PRESET_PFPS = [
   { id: 'cat', label: 'Cat', src: '/pfp/cat.png' },
   { id: 'woman', label: 'Woman', src: '/pfp/woman.png' }
@@ -68,6 +69,8 @@ const hydrateProfile = (parsedProfile = {}, username = '') => {
   const storedDefault = localStorage.getItem(PFP_DEFAULT_KEY) || '';
   const storedCustom = localStorage.getItem(PFP_CUSTOM_KEY) || '';
   const storedDisplayName = localStorage.getItem(DISPLAY_NAME_KEY) || '';
+  const hasExplicitCustom = Object.prototype.hasOwnProperty.call(parsed, 'customPfp');
+  const hasExplicitDefault = Object.prototype.hasOwnProperty.call(parsed, 'defaultPfp');
 
   const pictureCandidate =
     parsed.picture_url ||
@@ -77,17 +80,23 @@ const hydrateProfile = (parsedProfile = {}, username = '') => {
     '';
 
   const parsedCustom = parsed.customPfp && isPresetPfp(parsed.customPfp) ? parsed.customPfp : '';
-  const customPfp =
-    parsedCustom ||
-    (isPresetPfp(storedCustom) ? storedCustom : '') ||
-    (isPresetPfp(pictureCandidate) ? pictureCandidate : '');
+  const customPfp = hasExplicitCustom
+    ? parsedCustom
+    : (
+      parsedCustom ||
+      (isPresetPfp(storedCustom) ? storedCustom : '') ||
+      (isPresetPfp(pictureCandidate) ? pictureCandidate : '')
+    );
 
-  const defaultPfp =
-    parsed.defaultPfp ||
-    parsed.googlePicture ||
-    storedDefault ||
-    (isPresetPfp(pictureCandidate) ? '' : pictureCandidate) ||
-    '';
+  const defaultPfp = hasExplicitDefault
+    ? (parsed.defaultPfp || '')
+    : (
+      parsed.defaultPfp ||
+      parsed.googlePicture ||
+      storedDefault ||
+      (isPresetPfp(pictureCandidate) ? '' : pictureCandidate) ||
+      ''
+    );
 
   const activePfp = customPfp || defaultPfp;
   const resolvedName =
@@ -144,7 +153,9 @@ const DashboardCerbyl = () => {
   const [isPfpModalOpen, setIsPfpModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatPromptDisplay, setChatPromptDisplay] = useState(QUICK_ASK_PROMPT);
+  const [chatReplyDisplay, setChatReplyDisplay] = useState('');
   const [isChatTypingAnim, setIsChatTypingAnim] = useState(false);
+  const [isChatReplyTypingAnim, setIsChatReplyTypingAnim] = useState(false);
   const [flashCountsDisplay, setFlashCountsDisplay] = useState({});
   const [isFlashAnimating, setIsFlashAnimating] = useState(false);
   const [flashActiveSetId, setFlashActiveSetId] = useState('');
@@ -158,6 +169,8 @@ const DashboardCerbyl = () => {
   const [typedName, setTypedName] = useState('');
   const [isNameTyping, setIsNameTyping] = useState(true);
   const chatTypeTimerRef = useRef(null);
+  const chatReplyTimerRef = useRef(null);
+  const chatReplyDelayRef = useRef(null);
   const flashAnimFrameRef = useRef(null);
   const flashResetTimerRef = useRef(null);
   const notesAnimTimerRef = useRef(null);
@@ -430,6 +443,12 @@ const DashboardCerbyl = () => {
     if (chatTypeTimerRef.current) {
       clearInterval(chatTypeTimerRef.current);
     }
+    if (chatReplyTimerRef.current) {
+      clearInterval(chatReplyTimerRef.current);
+    }
+    if (chatReplyDelayRef.current) {
+      clearTimeout(chatReplyDelayRef.current);
+    }
     if (flashAnimFrameRef.current) {
       cancelAnimationFrame(flashAnimFrameRef.current);
     }
@@ -492,14 +511,24 @@ const DashboardCerbyl = () => {
 
   const runChatCardHoverAnimation = () => {
     const full = QUICK_ASK_PROMPT;
+    const reply = QUICK_REPLY_PREVIEW;
     let idx = 0;
+    let replyIdx = 0;
 
     if (chatTypeTimerRef.current) {
       clearInterval(chatTypeTimerRef.current);
     }
+    if (chatReplyTimerRef.current) {
+      clearInterval(chatReplyTimerRef.current);
+    }
+    if (chatReplyDelayRef.current) {
+      clearTimeout(chatReplyDelayRef.current);
+    }
 
     setIsChatTypingAnim(true);
+    setIsChatReplyTypingAnim(false);
     setChatPromptDisplay('');
+    setChatReplyDisplay('');
 
     chatTypeTimerRef.current = setInterval(() => {
       idx += 1;
@@ -507,9 +536,40 @@ const DashboardCerbyl = () => {
       if (idx >= full.length) {
         clearInterval(chatTypeTimerRef.current);
         chatTypeTimerRef.current = null;
-        setIsChatTypingAnim(false);
+        chatReplyDelayRef.current = setTimeout(() => {
+          setIsChatReplyTypingAnim(true);
+          chatReplyTimerRef.current = setInterval(() => {
+            replyIdx += 1;
+            setChatReplyDisplay(reply.slice(0, replyIdx));
+            if (replyIdx >= reply.length) {
+              clearInterval(chatReplyTimerRef.current);
+              chatReplyTimerRef.current = null;
+              setIsChatReplyTypingAnim(false);
+              setIsChatTypingAnim(false);
+            }
+          }, 24);
+        }, 220);
       }
     }, 35);
+  };
+
+  const stopChatCardHoverAnimation = () => {
+    if (chatTypeTimerRef.current) {
+      clearInterval(chatTypeTimerRef.current);
+      chatTypeTimerRef.current = null;
+    }
+    if (chatReplyTimerRef.current) {
+      clearInterval(chatReplyTimerRef.current);
+      chatReplyTimerRef.current = null;
+    }
+    if (chatReplyDelayRef.current) {
+      clearTimeout(chatReplyDelayRef.current);
+      chatReplyDelayRef.current = null;
+    }
+    setIsChatTypingAnim(false);
+    setIsChatReplyTypingAnim(false);
+    setChatPromptDisplay(QUICK_ASK_PROMPT);
+    setChatReplyDisplay('');
   };
 
   const runFlashcardsCardHoverAnimation = () => {
@@ -996,7 +1056,14 @@ const DashboardCerbyl = () => {
 
           {/* Three feature cards */}
           <section className="cb-features">
-            <div className="cb-feat cb-feat--chat" onMouseEnter={runChatCardHoverAnimation} onClick={() => navigate('/ai-chat')} role="button" tabIndex={0}>
+            <div
+              className="cb-feat cb-feat--chat"
+              onMouseEnter={runChatCardHoverAnimation}
+              onMouseLeave={stopChatCardHoverAnimation}
+              onClick={() => navigate('/ai-chat')}
+              role="button"
+              tabIndex={0}
+            >
               <div className="cb-feat-tag">AI CHAT</div>
               <div className="cb-feat-title">Ask<br />Anything</div>
               <div className="cb-feat-desc">Instant AI guidance on any topic</div>
@@ -1004,8 +1071,14 @@ const DashboardCerbyl = () => {
                 <button className="cb-typing-prompt cb-typing-prompt--user" onClick={runQuickAskPrompt}>
                   {chatPromptDisplay}
                 </button>
-                <div className="cb-typing-row" aria-hidden>
-                  <span className="cb-typing-dots"><i/><i/><i/></span>
+                <div className={`cb-typing-row ${chatReplyDisplay ? 'cb-typing-row--answer' : ''}`} aria-hidden>
+                  {chatReplyDisplay ? (
+                    <span className={`cb-typing-answer ${isChatReplyTypingAnim ? 'is-typing' : ''}`}>
+                      {chatReplyDisplay}
+                    </span>
+                  ) : (
+                    <span className="cb-typing-dots"><i/><i/><i/></span>
+                  )}
                 </div>
               </div>
               <span className="cb-feat-arrow"><ArrowUpRight size={16}/></span>

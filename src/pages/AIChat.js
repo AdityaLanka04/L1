@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
@@ -11,6 +11,152 @@ import './AIChat.css';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
+
+const SMART_ACTION_LIMIT = 8;
+
+const CORE_SMART_ACTIONS = [
+  { id: 'save_note', kind: 'create_note', label: 'Make Note', description: 'Turn this answer into a structured note', icon: 'note', category: 'creation', baseScore: 120, intents: ['explain', 'review', 'memory', 'planning', 'general'] },
+  { id: 'quiz_me', kind: 'quiz_on_topic', label: 'Quiz Me', description: 'Start a focused quiz on this topic', icon: 'quiz', category: 'assessment', baseScore: 116, intents: ['explain', 'assessment', 'review', 'general'] },
+  { id: 'go_deeper', kind: 'deepen_topic', label: 'Go Deeper', description: 'Push into advanced understanding', icon: 'depth', category: 'depth', baseScore: 112, intents: ['explain', 'planning', 'general'] },
+  { id: 'build_path', kind: 'create_learning_path', label: 'Build Learning Path', description: 'Create a guided plan from beginner to advanced', icon: 'path', category: 'planning', baseScore: 108, intents: ['planning', 'explain', 'review'] },
+  { id: 'build_roadmap', kind: 'create_roadmap', label: 'Create Knowledge Roadmap', description: 'Generate a visual knowledge graph from this chat', icon: 'roadmap', category: 'planning', baseScore: 106, intents: ['planning', 'explain', 'review'] },
+  { id: 'flashcards_now', kind: 'open_route', route: '/flashcards', label: 'Build Flashcards', description: 'Convert this topic into spaced-repetition cards', icon: 'flashcard', category: 'memory', baseScore: 102, intents: ['review', 'memory', 'assessment'] },
+];
+
+const FEATURE_ROUTE_ACTIONS = [
+  { id: 'feature_search_hub', kind: 'open_route', route: '/search-hub', label: 'Search Hub', description: 'Universal command center for all tools', icon: 'search', category: 'platform', baseScore: 84, intents: ['general'] },
+  { id: 'feature_learning_review', kind: 'open_route', route: '/learning-review', label: 'Learning Review', description: 'Review your learning artifacts together', icon: 'review', category: 'review', baseScore: 82, intents: ['review', 'general'] },
+  { id: 'feature_study_insights', kind: 'open_route', route: '/study-insights', label: 'Study Insights', description: 'Understand performance trends', icon: 'insights', category: 'analytics', baseScore: 80, intents: ['analytics', 'review'] },
+  { id: 'feature_weaknesses', kind: 'open_route', route: '/weaknesses', label: 'Weakness Analysis', description: 'Target weak concepts and improve faster', icon: 'weakness', category: 'analytics', baseScore: 94, intents: ['assessment', 'analytics', 'review'] },
+  { id: 'feature_weakness_practice', kind: 'open_route', route: '/weakness-practice', label: 'Weakness Practice', description: 'Train on weak areas with adaptive questions', icon: 'practice', category: 'assessment', baseScore: 96, intents: ['assessment', 'review'] },
+  { id: 'feature_quiz_hub', kind: 'open_route', route: '/quiz-hub', label: 'Quiz Hub', description: 'Access all quiz modes', icon: 'quiz', category: 'assessment', baseScore: 88, intents: ['assessment'] },
+  { id: 'feature_solo_quiz', kind: 'open_route', route: '/solo-quiz', label: 'Solo Quiz', description: 'Generate a fresh solo quiz', icon: 'quiz', category: 'assessment', baseScore: 90, intents: ['assessment', 'review'] },
+  { id: 'feature_question_bank', kind: 'open_route', route: '/question-bank', label: 'Question Bank', description: 'Generate and manage question sets', icon: 'bank', category: 'assessment', baseScore: 89, intents: ['assessment', 'review'] },
+  { id: 'feature_knowledge_roadmap', kind: 'open_route', route: '/knowledge-roadmap', label: 'Knowledge Roadmap', description: 'Explore topics as connected maps', icon: 'roadmap', category: 'planning', baseScore: 92, intents: ['planning', 'explain'] },
+  { id: 'feature_learning_paths', kind: 'open_route', route: '/learning-paths', label: 'Learning Paths', description: 'Generate structured step-by-step plans', icon: 'path', category: 'planning', baseScore: 94, intents: ['planning', 'review'] },
+  { id: 'feature_xp_roadmap', kind: 'open_route', route: '/xp-roadmap', label: 'XP Roadmap', description: 'Track milestone progress and streaks', icon: 'xp', category: 'planning', baseScore: 79, intents: ['planning', 'analytics'] },
+  { id: 'feature_concept_web', kind: 'open_route', route: '/concept-web', label: 'Concept Web', description: 'Visualize concept relationships', icon: 'concept', category: 'planning', baseScore: 78, intents: ['planning', 'explain'] },
+  { id: 'feature_notes_hub', kind: 'open_route', route: '/notes', label: 'Notes Hub', description: 'Capture and organize knowledge', icon: 'note', category: 'creation', baseScore: 90, intents: ['explain', 'review', 'memory'] },
+  { id: 'feature_my_notes', kind: 'open_route', route: '/notes/my-notes', label: 'My Notes', description: 'Jump directly into your note library', icon: 'note', category: 'creation', baseScore: 88, intents: ['review', 'memory'] },
+  { id: 'feature_notes_dashboard', kind: 'open_route', route: '/notes/dashboard', label: 'Notes Dashboard', description: 'Open note workspace overview', icon: 'note', category: 'creation', baseScore: 78, intents: ['general'] },
+  { id: 'feature_ai_media_notes', kind: 'open_route', route: '/notes/ai-media', label: 'AI Media Notes', description: 'Convert media into rich notes', icon: 'media', category: 'media', baseScore: 92, intents: ['media', 'review'] },
+  { id: 'feature_audio_video_notes', kind: 'open_route', route: '/notes/audio-video', label: 'Audio/Video Notes', description: 'Process lectures and recordings', icon: 'media', category: 'media', baseScore: 87, intents: ['media'] },
+  { id: 'feature_slide_explorer', kind: 'open_route', route: '/slide-explorer', label: 'Slide Explorer', description: 'Extract knowledge from decks', icon: 'slides', category: 'media', baseScore: 90, intents: ['media', 'explain'] },
+  { id: 'feature_vault', kind: 'open_route', route: '/contexthub', label: 'Vault', description: 'Manage your context and assets', icon: 'vault', category: 'workspace', baseScore: 78, intents: ['general', 'planning'] },
+  { id: 'feature_canvas', kind: 'open_route', route: '/canvas', label: 'Canvas', description: 'Work visually on complex ideas', icon: 'canvas', category: 'workspace', baseScore: 82, intents: ['planning', 'creation'] },
+  { id: 'feature_social', kind: 'open_route', route: '/social', label: 'Social', description: 'Collaborate with friends and groups', icon: 'social', category: 'social', baseScore: 84, intents: ['social', 'general'] },
+  { id: 'feature_friends', kind: 'open_route', route: '/friends', label: 'Friends Dashboard', description: 'Manage your study network', icon: 'social', category: 'social', baseScore: 81, intents: ['social'] },
+  { id: 'feature_activity_feed', kind: 'open_route', route: '/activity-feed', label: 'Activity Feed', description: 'See collaborative activity and updates', icon: 'social', category: 'social', baseScore: 78, intents: ['social', 'analytics'] },
+  { id: 'feature_leaderboards', kind: 'open_route', route: '/leaderboards', label: 'Leaderboards', description: 'Compete with your learning cohort', icon: 'social', category: 'social', baseScore: 76, intents: ['social'] },
+  { id: 'feature_quiz_battles', kind: 'open_route', route: '/quiz-battles', label: 'Quiz Battles', description: 'Challenge others in quiz battles', icon: 'social', category: 'social', baseScore: 83, intents: ['social', 'assessment'] },
+  { id: 'feature_challenges', kind: 'open_route', route: '/challenges', label: 'Challenges', description: 'Join time-bound group challenges', icon: 'social', category: 'social', baseScore: 80, intents: ['social', 'assessment'] },
+  { id: 'feature_playlists', kind: 'open_route', route: '/playlists', label: 'Playlists', description: 'Curate learning journeys and resources', icon: 'playlist', category: 'social', baseScore: 74, intents: ['planning', 'review'] },
+  { id: 'feature_games', kind: 'open_route', route: '/games', label: 'Games', description: 'Gamified practice loops', icon: 'games', category: 'social', baseScore: 70, intents: ['assessment', 'social'] },
+  { id: 'feature_analytics', kind: 'open_route', route: '/analytics', label: 'Analytics', description: 'Deep analytics for study behavior', icon: 'analytics', category: 'analytics', baseScore: 86, intents: ['analytics', 'review'] },
+  { id: 'feature_statistics', kind: 'open_route', route: '/statistics', label: 'Statistics', description: 'Track and inspect statistics', icon: 'analytics', category: 'analytics', baseScore: 78, intents: ['analytics'] },
+  { id: 'feature_activity_timeline', kind: 'open_route', route: '/activity-timeline', label: 'Activity Timeline', description: 'View chronological learning history', icon: 'analytics', category: 'analytics', baseScore: 76, intents: ['analytics', 'review'] },
+];
+
+const INTENT_KEYWORDS = {
+  explain: ['explain', 'understand', 'clarify', 'why', 'how', 'example', 'concept', 'neural', 'theory'],
+  assessment: ['quiz', 'test', 'questions', 'mcq', 'practice', 'evaluate', 'check'],
+  planning: ['roadmap', 'path', 'plan', 'schedule', 'milestone', 'step by step'],
+  review: ['review', 'revise', 'summary', 'summarize', 'recap', 'remember'],
+  memory: ['flashcard', 'memorize', 'memory', 'retain'],
+  media: ['video', 'audio', 'podcast', 'youtube', 'slide', 'pdf', 'lecture'],
+  social: ['friends', 'battle', 'challenge', 'team', 'leaderboard', 'group'],
+  analytics: ['progress', 'stats', 'analytics', 'accuracy', 'weakness', 'performance'],
+};
+
+const TOPIC_PATTERN = /\b(?:about|on|for|of|regarding)\s+([a-zA-Z0-9\s\-_,]{3,80})/i;
+
+function normalizeTopic(topic = '') {
+  return topic.replace(/[^\w\s\-]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function inferTopicFromText(userText = '', aiText = '') {
+  const merged = `${userText} ${aiText}`.trim();
+  const patternMatch = merged.match(TOPIC_PATTERN);
+  if (patternMatch?.[1]) {
+    return normalizeTopic(patternMatch[1]).slice(0, 60);
+  }
+
+  const raw = normalizeTopic(userText || aiText);
+  if (!raw) return 'this topic';
+  const words = raw.split(' ').filter(Boolean);
+  return words.slice(0, 6).join(' ').slice(0, 60) || 'this topic';
+}
+
+function detectIntents(text = '') {
+  const lower = text.toLowerCase();
+  const intents = Object.entries(INTENT_KEYWORDS)
+    .filter(([, keywords]) => keywords.some((kw) => lower.includes(kw)))
+    .map(([intent]) => intent);
+  return intents.length ? intents : ['general'];
+}
+
+function textHash(text = '') {
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function pickSmartActions({ userMessage, aiResponse, recentActionIds = [] }) {
+  const combined = `${userMessage || ''} ${aiResponse || ''}`.trim();
+  const intents = detectIntents(combined);
+  const topic = inferTopicFromText(userMessage, aiResponse);
+  const recentSet = new Set(recentActionIds);
+  const actionPool = [...CORE_SMART_ACTIONS, ...FEATURE_ROUTE_ACTIONS];
+
+  const scored = actionPool.map((action) => {
+    const intentOverlap = (action.intents || []).filter((intent) => intents.includes(intent)).length;
+    const topicBoost = combined.toLowerCase().includes(topic.toLowerCase()) ? 3 : 0;
+    const repetitionPenalty = recentSet.has(action.id) ? 12 : 0;
+    const score = (action.baseScore || 0) + intentOverlap * 12 + topicBoost - repetitionPenalty;
+    return { ...action, score, topic };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const chosen = [];
+  const chosenCategories = new Set();
+  const seenIds = new Set();
+  for (const action of scored) {
+    if (chosen.length >= SMART_ACTION_LIMIT) break;
+    if (seenIds.has(action.id)) continue;
+
+    if (chosen.length < 4 || !chosenCategories.has(action.category)) {
+      chosen.push(action);
+      chosenCategories.add(action.category);
+      seenIds.add(action.id);
+    }
+  }
+
+  if (chosen.length < SMART_ACTION_LIMIT) {
+    const seed = textHash(`${combined}|${intents.join(',')}`);
+    const leftovers = scored.filter((a) => !seenIds.has(a.id));
+    for (let i = 0; i < leftovers.length && chosen.length < SMART_ACTION_LIMIT; i += 1) {
+      const pickIndex = (seed + i * 7) % leftovers.length;
+      const pick = leftovers[pickIndex];
+      if (!pick || seenIds.has(pick.id)) continue;
+      chosen.push(pick);
+      seenIds.add(pick.id);
+    }
+  }
+
+  return chosen.slice(0, SMART_ACTION_LIMIT).map((action) => ({
+    id: action.id,
+    label: action.label,
+    description: action.description,
+    icon: action.icon,
+    kind: action.kind,
+    route: action.route || null,
+    topic: action.topic,
+  }));
+}
 
 const AIChat = ({ sharedMode = false }) => {
   const { chatId } = useParams();
@@ -52,6 +198,9 @@ const AIChat = ({ sharedMode = false }) => {
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
   const [userDocCount, setUserDocCount] = useState(0);
+  const [activeActionKey, setActiveActionKey] = useState(null);
+  const [actionNotice, setActionNotice] = useState('');
+  const actionNoticeTimerRef = useRef(null);
 
   const handleFolderCreation = async () => {
     if (!folderName.trim()) return;
@@ -707,23 +856,26 @@ const AIChat = ({ sharedMode = false }) => {
   }
   };
 
-  const sendMessage = async () => {
-    if ((!inputMessage.trim() && selectedFiles.length === 0) || loading || !userName) return;
+  const sendMessage = async (overrideMessage = null) => {
+    const useOverride = typeof overrideMessage === 'string';
+    const draftMessage = useOverride ? overrideMessage : inputMessage;
+    const sanitizedMessage = (draftMessage || '').trim();
+    const hasFiles = !useOverride && selectedFiles.length > 0;
+    if ((!sanitizedMessage && !hasFiles) || loading || !userName) return;
 
     let currentChatId = activeChatId;
     let isNewChat = false;
     
     
     
-    const messageText = inputMessage;
-    const messagedFiles = [...selectedFiles];
+    const messageText = sanitizedMessage;
+    const messagedFiles = useOverride ? [] : [...selectedFiles];
     
-    
-    setInputMessage('');
-    
-    
-    if (textareaRef.current) {
-      textareaRef.current.style.height = '24px';
+    if (!useOverride) {
+      setInputMessage('');
+      if (textareaRef.current) {
+        textareaRef.current.style.height = '24px';
+      }
     }
     
     if (!currentChatId) {
@@ -732,7 +884,7 @@ const AIChat = ({ sharedMode = false }) => {
       if (!currentChatId) {
         console.error('❌ Failed to create new chat');
         alert('Error: Failed to create new chat. Please try again.');
-        setInputMessage(messageText); 
+        if (!useOverride) setInputMessage(messageText);
         return;
       }
       isNewChat = true;
@@ -812,6 +964,16 @@ const AIChat = ({ sharedMode = false }) => {
         });
       }
       
+      const recentActionIds = messages
+        .filter((m) => m.type === 'ai')
+        .slice(-2)
+        .flatMap((m) => (Array.isArray(m.smartActions) ? m.smartActions.map((action) => action.id) : []));
+      const smartActions = pickSmartActions({
+        userMessage: messageText,
+        aiResponse: data.answer,
+        recentActionIds,
+      });
+
       const aiMessage = {
         id: `ai_${Date.now()}`,
         type: 'ai',
@@ -834,11 +996,12 @@ const AIChat = ({ sharedMode = false }) => {
         ragResultsCount: data.rag_results_count || 0,
         weakConcepts: data.weak_concepts || [],
         emotionalState: data.emotional_state || 'neutral',
-        aiProvider: data.ai_provider || 'AI'
+        aiProvider: data.ai_provider || 'AI',
+        smartActions,
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      clearAllFiles();
+      if (!useOverride) clearAllFiles();
       
       
       const actualChatId = data.chat_id;
@@ -879,6 +1042,228 @@ const AIChat = ({ sharedMode = false }) => {
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const showSmartActionNotice = useCallback((message) => {
+    setActionNotice(message);
+    if (actionNoticeTimerRef.current) {
+      clearTimeout(actionNoticeTimerRef.current);
+    }
+    actionNoticeTimerRef.current = setTimeout(() => {
+      setActionNotice('');
+    }, 2800);
+  }, []);
+
+  const getSmartActionsForMessage = useCallback((message, messageIndex) => {
+    if (message.type !== 'ai') return [];
+    if (Array.isArray(message.smartActions) && message.smartActions.length) {
+      return message.smartActions;
+    }
+
+    const previousMessages = messages.slice(0, messageIndex);
+    const previousUserMessage = [...previousMessages].reverse().find((entry) => entry.type === 'user');
+    const recentActionIds = previousMessages
+      .filter((entry) => entry.type === 'ai')
+      .slice(-2)
+      .flatMap((entry) => (Array.isArray(entry.smartActions) ? entry.smartActions.map((action) => action.id) : []));
+
+    return pickSmartActions({
+      userMessage: previousUserMessage?.content || '',
+      aiResponse: message.content || '',
+      recentActionIds,
+    });
+  }, [messages]);
+
+  const runSmartAction = useCallback(async (action, aiMessage) => {
+    if (!action || !aiMessage) return;
+
+    const actionKey = `${aiMessage.id}:${action.id}`;
+    setActiveActionKey(actionKey);
+
+    const token = localStorage.getItem('token');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    };
+    const topic = normalizeTopic(action.topic || inferTopicFromText('', aiMessage.content)) || 'this topic';
+
+    try {
+      const createAndOpenRoadmap = async (baseTopic, noticeText) => {
+        let rootTopic = baseTopic;
+        if (activeChatId) {
+          try {
+            const extractResponse = await fetch(`${API_URL}/create_roadmap_from_chat`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                user_id: userName,
+                chat_session_id: activeChatId,
+              }),
+            });
+            if (extractResponse.ok) {
+              const extracted = await extractResponse.json();
+              if (extracted?.root_topic) {
+                rootTopic = extracted.root_topic;
+              }
+            }
+          } catch {
+            // fallback to inferred topic
+          }
+        }
+
+        const roadmapResponse = await fetch(`${API_URL}/create_knowledge_roadmap`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            user_id: userName,
+            root_topic: rootTopic,
+          }),
+        });
+        if (!roadmapResponse.ok) {
+          throw new Error('Failed to create roadmap');
+        }
+        const roadmapData = await roadmapResponse.json();
+        if (roadmapData?.roadmap_id) {
+          navigate(`/knowledge-roadmap/${roadmapData.roadmap_id}`);
+        } else {
+          navigate('/knowledge-roadmap');
+        }
+        showSmartActionNotice(noticeText);
+      };
+
+      if (action.kind === 'deepen_topic') {
+        await createAndOpenRoadmap(topic, 'Deep roadmap created for this topic.');
+        return;
+      }
+
+      if (action.kind === 'open_route') {
+        if (action.route) {
+          navigate(action.route);
+          showSmartActionNotice(`Opening ${action.label}...`);
+        }
+        return;
+      }
+
+      if (action.kind === 'quiz_on_topic') {
+        navigate('/solo-quiz', {
+          state: {
+            autoStart: true,
+            topics: [topic],
+            difficulty: 'medium',
+            questionCount: 10,
+          },
+        });
+        showSmartActionNotice('Preparing a quiz for this topic...');
+        return;
+      }
+
+      if (action.kind === 'create_note') {
+        const noteResponse = await fetch(`${API_URL}/create_note`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            user_id: userName,
+            title: `${topic.slice(0, 45)} Notes`,
+            content: `# ${topic}\n\n${aiMessage.content || ''}`.trim(),
+          }),
+        });
+        if (!noteResponse.ok) {
+          throw new Error('Failed to create note');
+        }
+        const noteData = await noteResponse.json();
+        if (noteData?.id) {
+          navigate(`/notes/editor/${noteData.id}`);
+        } else {
+          navigate('/notes/my-notes');
+        }
+        showSmartActionNotice('Note created from this response.');
+        return;
+      }
+
+      if (action.kind === 'create_learning_path') {
+        const pathResponse = await fetch(`${API_URL}/learning-paths/generate`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            topicPrompt: topic,
+            difficulty: 'intermediate',
+            length: 'medium',
+            goals: [`Master ${topic}`, `Apply ${topic} in practice`],
+          }),
+        });
+        if (!pathResponse.ok) {
+          throw new Error('Failed to create learning path');
+        }
+        const pathData = await pathResponse.json();
+        if (pathData?.path_id) {
+          navigate(`/learning-paths/${pathData.path_id}`);
+        } else {
+          navigate('/learning-paths');
+        }
+        showSmartActionNotice('Learning path generated.');
+        return;
+      }
+
+      if (action.kind === 'create_roadmap') {
+        await createAndOpenRoadmap(topic, 'Knowledge roadmap created.');
+      }
+    } catch (error) {
+      console.error('Smart action failed:', error);
+      showSmartActionNotice(`Couldn't complete "${action.label}". Please try again.`);
+    } finally {
+      setActiveActionKey(null);
+    }
+  }, [API_URL, activeChatId, navigate, showSmartActionNotice, userName]);
+
+  const renderSmartActionIcon = (icon) => {
+    switch (icon) {
+      case 'note':
+        return <span>N</span>;
+      case 'quiz':
+        return <span>Q</span>;
+      case 'depth':
+        return <span>D</span>;
+      case 'path':
+        return <span>P</span>;
+      case 'roadmap':
+        return <span>R</span>;
+      case 'flashcard':
+        return <span>F</span>;
+      case 'search':
+        return <span>S</span>;
+      case 'social':
+        return <span>O</span>;
+      case 'analytics':
+        return <span>A</span>;
+      case 'media':
+        return <span>M</span>;
+      case 'insights':
+        return <span>I</span>;
+      case 'practice':
+        return <span>T</span>;
+      case 'vault':
+        return <span>V</span>;
+      case 'canvas':
+        return <span>C</span>;
+      case 'playlist':
+        return <span>L</span>;
+      case 'games':
+        return <span>G</span>;
+      case 'review':
+        return <span>W</span>;
+      case 'xp':
+        return <span>X</span>;
+      case 'concept':
+        return <span>K</span>;
+      case 'bank':
+        return <span>B</span>;
+      case 'slides':
+        return <span>U</span>;
+      case 'weakness':
+        return <span>Z</span>;
+      default:
+        return <span>&gt;</span>;
     }
   };
 
@@ -1769,6 +2154,9 @@ const AIChat = ({ sharedMode = false }) => {
     return () => {
       // Cleanup when component unmounts
       cleanupEmptyNewChats();
+      if (actionNoticeTimerRef.current) {
+        clearTimeout(actionNoticeTimerRef.current);
+      }
     };
   }, []);
 
@@ -2137,7 +2525,9 @@ const AIChat = ({ sharedMode = false }) => {
               </div>
             ) : (
               <div className="ac-messages" ref={messagesContainerRef} onScroll={handleScroll}>
-                {messages.map((message) => (
+                {messages.map((message, messageIndex) => {
+                  const smartActions = getSmartActionsForMessage(message, messageIndex);
+                  return (
                   <div key={message.id} className={`ac-message ${message.type}`}>
                     <div className="ac-message-bubble">
                       <div className="ac-message-content">
@@ -2185,8 +2575,32 @@ const AIChat = ({ sharedMode = false }) => {
                         </div>
                       )}
                       
-                      {/* Action Buttons for Navigation */}
-                      {message.type === 'ai' && message.actionButtons && message.actionButtons.length > 0 && (
+                      {/* Intelligent Action Grid */}
+                      {message.type === 'ai' && smartActions.length > 0 && (
+                        <div className="ac-smart-actions">
+                          {smartActions.map((action) => {
+                            const actionKey = `${message.id}:${action.id}`;
+                            const busy = activeActionKey === actionKey;
+                            return (
+                              <button
+                                key={actionKey}
+                                className={`ac-smart-action ac-smart-action-${action.icon || 'default'}`}
+                                onClick={() => runSmartAction(action, message)}
+                                disabled={busy || loading}
+                              >
+                                <span className="ac-smart-action-icon">{busy ? '...' : renderSmartActionIcon(action.icon)}</span>
+                                <span className="ac-smart-action-copy">
+                                  <span className="ac-smart-action-label">{action.label}</span>
+                                  <span className="ac-smart-action-desc">{action.description}</span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Backend-provided fallback action buttons */}
+                      {message.type === 'ai' && smartActions.length === 0 && message.actionButtons && message.actionButtons.length > 0 && (
                         <div className="ac-action-buttons">
                           {message.actionButtons.map((btn, index) => (
                             <button
@@ -2367,7 +2781,7 @@ const AIChat = ({ sharedMode = false }) => {
                       </div>
                     )}
                   </div>
-                ))}
+                )})}
                 
                 {loading && (
                   <div className="ac-message ai">
@@ -2385,6 +2799,12 @@ const AIChat = ({ sharedMode = false }) => {
               </div>
             )}
           </div>
+
+          {actionNotice && (
+            <div className="ac-action-notice" role="status" aria-live="polite">
+              {actionNotice}
+            </div>
+          )}
           
           {/* Scroll Buttons */}
           {showScrollToTop && (
