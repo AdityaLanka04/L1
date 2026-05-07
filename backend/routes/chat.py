@@ -266,12 +266,39 @@ async def ask_ai(
 
             db.commit()
 
+        _intent_result = None
+        _computed_confidence = 0.72
+        try:
+            from services.intent_engine import CerbylIntentEngine
+            _engine = CerbylIntentEngine.get()
+            _intent_result = _engine.classify(question)
+            _computed_confidence = _engine.estimate_response_confidence(
+                result=_intent_result,
+                response_text=response_text,
+                engagement_score=ml_output.engagement_score if ml_output else 0.5,
+                frustration_score=ml_output.frustration_score if ml_output else 0.0,
+                p_mastery=ml_output.p_mastery if ml_output else 0.1,
+            )
+            _implicit_label = (
+                "INSTRUCTION" if _intent_result.is_instruction() else
+                "CASUAL"      if _intent_result.is_casual()      else
+                _intent_result.label
+            )
+            _implicit_weight = 1.5 if _implicit_label == "INSTRUCTION" else 0.7
+            _engine.record_signal(question, _implicit_label, weight=_implicit_weight)
+        except Exception as _ie_err:
+            logger.debug("[CHAT] IntentEngine skipped: %s", _ie_err)
+
         return {
-            "answer": response_text,
-            "ai_confidence": 0.85,
-            "topics_discussed": ml_output.detected_concepts if ml_output else [],
-            "query_type": ml_output.intent if ml_output else "conversational_learning",
-            "questions_today": daily_metric.questions_answered,
+            "answer":            response_text,
+            "ai_confidence":     _computed_confidence,
+            "topics_discussed":  ml_output.detected_concepts if ml_output else [],
+            "query_type":        ml_output.intent if ml_output else "conversational_learning",
+            "intent_class":      _intent_result.label if _intent_result else "LEARN_CONCEPT",
+            "intent_proba":      _intent_result.proba if _intent_result else {},
+            "active_rules":      [{"domain": r.domain, "negated": r.negated}
+                                  for r in (_intent_result.active_rules if _intent_result else [])],
+            "questions_today":   daily_metric.questions_answered,
             "frustration_score": ml_output.frustration_score if ml_output else 0.0,
             "response_strategy": ml_output.response_strategy if ml_output else "",
         }
@@ -365,11 +392,32 @@ async def ask_simple(
 
             db.commit()
 
+        _intent_result = None
+        _computed_confidence = 0.72
+        try:
+            from services.intent_engine import CerbylIntentEngine
+            _engine = CerbylIntentEngine.get()
+            _intent_result = _engine.classify(question)
+            _computed_confidence = _engine.estimate_response_confidence(
+                result=_intent_result,
+                response_text=response_text,
+            )
+            _engine.record_signal(
+                question,
+                "INSTRUCTION" if _intent_result.is_instruction() else _intent_result.label,
+                weight=1.5 if _intent_result.is_instruction() else 0.7,
+            )
+        except Exception as _ie_err:
+            logger.debug("[CHAT/simple] IntentEngine skipped: %s", _ie_err)
+
         return {
-            "answer": response_text,
-            "ai_confidence": 0.85,
+            "answer":        response_text,
+            "ai_confidence": _computed_confidence,
+            "intent_class":  _intent_result.label if _intent_result else "LEARN_CONCEPT",
+            "active_rules":  [{"domain": r.domain, "negated": r.negated}
+                              for r in (_intent_result.active_rules if _intent_result else [])],
             "topics_discussed": [],
-            "query_type": "conversational_learning",
+            "query_type":    "conversational_learning",
         }
 
     except Exception as e:
@@ -568,15 +616,29 @@ async def ask_with_files(
             for m in saved_metadata
         ]
 
+        _intent_result = None
+        _computed_confidence = 0.72
+        try:
+            from services.intent_engine import CerbylIntentEngine
+            _engine = CerbylIntentEngine.get()
+            _intent_result = _engine.classify(question)
+            _computed_confidence = _engine.estimate_response_confidence(
+                result=_intent_result,
+                response_text=response_text,
+            )
+        except Exception as _ie_err:
+            logger.debug("[CHAT/files] IntentEngine skipped: %s", _ie_err)
+
         return {
-            "answer": response_text,
-            "ai_confidence": 0.85,
+            "answer":          response_text,
+            "ai_confidence":   _computed_confidence,
+            "intent_class":    _intent_result.label if _intent_result else "LEARN_CONCEPT",
             "topics_discussed": [],
-            "query_type": "multimodal",
+            "query_type":      "multimodal",
             "files_processed": len(saved_metadata),
-            "file_summaries": file_summaries,
+            "file_summaries":  file_summaries,
             "has_file_context": bool(saved_metadata),
-            "ai_provider": ai_provider,
+            "ai_provider":     ai_provider,
         }
 
     except Exception as e:

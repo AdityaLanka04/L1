@@ -104,8 +104,32 @@ function textHash(text = '') {
   return Math.abs(hash);
 }
 
-function pickSmartActions({ userMessage, aiResponse, recentActionIds = [] }) {
-  const combined = `${userMessage || ''} ${aiResponse || ''}`.trim();
+const CASUAL_RE = /^\s*(hi+|hey+|hello+|sup|yo+|hola|bye|goodbye|thanks|thank you|ok|okay|cool|nice|great|lol|lmao|haha|sure|yes|no|nope|yep|k|ty|np|bruh|damn|wtf|omg|lgtm|got it|sounds good|perfect|alright|fine|good|bad|what'?s up|whats up|howdy|good morning|good evening|good night|morning|evening|night|hmm+|uh+|um+|makes sense|interesting)\s*[!.?]*\s*$/i;
+
+const INSTRUCTION_RE = /\b(don'?t|do not|stop|no more|never|please don'?t|i told you|remember that i|keep your|be more concise|always|from now on|i (don'?t|do not) want|i said)\b/i;
+const META_RE = /\b(do you remember|what did we|earlier you|last time|our conversation|you said|recall|prior|previous (session|conversation|message)|what (is|was) my name|who am i|what do you know about me|where did we leave off)\b/i;
+const EMOTIONAL_RE = /\b(i give up|so frustrated|this is (too )?hard|i hate (this|it)|i'?m so lost|makes no sense( to me)?|totally lost|i'?m stressed|can'?t understand)\b/i;
+
+const EDUCATIONAL_INTENT_CLASSES = new Set(['LEARN_CONCEPT', 'ASSESS', 'REVIEW']);
+
+function pickSmartActions({ userMessage, aiResponse, recentActionIds = [], intentClass = null }) {
+  const userMsg = (userMessage || '').trim();
+
+  // Backend classification is authoritative — trust it first
+  if (intentClass && !EDUCATIONAL_INTENT_CLASSES.has(intentClass)) return [];
+
+  // Hard lexical gates (catch what backend might miss on first message)
+  if (CASUAL_RE.test(userMsg)) return [];
+  if (INSTRUCTION_RE.test(userMsg)) return [];
+  if (META_RE.test(userMsg)) return [];
+  if (EMOTIONAL_RE.test(userMsg)) return [];
+
+  // Require at least one specific educational intent keyword in user message
+  const userOnlyIntents = detectIntents(userMsg);
+  const hasSpecificIntent = userOnlyIntents.some((i) => i !== 'general');
+  if (!hasSpecificIntent) return [];
+
+  const combined = `${userMsg} ${aiResponse || ''}`.trim();
   const intents = detectIntents(combined);
   const topic = inferTopicFromText(userMessage, aiResponse);
   const recentSet = new Set(recentActionIds);
@@ -964,6 +988,7 @@ const AIChat = ({ sharedMode = false }) => {
         });
       }
       
+      const backendIntentClass = data.intent_class || null;
       const recentActionIds = messages
         .filter((m) => m.type === 'ai')
         .slice(-2)
@@ -972,12 +997,13 @@ const AIChat = ({ sharedMode = false }) => {
         userMessage: messageText,
         aiResponse: data.answer,
         recentActionIds,
+        intentClass: backendIntentClass,
       });
 
       const aiMessage = {
         id: `ai_${Date.now()}`,
         type: 'ai',
-        content: data.answer,  
+        content: data.answer,
         timestamp: new Date().toISOString(),
         ...(data.ai_confidence !== null && data.ai_confidence !== undefined && {
           aiConfidence: data.ai_confidence,
@@ -991,7 +1017,8 @@ const AIChat = ({ sharedMode = false }) => {
         agentAnalysis: agentAnalysis,
         actionButtons: data.action_buttons || [],
         contentFound: data.content_found || null,
-        
+        intentClass: backendIntentClass,
+        activeRules: data.active_rules || [],
         ragUsed: data.rag_used || false,
         ragResultsCount: data.rag_results_count || 0,
         weakConcepts: data.weak_concepts || [],
@@ -1057,6 +1084,12 @@ const AIChat = ({ sharedMode = false }) => {
 
   const getSmartActionsForMessage = useCallback((message, messageIndex) => {
     if (message.type !== 'ai') return [];
+
+    // Backend told us the intent — use it as primary gate
+    if (message.intentClass && !EDUCATIONAL_INTENT_CLASSES.has(message.intentClass)) {
+      return [];
+    }
+
     if (Array.isArray(message.smartActions) && message.smartActions.length) {
       return message.smartActions;
     }
@@ -1072,6 +1105,7 @@ const AIChat = ({ sharedMode = false }) => {
       userMessage: previousUserMessage?.content || '',
       aiResponse: message.content || '',
       recentActionIds,
+      intentClass: message.intentClass,
     });
   }, [messages]);
 
