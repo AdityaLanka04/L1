@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar as CalendarIcon, Clock, FileText, BookOpen, 
@@ -40,6 +40,7 @@ const ActivityTimeline = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showDayModal, setShowDayModal] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [showListModal, setShowListModal] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
@@ -2028,6 +2029,17 @@ const ActivityTimeline = () => {
     );
   };
 
+  const filteredActivityCount = useMemo(() => getFilteredActivities().length, [activities, selectedFilters]);
+  const todayDateLabel = useMemo(
+    () => new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+    []
+  );
+  const topbarPrimaryCount = viewMode === 'reminders' ? reminders.length : filteredActivityCount;
+  const topbarPrimaryLabel = viewMode === 'reminders' ? 'Reminders' : 'Activities';
+  const activeFilterCount = selectedFilters.includes('all')
+    ? 'All types'
+    : `${selectedFilters.filter((f) => f !== 'all').length} filters`;
+
   
   return (
     <div className="at-activity-timeline-page">
@@ -2063,133 +2075,184 @@ const ActivityTimeline = () => {
         <circle cx="1000" cy="600" r="2" fill="currentColor"/>
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
-      <header className="at-profile-header">
-        <div className="at-profile-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="at-profile-logo" onClick={() => navigate('/search-hub')}>
-            <div className="at-profile-logo-img" />
-            cerbyl
-          </h1>
-          <div className="at-profile-header-divider"></div>
-          <span className="at-profile-subtitle">calendar & timeline</span>
-        </div>
-        <nav className="at-profile-header-right">
-          <button 
-            className={`at-profile-nav-btn at-profile-nav-btn-ghost ${showStats ? 'active' : ''}`}
-            onClick={() => setShowStats(!showStats)}
-          >
-            <BarChart3 size={14} />
-            <span>Stats</span>
-          </button>
-          <button 
-            className="at-profile-nav-btn at-profile-nav-btn-ghost" 
-            onClick={exportCalendarData}
-          >
-            <Download size={14} />
-            <span>Export</span>
-          </button>
-          <button className="at-profile-nav-btn profile-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-        </nav>
-      </header>
+      <div className="at-bg-fx" aria-hidden>
+        <div className="at-bg-orb at-bg-orb-1" />
+        <div className="at-bg-orb at-bg-orb-2" />
+        <div className="at-bg-orb at-bg-orb-3" />
+        <div className="at-bg-dots" />
+        <div className="at-bg-vignette" />
+      </div>
 
-      <div className="at-main-content-area">
-        {preferences.showMiniCalendar && (
-          <aside className="at-left-sidebar">
-            <div className="at-sidebar-view-modes">
-              <button 
-                className={`at-sidebar-view-btn ${viewMode === 'calendar' ? 'active' : ''}`}
-                onClick={() => setViewMode('calendar')}
-              >
-                <CalendarIcon size={14} />
-                <span>Calendar</span>
-              </button>
-              <button 
-                className={`at-sidebar-view-btn ${viewMode === 'timeline' ? 'active' : ''}`}
-                onClick={() => setViewMode('timeline')}
-              >
-                <Clock size={14} />
-                <span>Timeline</span>
-              </button>
-              <button 
-                className={`at-sidebar-view-btn ${viewMode === 'reminders' ? 'active' : ''}`}
-                onClick={() => setViewMode('reminders')}
-              >
-                <Bell size={14} />
-                <span>Reminders</span>
-                {smartListCounts.all > 0 && (
-                  <span className="at-sidebar-badge">{smartListCounts.all}</span>
-                )}
-              </button>
-            </div>
-            
-            {viewMode === 'calendar' && renderMiniCalendar()}
-            
-            {viewMode !== 'reminders' && (
-              <div className="at-sidebar-filters">
-                <button 
-                  className={`at-sidebar-filter-btn ${selectedFilters.includes('all') ? 'active' : ''}`}
-                  onClick={() => toggleFilter('all')}
+      <div className={`at-main-content-area ${isSidebarOpen ? '' : 'at-main-content-area--collapsed'}`}>
+        {isSidebarOpen && (
+          <div className="at-side-slot">
+            <aside className="at-left-sidebar">
+              <div className="at-side-header">
+                <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+                  <Menu size={18} />
+                </button>
+                <button className="at-side-brand-btn" onClick={() => navigate('/search-hub')}>
+                  <span className="at-side-brand-dot" />
+                  <span>cerbyl timeline</span>
+                </button>
+                <button
+                  className="at-side-collapse-btn"
+                  onClick={() => setIsSidebarOpen(false)}
+                  aria-label="Hide sidebar"
                 >
-                  <span className="at-filter-checkbox">
-                  {selectedFilters.includes('all') && <span className="at-checkbox-dot"></span>}
-                </span>
-                <span>All Activities</span>
-              </button>
-              <button 
-                className={`at-sidebar-filter-btn ${selectedFilters.includes('note') ? 'active' : ''}`}
-                onClick={() => toggleFilter('note')}
-                data-color="#86efac"
-              >
-                <span className="at-filter-checkbox">
-                  {selectedFilters.includes('note') && <span className="at-checkbox-dot"></span>}
-                </span>
-                <span className="at-filter-bullet at-filter-bullet--note"></span>
-                <span>Notes</span>
-              </button>
-              <button
-                className={`at-sidebar-filter-btn ${selectedFilters.includes('flashcard') ? 'active' : ''}`}
-                onClick={() => toggleFilter('flashcard')}
-                data-color="#fcd34d"
-              >
-                <span className="at-filter-checkbox">
-                  {selectedFilters.includes('flashcard') && <span className="at-checkbox-dot"></span>}
-                </span>
-                <span className="at-filter-bullet at-filter-bullet--flashcard"></span>
-                <span>Flashcards</span>
-              </button>
-              <button
-                className={`at-sidebar-filter-btn ${selectedFilters.includes('quiz') ? 'active' : ''}`}
-                onClick={() => toggleFilter('quiz')}
-                data-color="#f9a8d4"
-              >
-                <span className="at-filter-checkbox">
-                  {selectedFilters.includes('quiz') && <span className="at-checkbox-dot"></span>}
-                </span>
-                <span className="at-filter-bullet at-filter-bullet--quiz"></span>
-                <span>Quizzes</span>
-              </button>
-              <button
-                className={`at-sidebar-filter-btn ${selectedFilters.includes('chat') ? 'active' : ''}`}
-                onClick={() => toggleFilter('chat')}
-                data-color="#93c5fd"
-              >
-                <span className="at-filter-checkbox">
-                  {selectedFilters.includes('chat') && <span className="at-checkbox-dot"></span>}
-                </span>
-                <span className="at-filter-bullet at-filter-bullet--chat"></span>
-                <span>AI Chats</span>
-              </button>
-            </div>
-            )}
-          </aside>
+                  <Minimize2 size={16} />
+                </button>
+              </div>
+
+              <div className="at-side-quick-actions">
+                <button
+                  className={`at-side-quick-btn ${showStats ? 'active' : ''}`}
+                  onClick={() => setShowStats(!showStats)}
+                >
+                  <BarChart3 size={13} />
+                  <span>{showStats ? 'Hide Stats' : 'Show Stats'}</span>
+                </button>
+                <button className="at-side-quick-btn" onClick={exportCalendarData}>
+                  <Download size={13} />
+                  <span>Export</span>
+                </button>
+                <button className="at-side-quick-btn" onClick={() => navigate('/dashboard-cerbyl')}>
+                  <ChevronRight size={13} />
+                  <span>Cerbyl Dashboard</span>
+                </button>
+              </div>
+
+              <div className="at-side-block">
+                <div className="at-side-block-label">Views</div>
+                <div className="at-sidebar-view-modes">
+                  <button 
+                    className={`at-sidebar-view-btn ${viewMode === 'calendar' ? 'active' : ''}`}
+                    onClick={() => setViewMode('calendar')}
+                  >
+                    <CalendarIcon size={14} />
+                    <span>Calendar</span>
+                  </button>
+                  <button 
+                    className={`at-sidebar-view-btn ${viewMode === 'timeline' ? 'active' : ''}`}
+                    onClick={() => setViewMode('timeline')}
+                  >
+                    <Clock size={14} />
+                    <span>Timeline</span>
+                  </button>
+                  <button 
+                    className={`at-sidebar-view-btn ${viewMode === 'reminders' ? 'active' : ''}`}
+                    onClick={() => setViewMode('reminders')}
+                  >
+                    <Bell size={14} />
+                    <span>Reminders</span>
+                    {smartListCounts.all > 0 && (
+                      <span className="at-sidebar-badge">{smartListCounts.all}</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            
+              {preferences.showMiniCalendar && viewMode === 'calendar' && renderMiniCalendar()}
+            
+              {viewMode !== 'reminders' && (
+                <div className="at-side-block">
+                  <div className="at-side-block-label">Activity Filters</div>
+                  <div className="at-sidebar-filters">
+                  <button 
+                    className={`at-sidebar-filter-btn ${selectedFilters.includes('all') ? 'active' : ''}`}
+                    onClick={() => toggleFilter('all')}
+                  >
+                    <span className="at-filter-checkbox">
+                    {selectedFilters.includes('all') && <span className="at-checkbox-dot"></span>}
+                  </span>
+                  <span>All Activities</span>
+                  </button>
+                  <button 
+                    className={`at-sidebar-filter-btn ${selectedFilters.includes('note') ? 'active' : ''}`}
+                    onClick={() => toggleFilter('note')}
+                    data-color="#86efac"
+                  >
+                    <span className="at-filter-checkbox">
+                      {selectedFilters.includes('note') && <span className="at-checkbox-dot"></span>}
+                    </span>
+                    <span className="at-filter-bullet at-filter-bullet--note"></span>
+                    <span>Notes</span>
+                  </button>
+                  <button
+                    className={`at-sidebar-filter-btn ${selectedFilters.includes('flashcard') ? 'active' : ''}`}
+                    onClick={() => toggleFilter('flashcard')}
+                    data-color="#fcd34d"
+                  >
+                    <span className="at-filter-checkbox">
+                      {selectedFilters.includes('flashcard') && <span className="at-checkbox-dot"></span>}
+                    </span>
+                    <span className="at-filter-bullet at-filter-bullet--flashcard"></span>
+                    <span>Flashcards</span>
+                  </button>
+                  <button
+                    className={`at-sidebar-filter-btn ${selectedFilters.includes('quiz') ? 'active' : ''}`}
+                    onClick={() => toggleFilter('quiz')}
+                    data-color="#f9a8d4"
+                  >
+                    <span className="at-filter-checkbox">
+                      {selectedFilters.includes('quiz') && <span className="at-checkbox-dot"></span>}
+                    </span>
+                    <span className="at-filter-bullet at-filter-bullet--quiz"></span>
+                    <span>Quizzes</span>
+                  </button>
+                  <button
+                    className={`at-sidebar-filter-btn ${selectedFilters.includes('chat') ? 'active' : ''}`}
+                    onClick={() => toggleFilter('chat')}
+                    data-color="#93c5fd"
+                  >
+                    <span className="at-filter-checkbox">
+                      {selectedFilters.includes('chat') && <span className="at-checkbox-dot"></span>}
+                    </span>
+                    <span className="at-filter-bullet at-filter-bullet--chat"></span>
+                    <span>AI Chats</span>
+                  </button>
+                </div>
+              </div>
+              )}
+            </aside>
+          </div>
         )}
 
         <main className="at-content-main">
+          <div className="at-content-shell">
+            <div className="at-content-topbar">
+              <div>
+                <span className="view-kicker">Cerbyl Activity</span>
+                <h1 className="at-content-title">
+                  {viewMode === 'reminders' && 'Reminders'}
+                  {viewMode === 'timeline' && 'Timeline'}
+                  {viewMode === 'calendar' && `${calendarViewType.charAt(0).toUpperCase()}${calendarViewType.slice(1)} Calendar`}
+                </h1>
+                <p className="at-content-subtitle">{todayDateLabel}</p>
+                <div className="at-content-metrics">
+                  <span className="at-content-chip">
+                    <strong>{topbarPrimaryCount}</strong> {topbarPrimaryLabel}
+                  </span>
+                  <span className="at-content-chip">
+                    <strong>{activeFilterCount}</strong>
+                  </span>
+                </div>
+              </div>
+              <div className="at-content-topbar-actions">
+                <button className="at-topbar-btn" onClick={() => setIsSidebarOpen(prev => !prev)}>
+                  <Menu size={14} />
+                  <span>{isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}</span>
+                </button>
+                <button className="at-topbar-btn" onClick={() => setShowStats(!showStats)}>
+                  <BarChart3 size={14} />
+                  <span>{showStats ? 'Hide Stats' : 'Stats'}</span>
+                </button>
+                <button className="at-topbar-btn" onClick={() => navigate('/dashboard-cerbyl')}>
+                  <ChevronRight size={14} />
+                  <span>Dashboard</span>
+                </button>
+              </div>
+            </div>
           {loading ? (
             <div className="at-loading-container">
               <div className="at-loading-spinner"></div>
@@ -2208,6 +2271,7 @@ const ActivityTimeline = () => {
               {viewMode === 'reminders' && renderReminders()}
             </>
           )}
+          </div>
         </main>
       </div>
 

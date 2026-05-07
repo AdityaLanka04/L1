@@ -1,0 +1,188 @@
+.agr-card {
+  margin: 14px 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border));
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 92%, var(--accent) 8%) 0%,
+    color-mix(in srgb, var(--panel) 98%, transparent) 100%
+  );
+  overflow: hidden;
+}
+
+.agr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  background: color-mix(in srgb, var(--hover-bg) 84%, transparent);
+}
+
+.agr-tag {
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
+  font-weight: 700;
+}
+
+.agr-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.agr-actions button {
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  color: var(--text-primary);
+  border-radius: 7px;
+  min-width: 44px;
+  height: 26px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.agr-actions button:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+  color: var(--accent);
+}
+
+.agr-title-wrap {
+  padding: 12px 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agr-title-wrap strong {
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.agr-title-wrap span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.agr-canvas {
+  padding: 12px 14px;
+}
+
+.agr-svg-scroll {
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg) 56%, var(--panel));
+}
+
+.agr-svg {
+  min-width: 620px;
+  min-height: 160px;
+  padding: 12px;
+}
+
+.agr-svg svg {
+  max-width: none;
+  height: auto;
+}
+
+.agr-data-svg {
+  width: 760px;
+  min-width: 760px;
+  height: auto;
+  display: block;
+}
+
+.agr-grid-line {
+  stroke: color-mix(in srgb, var(--border) 80%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.agr-axis-line {
+  stroke: color-mix(in srgb, var(--text-primary) 36%, transparent);
+  stroke-width: 1.2;
+}
+
+.agr-axis-label {
+  font-size: 11px;
+  fill: var(--text-secondary);
+}
+
+.agr-axis-number {
+  font-size: 10px;
+}
+
+.agr-axis-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.agr-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0 14px 12px;
+}
+
+.agr-legend {
+  display: inline-flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.agr-legend span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.agr-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.agr-readout {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.agr-empty,
+.agr-error {
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.agr-empty {
+  color: var(--text-secondary);
+}
+
+.agr-error {
+  color: #dc2626;
+  background: color-mix(in srgb, #dc2626 10%, transparent);
+  border: 1px solid color-mix(in srgb, #dc2626 30%, transparent);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.agr-compact .agr-data-svg {
+  width: 680px;
+  min-width: 680px;
+}
+
+@media (max-width: 768px) {
+  .agr-svg,
+  .agr-data-svg {
+    min-width: 560px;
+  }
+}

@@ -74,6 +74,12 @@ const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
   const [renderedSvg, setRenderedSvg] = React.useState('');
   const [isRendering, setIsRendering] = React.useState(false);
 
+  const isMermaidErrorSvg = React.useCallback((svg) => {
+    const raw = String(svg || '');
+    if (!raw) return true;
+    return /class=["']error-text["']|syntax error in text|parse error|lexical error|mermaid version/i.test(raw);
+  }, []);
+
   
   React.useEffect(() => {
     let mounted = true;
@@ -114,6 +120,9 @@ const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
         crypto.getRandomValues(randomArr);
         const id = `mermaid_${timestamp}_${randomArr[0]}`;
         const { svg } = await mermaid.render(id, block.content);
+        if (isMermaidErrorSvg(svg)) {
+          throw new Error('Invalid Mermaid syntax');
+        }
         if (cancelled) return;
         mermaidRef.current.innerHTML = sanitizeHtml(svg);
         setRenderedSvg(svg);
@@ -130,7 +139,7 @@ const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
     };
     renderDiagram();
     return () => { cancelled = true; };
-  }, [showPreview, block.content, mermaid, darkMode]);
+  }, [showPreview, block.content, mermaid, darkMode, isMermaidErrorSvg]);
 
   const handleCopyCode = async () => {
     try {

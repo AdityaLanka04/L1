@@ -61,6 +61,7 @@ import Vault from './pages/Vault';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import CerbylNavSidebar from './components/CerbylNavSidebar';
+import AIChatDock from './components/AIChatDock';
 import { useGlobalNav } from './hooks/useGlobalNav';
 import GlobalNotifications from './components/GlobalNotifications';
 
@@ -82,6 +83,7 @@ function App() {
           <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
             <CerbylNavSidebar isOpen={isOpen} onClose={closeNav} />
             <GlobalNotifications />
+            <AIChatDock />
             {notification && (
               <ProactiveNotification
                 message={notification.message}

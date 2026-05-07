@@ -14,6 +14,7 @@ import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRi
 import './KnowledgeRoadmap.css';
 import { API_URL } from '../config';
 import MathRenderer from '../components/MathRenderer';
+import { marked } from 'marked';
 const CustomNode = ({ data, selected }) => {
   const [activeAction, setActiveAction] = useState(null);
   const setAction = (action) => () => setActiveAction(action);
@@ -1197,146 +1198,56 @@ Instructions:
   const renderMarkdown = (text) => {
     if (!text) return '';
 
-    const mathSymbols = ['∑', 'Σ', '∫', '∏', 'Π', '∮', '∯', '∰', '⨌'];
-    mathSymbols.forEach(symbol => {
-      try {
-        const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(escaped, 'g');
-        text = text.replace(regex, `<span class="math-symbol">${symbol}</span>`);
-      } catch {
-        text = text.split(symbol).join(`<span class="math-symbol">${symbol}</span>`);
-      }
+    const mathStore = [];
+    const placeholder = (i) => `ZMATH${i}Z`;
+
+    const extractMath = (src) => {
+      src = src.replace(/\$\$([\s\S]+?)\$\$/g, (_, m) => {
+        mathStore.push({ tex: m.trim(), display: true });
+        return placeholder(mathStore.length - 1);
+      });
+      src = src.replace(/\\\[([\s\S]+?)\\\]/g, (_, m) => {
+        mathStore.push({ tex: m.trim(), display: true });
+        return placeholder(mathStore.length - 1);
+      });
+      src = src.replace(/\$([^\n$]{1,300}?)\$/g, (_, m) => {
+        mathStore.push({ tex: m.trim(), display: false });
+        return placeholder(mathStore.length - 1);
+      });
+      src = src.replace(/\\\(([^\n]{1,300}?)\\\)/g, (_, m) => {
+        mathStore.push({ tex: m.trim(), display: false });
+        return placeholder(mathStore.length - 1);
+      });
+      return src;
+    };
+
+    const restoreMath = (html) => html.replace(/ZMATH(\d+)Z/g, (_, i) => {
+      const item = mathStore[parseInt(i, 10)];
+      if (!item) return '';
+      if (item.display) return `<div class="math-display-wrap">$$${item.tex}$$</div>`;
+      return `$${item.tex}$`;
     });
 
-    const lines = text.split('\n');
-    const processedLines = [];
-    let inBulletList = false;
-    let inNumberedList = false;
-    let inTable = false;
-    let tableRows = [];
+    text = extractMath(text);
 
-    for (let i = 0; i < lines.length; i++) {
-      let line = lines[i].trim();
+    const renderer = new marked.Renderer();
+    renderer.heading = ({ text: t, depth }) => `<h${depth} class="md-h${depth}">${t}</h${depth}>`;
+    renderer.strong = ({ text: t }) => `<strong class="md-bold-inline">${t}</strong>`;
+    renderer.codespan = ({ text: t }) => `<code class="md-inline-code">${t}</code>`;
+    marked.use({ renderer, breaks: true, gfm: true });
 
-      if (line.includes('|') && !inTable) {
-        inTable = true;
-        tableRows = [line];
-        continue;
-      } else if (inTable && line.includes('|')) {
-        tableRows.push(line);
-        continue;
-      } else if (inTable && !line.includes('|')) {
-        inTable = false;
-        processedLines.push(renderTable(tableRows));
-        tableRows = [];
-      }
-      if (inTable) continue;
-
-      if (/^#### (.+)$/.test(line)) {
-        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
-        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
-        processedLines.push(`<h4 class="md-h4">${line.replace(/^#### (.+)$/, '$1')}</h4>`);
-        continue;
-      }
-      if (/^### (.+)$/.test(line)) {
-        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
-        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
-        processedLines.push(`<h3 class="md-h3">${line.replace(/^### (.+)$/, '$1')}</h3>`);
-        continue;
-      }
-      if (/^## (.+)$/.test(line)) {
-        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
-        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
-        processedLines.push(`<h2 class="md-h2">${line.replace(/^## (.+)$/, '$1')}</h2>`);
-        continue;
-      }
-      if (/^# (.+)$/.test(line)) {
-        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
-        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
-        processedLines.push(`<h1 class="md-h1">${line.replace(/^# (.+)$/, '$1')}</h1>`);
-        continue;
-      }
-
-      if (/^\*\*(.+?)\*\*/.test(line)) {
-        line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-heading">$1</strong>');
-      } else {
-        line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-inline">$1</strong>');
-      }
-      line = line.replace(/__(.+?)__/g, '<strong class="md-bold-inline">$1</strong>');
-      line = line.replace(/(?<!\w)\*([^*]+?)\*(?!\w)/g, '<em>$1</em>');
-      line = line.replace(/(?<!\w)_([^_]+?)_(?!\w)/g, '<em>$1</em>');
-      line = line.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
-      line = line.replace(/\b([A-Z]{2,})\b/g, '<span class="keyword">$1</span>');
-
-      const isBullet = /^[\*\-•] (.+)$/.test(line);
-      const isNumbered = /^\d+\. (.+)$/.test(line);
-
-      if (isBullet) {
-        if (!inBulletList) {
-          processedLines.push('<ul class="md-ul">');
-          inBulletList = true;
-        }
-        processedLines.push(`<li class="md-li">${line.replace(/^[\*\-•] (.+)$/, '$1')}</li>`);
-      } else if (isNumbered) {
-        if (!inNumberedList) {
-          processedLines.push('<ol class="md-ol">');
-          inNumberedList = true;
-        }
-        processedLines.push(`<li class="md-li-num">${line.replace(/^\d+\. (.+)$/, '$1')}</li>`);
-      } else {
-        if (inBulletList) {
-          processedLines.push('</ul>');
-          inBulletList = false;
-        }
-        if (inNumberedList) {
-          processedLines.push('</ol>');
-          inNumberedList = false;
-        }
-        processedLines.push(line);
-      }
-    }
-
-    if (inTable && tableRows.length > 0) {
-      processedLines.push(renderTable(tableRows));
-    }
-    if (inBulletList) processedLines.push('</ul>');
-    if (inNumberedList) processedLines.push('</ol>');
-
-    const finalContent = [];
-    let currentParagraph = [];
-
-    for (let i = 0; i < processedLines.length; i++) {
-      const line = processedLines[i];
-      const trimmedLine = line.trim();
-      const isBlockElement = line.startsWith('<h') || line.startsWith('<ul') || line.startsWith('<ol') ||
-        line.startsWith('</ul>') || line.startsWith('</ol>') ||
-        line.startsWith('<div class="table-block-container">');
-      const isEmptyLine = trimmedLine === '';
-
-      if (isBlockElement) {
-        if (currentParagraph.length > 0) {
-          finalContent.push(`<p>${currentParagraph.join(' ')}</p>`);
-          currentParagraph = [];
-        }
-        finalContent.push(line);
-      } else if (isEmptyLine) {
-        if (currentParagraph.length > 0) {
-          finalContent.push(`<p>${currentParagraph.join(' ')}</p>`);
-          currentParagraph = [];
-        }
-      } else if (trimmedLine) {
-        currentParagraph.push(trimmedLine);
-      }
-    }
-
-    if (currentParagraph.length > 0) {
-      finalContent.push(`<p>${currentParagraph.join(' ')}</p>`);
-    }
-
-    text = finalContent.join('\n');
-    if (text && !text.startsWith('<')) {
+    try {
+      text = marked.parse(text);
+    } catch {
       text = `<p>${text}</p>`;
     }
+
+    text = restoreMath(text);
+    text = text.replace(/>([^<]+)</g, (full, inner) => {
+      if (/\$/.test(inner)) return full;
+      return `>${inner.replace(/\b([A-Z]{3,})\b/g, '<span class="keyword">$1</span>')}<`;
+    });
+
     return text;
   };
 

@@ -5,12 +5,14 @@ import { API_URL } from '../config';
 import { safeInternalPath } from '../utils/sanitize';
 import gamificationService from '../services/gamificationService';
 import MathRenderer from '../components/MathRenderer';
+import GraphRenderer, { detectGraphLanguage } from '../components/GraphRenderer';
 import { marked } from 'marked';
 
 import './AIChat.css';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
+import { enableChatDock } from '../utils/chatDock';
 
 const SMART_ACTION_LIMIT = 8;
 
@@ -69,6 +71,68 @@ const INTENT_KEYWORDS = {
 };
 
 const TOPIC_PATTERN = /\b(?:about|on|for|of|regarding)\s+([a-zA-Z0-9\s\-_,]{3,80})/i;
+const GRAPH_REQUEST_RE = /\b(graph|chart|plot|diagram|flowchart|mindmap|visuali[sz]e|trendline|trend line)\b/i;
+const CARTESIAN_GRAPH_RE = /\b(x[\s-]?axis|y[\s-]?axis|linear regression|scatter|line graph|slope|intercept|coordinate|cartesian)\b/i;
+const GRAPH_WORTHY_RE = /\b(compare|comparison|trend|distribution|correlation|relationship|growth|decline|over time|ratio|proportion|probability|frequency|histogram|timeline|forecast|projection|metrics|analytics|performance)\b/i;
+const STEM_GRAPH_DOMAIN_RE = /\b(algebra|geometry|trigonometry|calculus|statistics|probability|equation|matrix|vector|derivative|integral|function|regression|optimization|economics?|gdp|inflation|interest rate|demand|supply|elasticity|market|finance|revenue|cost|profit|physics|mechanics|thermodynamics|electromagnetism|optics|quantum|force|velocity|acceleration|energy|momentum)\b/i;
+const INTERNAL_GRAPH_GUIDANCE_MARKERS = [
+  'if a visual would materially improve understanding,',
+  'when a graph is needed, return a fenced',
+  'if a visual helps, include a fenced graph block',
+  'prefer ```graphjson for this response',
+  'for `graphjson`, use schema:',
+  'only include graphjson when necessary.',
+  'do not include any graph or diagram block unless the user explicitly asks for one.',
+];
+
+function buildGraphAwarePrompt(userText = '') {
+  const base = String(userText || '').trim();
+  if (!base) return base;
+
+  const isGraphRequest = GRAPH_REQUEST_RE.test(base);
+  const isCartesianGraphRequest = CARTESIAN_GRAPH_RE.test(base);
+  const graphWorthy = isGraphRequest || isCartesianGraphRequest || GRAPH_WORTHY_RE.test(base);
+  const inGraphFriendlyDomain = STEM_GRAPH_DOMAIN_RE.test(base);
+
+  const proactiveInstruction = 'If a visual would materially improve understanding, proactively include exactly one fenced graph block. Use `graphjson` for data/x-y charts and `mermaid` for process/concept flows. Do not include a graph when it does not help.';
+  const graphJsonHint = 'For `graphjson`, use schema: {"type":"line|scatter|bubble|bar|area|pie|donut","title":"...","xLabel":"...","yLabel":"...","series":[{"name":"...","points":[{"x":number|string,"y":number,"r":number?}]}]}.';
+
+  if (isCartesianGraphRequest) {
+    return `${base}\n\n${proactiveInstruction}\nPrefer \`\`\`graphjson for this response with numeric x/y points and axis labels.\n${graphJsonHint}`;
+  }
+
+  if (graphWorthy || inGraphFriendlyDomain) {
+    return `${base}\n\n${proactiveInstruction}\n${graphJsonHint}`;
+  }
+
+  return `${base}\n\nDo not include any graph or diagram block unless the user explicitly asks for one.`;
+}
+
+function stripInternalGraphGuidance(text = '') {
+  const raw = String(text || '').replace(/\r\n/g, '\n');
+  if (!raw) return raw;
+  const lower = raw.toLowerCase();
+  let cutAt = -1;
+  INTERNAL_GRAPH_GUIDANCE_MARKERS.forEach((marker) => {
+    const idx = lower.indexOf(marker);
+    if (idx >= 0 && (cutAt === -1 || idx < cutAt)) cutAt = idx;
+  });
+  if (cutAt === -1) return raw.trim();
+
+  // Trim trailing newlines before marker
+  return raw.slice(0, cutAt).replace(/\n{2,}$/g, '').trim();
+}
+
+function normalizeLoadedMessage(message) {
+  if (!message || typeof message !== 'object') return message;
+  const msgType = String(message.type || message.role || '').toLowerCase();
+  const isUserMessage = msgType === 'user' || msgType === 'human';
+  if (!isUserMessage) return message;
+  return {
+    ...message,
+    content: stripInternalGraphGuidance(message.content || ''),
+  };
+}
 
 function normalizeTopic(topic = '') {
   return topic.replace(/[^\w\s\-]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -426,7 +490,7 @@ const AIChat = ({ sharedMode = false }) => {
         setIsSharedContent(true);
         
         
-        setMessages(data.messages || []);
+        setMessages((data.messages || []).map(normalizeLoadedMessage));
         
       } else {
         throw new Error('Failed to load shared chat');
@@ -646,7 +710,7 @@ const AIChat = ({ sharedMode = false }) => {
       
       if (response.ok) {
         const messagesArray = await response.json();
-                setMessages(messagesArray);
+                setMessages((Array.isArray(messagesArray) ? messagesArray : []).map(normalizeLoadedMessage));
         
         setTimeout(() => {
           scrollToLatestMessage();
@@ -893,6 +957,7 @@ const AIChat = ({ sharedMode = false }) => {
     
     
     const messageText = sanitizedMessage;
+    const messageForModel = buildGraphAwarePrompt(messageText);
     const messagedFiles = useOverride ? [] : [...selectedFiles];
     
     if (!useOverride) {
@@ -951,7 +1016,7 @@ const AIChat = ({ sharedMode = false }) => {
 
       const formData = new FormData();
       formData.append('user_id', userName);
-      formData.append('question', messageText || 'Please analyze the uploaded files.');
+      formData.append('question', messageForModel || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
       formData.append('use_hs_context', hsMode.toString());
 
@@ -1082,6 +1147,16 @@ const AIChat = ({ sharedMode = false }) => {
     }, 2800);
   }, []);
 
+  const activateChatDock = useCallback((chatSessionId = null) => {
+    const routeChatId = chatId ? Number(chatId) : 0;
+    const resolvedChatId = Number(chatSessionId || activeChatId || routeChatId || 0);
+    if (!resolvedChatId) return;
+    enableChatDock({
+      chatId: resolvedChatId,
+      title: 'Continue Chat',
+    });
+  }, [activeChatId, chatId]);
+
   const getSmartActionsForMessage = useCallback((message, messageIndex) => {
     if (message.type !== 'ai') return [];
 
@@ -1159,8 +1234,10 @@ const AIChat = ({ sharedMode = false }) => {
         }
         const roadmapData = await roadmapResponse.json();
         if (roadmapData?.roadmap_id) {
+          activateChatDock(activeChatId);
           navigate(`/knowledge-roadmap/${roadmapData.roadmap_id}`);
         } else {
+          activateChatDock(activeChatId);
           navigate('/knowledge-roadmap');
         }
         showSmartActionNotice(noticeText);
@@ -1173,6 +1250,7 @@ const AIChat = ({ sharedMode = false }) => {
 
       if (action.kind === 'open_route') {
         if (action.route) {
+          activateChatDock(activeChatId);
           navigate(action.route);
           showSmartActionNotice(`Opening ${action.label}...`);
         }
@@ -1180,6 +1258,7 @@ const AIChat = ({ sharedMode = false }) => {
       }
 
       if (action.kind === 'quiz_on_topic') {
+        activateChatDock(activeChatId);
         navigate('/solo-quiz', {
           state: {
             autoStart: true,
@@ -1207,8 +1286,10 @@ const AIChat = ({ sharedMode = false }) => {
         }
         const noteData = await noteResponse.json();
         if (noteData?.id) {
+          activateChatDock(activeChatId);
           navigate(`/notes/editor/${noteData.id}`);
         } else {
+          activateChatDock(activeChatId);
           navigate('/notes/my-notes');
         }
         showSmartActionNotice('Note created from this response.');
@@ -1231,8 +1312,10 @@ const AIChat = ({ sharedMode = false }) => {
         }
         const pathData = await pathResponse.json();
         if (pathData?.path_id) {
+          activateChatDock(activeChatId);
           navigate(`/learning-paths/${pathData.path_id}`);
         } else {
+          activateChatDock(activeChatId);
           navigate('/learning-paths');
         }
         showSmartActionNotice('Learning path generated.');
@@ -1248,7 +1331,7 @@ const AIChat = ({ sharedMode = false }) => {
     } finally {
       setActiveActionKey(null);
     }
-  }, [API_URL, activeChatId, navigate, showSmartActionNotice, userName]);
+  }, [API_URL, activateChatDock, activeChatId, navigate, showSmartActionNotice, userName]);
 
   const renderSmartActionIcon = (icon) => {
     switch (icon) {
@@ -1878,7 +1961,7 @@ const AIChat = ({ sharedMode = false }) => {
 
     content = stripThinking(content);
 
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const codeBlockRegex = /```([^\n`]*)?\n?([\s\S]*?)```/g;
     const parts = [];
     let lastIndex = 0;
     let match;
@@ -1893,7 +1976,7 @@ const AIChat = ({ sharedMode = false }) => {
 
       parts.push({
         type: 'code',
-        language: match[1] || 'plaintext',
+        language: (match[1] || 'plaintext').trim().toLowerCase(),
         content: match[2].trim()
       });
 
@@ -1919,40 +2002,51 @@ const AIChat = ({ sharedMode = false }) => {
         const htmlContent = renderMarkdown(part.content);
         const finalContent = htmlContent && htmlContent.trim() ? htmlContent : `<p>${part.content}</p>`;
         return <MathRenderer key={index} content={finalContent} />;
-      } else {
+      }
+
+      const graphLanguage = detectGraphLanguage(part.language, part.content);
+      if (graphLanguage) {
         return (
-          <div key={index} className="code-block-container" data-language={part.language}>
-            <div className="code-block-header">
-              <span className="code-language">{part.language.toUpperCase()}</span>
-              <button
-                className={`code-copy-btn ${copiedCode === index ? 'copied' : ''}`}
-                onClick={() => copyToClipboard(part.content, index)}
-                title="Copy code"
-              >
-                {copiedCode === index ? (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    COPIED
-                  </>
-                ) : (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                    </svg>
-                    COPY
-                  </>
-                )}
-              </button>
-            </div>
-            <pre className="code-block">
-              <code className={`language-${part.language}`}>{part.content}</code>
-            </pre>
-          </div>
+          <GraphRenderer
+            key={index}
+            language={graphLanguage}
+            content={part.content}
+          />
         );
       }
+
+      return (
+        <div key={index} className="code-block-container" data-language={part.language}>
+          <div className="code-block-header">
+            <span className="code-language">{part.language.toUpperCase()}</span>
+            <button
+              className={`code-copy-btn ${copiedCode === index ? 'copied' : ''}`}
+              onClick={() => copyToClipboard(part.content, index)}
+              title="Copy code"
+            >
+              {copiedCode === index ? (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  COPIED
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  COPY
+                </>
+              )}
+            </button>
+          </div>
+          <pre className="code-block">
+            <code className={`language-${part.language}`}>{part.content}</code>
+          </pre>
+        </div>
+      );
     });
   };
 
@@ -2049,7 +2143,7 @@ const AIChat = ({ sharedMode = false }) => {
           const token = localStorage.getItem('token');
           const formData = new FormData();
           formData.append('user_id', userName);
-          formData.append('question', initialMsg);
+          formData.append('question', buildGraphAwarePrompt(initialMsg));
           formData.append('chat_id', newChatId.toString());
           
           const response = await fetch(`${API_URL}/ask_simple/`, {
@@ -2643,6 +2737,7 @@ const AIChat = ({ sharedMode = false }) => {
                               onClick={async () => {
                                 const token = localStorage.getItem('token');
                                 const topic = btn.navigate_params?.topic || 'General';
+                                activateChatDock(activeChatId);
                                 
                                 if (btn.action === 'create' && btn.content_type === 'note') {
                                   // Create a note with AI-generated content via SearchHub agent
