@@ -1368,3 +1368,354 @@ async def get_welcome_notification(
                 "has_insights": False
             }
         }
+
+
+@router.get("/get_ml_analytics")
+def get_ml_analytics(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get comprehensive ML model analytics and transparency data."""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # BKT Stats
+        bkt_states = db.query(models.StudentKnowledgeState).filter_by(user_id=user.id).all()
+        bkt_concepts_tracked = len(bkt_states)
+        bkt_total_updates = sum(state.interaction_count for state in bkt_states)
+        bkt_avg_mastery = sum(state.p_mastery for state in bkt_states) / len(bkt_states) if bkt_states else 0
+        
+        top_mastery_concepts = sorted(
+            [
+                {
+                    "name": state.concept_name or state.concept_id,
+                    "mastery": state.p_mastery,
+                    "interaction_count": state.interaction_count,
+                    "last_updated": state.last_updated.isoformat() if state.last_updated else None
+                }
+                for state in bkt_states
+            ],
+            key=lambda x: x["mastery"],
+            reverse=True
+        )[:10]
+
+        # Get archetype-specific parameters
+        profile = db.query(models.ComprehensiveUserProfile).filter_by(user_id=user.id).first()
+        archetype = profile.primary_archetype if profile else "default"
+        
+        archetype_p_learn = {"Logicor": 0.12, "Kinetiq": 0.08, "Flowist": 0.10}
+        bkt_p_learn = archetype_p_learn.get(archetype, 0.09)
+
+        # RL Stats
+        rl_episodes = db.query(models.BanditEpisodeLog).filter_by(student_id=str(user.id)).all()
+        rl_total_episodes = len(rl_episodes)
+        
+        exploration_count = sum(1 for ep in rl_episodes if ep.exploration_flag)
+        rl_exploration_rate = f"{(exploration_count / rl_total_episodes * 100):.1f}%" if rl_total_episodes > 0 else "0%"
+        
+        # Strategy performance
+        strategy_stats = {}
+        for episode in rl_episodes:
+            strategy_id = episode.strategy_selected
+            if strategy_id not in strategy_stats:
+                strategy_stats[strategy_id] = {
+                    "name": strategy_id,
+                    "use_count": 0,
+                    "total_reward": 0,
+                    "rewards": []
+                }
+            strategy_stats[strategy_id]["use_count"] += 1
+            if episode.reward_received is not None:
+                strategy_stats[strategy_id]["total_reward"] += episode.reward_received
+                strategy_stats[strategy_id]["rewards"].append(episode.reward_received)
+        
+        strategy_performance = []
+        for strategy_id, stats in strategy_stats.items():
+            avg_reward = stats["total_reward"] / stats["use_count"] if stats["use_count"] > 0 else 0
+            success_rate = sum(1 for r in stats["rewards"] if r > 0) / len(stats["rewards"]) * 100 if stats["rewards"] else 0
+            confidence = len(stats["rewards"]) / max(rl_total_episodes, 1)
+            
+            strategy_performance.append({
+                "name": strategy_id,
+                "use_count": stats["use_count"],
+                "avg_reward": avg_reward,
+                "success_rate": round(success_rate, 1),
+                "confidence": confidence
+            })
+        
+        strategy_performance.sort(key=lambda x: x["avg_reward"], reverse=True)
+        rl_best_strategy = strategy_performance[0]["name"] if strategy_performance else "N/A"
+
+        # ML Logs for affect detection
+        ml_logs = db.query(models.MessageMLLog).filter_by(user_id=user.id).order_by(
+            models.MessageMLLog.timestamp.desc()
+        ).limit(100).all()
+        
+        total_ml_logs = len(ml_logs)
+        frustration_trend = [log.frustration_score for log in ml_logs[:10]]
+        engagement_trend = [log.engagement_score for log in ml_logs[:10]]
+        
+        # Cognitive state distribution
+        cognitive_state_distribution = {}
+        for log in ml_logs:
+            state = log.cognitive_state or "unknown"
+            cognitive_state_distribution[state] = cognitive_state_distribution.get(state, 0) + 1
+
+        # Recent model updates
+        recent_updates = []
+        for log in ml_logs[:20]:
+            if log.kt_delta:
+                for concept_id, delta_info in log.kt_delta.items():
+                    if isinstance(delta_info, dict):
+                        before = delta_info.get("before", 0)
+                        after = delta_info.get("after", 0)
+                        impact = after - before
+                    else:
+                        impact = 0
+                    
+                    recent_updates.append({
+                        "timestamp": log.timestamp.isoformat(),
+                        "update_type": "BKT Update",
+                        "description": f"Concept: {concept_id[:30]}",
+                        "impact": impact
+                    })
+        
+        recent_updates = recent_updates[:15]
+
+        return {
+            "bkt_concepts_tracked": bkt_concepts_tracked,
+            "bkt_total_updates": bkt_total_updates,
+            "bkt_avg_mastery": f"{bkt_avg_mastery * 100:.0f}%",
+            "bkt_p_learn": bkt_p_learn,
+            "bkt_p_slip": 0.10,
+            "bkt_p_guess": 0.20,
+            "top_mastery_concepts": top_mastery_concepts,
+            "rl_total_episodes": rl_total_episodes,
+            "rl_exploration_rate": rl_exploration_rate,
+            "rl_best_strategy": rl_best_strategy,
+            "strategy_performance": strategy_performance,
+            "total_ml_logs": total_ml_logs,
+            "frustration_trend": frustration_trend,
+            "engagement_trend": engagement_trend,
+            "cognitive_state_distribution": cognitive_state_distribution,
+            "recent_updates": recent_updates
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting ML analytics: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/get_chat_details")
+def get_chat_details(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get detailed chat analytics."""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Total chats
+        total_chats = db.query(func.count(models.ChatSession.id)).filter_by(user_id=user.id).scalar() or 0
+        
+        # Average session length (in messages)
+        sessions = db.query(models.ChatSession).filter_by(user_id=user.id).all()
+        total_messages = 0
+        for session in sessions:
+            message_count = db.query(func.count(models.ChatMessage.id)).filter_by(
+                chat_session_id=session.id
+            ).scalar() or 0
+            total_messages += message_count
+        
+        avg_messages_per_chat = round(total_messages / total_chats, 1) if total_chats > 0 else 0
+        
+        # Most active day
+        chat_days = {}
+        for session in sessions:
+            if session.created_at:
+                day = session.created_at.strftime("%A")
+                chat_days[day] = chat_days.get(day, 0) + 1
+        
+        most_active_day = max(chat_days.items(), key=lambda x: x[1])[0] if chat_days else "N/A"
+        
+        # Intent breakdown from ML logs
+        ml_logs = db.query(models.MessageMLLog).filter_by(user_id=user.id).all()
+        intent_breakdown = {}
+        for log in ml_logs:
+            intent = log.intent_class or "unknown"
+            intent_breakdown[intent] = intent_breakdown.get(intent, 0) + 1
+        
+        # Top concepts
+        concept_counts = {}
+        for log in ml_logs:
+            if log.concept_ids:
+                for concept_id in log.concept_ids:
+                    concept_counts[concept_id] = concept_counts.get(concept_id, 0) + 1
+        
+        top_concepts = [
+            {"name": concept_id, "count": count}
+            for concept_id, count in sorted(concept_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+        ]
+        
+        # Average session length in time
+        session_durations = []
+        for session in sessions:
+            messages = db.query(models.ChatMessage).filter_by(
+                chat_session_id=session.id
+            ).order_by(models.ChatMessage.timestamp).all()
+            
+            if len(messages) >= 2:
+                duration = (messages[-1].timestamp - messages[0].timestamp).total_seconds() / 60
+                session_durations.append(duration)
+        
+        avg_session_length = f"{int(sum(session_durations) / len(session_durations))}m" if session_durations else "0m"
+
+        return {
+            "total_chats": total_chats,
+            "avg_session_length": avg_session_length,
+            "most_active_day": most_active_day,
+            "avg_messages_per_chat": avg_messages_per_chat,
+            "intent_breakdown": intent_breakdown,
+            "top_concepts": top_concepts
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting chat details: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/get_flashcard_details")
+def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get detailed flashcard analytics."""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Total reviews
+        total_reviews = db.query(func.count(models.FlashcardReview.id)).join(
+            models.Flashcard
+        ).filter(models.Flashcard.user_id == user.id).scalar() or 0
+        
+        # Accuracy rate
+        correct_reviews = db.query(func.count(models.FlashcardReview.id)).join(
+            models.Flashcard
+        ).filter(
+            models.Flashcard.user_id == user.id,
+            models.FlashcardReview.rating >= 3
+        ).scalar() or 0
+        
+        accuracy_rate = f"{(correct_reviews / total_reviews * 100):.1f}%" if total_reviews > 0 else "0%"
+        
+        # Study streak
+        reviews = db.query(models.FlashcardReview).join(
+            models.Flashcard
+        ).filter(models.Flashcard.user_id == user.id).order_by(
+            models.FlashcardReview.reviewed_at.desc()
+        ).all()
+        
+        study_days = set()
+        for review in reviews:
+            if review.reviewed_at:
+                study_days.add(review.reviewed_at.date())
+        
+        # Calculate streak
+        study_streak = 0
+        current_date = datetime.now(timezone.utc).date()
+        while current_date in study_days:
+            study_streak += 1
+            current_date -= timedelta(days=1)
+        
+        # Mastered cards (stability > 100 days)
+        mastered_cards = db.query(func.count(models.Flashcard.id)).filter(
+            models.Flashcard.user_id == user.id,
+            models.Flashcard.stability > 100
+        ).scalar() or 0
+        
+        # FSRS stats
+        flashcards = db.query(models.Flashcard).filter_by(user_id=user.id).all()
+        
+        avg_retention = sum(card.retrievability for card in flashcards if card.retrievability) / len(flashcards) if flashcards else 0
+        avg_retention = f"{avg_retention * 100:.1f}%"
+        
+        # Cards due today
+        today = datetime.now(timezone.utc)
+        cards_due_today = db.query(func.count(models.Flashcard.id)).filter(
+            models.Flashcard.user_id == user.id,
+            models.Flashcard.next_review <= today
+        ).scalar() or 0
+        
+        # Optimal review time (based on when user does most reviews)
+        review_hours = {}
+        for review in reviews:
+            if review.reviewed_at:
+                hour = review.reviewed_at.hour
+                review_hours[hour] = review_hours.get(hour, 0) + 1
+        
+        optimal_hour = max(review_hours.items(), key=lambda x: x[1])[0] if review_hours else None
+        optimal_review_time = f"{optimal_hour}:00" if optimal_hour is not None else "N/A"
+        
+        # Difficulty distribution
+        difficulty_distribution = {
+            "easy": 0,
+            "medium": 0,
+            "hard": 0
+        }
+        
+        for card in flashcards:
+            if card.difficulty < 5:
+                difficulty_distribution["easy"] += 1
+            elif card.difficulty < 7:
+                difficulty_distribution["medium"] += 1
+            else:
+                difficulty_distribution["hard"] += 1
+
+        return {
+            "total_reviews": total_reviews,
+            "accuracy_rate": accuracy_rate,
+            "study_streak": study_streak,
+            "mastered_cards": mastered_cards,
+            "avg_retention": avg_retention,
+            "cards_due_today": cards_due_today,
+            "optimal_review_time": optimal_review_time,
+            "difficulty_distribution": difficulty_distribution
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting flashcard details: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/get_context_sessions")
+def get_context_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get AI context sessions for the user."""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        sessions = db.query(models.CerbylSessionState).filter_by(user_id=user.id).order_by(
+            models.CerbylSessionState.last_message_at.desc()
+        ).limit(20).all()
+
+        session_data = []
+        for session in sessions:
+            session_data.append({
+                "session_id": session.session_id,
+                "started_at": session.started_at.isoformat() if session.started_at else None,
+                "last_message_at": session.last_message_at.isoformat() if session.last_message_at else None,
+                "message_count": session.message_count,
+                "current_concept_id": session.current_concept_id,
+                "frustration_trend": session.frustration_trend or [],
+                "engagement_trend": session.engagement_trend or [],
+                "session_brief": session.session_brief,
+                "messages_on_concept": session.messages_on_concept or {}
+            })
+
+        return {"sessions": session_data}
+
+    except Exception as e:
+        logger.error(f"Error getting context sessions: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
