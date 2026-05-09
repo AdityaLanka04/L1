@@ -421,7 +421,9 @@ const AIChat = ({ sharedMode = false }) => {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const isLoadingRef = useRef(false);
-  const justSentMessageRef = useRef(false);  
+  const justSentMessageRef = useRef(false);
+  const chatLoadRequestRef = useRef(0);
+  const chatLoadAbortRef = useRef(null);
 
   const [showFolderCreation, setShowFolderCreation] = useState(false);
   const [folderName, setFolderName] = useState('');
@@ -694,8 +696,16 @@ const AIChat = ({ sharedMode = false }) => {
     if (!sessionId) {
       return;
     }
-    
-        
+
+    if (chatLoadAbortRef.current) {
+      chatLoadAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    chatLoadAbortRef.current = controller;
+    const requestId = chatLoadRequestRef.current + 1;
+    chatLoadRequestRef.current = requestId;
+    isLoadingRef.current = true;
+
     try {
       const token = localStorage.getItem('token');
       const url = `${API_URL}/get_chat_messages?chat_id=${sessionId}`;
@@ -705,23 +715,36 @@ const AIChat = ({ sharedMode = false }) => {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        signal: controller.signal
       });
       
       if (response.ok) {
         const messagesArray = await response.json();
-                setMessages((Array.isArray(messagesArray) ? messagesArray : []).map(normalizeLoadedMessage));
+        if (chatLoadRequestRef.current !== requestId) {
+          return;
+        }
+        setMessages((Array.isArray(messagesArray) ? messagesArray : []).map(normalizeLoadedMessage));
         
         setTimeout(() => {
           scrollToLatestMessage();
         }, 100);
       } else {
-                setMessages([]);
+        if (chatLoadRequestRef.current === requestId) {
+          setMessages([]);
+        }
       }
     } catch (error) {
-            setMessages([]);
+      if (error.name === 'AbortError') {
+        return;
+      }
+      if (chatLoadRequestRef.current === requestId) {
+        setMessages([]);
+      }
     } finally {
-      isLoadingRef.current = false;
+      if (chatLoadRequestRef.current === requestId) {
+        isLoadingRef.current = false;
+      }
     }
   };
 
@@ -2202,28 +2225,23 @@ const AIChat = ({ sharedMode = false }) => {
   }, [location.state?.initialMessage, userName]);
 
   useEffect(() => {
-    const numericChatId = chatId ? parseInt(chatId) : null;
+    const numericChatId = chatId ? parseInt(chatId, 10) : null;
     
     
     if (numericChatId && !isNaN(numericChatId)) {
       // Skip reload if we just sent a message (to preserve messages and action buttons)
-      if (justSentMessageRef.current) {
+      if (justSentMessageRef.current && activeChatId === numericChatId) {
         justSentMessageRef.current = false;
         isLoadingRef.current = false;
-        // Update activeChatId if needed but don't reload messages
-        if (activeChatId !== numericChatId) {
-          setActiveChatId(numericChatId);
-        }
         return;
       }
+      justSentMessageRef.current = false;
       
       // Only load messages if this is a different chat than what we have active
       if (activeChatId !== numericChatId) {
         setActiveChatId(numericChatId);
-        if (!isLoadingRef.current) {
-          isLoadingRef.current = true;
-          loadChatMessages(numericChatId);
-        }
+        setMessages([]);
+        loadChatMessages(numericChatId);
       }
     } else if (chatId === undefined || chatId === null) {
       // Only reset if we're at /ai-chat with no ID (fresh start)
@@ -2237,6 +2255,14 @@ const AIChat = ({ sharedMode = false }) => {
       justSentMessageRef.current = false;
     }
   }, [chatId]);
+
+  useEffect(() => {
+    return () => {
+      if (chatLoadAbortRef.current) {
+        chatLoadAbortRef.current.abort();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Scroll to show latest message at top of viewport
