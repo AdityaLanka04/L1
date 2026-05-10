@@ -5,7 +5,7 @@ import {
   Plus, Play, Trash2, TrendingUp, Target, Brain, Zap, Award, 
   CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart, ChevronLeft,
   Download, FileDown, Eye, Edit3, RefreshCw, Layers, AlertTriangle, 
-  Star, GitMerge, Wand2, List, ChevronDown, ChevronUp, X, Save, ChevronRight, Settings
+  Star, GitMerge, Wand2, List, ChevronDown, ChevronUp, X, Save, Settings
 } from 'lucide-react';
 import './Questionbankdashboard.css';
 import './QuestionbankConvert.css';
@@ -13,11 +13,46 @@ import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 import questionBankAgentService from '../services/questionBankAgentService';
 import MathRenderer from '../components/MathRenderer';
+
+const QUICK_SECTIONS = [
+  { label: 'AI Chat', route: '/ai-chat' },
+  { label: 'Flashcards', route: '/flashcards' },
+  { label: 'Notes', route: '/notes' }
+];
+
+const QUESTION_VIEWS = [
+  { key: 'upload-pdf', label: 'PDF Sources', icon: Upload },
+  { key: 'chat-slides', label: 'AI Chat & Slides', icon: MessageSquare },
+  { key: 'custom', label: 'Generate Custom', icon: Sparkles },
+  { key: 'question-sets', label: 'All Question Sets', icon: FileText },
+  { key: 'analytics', label: 'Analytics', icon: BarChart3 }
+];
+
+const SIDEBAR_NAV_GROUPS = [
+  {
+    title: 'Explore',
+    items: [
+      { label: 'Search Hub', route: '/search-hub' },
+      { label: 'Roadmap', route: '/knowledge-roadmap' },
+      { label: 'Slide Explorer', route: '/slide-explorer' }
+    ]
+  },
+  {
+    title: 'Practice',
+    items: [
+      { label: 'Weak Areas', route: '/weaknesses' },
+      { label: 'Quiz Hub', route: '/quiz-hub' },
+      { label: 'Solo Quiz', route: '/solo-quiz' }
+    ]
+  }
+];
+
 const QuestionBankDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const [activeView, setActiveView] = useState('question-sets');
   const [questionSets, setQuestionSets] = useState([]);
@@ -1233,60 +1268,14 @@ const QuestionBankDashboard = () => {
 
   // ==================== END AI FEATURE HANDLERS ====================
 
-  const renderSidebar = () => (
-    <div className="qbd-sidebar">
-      <nav className="qbd-sidebar-nav">
-        <button 
-          className={`qbd-sidebar-item ${activeView === 'upload-pdf' ? 'active' : ''}`}
-          onClick={() => setActiveView('upload-pdf')}
-        >
-          <Upload size={20} />
-          <span className="qbd-nav-text">PDF Sources</span>
-        </button>
-
-        <button 
-          className={`qbd-sidebar-item ${activeView === 'chat-slides' ? 'active' : ''}`}
-          onClick={() => setActiveView('chat-slides')}
-        >
-          <MessageSquare size={20} />
-          <span className="qbd-nav-text">AI Chat & Slides</span>
-        </button>
-
-        <button 
-          className={`qbd-sidebar-item ${activeView === 'custom' ? 'active' : ''}`}
-          onClick={() => setActiveView('custom')}
-        >
-          <Sparkles size={20} />
-          <span className="qbd-nav-text">Generate Custom</span>
-        </button>
-
-        <button 
-          className={`qbd-sidebar-item ${activeView === 'question-sets' ? 'active' : ''}`}
-          onClick={() => setActiveView('question-sets')}
-        >
-          <FileText size={20} />
-          <span className="qbd-nav-text">All Question Sets</span>
-        </button>
-
-        <button 
-          className={`qbd-sidebar-item ${activeView === 'analytics' ? 'active' : ''}`}
-          onClick={() => setActiveView('analytics')}
-        >
-          <BarChart3 size={20} />
-          <span className="qbd-nav-text">Analytics</span>
-        </button>
-        
-        <button 
-          className="qbd-sidebar-item qbd-convert-btn"
-          onClick={() => setShowImportExport(true)}
-        >
-          <Zap size={20} />
-          <span className="qbd-nav-text">Convert</span>
-        </button>
-      </nav>
-
-    </div>
-  );
+  const renderViewContent = () => {
+    if (activeView === 'upload-pdf') return renderUploadPDF();
+    if (activeView === 'chat-slides') return renderChatSlides();
+    if (activeView === 'custom') return renderCustom();
+    if (activeView === 'question-sets') return renderQuestionSets();
+    if (activeView === 'analytics') return renderAnalytics();
+    return renderQuestionSets();
+  };
 
   const renderUploadPDF = () => (
     <div className="qbd-view">
@@ -1797,160 +1786,164 @@ const QuestionBankDashboard = () => {
           <Sparkles className="qbd-view-icon" size={32} />
           <div>
             <h2 className="qbd-view-title">Generate Custom Questions</h2>
-            <p className="qbd-view-subtitle">Enter any content and let AI create practice questions</p>
+            <p className="qbd-view-subtitle">Enter content once, then tune generation settings from a dedicated desktop panel</p>
           </div>
         </div>
       </div>
 
       <div className="qbd-custom-container">
-        {/* Title Input Card */}
-        <div className="qbd-custom-card">
-          <div className="qbd-custom-section-header">
-            <div className="qbd-custom-section-icon">
-              <FileText size={20} />
+        <div className="qbd-custom-layout">
+          <div className="qbd-custom-card qbd-custom-card--editor">
+            <div className="qbd-custom-section-header">
+              <div className="qbd-custom-section-icon">
+                <FileText size={20} />
+              </div>
+              <h3 className="qbd-custom-section-title">Question Set Details</h3>
             </div>
-            <h3 className="qbd-custom-section-title">Question Set Details</h3>
-          </div>
-          
-          <div className="qbd-custom-input-wrapper">
-            <label className="qbd-custom-label">Question Set Title</label>
-            <input
-              type="text"
-              value={customTitle}
-              onChange={(e) => setCustomTitle(e.target.value)}
-              placeholder="e.g., Physics Chapter 5 Review"
-              className="qbd-custom-input"
-            />
-          </div>
 
-          <div className="qbd-custom-input-wrapper" style={{ marginBottom: 0 }}>
-            <label className="qbd-custom-label">Content (paste notes, articles, or any study material)</label>
-            <textarea
-              value={customContent}
-              onChange={(e) => setCustomContent(e.target.value)}
-              placeholder="Paste your content here... The AI will analyze it and generate relevant practice questions."
-              className="qbd-textarea-large"
-              rows={12}
-            />
-          </div>
-        </div>
-
-        {/* Settings Card */}
-        <div className="qbd-custom-card">
-          <div className="qbd-custom-section-header">
-            <div className="qbd-custom-section-icon">
-              <Settings size={20} />
-            </div>
-            <h3 className="qbd-custom-section-title">Generation Settings</h3>
-          </div>
-
-          <div className="qbd-settings-row">
             <div className="qbd-custom-input-wrapper">
-              <label className="qbd-custom-label">Number of Questions</label>
+              <label className="qbd-custom-label">Question Set Title</label>
               <input
-                type="number"
-                min="1"
-                max="100"
-                value={questionCount}
-                onChange={handleQuestionCountChange}
-                onBlur={handleQuestionCountBlur}
+                type="text"
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                placeholder="e.g., Physics Chapter 5 Review"
                 className="qbd-custom-input"
               />
             </div>
-          </div>
 
-          <div className="qbd-difficulty-section">
-            <label className="qbd-custom-label" style={{ marginBottom: '20px' }}>Difficulty Mix</label>
-            <div className="qbd-difficulty-sliders">
-              <div className="qbd-slider-item">
-                <div className="qbd-slider-header">
-                  <span className="qbd-slider-label">
-                    <span>Easy</span>
-                  </span>
-                  <span className="qbd-slider-value">{difficultyCount.easy} ({difficultyMix.easy}%)</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={difficultyMix.easy}
-                  onChange={(e) => handleDifficultyChange('easy', e.target.value)}
-                />
+            <div className="qbd-custom-input-wrapper" style={{ marginBottom: 0 }}>
+              <label className="qbd-custom-label">Content (paste notes, articles, or any study material)</label>
+              <textarea
+                value={customContent}
+                onChange={(e) => setCustomContent(e.target.value)}
+                placeholder="Paste your content here... The AI will analyze it and generate relevant practice questions."
+                className="qbd-textarea-large"
+                rows={16}
+              />
+              <div className="qbd-custom-content-meta">
+                <span>{customContent.trim() ? customContent.trim().split(/\s+/).length : 0} words</span>
+                <span>{customContent.length} characters</span>
               </div>
-              
-              <div className="qbd-slider-item">
-                <div className="qbd-slider-header">
-                  <span className="qbd-slider-label">
-                    <span>Medium</span>
-                  </span>
-                  <span className="qbd-slider-value">{difficultyCount.medium} ({difficultyMix.medium}%)</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={difficultyMix.medium}
-                  onChange={(e) => handleDifficultyChange('medium', e.target.value)}
-                />
-              </div>
-              
-              <div className="qbd-slider-item">
-                <div className="qbd-slider-header">
-                  <span className="qbd-slider-label">
-                    <span>Hard</span>
-                  </span>
-                  <span className="qbd-slider-value">{difficultyCount.hard} ({difficultyMix.hard}%)</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={difficultyMix.hard}
-                  onChange={(e) => handleDifficultyChange('hard', e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="qbd-difficulty-total">
-              Total: {difficultyCount.easy + difficultyCount.medium + difficultyCount.hard} questions
             </div>
           </div>
 
-          <div className="qbd-custom-input-wrapper" style={{ marginBottom: 0 }}>
-            <label className="qbd-custom-label">Question Types</label>
-            <div className="qbd-checkbox-grid">
-              {[
-                { value: 'multiple_choice', label: 'Multiple Choice' },
-                { value: 'true_false', label: 'True/False' },
-                { value: 'short_answer', label: 'Short Answer' },
-                { value: 'fill_blank', label: 'Fill in the Blank' }
-              ].map(type => (
-                <label key={type.value} className="qbd-checkbox-label">
+          <div className="qbd-custom-card qbd-custom-card--settings">
+            <div className="qbd-custom-section-header">
+              <div className="qbd-custom-section-icon">
+                <Settings size={20} />
+              </div>
+              <h3 className="qbd-custom-section-title">Generation Settings</h3>
+            </div>
+
+            <div className="qbd-settings-row">
+              <div className="qbd-custom-input-wrapper qbd-custom-input-wrapper--compact">
+                <label className="qbd-custom-label">Number of Questions</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={questionCount}
+                  onChange={handleQuestionCountChange}
+                  onBlur={handleQuestionCountBlur}
+                  className="qbd-custom-input"
+                />
+              </div>
+            </div>
+
+            <div className="qbd-difficulty-section">
+              <label className="qbd-custom-label" style={{ marginBottom: '16px' }}>Difficulty Mix</label>
+              <div className="qbd-difficulty-sliders">
+                <div className="qbd-slider-item">
+                  <div className="qbd-slider-header">
+                    <span className="qbd-slider-label">
+                      <span>Easy</span>
+                    </span>
+                    <span className="qbd-slider-value">{difficultyCount.easy} ({difficultyMix.easy}%)</span>
+                  </div>
                   <input
-                    type="checkbox"
-                    checked={questionTypes.includes(type.value)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setQuestionTypes([...questionTypes, type.value]);
-                      } else {
-                        setQuestionTypes(questionTypes.filter(t => t !== type.value));
-                      }
-                    }}
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={difficultyMix.easy}
+                    onChange={(e) => handleDifficultyChange('easy', e.target.value)}
                   />
-                  <span>{type.label}</span>
-                </label>
-              ))}
+                </div>
+
+                <div className="qbd-slider-item">
+                  <div className="qbd-slider-header">
+                    <span className="qbd-slider-label">
+                      <span>Medium</span>
+                    </span>
+                    <span className="qbd-slider-value">{difficultyCount.medium} ({difficultyMix.medium}%)</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={difficultyMix.medium}
+                    onChange={(e) => handleDifficultyChange('medium', e.target.value)}
+                  />
+                </div>
+
+                <div className="qbd-slider-item">
+                  <div className="qbd-slider-header">
+                    <span className="qbd-slider-label">
+                      <span>Hard</span>
+                    </span>
+                    <span className="qbd-slider-value">{difficultyCount.hard} ({difficultyMix.hard}%)</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={difficultyMix.hard}
+                    onChange={(e) => handleDifficultyChange('hard', e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="qbd-difficulty-total">
+                Total: {difficultyCount.easy + difficultyCount.medium + difficultyCount.hard} questions
+              </div>
             </div>
+
+            <div className="qbd-custom-input-wrapper" style={{ marginBottom: 0 }}>
+              <label className="qbd-custom-label">Question Types</label>
+              <div className="qbd-checkbox-grid">
+                {[
+                  { value: 'multiple_choice', label: 'Multiple Choice' },
+                  { value: 'true_false', label: 'True/False' },
+                  { value: 'short_answer', label: 'Short Answer' },
+                  { value: 'fill_blank', label: 'Fill in the Blank' }
+                ].map(type => (
+                  <label key={type.value} className="qbd-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={questionTypes.includes(type.value)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setQuestionTypes([...questionTypes, type.value]);
+                        } else {
+                          setQuestionTypes(questionTypes.filter(t => t !== type.value));
+                        }
+                      }}
+                    />
+                    <span>{type.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <button
+              className="qbd-generate-button"
+              onClick={handleGenerateCustom}
+              disabled={loading || !customContent.trim()}
+            >
+              {loading ? <Loader className="qbd-spin" size={20} /> : <Sparkles size={20} />}
+              <span>{loading ? 'Generating Questions...' : 'Generate Questions'}</span>
+            </button>
           </div>
         </div>
-
-        <button 
-          className="qbd-generate-button"
-          onClick={handleGenerateCustom}
-          disabled={loading || !customContent.trim()}
-        >
-          {loading ? <Loader className="qbd-spin" size={20} /> : <Sparkles size={20} />}
-          <span>{loading ? 'Generating Questions...' : 'Generate Questions'}</span>
-        </button>
       </div>
     </div>
   );
@@ -2742,51 +2735,120 @@ const QuestionBankDashboard = () => {
   };
 
   return (
-    <div className="qbd-container">
-      {/* Header - Full Width */}
-      <header className="qbd-header">
-        <div className="qbd-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <List size={20} />
-          </button>
-          <div className="qbd-header-title" onClick={() => navigate('/search-hub')}>
-            <div className="qbd-logo-img"></div>
-            cerbyl
-          </div>
-          <div className="qbd-header-divider"></div>
-          <p className="qbd-header-subtitle">QUESTION BANK</p>
-        </div>
-        <nav className="qbd-header-right">
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowImportExport(true);
-            }} 
-            className="qbd-nav-btn qbd-nav-btn-accent"
-          >
-            <Zap size={16} />
-            <span>Convert</span>
-          </button>
-          <button className="qbd-nav-btn qbd-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-        </nav>
-      </header>
+    <div className="qbd-rb-root qbd-container">
+      <div className="qbd-rb-bg" aria-hidden>
+        <div className="qbd-rb-orb qbd-rb-orb-1" />
+        <div className="qbd-rb-orb qbd-rb-orb-2" />
+        <div className="qbd-rb-grid" />
+      </div>
 
-      {/* Sidebar and Content */}
-      <div className="qbd-body">
-        {renderSidebar()}
-        <div className="qbd-main">
-          {/* Content */}
-          <div className="qbd-content">
-            {activeView === 'upload-pdf' && renderUploadPDF()}
-            {activeView === 'chat-slides' && renderChatSlides()}
-            {activeView === 'custom' && renderCustom()}
-            {activeView === 'question-sets' && renderQuestionSets()}
-            {activeView === 'analytics' && renderAnalytics()}
-          </div>
+      <div className="qbd-rb-topbar">
+        <div className="qbd-rb-tagline">accelerate <span>your learning</span></div>
+        <div className="qbd-rb-topbar-right">
+          <button className="qbd-rb-top-btn" onClick={() => navigate('/dashboard-cerbyl')}>
+            Dashboard
+          </button>
+          <button className="qbd-rb-top-btn" onClick={() => setIsSidebarOpen((prev) => !prev)}>
+            {isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
+          </button>
+          <button className="qbd-rb-top-btn qbd-rb-top-btn--accent" onClick={() => setShowImportExport(true)}>
+            Convert
+          </button>
         </div>
+      </div>
+
+      <div className={`qbd-rb-shell ${isSidebarOpen ? '' : 'qbd-rb-shell--collapsed'}`}>
+        {isSidebarOpen && (
+          <aside className="qbd-rb-sidebar">
+            <div className="qbd-rb-side-brand">
+              <div className="qbd-rb-brand">cerbyl</div>
+              <button
+                className="qbd-rb-side-close-btn"
+                onClick={() => setIsSidebarOpen(false)}
+                aria-label="Close sidebar"
+              >
+                <ChevronLeft size={14} />
+              </button>
+            </div>
+
+            <div className="qbd-rb-side-block">
+              <div className="qbd-rb-side-label">Quick Access</div>
+              <div className="qbd-rb-quick-list">
+                {QUICK_SECTIONS.map((section) => (
+                  <button key={section.label} className="qbd-rb-quick-item" onClick={() => navigate(section.route)}>
+                    <span className="qbd-rb-quick-dot" />
+                    <span>{section.label}</span>
+                    <Plus size={12} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="qbd-rb-side-block qbd-rb-side-block--grow">
+              <div className="qbd-rb-side-label">Question Bank</div>
+              <nav className="qbd-rb-view-nav">
+                {QUESTION_VIEWS.map((view) => {
+                  const Icon = view.icon;
+                  return (
+                    <button
+                      key={view.key}
+                      className={`qbd-rb-view-link ${activeView === view.key ? 'qbd-rb-view-link--active' : ''}`}
+                      onClick={() => setActiveView(view.key)}
+                    >
+                      <Icon size={15} />
+                      <span>{view.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <nav className="qbd-rb-side-nav-groups">
+              {SIDEBAR_NAV_GROUPS.map((group) => (
+                <div key={group.title} className="qbd-rb-side-group">
+                  <div className="qbd-rb-side-group-title">{group.title}</div>
+                  {group.items.map((item) => (
+                    <button
+                      key={`${group.title}-${item.label}`}
+                      className="qbd-rb-side-link"
+                      onClick={() => navigate(item.route)}
+                    >
+                      <span className="qbd-rb-side-link-dot" />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </nav>
+
+            <div className="qbd-rb-side-actions">
+              <button className="qbd-rb-action-btn" onClick={() => setShowImportExport(true)}>Convert</button>
+              <button className="qbd-rb-action-btn qbd-rb-action-btn--ghost" onClick={() => navigate('/dashboard-cerbyl')}>Cerbyl Dashboard</button>
+            </div>
+          </aside>
+        )}
+
+        <main className="qbd-rb-main">
+          <div className="qbd-rb-mobile-nav">
+            {QUESTION_VIEWS.map((view) => (
+              <button
+                key={view.key}
+                className={`qbd-rb-mobile-link ${activeView === view.key ? 'qbd-rb-mobile-link--active' : ''}`}
+                onClick={() => setActiveView(view.key)}
+              >
+                {view.label}
+              </button>
+            ))}
+          </div>
+
+          <section className="qbd-rb-panel">
+            <div className="qbd-main">
+              <div className="qbd-content">
+                {renderViewContent()}
+              </div>
+            </div>
+          </section>
+        </main>
       </div>
       {renderStudyModal()}
       {/* Import/Export Modal */}

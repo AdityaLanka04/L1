@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus, Plus } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -9,10 +9,50 @@ import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
 import AbstractFx from '../components/AbstractFx';
 
+const COMMAND_HIGHLIGHT_PALETTE = [
+  '#7dd3fc',
+  '#fda4af',
+  '#86efac',
+  '#f9a8d4',
+  '#fcd34d',
+  '#a5b4fc',
+  '#fca5a5',
+  '#6ee7b7',
+  '#c4b5fd',
+  '#fb923c',
+  '#67e8f9',
+  '#bef264',
+];
+
+const DEFAULT_COMMANDS = [
+  'flashcards',
+  'notes',
+  'questions',
+  'quiz',
+  'path',
+  'chat',
+  'explain',
+  'search',
+  'progress',
+  'weak',
+  'achievements',
+  'learning-paths',
+  'review',
+  'help',
+];
+
+const normalizeCommandToken = (value = '') => String(value || '').trim().replace(/^\/+/, '').toLowerCase();
+
+const extractCommandFromQuery = (value = '') => {
+  const match = String(value || '').trimStart().match(/^[/:>!]([a-z0-9][a-z0-9-]*)/i);
+  return match ? normalizeCommandToken(match[1]) : '';
+};
+
 const SearchHub = () => {
   const navigate = useNavigate();
   const { selectedTheme, changeTheme } = useTheme();
   const searchInputRef = useRef(null);
+  const searchHighlightRef = useRef(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -62,6 +102,96 @@ const SearchHub = () => {
   
   const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const CREATE_TIMEOUT_MS = 30000;
+
+  const commandAliasMap = useMemo(() => {
+    const aliasMap = new Map();
+    commandCatalog.forEach((cmd) => {
+      const canonical = normalizeCommandToken(cmd.command);
+      if (!canonical) return;
+      aliasMap.set(canonical, canonical);
+      (cmd.aliases || []).forEach((alias) => {
+        const normalizedAlias = normalizeCommandToken(alias);
+        if (normalizedAlias) {
+          aliasMap.set(normalizedAlias, canonical);
+        }
+      });
+    });
+
+    DEFAULT_COMMANDS.forEach((name) => {
+      const normalized = normalizeCommandToken(name);
+      if (!aliasMap.has(normalized)) {
+        aliasMap.set(normalized, normalized);
+      }
+    });
+
+    return aliasMap;
+  }, [commandCatalog]);
+
+  const commandColorMap = useMemo(() => {
+    const namesFromCatalog = commandCatalog
+      .map((cmd) => normalizeCommandToken(cmd.command))
+      .filter(Boolean);
+    const uniqueNames = [...new Set(namesFromCatalog.length > 0 ? namesFromCatalog : DEFAULT_COMMANDS)];
+    const colorMap = new Map();
+
+    uniqueNames.forEach((name, index) => {
+      colorMap.set(name, COMMAND_HIGHLIGHT_PALETTE[index % COMMAND_HIGHLIGHT_PALETTE.length]);
+    });
+
+    return colorMap;
+  }, [commandCatalog]);
+
+  const getCommandColorFromName = (commandName = '') => {
+    const normalized = normalizeCommandToken(commandName);
+    if (!normalized) return null;
+    const canonical = commandAliasMap.get(normalized) || normalized;
+    return commandColorMap.get(canonical) || null;
+  };
+
+  const getCommandColorFromText = (value = '') => {
+    const commandName = extractCommandFromQuery(value);
+    return getCommandColorFromName(commandName);
+  };
+
+  const renderHighlightedSearchQuery = (value) => {
+    if (!value) return null;
+
+    const query = String(value);
+    const commandMatch = query.match(/^(\s*)([/:>!])([a-z0-9-]*)(.*)$/i);
+    if (!commandMatch) {
+      return <span className="sh-hl-text">{query}</span>;
+    }
+
+    const [, leading = '', prefix = '', command = '', rest = ''] = commandMatch;
+    const commandColor = getCommandColorFromName(command) || 'var(--accent)';
+    const commandTail = rest ? rest.split(/(\s+)/) : [];
+
+    return (
+      <>
+        {leading && <span className="sh-hl-text">{leading}</span>}
+        <span className="sh-hl-command" style={{ color: commandColor }}>{prefix}{command}</span>
+        {commandTail.map((token, idx) => {
+          if (!token) return null;
+          if (/^\s+$/.test(token)) {
+            return <span key={`ws-${idx}`} className="sh-hl-text">{token}</span>;
+          }
+          if (/^--[a-z0-9-]+$/i.test(token)) {
+            return <span key={`flag-${idx}`} className="sh-hl-flag">{token}</span>;
+          }
+          if (/^\d+(?:\.\d+)?$/.test(token)) {
+            return <span key={`num-${idx}`} className="sh-hl-number">{token}</span>;
+          }
+          return <span key={`txt-${idx}`} className="sh-hl-text">{token}</span>;
+        })}
+      </>
+    );
+  };
+
+  const syncSearchHighlightScroll = (event) => {
+    if (searchHighlightRef.current) {
+      searchHighlightRef.current.scrollLeft = event.target.scrollLeft;
+    }
+  };
 
   const fetchWithTimeout = async (url, options = {}, timeoutMs = CREATE_TIMEOUT_MS) => {
     const controller = new AbortController();
@@ -2196,6 +2326,7 @@ const SearchHub = () => {
       .map(name => commandCatalog.find(cmd => cmd.command === name))
       .filter(Boolean)
       .map(cmd => ({
+        command: cmd.command,
         syntax: cmd.syntax || `/${cmd.command}`,
         label: cmd.description || ''
       }));
@@ -2205,13 +2336,13 @@ const SearchHub = () => {
     }
 
     return [
-      { syntax: '/flashcards <topic>', label: 'Study cards' },
-      { syntax: '/notes <topic>', label: 'Study notes' },
-      { syntax: '/quiz <topic>', label: 'Quick quiz' },
-      { syntax: '/path <topic>', label: 'Learning path' },
-      { syntax: '/chat <topic>', label: 'Talk to AI' },
-      { syntax: '/progress', label: 'Your progress' },
-      { syntax: '/weak', label: 'Weak areas' }
+      { command: 'flashcards', syntax: '/flashcards <topic>', label: 'Study cards' },
+      { command: 'notes', syntax: '/notes <topic>', label: 'Study notes' },
+      { command: 'quiz', syntax: '/quiz <topic>', label: 'Quick quiz' },
+      { command: 'path', syntax: '/path <topic>', label: 'Learning path' },
+      { command: 'chat', syntax: '/chat <topic>', label: 'Talk to AI' },
+      { command: 'progress', syntax: '/progress', label: 'Your progress' },
+      { command: 'weak', syntax: '/weak', label: 'Weak areas' }
     ];
   };
 
@@ -2699,34 +2830,40 @@ const SearchHub = () => {
                   className={`sh-form ${showAutocomplete && autocompleteResults.length > 0 ? 'sh-form--open' : ''}`}
                 >
                   <Search size={15} className="sh-search-icon" />
-                  <input
-                    ref={searchInputRef}
-                    id="search-input"
-                    type="text"
-                    value={searchQuery}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    onClick={() => {
-                      setHasUserInteracted(true);
-                      if (!searchQuery || searchQuery.trim() === '') {
-                        showPersonalizedRecommendations();
-                      } else {
-                        handleAutocomplete(searchQuery);
-                      }
-                    }}
-                    onFocus={() => {
-                      if (hasUserInteracted) {
+                  <div className="sh-input-shell">
+                    <div ref={searchHighlightRef} className="sh-input-highlight" aria-hidden="true">
+                      {renderHighlightedSearchQuery(searchQuery)}
+                    </div>
+                    <input
+                      ref={searchInputRef}
+                      id="search-input"
+                      type="text"
+                      value={searchQuery}
+                      onChange={handleInputChange}
+                      onKeyDown={handleKeyDown}
+                      onScroll={syncSearchHighlightScroll}
+                      onClick={() => {
+                        setHasUserInteracted(true);
                         if (!searchQuery || searchQuery.trim() === '') {
                           showPersonalizedRecommendations();
                         } else {
                           handleAutocomplete(searchQuery);
                         }
-                      }
-                    }}
-                    placeholder="Ask me anything... or type /help"
-                    className="sh-input"
-                    autoComplete="off"
-                  />
+                      }}
+                      onFocus={() => {
+                        if (hasUserInteracted) {
+                          if (!searchQuery || searchQuery.trim() === '') {
+                            showPersonalizedRecommendations();
+                          } else {
+                            handleAutocomplete(searchQuery);
+                          }
+                        }
+                      }}
+                      placeholder="Ask me anything... or type /help"
+                      className="sh-input sh-input--syntax"
+                      autoComplete="off"
+                    />
+                  </div>
                   <button type="submit" className="sh-submit" aria-label="Search">
                     <ChevronRight size={16} />
                   </button>
@@ -2734,7 +2871,9 @@ const SearchHub = () => {
 
                 {showAutocomplete && autocompleteResults.length > 0 && (
                   <div className="sh-autocomplete">
-                    {autocompleteResults.map((suggestion, index) => (
+                    {autocompleteResults.map((suggestion, index) => {
+                      const commandColor = getCommandColorFromText(suggestion.text);
+                      return (
                       <button
                         key={index}
                         type="button"
@@ -2745,12 +2884,18 @@ const SearchHub = () => {
                           setShowAutocomplete(false);
                         }}
                       >
-                        <span className="sh-ac-text">{suggestion.text}</span>
+                        <span
+                          className={`sh-ac-text ${commandColor ? 'sh-ac-text--command' : ''}`}
+                          style={commandColor ? { '--sh-cmd-color': commandColor } : undefined}
+                        >
+                          {suggestion.text}
+                        </span>
                         {suggestion.category && (
                           <span className={`sh-ac-badge ${suggestion.type}`}>{suggestion.category}</span>
                         )}
                       </button>
-                    ))}
+                      );
+                    })}
                     <div className="sh-ac-footer">
                       <kbd>↑↓</kbd> Navigate <kbd>↵</kbd> Select <kbd>Esc</kbd> Close
                     </div>
@@ -2777,7 +2922,12 @@ const SearchHub = () => {
                   <div className="sh-cmd-body">
                     {getQuickCommands().map((cmd, index) => (
                       <div key={`${cmd.syntax}-${index}`} className="sh-cmd-line">
-                        <span className="sh-cmd-syntax">{cmd.syntax}</span>
+                        <span
+                          className="sh-cmd-syntax"
+                          style={{ '--sh-cmd-color': getCommandColorFromName(cmd.command || extractCommandFromQuery(cmd.syntax)) }}
+                        >
+                          {cmd.syntax}
+                        </span>
                         <span className="sh-cmd-desc">{cmd.label}</span>
                       </div>
                     ))}
