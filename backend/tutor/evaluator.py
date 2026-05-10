@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Optional
 
-from ai_utils import UnifiedAIClient
+from services.ai_utils import UnifiedAIClient
 from tutor.state import EvalResult, StudentState, Neo4jInsights
 
 logger = logging.getLogger(__name__)

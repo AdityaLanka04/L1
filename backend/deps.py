@@ -14,7 +14,7 @@ from argon2.exceptions import VerifyMismatchError
 
 import models
 from database import SessionLocal, get_db
-from ai_utils import UnifiedAIClient
+from services.ai_utils import UnifiedAIClient
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7,
             use_cache: bool = False, conversation_id: str = None) -> str:
     response = unified_ai.generate(prompt, max_tokens, temperature, use_cache, conversation_id)
     try:
-        from math_processor import process_math_in_response, enhance_display_math
+        from services.math_processor import process_math_in_response, enhance_display_math
         response = process_math_in_response(response)
         response = enhance_display_math(response)
     except ImportError:

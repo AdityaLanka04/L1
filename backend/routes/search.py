@@ -1,4 +1,4 @@
-import json
+﻿import json
 import logging
 import random
 import re
@@ -248,167 +248,12 @@ def generate_filter_description(filters: dict) -> str:
         return "Showing " + ", ".join(parts)
     return "Showing all results"
 
-def _clean_prompt_topic(text: str) -> str:
-    cleaned = re.sub(r'^(AI Generated:|Cerbyl:|Flashcards?:|Notes?:|Practice:\s*)', '', text, flags=re.IGNORECASE)
-    cleaned = re.sub(r'\*+', '', cleaned)
-    return cleaned.strip()
+from services.topic_utils import is_valid_topic as _is_valid_topic
+from services.suggestion_engine import (
+    extract_topic_from_episode as _extract_topic_from_episode,
+    build_chroma_prompts as _build_chroma_prompts,
+)
 
-from topic_utils import is_valid_topic as _is_valid_topic
-
-def _extract_topic_from_episode(entry: dict) -> Optional[str]:
-    meta = entry.get("metadata") or {}
-    for key in ("topic", "note_title", "set_title", "concept"):
-        value = meta.get(key)
-        if value:
-            topic = _clean_prompt_topic(str(value))
-            if _is_valid_topic(topic):
-                return topic
-    doc = entry.get("document", "")
-    match = re.search(r"\"([^\"]+)\"", doc)
-    if match:
-        topic = _clean_prompt_topic(match.group(1))
-        if _is_valid_topic(topic):
-            return topic
-    match = re.search(r"about ([^\.]+)", doc, flags=re.IGNORECASE)
-    if match:
-        topic = _clean_prompt_topic(match.group(1))
-        if _is_valid_topic(topic):
-            return topic
-    return None
-
-def _build_chroma_prompts(user_id: str) -> list:
-    try:
-        from tutor import chroma_store
-    except Exception:
-        return []
-
-    if not chroma_store.available():
-        return []
-
-    episodes = []
-    for source in ("note_activity", "flashcard_created", "chat", "flashcard_review", "quiz_created", "quiz_completed"):
-        episodes.extend(chroma_store.retrieve_recent_by_source(user_id, source, top_k=5))
-
-    prompts = []
-    for entry in episodes:
-        topic = _extract_topic_from_episode(entry)
-        meta = entry.get("metadata") or {}
-        source = meta.get("source", "")
-
-        if source == "note_activity":
-            if not topic:
-                continue
-            prompts.append({
-                "text": f"create flashcards on {topic}",
-                "reason": "Turn recent notes into active recall",
-                "priority": "high"
-            })
-            prompts.append({
-                "text": f"quiz me on {topic}",
-                "reason": "Test what you just studied",
-                "priority": "medium"
-            })
-        elif source == "flashcard_created":
-            if not topic:
-                continue
-            prompts.append({
-                "text": f"quiz me on {topic}",
-                "reason": "Test your flashcard knowledge",
-                "priority": "high"
-            })
-        elif source == "flashcard_review":
-            was_correct = str(meta.get("was_correct", "")).lower() == "false"
-            marked = meta.get("action") == "marked_for_review"
-            if was_correct or marked:
-                prompts.append({
-                    "text": "review weak flashcards",
-                    "reason": "Focus on difficult cards",
-                    "priority": "high"
-                })
-            elif topic:
-                prompts.append({
-                    "text": f"quiz me on {topic}",
-                    "reason": "Reinforce recent topics",
-                    "priority": "medium"
-                })
-        elif source == "quiz_created":
-            if not topic:
-                continue
-            score = meta.get("score")
-            if score is not None and float(score) < 60:
-                prompts.append({
-                    "text": f"create flashcards on {topic}",
-                    "reason": f"Reinforce — you scored {score}% on this quiz",
-                    "priority": "high"
-                })
-            else:
-                prompts.append({
-                    "text": f"quiz me on {topic}",
-                    "reason": "Practice this topic again",
-                    "priority": "medium"
-                })
-        elif source == "quiz_completed":
-            if not topic:
-                continue
-            score = meta.get("score")
-            if score is not None and float(score) < 70:
-                prompts.append({
-                    "text": f"review flashcards on {topic}",
-                    "reason": f"Scored {score}% — review will help",
-                    "priority": "high"
-                })
-            elif topic:
-                prompts.append({
-                    "text": f"create questions on {topic}",
-                    "reason": "Ready for the next level",
-                    "priority": "medium"
-                })
-        elif source == "chat":
-            if not topic:
-                continue
-            prompts.append({
-                "text": f"create notes on {topic}",
-                "reason": "Document what you discussed",
-                "priority": "medium"
-            })
-            prompts.append({
-                "text": f"create flashcards on {topic}",
-                "reason": "Turn the discussion into practice",
-                "priority": "medium"
-            })
-
-    try:
-        weak_topics = chroma_store.get_weak_quiz_topics(user_id, top_k=3)
-        for wt in weak_topics:
-            if _is_valid_topic(wt):
-                prompts.append({
-                    "text": f"quiz me on {wt}",
-                    "reason": "Focus on weaker areas",
-                    "priority": "high"
-                })
-                prompts.append({
-                    "text": f"create flashcards on {wt}",
-                    "reason": "Rebuild retention",
-                    "priority": "high"
-                })
-    except Exception:
-        pass
-
-    try:
-        important_entries = chroma_store.retrieve_important(user_id, top_k=3)
-        for entry in important_entries:
-            topic = _extract_topic_from_episode(entry)
-            if not topic:
-                continue
-            prompts.append({
-                "text": f"create notes on {topic}",
-                "reason": "Pinned as important",
-                "priority": "medium"
-            })
-    except Exception:
-        pass
-
-    return prompts
 
 @router.post("/search_content")
 async def search_content(
@@ -829,7 +674,7 @@ async def autocomplete(
                 card_count = db.query(models.Flashcard).filter(models.Flashcard.set_id == fset.id).count()
                 suggestions.append({
                     "text": fset.title,
-                    "subtext": f"Flashcard Set • {card_count} cards",
+                    "subtext": f"Flashcard Set â€¢ {card_count} cards",
                     "type": "content",
                     "contentType": "flashcard_set",
                     "id": fset.id

@@ -32,7 +32,6 @@ class QuizGenState(TypedDict, total=False):
     _db_factory: Any
 
 async def fetch_context(state: QuizGenState) -> dict:
-    """Fetch student context: strengths, weaknesses, and recent quiz history."""
     user_id = state.get("user_id", "")
     db_factory = state.get("_db_factory")
     weaknesses = []
@@ -120,7 +119,7 @@ async def fetch_context(state: QuizGenState) -> dict:
     logger.info(f"[QUIZ RAG] topic='{topic}' use_hs_context={use_hs} user_id={user_id}")
     if topic and use_hs:
         try:
-            import context_store
+            from services import context_store
             if context_store.available():
                 results = context_store.search_context(
                     query=topic,
@@ -186,7 +185,6 @@ DIFFICULTY_GUIDES = {
 }
 
 def build_prompt(state: QuizGenState) -> dict:
-    """Build a context-aware, personalized quiz generation prompt."""
     topic = state.get("topic", "")
     content = state.get("content", "")
     generation_type = state.get("generation_type", "topic")
@@ -306,7 +304,6 @@ def build_prompt(state: QuizGenState) -> dict:
     return {"built_prompt": "\n".join(parts)}
 
 def generate_questions_node(state: QuizGenState) -> dict:
-    """Call AI and parse the quiz questions JSON."""
     rag_active = bool(state.get("rag_context"))
     hs_ai = state.get("_hs_ai_client")
     ai_client = (hs_ai if rag_active and hs_ai else None) or state.get("_ai_client")

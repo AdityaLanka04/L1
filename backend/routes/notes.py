@@ -137,7 +137,7 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
     db.refresh(new_note)
 
     try:
-        from gamification_system import award_points
+        from services.gamification_system import award_points
         award_points(db, user.id, "note_created")
         db.commit()
     except Exception:

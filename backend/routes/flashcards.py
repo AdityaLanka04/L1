@@ -285,7 +285,7 @@ async def generate_flashcards_endpoint(
     elif generation_type == "topic" and not topic:
         raise HTTPException(status_code=400, detail="Provide topic")
 
-    from flashcard_graph import get_flashcard_graph
+    from graphs.flashcard_graph import get_flashcard_graph
 
     graph = get_flashcard_graph()
     if graph:
@@ -324,7 +324,7 @@ async def generate_flashcards_endpoint(
         raise HTTPException(status_code=500, detail="Failed to generate flashcards")
 
     try:
-        from math_processor import process_math_in_response
+        from services.math_processor import process_math_in_response
         for card_data in flashcards_data:
             if card_data.get("question"):
                 card_data["question"] = process_math_in_response(card_data["question"])
@@ -362,7 +362,7 @@ async def generate_flashcards_endpoint(
         })
 
     try:
-        from gamification_system import award_points
+        from services.gamification_system import award_points
         award_points(db, user.id, "flashcard_created")
     except Exception:
         pass
@@ -532,7 +532,7 @@ def get_due_flashcards(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    from spaced_repetition import preview_intervals
+    from services.spaced_repetition import preview_intervals
 
     now = datetime.now(timezone.utc)
 
@@ -609,7 +609,7 @@ def get_due_flashcards(
 @router.post("/flashcards/sr_review")
 async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
     """Submit a spaced repetition review — powered by FSRS-6."""
-    from fsrs_scheduler import GRADE_TO_RATING, apply_fsrs_review, preview_intervals as fsrs_preview
+    from services.fsrs_scheduler import GRADE_TO_RATING, apply_fsrs_review, preview_intervals as fsrs_preview
 
     user = get_user_by_username(db, request.user_id) or get_user_by_email(db, request.user_id)
     if not user:
@@ -652,7 +652,7 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
     set_title = flashcard_set.title if flashcard_set else ""
 
     try:
-        from gamification_system import award_points
+        from services.gamification_system import award_points
         award_points(db, user.id, "flashcard_reviewed")
         if old_state in ("new", "learning") and result["new_state"] == "review":
             award_points(db, user.id, "flashcard_mastered")

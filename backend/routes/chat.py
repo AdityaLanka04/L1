@@ -213,7 +213,7 @@ async def ask_ai(
             )
             response_text = result.get("response", "")
             try:
-                from math_processor import process_math_in_response
+                from services.math_processor import process_math_in_response
                 response_text = process_math_in_response(response_text)
             except Exception:
                 pass
@@ -259,7 +259,7 @@ async def ask_ai(
                 session.updated_at = datetime.now(timezone.utc)
 
             try:
-                from gamification_system import award_points
+                from services.gamification_system import award_points
                 award_points(db, user.id, "ai_chat", {"question": question})
             except Exception:
                 pass
@@ -361,7 +361,7 @@ async def ask_simple(
             )
             response_text = result.get("response", "")
             try:
-                from math_processor import process_math_in_response
+                from services.math_processor import process_math_in_response
                 response_text = process_math_in_response(response_text)
             except Exception:
                 pass
@@ -385,7 +385,7 @@ async def ask_simple(
                 session.updated_at = datetime.now(timezone.utc)
 
             try:
-                from gamification_system import award_points
+                from services.gamification_system import award_points
                 award_points(db, user.id, "ai_chat")
             except Exception:
                 pass
@@ -530,7 +530,7 @@ async def ask_with_files(
         vision_unavailable = False
 
         from deps import unified_ai as _unified_ai
-        from ai_utils import NoVisionProviderError
+        from services.ai_utils import NoVisionProviderError
         ai_client = _unified_ai
 
         if ai_client and image_payloads:
@@ -580,7 +580,7 @@ async def ask_with_files(
                 )
 
         try:
-            from math_processor import process_math_in_response
+            from services.math_processor import process_math_in_response
             response_text = process_math_in_response(response_text)
         except Exception:
             pass
@@ -604,7 +604,7 @@ async def ask_with_files(
                 session.updated_at = datetime.now(timezone.utc)
 
             try:
-                from gamification_system import award_points
+                from services.gamification_system import award_points
                 award_points(db, user.id, "ai_chat")
             except Exception:
                 pass
@@ -870,7 +870,7 @@ def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_d
         chat_session.title = new_title[:50] if new_title else "New Chat"
 
     try:
-        from gamification_system import award_points
+        from services.gamification_system import award_points
         award_points(db, chat_session.user_id, "ai_chat")
     except Exception:
         pass

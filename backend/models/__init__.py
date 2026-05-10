@@ -12,8 +12,8 @@ import logging
 logger = logging.getLogger(__name__)
 import os
 
-from question_bank_models import create_question_bank_models
-from learning_paths_models import create_learning_paths_models
+from models.question_bank import create_question_bank_models
+from models.learning_paths import create_learning_paths_models
 
 from database import Base, engine, SessionLocal
 

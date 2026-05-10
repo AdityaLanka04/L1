@@ -102,7 +102,7 @@ async def get_node_progress(
     db: Session = Depends(get_db)
 ):
     try:
-        from learning_paths_models import create_learning_paths_models
+        from models.learning_paths import create_learning_paths_models
         from database import Base
         from sqlalchemy import and_
 
@@ -147,7 +147,7 @@ async def get_path_progress_summary(
     db: Session = Depends(get_db)
 ):
     try:
-        from learning_paths_models import create_learning_paths_models
+        from models.learning_paths import create_learning_paths_models
         from database import Base
         from sqlalchemy import and_
 

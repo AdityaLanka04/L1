@@ -14,7 +14,7 @@ from groq import Groq
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from activity_logger import log_ai_tokens
-from ai_usage import extract_usage_from_openai_like
+from services.ai_usage import extract_usage_from_openai_like
 
 logger = logging.getLogger(__name__)
 

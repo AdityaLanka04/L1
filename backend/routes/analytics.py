@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Body, Depends, Form, Header, HTTPException, Query
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
-from admin_analytics import check_admin
+from services.admin_analytics import check_admin
 
 import models
 from database import get_db
@@ -33,7 +33,7 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        from gamification_system import get_user_stats as get_gamification_stats
+        from services.gamification_system import get_user_stats as get_gamification_stats
         gamification_stats = get_gamification_stats(db, user.id)
 
         total_questions = gamification_stats.get("total_questions_answered", 0)
@@ -696,7 +696,7 @@ async def admin_analytics_overview(
     days: int = Query(30),
     _: str = Depends(check_admin),
 ):
-    from admin_analytics import get_analytics_overview
+    from services.admin_analytics import get_analytics_overview
     return await get_analytics_overview(days)
 
 @router.get("/admin/analytics/users")
@@ -704,7 +704,7 @@ async def admin_analytics_users(
     days: int = Query(30),
     _: str = Depends(check_admin),
 ):
-    from admin_analytics import get_user_analytics
+    from services.admin_analytics import get_user_analytics
     return await get_user_analytics(days)
 
 @router.get("/admin/analytics/user/{target_user_id}")
@@ -712,7 +712,7 @@ async def admin_analytics_user_detail(
     target_user_id: int,
     _: str = Depends(check_admin),
 ):
-    from admin_analytics import get_user_detail
+    from services.admin_analytics import get_user_detail
     return await get_user_detail(target_user_id)
 
 @router.get("/admin/analytics/export/csv")
@@ -720,7 +720,7 @@ async def admin_analytics_export_csv(
     days: int = Query(30),
     _: str = Depends(check_admin),
 ):
-    from admin_analytics import export_analytics_csv
+    from services.admin_analytics import export_analytics_csv
     return await export_analytics_csv(days)
 
 @router.get("/admin/analytics/export/user/{target_user_id}/csv")
@@ -728,7 +728,7 @@ async def admin_analytics_export_user_csv(
     target_user_id: int,
     _: str = Depends(check_admin),
 ):
-    from admin_analytics import export_user_csv
+    from services.admin_analytics import export_user_csv
     return await export_user_csv(target_user_id)
 
 @router.get("/study_insights/comprehensive")
@@ -1024,7 +1024,7 @@ async def get_strengths_weaknesses(
     db: Session = Depends(get_db)
 ):
     try:
-        from comprehensive_weakness_analyzer import get_comprehensive_weakness_analysis
+        from services.comprehensive_weakness_analyzer import get_comprehensive_weakness_analysis
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -1045,7 +1045,7 @@ async def get_topic_suggestions(
     db: Session = Depends(get_db)
 ):
     try:
-        from comprehensive_weakness_analyzer import generate_topic_suggestions
+        from services.comprehensive_weakness_analyzer import generate_topic_suggestions
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -1066,7 +1066,7 @@ async def get_similar_questions(
     db: Session = Depends(get_db)
 ):
     try:
-        from comprehensive_weakness_analyzer import find_similar_questions
+        from services.comprehensive_weakness_analyzer import find_similar_questions
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:

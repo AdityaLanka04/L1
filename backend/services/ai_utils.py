@@ -7,7 +7,7 @@ from typing import Optional
 import requests
 from activity_context import get_activity_context
 from activity_logger import log_ai_tokens
-from ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
+from services.ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +123,6 @@ class UnifiedAIClient:
         return resp.choices[0].message.content.strip()
 
     def _call_openai_compat(self, prompt: str, max_tokens: int, temperature: float) -> str:
-        """Call any OpenAI-compatible REST API (sk-* key format)."""
         url = f"{self.openai_compat_base_url}/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.openai_compat_api_key}",
@@ -168,35 +167,25 @@ class UnifiedAIClient:
     def generate_with_images(
         self,
         prompt: str,
-        images: list[dict],  # [{"data": bytes, "mime_type": str, "filename": str}]
+        images: list[dict],
         max_tokens: int = 2000,
         temperature: float = 0.7,
     ) -> str:
-        """
-        Generate a vision response.  Provider priority:
-          1. Gemini (always multimodal, preferred even when primary_ai=groq)
-          2. OpenAI-compat (GPT-4o / Claude etc.)
-          3. Raises NoVisionProviderError — caller decides the fallback UX.
-        Never routes images through a text-only LLM to avoid "I can't see images" replies.
-        """
         if not images:
             return self.generate(prompt, max_tokens, temperature)
 
-        # 1 — Gemini is always vision-capable; use it first regardless of primary_ai
         if self.gemini_api_key:
             try:
                 return self._call_gemini_vision(prompt, images, max_tokens, temperature)
             except Exception as e:
                 logger.warning(f"Gemini vision failed: {e}")
 
-        # 2 — OpenAI-compat (e.g. GPT-4o)
         if self.primary_ai == "openai_compat" and self.openai_compat_api_key:
             try:
                 return self._call_openai_compat_vision(prompt, images, max_tokens, temperature)
             except Exception as e:
                 logger.warning(f"OpenAI-compat vision failed: {e}")
 
-        # 3 — No vision provider available; raise so the endpoint can return a clean UX message
         raise NoVisionProviderError("No vision-capable AI provider is configured")
 
     def _call_gemini_vision(

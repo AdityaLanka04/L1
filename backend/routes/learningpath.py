@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 import models
 from database import SessionLocal
 from deps import get_current_user, get_db, unified_ai
-from learningpath_graph import (
+from graphs.learningpath_graph import (
     create_learningpath_graph,
     get_learningpath_graph,
     _default_outline,

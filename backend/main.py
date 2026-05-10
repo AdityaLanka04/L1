@@ -217,7 +217,7 @@ async def lifespan(app: FastAPI):
 
     try:
         from deps import unified_ai as _ai, hs_context_ai as _hs_ai
-        from flashcard_graph import create_flashcard_graph
+        from graphs.flashcard_graph import create_flashcard_graph
         create_flashcard_graph(_ai, SessionLocal, hs_ai_client=_hs_ai)
         logger.info("Flashcard graph initialized")
     except Exception as e:
@@ -225,7 +225,7 @@ async def lifespan(app: FastAPI):
 
     try:
         from deps import unified_ai as _ai
-        from learningpath_graph import create_learningpath_graph
+        from graphs.learningpath_graph import create_learningpath_graph
         create_learningpath_graph(_ai, SessionLocal)
         logger.info("LearningPath graph initialized")
     except Exception as e:
@@ -233,7 +233,7 @@ async def lifespan(app: FastAPI):
 
     try:
         from deps import unified_ai as _ai
-        from searchhub_graph import create_searchhub_graph
+        from graphs.searchhub_graph import create_searchhub_graph
         create_searchhub_graph(_ai, SessionLocal)
         logger.info("SearchHub graph initialized")
     except Exception as e:
@@ -241,7 +241,7 @@ async def lifespan(app: FastAPI):
 
     try:
         from deps import unified_ai as _ai, hs_context_ai as _hs_ai
-        from quiz_graph import create_quiz_graph
+        from graphs.quiz_graph import create_quiz_graph
         create_quiz_graph(_ai, SessionLocal, hs_ai_client=_hs_ai)
         logger.info("Quiz graph initialized")
     except Exception as e:
@@ -249,7 +249,7 @@ async def lifespan(app: FastAPI):
 
     try:
         from deps import unified_ai as _ai, hs_context_ai as _hs_ai
-        from note_graph import create_note_graph
+        from graphs.note_graph import create_note_graph
         create_note_graph(_ai, SessionLocal, hs_ai_client=_hs_ai)
         logger.info("Note graph initialized")
     except Exception as e:
@@ -274,12 +274,12 @@ async def lifespan(app: FastAPI):
             _embed_model_inst = SentenceTransformer("all-MiniLM-L6-v2")
             logger.info("Embedding model loaded: all-MiniLM-L6-v2 (fallback)")
 
-        import vector_store
+        from services import vector_store
         vector_store.initialize(_embed_model_inst)
         logger.info("vector_store (pgvector) initialized")
 
         try:
-            import context_store
+            from services import context_store
             subjects = context_store.list_hs_subjects()
             if subjects:
                 logger.info(
@@ -294,7 +294,7 @@ async def lifespan(app: FastAPI):
         logger.warning(f"vector_store init failed: {e}")
 
     try:
-        import redis_cache
+        from services import redis_cache
         connected = redis_cache.init_redis()
         if connected:
             logger.info("Redis cache connected")
@@ -305,7 +305,7 @@ async def lifespan(app: FastAPI):
 
     try:
         from services.ml_pipeline import ModelRegistry
-        import vector_store as _vs
+        from services import vector_store as _vs
         reg = ModelRegistry.get()
         if _vs.available() and _vs._embed_model and not reg._embed_model:
             reg._embed_model = _vs._embed_model
@@ -318,7 +318,7 @@ async def lifespan(app: FastAPI):
         logger.warning(f"ModelRegistry init failed: {e}")
 
     try:
-        import vector_store as _vs
+        from services import vector_store as _vs
         from services.memory_service import initialize_memory_service
 
         if _vs.available():

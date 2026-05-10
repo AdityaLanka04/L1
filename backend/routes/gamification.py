@@ -65,7 +65,7 @@ async def track_gamification_activity(
     db: Session = Depends(get_db)
 ):
     try:
-        from gamification_system import award_points
+        from services.gamification_system import award_points
 
         current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
         if not current_user:
@@ -93,7 +93,7 @@ async def get_gamification_stats(
     db: Session = Depends(get_db)
 ):
     try:
-        from gamification_system import get_user_stats
+        from services.gamification_system import get_user_stats
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -111,8 +111,8 @@ async def get_personalized_xp_roadmap(
     db: Session = Depends(get_db)
 ):
     try:
-        from xp_roadmap_system import get_personalized_roadmap
-        from gamification_system import get_user_stats
+        from services.xp_roadmap_system import get_personalized_roadmap
+        from services.gamification_system import get_user_stats
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -169,7 +169,7 @@ async def get_dashboard_data(
     db: Session = Depends(get_db)
 ):
     try:
-        from gamification_system import get_user_stats
+        from services.gamification_system import get_user_stats
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -460,7 +460,7 @@ async def get_leaderboard(
 @router.get("/admin/recalculate_gamification")
 async def recalculate_gamification(db: Session = Depends(get_db)):
     try:
-        from gamification_system import recalculate_all_stats
+        from services.gamification_system import recalculate_all_stats
 
         count = recalculate_all_stats(db)
         return {

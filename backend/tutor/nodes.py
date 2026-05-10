@@ -624,7 +624,7 @@ def _extract_message_topics(messages: list, max_msgs: int = 8) -> list[str]:
     Pull short topic-hints from raw user messages when no concept signals exist.
     Delegates junk detection to topic_utils.is_valid_topic.
     """
-    from topic_utils import is_valid_topic
+    from services.topic_utils import is_valid_topic
     topics = []
     seen_lower = set()
     for msg in messages[:max_msgs]:

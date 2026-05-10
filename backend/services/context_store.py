@@ -17,8 +17,8 @@ import re
 from datetime import datetime, timezone
 from typing import List, Optional
 
-import redis_cache
-import vector_store as vs
+from services import redis_cache
+from services import vector_store as vs
 
 logger = logging.getLogger(__name__)
 
@@ -182,10 +182,10 @@ def add_document_chunks(
 
     def _encode_chunks(payload: list[str]) -> list[list[float]]:
         try:
-            from vector_store import _embed_model
+            from services.vector_store import _embed_model
             vectors = _embed_model.encode(payload, batch_size=32, show_progress_bar=False)
         except TypeError:
-            from vector_store import _embed_model
+            from services.vector_store import _embed_model
             vectors = _embed_model.encode(payload)
         if hasattr(vectors, "tolist"):
             vectors = vectors.tolist()

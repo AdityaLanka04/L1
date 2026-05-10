@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username, unified_ai
-from math_processor import process_math_in_response
+from services.math_processor import process_math_in_response
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["questions"])
@@ -98,7 +98,7 @@ async def generate_practice_questions(
 
         questions_data = []
         try:
-            from quiz_graph import get_quiz_graph
+            from graphs.quiz_graph import get_quiz_graph
             quiz_graph = get_quiz_graph()
             if quiz_graph:
                 questions_data = await quiz_graph.invoke(

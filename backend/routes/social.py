@@ -15,7 +15,7 @@ from jose import JWTError, jwt
 import models
 from database import get_db
 from deps import get_current_user, call_ai, get_user_by_username, get_user_by_email, verify_token, SECRET_KEY, ALGORITHM
-from websocket_manager import manager, notify_battle_challenge, notify_battle_accepted, notify_battle_declined, notify_battle_started, notify_battle_completed
+from services.websocket_manager import manager, notify_battle_challenge, notify_battle_accepted, notify_battle_declined, notify_battle_started, notify_battle_completed
 
 logger = logging.getLogger(__name__)
 
@@ -2424,7 +2424,7 @@ async def complete_solo_quiz(
         except Exception as kg_error:
             logger.warning(f"Failed to record KG quiz interactions: {kg_error}")
 
-        from gamification_system import award_points, calculate_solo_quiz_points
+        from services.gamification_system import award_points, calculate_solo_quiz_points
 
         points_result = award_points(db, current_user.id, "solo_quiz", {
             "difficulty": quiz.difficulty,

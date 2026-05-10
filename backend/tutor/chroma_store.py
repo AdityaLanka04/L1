@@ -15,7 +15,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-import vector_store as vs
+from services import vector_store as vs
 
 logger = logging.getLogger(__name__)
 

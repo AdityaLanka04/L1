@@ -20,17 +20,17 @@ from database import get_db
 from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username
 
 try:
-    from ai_media_processor import ai_media_processor
+    from services.ai_media_processor import ai_media_processor
 except ImportError:
     ai_media_processor = None
 
 try:
-    from math_processor import process_math_in_response
+    from services.math_processor import process_math_in_response
 except ImportError:
     process_math_in_response = None
 
 try:
-    from podcast_agent import podcast_agent_service
+    from services.podcast_agent import podcast_agent_service
 except ImportError:
     podcast_agent_service = None
 
@@ -450,7 +450,7 @@ async def save_media_notes(
 
             db.commit()
 
-        from gamification_system import award_points
+        from services.gamification_system import award_points
         award_points(db, user.id, "note_created")
 
         return {
@@ -847,7 +847,7 @@ async def analyze_slide(
     db: Session = Depends(get_db),
 ):
     try:
-        from comprehensive_slide_analyzer import get_or_create_analysis
+        from services.comprehensive_slide_analyzer import get_or_create_analysis
 
         slide = db.query(models.UploadedSlide).filter(
             models.UploadedSlide.id == slide_id

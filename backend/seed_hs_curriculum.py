@@ -181,8 +181,8 @@ def seed_file(
     db,
     owner_user_id: int | None,
 ) -> dict[str, Any]:
-    from document_processor import process_upload
-    import context_store
+    from services.document_processor import process_upload
+    from services import context_store
 
     filename = file_path.name
     suffix = file_path.suffix.lower()

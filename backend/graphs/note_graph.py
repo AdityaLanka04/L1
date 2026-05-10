@@ -30,7 +30,6 @@ class NoteGenState(TypedDict, total=False):
     _db_factory: Any
 
 async def fetch_context(state: NoteGenState) -> dict:
-    """Fetch personalisation data: DB mastery + Neo4j concept graph for the topic."""
     user_id = state.get("user_id", "")
     topic = state.get("topic", "")
     db_factory = state.get("_db_factory")
@@ -97,7 +96,7 @@ async def fetch_context(state: NoteGenState) -> dict:
     logger.info(f"[NOTE RAG] topic='{topic}' use_hs_context={use_hs} user_id={user_id}")
     if topic and use_hs:
         try:
-            import context_store
+            from services import context_store
             if context_store.available():
                 results = context_store.search_context(
                     query=topic,
@@ -164,7 +163,6 @@ TONE_GUIDES = {
 }
 
 def build_prompt(state: NoteGenState) -> dict:
-    """Build a personalised note-generation prompt."""
     topic = state.get("topic", "")
     source_content = state.get("source_content", "")
     generation_type = state.get("generation_type", "topic")
@@ -253,7 +251,6 @@ def build_prompt(state: NoteGenState) -> dict:
     return {"built_prompt": "\n".join(parts)}
 
 def generate_note(state: NoteGenState) -> dict:
-    """Call AI and return the markdown note content."""
     rag_active = bool(state.get("rag_context"))
     hs_ai = state.get("_hs_ai_client")
     ai_client = (hs_ai if rag_active and hs_ai else None) or state.get("_ai_client")

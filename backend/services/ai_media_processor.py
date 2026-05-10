@@ -24,7 +24,7 @@ import asyncio
 import re
 import logging
 from activity_logger import log_ai_tokens
-from ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
+from services.ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
 
 try:
     from langdetect import detect, LangDetectException
@@ -58,9 +58,9 @@ except ImportError:
     AudioSegment = None
     PYDUB_AVAILABLE = False
 
-from youtube_api_service import youtube_service, YouTubeAPIService
-from rate_limiter import rate_limiter
-from ytdlp_utils import (
+from services.youtube_api_service import youtube_service, YouTubeAPIService
+from services.rate_limiter import rate_limiter
+from services.ytdlp_utils import (
     classify_ytdlp_error,
     get_ytdlp_common_args,
     summarize_ytdlp_error,

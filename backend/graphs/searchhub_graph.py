@@ -26,8 +26,8 @@ class SearchHubState(TypedDict, total=False):
 def detect_action(state: SearchHubState) -> dict:
     query = state.get("query", "")
     try:
-        from routes import searchhub as searchhub_routes
-        intent = searchhub_routes._infer_action(query)
+        from services.search_intent import infer_action
+        intent = infer_action(query)
     except Exception as e:
         logger.warning(f"SearchHub intent detection failed: {e}")
         intent = {"action": "search", "topic": query, "confidence": 0.0}

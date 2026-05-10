@@ -32,9 +32,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import models
-import context_store
+from services import context_store
 from deps import get_db, get_current_user, call_ai
-from document_processor import process_upload, CHUNK_SIZE, CHUNK_OVERLAP
+from services.document_processor import process_upload, CHUNK_SIZE, CHUNK_OVERLAP
 
 logger = logging.getLogger(__name__)
 

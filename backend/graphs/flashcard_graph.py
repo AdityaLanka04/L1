@@ -32,7 +32,6 @@ class FlashcardGenState(TypedDict, total=False):
     _db_factory: Any
 
 async def fetch_context(state: FlashcardGenState) -> dict:
-    """Fetch student strengths/weaknesses from DB and Neo4j."""
     user_id = state.get("user_id", "")
     db_factory = state.get("_db_factory")
     weaknesses = []
@@ -99,7 +98,7 @@ async def fetch_context(state: FlashcardGenState) -> dict:
     logger.info(f"[FLASHCARD RAG] topic='{topic}' use_hs_context={use_hs} user_id={user_id}")
     if topic and use_hs:
         try:
-            import context_store
+            from services import context_store
             if context_store.available():
                 results = context_store.search_context(
                     query=topic,
@@ -179,7 +178,6 @@ DEPTH_GUIDES = {
 }
 
 def build_prompt(state: FlashcardGenState) -> dict:
-    """Build a detailed, context-aware generation prompt."""
     topic = state.get("topic", "")
     content = state.get("content", "")
     generation_type = state.get("generation_type", "topic")
@@ -267,7 +265,6 @@ def build_prompt(state: FlashcardGenState) -> dict:
     return {"built_prompt": "\n".join(parts)}
 
 def generate_cards(state: FlashcardGenState) -> dict:
-    """Call AI and parse the flashcards JSON."""
     rag_active = bool(state.get("rag_context"))
     hs_ai = state.get("_hs_ai_client")
     ai_client = (hs_ai if rag_active and hs_ai else None) or state.get("_ai_client")

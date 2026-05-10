@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username
-from import_export_service import ImportExportService
+from services.import_export_service import ImportExportService
 
 try:
     import PyPDF2

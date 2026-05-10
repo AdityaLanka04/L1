@@ -73,7 +73,7 @@ def _info(msg: str) -> None:
 
 def test_extraction(pdf_path: Path, max_pages: int | None = None) -> list[dict]:
     _hr("TEST 1: Per-Page PDF Extraction")
-    from document_processor import extract_pages_from_pdf
+    from services.document_processor import extract_pages_from_pdf
 
     pdf_bytes = pdf_path.read_bytes()
     t0 = time.perf_counter()
@@ -116,7 +116,7 @@ def test_extraction(pdf_path: Path, max_pages: int | None = None) -> list[dict]:
 
 def test_chunking(pages: list[dict]) -> list[dict]:
     _hr("TEST 2: Page-Aware Chunking")
-    from document_processor import chunk_pages_with_tracking
+    from services.document_processor import chunk_pages_with_tracking
 
     t0 = time.perf_counter()
     chunk_dicts = chunk_pages_with_tracking(pages)
@@ -414,7 +414,7 @@ Answer (with page citations):"""
 
 def test_process_upload(pdf_path: Path) -> None:
     _hr("TEST 7: process_upload() End-to-End")
-    from document_processor import process_upload
+    from services.document_processor import process_upload
 
     pdf_bytes = pdf_path.read_bytes()
     t0 = time.perf_counter()

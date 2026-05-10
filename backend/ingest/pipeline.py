@@ -27,10 +27,10 @@ from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import context_store
-import document_processor
-import redis_cache
-import vector_store
+from services import context_store
+from services import document_processor
+from services import redis_cache
+from services import vector_store
 from database import SessionLocal, engine, Base
 from sqlalchemy import text
 
