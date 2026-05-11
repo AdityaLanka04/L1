@@ -1179,7 +1179,17 @@ def _build_instructional_task(state: TutorState) -> str:
     if hint:
         style      = student.preferred_style if student else "balanced"
         difficulty = student.difficulty_level if student else "intermediate"
+        conf       = analysis.get("semantic_confidence", 0.0)
+
+        if conf >= 0.80:
+            strength = "[HIGH CONFIDENCE — act on this signal strongly, do not hedge]"
+        elif conf >= 0.50:
+            strength = "[MODERATE CONFIDENCE — lean toward this signal, but stay flexible]"
+        else:
+            strength = "[WEAK SIGNAL — treat as a soft hint, stay observant for clarification]"
+
         return (
+            f"{strength}\n"
             f"{hint}\n"
             f"Adjust complexity to {difficulty} level using a {style} style."
         )
@@ -1366,13 +1376,13 @@ async def persist_updates(state: TutorState) -> dict:
                     f"signal={signal_type} score={knowledge_signal:+.2f}"
                 )
 
-                if signal_type not in ("neutral", "neutral_question"):
-                    try:
-                        from dkt.language_analyzer import update_student_head
-                        cached_emb = _lang_embedding_cache.pop(user_id, None)
-                        update_student_head(uid, user_input, signal_type, db, embedding=cached_emb)
-                    except Exception as _e:
-                        logger.debug(f"[LANG] head update skipped: {_e}")
+                try:
+                    from dkt.language_analyzer import update_student_head
+                    cached_emb  = _lang_embedding_cache.pop(user_id, None)
+                    train_label = "neutral" if signal_type == "neutral_question" else signal_type
+                    update_student_head(uid, user_input, train_label, db, embedding=cached_emb)
+                except Exception as _e:
+                    logger.debug(f"[LANG] head update skipped: {_e}")
             finally:
                 db.close()
         except Exception as e:

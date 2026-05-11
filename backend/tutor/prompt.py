@@ -132,6 +132,7 @@ def _confidence_section(analysis: dict) -> str:
     knowledge_signal = analysis.get("knowledge_signal", 0.0)
     concept          = analysis.get("primary_concept")
     markers          = analysis.get("matched_markers", [])
+    sem_conf         = analysis.get("semantic_confidence", 0.0)
 
     if signal_type in ("neutral", "neutral_question") or not signal_type:
         return ""
@@ -148,6 +149,18 @@ def _confidence_section(analysis: dict) -> str:
     }
     label = signal_labels.get(signal_type, signal_type.upper())
     lines.append(f"- Signal: {label}")
+
+    if sem_conf >= 0.80:
+        conf_tier = f"HIGH ({sem_conf:.0%}) — act on this strongly"
+    elif sem_conf >= 0.50:
+        conf_tier = f"MODERATE ({sem_conf:.0%}) — lean toward this signal"
+    elif sem_conf > 0.0:
+        conf_tier = f"WEAK ({sem_conf:.0%}) — treat as a soft hint"
+    else:
+        conf_tier = None
+
+    if conf_tier:
+        lines.append(f"- Classifier confidence: {conf_tier}")
 
     if concept:
         lines.append(f"- Concept in focus: {concept}")
