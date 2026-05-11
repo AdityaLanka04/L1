@@ -242,6 +242,26 @@ _style_embeddings: dict[str, np.ndarray] = {}
 _SIGNAL_THRESHOLD = 0.38
 _STYLE_THRESHOLD  = 0.42
 
+_GLOBAL_HEAD_PATH = os.path.join(os.path.dirname(__file__), "global_signal_head.npz")
+_global_W: Optional[np.ndarray] = None
+_global_b: Optional[np.ndarray] = None
+
+
+def _load_global_head() -> None:
+    global _global_W, _global_b
+    if _global_W is not None or not os.path.exists(_GLOBAL_HEAD_PATH):
+        return
+    with _lock:
+        if _global_W is not None:
+            return
+        try:
+            data = np.load(_GLOBAL_HEAD_PATH)
+            _global_W = data["W"].astype(np.float64)
+            _global_b = data["b"].astype(np.float64)
+            logger.info("[LANG] Global signal head loaded from checkpoint.")
+        except Exception as e:
+            logger.warning(f"[LANG] Could not load global head: {e}")
+
 
 def _get_model():
     global _model
@@ -324,11 +344,20 @@ class StudentSignalHead:
     """
 
     def __init__(self):
-        # Linear layer: (n_classes, d_embed) weights + bias
-        self.W        = np.zeros((len(_SIGNAL_CLASSES), _D_EMBED), dtype=np.float64)
-        self.b        = np.zeros(len(_SIGNAL_CLASSES), dtype=np.float64)
-        self.lr       = 0.05
-        self.n_updates = 0
+        _load_global_head()
+        if _global_W is not None:
+            # Start from the globally trained checkpoint so new students
+            # get a working classifier immediately instead of zero-init cold start.
+            # n_updates=10 puts us just above the predict() threshold so the
+            # head contributes at low weight (10/100 = 10%) from the first message.
+            self.W         = _global_W.copy()
+            self.b         = _global_b.copy()
+            self.n_updates = 10
+        else:
+            self.W         = np.zeros((len(_SIGNAL_CLASSES), _D_EMBED), dtype=np.float64)
+            self.b         = np.zeros(len(_SIGNAL_CLASSES), dtype=np.float64)
+            self.n_updates = 0
+        self.lr = 0.05
 
     def _softmax(self, z: np.ndarray) -> np.ndarray:
         e = np.exp(z - z.max())
@@ -585,6 +614,14 @@ def analyze(
     concepts = _match_concepts(text, vocab) if vocab else _extract_phrases(text)
     primary  = concepts[0] if concepts else None
 
+    # Load student head once — used for both classification and auto-train below.
+    user_head = None
+    if user_id is not None and db is not None:
+        try:
+            user_head = load_student_head(user_id, db)
+        except Exception:
+            pass
+
     signal_type = "neutral"
     confidence  = 0.0
     method      = "fallback"
@@ -601,13 +638,6 @@ def analyze(
     # 2. Semantic + per-student blend
     if method == "fallback":
         embedding = _embed(text)
-        user_head = None
-        if user_id is not None and db is not None:
-            try:
-                user_head = load_student_head(user_id, db)
-            except Exception:
-                pass
-
         sem_signal, sem_conf = _semantic_classify(text, embedding, user_head)
 
         if sem_signal != "neutral":
@@ -617,6 +647,21 @@ def analyze(
         elif text.rstrip().endswith("?"):
             signal_type = "neutral_question"
             method      = "fallback"
+
+    # Auto-train: when confidence is high enough, pseudo-label this message and
+    # run one online SGD step on the student's head so it adapts without waiting
+    # for an explicit ChatConceptSignal to be written externally.
+    _AUTO_CONF = 0.65
+    if (user_head is not None
+            and confidence >= _AUTO_CONF
+            and signal_type not in ("neutral", "neutral_question")):
+        try:
+            emb_for_train = embedding if embedding is not None else _embed(text)
+            if emb_for_train is not None:
+                user_head.update(emb_for_train, signal_type)
+                save_student_head(user_id, user_head, db)
+        except Exception as e:
+            logger.debug(f"[LANG] Auto-train failed: {e}")
 
     score          = SIGNAL_SCORE.get(signal_type, 0.0)
     hint           = INSTRUCTIONAL_HINTS.get(signal_type, INSTRUCTIONAL_HINTS["neutral"])

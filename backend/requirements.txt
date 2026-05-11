@@ -40,6 +40,7 @@ langsmith>=0.1.0
 torch>=2.2.0
 transformers>=4.40.0
 sentence-transformers>=2.7.0
+datasets>=2.19.0
 numpy>=1.26.0
 scipy>=1.13.0
 
