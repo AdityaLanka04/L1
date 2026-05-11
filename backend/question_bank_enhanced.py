@@ -212,6 +212,208 @@ def _filter_analysis_by_topics(analysis: Dict[str, Any], topics: List[str]) -> D
     filtered["subtopics"] = [t for t in analysis.get("subtopics", []) if _matches(t)] if isinstance(analysis.get("subtopics", []), list) else analysis.get("subtopics", [])
     return filtered
 
+def _parse_text_list(raw_value: Any, limit: int = 10) -> List[str]:
+    """Parse list-like profile fields that may be JSON, CSV, or plain text."""
+    if raw_value is None:
+        return []
+
+    if isinstance(raw_value, list):
+        return [str(v).strip() for v in raw_value if str(v).strip()][:limit]
+
+    text = str(raw_value).strip()
+    if not text:
+        return []
+
+    parsed = None
+    try:
+        parsed = json.loads(text)
+    except Exception:
+        parsed = None
+
+    if isinstance(parsed, list):
+        return [str(v).strip() for v in parsed if str(v).strip()][:limit]
+
+    parts = re.split(r"[,;\n|]", text)
+    return [p.strip() for p in parts if p and p.strip()][:limit]
+
+def _collect_universal_personalization(db: Session, user, models, max_topics: int = 8) -> Dict[str, Any]:
+    """
+    Build cross-platform personalization context for question generation.
+    Uses profile preferences + performance signals + weak areas across the platform.
+    """
+    weak_topics_db: List[str] = []
+    weak_topics_profile: List[str] = []
+    weak_topics_analytics: List[str] = []
+    weak_topics_wrong_logs: List[str] = []
+    weak_topics_chroma: List[str] = []
+    strong_topics_db: List[str] = []
+    strong_topics_profile: List[str] = []
+    preferred_topics: List[str] = []
+    recent_context: List[str] = []
+    profile_hints: Dict[str, Any] = {}
+
+    try:
+        weak_rows = db.query(models.UserWeakArea).filter(
+            models.UserWeakArea.user_id == user.id,
+            models.UserWeakArea.status != "mastered"
+        ).order_by(
+            models.UserWeakArea.priority.desc(),
+            models.UserWeakArea.weakness_score.desc()
+        ).limit(10).all()
+        weak_topics_db = [wa.topic for wa in weak_rows if getattr(wa, "topic", None)]
+    except Exception as e:
+        logger.warning(f"Could not load UserWeakArea topics for personalization: {e}")
+
+    try:
+        wrong_topic_rows = db.query(
+            models.WrongAnswerLog.topic,
+            func.count(models.WrongAnswerLog.id).label("cnt")
+        ).filter(
+            models.WrongAnswerLog.user_id == user.id,
+            models.WrongAnswerLog.topic.isnot(None),
+            models.WrongAnswerLog.topic != ""
+        ).group_by(
+            models.WrongAnswerLog.topic
+        ).order_by(
+            func.count(models.WrongAnswerLog.id).desc()
+        ).limit(10).all()
+        weak_topics_wrong_logs = [row[0] for row in wrong_topic_rows if row[0]]
+    except Exception as e:
+        logger.warning(f"Could not load WrongAnswerLog topics for personalization: {e}")
+
+    try:
+        sessions = db.query(models.QuestionSession).filter(
+            models.QuestionSession.user_id == user.id
+        ).order_by(models.QuestionSession.completed_at.desc()).limit(60).all()
+        topic_performance = _compute_topic_performance_from_sessions(sessions)
+        weak_topics_analytics = [t["topic"] for t in topic_performance if t.get("accuracy", 100) < 60][:8]
+        strong_topics_db = [
+            t["topic"] for t in sorted(topic_performance, key=lambda x: -x.get("accuracy", 0))
+            if t.get("accuracy", 0) >= 80 and t.get("total_questions", 0) >= 3
+        ][:8]
+    except Exception as e:
+        logger.warning(f"Could not load QuestionSession topic stats for personalization: {e}")
+
+    try:
+        profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+        if profile:
+            weak_topics_profile = _parse_text_list(getattr(profile, "weak_areas", None), limit=10)
+            strong_topics_profile = _parse_text_list(getattr(profile, "strong_areas", None), limit=10)
+            preferred_subjects = _parse_text_list(getattr(profile, "preferred_subjects", None), limit=10)
+            main_subject = getattr(profile, "main_subject", None)
+            major = getattr(profile, "major", None)
+            preferred_topics = _merge_topics(preferred_subjects, [main_subject, major], limit=10)
+            profile_hints = {
+                "difficulty_level": getattr(profile, "difficulty_level", None),
+                "learning_pace": getattr(profile, "learning_pace", None),
+                "preferred_content_types": _parse_text_list(getattr(profile, "preferred_content_types", None), limit=6)
+            }
+    except Exception as e:
+        logger.warning(f"Could not load ComprehensiveUserProfile for personalization: {e}")
+
+    try:
+        from tutor import chroma_store
+        if chroma_store.available():
+            weak_topics_chroma = chroma_store.get_weak_quiz_topics(str(user.id), top_k=8) or []
+    except Exception as e:
+        logger.warning(f"Could not load Chroma weak topics for personalization: {e}")
+
+    try:
+        recent_chats = db.query(models.ChatSession.title).filter(
+            models.ChatSession.user_id == user.id
+        ).order_by(models.ChatSession.updated_at.desc()).limit(3).all()
+        recent_notes = db.query(models.Note.title).filter(
+            models.Note.user_id == user.id,
+            models.Note.is_deleted == False
+        ).order_by(models.Note.updated_at.desc()).limit(3).all()
+        recent_flash_sets = db.query(models.FlashcardSet.title).filter(
+            models.FlashcardSet.user_id == user.id
+        ).order_by(models.FlashcardSet.updated_at.desc()).limit(3).all()
+        recent_context = _merge_topics(
+            [r[0] for r in recent_chats if r and r[0]],
+            [r[0] for r in recent_notes if r and r[0]],
+            [r[0] for r in recent_flash_sets if r and r[0]],
+            limit=6
+        )
+    except Exception as e:
+        logger.warning(f"Could not load recent cross-tool context for personalization: {e}")
+
+    weak_topics = _merge_topics(
+        weak_topics_db,
+        weak_topics_profile,
+        weak_topics_wrong_logs,
+        weak_topics_analytics,
+        weak_topics_chroma,
+        limit=max_topics
+    )
+
+    strong_topics = _merge_topics(
+        strong_topics_db,
+        strong_topics_profile,
+        limit=max_topics
+    )
+    strong_topics = [t for t in strong_topics if t.lower() not in {w.lower() for w in weak_topics}]
+
+    focus_topics = _merge_topics(weak_topics, preferred_topics, limit=max_topics)
+    universal_topics = _merge_topics(focus_topics, strong_topics, limit=max_topics + 2)
+
+    return {
+        "weak_topics": weak_topics,
+        "strong_topics": strong_topics,
+        "preferred_topics": preferred_topics,
+        "focus_topics": focus_topics,
+        "universal_topics": universal_topics,
+        "profile_hints": profile_hints,
+        "recent_context": recent_context
+    }
+
+def _merge_request_topics(request_topics: Optional[List[str]], personalization: Dict[str, Any], limit: int = 10) -> List[str]:
+    return _merge_topics(
+        request_topics or [],
+        personalization.get("universal_topics", []),
+        limit=limit
+    )
+
+def _build_universal_personalization_prompt(
+    custom_prompt: Optional[str],
+    personalization: Dict[str, Any],
+    context_label: str
+) -> str:
+    """Append cross-platform personalization instructions to the generation prompt."""
+    weak_topics = personalization.get("weak_topics", [])
+    strong_topics = personalization.get("strong_topics", [])
+    preferred_topics = personalization.get("preferred_topics", [])
+    recent_context = personalization.get("recent_context", [])
+    hints = personalization.get("profile_hints", {}) or {}
+
+    lines = []
+    if custom_prompt:
+        lines.append(custom_prompt.strip())
+
+    lines.append(f"Universal personalization context ({context_label}):")
+    if weak_topics:
+        lines.append(f"- Prioritize weak topics first: {', '.join(weak_topics[:6])}")
+    if strong_topics:
+        lines.append(f"- Use stronger topics for challenge/transfer questions: {', '.join(strong_topics[:4])}")
+    if preferred_topics:
+        lines.append(f"- Keep examples aligned with preferred subjects when relevant: {', '.join(preferred_topics[:5])}")
+    if recent_context:
+        lines.append(f"- Maintain continuity with recent learning context: {', '.join(recent_context[:4])}")
+
+    difficulty_level = hints.get("difficulty_level")
+    learning_pace = hints.get("learning_pace")
+    if difficulty_level:
+        lines.append(f"- Student profile difficulty level: {difficulty_level}")
+    if learning_pace:
+        lines.append(f"- Student learning pace: {learning_pace}")
+
+    lines.append("- Avoid repeating identical questions from prior sessions; vary framing and application.")
+    lines.append("- If weak topics conflict with source material coverage, still prioritize what is supported by the source.")
+
+    return "\n".join(lines).strip()
+
 def generate_question_set_pdf(question_set, questions, include_answers: bool = False, user_name: str = "Student"):
     """
     Generate a professionally formatted PDF for a question set with LaTeX support.
@@ -571,15 +773,8 @@ class QuestionGenerationRequest(BaseModel):
     question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
     topics: Optional[List[str]] = None
     title: Optional[str] = None
-
-class CustomQuestionGenRequest(BaseModel):
-    user_id: str
-    content: str
-    title: str
-    question_count: int = 10
-    difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
-    question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
-    topics: Optional[List[str]] = None
+    custom_prompt: Optional[str] = None
+    session_id: Optional[str] = None
 
 class AnswerSubmission(BaseModel):
     user_id: str
@@ -604,6 +799,23 @@ class MultiPDFGenerationRequest(BaseModel):
     custom_prompt: Optional[str] = None
     reference_document_id: Optional[int] = None
     content_document_ids: Optional[List[int]] = None
+    session_id: Optional[str] = None
+
+class SourceSelection(BaseModel):
+    type: str
+    id: int
+    title: Optional[str] = None
+
+class MultiSourceGenerationRequest(BaseModel):
+    user_id: str
+    sources: List[SourceSelection]
+    question_count: int = 10
+    difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
+    question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
+    topics: Optional[List[str]] = None
+    title: Optional[str] = None
+    custom_prompt: Optional[str] = None
+    session_id: Optional[str] = None
 
 class RelatedPDFGenerationRequest(BaseModel):
     """Request model for generating related questions from PDFs using strengths/weaknesses."""
@@ -613,6 +825,7 @@ class RelatedPDFGenerationRequest(BaseModel):
     difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
     question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
     title: Optional[str] = None
+    session_id: Optional[str] = None
 
 class DifficultyClassifierAgent:
     def __init__(self, unified_ai):
@@ -2501,6 +2714,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
     ):
         try:
             import models
+            if request.session_id:
+                logger.info(f"QB generate_from_pdf session_id={request.session_id}")
             
             user = db.query(models.User).filter(
                 (models.User.username == request.user_id) | (models.User.email == request.user_id)
@@ -2508,6 +2723,14 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
+
+            personalization = _collect_universal_personalization(db, user, models)
+            effective_topics = _merge_request_topics(request.topics, personalization, limit=10)
+            effective_prompt = _build_universal_personalization_prompt(
+                request.custom_prompt,
+                personalization,
+                "question generation from PDF/custom content"
+            )
             
             if request.source_id:
                 document = db.query(models.UploadedDocument).filter(
@@ -2526,21 +2749,49 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     existing_questions = await agents["question_generator"].extract_questions_from_pdf(content)
                     
                     if existing_questions:
-                        similar_questions = []
-                        for orig_q in existing_questions[:request.question_count]:
-                            similar = await agents["question_generator"].generate_similar_question(
-                                orig_q,
-                                difficulty=None
+                        reference_lines = []
+                        for idx, q in enumerate(existing_questions[:20], 1):
+                            q_text = q.get("question_text", "")
+                            q_type = q.get("question_type", "")
+                            q_diff = q.get("difficulty", "")
+                            options = q.get("options", []) if isinstance(q.get("options"), list) else []
+                            option_text = " | ".join(options[:6]) if options else ""
+                            reference_lines.append(
+                                f"{idx}. [{q_type}/{q_diff}] {q_text}\nOptions: {option_text}".strip()
                             )
-                            similar_questions.append(similar)
-                        questions = similar_questions
+                        reference_content = "\n\n".join(reference_lines)
+                        style_instruction = "Generate new questions that match the style and structure of the reference questions."
+                        merged_custom_prompt = (
+                            f"{style_instruction}\n\n{effective_prompt}".strip()
+                            if effective_prompt else style_instruction
+                        )
+                        questions = await agents["question_generator"].generate_questions(
+                            content,
+                            request.question_count,
+                            request.question_types,
+                            request.difficulty_mix,
+                            effective_topics,
+                            custom_prompt=merged_custom_prompt,
+                            reference_content=reference_content
+                        )
+                        if not questions:
+                            logger.warning("Question-style generation returned no results; falling back to similar-question generation")
+                            similar_questions = []
+                            for orig_q in existing_questions[:request.question_count]:
+                                similar = await agents["question_generator"].generate_similar_question(
+                                    orig_q,
+                                    difficulty=None
+                                )
+                                similar_questions.append(similar)
+                            questions = similar_questions
                     else:
                         questions = await agents["question_generator"].generate_questions(
                             content,
                             request.question_count,
                             request.question_types,
                             request.difficulty_mix,
-                            request.topics
+                            effective_topics,
+                            custom_prompt=effective_prompt
                         )
                 else:
                     questions = await agents["question_generator"].generate_questions(
@@ -2548,7 +2799,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                         request.question_count,
                         request.question_types,
                         request.difficulty_mix,
-                        request.topics
+                        effective_topics,
+                        custom_prompt=effective_prompt
                     )
                 
                 source_type = "pdf"
@@ -2560,7 +2812,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     request.question_count,
                     request.question_types,
                     request.difficulty_mix,
-                    request.topics
+                    effective_topics,
+                    custom_prompt=effective_prompt
                 )
                 source_type = "custom"
             else:
@@ -2603,7 +2856,13 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 "status": "success",
                 "question_set_id": question_set.id,
                 "question_count": len(questions),
-                "title": title
+                "title": title,
+                "personalization": {
+                    "weak_topics": personalization.get("weak_topics", []),
+                    "strong_topics": personalization.get("strong_topics", []),
+                    "focus_topics": personalization.get("focus_topics", [])
+                },
+                "session_id": request.session_id
             }
             
         except Exception as e:
@@ -2619,6 +2878,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         """Generate questions from multiple PDF documents"""
         try:
             import models
+            if request.session_id:
+                logger.info(f"QB generate_from_multiple_pdfs session_id={request.session_id}")
             
             logger.info(f"Generating questions from {len(request.source_ids)} PDFs for user {request.user_id}")
             
@@ -2628,6 +2889,14 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
+
+            personalization = _collect_universal_personalization(db, user, models)
+            effective_topics = _merge_request_topics(request.topics, personalization, limit=10)
+            effective_prompt = _build_universal_personalization_prompt(
+                request.custom_prompt,
+                personalization,
+                "multi-PDF question generation"
+            )
             
             if not request.source_ids or len(request.source_ids) == 0:
                 raise HTTPException(status_code=400, detail="At least one PDF source is required")
@@ -2665,9 +2934,12 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             reference_content = None
             main_content = combined_content
             
-            if request.reference_document_id and request.content_document_ids:
+            if request.reference_document_id:
                 reference_doc = next((d for d in documents if d.id == request.reference_document_id), None)
-                content_docs = [d for d in documents if d.id in request.content_document_ids]
+                if request.content_document_ids:
+                    content_docs = [d for d in documents if d.id in request.content_document_ids]
+                else:
+                    content_docs = [d for d in documents if d.id != request.reference_document_id]
                 
                 if reference_doc:
                     reference_content = f"=== Reference: {reference_doc.filename} ===\n{reference_doc.content}"
@@ -2687,8 +2959,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 request.question_count,
                 request.question_types,
                 request.difficulty_mix,
-                request.topics,
-                custom_prompt=request.custom_prompt,
+                effective_topics,
+                custom_prompt=effective_prompt,
                 reference_content=reference_content
             )
             
@@ -2739,7 +3011,13 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 "question_set_id": question_set.id,
                 "question_count": len(questions),
                 "title": title,
-                "source_documents": document_names
+                "source_documents": document_names,
+                "personalization": {
+                    "weak_topics": personalization.get("weak_topics", []),
+                    "strong_topics": personalization.get("strong_topics", []),
+                    "focus_topics": personalization.get("focus_topics", [])
+                },
+                "session_id": request.session_id
             }
             
         except HTTPException as http_e:
@@ -2757,6 +3035,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         """Generate related questions from PDFs using the user's strengths/weaknesses."""
         try:
             import models
+            if request.session_id:
+                logger.info(f"QB generate_related_from_pdf session_id={request.session_id}")
 
             logger.info(
                 f"Generating related questions from {len(request.source_ids)} PDFs for user {request.user_id}"
@@ -2768,6 +3048,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
 
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
+
+            personalization = _collect_universal_personalization(db, user, models)
 
             if not request.source_ids:
                 raise HTTPException(status_code=400, detail="At least one PDF source is required")
@@ -2816,7 +3098,13 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if topic_performance:
                 analytics_weak_topics = [t["topic"] for t in topic_performance if t["accuracy"] < 60][:5]
 
-            weak_topics = _merge_topics(weak_topics, chroma_weak_topics, analytics_weak_topics, limit=8)
+            weak_topics = _merge_topics(
+                weak_topics,
+                chroma_weak_topics,
+                analytics_weak_topics,
+                personalization.get("weak_topics", []),
+                limit=8
+            )
 
             strong_topics = [
                 t["topic"]
@@ -2826,10 +3114,22 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 and t["topic"] not in weak_topics
             ][:5]
 
-            strong_topics = _merge_topics(strong_topics, limit=5)
+            strong_topics = _merge_topics(strong_topics, personalization.get("strong_topics", []), limit=5)
 
-            personalized_prompt = agents["related_question_agent"].build_prompt(
+            related_prompt = agents["related_question_agent"].build_prompt(
                 weak_topics, strong_topics
+            )
+            personalized_prompt = _build_universal_personalization_prompt(
+                related_prompt,
+                personalization,
+                "related generation from PDFs"
+            )
+
+            effective_topics = _merge_topics(
+                request.topics or [],
+                weak_topics,
+                personalization.get("preferred_topics", []),
+                limit=10
             )
 
             questions = await agents["question_generator"].generate_questions(
@@ -2837,7 +3137,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 request.question_count,
                 request.question_types,
                 request.difficulty_mix,
-                weak_topics or None,
+                effective_topics or None,
                 custom_prompt=personalized_prompt
             )
 
@@ -2856,8 +3156,10 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 "title": title,
                 "personalization": {
                     "weak_topics": weak_topics,
-                    "strong_topics": strong_topics
-                }
+                    "strong_topics": strong_topics,
+                    "focus_topics": personalization.get("focus_topics", [])
+                },
+                "session_id": request.session_id
             }
 
         except HTTPException as http_e:
@@ -2887,6 +3189,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         """
         try:
             import models
+            if request.session_id:
+                logger.info(f"QB smart_generate session_id={request.session_id}")
             
             logger.info(f"Smart generation for user {request.user_id} with {len(request.source_ids)} sources")
             if request.custom_prompt:
@@ -2898,6 +3202,14 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
+
+            personalization = _collect_universal_personalization(db, user, models)
+            effective_topics = _merge_request_topics(request.topics, personalization, limit=10)
+            effective_prompt = _build_universal_personalization_prompt(
+                request.custom_prompt,
+                personalization,
+                "smart multi-document generation"
+            )
             
             documents = db.query(models.UploadedDocument).filter(
                 models.UploadedDocument.id.in_(request.source_ids),
@@ -2946,8 +3258,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 request.question_count,
                 request.question_types,
                 request.difficulty_mix,
-                request.topics,
-                custom_prompt=request.custom_prompt,
+                effective_topics,
+                custom_prompt=effective_prompt,
                 reference_content=reference_content
             )
             
@@ -3003,7 +3315,13 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 "title": title,
                 "source_documents": document_names,
                 "used_reference": reference_content is not None,
-                "used_custom_prompt": request.custom_prompt is not None
+                "used_custom_prompt": request.custom_prompt is not None,
+                "personalization": {
+                    "weak_topics": personalization.get("weak_topics", []),
+                    "strong_topics": personalization.get("strong_topics", []),
+                    "focus_topics": personalization.get("focus_topics", [])
+                },
+                "session_id": request.session_id
             }
             
         except HTTPException:
@@ -3020,6 +3338,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
     ):
         try:
             import models
+            if request.session_id:
+                logger.info(f"QB generate_from_chat_slides session_id={request.session_id}")
             
             user = db.query(models.User).filter(
                 (models.User.username == request.user_id) | (models.User.email == request.user_id)
@@ -3027,6 +3347,14 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
+
+            personalization = _collect_universal_personalization(db, user, models)
+            effective_topics = _merge_request_topics(request.topics, personalization, limit=10)
+            effective_prompt = _build_universal_personalization_prompt(
+                request.custom_prompt,
+                personalization,
+                "chat/slide question generation"
+            )
             
             content_parts = []
             title_parts = []
@@ -3071,7 +3399,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 request.question_count,
                 request.question_types,
                 request.difficulty_mix,
-                request.topics
+                effective_topics,
+                custom_prompt=effective_prompt
             )
             
             if not questions:
@@ -3111,11 +3440,161 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 "status": "success",
                 "question_set_id": question_set.id,
                 "question_count": len(questions),
-                "title": title
+                "title": title,
+                "personalization": {
+                    "weak_topics": personalization.get("weak_topics", []),
+                    "strong_topics": personalization.get("strong_topics", []),
+                    "focus_topics": personalization.get("focus_topics", [])
+                },
+                "session_id": request.session_id
             }
             
         except Exception as e:
             logger.error(f"Error generating questions: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/api/qb/generate_from_sources")
+    async def generate_from_sources(
+        request: MultiSourceGenerationRequest,
+        db: Session = Depends(get_db_func)
+    ):
+        """Generate questions from multiple chat/slide sources with full generation settings."""
+        try:
+            import models
+            if request.session_id:
+                logger.info(f"QB generate_from_sources session_id={request.session_id}")
+
+            user = db.query(models.User).filter(
+                (models.User.username == request.user_id) | (models.User.email == request.user_id)
+            ).first()
+
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            personalization = _collect_universal_personalization(db, user, models)
+            effective_topics = _merge_request_topics(request.topics, personalization, limit=10)
+            effective_prompt = _build_universal_personalization_prompt(
+                request.custom_prompt,
+                personalization,
+                "multi-source question generation"
+            )
+
+            if not request.sources:
+                raise HTTPException(status_code=400, detail="At least one source is required")
+
+            content_parts = []
+            title_parts = []
+
+            for source in request.sources:
+                source_type = (source.type or "").lower().strip()
+
+                if source_type == "chat":
+                    chat = db.query(models.ChatSession).filter(
+                        models.ChatSession.id == source.id,
+                        models.ChatSession.user_id == user.id
+                    ).first()
+
+                    if not chat:
+                        logger.warning(f"Chat source not found or unauthorized: {source.id}")
+                        continue
+
+                    messages = db.query(models.ChatMessage).filter(
+                        models.ChatMessage.chat_session_id == chat.id
+                    ).order_by(models.ChatMessage.timestamp.asc()).all()
+
+                    chat_content = await agents["chat_slide_processor"].extract_content_from_chat([
+                        {"user_message": m.user_message, "ai_response": m.ai_response}
+                        for m in messages
+                    ])
+                    content_parts.append(chat_content)
+                    title_parts.append(chat.title or source.title or f"Chat {source.id}")
+
+                elif source_type == "slide":
+                    slide = db.query(models.UploadedSlide).filter(
+                        models.UploadedSlide.id == source.id,
+                        models.UploadedSlide.user_id == user.id
+                    ).first()
+
+                    if not slide:
+                        logger.warning(f"Slide source not found or unauthorized: {source.id}")
+                        continue
+
+                    content_parts.append(slide.content or "")
+                    title_parts.append(slide.title or source.title or f"Slide {source.id}")
+
+                else:
+                    logger.warning(f"Unsupported source type skipped: {source.type}")
+
+            combined_content = "\n\n".join([c for c in content_parts if c and c.strip()])
+            if not combined_content.strip():
+                raise HTTPException(status_code=400, detail="No usable content found in selected sources")
+
+            title = request.title or (
+                f"Questions from {title_parts[0]}"
+                if len(title_parts) == 1 else f"Questions from {len(title_parts)} sources"
+            )
+
+            questions = await agents["question_generator"].generate_questions(
+                combined_content,
+                request.question_count,
+                request.question_types,
+                request.difficulty_mix,
+                effective_topics,
+                custom_prompt=effective_prompt
+            )
+
+            if not questions:
+                raise HTTPException(status_code=500, detail="Failed to generate questions")
+
+            question_set = models.QuestionSet(
+                user_id=user.id,
+                title=title,
+                description=f"Generated from {len(title_parts)} source(s)",
+                source_type="multi_source",
+                source_id=None,
+                total_questions=len(questions)
+            )
+
+            db.add(question_set)
+            db.flush()
+
+            for idx, q in enumerate(questions):
+                question = models.Question(
+                    question_set_id=question_set.id,
+                    question_text=q.get("question_text"),
+                    question_type=q.get("question_type"),
+                    difficulty=q.get("difficulty"),
+                    topic=q.get("topic"),
+                    correct_answer=q.get("correct_answer"),
+                    options=json.dumps(q.get("options", [])),
+                    explanation=q.get("explanation"),
+                    points=q.get("points", 1),
+                    order_index=idx
+                )
+                db.add(question)
+
+            db.commit()
+            db.refresh(question_set)
+
+            return {
+                "status": "success",
+                "success": True,
+                "question_set_id": question_set.id,
+                "question_count": len(questions),
+                "title": title,
+                "personalization": {
+                    "weak_topics": personalization.get("weak_topics", []),
+                    "strong_topics": personalization.get("strong_topics", []),
+                    "focus_topics": personalization.get("focus_topics", [])
+                },
+                "session_id": request.session_id
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error generating from sources: {e}", exc_info=True)
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     
@@ -3390,6 +3869,41 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             adaptive_recommendations = adaptive_integration.get_session_recommendations(user.id)
             
             await _update_weak_areas(db, user.id, results, models)
+
+            gamification = None
+            try:
+                from services.gamification_system import award_points
+
+                question_points = award_points(
+                    db,
+                    user.id,
+                    "question_answered",
+                    {
+                        "count": len(questions),
+                        "correct_count": correct_count,
+                        "incorrect_count": len(questions) - correct_count,
+                        "source": "question_bank_submit"
+                    }
+                )
+
+                quiz_points = award_points(
+                    db,
+                    user.id,
+                    "quiz_completed",
+                    {
+                        "score": earned_points,
+                        "total_questions": len(questions),
+                        "score_percentage": score,
+                        "source": "question_bank_submit"
+                    }
+                )
+
+                gamification = {
+                    "question_answered": question_points,
+                    "quiz_completed": quiz_points
+                }
+            except Exception as gamification_error:
+                logger.warning(f"Gamification tracking failed for question bank submission: {gamification_error}")
             
             return {
                 "status": "success",
@@ -3405,7 +3919,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     "cognitive_load": adaptive_recommendations.get('cognitive_load'),
                     "recommendations": adaptive_recommendations.get('recommendations', []),
                     "performance_trend": adaptive_recommendations.get('performance_trend')
-                } if adaptive_recommendations and 'error' not in adaptive_recommendations else None
+                } if adaptive_recommendations and 'error' not in adaptive_recommendations else None,
+                "gamification": gamification
             }
             
         except Exception as e:
@@ -4092,6 +4607,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         """Generate questions for preview (not saved to database)"""
         try:
             import models
+            if request.session_id:
+                logger.info(f"QB preview_generate session_id={request.session_id}")
             
             user = db.query(models.User).filter(
                 (models.User.username == request.user_id) | (models.User.email == request.user_id)
@@ -4099,6 +4616,14 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
+
+            personalization = _collect_universal_personalization(db, user, models)
+            effective_topics = _merge_request_topics(request.topics, personalization, limit=10)
+            personalized_prompt = _build_universal_personalization_prompt(
+                request.custom_prompt,
+                personalization,
+                "preview generation"
+            )
             
             documents = db.query(models.UploadedDocument).filter(
                 models.UploadedDocument.id.in_(request.source_ids),
@@ -4108,27 +4633,48 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not documents:
                 raise HTTPException(status_code=404, detail="No documents found")
             
+            doc_map = {d.id: d for d in documents}
+            reference_content = None
+
+            if request.reference_document_id and request.reference_document_id in doc_map:
+                ref_doc = doc_map[request.reference_document_id]
+                reference_content = f"=== REFERENCE DOCUMENT: {ref_doc.filename} ===\n{ref_doc.content}"
+
+            content_ids = request.content_document_ids or [
+                d.id for d in documents if d.id != request.reference_document_id
+            ]
+
             content_parts = []
-            for doc in documents:
-                content_parts.append(f"=== {doc.filename} ===\n{doc.content}")
-            
+            for doc_id in content_ids:
+                if doc_id in doc_map:
+                    doc = doc_map[doc_id]
+                    content_parts.append(f"=== CONTENT: {doc.filename} ===\n{doc.content}")
+
+            if not content_parts:
+                for doc in documents:
+                    if doc.id != request.reference_document_id:
+                        content_parts.append(f"=== CONTENT: {doc.filename} ===\n{doc.content}")
+
             content = "\n\n".join(content_parts)
+            if not content.strip():
+                raise HTTPException(status_code=400, detail="No content to generate questions from")
             
-            enhanced_prompt = request.custom_prompt
-            if request.custom_prompt:
+            enhanced_prompt = personalized_prompt
+            if personalized_prompt:
                 enhancement = await agents["prompt_enhancer"].enhance_prompt(
-                    request.custom_prompt, 
+                    personalized_prompt,
                     content[:2000]
                 )
-                enhanced_prompt = enhancement.get('enhanced_prompt', request.custom_prompt)
+                enhanced_prompt = enhancement.get('enhanced_prompt', personalized_prompt)
             
             questions = await agents["question_generator"].generate_questions(
                 content,
                 request.question_count,
                 request.question_types,
                 request.difficulty_mix,
-                request.topics,
-                custom_prompt=enhanced_prompt
+                effective_topics,
+                custom_prompt=enhanced_prompt,
+                reference_content=reference_content
             )
             
             if not questions:
@@ -4165,10 +4711,16 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     "total": len(tagged_questions),
                     "average_quality_score": round(avg_quality, 2),
                     "bloom_distribution": bloom_dist,
-                    "potential_duplicates": sum(1 for q in tagged_questions if q.get('is_potential_duplicate'))
+                    "potential_duplicates": sum(1 for q in tagged_questions if q.get('is_potential_duplicate')),
+                    "personalization": {
+                        "weak_topics": personalization.get("weak_topics", []),
+                        "strong_topics": personalization.get("strong_topics", []),
+                        "focus_topics": personalization.get("focus_topics", [])
+                    }
                 },
-                "enhanced_prompt": enhanced_prompt if enhanced_prompt != request.custom_prompt else None,
-                "source_documents": [d.filename for d in documents]
+                "enhanced_prompt": enhanced_prompt if enhanced_prompt != personalized_prompt else None,
+                "source_documents": [d.filename for d in documents],
+                "session_id": request.session_id
             }
         except HTTPException:
             raise

@@ -206,39 +206,81 @@ class QuestionBankAgentService {
 
   
   async generateFromSources(params) {
-    const { userId, sources, questionCount, difficultyMix, sessionId } = params;
-
-    return this.request('/generate', {
+    const {
+      userId,
+      sources,
+      questionCount,
+      difficultyMix,
+      questionTypes,
+      topics,
+      customPrompt,
+      sessionId
+    } = params;
+    const response = await fetch(`${API_URL}/qb/generate_from_sources`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
       body: JSON.stringify({
         user_id: userId,
-        action: 'generate',
-        source_type: 'multiple',
-        sources: sources,
+        sources: sources || [],
         question_count: questionCount,
         difficulty_mix: difficultyMix,
-        session_id: sessionId
+        question_types: questionTypes || ['multiple_choice', 'true_false', 'short_answer'],
+        topics: topics || [],
+        custom_prompt: customPrompt || null,
+        session_id: sessionId || null
       })
     });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to generate questions');
+    }
+
+    return await response.json();
   }
 
   
   async generateFromCustom(params) {
-    const { userId, content, title, questionCount, difficultyMix, sessionId } = params;
-
-    return this.request('/generate', {
+    const {
+      userId,
+      content,
+      title,
+      questionCount,
+      difficultyMix,
+      questionTypes,
+      topics,
+      customPrompt,
+      sessionId
+    } = params;
+    const response = await fetch(`${API_URL}/qb/generate_from_pdf`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
       body: JSON.stringify({
         user_id: userId,
-        action: 'generate',
         source_type: 'custom',
         content: content,
-        title: title,
+        title: title || 'Custom Question Set',
         question_count: questionCount,
         difficulty_mix: difficultyMix,
-        session_id: sessionId
+        question_types: questionTypes || ['multiple_choice', 'true_false', 'short_answer'],
+        topics: topics || [],
+        custom_prompt: customPrompt || null,
+        session_id: sessionId || null
       })
     });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to generate questions');
+    }
+
+    return await response.json();
   }
 
   
@@ -572,7 +614,7 @@ class QuestionBankAgentService {
   async previewGenerate(params) {
     const { 
       userId, sourceIds, questionCount, difficultyMix, 
-      questionTypes, topics, customPrompt 
+      questionTypes, topics, customPrompt, referenceDocumentId, contentDocumentIds, sessionId
     } = params;
 
     const response = await fetch(`${API_URL}/qb/preview_generate`, {
@@ -588,7 +630,10 @@ class QuestionBankAgentService {
         difficulty_mix: difficultyMix,
         question_types: questionTypes || ['multiple_choice', 'true_false', 'short_answer'],
         topics,
-        custom_prompt: customPrompt
+        custom_prompt: customPrompt,
+        reference_document_id: referenceDocumentId || null,
+        content_document_ids: contentDocumentIds || null,
+        session_id: sessionId || null
       })
     });
 

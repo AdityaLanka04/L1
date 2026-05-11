@@ -15,12 +15,27 @@ const FriendsDashboard = () => {
   const [allUsers, setAllUsers] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selfStats, setSelfStats] = useState(null);
 
   useEffect(() => {
+    fetchSelfStats();
     fetchFriends();
     fetchFriendRequests();
     if (activeView === 'find-friends') fetchAllUsers();
   }, [activeView]);
+
+  const fetchSelfStats = async () => {
+    const username = localStorage.getItem('username');
+    if (!username) return;
+    try {
+      const res = await fetch(`${API_URL}/get_gamification_stats?user_id=${encodeURIComponent(username)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) setSelfStats(await res.json());
+    } catch {
+      // silenced
+    }
+  };
 
   const fetchLeaderboardStats = async () => {
     try {
@@ -294,6 +309,14 @@ const FriendsDashboard = () => {
 
       <div className="fd-layout">
         <aside className="fd-sidebar">
+          <div className="fd-self-level-card">
+            <span className="fd-self-kicker">Your Level</span>
+            <strong>Level {selfStats?.level || 1}</strong>
+            <div className="fd-self-xp">{(selfStats?.total_points || 0).toLocaleString()} XP</div>
+            <div className="fd-self-track">
+              <span style={{ width: `${Math.min(100, Math.max(0, ((selfStats?.experience || 0) / Math.max(1, selfStats?.next_level_xp || 100)) * 100))}%` }} />
+            </div>
+          </div>
           <nav className="fd-sidebar-nav">
             <button
               className={`fd-sidebar-item ${activeView === 'my-friends' ? 'active' : ''}`}

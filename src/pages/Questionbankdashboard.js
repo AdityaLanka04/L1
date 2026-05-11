@@ -211,6 +211,17 @@ const QuestionBankDashboard = () => {
   const [customPrompt, setCustomPrompt] = useState('');
   const [referenceDocId, setReferenceDocId] = useState(null);
   const [showSmartOptions, setShowSmartOptions] = useState(false);
+  const defaultQuestionTypes = ['multiple_choice'];
+
+  const getSelectedQuestionTypes = () => (
+    questionTypes.length > 0 ? questionTypes : defaultQuestionTypes
+  );
+
+  const ensureQuestionTypesSelected = () => {
+    if (questionTypes.length > 0) return true;
+    alert('Please select at least one question type in Generation Settings.');
+    return false;
+  };
 
   useEffect(() => {
     fetchQuestionSets();
@@ -477,16 +488,18 @@ const QuestionBankDashboard = () => {
       alert('Please select a PDF document');
       return;
     }
+    if (!ensureQuestionTypesSelected()) return;
 
     try {
       setLoading(true);
+      const selectedQuestionTypes = getSelectedQuestionTypes();
       
       const response = await questionBankAgentService.generateFromPDF({
         userId,
         sourceId: selectedDocument,
         questionCount: questionCount || 10,
         difficultyMix: difficultyCount,
-        questionTypes,
+        questionTypes: selectedQuestionTypes,
         topics: selectedTopics.length > 0 ? selectedTopics : null,
         title: null
       });
@@ -514,9 +527,11 @@ const QuestionBankDashboard = () => {
       alert('Please select at least one PDF document');
       return;
     }
+    if (!ensureQuestionTypesSelected()) return;
 
     try {
       setLoading(true);
+      const selectedQuestionTypes = getSelectedQuestionTypes();
       
       
       const useSmartGeneration = customPrompt.trim() || referenceDocId;
@@ -531,7 +546,7 @@ const QuestionBankDashboard = () => {
           sourceId: selectedPDFs[0].id,
           questionCount: questionCount || 10,
           difficultyMix: difficultyCount,
-          questionTypes,
+          questionTypes: selectedQuestionTypes,
           topics: selectedTopics.length > 0 ? selectedTopics : null
         });
 
@@ -554,7 +569,7 @@ const QuestionBankDashboard = () => {
           title: selectedPDFs.length === 1 
             ? `Questions from ${selectedPDFs[0].filename}`
             : `Smart Questions from ${selectedPDFs.length} documents`,
-          questionTypes,
+          questionTypes: selectedQuestionTypes,
           customPrompt: customPrompt.trim() || null,
           referenceDocumentId: referenceDocId,
           contentDocumentIds: selectedPDFs.filter(p => p.id !== referenceDocId).map(p => p.id)
@@ -579,7 +594,7 @@ const QuestionBankDashboard = () => {
           title: selectedPDFs.length === 1 
             ? `Questions from ${selectedPDFs[0].filename}`
             : `Questions from ${selectedPDFs.length} documents`,
-          questionTypes
+          questionTypes: selectedQuestionTypes
         });
 
         
@@ -667,15 +682,19 @@ const QuestionBankDashboard = () => {
       alert('Please select at least one source');
       return;
     }
+    if (!ensureQuestionTypesSelected()) return;
 
     try {
       setLoading(true);
+      const selectedQuestionTypes = getSelectedQuestionTypes();
       
       const response = await questionBankAgentService.generateFromSources({
         userId,
         sources: selectedSources,
         questionCount: questionCount || 10,
         difficultyMix: difficultyCount,
+        questionTypes: selectedQuestionTypes,
+        customPrompt: customPrompt.trim() || null,
         sessionId: `qb_sources_${userId}_${Date.now()}`
       });
 
@@ -702,9 +721,11 @@ const QuestionBankDashboard = () => {
       alert('Please enter some content');
       return;
     }
+    if (!ensureQuestionTypesSelected()) return;
 
     try {
       setLoading(true);
+      const selectedQuestionTypes = getSelectedQuestionTypes();
       
       const response = await questionBankAgentService.generateFromCustom({
         userId,
@@ -712,6 +733,8 @@ const QuestionBankDashboard = () => {
         title: customTitle || 'Custom Question Set',
         questionCount: questionCount || 10,
         difficultyMix: difficultyCount,
+        questionTypes: selectedQuestionTypes,
+        customPrompt: customPrompt.trim() || null,
         sessionId: `qb_custom_${userId}_${Date.now()}`
       });
 
@@ -993,18 +1016,23 @@ const QuestionBankDashboard = () => {
       alert('Please select at least one PDF');
       return;
     }
+    if (!ensureQuestionTypesSelected()) return;
 
     try {
       setLoading(true);
+      const selectedQuestionTypes = getSelectedQuestionTypes();
       
       const result = await questionBankAgentService.previewGenerate({
         userId,
         sourceIds: selectedPDFs.map(p => p.id),
         questionCount: questionCount || 10,
         difficultyMix: difficultyCount,
-        questionTypes,
+        questionTypes: selectedQuestionTypes,
         topics: selectedTopics.length > 0 ? selectedTopics : null,
-        customPrompt: customPrompt.trim() || null
+        customPrompt: customPrompt.trim() || null,
+        referenceDocumentId: referenceDocId || null,
+        contentDocumentIds: selectedPDFs.filter(p => p.id !== referenceDocId).map(p => p.id),
+        sessionId: `qb_preview_${userId}_${Date.now()}`
       });
 
       if (result.status === 'success') {
@@ -1149,16 +1177,18 @@ const QuestionBankDashboard = () => {
       alert('Please select at least one PDF');
       return;
     }
+    if (!ensureQuestionTypesSelected()) return;
 
     try {
       setLoading(true);
+      const selectedQuestionTypes = getSelectedQuestionTypes();
 
       const result = await questionBankAgentService.generateRelatedFromPDF({
         userId,
         sourceIds: selectedPDFs.map(p => p.id),
         questionCount: questionCount || 10,
         difficultyMix: difficultyCount,
-        questionTypes,
+        questionTypes: selectedQuestionTypes,
         title: selectedPDFs.length === 1
           ? `Related Questions from ${selectedPDFs[0].filename}`
           : `Related Questions from ${selectedPDFs.length} documents`
@@ -1765,6 +1795,42 @@ const QuestionBankDashboard = () => {
               </div>
             </div>
 
+            <div className="qbd-setting-group">
+              <label>Question Types</label>
+              <div className="qbd-checkbox-group">
+                {['multiple_choice', 'true_false', 'short_answer', 'fill_blank'].map(type => (
+                  <label key={type} className="qbd-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={questionTypes.includes(type)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setQuestionTypes([...questionTypes, type]);
+                        } else {
+                          setQuestionTypes(questionTypes.filter(t => t !== type));
+                        }
+                      }}
+                    />
+                    <span>{type.replace(/_/g, ' ')}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="qbd-setting-group qbd-prompt-section">
+              <label>
+                <Sparkles size={16} />
+                Custom Instructions (Optional)
+              </label>
+              <textarea
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                placeholder="e.g., Focus on conceptual misunderstandings, include more application-based questions, and keep wording concise."
+                className="qbd-textarea qbd-prompt-input"
+                rows={3}
+              />
+            </div>
+
             <button 
               className="qbd-btn-primary qbd-btn-large"
               onClick={handleGenerateFromChatSlides}
@@ -1932,6 +1998,17 @@ const QuestionBankDashboard = () => {
                   </label>
                 ))}
               </div>
+            </div>
+
+            <div className="qbd-custom-input-wrapper" style={{ marginTop: '20px' }}>
+              <label className="qbd-custom-label">Custom Instructions (Optional)</label>
+              <textarea
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                placeholder="e.g., Ask scenario-based questions, keep explanations short, and prioritize weak conceptual areas."
+                className="qbd-textarea qbd-prompt-input"
+                rows={4}
+              />
             </div>
 
             <button

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Pencil } from 'lucide-react';
+import { X, Check, Pencil, Award } from 'lucide-react';
 import { API_URL } from '../config';
 import './ProfileNew.css';
 
@@ -172,6 +172,7 @@ const ProfileNew = () => {
     try { return hydrateProfile(JSON.parse(raw), userName); } catch (e) { return hydrateProfile({}, userName); }
   });
   const [pfpModalOpen, setPfpModalOpen] = useState(false);
+  const [gamificationStats, setGamificationStats] = useState(null);
 
   const [profileData, setProfileData] = useState({
     firstName: '', lastName: '', email: '',
@@ -194,7 +195,10 @@ const ProfileNew = () => {
 
   useEffect(() => {
     if (!token) { navigate('/login'); return; }
-    if (userName) loadProfile();
+    if (userName) {
+      loadProfile();
+      loadGamificationStats();
+    }
   }, []);
 
   const displayName = profileData.firstName || pfp?.firstName || pfp?.first_name
@@ -204,6 +208,10 @@ const ProfileNew = () => {
   const profilePhoto = pfp?.picture || pfp?.picture_url || '';
   const activeCustomPfp = pfp?.customPfp || '';
   const defaultUserPfp = pfp?.defaultPfp || '';
+  const profileLevel = gamificationStats?.level || 1;
+  const profileXp = gamificationStats?.total_points || gamificationStats?.experience || 0;
+  const nextLevelXp = gamificationStats?.next_level_xp || 100;
+  const levelProgress = Math.min(100, Math.max(0, nextLevelXp ? (profileXp / nextLevelXp) * 100 : 0));
 
   useEffect(() => {
     const full = String(displayName || '').trim();
@@ -253,6 +261,17 @@ const ProfileNew = () => {
     } catch (e) {}
     setDataLoaded(true);
     setLastSaved(new Date().toLocaleTimeString());
+  };
+
+  const loadGamificationStats = async () => {
+    try {
+      const resp = await fetch(`${API_URL}/get_gamification_stats?user_id=${encodeURIComponent(userName)}`, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (resp.ok) {
+        setGamificationStats(await resp.json());
+      }
+    } catch (e) {}
   };
 
   const autoSave = useCallback(async (data) => {
@@ -407,6 +426,17 @@ const ProfileNew = () => {
                 {profileData.secondaryArchetype && <span className="pn-badge pn-badge--ghost">{profileData.secondaryArchetype}</span>}
               </div>
             )}
+            <div className="pn-level-card">
+              <div className="pn-level-icon"><Award size={18} /></div>
+              <div className="pn-level-meta">
+                <span className="pn-level-kicker">Current Level</span>
+                <strong>Level {profileLevel}</strong>
+                <div className="pn-level-track">
+                  <span style={{ width: `${levelProgress}%` }} />
+                </div>
+              </div>
+              <div className="pn-level-xp">{profileXp.toLocaleString()} XP</div>
+            </div>
           </div>
           <div className="pn-pfp-wrap">
             <div className="pn-pfp-ring">

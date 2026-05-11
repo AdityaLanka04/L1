@@ -1854,13 +1854,17 @@
   gap: 12px;
   padding: 12px 14px;
   background: var(--bg-tertiary);
-  border: 2px solid var(--border);
+  border: 2px solid color-mix(in srgb, var(--border) 80%, var(--text-secondary) 20%);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
+  margin-bottom: 0;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.2;
 }
 
 .qbd-checkbox-label:hover {
@@ -1870,10 +1874,45 @@
 }
 
 .qbd-checkbox-label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
   width: 20px;
   height: 20px;
-  accent-color: var(--accent);
+  flex-shrink: 0;
+  border: 2px solid color-mix(in srgb, var(--border) 65%, var(--text-secondary) 35%);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--bg-tertiary) 75%, var(--panel) 25%);
   cursor: pointer;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  transition: all 0.2s ease;
+}
+
+.qbd-checkbox-label input[type="checkbox"]::after {
+  content: '';
+  width: 9px;
+  height: 5px;
+  border: 2px solid #0a0d10;
+  border-top: 0;
+  border-right: 0;
+  transform: rotate(-45deg) scale(0);
+  transform-origin: center;
+  transition: transform 0.15s ease;
+}
+
+.qbd-checkbox-label input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.qbd-checkbox-label input[type="checkbox"]:checked::after {
+  transform: rotate(-45deg) scale(1);
+}
+
+.qbd-checkbox-label input[type="checkbox"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, white 30%);
+  outline-offset: 2px;
 }
 
 .qbd-checkbox-label input[type="checkbox"]:checked + span {
@@ -1884,6 +1923,13 @@
 .qbd-checkbox-label:has(input:checked) {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+}
+
+.qbd-checkbox-label span {
+  color: inherit;
+  letter-spacing: 0;
+  text-transform: capitalize;
+  line-height: 1.2;
 }
 
 .qbd-generate-button {

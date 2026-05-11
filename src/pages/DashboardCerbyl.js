@@ -633,6 +633,21 @@ const DashboardCerbyl = () => {
     flashAnimFrameRef.current = requestAnimationFrame(step);
   };
 
+  const stopFlashcardsCardHoverAnimation = () => {
+    if (flashAnimFrameRef.current) {
+      cancelAnimationFrame(flashAnimFrameRef.current);
+      flashAnimFrameRef.current = null;
+    }
+    if (flashResetTimerRef.current) {
+      clearTimeout(flashResetTimerRef.current);
+      flashResetTimerRef.current = null;
+    }
+
+    setIsFlashAnimating(false);
+    setFlashActiveSetId('');
+    setFlashCountsDisplay(Object.fromEntries(recentSets.map((s) => [s.set_id, s.count || 0])));
+  };
+
   const runNotesCardHoverAnimation = () => {
     const entries = [
       ...recentNotes.slice(0, 2).map((n) => ({
@@ -1087,6 +1102,7 @@ const DashboardCerbyl = () => {
             <div
               className={`cb-feat cb-feat--flash ${isFlashAnimating ? 'is-animating' : ''}`}
               onMouseEnter={runFlashcardsCardHoverAnimation}
+              onMouseLeave={stopFlashcardsCardHoverAnimation}
               onClick={(e) => openFlashcardMasterTopic(e, recentSets[0]?.title || '')}
               role="button"
               tabIndex={0}

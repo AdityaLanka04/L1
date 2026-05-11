@@ -170,6 +170,56 @@
   box-shadow: 4px 0 24px rgba(0,0,0,0.4);
 }
 
+.fd-self-level-card {
+  margin: 16px 12px 6px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--accent) 13%, transparent) 0%, transparent 56%),
+    color-mix(in srgb, #0e0d0b 88%, transparent);
+}
+
+.fd-self-kicker {
+  display: block;
+  color: color-mix(in srgb, var(--accent) 80%, var(--text-primary));
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.fd-self-level-card strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 21px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.fd-self-xp {
+  margin-top: 7px;
+  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fd-self-track {
+  height: 4px;
+  margin-top: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.fd-self-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 55%, transparent), var(--accent));
+}
+
 .fd-sidebar-nav {
   flex: 1;
   padding: 20px 12px 20px;

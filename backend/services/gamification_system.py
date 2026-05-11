@@ -274,18 +274,27 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
             )
         
     elif activity_type == "question_answered":
-        points_earned = POINT_VALUES["question_answered"]
-        stats.total_questions_answered += 1
-        stats.weekly_questions_answered += 1
-        description = "Answered Question"
-        if stats.total_questions_answered in MILESTONE_COUNTS["question_answered"]:
-            _add_notification(
-                db,
-                user_id,
-                "Practice Milestone",
-                f"You've answered {stats.total_questions_answered} questions. Keep sharpening your skills!",
-                "questions_milestone"
-            )
+        try:
+            question_count = int(metadata.get("count", 1))
+        except (TypeError, ValueError):
+            question_count = 1
+        question_count = max(1, question_count)
+
+        prev_total = stats.total_questions_answered
+        stats.total_questions_answered += question_count
+        stats.weekly_questions_answered += question_count
+        points_earned = POINT_VALUES["question_answered"] * question_count
+        description = "Answered Question" if question_count == 1 else f"Answered {question_count} Questions"
+
+        for threshold in MILESTONE_COUNTS["question_answered"]:
+            if prev_total < threshold <= stats.total_questions_answered:
+                _add_notification(
+                    db,
+                    user_id,
+                    "Practice Milestone",
+                    f"You've answered {threshold} questions. Keep sharpening your skills!",
+                    "questions_milestone"
+                )
         
     elif activity_type in ("flashcard_set", "flashcard_created"):
         points_earned = POINT_VALUES["flashcard_set"]

@@ -229,6 +229,7 @@ async def generate_flashcards_endpoint(
     generation_type: str = Form("topic"),
     chat_data: str = Form(None),
     content: str = Form(None),
+    document_ids: str = Form(None),
     card_count: int = Form(10),
     difficulty: str = Form("medium"),
     depth_level: str = Form("standard"),
@@ -244,6 +245,7 @@ async def generate_flashcards_endpoint(
     generation_type = _unwrap_form_value(generation_type) or "topic"
     chat_data = _unwrap_form_value(chat_data)
     content = _unwrap_form_value(content)
+    document_ids = _unwrap_form_value(document_ids)
     card_count = _unwrap_form_value(card_count) or 10
     difficulty = _unwrap_form_value(difficulty) or "medium"
     depth_level = _unwrap_form_value(depth_level) or "standard"
@@ -263,13 +265,64 @@ async def generate_flashcards_endpoint(
 
     hs_flag = bool(_coerce_bool(_unwrap_form_value(use_hs_context), default=True))
     doc_ids_list = [x.strip() for x in context_doc_ids.split(",") if x.strip()] if context_doc_ids else []
+    source_document_names = []
+
+    if generation_type == "document_sources":
+        if not document_ids:
+            raise HTTPException(status_code=400, detail="Provide document_ids")
+
+        try:
+            source_document_ids = [
+                int(x.strip())
+                for x in str(document_ids).split(",")
+                if x.strip()
+            ]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="document_ids must be comma-separated integers")
+
+        if not source_document_ids:
+            raise HTTPException(status_code=400, detail="Select at least one document")
+
+        documents = (
+            db.query(models.UploadedDocument)
+            .filter(
+                models.UploadedDocument.user_id == user.id,
+                models.UploadedDocument.id.in_(source_document_ids),
+            )
+            .all()
+        )
+        found_ids = {doc.id for doc in documents}
+        missing_ids = [doc_id for doc_id in source_document_ids if doc_id not in found_ids]
+        if missing_ids:
+            raise HTTPException(status_code=404, detail=f"Document(s) not found: {missing_ids}")
+
+        docs_by_id = {doc.id: doc for doc in documents}
+        ordered_documents = [docs_by_id[doc_id] for doc_id in source_document_ids]
+        source_document_names = [doc.filename for doc in ordered_documents]
+        content = "\n\n---\n\n".join(
+            f"Source: {doc.filename}\nDocument type: {doc.document_type or 'unknown'}\n\n{doc.content or ''}"
+            for doc in ordered_documents
+        )
+        topic = topic or ", ".join(source_document_names[:3])
+        set_title = set_title or (
+            f"Flashcards from {source_document_names[0]}"
+            if len(source_document_names) == 1
+            else f"Flashcards from {len(source_document_names)} PDFs"
+        )
+        source_note = (
+            "Generate flashcards strictly from the selected uploaded PDF source material. "
+            "Prioritize key concepts, definitions, cause-effect relationships, formulas, and exam-relevant details."
+        )
+        additional_specs = f"{source_note}\n\n{additional_specs}".strip()
+
     logger.info(
         f"[FLASHCARD ROUTE] generate request | topic='{topic}' user={user.id} "
         f"HS_MODE={'ON  <-- curriculum RAG will run' if hs_flag else 'OFF <-- no RAG, model-only'}"
     )
 
     chat_content = ""
-    if generation_type == "chat_history":
+    graph_generation_type = generation_type
+    if generation_type in {"chat_history", "document_sources"}:
         if content:
             chat_content = content
         elif chat_data:
@@ -281,7 +334,8 @@ async def generate_flashcards_endpoint(
             except Exception:
                 chat_content = chat_data
         if not chat_content:
-            raise HTTPException(status_code=400, detail="Provide content or chat_data")
+            raise HTTPException(status_code=400, detail="Provide content, chat_data, or document_ids")
+        graph_generation_type = "chat_history"
     elif generation_type == "topic" and not topic:
         raise HTTPException(status_code=400, detail="Provide topic")
 
@@ -293,12 +347,12 @@ async def generate_flashcards_endpoint(
             user_id=str(user.id),
             topic=topic or "",
             content=chat_content,
-            generation_type=generation_type,
+            generation_type=graph_generation_type,
             card_count=card_count,
             difficulty=difficulty,
             depth_level=depth_level,
             additional_specs=additional_specs,
-            use_hs_context=bool(use_hs_context),
+            use_hs_context=hs_flag,
             context_doc_ids=doc_ids_list,
         )
     else:
@@ -337,7 +391,11 @@ async def generate_flashcards_endpoint(
     new_set = models.FlashcardSet(
         user_id=user.id,
         title=title,
-        description=f"Generated from {generation_type}",
+        description=(
+            f"Generated from {', '.join(source_document_names)}"
+            if source_document_names
+            else f"Generated from {generation_type}"
+        ),
         source_type=generation_type,
         is_public=is_public,
     )

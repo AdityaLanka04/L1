@@ -1,476 +1,851 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Trophy, Award, Star, Zap, Target, Crown, Flame, 
-  BookOpen, Brain, Sparkles, Rocket, Medal, Gift,
-  TrendingUp, CheckCircle, Lock, ChevronRight,
-  MessageCircle, FileText, Layers, Clock
-, Menu} from 'lucide-react';
+import {
+  Activity,
+  Award,
+  BookOpen,
+  Brain,
+  CheckCircle,
+  ChevronRight,
+  Clock,
+  Crown,
+  FileText,
+  Flame,
+  Gift,
+  Layers,
+  Lock,
+  Map,
+  Menu,
+  MessageCircle,
+  Package,
+  RefreshCw,
+  Rocket,
+  Shield,
+  Sparkles,
+  Star,
+  Target,
+  Trophy,
+  Zap
+} from 'lucide-react';
+import { gsap } from 'gsap';
+import confetti from 'canvas-confetti';
+import * as PIXI from 'pixi.js';
 import './XPRoadmap.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 
-const MILESTONES = [
-  { id: 1, xp: 0, title: 'Welcome Aboard', description: 'Start your learning journey', icon: 'rocket', tier: 'bronze', reward: 'Welcome Badge' },
-  { id: 2, xp: 10, title: 'First Steps', description: 'Earn your first 10 XP', icon: 'star', tier: 'bronze', reward: 'Beginner Title' },
-  { id: 3, xp: 25, title: 'Quick Learner', description: 'Reach 25 XP', icon: 'zap', tier: 'bronze', reward: '5 Bonus XP' },
-  { id: 4, xp: 50, title: 'Getting Started', description: 'Accumulate 50 XP', icon: 'target', tier: 'bronze', reward: 'Starter Pack' },
-  { id: 5, xp: 100, title: 'Century Club', description: 'Reach 100 XP', icon: 'trophy', tier: 'bronze', reward: 'Bronze Badge' },
-  { id: 6, xp: 150, title: 'Consistent Learner', description: 'Earn 150 XP', icon: 'check-circle', tier: 'bronze', reward: 'Consistency Badge' },
-  { id: 7, xp: 200, title: 'Knowledge Seeker', description: 'Achieve 200 XP', icon: 'book-open', tier: 'bronze', reward: '15 Bonus XP' },
-  { id: 8, xp: 250, title: 'Quarter Master', description: 'Reach 250 XP', icon: 'award', tier: 'bronze', reward: 'Quarter Badge' },
-  { id: 9, xp: 300, title: 'Rising Star', description: 'Hit 300 XP', icon: 'sparkles', tier: 'bronze', reward: '20 Bonus XP' },
-  { id: 10, xp: 400, title: 'Progress Maker', description: 'Reach 400 XP', icon: 'trending-up', tier: 'bronze', reward: '25 Bonus XP' },
-  { id: 11, xp: 500, title: 'Bronze Master', description: 'Complete Bronze tier', icon: 'medal', tier: 'bronze', reward: 'Bronze Crown' },
-  
-  { id: 12, xp: 600, title: 'Silver Initiate', description: 'Enter Silver tier', icon: 'star', tier: 'silver', reward: 'Silver Badge' },
-  { id: 13, xp: 700, title: 'Lucky Seven', description: 'Achieve 700 XP', icon: 'sparkles', tier: 'silver', reward: '35 Bonus XP' },
-  { id: 14, xp: 800, title: 'Octo Achievement', description: 'Hit 800 XP', icon: 'award', tier: 'silver', reward: '40 Bonus XP' },
-  { id: 15, xp: 1000, title: 'Millennium Master', description: 'Reach 1000 XP!', icon: 'crown', tier: 'silver', reward: 'Millennium Crown' },
-  { id: 16, xp: 1200, title: 'Dozen Hundreds', description: 'Achieve 1200 XP', icon: 'trophy', tier: 'silver', reward: 'Collector Badge' },
-  { id: 17, xp: 1500, title: 'Silver Legend', description: 'Complete Silver tier', icon: 'crown', tier: 'silver', reward: 'Silver Crown' },
-  
-  { id: 18, xp: 1600, title: 'Golden Touch', description: 'Enter Gold tier', icon: 'sparkles', tier: 'gold', reward: 'Gold Badge' },
-  { id: 19, xp: 1800, title: 'Master Student', description: 'Hit 1800 XP', icon: 'book-open', tier: 'gold', reward: '85 Bonus XP' },
-  { id: 20, xp: 2000, title: 'Double Millennium', description: 'Reach 2000 XP!', icon: 'crown', tier: 'gold', reward: 'Double Crown' },
-  { id: 21, xp: 2500, title: 'Quarter Master Gold', description: 'Achieve 2500 XP', icon: 'medal', tier: 'gold', reward: 'Quarter Gold Badge' },
-  { id: 22, xp: 3000, title: 'Gold Legend', description: 'Complete Gold tier', icon: 'crown', tier: 'gold', reward: 'Gold Crown' },
-  
-  { id: 23, xp: 3500, title: 'Platinum Entry', description: 'Enter Platinum tier', icon: 'star', tier: 'platinum', reward: 'Platinum Badge' },
-  { id: 24, xp: 4000, title: 'Quad Millennium', description: 'Achieve 4000 XP!', icon: 'crown', tier: 'platinum', reward: 'Quad Crown' },
-  { id: 25, xp: 4500, title: 'Platinum Mastery', description: 'Reach 4500 XP', icon: 'brain', tier: 'platinum', reward: '210 Bonus XP' },
-  { id: 26, xp: 5000, title: 'Platinum Legend', description: 'Complete Platinum', icon: 'crown', tier: 'platinum', reward: 'Platinum Crown' },
-  
-  { id: 27, xp: 6000, title: 'Diamond Entry', description: 'Enter Diamond tier', icon: 'star', tier: 'diamond', reward: 'Diamond Badge' },
-  { id: 28, xp: 7000, title: 'Seven Thousand', description: 'Achieve 7000 XP!', icon: 'crown', tier: 'diamond', reward: 'Seven K Crown' },
-  { id: 29, xp: 7500, title: 'Diamond Master', description: 'Complete Diamond', icon: 'crown', tier: 'diamond', reward: 'Diamond Crown' },
-  
-  { id: 30, xp: 8000, title: 'Mythic Entry', description: 'Enter Mythic tier', icon: 'star', tier: 'mythic', reward: 'Mythic Badge' },
-  { id: 31, xp: 9000, title: 'Nine Thousand', description: 'Achieve 9000 XP!', icon: 'crown', tier: 'mythic', reward: 'Nine K Crown' },
-  { id: 32, xp: 10000, title: 'Mythic Master', description: 'Complete Mythic', icon: 'crown', tier: 'mythic', reward: 'Mythic Crown' },
-  
-  { id: 33, xp: 12000, title: 'Legendary Entry', description: 'Enter Legendary tier', icon: 'crown', tier: 'legendary', reward: 'Legendary Badge' },
-  { id: 34, xp: 15000, title: 'Fifteen Thousand', description: 'Achieve 15000 XP!', icon: 'crown', tier: 'legendary', reward: 'Fifteen K Crown' },
-  { id: 35, xp: 20000, title: 'Twenty Thousand', description: 'Achieve 20000 XP!', icon: 'crown', tier: 'legendary', reward: 'Twenty K Crown' },
-  { id: 36, xp: 25000, title: 'Quarter Century', description: 'Reach 25000 XP', icon: 'trophy', tier: 'legendary', reward: '5000 Bonus XP' },
-  { id: 37, xp: 30000, title: 'Thirty Thousand', description: 'Hit 30000 XP', icon: 'crown', tier: 'legendary', reward: 'Thirty K Crown' },
-  { id: 38, xp: 40000, title: 'Forty Thousand', description: 'Hit 40000 XP', icon: 'star', tier: 'legendary', reward: '8000 Bonus XP' },
-  { id: 39, xp: 50000, title: 'Fifty Thousand', description: 'Achieve 50000 XP!', icon: 'crown', tier: 'legendary', reward: 'Fifty K Crown' },
-  { id: 40, xp: 100000, title: 'ULTIMATE LEGEND', description: 'Achieve 100000 XP!!!', icon: 'crown', tier: 'legendary', reward: 'ULTIMATE CROWN' },
+const LEVEL_THRESHOLDS = [0, 100, 282, 500, 800, 1200, 1700, 2300, 3000];
+
+const CAMPAIGN_NODES = [
+  { id: 'ignite', xp: 0, title: 'Ignition Run', type: 'mission', reward: 'Origin Sigil', x: 7, y: 70, icon: Rocket },
+  { id: 'spark', xp: 100, title: 'Spark Chain', type: 'mission', reward: 'Combo Token', x: 17, y: 47, icon: Zap },
+  { id: 'vault-one', xp: 250, title: 'First Vault', type: 'chest', reward: 'Bronze Chest', x: 28, y: 61, icon: Package },
+  { id: 'focus', xp: 500, title: 'Focus Gate', type: 'mission', reward: 'Focus Badge', x: 39, y: 34, icon: Target },
+  { id: 'streak-core', xp: 800, title: 'Streak Core', type: 'mission', reward: 'Freeze Charge', x: 50, y: 54, icon: Flame },
+  { id: 'weekly-raid', xp: 1200, title: 'Weekly Raid', type: 'boss', reward: 'Raid Crown', x: 62, y: 29, icon: Crown },
+  { id: 'vault-two', xp: 1700, title: 'Deep Vault', type: 'chest', reward: 'Platinum Chest', x: 72, y: 51, icon: Gift },
+  { id: 'recall', xp: 2500, title: 'Recall Sprint', type: 'mission', reward: 'Recall Emblem', x: 82, y: 30, icon: Brain },
+  { id: 'mastery', xp: 4000, title: 'Mastery Tower', type: 'boss', reward: 'Legend Aura', x: 91, y: 58, icon: Trophy }
 ];
 
-const ACTIVITY_ACHIEVEMENTS = [
-  
-  { id: 'chat_5', type: 'ai_chat', target: 5, current: 0, title: 'Curious Mind', description: 'Ask AI 5 questions', icon: 'message-circle', reward: '10 XP Bonus' },
-  { id: 'chat_10', type: 'ai_chat', target: 10, current: 0, title: 'Question Master', description: 'Ask AI 10 questions', icon: 'message-circle', reward: '20 XP Bonus' },
-  { id: 'chat_25', type: 'ai_chat', target: 25, current: 0, title: 'AI Enthusiast', description: 'Ask AI 25 questions', icon: 'message-circle', reward: '50 XP Bonus' },
-  { id: 'chat_50', type: 'ai_chat', target: 50, current: 0, title: 'AI Scholar', description: 'Ask AI 50 questions', icon: 'message-circle', reward: '100 XP Bonus' },
-  { id: 'chat_100', type: 'ai_chat', target: 100, current: 0, title: 'AI Expert', description: 'Ask AI 100 questions', icon: 'message-circle', reward: '200 XP Bonus' },
-  
-  
-  { id: 'flash_5', type: 'flashcards', target: 5, current: 0, title: 'Card Creator', description: 'Create 5 flashcard sets', icon: 'layers', reward: '25 XP Bonus' },
-  { id: 'flash_10', type: 'flashcards', target: 10, current: 0, title: 'Memory Builder', description: 'Create 10 flashcard sets', icon: 'layers', reward: '50 XP Bonus' },
-  { id: 'flash_20', type: 'flashcards', target: 20, current: 0, title: 'Flashcard Master', description: 'Create 20 flashcard sets', icon: 'layers', reward: '100 XP Bonus' },
-  { id: 'flash_review_50', type: 'flashcard_reviews', target: 50, current: 0, title: 'Review Rookie', description: 'Review 50 flashcards', icon: 'layers', reward: '30 XP Bonus' },
-  { id: 'flash_review_100', type: 'flashcard_reviews', target: 100, current: 0, title: 'Review Champion', description: 'Review 100 flashcards', icon: 'layers', reward: '60 XP Bonus' },
-  
-  
-  { id: 'notes_3', type: 'notes', target: 3, current: 0, title: 'Note Taker', description: 'Create 3 notes', icon: 'file-text', reward: '15 XP Bonus' },
-  { id: 'notes_10', type: 'notes', target: 10, current: 0, title: 'Documenter', description: 'Create 10 notes', icon: 'file-text', reward: '50 XP Bonus' },
-  { id: 'notes_25', type: 'notes', target: 25, current: 0, title: 'Knowledge Keeper', description: 'Create 25 notes', icon: 'file-text', reward: '125 XP Bonus' },
-  { id: 'notes_50', type: 'notes', target: 50, current: 0, title: 'Master Archivist', description: 'Create 50 notes', icon: 'file-text', reward: '250 XP Bonus' },
-  
-  
-  { id: 'quiz_3', type: 'quizzes', target: 3, current: 0, title: 'Quiz Starter', description: 'Complete 3 quizzes', icon: 'target', reward: '20 XP Bonus' },
-  { id: 'quiz_10', type: 'quizzes', target: 10, current: 0, title: 'Quiz Enthusiast', description: 'Complete 10 quizzes', icon: 'target', reward: '75 XP Bonus' },
-  { id: 'quiz_25', type: 'quizzes', target: 25, current: 0, title: 'Quiz Master', description: 'Complete 25 quizzes', icon: 'target', reward: '200 XP Bonus' },
-  { id: 'quiz_perfect', type: 'quiz_perfect', target: 5, current: 0, title: 'Perfectionist', description: 'Get 100% on 5 quizzes', icon: 'trophy', reward: '150 XP Bonus' },
-  
-  
-  { id: 'streak_3', type: 'streak', target: 3, current: 0, title: '3-Day Streak', description: 'Study for 3 days in a row', icon: 'flame', reward: '30 XP Bonus' },
-  { id: 'streak_7', type: 'streak', target: 7, current: 0, title: 'Week Warrior', description: 'Study for 7 days in a row', icon: 'flame', reward: '70 XP Bonus' },
-  { id: 'streak_14', type: 'streak', target: 14, current: 0, title: 'Two Week Champion', description: 'Study for 14 days in a row', icon: 'flame', reward: '150 XP Bonus' },
-  { id: 'streak_30', type: 'streak', target: 30, current: 0, title: 'Monthly Master', description: 'Study for 30 days in a row', icon: 'flame', reward: '300 XP Bonus' },
-  
-  
-  { id: 'study_60', type: 'study_time', target: 60, current: 0, title: 'Hour Scholar', description: 'Study for 1 hour total', icon: 'clock', reward: '25 XP Bonus' },
-  { id: 'study_300', type: 'study_time', target: 300, current: 0, title: '5 Hour Grind', description: 'Study for 5 hours total', icon: 'clock', reward: '100 XP Bonus' },
-  { id: 'study_600', type: 'study_time', target: 600, current: 0, title: '10 Hour Dedication', description: 'Study for 10 hours total', icon: 'clock', reward: '200 XP Bonus' },
-  { id: 'study_1200', type: 'study_time', target: 1200, current: 0, title: '20 Hour Master', description: 'Study for 20 hours total', icon: 'clock', reward: '400 XP Bonus' },
+const QUEST_METRICS = [
+  { id: 'chat', label: 'Dialogue', stat: 'weekly_ai_chats', goal: 'weekly_chat_goal', total: 'total_ai_chats', icon: MessageCircle },
+  { id: 'notes', label: 'Notes', stat: 'weekly_notes_created', goal: 'weekly_note_goal', total: 'total_notes_created', icon: FileText },
+  { id: 'flashcards', label: 'Cards', stat: 'weekly_flashcards_created', goal: 'weekly_flashcard_goal', total: 'total_flashcards_created', icon: Layers },
+  { id: 'quizzes', label: 'Quizzes', stat: 'weekly_quizzes_completed', goal: 'weekly_quiz_goal', total: 'total_quizzes_completed', icon: Brain }
 ];
+
+function getXpForLevel(level) {
+  if (level < LEVEL_THRESHOLDS.length) return LEVEL_THRESHOLDS[level];
+  return LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1] + ((level - LEVEL_THRESHOLDS.length + 1) * 1000);
+}
+
+function getLevelWindow(level) {
+  const start = level <= 1 ? 0 : getXpForLevel(level - 1);
+  const end = getXpForLevel(level);
+  return { start, end };
+}
+
+function getNodeState(node, xp, nextXp) {
+  if (xp >= node.xp) return 'mastered';
+  if (node.xp === nextXp) return 'active';
+  return 'locked';
+}
+
+function getWeekDecayLabel() {
+  const now = new Date();
+  const nextMonday = new Date(now);
+  const daysUntilMonday = (8 - now.getDay()) % 7 || 7;
+  nextMonday.setDate(now.getDate() + daysUntilMonday);
+  nextMonday.setHours(0, 0, 0, 0);
+  const diff = Math.max(0, nextMonday.getTime() - now.getTime());
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  return `${days}d ${hours}h`;
+}
+
+function hexToPixiColor(value, fallback = 0xff6b6b) {
+  if (!value || !value.trim().startsWith('#')) return fallback;
+  const parsed = Number.parseInt(value.trim().replace('#', ''), 16);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function pathForSegment(from, to) {
+  const x1 = from.x * 10;
+  const y1 = from.y * 6;
+  const x2 = to.x * 10;
+  const y2 = to.y * 6;
+  const mid = (x1 + x2) / 2;
+  return `M ${x1} ${y1} C ${mid} ${y1 - 70}, ${mid} ${y2 + 70}, ${x2} ${y2}`;
+}
+
+const MISSION_ACTIONS = {
+  ignite: { label: 'Open Search Hub', route: '/search-hub' },
+  spark: { label: 'Open AI Chat', route: '/ai-chat', state: { initialMessage: 'Help me plan my next study sprint.' } },
+  'vault-one': { label: 'Open Notes', route: '/notes' },
+  focus: { label: 'Practice Questions', route: '/question-bank' },
+  'streak-core': { label: 'Review Flashcards', route: '/flashcards' },
+  'weekly-raid': { label: 'Open Quiz Hub', route: '/quiz-hub' },
+  'vault-two': { label: 'Open Review Hub', route: '/learning-review' },
+  recall: { label: 'Start Solo Quiz', route: '/solo-quiz' },
+  mastery: { label: 'Open Analytics', route: '/analytics' }
+};
+
+function getMissionAction(node) {
+  return MISSION_ACTIONS[node?.id] || { label: 'Open Dashboard', route: '/dashboard-cerbyl' };
+}
 
 const XPRoadmap = () => {
   const navigate = useNavigate();
-  const [userStats, setUserStats] = useState(null);
-  const [activityAchievements, setActivityAchievements] = useState([]);
+  const shellRef = useRef(null);
+  const pixiRef = useRef(null);
   const [loading, setLoading] = useState(true);
-  const [selectedMilestone, setSelectedMilestone] = useState(null);
-  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [personalizedRoadmap, setPersonalizedRoadmap] = useState(null);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [xpBursts, setXpBursts] = useState([]);
+  const [decayLabel, setDecayLabel] = useState(getWeekDecayLabel());
+  const [levelWave, setLevelWave] = useState(false);
+
+  const xp = stats?.total_points || 0;
+  const level = stats?.level || 1;
 
   useEffect(() => {
-    fetchRoadmapData();
+    let isMounted = true;
+
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const userName = localStorage.getItem('username');
+
+        if (!userName) {
+          if (isMounted) setLoading(false);
+          return;
+        }
+
+        const headers = { Authorization: `Bearer ${token}` };
+        const [statsRes, roadmapRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/get_gamification_stats?user_id=${encodeURIComponent(userName)}`, { headers }),
+          fetch(`${API_BASE_URL}/api/xp_roadmap/personalized?user_id=${encodeURIComponent(userName)}`, { headers })
+        ]);
+
+        if (statsRes.ok) {
+          const data = await statsRes.json();
+          if (isMounted) setStats(data);
+        }
+
+        if (roadmapRes.ok) {
+          const data = await roadmapRes.json();
+          if (isMounted) setPersonalizedRoadmap(data?.roadmap || null);
+        }
+      } catch (error) {
+        console.error('XP roadmap load error:', error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const fetchRoadmapData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const userName = localStorage.getItem('username');
-      
-      
-      const statsResponse = await fetch(`${API_BASE_URL}/api/get_gamification_stats?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (statsResponse.ok) {
-        const stats = await statsResponse.json();
-        setUserStats(stats);
-        
-        
-        const updatedAchievements = ACTIVITY_ACHIEVEMENTS.map(achievement => {
-          let current = 0;
-          switch(achievement.type) {
-            case 'ai_chat':
-              current = stats.total_ai_chats || 0;
-              break;
-            case 'flashcards':
-              current = stats.total_flashcards_created || 0;
-              break;
-            case 'flashcard_reviews':
-              current = stats.total_flashcards_reviewed || 0;
-              break;
-            case 'notes':
-              current = stats.total_notes_created || 0;
-              break;
-            case 'quizzes':
-              current = stats.total_quizzes_completed || 0;
-              break;
-            case 'streak':
-              current = stats.current_streak || 0;
-              break;
-            case 'study_time':
-              current = stats.total_study_minutes || 0;
-              break;
-            case 'quiz_perfect':
-              current = 0; 
-              break;
-            default:
-              current = 0;
-              break;
-          }
-          return { ...achievement, current, completed: current >= achievement.target };
+  useEffect(() => {
+    const interval = window.setInterval(() => setDecayLabel(getWeekDecayLabel()), 60000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (loading) return undefined;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo('.xpv-run-cell', { opacity: 0, y: -12 }, { opacity: 1, y: 0, duration: 0.45, stagger: 0.05, ease: 'power2.out' });
+      gsap.fromTo('.xpv-stage', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' });
+      gsap.fromTo('.xpv-mission-node', { opacity: 0, scale: 0.82 }, { opacity: 1, scale: 1, duration: 0.5, stagger: 0.05, ease: 'back.out(1.8)', delay: 0.18 });
+      gsap.fromTo('.xpv-rail-panel', { opacity: 0, x: 18 }, { opacity: 1, x: 0, duration: 0.45, stagger: 0.08, ease: 'power2.out', delay: 0.25 });
+      gsap.fromTo('.xpv-topic-arc', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.42, stagger: 0.06, ease: 'power2.out', delay: 0.35 });
+    }, shellRef);
+
+    return () => ctx.revert();
+  }, [loading, stats]);
+
+  useEffect(() => {
+    if (loading) return undefined;
+
+    const timeout = window.setTimeout(() => setLevelWave(true), 250);
+    const cleanup = window.setTimeout(() => setLevelWave(false), 1500);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearTimeout(cleanup);
+    };
+  }, [loading, level]);
+
+  useEffect(() => {
+    let app;
+    let raf;
+    let stars = [];
+    let orbit;
+
+    const setupPixi = async () => {
+      if (!pixiRef.current) return;
+
+      try {
+        const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#ff6b6b';
+        const accentColor = hexToPixiColor(accent);
+
+        app = new PIXI.Application();
+        await app.init({ backgroundAlpha: 0, antialias: true, resizeTo: pixiRef.current });
+        pixiRef.current.innerHTML = '';
+        pixiRef.current.appendChild(app.canvas);
+
+        const width = pixiRef.current.clientWidth || 1000;
+        const height = pixiRef.current.clientHeight || 620;
+
+        orbit = new PIXI.Graphics();
+        orbit.ellipse(width * 0.52, height * 0.48, width * 0.36, height * 0.18);
+        orbit.stroke({ width: 1, color: accentColor, alpha: 0.22 });
+        orbit.ellipse(width * 0.56, height * 0.5, width * 0.27, height * 0.11);
+        orbit.stroke({ width: 1, color: accentColor, alpha: 0.14 });
+        app.stage.addChild(orbit);
+
+        stars = Array.from({ length: 76 }, () => {
+          const dot = new PIXI.Graphics();
+          const radius = Math.random() * 1.9 + 0.7;
+          dot.circle(0, 0, radius);
+          dot.fill({ color: Math.random() > 0.25 ? accentColor : 0xeaecef, alpha: Math.random() * 0.42 + 0.16 });
+          dot.x = Math.random() * width;
+          dot.y = Math.random() * height;
+          app.stage.addChild(dot);
+          return {
+            sprite: dot,
+            driftX: (Math.random() - 0.5) * 0.12,
+            driftY: 0.12 + Math.random() * 0.34,
+            pulse: Math.random() * Math.PI * 2
+          };
         });
-        
-        setActivityAchievements(updatedAchievements);
+
+        app.ticker.add((ticker) => {
+          const w = pixiRef.current?.clientWidth || width;
+          const h = pixiRef.current?.clientHeight || height;
+          if (orbit) orbit.rotation += 0.0006 * ticker.deltaTime;
+          stars.forEach((star) => {
+            const sprite = star.sprite;
+            sprite.x += star.driftX * ticker.deltaTime;
+            sprite.y += star.driftY * ticker.deltaTime;
+            star.pulse += 0.025 * ticker.deltaTime;
+            sprite.alpha = 0.16 + ((Math.sin(star.pulse) + 1) * 0.2);
+            if (sprite.y > h + 6) {
+              sprite.y = -6;
+              sprite.x = Math.random() * w;
+            }
+          });
+        });
+
+        const render = () => {
+          app.render();
+          raf = window.requestAnimationFrame(render);
+        };
+        render();
+      } catch (error) {
+        console.error('XP roadmap canvas error:', error);
       }
-      
-    } catch (error) {
-      console.error('Error fetching roadmap data:', error);
-    } finally {
-      setLoading(false);
+    };
+
+    setupPixi();
+
+    return () => {
+      if (raf) window.cancelAnimationFrame(raf);
+      if (app) app.destroy(true, { children: true, texture: true });
+      if (pixiRef.current) pixiRef.current.innerHTML = '';
+    };
+  }, [loading]);
+
+  const levelWindow = useMemo(() => getLevelWindow(level), [level]);
+  const levelProgress = useMemo(() => {
+    return Math.max(0, Math.min(100, ((xp - levelWindow.start) / Math.max(1, levelWindow.end - levelWindow.start)) * 100));
+  }, [xp, levelWindow]);
+
+  const nextNode = useMemo(() => CAMPAIGN_NODES.find((node) => xp < node.xp) || null, [xp]);
+  const masteredCount = useMemo(() => CAMPAIGN_NODES.filter((node) => xp >= node.xp).length, [xp]);
+
+  const quests = useMemo(() => {
+    if (!stats) return [];
+    return QUEST_METRICS.map((quest) => {
+      const current = Number(stats[quest.stat] || 0);
+      const goal = Math.max(1, Number(stats[quest.goal] || 1));
+      const progress = Math.min(100, Math.round((current / goal) * 100));
+      return {
+        ...quest,
+        current,
+        goal,
+        progress,
+        done: current >= goal
+      };
+    });
+  }, [stats]);
+
+  const runMechanics = useMemo(() => {
+    const completedQuests = quests.filter((quest) => quest.done).length;
+    const averageQuestProgress = quests.length
+      ? Math.round(quests.reduce((total, quest) => total + quest.progress, 0) / quests.length)
+      : 0;
+    const combo = Math.min(2, 1 + (completedQuests * 0.2));
+    const freezes = Math.min(3, Math.floor((stats?.longest_streak || 0) / 7));
+    const revive = (stats?.current_streak || 0) > 0 ? 'armed' : ((stats?.longest_streak || 0) > 0 ? 'ready' : 'charging');
+
+    return {
+      completedQuests,
+      averageQuestProgress,
+      combo: combo.toFixed(1),
+      freezes,
+      revive
+    };
+  }, [quests, stats]);
+
+  const chestInventory = useMemo(() => {
+    return CAMPAIGN_NODES.filter((node) => node.type === 'chest').map((node) => ({
+      ...node,
+      state: getNodeState(node, xp, nextNode?.xp)
+    }));
+  }, [xp, nextNode]);
+
+  const nextRewards = useMemo(() => {
+    return CAMPAIGN_NODES.filter((node) => xp < node.xp).slice(0, 3);
+  }, [xp]);
+
+  const bossNode = useMemo(() => {
+    return CAMPAIGN_NODES.find((node) => node.type === 'boss' && xp < node.xp) || CAMPAIGN_NODES.filter((node) => node.type === 'boss').slice(-1)[0];
+  }, [xp]);
+
+  const streakChain = useMemo(() => {
+    const streak = stats?.current_streak || 0;
+    const completed = Math.min(7, streak % 7 || (streak > 0 ? 7 : 0));
+    return Array.from({ length: 7 }, (_, index) => ({
+      id: `chain-${index}`,
+      active: index < completed,
+      current: index === completed && completed < 7
+    }));
+  }, [stats]);
+
+  const powerUps = useMemo(() => {
+    return [
+      { id: 'freeze', label: 'Freeze', value: runMechanics.freezes, icon: Shield, charged: runMechanics.freezes > 0 },
+      { id: 'revive', label: 'Revive', value: runMechanics.revive, icon: RefreshCw, charged: runMechanics.revive !== 'charging' },
+      { id: 'boost', label: 'Boost', value: `x${runMechanics.combo}`, icon: Zap, charged: Number(runMechanics.combo) > 1 },
+      { id: 'vault', label: 'Vaults', value: `${chestInventory.filter((chest) => chest.state === 'mastered').length}/${chestInventory.length}`, icon: Package, charged: chestInventory.some((chest) => chest.state === 'mastered') }
+    ];
+  }, [runMechanics, chestInventory]);
+
+  const badgeCollection = useMemo(() => {
+    return CAMPAIGN_NODES.map((node) => ({
+      ...node,
+      state: getNodeState(node, xp, nextNode?.xp)
+    }));
+  }, [xp, nextNode]);
+
+  const seasonTrack = useMemo(() => {
+    const rewardLabels = ['Origin', 'Boost', 'Vault', 'Freeze', 'Raid', 'Crown'];
+    return rewardLabels.map((label, index) => {
+      const threshold = [0, 150, 350, 700, 1200, 2000][index];
+      return {
+        id: `season-${label}`,
+        label,
+        threshold,
+        unlocked: xp >= threshold
+      };
+    });
+  }, [xp]);
+
+  const selectedNodeDetails = useMemo(() => {
+    if (!selectedNode) return null;
+
+    const state = selectedNode.state || getNodeState(selectedNode, xp, nextNode?.xp);
+    const questSummary = quests.slice(1).map((quest) => ({
+      id: quest.id,
+      label: quest.label,
+      progress: quest.progress,
+      done: quest.done
+    }));
+
+    return {
+      ...selectedNode,
+      state,
+      questSummary,
+      delta: Math.max(0, selectedNode.xp - xp)
+    };
+  }, [selectedNode, xp, nextNode, quests]);
+
+  const selectedMissionAction = useMemo(() => {
+    const targetNode = selectedNodeDetails?.state === 'locked' ? nextNode : selectedNodeDetails;
+    return getMissionAction(targetNode);
+  }, [selectedNodeDetails, nextNode]);
+
+  const selectedCtaLabel = selectedNodeDetails?.state === 'locked'
+    ? 'Go To Current Mission'
+    : selectedMissionAction.label;
+
+  const topicArcs = useMemo(() => {
+    const topics = personalizedRoadmap?.topics || [];
+    const buckets = personalizedRoadmap?.topic_milestones || {};
+
+    return topics.slice(0, 4).map((topic) => {
+      const bucket = buckets[topic.topic] || {};
+      const completed = Number(bucket.completed_count || 0);
+      const total = Math.max(1, Number(bucket.total_count || 1));
+      return {
+        topic: topic.topic,
+        category: topic.category,
+        activityCount: topic.activity_count,
+        completed,
+        total,
+        progress: Math.round((completed / total) * 100)
+      };
+    });
+  }, [personalizedRoadmap]);
+
+  const handleNodeMove = (event) => {
+    const target = event.currentTarget;
+    const rect = target.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) - 0.5;
+    const y = ((event.clientY - rect.top) / rect.height) - 0.5;
+    target.style.setProperty('--magnet-x', `${x * 14}px`);
+    target.style.setProperty('--magnet-y', `${y * 14}px`);
+  };
+
+  const handleNodeLeave = (event) => {
+    event.currentTarget.style.setProperty('--magnet-x', '0px');
+    event.currentTarget.style.setProperty('--magnet-y', '0px');
+  };
+
+  const handleNodeClick = (node, state, event) => {
+    setSelectedNode({ ...node, state });
+
+    if (state === 'mastered') {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const id = `${node.id}-${Date.now()}`;
+      setXpBursts((items) => [...items, { id, x: rect.left + rect.width / 2, y: rect.top + 10, amount: node.xp }]);
+      window.setTimeout(() => setXpBursts((items) => items.filter((item) => item.id !== id)), 950);
+
+      confetti({
+        particleCount: node.type === 'boss' ? 220 : 120,
+        spread: node.type === 'boss' ? 98 : 72,
+        startVelocity: node.type === 'boss' ? 58 : 42,
+        scalar: 0.92,
+        colors: ['#ff6b6b', '#EAECEF', '#ffd43b', '#51cf66']
+      });
+    }
+
+    if (state === 'active') {
+      gsap.fromTo(event.currentTarget, { scale: 1 }, { scale: 1.08, yoyo: true, repeat: 1, duration: 0.16, ease: 'power2.out' });
     }
   };
 
-  const getIconComponent = (iconName) => {
-    const icons = {
-      'trophy': Trophy, 'award': Award, 'star': Star, 'zap': Zap,
-      'target': Target, 'crown': Crown, 'flame': Flame, 'book-open': BookOpen,
-      'brain': Brain, 'sparkles': Sparkles, 'rocket': Rocket, 'medal': Medal,
-      'gift': Gift, 'trending-up': TrendingUp, 'check-circle': CheckCircle,
-      'layers': Layers, 'clock': Clock, 'message-circle': MessageCircle,
-      'file-text': FileText
-    };
-    return icons[iconName] || Star;
-  };
+  const handleContinueMission = () => {
+    const targetNode = selectedNodeDetails?.state === 'locked' ? nextNode : selectedNodeDetails;
+    const action = getMissionAction(targetNode);
 
-  const getTierColor = (tier) => {
-    const colors = {
-      'bronze': '#cd7f32', 'silver': '#c0c0c0', 'gold': '#ffd700',
-      'platinum': '#e5e4e2', 'diamond': '#b9f2ff', 'mythic': '#ff00ff',
-      'legendary': '#ff4500'
-    };
-    return colors[tier] || '#888';
+    setSelectedNode(null);
+    navigate(action.route, action.state ? { state: action.state } : undefined);
   };
-
-  const getTypeIcon = (type) => {
-    const icons = {
-      'ai_chat': MessageCircle,
-      'notes': FileText,
-      'flashcards': Layers,
-      'quizzes': Target
-    };
-    return icons[type] || Star;
-  };
-
-  const getMilestoneStatus = (milestone) => {
-    if (!userStats) return 'locked';
-    if (userStats.total_points >= milestone.xp) return 'completed';
-    
-    const completedMilestones = MILESTONES.filter(m => userStats.total_points >= m.xp);
-    const nextMilestone = MILESTONES.find(m => userStats.total_points < m.xp);
-    
-    if (milestone.id === nextMilestone?.id) return 'current';
-    return 'locked';
-  };
-
-  const getProgressToMilestone = (milestone) => {
-    if (!userStats) return 0;
-    if (userStats.total_points >= milestone.xp) return 100;
-    
-    const previousMilestone = MILESTONES.filter(m => m.xp < milestone.xp).pop();
-    const startXP = previousMilestone?.xp || 0;
-    const endXP = milestone.xp;
-    const currentXP = userStats.total_points;
-    
-    return Math.min(100, Math.max(0, ((currentXP - startXP) / (endXP - startXP)) * 100));
-  };
-
-  const handleMilestoneClick = (milestone) => {
-    const status = getMilestoneStatus(milestone);
-    if (status === 'completed') {
-      setSelectedMilestone(milestone);
-      setShowRewardModal(true);
-    }
-  };
-
-  const completedCount = MILESTONES.filter(m => getMilestoneStatus(m) === 'completed').length;
-  const totalCount = MILESTONES.length;
-  const completionPercentage = (completedCount / totalCount) * 100;
 
   if (loading) {
     return (
-      <div className="xp-roadmap-loading">
-        <div className="loading-spinner-xp"></div>
-        <p>Loading Your Journey...</p>
+      <div className="xpv-loading">
+        <div className="xpv-loader-ring" />
+        <p>Booting XP campaign</p>
       </div>
     );
   }
 
   return (
-    <div className="xp-roadmap-container">
-      <header className="xp-roadmap-header">
-        <div className="xp-roadmap-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
+    <div className="xpv-shell" ref={shellRef}>
+      <div className="xpv-bg-fx" aria-hidden="true">
+        <div className="xpv-bg-orb xpv-bg-orb-1" />
+        <div className="xpv-bg-orb xpv-bg-orb-2" />
+        <div className="xpv-bg-dots" />
+        <div className="xpv-bg-vignette" />
+      </div>
+
+      {levelWave && <div className="xpv-level-wave" aria-hidden="true" />}
+
+      <header className="xpv-topbar">
+        <div className="xpv-topbar-left">
+          <button className="xpv-icon-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={19} />
           </button>
-          <h1 className="xp-roadmap-logo" onClick={() => navigate('/search-hub')}>
-            <div className="xp-roadmap-logo-img" />
+          <button className="xpv-wordmark" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
             cerbyl
-          </h1>
-          <div className="xp-roadmap-header-divider"></div>
-          <span className="xp-roadmap-subtitle">XP Roadmap</span>
+          </button>
+          <span className="xpv-page-label">XP Roadmap</span>
         </div>
-        <nav className="xp-roadmap-header-right">
-          <button className="xp-roadmap-nav-btn xp-roadmap-nav-btn-accent">
-            <Zap size={16} />
-            <span>{userStats?.total_points || 0} XP</span>
+        <div className="xpv-topbar-right">
+          <button className="xpv-text-btn" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+          <button className="xpv-text-btn is-accent" onClick={() => navigate('/analytics')}>
+            <Activity size={15} />
+            Analytics
           </button>
-          <button className="xp-roadmap-nav-btn xp-roadmap-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-        </nav>
+        </div>
       </header>
 
-      <div className="xp-roadmap-body">
-        <div className="xp-roadmap-main-full">
-          <div className="roadmap-view-header">
-            <span className="roadmap-view-kicker">Progress Tracker</span>
-            <h2 className="roadmap-view-title">XP Journey</h2>
-            <p className="roadmap-view-sub">{completedCount} of {totalCount} milestones completed · {completionPercentage.toFixed(1)}% complete</p>
+      <main className="xpv-content">
+        <section className="xpv-run-strip" aria-label="Current run">
+          <div className="xpv-run-cell">
+            <Flame size={18} />
+            <span>Run streak</span>
+            <strong>{stats?.current_streak || 0}d</strong>
           </div>
+          <div className="xpv-run-cell is-hot">
+            <Zap size={18} />
+            <span>Combo</span>
+            <strong>x{runMechanics.combo}</strong>
+          </div>
+          <div className="xpv-run-cell">
+            <Target size={18} />
+            <span>Daily target</span>
+            <strong>{runMechanics.averageQuestProgress}%</strong>
+          </div>
+          <div className="xpv-run-cell">
+            <Shield size={18} />
+            <span>Freezes</span>
+            <strong>{runMechanics.freezes}</strong>
+          </div>
+          <div className="xpv-run-cell">
+            <RefreshCw size={18} />
+            <span>Revive</span>
+            <strong>{runMechanics.revive}</strong>
+          </div>
+          <div className="xpv-run-cell">
+            <Clock size={18} />
+            <span>Combo decay</span>
+            <strong>{decayLabel}</strong>
+          </div>
+        </section>
 
-          <div className="overall-progress">
-            <div className="progress-bar-container">
-              <div className="progress-bar-fill" style={{ width: `${completionPercentage}%` }} />
+        <section className="xpv-campaign-grid">
+          <div className="xpv-stage">
+            <div className="xpv-stage-canvas" ref={pixiRef} aria-hidden="true" />
+            <div className="xpv-stage-scanline" aria-hidden="true" />
+
+            <div className="xpv-stage-header">
+              <div>
+                <span className="xpv-kicker">Current Campaign</span>
+                <h1>Road to {nextNode?.title || 'Ascendant Core'}</h1>
+              </div>
+              <div className="xpv-level-module" style={{ '--level-progress': `${levelProgress}%` }}>
+                <span>LEVEL {level}</span>
+                <strong>{xp.toLocaleString()} XP</strong>
+              </div>
+            </div>
+
+            <svg className="xpv-path-svg" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+              {CAMPAIGN_NODES.slice(1).map((node, index) => {
+                const previous = CAMPAIGN_NODES[index];
+                const state = getNodeState(node, xp, nextNode?.xp);
+                const previousMastered = xp >= previous.xp;
+                const segmentState = state === 'mastered' ? 'mastered' : (previousMastered && state === 'active' ? 'active' : 'locked');
+                return (
+                  <path
+                    key={`${previous.id}-${node.id}`}
+                    className={`xpv-path-segment ${segmentState}`}
+                    d={pathForSegment(previous, node)}
+                  />
+                );
+              })}
+            </svg>
+
+            <div className="xpv-node-layer">
+              {CAMPAIGN_NODES.map((node) => {
+                const state = getNodeState(node, xp, nextNode?.xp);
+                const Icon = node.icon;
+                return (
+                  <button
+                    key={node.id}
+                    type="button"
+                    className={`xpv-mission-node ${state} type-${node.type}`}
+                    style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                    onMouseMove={handleNodeMove}
+                    onMouseLeave={handleNodeLeave}
+                    onClick={(event) => handleNodeClick(node, state, event)}
+                    aria-label={`${node.title} ${state}`}
+                  >
+                    <span className="xpv-node-aura" />
+                    <span className="xpv-node-core">
+                      {state === 'locked' ? <Lock size={22} /> : <Icon size={24} />}
+                    </span>
+                    <span className="xpv-node-copy">
+                      <strong>{node.title}</strong>
+                      <small>{node.xp.toLocaleString()} XP</small>
+                    </span>
+                </button>
+              );
+            })}
+            </div>
+
+            <div className="xpv-stage-footer">
+              <div>
+                <Map size={16} />
+                <span>{masteredCount}/{CAMPAIGN_NODES.length} missions mastered</span>
+              </div>
+              <div>
+                <Award size={16} />
+                <span>{Math.max(0, levelWindow.end - xp).toLocaleString()} XP to level {level + 1}</span>
+              </div>
             </div>
           </div>
 
-          <div className="roadmap-path">
-            {MILESTONES.map((milestone, index) => {
-              const status = getMilestoneStatus(milestone);
-              const progress = getProgressToMilestone(milestone);
-              const IconComponent = getIconComponent(milestone.icon);
-              
-              
-              const relevantAchievements = activityAchievements.filter(ach => {
-                
-                if (index < MILESTONES.length - 1) {
-                  const nextMilestone = MILESTONES[index + 1];
-                  
-                  return ach.target <= (milestone.xp + nextMilestone.xp) / 2 && 
-                         ach.target > (index > 0 ? (MILESTONES[index - 1].xp + milestone.xp) / 2 : 0);
-                }
-                return false;
-              }).slice(0, 2); 
-              
-              return (
-                <React.Fragment key={milestone.id}>
-                  <div className="milestone-wrapper">
-                    {index > 0 && (
-                      <div className={`milestone-connector ${status === 'completed' ? 'completed' : ''}`}>
-                        <div className="connector-line" />
+          <aside className="xpv-rail" aria-label="Quest systems">
+            <section className="xpv-rail-panel xpv-next-panel">
+              <div className="xpv-panel-title">
+                <Target size={16} />
+                <h2>Current Mission</h2>
+              </div>
+              <div className="xpv-next-mission">
+                <strong>{nextNode?.title || 'Campaign Complete'}</strong>
+                <span>{nextNode ? `${Math.max(0, nextNode.xp - xp).toLocaleString()} XP remaining` : 'All mapped missions mastered'}</span>
+                <div className="xpv-mini-meter">
+                  <span style={{ width: `${levelProgress}%` }} />
+                </div>
+              </div>
+            </section>
+
+            <section className="xpv-rail-panel">
+              <div className="xpv-panel-title">
+                <Sparkles size={16} />
+                <h2>Active Quests</h2>
+              </div>
+              <div className="xpv-quest-list">
+                {quests.map((quest) => {
+                  const Icon = quest.icon;
+                  return (
+                    <div key={quest.id} className={`xpv-quest-row ${quest.done ? 'done' : ''}`}>
+                      <Icon size={17} />
+                      <div>
+                        <strong>{quest.label}</strong>
+                        <span>{quest.current}/{quest.goal}</span>
                       </div>
-                    )}
-                    
-                    <div 
-                      className={`milestone-node ${status}`}
-                      onClick={() => handleMilestoneClick(milestone)}
-                      style={{ borderColor: getTierColor(milestone.tier) }}
-                    >
-                      <div className="milestone-icon-wrapper">
-                        <div 
-                          className="milestone-icon"
-                          style={{ 
-                            backgroundColor: status === 'completed' ? getTierColor(milestone.tier) : 'transparent',
-                            borderColor: getTierColor(milestone.tier)
-                          }}
-                        >
-                          {status === 'locked' ? (
-                            <Lock size={24} />
-                          ) : status === 'completed' ? (
-                            <CheckCircle size={24} />
-                          ) : (
-                            <IconComponent size={24} />
-                          )}
-                        </div>
-                        {status === 'current' && (
-                          <div className="current-indicator">
-                            <Zap size={16} />
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="milestone-content">
-                        <div className="milestone-header">
-                          <span className="milestone-xp">{milestone.xp.toLocaleString()} XP</span>
-                          <span className="milestone-tier" style={{ color: getTierColor(milestone.tier) }}>
-                            {milestone.tier.toUpperCase()}
-                          </span>
-                        </div>
-                        
-                        <h3 className="milestone-title">{milestone.title}</h3>
-                        <p className="milestone-description">{milestone.description}</p>
-                        
-                        {status === 'current' && (
-                          <div className="milestone-progress">
-                            <div className="progress-bar-mini">
-                              <div 
-                                className="progress-fill-mini" 
-                                style={{ 
-                                  width: `${progress}%`,
-                                  backgroundColor: getTierColor(milestone.tier)
-                                }}
-                              />
-                            </div>
-                            <span className="progress-text">{progress.toFixed(0)}%</span>
-                          </div>
-                        )}
-                        
-                        <div className="milestone-reward">
-                          <Gift size={16} />
-                          <span>{milestone.reward}</span>
-                        </div>
-                        
-                        {status === 'completed' && (
-                          <div className="completed-badge">
-                            <CheckCircle size={16} />
-                            <span>COMPLETED</span>
-                          </div>
-                        )}
+                      <div className="xpv-mini-meter">
+                        <span style={{ width: `${quest.progress}%` }} />
                       </div>
                     </div>
-                  </div>
-                  
-                  {relevantAchievements.map((achievement, achIndex) => {
-                    const AchIconComponent = getIconComponent(achievement.icon);
-                    const achProgress = Math.min(100, (achievement.current / achievement.target) * 100);
-                    
-                    return (
-                      <div key={achievement.id} className="milestone-wrapper">
-                        <div className={`milestone-connector ${achievement.completed ? 'completed' : ''}`}>
-                          <div className="connector-line" />
-                        </div>
-                        
-                        <div 
-                          className={`activity-achievement-node ${achievement.completed ? 'completed' : ''}`}
-                          data-type={achievement.type}
-                        >
-                          <div className="achievement-icon">
-                            <AchIconComponent size={20} />
-                          </div>
-                          <div className="achievement-content">
-                            <h4 className="achievement-title">{achievement.title}</h4>
-                            <p className="achievement-description">{achievement.description}</p>
-                            
-                            <div className="achievement-progress">
-                              <div className="progress-bar-mini">
-                                <div 
-                                  className="progress-fill-mini" 
-                                  style={{ width: `${achProgress}%` }}
-                                />
-                              </div>
-                              <span className="progress-text">{achievement.current}/{achievement.target}</span>
-                            </div>
-                            
-                            <div className="achievement-reward">
-                              <Gift size={14} />
-                              <span>{achievement.reward}</span>
-                            </div>
-                            
-                            {achievement.completed && (
-                              <div className="achievement-completed-badge">
-                                <CheckCircle size={14} />
-                                <span>ACHIEVED</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </React.Fragment>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="xpv-rail-panel">
+              <div className="xpv-panel-title">
+                <Crown size={16} />
+                <h2>Weekly Boss</h2>
+              </div>
+              <div className="xpv-boss-module">
+                <div className="xpv-boss-mark">
+                  <Crown size={28} />
+                </div>
+                <strong>{bossNode?.title || 'Weekly Raid'}</strong>
+                <span>{runMechanics.completedQuests}/4 quest lanes charged</span>
+                <div className="xpv-mini-meter">
+                  <span style={{ width: `${(runMechanics.completedQuests / 4) * 100}%` }} />
+                </div>
+                <div className="xpv-boss-lanes">
+                  {quests.slice(1).map((quest) => (
+                    <span key={quest.id} className={quest.done ? 'done' : ''}>{quest.label}</span>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </aside>
+        </section>
+
+        <section className="xpv-system-grid" aria-label="Progression systems">
+          <section className="xpv-system-panel">
+            <div className="xpv-topic-heading">
+              <Flame size={17} />
+              <h2>Streak Chain</h2>
+            </div>
+            <div className="xpv-chain xpv-chain--inline" aria-label="Streak chain">
+              {streakChain.map((link, index) => (
+                <span key={link.id} className={`xpv-chain-link ${link.active ? 'active' : ''} ${link.current ? 'current' : ''}`}>
+                  {index + 1}
+                </span>
+              ))}
+            </div>
+          </section>
+
+          <section className="xpv-system-panel">
+            <div className="xpv-topic-heading">
+              <Shield size={17} />
+              <h2>Power Ups</h2>
+            </div>
+            <div className="xpv-power-grid">
+              {powerUps.map((power) => {
+                const Icon = power.icon;
+                return (
+                  <button key={power.id} type="button" className={`xpv-power ${power.charged ? 'charged' : ''}`}>
+                    <Icon size={18} />
+                    <strong>{power.value}</strong>
+                    <span>{power.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="xpv-system-panel">
+            <div className="xpv-topic-heading">
+              <Package size={17} />
+              <h2>Chest Inventory</h2>
+            </div>
+            <div className="xpv-chest-list">
+              {chestInventory.map((chest) => (
+                <button key={chest.id} type="button" className={`xpv-chest ${chest.state}`} onClick={() => setSelectedNode(chest)}>
+                  <Gift size={17} />
+                  <span>{chest.reward}</span>
+                  {chest.state === 'mastered' ? <CheckCircle size={15} /> : <Lock size={15} />}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="xpv-system-panel">
+            <div className="xpv-topic-heading">
+              <Star size={17} />
+              <h2>Next Rewards</h2>
+            </div>
+            <div className="xpv-reward-list">
+              {nextRewards.length === 0 && <span className="xpv-muted">All rewards unlocked</span>}
+              {nextRewards.map((reward) => (
+                <div key={reward.id} className="xpv-reward-row">
+                  <Gift size={15} />
+                  <span>{reward.reward}</span>
+                  <small>{reward.xp.toLocaleString()} XP</small>
+                </div>
+              ))}
+            </div>
+          </section>
+        </section>
+
+        <section className="xpv-season-band">
+          <div className="xpv-topic-heading">
+            <Award size={17} />
+            <h2>Season Track</h2>
+          </div>
+          <div className="xpv-season-track">
+            {seasonTrack.map((reward) => (
+              <div key={reward.id} className={`xpv-season-step ${reward.unlocked ? 'unlocked' : ''}`}>
+                <span>{reward.label}</span>
+                <small>{reward.threshold.toLocaleString()} XP</small>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="xpv-topic-band">
+          <div className="xpv-topic-heading">
+            <BookOpen size={17} />
+            <h2>Personalized Topic Arcs</h2>
+          </div>
+          <div className="xpv-topic-arcs">
+            {topicArcs.length === 0 && (
+              <div className="xpv-topic-empty">No topic arcs unlocked yet.</div>
+            )}
+            {topicArcs.map((arc) => (
+              <div key={arc.topic} className="xpv-topic-arc">
+                <div>
+                  <strong>{arc.topic}</strong>
+                  <span>{arc.category} / {arc.activityCount} signals</span>
+                </div>
+                <div className="xpv-topic-meter">
+                  <span style={{ width: `${arc.progress}%` }} />
+                </div>
+                <small>{arc.completed}/{arc.total}</small>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="xpv-badge-band">
+          <div className="xpv-topic-heading">
+            <Trophy size={17} />
+            <h2>Badge Codex</h2>
+          </div>
+          <div className="xpv-badge-grid">
+            {badgeCollection.map((badge) => {
+              const Icon = badge.icon;
+              return (
+                <button
+                  key={badge.id}
+                  type="button"
+                  className={`xpv-badge ${badge.state}`}
+                  onClick={() => setSelectedNode(badge)}
+                >
+                  <Icon size={18} />
+                  <span>{badge.title}</span>
+                </button>
               );
             })}
           </div>
-        </div>
-      </div>
-      {showRewardModal && selectedMilestone && (
-        <div className="reward-modal-overlay" onClick={() => setShowRewardModal(false)}>
-          <div className="reward-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowRewardModal(false)}>×</button>
-            
-            <div className="reward-content">
-              <div className="reward-icon-large">
-                {React.createElement(getIconComponent(selectedMilestone.icon), { size: 64 })}
-              </div>
-              
-              <h2 className="reward-title">{selectedMilestone.title}</h2>
-              <p className="reward-description">{selectedMilestone.description}</p>
-              
-              <div className="reward-xp-badge">
-                <Zap size={24} />
-                <span>{selectedMilestone.xp.toLocaleString()} XP</span>
-              </div>
-              
-              <div className="reward-tier-badge" style={{ backgroundColor: getTierColor(selectedMilestone.tier) }}>
-                {selectedMilestone.tier.toUpperCase()} TIER
-              </div>
-              
-              <div className="reward-prize">
-                <Gift size={32} />
-                <h3>Reward Unlocked!</h3>
-                <p>{selectedMilestone.reward}</p>
-              </div>
-              
-              <button 
-                className="claim-reward-btn"
-                style={{ backgroundColor: getTierColor(selectedMilestone.tier) }}
-              >
-                <CheckCircle size={20} />
-                Milestone Completed
-              </button>
+        </section>
+      </main>
+
+      {xpBursts.map((burst) => (
+        <span key={burst.id} className="xpv-xp-burst" style={{ left: burst.x, top: burst.y }}>
+          +{Math.max(10, Math.round(burst.amount / 10))} XP
+        </span>
+      ))}
+
+      {selectedNodeDetails && (
+        <div className="xpv-drawer" role="dialog" aria-modal="false">
+          <div className="xpv-drawer-head">
+            <div>
+              <span>{selectedNodeDetails.state}</span>
+              <strong>{selectedNodeDetails.title}</strong>
             </div>
+            <button type="button" onClick={() => setSelectedNode(null)}>x</button>
           </div>
+          <div className="xpv-drawer-reward">
+            <Gift size={18} />
+            <span>{selectedNodeDetails.reward}</span>
+            {selectedNodeDetails.delta > 0 && <small>{selectedNodeDetails.delta.toLocaleString()} XP left</small>}
+          </div>
+          <div className="xpv-drawer-lanes">
+            {selectedNodeDetails.questSummary.map((lane) => (
+              <div key={lane.id} className={lane.done ? 'done' : ''}>
+                <span>{lane.label}</span>
+                <strong>{lane.progress}%</strong>
+              </div>
+            ))}
+          </div>
+          <div className="xpv-drawer-action-note">
+            {selectedNodeDetails.state === 'locked' && nextNode
+              ? `Locked. Continue from ${nextNode.title}.`
+              : selectedMissionAction.label}
+          </div>
+          <button type="button" className="xpv-drawer-cta" onClick={handleContinueMission}>
+            {selectedCtaLabel}
+            <ChevronRight size={14} />
+          </button>
         </div>
       )}
     </div>
