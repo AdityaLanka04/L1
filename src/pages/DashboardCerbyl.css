@@ -1425,8 +1425,8 @@
 /* Full-width heatmap row */
 .cb-heat-full {
   width: 100%;
-  min-height: 220px;
-  padding: 18px 24px 22px;
+  min-height: 0;
+  padding: 16px 24px 18px;
   margin-top: 0;
   display: flex;
   flex-direction: column;
@@ -1491,14 +1491,13 @@
 }
 
 .cb-heat-full .cb-heat-grid {
-  flex: 1;
-  width: 100%;
   display: flex;
-  justify-content: space-between;
-  align-items: stretch;
-  gap: 4px;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 3px;
   margin-top: 14px;
-  overflow: hidden;
+  overflow-x: auto;
+  padding: 4px 0 6px;
 }
 
 .cb-heat-col {
@@ -1508,28 +1507,35 @@
 }
 
 .cb-heat-full .cb-heat-col {
-  flex: 1 1 0;
-  min-width: 0;
-  gap: 4px;
+  flex: 0 0 auto;
+  gap: 3px;
 }
 
 .cb-heat-cell {
-  width: 11px;
-  height: 11px;
+  width: 14px;
+  height: 14px;
   border-radius: 2px;
   background: rgba(255,255,255,0.04);
   flex-shrink: 0;
 }
 
 .cb-heat-full .cb-heat-col .cb-heat-cell {
-  width: 100%;
+  width: 18px;
   height: 18px;
   border-radius: 3px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cb-heat-full .cb-heat-col .cb-heat-cell:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  z-index: 2;
 }
 
 .cb-heat-legend .cb-heat-cell {
-  width: 11px;
-  height: 11px;
+  width: 14px;
+  height: 14px;
   border-radius: 2px;
 }
 
@@ -1748,3 +1754,4 @@
   .cb-ai-cta { margin-left: 0; width: 100%; justify-content: center; }
   .cb-pfp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+

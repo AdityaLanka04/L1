@@ -250,6 +250,42 @@ def invalidate_user_search(user_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Public API: generic analytics / page-level cache
+# ---------------------------------------------------------------------------
+
+ANALYTICS_TTL: int = 300  # 5 minutes — fast-enough for dashboards
+
+
+def get_analytics(key: str) -> Any | None:
+    """Return a cached analytics payload keyed by an arbitrary string."""
+    cache_key = _make_key("analytics", key)
+    return _redis_get(cache_key) if _redis_client else _fallback_get(cache_key)
+
+
+def set_analytics(key: str, value: Any, ttl: int = ANALYTICS_TTL) -> None:
+    """Cache an analytics payload."""
+    cache_key = _make_key("analytics", key)
+    if _redis_client:
+        _redis_set(cache_key, value, ttl)
+    else:
+        _fallback_set(cache_key, value, ttl)
+
+
+def invalidate_analytics(user_id: str) -> None:
+    """Invalidate all analytics cache entries for a user (call after activity)."""
+    if _redis_client:
+        try:
+            for key in _redis_client.scan_iter("bw:analytics:*", count=200):
+                _redis_client.delete(key)
+        except Exception as e:
+            logger.debug("Cache invalidate_analytics failed: %s", e)
+    else:
+        with _lock:
+            for k in [k for k in list(_fallback.keys()) if k.startswith("bw:analytics:")]:
+                del _fallback[k]
+
+
+# ---------------------------------------------------------------------------
 # Stats & diagnostics
 # ---------------------------------------------------------------------------
 

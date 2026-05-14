@@ -1,221 +1,151 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ChevronRight, Download, BarChart3, Activity, Zap, BookOpen, MessageSquare,
-  Trophy, Target, Flame, Clock, Brain, Calendar, Menu, Cpu, Database, 
-  Network, Sparkles, TrendingUp, TrendingDown, CheckCircle, AlertCircle, 
-  Layers, GitBranch, Info
+import {
+  ArrowUpRight, Download, Zap, BookOpen, MessageSquare,
+  Trophy, Target, Flame, Clock, Brain, Cpu, Database,
+  Network, Sparkles, TrendingUp, TrendingDown, CheckCircle,
+  Layers, GitBranch, Info, AlertCircle, BarChart3, Activity
 } from 'lucide-react';
 import './Analytics.css';
 import { API_URL } from '../config';
-import { useTheme } from '../contexts/ThemeContext';
-import GeoBackground from '../components/GeoBackground';
+import ThemeSwitcher from '../components/ThemeSwitcher';
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const readCache = (key) => {
+  try {
+    const raw = localStorage.getItem(`an_cache_${key}`);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return null;
+    return data;
+  } catch { return null; }
+};
+
+const writeCache = (key, data) => {
+  try { localStorage.setItem(`an_cache_${key}`, JSON.stringify({ data, ts: Date.now() })); } catch {}
+};
+
+const fetchJson = async (url) => {
+  const token = localStorage.getItem('token');
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+};
 
 const Analytics = () => {
   const navigate = useNavigate();
-  const { selectedTheme } = useTheme();
-  const token = localStorage.getItem('token');
-  const userName = localStorage.getItem('username');
-  
-  const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('week');
-  const [chartType, setChartType] = useState('bar');
-  const [selectedMetrics, setSelectedMetrics] = useState(['points', 'ai_chats', 'notes', 'flashcards', 'quizzes']);
+  const userName = localStorage.getItem('username') || '';
+  const chartRef = useRef(null);
+
+  const [loading, setLoading] = useState(() => !readCache(`core_month_${localStorage.getItem('username')}`));
+  const [timeRange, setTimeRange] = useState('month');
   const [activeTab, setActiveTab] = useState('overview');
-  
-  const [weeklyData, setWeeklyData] = useState([]);
-  const [dailyBreakdown, setDailyBreakdown] = useState([]);
-  const [weeklyStats, setWeeklyStats] = useState({});
-  const [gamificationStats, setGamificationStats] = useState({});
-  const [historicalData, setHistoricalData] = useState([]);
-  const [periodStats, setPeriodStats] = useState({ totalPoints: 0, totalActivities: 0 });
+  const [chartHover, setChartHover] = useState(null);
+
+  const u = localStorage.getItem('username') || '';
+  const [gamStats, setGamStats] = useState(() => readCache(`gam_${u}`) || {});
+  const [historicalData, setHistoricalData] = useState(() => readCache(`hist_month_${u}`)?.history || []);
+  const [weeklyData, setWeeklyData] = useState(() => readCache(`weekly_${u}`) || { daily_breakdown: [], weekly_stats: {}, total_points: 0 });
+  const [breakdown, setBreakdown] = useState(() => readCache(`bkdn_month_${u}`)?.breakdown || {});
+  const [quizPerf, setQuizPerf] = useState(() => readCache(`quiz_${u}`) || { quiz_history: [], total_quizzes: 0, avg_score: 0 });
+  const [periodStats, setPeriodStats] = useState(() => {
+    const h = readCache(`hist_month_${u}`);
+    return h ? { totalPoints: h.total_points || 0, totalActivities: h.total_activities || 0, groupBy: h.group_by || 'day' } : { totalPoints: 0, totalActivities: 0, groupBy: 'day' };
+  });
   const [mlStats, setMlStats] = useState(null);
-  const [chatDetails, setChatDetails] = useState(null);
-  const [flashcardDetails, setFlashcardDetails] = useState(null);
   const [contextSessions, setContextSessions] = useState([]);
-
-  const tokens = selectedTheme?.tokens || {};
-  const accent = tokens['--accent'] || '#D7B38C';
-
-  const metricConfig = {
-    points: { label: 'Points', color: accent, icon: Zap },
-    ai_chats: { label: 'AI Chats', color: '#3b82f6', icon: MessageSquare },
-    notes: { label: 'Notes', color: '#10b981', icon: BookOpen },
-    flashcards: { label: 'Flashcards', color: '#f59e0b', icon: Brain },
-    quizzes: { label: 'Quizzes', color: '#ef4444', icon: Target },
-    study_minutes: { label: 'Study Time', color: accent, icon: Clock }
-  };
+  const [chatDetails, setChatDetails] = useState(null);
+  const [flashDetails, setFlashDetails] = useState(null);
 
   useEffect(() => {
-    if (!token) {
-      navigate('/login');
-      return;
+    if (!localStorage.getItem('token')) { navigate('/login'); return; }
+    const hasCached = !!readCache(`core_${timeRange}_${userName}`);
+    if (hasCached) {
+      const h = readCache(`hist_${timeRange}_${userName}`);
+      const b = readCache(`bkdn_${timeRange}_${userName}`);
+      if (h) { setHistoricalData(h.history || []); setPeriodStats({ totalPoints: h.total_points || 0, totalActivities: h.total_activities || 0, groupBy: h.group_by || 'day' }); }
+      if (b) setBreakdown(b.breakdown || {});
     }
-    loadAllData();
+    loadCore(hasCached);
   }, [timeRange]);
 
   useEffect(() => {
-    if (activeTab === 'ml-insights') {
-      if (!mlStats) loadMLStats();
-      if (!contextSessions.length) loadContextSessions();
-    } else if (activeTab === 'detailed-stats') {
-      if (!chatDetails) loadDetailedStats();
+    if (activeTab === 'ml') {
+      if (!mlStats) fetchJson(`${API_URL}/get_ml_analytics?user_id=${userName}`).then(d => setMlStats(d)).catch(() => {});
+      if (!contextSessions.length) fetchJson(`${API_URL}/get_context_sessions?user_id=${userName}`).then(d => setContextSessions(d.sessions || [])).catch(() => {});
+    } else if (activeTab === 'deep') {
+      if (!chatDetails) fetchJson(`${API_URL}/get_chat_details?user_id=${userName}`).then(d => setChatDetails(d)).catch(() => {});
+      if (!flashDetails) fetchJson(`${API_URL}/get_flashcard_details?user_id=${userName}`).then(d => setFlashDetails(d)).catch(() => {});
     }
   }, [activeTab]);
 
-  const loadAllData = async () => {
-    setLoading(true);
-    try {
-      await Promise.all([
-        loadWeeklyProgress(),
-        loadGamificationStats(),
-        loadHistoricalData()
-      ]);
-    } catch (error) {
-      console.error('Load error:', error);
-    } finally {
-      setLoading(false);
-    }
+  const loadCore = async (silent = false) => {
+    if (!silent) setLoading(true);
+    await Promise.allSettled([
+      fetchJson(`${API_URL}/get_gamification_stats?user_id=${userName}`).then(d => {
+        setGamStats(d); writeCache(`gam_${userName}`, d);
+      }),
+      fetchJson(`${API_URL}/get_analytics_history?user_id=${userName}&period=${timeRange}`).then(d => {
+        setHistoricalData(d.history || []);
+        setPeriodStats({ totalPoints: d.total_points || 0, totalActivities: d.total_activities || 0, groupBy: d.group_by || 'day' });
+        writeCache(`hist_${timeRange}_${userName}`, d);
+        writeCache(`core_${timeRange}_${userName}`, true);
+      }),
+      fetchJson(`${API_URL}/get_weekly_progress?user_id=${userName}`).then(d => {
+        setWeeklyData(d); writeCache(`weekly_${userName}`, d);
+      }),
+      fetchJson(`${API_URL}/get_activity_breakdown?user_id=${userName}&period=${timeRange}`).then(d => {
+        setBreakdown(d.breakdown || {}); writeCache(`bkdn_${timeRange}_${userName}`, d);
+      }),
+      fetchJson(`${API_URL}/get_quiz_performance?user_id=${userName}`).then(d => {
+        setQuizPerf(d); writeCache(`quiz_${userName}`, d);
+      }),
+    ]);
+    setLoading(false);
   };
 
-  const loadMLStats = async () => {
-    try {
-      const response = await fetch(`${API_URL}/get_ml_analytics?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setMlStats(data);
-      }
-    } catch (error) {
-      console.error('Failed to load ML stats:', error);
-    }
-  };
+  const lineSvg = useMemo(() => {
+    if (!historicalData.length) return null;
+    const W = 800, H = 200, pL = 0, pR = 0, pT = 20, pB = 30;
+    const iW = W - pL - pR, iH = H - pT - pB;
+    const maxV = Math.max(1, ...historicalData.map(d => d.points || 0));
+    const step = iW / Math.max(1, historicalData.length - 1);
+    const pts = historicalData.map((d, i) => ({
+      x: pL + i * step,
+      y: pT + iH - ((d.points || 0) / maxV) * iH,
+      v: d.points || 0,
+      label: d.label || d.day || '',
+      date: d.date || '',
+    }));
+    const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const area = pts.length > 1
+      ? `${path} L ${pts[pts.length-1].x},${pT+iH} L ${pts[0].x},${pT+iH} Z`
+      : '';
+    return { W, H, pT, pB, iH, pts, path, area };
+  }, [historicalData]);
 
-  const loadContextSessions = async () => {
-    try {
-      const response = await fetch(`${API_URL}/get_context_sessions?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setContextSessions(data.sessions || []);
-      }
-    } catch (error) {
-      console.error('Failed to load context sessions:', error);
-    }
-  };
+  const xp = gamStats.experience || gamStats.current_xp || 0;
+  const nextXp = gamStats.next_level_xp || 1000;
+  const xpPct = Math.min(100, nextXp ? (xp / nextXp) * 100 : 0);
+  const level = gamStats.level || 1;
+  const streak = gamStats.current_streak || 0;
+  const rank = gamStats.global_rank || gamStats.rank || '—';
+  const totalPoints = gamStats.total_points || 0;
+  const totalActs = (gamStats.total_chat_sessions || gamStats.total_ai_chats || 0) +
+    (gamStats.total_notes_created || 0) +
+    (gamStats.total_flashcards_created || 0) +
+    (gamStats.total_quizzes_completed || gamStats.total_quizzes || 0);
 
-  const loadDetailedStats = async () => {
-    try {
-      const [chatRes, flashcardRes] = await Promise.all([
-        fetch(`${API_URL}/get_chat_details?user_id=${userName}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${API_URL}/get_flashcard_details?user_id=${userName}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ]);
-      
-      if (chatRes.ok) {
-        const chatData = await chatRes.json();
-        setChatDetails(chatData);
-      }
-      
-      if (flashcardRes.ok) {
-        const flashcardData = await flashcardRes.json();
-        setFlashcardDetails(flashcardData);
-      }
-    } catch (error) {
-      console.error('Failed to load detailed stats:', error);
-    }
-  };
-
-  const loadWeeklyProgress = async () => {
-    try {
-      const response = await fetch(`${API_URL}/get_weekly_progress?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setWeeklyData(data.weekly_data || []);
-        setDailyBreakdown(data.daily_breakdown || []);
-        setWeeklyStats(data.weekly_stats || {});
-      }
-    } catch (error) {
-    // silenced
-  }
-  };
-
-  const loadGamificationStats = async () => {
-    try {
-      const response = await fetch(`${API_URL}/get_gamification_stats?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setGamificationStats(data);
-      }
-    } catch (error) {
-    // silenced
-  }
-  };
-
-  const loadHistoricalData = async () => {
-    try {
-      const response = await fetch(`${API_URL}/get_analytics_history?user_id=${userName}&period=${timeRange}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setHistoricalData(data.history || []);
-        setPeriodStats({
-          totalPoints: data.total_points || 0,
-          totalActivities: data.total_activities || 0,
-          groupBy: data.group_by || 'day'
-        });
-      }
-    } catch (error) {
-    // silenced
-  }
-  };
-
-  const toggleMetric = (metric) => {
-    setSelectedMetrics(prev => 
-      prev.includes(metric) 
-        ? prev.filter(m => m !== metric)
-        : [...prev, metric]
-    );
-  };
-
-  const getChartData = () => {
-    return historicalData.length > 0 ? historicalData : dailyBreakdown;
-  };
-
-  const chartData = getChartData();
-
-  const getMaxValue = () => {
-    if (!chartData.length) return 100;
-    let max = 0;
-    chartData.forEach(day => {
-      selectedMetrics.forEach(metric => {
-        const value = day[metric] || 0;
-        if (value > max) max = value;
-      });
-    });
-    return max || 100;
-  };
+  const breakdownColors = { ai_chats:'#3b82f6', notes:'#10b981', flashcards:'#f59e0b', quizzes:'#ef4444', battles:'#8b5cf6', other:'#6b7280' };
+  const totalBkdn = useMemo(() => Object.values(breakdown).reduce((s, v) => s + (v.count || 0), 0), [breakdown]);
 
   const exportData = () => {
-    const dataToExport = chartData;
-    const csvContent = [
-      ['Date', 'Label', ...selectedMetrics.map(m => metricConfig[m].label)].join(','),
-      ...dataToExport.map(day => 
-        [day.date, day.label || day.day, ...selectedMetrics.map(m => day[m] || 0)].join(',')
-      )
+    const csv = [
+      ['Date','Label','Points','Chats','Notes','Flashcards','Quizzes'].join(','),
+      ...historicalData.map(d => [d.date, d.label||d.day, d.points, d.ai_chats, d.notes, d.flashcards, d.quizzes].join(','))
     ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -223,902 +153,603 @@ const Analytics = () => {
     a.click();
   };
 
-  if (loading) {
-    return (
-      <div className="analytics-page">
-        <div className="analytics-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading analytics...</p>
-        </div>
+  if (loading) return (
+    <div className="an-root">
+      <div className="an-loading">
+        <div className="an-spin" /><p>LOADING</p>
       </div>
-    );
-  }
-
-  const totalPoints = periodStats.totalPoints || weeklyData.reduce((a, b) => a + b, 0);
-  const avgPoints = chartData.length > 0 ? totalPoints / chartData.length : 0;
-  const maxValue = getMaxValue();
-  
-  const getPeriodLabel = () => {
-    switch(timeRange) {
-      case 'week': return 'Weekly';
-      case 'month': return 'Monthly';
-      case 'year': return 'Yearly';
-      case 'all': return 'All Time';
-      default: return 'Weekly';
-    }
-  };
+    </div>
+  );
 
   return (
-    <div className="analytics-page ds-page ds-loaded">
-      <GeoBackground />
-      <header className="analytics-header ds-header">
-        <div className="analytics-header-content ds-header-content">
-          <div className="analytics-header-left ds-header-left">
-            <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-              <Menu size={20} />
-            </button>
-            <h1 className="analytics-logo ds-header-title" onClick={() => navigate('/search-hub')}>
-              <div className="analytics-logo-img ds-logo-img" />
-              cerbyl
-            </h1>
-          </div>
-          <div className="analytics-header-center ds-header-center">
-            <span className="analytics-subtitle">ANALYTICS</span>
-          </div>
-          <nav className="analytics-header-right ds-header-right">
-            <button className="analytics-nav-btn analytics-nav-btn-accent" onClick={() => navigate('/xp-roadmap')}>
-              <Trophy size={16} />
-              <span>XP ROADMAP</span>
-            </button>
-            <button className="analytics-nav-btn analytics-nav-btn-accent" onClick={exportData}>
-              <Download size={16} />
-              <span>EXPORT</span>
-            </button>
-            <button className="analytics-nav-btn analytics-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-              <span>DASHBOARD</span>
-              <ChevronRight size={14} />
-            </button>
-          </nav>
+    <div className="an-root">
+      {/* Abstract bg */}
+      <div className="an-bg" aria-hidden>
+        <div className="an-orb an-orb-1" />
+        <div className="an-orb an-orb-2" />
+        <div className="an-orb an-orb-3" />
+        <div className="an-grid-texture" />
+      </div>
+
+      {/* Topbar */}
+      <header className="an-topbar">
+        <div className="an-topbar-brand" onClick={() => navigate('/search-hub')}>cerbyl</div>
+        <div className="an-topbar-tabs">
+          {[['overview','OVERVIEW'],['deep','DEEP STATS'],['ml','ML INSIGHTS']].map(([v,l]) => (
+            <button key={v} className={`an-topbar-tab ${activeTab===v?'active':''}`} onClick={() => setActiveTab(v)}>{l}</button>
+          ))}
+        </div>
+        <div className="an-topbar-actions">
+          <button className="an-action-btn" onClick={exportData}><Download size={13}/></button>
+          <button className="an-action-btn" onClick={() => navigate('/xp-roadmap')}><Trophy size={13}/></button>
+          <button className="an-action-btn an-action-btn--text" onClick={() => navigate('/dashboard-cerbyl')}>
+            DASHBOARD <ArrowUpRight size={12}/>
+          </button>
+          <ThemeSwitcher />
         </div>
       </header>
 
-      <div className="analytics-container ds-container">
-        <div className="analytics-tabs ds-tabs">
-          <button 
-            className={`analytics-tab ds-tab ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('overview')}
-          >
-            <BarChart3 size={16} />
-            OVERVIEW
-          </button>
-          <button 
-            className={`analytics-tab ds-tab ${activeTab === 'detailed-stats' ? 'active' : ''}`}
-            onClick={() => setActiveTab('detailed-stats')}
-          >
-            <Database size={16} />
-            DETAILED STATS
-          </button>
-          <button 
-            className={`analytics-tab ds-tab ${activeTab === 'ml-insights' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ml-insights')}
-          >
-            <Cpu size={16} />
-            ML INSIGHTS
-          </button>
+      <main className="an-main">
+        {/* mobile tabs */}
+        <div className="an-mobile-tabs">
+          {[['overview','OVERVIEW'],['deep','DEEP STATS'],['ml','ML']].map(([v,l]) => (
+            <button key={v} className={`an-topbar-tab ${activeTab===v?'active':''}`} onClick={() => setActiveTab(v)}>{l}</button>
+          ))}
         </div>
 
+        {/* ─── OVERVIEW TAB ─── */}
         {activeTab === 'overview' && (
-          <>
-        <div className="analytics-summary-cards">
-          <div className="analytics-card analytics-card-accent">
-            <div className="analytics-card-icon">
-              <Zap size={24} />
-            </div>
-            <div className="analytics-card-content">
-              <span className="analytics-card-value">{totalPoints}</span>
-              <span className="analytics-card-label">{getPeriodLabel()} Points</span>
-            </div>
-          </div>
-          <div className="analytics-card">
-            <div className="analytics-card-icon">
-              <TrendingUp size={24} />
-            </div>
-            <div className="analytics-card-content">
-              <span className="analytics-card-value">{avgPoints.toFixed(1)}</span>
-              <span className="analytics-card-label">Avg/{periodStats.groupBy === 'month' ? 'Month' : periodStats.groupBy === 'week' ? 'Week' : 'Day'}</span>
-            </div>
-          </div>
-          <div className="analytics-card">
-            <div className="analytics-card-icon">
-              <Flame size={24} />
-            </div>
-            <div className="analytics-card-content">
-              <span className="analytics-card-value">{gamificationStats.current_streak || 0}</span>
-              <span className="analytics-card-label">Day Streak</span>
-            </div>
-          </div>
-          <div className="analytics-card">
-            <div className="analytics-card-icon">
-              <Trophy size={24} />
-            </div>
-            <div className="analytics-card-content">
-              <span className="analytics-card-value">#{gamificationStats.global_rank || '-'}</span>
-              <span className="analytics-card-label">Global Rank</span>
-            </div>
-          </div>
-        </div>
+          <div className="an-overview">
 
-        <div className="analytics-filters">
-          <div className="analytics-filter-group">
-            <label>Time Range</label>
-            <div className="analytics-filter-buttons">
-              <button className={`analytics-filter-btn ${timeRange === 'week' ? 'active' : ''}`} onClick={() => setTimeRange('week')}>
-                <Clock size={14} /> week
-              </button>
-              <button className={`analytics-filter-btn ${timeRange === 'month' ? 'active' : ''}`} onClick={() => setTimeRange('month')}>
-                <Calendar size={14} /> month
-              </button>
-              <button className={`analytics-filter-btn ${timeRange === 'year' ? 'active' : ''}`} onClick={() => setTimeRange('year')}>
-                <Calendar size={14} /> year
-              </button>
-              <button className={`analytics-filter-btn ${timeRange === 'all' ? 'active' : ''}`} onClick={() => setTimeRange('all')}>
-                <Activity size={14} /> all
-              </button>
-            </div>
-          </div>
-          
-          <div className="analytics-filter-group">
-            <label>Chart Type</label>
-            <div className="analytics-filter-buttons">
-              <button className={`analytics-filter-btn ${chartType === 'bar' ? 'active' : ''}`} onClick={() => setChartType('bar')}>
-                <BarChart3 size={14} /> bar
-              </button>
-              <button className={`analytics-filter-btn ${chartType === 'line' ? 'active' : ''}`} onClick={() => setChartType('line')}>
-                <Activity size={14} /> line
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="analytics-metrics">
-          <label>Show Metrics:</label>
-          <div className="analytics-metric-chips">
-            {Object.entries(metricConfig).map(([key, config]) => (
-              <button
-                key={key}
-                className={`analytics-metric-chip ${selectedMetrics.includes(key) ? 'active' : ''}`}
-                onClick={() => toggleMetric(key)}
-              >
-                {React.createElement(config.icon, { size: 14 })}
-                {config.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="analytics-chart-section">
-          <div className="analytics-chart-header">
-            <div>
-              <div className="view-heading">
-                <span className="view-kicker">Your Data</span>
-                <h2 className="view-title">Activity Overview</h2>
-                <p className="view-sub">Insights into your learning activity</p>
+            {/* MEGA HERO NUMBERS */}
+            <div className="an-mega">
+              <div className="an-mega-stat">
+                <div className="an-mega-num">{streak}<span className="an-mega-unit">d</span></div>
+                <div className="an-mega-lbl"><Flame size={11}/> STREAK</div>
               </div>
-              <span className="analytics-chart-subtitle">{chartData.length} {periodStats.groupBy === 'month' ? 'months' : periodStats.groupBy === 'week' ? 'weeks' : 'days'} of data</span>
+              <div className="an-mega-sep" />
+              <div className="an-mega-stat">
+                <div className="an-mega-num">{typeof rank === 'number' ? `#${rank}` : rank}</div>
+                <div className="an-mega-lbl"><Trophy size={11}/> RANK</div>
+              </div>
+              <div className="an-mega-sep" />
+              <div className="an-mega-stat an-mega-stat--accent">
+                <div className="an-mega-num">{totalPoints.toLocaleString()}</div>
+                <div className="an-mega-lbl"><Zap size={11}/> TOTAL XP</div>
+              </div>
+              <div className="an-mega-sep" />
+              <div className="an-mega-stat">
+                <div className="an-mega-num">{totalActs.toLocaleString()}</div>
+                <div className="an-mega-lbl"><Activity size={11}/> ACTIVITIES</div>
+              </div>
+              <div className="an-mega-sep" />
+              <div className="an-mega-stat">
+                <div className="an-mega-num">{level}</div>
+                <div className="an-mega-lbl"><Sparkles size={11}/> LEVEL</div>
+              </div>
+              {/* abstract decoration */}
+              <div className="an-mega-deco">ANALYTICS</div>
             </div>
-            <div className="analytics-chart-legend">
-              {selectedMetrics.map(metric => (
-                <div key={metric} className="analytics-legend-item">
-                  <span className="analytics-legend-dot" style={{ backgroundColor: metricConfig[metric].color }}></span>
-                  <span>{metricConfig[metric].label}</span>
+
+            {/* XP bar */}
+            <div className="an-xp-bar">
+              <div className="an-xp-meta">
+                <span>LVL {level}</span>
+                <div className="an-xp-track"><div className="an-xp-fill" style={{ width: `${xpPct}%` }}/></div>
+                <span>{xp.toLocaleString()} / {nextXp.toLocaleString()} XP</span>
+              </div>
+            </div>
+
+            {/* Time range + period meta */}
+            <div className="an-controls">
+              <div className="an-range-pills">
+                {[['week','WEEK'],['month','MONTH'],['year','YEAR'],['all','ALL']].map(([v,l]) => (
+                  <button key={v} className={`an-pill ${timeRange===v?'active':''}`} onClick={() => setTimeRange(v)}>{l}</button>
+                ))}
+              </div>
+              <span className="an-period-meta">
+                {periodStats.totalActivities} activities · {periodStats.totalPoints.toLocaleString()} pts
+              </span>
+            </div>
+
+            {/* ── SECTION 01: TREND + BREAKDOWN ── */}
+            <div className="an-section-label">
+              <span className="an-sec-num">01</span>
+              <span className="an-sec-title">ACTIVITY TREND</span>
+              <span className="an-sec-line" />
+            </div>
+
+            <div className="an-trend-row">
+              {/* Line chart */}
+              <div className="an-chart-card" ref={chartRef} onMouseLeave={() => setChartHover(null)}>
+                <div className="an-chart-header">
+                  <div>
+                    <div className="an-chart-title">Points Over Time</div>
+                    <div className="an-chart-sub">{historicalData.length} {periodStats.groupBy === 'month' ? 'months' : periodStats.groupBy === 'week' ? 'weeks' : 'days'}</div>
+                  </div>
+                  {chartHover && (
+                    <div className="an-chart-tooltip-inline">
+                      <span className="an-tt-label">{chartHover.label}</span>
+                      <span className="an-tt-val">{chartHover.v} pts</span>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="analytics-chart-area">
-            {chartData.length === 0 ? (
-              <div className="analytics-chart-empty">
-                <BarChart3 size={48} />
-                <p>No activity data yet. Start learning to see your progress!</p>
+                {lineSvg ? (
+                  <svg
+                    viewBox={`0 0 ${lineSvg.W} ${lineSvg.H}`}
+                    className="an-line-svg"
+                    preserveAspectRatio="none"
+                    onMouseMove={(e) => {
+                      if (!chartRef.current || !lineSvg) return;
+                      const rect = chartRef.current.getBoundingClientRect();
+                      const rx = e.clientX - rect.left;
+                      const idx = Math.round((rx / rect.width) * (lineSvg.pts.length - 1));
+                      setChartHover(lineSvg.pts[Math.max(0, Math.min(idx, lineSvg.pts.length - 1))]);
+                    }}
+                  >
+                    <defs>
+                      <linearGradient id="an-area-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28"/>
+                        <stop offset="100%" stopColor="var(--accent)" stopOpacity="0"/>
+                      </linearGradient>
+                      <filter id="an-glow">
+                        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                      </filter>
+                    </defs>
+                    {/* Y-axis grid lines */}
+                    {[0.25, 0.5, 0.75, 1].map((f, i) => (
+                      <line key={i}
+                        x1={0} y1={lineSvg.pT + lineSvg.iH * (1-f)}
+                        x2={lineSvg.W} y2={lineSvg.pT + lineSvg.iH * (1-f)}
+                        stroke="rgba(255,255,255,0.04)" strokeWidth="1"
+                      />
+                    ))}
+                    <path d={lineSvg.area} fill="url(#an-area-grad)"/>
+                    <path d={lineSvg.path} fill="none" stroke="var(--accent)" strokeWidth="2.5"
+                      strokeLinecap="round" strokeLinejoin="round" filter="url(#an-glow)"/>
+                    {/* dots */}
+                    {lineSvg.pts.map((p, i) => {
+                      const isHov = chartHover && chartHover.x === p.x;
+                      const show = isHov || lineSvg.pts.length <= 10 || i === 0 || i === lineSvg.pts.length-1;
+                      return show ? (
+                        <g key={i}>
+                          {isHov && <circle cx={p.x} cy={p.y} r="10" fill="var(--accent)" opacity="0.12"/>}
+                          <circle cx={p.x} cy={p.y} r={isHov ? 5 : 3} fill="var(--accent)" opacity={isHov ? 1 : 0.85}/>
+                        </g>
+                      ) : null;
+                    })}
+                    {chartHover && (
+                      <line x1={chartHover.x} y1={lineSvg.pT} x2={chartHover.x} y2={lineSvg.pT+lineSvg.iH}
+                        stroke="var(--accent)" strokeWidth="1" strokeDasharray="4 3" opacity="0.4"/>
+                    )}
+                    {/* x labels */}
+                    {lineSvg.pts.filter((_, i) => lineSvg.pts.length <= 7 || i === 0 || i === lineSvg.pts.length-1 || (i % Math.ceil(lineSvg.pts.length/6) === 0)).map((p, i) => (
+                      <text key={i} x={p.x} y={lineSvg.H-6} textAnchor="middle" className="an-axis-label">
+                        {(p.label || '').slice(0,3).toUpperCase()}
+                      </text>
+                    ))}
+                  </svg>
+                ) : (
+                  <div className="an-empty-chart"><BarChart3 size={28}/><p>No data for this period</p></div>
+                )}
               </div>
-            ) : chartType === 'bar' ? (
-              <div className="analytics-bar-chart">
-                <div className="analytics-y-axis">
-                  {[...Array(6)].map((_, i) => {
-                    const value = Math.round((maxValue * (5 - i)) / 5 / 10) * 10;
-                    return <span key={i} className="analytics-y-label">{value}</span>;
+
+              {/* Activity breakdown */}
+              <div className="an-breakdown-card">
+                <div className="an-chart-title">Activity Split</div>
+                <div className="an-chart-sub">{totalBkdn} total actions</div>
+                <div className="an-breakdown-rows">
+                  {Object.entries(breakdown)
+                    .filter(([, v]) => v.count > 0)
+                    .sort((a, b) => b[1].count - a[1].count)
+                    .map(([key, v]) => {
+                      const pct = totalBkdn > 0 ? (v.count / totalBkdn) * 100 : 0;
+                      const col = breakdownColors[key] || '#6b7280';
+                      return (
+                        <div key={key} className="an-bk-row">
+                          <div className="an-bk-meta">
+                            <span className="an-bk-dot" style={{ background: col }}/>
+                            <span className="an-bk-name">{v.label}</span>
+                            <span className="an-bk-pct">{pct.toFixed(0)}%</span>
+                            <span className="an-bk-count">{v.count}</span>
+                          </div>
+                          <div className="an-bk-track">
+                            <div className="an-bk-fill" style={{ width: `${pct}%`, background: col }}/>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {totalBkdn === 0 && <div className="an-empty-state">No activity yet</div>}
+                </div>
+              </div>
+            </div>
+
+            {/* ── SECTION 02: PROGRESS ── */}
+            <div className="an-section-label">
+              <span className="an-sec-num">02</span>
+              <span className="an-sec-title">PROGRESS RINGS</span>
+              <span className="an-sec-line" />
+            </div>
+
+            <div className="an-rings-row">
+              {[
+                { label: 'AI CHATS', val: gamStats.total_chat_sessions || gamStats.total_ai_chats || 0, target: 100, col: '#3b82f6', icon: <MessageSquare size={14}/> },
+                { label: 'NOTES', val: gamStats.total_notes_created || 0, target: 50, col: '#10b981', icon: <BookOpen size={14}/> },
+                { label: 'FLASHCARDS', val: gamStats.total_flashcards_created || 0, target: 200, col: '#f59e0b', icon: <Brain size={14}/> },
+                { label: 'QUIZZES', val: gamStats.total_quizzes_completed || gamStats.total_quizzes || 0, target: 50, col: '#ef4444', icon: <Target size={14}/> },
+              ].map(r => {
+                const pct = Math.min(100, r.target > 0 ? (r.val / r.target) * 100 : 0);
+                const C = 2 * Math.PI * 52;
+                const dash = (pct / 100) * C;
+                return (
+                  <div key={r.label} className="an-ring-card">
+                    <div className="an-ring-deco" style={{ color: r.col }}>{r.icon}</div>
+                    <svg viewBox="0 0 128 128" className="an-ring-svg">
+                      <defs>
+                        <filter id={`glow-${r.label}`}>
+                          <feGaussianBlur stdDeviation="3" result="blur"/>
+                          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                      </defs>
+                      <circle cx="64" cy="64" r="52" stroke="rgba(255,255,255,0.05)" strokeWidth="8" fill="none"/>
+                      <circle cx="64" cy="64" r="52"
+                        stroke={r.col} strokeWidth="8" fill="none"
+                        strokeDasharray={`${dash.toFixed(2)} ${C.toFixed(2)}`}
+                        strokeLinecap="round" transform="rotate(-90 64 64)"
+                        filter={`url(#glow-${r.label})`}
+                      />
+                    </svg>
+                    <div className="an-ring-num">{r.val.toLocaleString()}</div>
+                    <div className="an-ring-pct" style={{ color: r.col }}>{pct.toFixed(0)}%</div>
+                    <div className="an-ring-lbl">{r.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ── SECTION 03: WEEKLY + QUIZ ── */}
+            <div className="an-section-label">
+              <span className="an-sec-num">03</span>
+              <span className="an-sec-title">THIS WEEK</span>
+              <span className="an-sec-line" />
+              <span className="an-sec-sub">{weeklyData.total_points || 0} pts earned</span>
+            </div>
+
+            <div className="an-weekly-row">
+              {/* Stacked bar chart */}
+              <div className="an-weekly-card">
+                <div className="an-weekly-bars">
+                  {(weeklyData.daily_breakdown || []).map((d, i) => {
+                    const total = (d.ai_chats||0) + (d.notes||0) + (d.flashcards||0) + (d.quizzes||0);
+                    const max = Math.max(1, ...(weeklyData.daily_breakdown||[]).map(x => (x.ai_chats||0)+(x.notes||0)+(x.flashcards||0)+(x.quizzes||0)));
+                    const h = total > 0 ? (total / max) * 100 : 0;
+                    return (
+                      <div key={i} className="an-wbar-col">
+                        <div className="an-wbar-track">
+                          <div className="an-wbar-inner" style={{ height: `${h}%` }}>
+                            {['quizzes','flashcards','notes','ai_chats'].map((key, ki) => {
+                              const v = d[key] || 0;
+                              const cols = { ai_chats:'#3b82f6', notes:'#10b981', flashcards:'#f59e0b', quizzes:'#ef4444' };
+                              if (!v || !total) return null;
+                              return <div key={key} className="an-wbar-seg" style={{ flex: v, background: cols[key] }}/>;
+                            })}
+                          </div>
+                        </div>
+                        <div className="an-wbar-pts">{d.points || 0}</div>
+                        <div className="an-wbar-day">{(d.day||'').slice(0,1)}</div>
+                      </div>
+                    );
                   })}
                 </div>
-                <div className="analytics-bars-container">
-                  {chartData.map((day, idx) => (
-                    <div key={idx} className="analytics-bar-group">
-                      <div className="analytics-bars">
-                        {selectedMetrics.map(metric => {
-                          const value = day[metric] || 0;
-                          const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
-                          return (
-                            <div
-                              key={metric}
-                              className="analytics-bar"
-                              style={{ height: `${height}%`, backgroundColor: metricConfig[metric].color }}
-                              title={`${day.label || day.day}: ${metricConfig[metric].label}: ${value}`}
-                            />
-                          );
-                        })}
-                      </div>
-                      <span className="analytics-x-label">{day.label || day.day}</span>
-                    </div>
+                <div className="an-wbar-legend">
+                  {[['#3b82f6','Chats'],['#10b981','Notes'],['#f59e0b','Flash'],['#ef4444','Quiz']].map(([col,lbl]) => (
+                    <span key={lbl} className="an-wbar-leg"><span style={{background:col}}/>{lbl}</span>
                   ))}
                 </div>
               </div>
-            ) : (
-              <div className="analytics-line-chart">
-                <svg viewBox={`0 0 ${Math.max(900, chartData.length * 22 + 60)} 420`} preserveAspectRatio="xMidYMid meet">
-                  {[...Array(6)].map((_, i) => {
-                    const value = Math.round((maxValue * (5 - i)) / 5 / 10) * 10;
-                    const y = 30 + (i * 340) / 5;
+
+              {/* Quiz performance */}
+              <div className="an-quiz-card">
+                <div className="an-quiz-header">
+                  <span className="an-chart-title">Quiz History</span>
+                  <span className="an-quiz-avg">avg {quizPerf.avg_score.toFixed(0)}%</span>
+                </div>
+                <div className="an-quiz-list">
+                  {quizPerf.quiz_history.length === 0 ? (
+                    <div className="an-empty-state">No quizzes taken yet</div>
+                  ) : quizPerf.quiz_history.slice(-10).map((q, i) => {
+                    const sc = q.total > 0 ? (q.score / q.total) * 100 : q.score;
+                    const col = sc >= 80 ? '#10b981' : sc >= 60 ? '#f59e0b' : '#ef4444';
                     return (
-                      <g key={i}>
-                        <text x="5" y={y + 4} fontSize="12" fill="var(--text-secondary)" fontWeight="500">{value}</text>
-                        <line x1="50" y1={y} x2={Math.max(890, chartData.length * 22 + 50)} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray={i === 5 ? "0" : "4,4"} />
-                      </g>
+                      <div key={i} className="an-quiz-item">
+                        <div className="an-quiz-row">
+                          <span className="an-quiz-topic">{q.topic || 'Quiz'}</span>
+                          <span className="an-quiz-pct" style={{ color: col }}>{sc.toFixed(0)}%</span>
+                        </div>
+                        <div className="an-quiz-bar-bg">
+                          <div className="an-quiz-bar-fill" style={{ width: `${Math.min(100,sc)}%`, background: col }}/>
+                        </div>
+                      </div>
                     );
                   })}
-                  {selectedMetrics.map(metric => {
-                    const points = chartData.map((day, idx) => {
-                      const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(830, chartData.length * 22)) + 60;
-                      const value = day[metric] || 0;
-                      const y = 370 - (maxValue > 0 ? (value / maxValue) * 340 : 0);
-                      return `${x},${y}`;
-                    }).join(' ');
-
-                    return (
-                      <g key={metric}>
-                        <polyline fill="none" stroke={metricConfig[metric].color} strokeWidth="3" points={points} />
-                        {chartData.length <= 50 && chartData.map((day, idx) => {
-                          const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(830, chartData.length * 22)) + 60;
-                          const value = day[metric] || 0;
-                          const y = 370 - (maxValue > 0 ? (value / maxValue) * 340 : 0);
-                          return (
-                            <circle key={idx} cx={x} cy={y} r={chartData.length > 30 ? 5 : 6} fill={metricConfig[metric].color}>
-                              <title>{`${day.label || day.day}: ${metricConfig[metric].label}: ${value}`}</title>
-                            </circle>
-                          );
-                        })}
-                      </g>
-                    );
-                  })}
-                  {chartData.map((day, idx) => {
-                    const showLabel = chartData.length <= 15 || idx === 0 || idx === chartData.length - 1 || (chartData.length <= 30 && idx % 3 === 0) || (chartData.length > 30 && idx % 7 === 0);
-                    if (!showLabel) return null;
-                    const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(830, chartData.length * 22)) + 60;
-                    return <text key={idx} x={x} y="395" fontSize={chartData.length > 20 ? "11" : "12"} fill="var(--text-secondary)" textAnchor="middle" fontWeight="600">{(day.label || day.day).toUpperCase()}</text>;
-                  })}
-                </svg>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="analytics-stats-grid">
-          <div className="analytics-stat-card">
-            <div className="analytics-stat-header">
-              <MessageSquare size={18} />
-              <span>AI Chats</span>
-            </div>
-            <div className="analytics-stat-values">
-              <div className="analytics-stat-row">
-                <span>This Week</span>
-                <span className="analytics-stat-value">{weeklyStats.ai_chats || 0}</span>
-              </div>
-              <div className="analytics-stat-row">
-                <span>All Time</span>
-                <span className="analytics-stat-value">{gamificationStats.total_ai_chats || 0}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="analytics-stat-card">
-            <div className="analytics-stat-header">
-              <BookOpen size={18} />
-              <span>Notes Created</span>
-            </div>
-            <div className="analytics-stat-values">
-              <div className="analytics-stat-row">
-                <span>This Week</span>
-                <span className="analytics-stat-value">{weeklyStats.notes_created || 0}</span>
-              </div>
-              <div className="analytics-stat-row">
-                <span>All Time</span>
-                <span className="analytics-stat-value">{gamificationStats.total_notes_created || 0}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="analytics-stat-card">
-            <div className="analytics-stat-header">
-              <Brain size={18} />
-              <span>Flashcards</span>
-            </div>
-            <div className="analytics-stat-values">
-              <div className="analytics-stat-row">
-                <span>This Week</span>
-                <span className="analytics-stat-value">{weeklyStats.flashcards_created || 0}</span>
-              </div>
-              <div className="analytics-stat-row">
-                <span>All Time</span>
-                <span className="analytics-stat-value">{gamificationStats.total_flashcards_created || 0}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="analytics-stat-card">
-            <div className="analytics-stat-header">
-              <Target size={18} />
-              <span>Quizzes</span>
-            </div>
-            <div className="analytics-stat-values">
-              <div className="analytics-stat-row">
-                <span>This Week</span>
-                <span className="analytics-stat-value">{weeklyStats.quizzes_completed || 0}</span>
-              </div>
-              <div className="analytics-stat-row">
-                <span>All Time</span>
-                <span className="analytics-stat-value">{gamificationStats.total_quizzes_completed || 0}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="analytics-stat-card">
-            <div className="analytics-stat-header">
-              <Clock size={18} />
-              <span>Study Time</span>
-            </div>
-            <div className="analytics-stat-values">
-              <div className="analytics-stat-row">
-                <span>This Week</span>
-                <span className="analytics-stat-value">{Math.floor((weeklyStats.study_minutes || 0) / 60)}h {(weeklyStats.study_minutes || 0) % 60}m</span>
-              </div>
-              <div className="analytics-stat-row">
-                <span>All Time</span>
-                <span className="analytics-stat-value">{Math.floor((gamificationStats.total_study_minutes || 0) / 60)}h</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="analytics-stat-card analytics-stat-card-accent">
-            <div className="analytics-stat-header">
-              <Zap size={18} />
-              <span>Total Points</span>
-            </div>
-            <div className="analytics-stat-values">
-              <div className="analytics-stat-row">
-                <span>This Week</span>
-                <span className="analytics-stat-value">{gamificationStats.weekly_points || 0}</span>
-              </div>
-              <div className="analytics-stat-row">
-                <span>All Time</span>
-                <span className="analytics-stat-value analytics-stat-highlight">{gamificationStats.total_points || 0}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="analytics-points-reference">
-          <h3>Point System</h3>
-          <div className="analytics-points-grid">
-            <div className="analytics-point-item"><span>AI Chat</span><span>+1</span></div>
-            <div className="analytics-point-item"><span>Answer Question</span><span>+2</span></div>
-            <div className="analytics-point-item"><span>Battle Loss</span><span>+2</span></div>
-            <div className="analytics-point-item"><span>Battle Draw</span><span>+5</span></div>
-            <div className="analytics-point-item"><span>Flashcard Set</span><span>+10</span></div>
-            <div className="analytics-point-item"><span>Battle Win</span><span>+10</span></div>
-            <div className="analytics-point-item"><span>Complete Quiz</span><span>+15</span></div>
-            <div className="analytics-point-item"><span>Create Note</span><span>+20</span></div>
-            <div className="analytics-point-item"><span>Quiz 80%+</span><span>+30</span></div>
-            <div className="analytics-point-item analytics-point-highlight"><span>Solo Quiz (max)</span><span>+40</span></div>
-            <div className="analytics-point-item"><span>Study 1 Hour</span><span>+50</span></div>
-          </div>
-        </div>
-          </>
-        )}
-
-        {activeTab === 'detailed-stats' && (
-          <div className="detailed-stats-content">
-            <div className="stats-section">
-              <div className="stats-section-header">
-                <MessageSquare size={24} />
-                <div>
-                  <h2>AI Chat Analytics</h2>
-                  <p>Comprehensive breakdown of your AI tutor interactions</p>
                 </div>
               </div>
-              
+
+              {/* Stats grid */}
+              <div className="an-weekstats">
+                {[
+                  { l:'Chats', v: weeklyData.weekly_stats?.ai_chats||0, all: gamStats.total_chat_sessions||gamStats.total_ai_chats||0, col:'#3b82f6', icon:<MessageSquare size={13}/> },
+                  { l:'Notes', v: weeklyData.weekly_stats?.notes_created||0, all: gamStats.total_notes_created||0, col:'#10b981', icon:<BookOpen size={13}/> },
+                  { l:'Flashcards', v: weeklyData.weekly_stats?.flashcards_created||0, all: gamStats.total_flashcards_created||0, col:'#f59e0b', icon:<Brain size={13}/> },
+                  { l:'Quizzes', v: weeklyData.weekly_stats?.quizzes_completed||0, all: gamStats.total_quizzes_completed||gamStats.total_quizzes||0, col:'#ef4444', icon:<Target size={13}/> },
+                  { l:'Study Time', v:`${Math.floor((weeklyData.weekly_stats?.study_minutes||0)/60)}h`, all:`${Math.floor((gamStats.total_study_minutes||0)/60)}h total`, col:'var(--accent)', icon:<Clock size={13}/> },
+                  { l:'Points', v: gamStats.weekly_points||0, all: totalPoints, col:'var(--accent)', icon:<Zap size={13}/>, accent:true },
+                ].map((s, i) => (
+                  <div key={i} className={`an-ws-card ${s.accent?'an-ws-card--accent':''}`}>
+                    <span className="an-ws-icon" style={{color:s.col}}>{s.icon}</span>
+                    <span className="an-ws-val">{s.v}</span>
+                    <span className="an-ws-lbl">{s.l}</span>
+                    <span className="an-ws-all">{typeof s.all === 'number' ? s.all.toLocaleString() : s.all} all time</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── SECTION 04: POINT SYSTEM ── */}
+            <div className="an-section-label">
+              <span className="an-sec-num">04</span>
+              <span className="an-sec-title">POINT SYSTEM</span>
+              <span className="an-sec-line" />
+            </div>
+
+            <div className="an-pts-grid">
+              {[
+                ['AI Chat','+1'],['Answer Question','+2'],['Battle Loss','+2'],
+                ['Battle Draw','+5'],['Flashcard Set','+10'],['Battle Win','+10'],
+                ['Complete Quiz','+15'],['Create Note','+20'],['Quiz 80%+','+30'],
+                ['Solo Quiz (max)','+40'],['Study 1 Hour','+50'],
+              ].map(([label, pts]) => (
+                <div key={label} className="an-pts-item">
+                  <span className="an-pts-label">{label}</span>
+                  <span className="an-pts-val">{pts}</span>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        )}
+
+        {/* ─── DEEP STATS TAB ─── */}
+        {activeTab === 'deep' && (
+          <div className="an-deep">
+            {/* Chat */}
+            <div className="an-section-label an-section-label--top">
+              <span className="an-sec-num">01</span>
+              <span className="an-sec-title">AI CHAT ANALYTICS</span>
+              <span className="an-sec-line" />
+            </div>
+            <div className="an-deep-card">
               {chatDetails ? (
                 <>
-                  <div className="stats-grid">
-                    <div className="stat-card">
-                      <div className="stat-icon"><MessageSquare size={20} /></div>
-                      <div className="stat-content">
-                        <span className="stat-label">Total Chats</span>
-                        <span className="stat-value">{chatDetails.total_chats || 0}</span>
+                  <div className="an-deep-metrics">
+                    {[
+                      {l:'Total Chats', v:chatDetails.total_chats||0, icon:<MessageSquare size={16}/>},
+                      {l:'Avg Session', v:chatDetails.avg_session_length||'0m', icon:<Clock size={16}/>},
+                      {l:'Most Active', v:chatDetails.most_active_day||'N/A', icon:<TrendingUp size={16}/>},
+                      {l:'Msgs/Chat', v:chatDetails.avg_messages_per_chat||0, icon:<Sparkles size={16}/>},
+                    ].map((s,i) => (
+                      <div key={i} className="an-deep-metric">
+                        <span className="an-dm-icon">{s.icon}</span>
+                        <span className="an-dm-val">{s.v}</span>
+                        <span className="an-dm-lbl">{s.l}</span>
                       </div>
-                    </div>
-                    <div className="stat-card">
-                      <div className="stat-icon"><Clock size={20} /></div>
-                      <div className="stat-content">
-                        <span className="stat-label">Avg Session Length</span>
-                        <span className="stat-value">{chatDetails.avg_session_length || '0m'}</span>
-                      </div>
-                    </div>
-                    <div className="stat-card">
-                      <div className="stat-icon"><TrendingUp size={20} /></div>
-                      <div className="stat-content">
-                        <span className="stat-label">Most Active Day</span>
-                        <span className="stat-value">{chatDetails.most_active_day || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="stat-card">
-                      <div className="stat-icon"><Sparkles size={20} /></div>
-                      <div className="stat-content">
-                        <span className="stat-label">Avg Messages/Chat</span>
-                        <span className="stat-value">{chatDetails.avg_messages_per_chat || 0}</span>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-
-                  <div className="intent-breakdown">
-                    <h3>Intent Classification Breakdown</h3>
-                    <div className="intent-grid">
-                      {chatDetails.intent_breakdown && Object.entries(chatDetails.intent_breakdown).map(([intent, count]) => (
-                        <div key={intent} className="intent-item">
-                          <span className="intent-label">{intent}</span>
-                          <div className="intent-bar-container">
-                            <div 
-                              className="intent-bar" 
-                              style={{ 
-                                width: `${(count / chatDetails.total_chats) * 100}%`,
-                                background: accent 
-                              }}
-                            />
+                  {chatDetails.intent_breakdown && (
+                    <div className="an-deep-section">
+                      <div className="an-ds-title">Intent Breakdown</div>
+                      {Object.entries(chatDetails.intent_breakdown).map(([intent, count]) => (
+                        <div key={intent} className="an-ds-row">
+                          <span className="an-ds-lbl">{intent}</span>
+                          <div className="an-ds-bar-bg">
+                            <div className="an-ds-bar-fill" style={{width:`${chatDetails.total_chats>0?(count/chatDetails.total_chats)*100:0}%`}}/>
                           </div>
-                          <span className="intent-count">{count}</span>
+                          <span className="an-ds-val">{count}</span>
                         </div>
                       ))}
                     </div>
-                  </div>
-
-                  <div className="concept-coverage">
-                    <h3>Concepts Discussed</h3>
-                    <div className="concept-tags">
-                      {chatDetails.top_concepts && chatDetails.top_concepts.map((concept, idx) => (
-                        <div key={idx} className="concept-tag">
-                          <span className="concept-name">{concept.name}</span>
-                          <span className="concept-count">{concept.count}</span>
-                        </div>
-                      ))}
+                  )}
+                  {chatDetails.top_concepts?.length > 0 && (
+                    <div className="an-deep-section">
+                      <div className="an-ds-title">Top Concepts</div>
+                      <div className="an-concept-cloud">
+                        {chatDetails.top_concepts.map((c,i) => (
+                          <span key={i} className="an-concept-chip">{c.name}<b>{c.count}</b></span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
-              ) : (
-                <div className="stats-loading">
-                  <div className="loading-spinner"></div>
-                  <p>Loading chat analytics...</p>
-                </div>
-              )}
+              ) : <div className="an-spinner"><div className="an-spin"/><span>Loading...</span></div>}
             </div>
 
-            <div className="stats-section">
-              <div className="stats-section-header">
-                <Brain size={24} />
-                <div>
-                  <h2>Flashcard Analytics</h2>
-                  <p>Detailed insights into your flashcard study sessions</p>
-                </div>
-              </div>
-              
-              {flashcardDetails ? (
+            {/* Flashcards */}
+            <div className="an-section-label">
+              <span className="an-sec-num">02</span>
+              <span className="an-sec-title">FLASHCARD ANALYTICS</span>
+              <span className="an-sec-line" />
+            </div>
+            <div className="an-deep-card">
+              {flashDetails ? (
                 <>
-                  <div className="stats-grid">
-                    <div className="stat-card">
-                      <div className="stat-icon"><Brain size={20} /></div>
-                      <div className="stat-content">
-                        <span className="stat-label">Total Reviews</span>
-                        <span className="stat-value">{flashcardDetails.total_reviews || 0}</span>
+                  <div className="an-deep-metrics">
+                    {[
+                      {l:'Reviews', v:flashDetails.total_reviews||0, icon:<Brain size={16}/>},
+                      {l:'Accuracy', v:flashDetails.accuracy_rate||'0%', icon:<CheckCircle size={16}/>},
+                      {l:'Streak', v:`${flashDetails.study_streak||0}d`, icon:<Flame size={16}/>},
+                      {l:'Mastered', v:flashDetails.mastered_cards||0, icon:<Trophy size={16}/>},
+                    ].map((s,i) => (
+                      <div key={i} className="an-deep-metric">
+                        <span className="an-dm-icon">{s.icon}</span>
+                        <span className="an-dm-val">{s.v}</span>
+                        <span className="an-dm-lbl">{s.l}</span>
                       </div>
-                    </div>
-                    <div className="stat-card">
-                      <div className="stat-icon"><CheckCircle size={20} /></div>
-                      <div className="stat-content">
-                        <span className="stat-label">Accuracy Rate</span>
-                        <span className="stat-value">{flashcardDetails.accuracy_rate || '0%'}</span>
-                      </div>
-                    </div>
-                    <div className="stat-card">
-                      <div className="stat-icon"><Flame size={20} /></div>
-                      <div className="stat-content">
-                        <span className="stat-label">Study Streak</span>
-                        <span className="stat-value">{flashcardDetails.study_streak || 0} days</span>
-                      </div>
-                    </div>
-                    <div className="stat-card">
-                      <div className="stat-icon"><Target size={20} /></div>
-                      <div className="stat-content">
-                        <span className="stat-label">Mastered Cards</span>
-                        <span className="stat-value">{flashcardDetails.mastered_cards || 0}</span>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-
-                  <div className="fsrs-stats">
-                    <h3>FSRS Scheduler Performance</h3>
-                    <div className="fsrs-grid">
-                      <div className="fsrs-metric">
-                        <span className="fsrs-label">Avg Retention</span>
-                        <span className="fsrs-value">{flashcardDetails.avg_retention || '0%'}</span>
+                  <div className="an-deep-metrics an-deep-metrics--3">
+                    {[['Avg Retention',flashDetails.avg_retention||'0%'],['Due Today',flashDetails.cards_due_today||0],['Optimal Time',flashDetails.optimal_review_time||'N/A']].map(([l,v]) => (
+                      <div key={l} className="an-fsrs-stat">
+                        <span className="an-fsrs-val">{v}</span>
+                        <span className="an-fsrs-lbl">{l}</span>
                       </div>
-                      <div className="fsrs-metric">
-                        <span className="fsrs-label">Cards Due Today</span>
-                        <span className="fsrs-value">{flashcardDetails.cards_due_today || 0}</span>
-                      </div>
-                      <div className="fsrs-metric">
-                        <span className="fsrs-label">Optimal Review Time</span>
-                        <span className="fsrs-value">{flashcardDetails.optimal_review_time || 'N/A'}</span>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-
-                  <div className="difficulty-distribution">
-                    <h3>Card Difficulty Distribution</h3>
-                    <div className="difficulty-bars">
-                      {flashcardDetails.difficulty_distribution && Object.entries(flashcardDetails.difficulty_distribution).map(([level, count]) => (
-                        <div key={level} className="difficulty-bar-item">
-                          <span className="difficulty-label">{level}</span>
-                          <div className="difficulty-bar-bg">
-                            <div 
-                              className="difficulty-bar-fill" 
-                              style={{ 
-                                width: `${(count / flashcardDetails.total_reviews) * 100}%`,
-                                background: level === 'easy' ? '#10b981' : level === 'medium' ? '#f59e0b' : '#ef4444'
-                              }}
-                            />
+                  {flashDetails.difficulty_distribution && (
+                    <div className="an-deep-section">
+                      <div className="an-ds-title">Difficulty Distribution</div>
+                      {Object.entries(flashDetails.difficulty_distribution).map(([lvl, count]) => {
+                        const col = lvl==='easy'?'#10b981':lvl==='medium'?'#f59e0b':'#ef4444';
+                        return (
+                          <div key={lvl} className="an-ds-row">
+                            <span className="an-ds-lbl" style={{textTransform:'capitalize'}}>{lvl}</span>
+                            <div className="an-ds-bar-bg">
+                              <div className="an-ds-bar-fill" style={{width:`${flashDetails.total_reviews>0?(count/flashDetails.total_reviews)*100:0}%`,background:col}}/>
+                            </div>
+                            <span className="an-ds-val">{count}</span>
                           </div>
-                          <span className="difficulty-count">{count}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
-                  </div>
+                  )}
                 </>
-              ) : (
-                <div className="stats-loading">
-                  <div className="loading-spinner"></div>
-                  <p>Loading flashcard analytics...</p>
-                </div>
-              )}
+              ) : <div className="an-spinner"><div className="an-spin"/><span>Loading...</span></div>}
             </div>
           </div>
         )}
 
-        {activeTab === 'ml-insights' && (
-          <div className="ml-insights-content">
-            <div className="ml-intro">
-              <Cpu size={32} />
-              <h2>Machine Learning Transparency</h2>
-              <p>Full visibility into how our AI models learn from your interactions and adapt to your learning style</p>
+        {/* ─── ML INSIGHTS TAB ─── */}
+        {activeTab === 'ml' && (
+          <div className="an-ml">
+            <div className="an-ml-hero">
+              <Cpu size={36}/>
+              <div>
+                <h2>Machine Learning Transparency</h2>
+                <p>Full visibility into how the AI adapts to your learning style</p>
+              </div>
             </div>
 
             {mlStats ? (
               <>
-                <div className="ml-section">
-                  <div className="ml-section-header">
-                    <Network size={24} />
-                    <div>
-                      <h3>Bayesian Knowledge Tracing (BKT)</h3>
-                      <p>Real-time mastery estimation for each concept you study</p>
-                    </div>
-                  </div>
-                  
-                  <div className="bkt-overview">
-                    <div className="bkt-stat">
-                      <span className="bkt-label">Concepts Tracked</span>
-                      <span className="bkt-value">{mlStats.bkt_concepts_tracked || 0}</span>
-                    </div>
-                    <div className="bkt-stat">
-                      <span className="bkt-label">Total Updates</span>
-                      <span className="bkt-value">{mlStats.bkt_total_updates || 0}</span>
-                    </div>
-                    <div className="bkt-stat">
-                      <span className="bkt-label">Avg Mastery</span>
-                      <span className="bkt-value">{mlStats.bkt_avg_mastery || '0%'}</span>
-                    </div>
-                  </div>
-
-                  <div className="concept-mastery-list">
-                    <h4>Top Concepts by Mastery</h4>
-                    {mlStats.top_mastery_concepts && mlStats.top_mastery_concepts.map((concept, idx) => (
-                      <div key={idx} className="mastery-item">
-                        <div className="mastery-header">
-                          <span className="mastery-concept">{concept.name}</span>
-                          <span className="mastery-percent">{Math.round(concept.mastery * 100)}%</span>
-                        </div>
-                        <div className="mastery-bar-bg">
-                          <div 
-                            className="mastery-bar-fill" 
-                            style={{ 
-                              width: `${concept.mastery * 100}%`,
-                              background: concept.mastery > 0.7 ? '#10b981' : concept.mastery > 0.4 ? '#f59e0b' : '#ef4444'
-                            }}
-                          />
-                        </div>
-                        <div className="mastery-meta">
-                          <span>Interactions: {concept.interaction_count}</span>
-                          <span>Last updated: {new Date(concept.last_updated).toLocaleDateString()}</span>
-                        </div>
+                {/* BKT */}
+                <div className="an-section-label an-section-label--top">
+                  <span className="an-sec-num">01</span>
+                  <span className="an-sec-title">BAYESIAN KNOWLEDGE TRACING</span>
+                  <span className="an-sec-line" />
+                </div>
+                <div className="an-deep-card">
+                  <div className="an-deep-metrics">
+                    {[['Concepts',mlStats.bkt_concepts_tracked||0],['Updates',mlStats.bkt_total_updates||0],['Avg Mastery',mlStats.bkt_avg_mastery||'0%']].map(([l,v]) => (
+                      <div key={l} className="an-deep-metric">
+                        <span className="an-dm-val">{v}</span>
+                        <span className="an-dm-lbl">{l}</span>
                       </div>
                     ))}
                   </div>
-
-                  <div className="bkt-parameters">
-                    <h4>Model Parameters</h4>
-                    <div className="param-grid">
-                      <div className="param-card">
-                        <span className="param-name">P(Learn)</span>
-                        <span className="param-value">{mlStats.bkt_p_learn || '0.09'}</span>
-                        <span className="param-desc">Probability of learning per interaction</span>
+                  {mlStats.top_mastery_concepts?.map((c, i) => (
+                    <div key={i} className="an-ds-row">
+                      <span className="an-ds-lbl">{c.name}</span>
+                      <div className="an-ds-bar-bg">
+                        <div className="an-ds-bar-fill" style={{width:`${c.mastery*100}%`,background:c.mastery>0.7?'#10b981':c.mastery>0.4?'#f59e0b':'#ef4444'}}/>
                       </div>
-                      <div className="param-card">
-                        <span className="param-name">P(Slip)</span>
-                        <span className="param-value">{mlStats.bkt_p_slip || '0.10'}</span>
-                        <span className="param-desc">Probability of making a mistake despite knowing</span>
-                      </div>
-                      <div className="param-card">
-                        <span className="param-name">P(Guess)</span>
-                        <span className="param-value">{mlStats.bkt_p_guess || '0.20'}</span>
-                        <span className="param-desc">Probability of guessing correctly</span>
-                      </div>
+                      <span className="an-ds-val">{Math.round(c.mastery*100)}%</span>
                     </div>
-                  </div>
-                </div>
-
-                <div className="ml-section">
-                  <div className="ml-section-header">
-                    <GitBranch size={24} />
-                    <div>
-                      <h3>Reinforcement Learning Strategy Agent</h3>
-                      <p>Thompson Sampling bandit that selects optimal teaching strategies</p>
-                    </div>
-                  </div>
-
-                  <div className="rl-overview">
-                    <div className="rl-stat">
-                      <span className="rl-label">Total Episodes</span>
-                      <span className="rl-value">{mlStats.rl_total_episodes || 0}</span>
-                    </div>
-                    <div className="rl-stat">
-                      <span className="rl-label">Exploration Rate</span>
-                      <span className="rl-value">{mlStats.rl_exploration_rate || '0%'}</span>
-                    </div>
-                    <div className="rl-stat">
-                      <span className="rl-label">Best Strategy</span>
-                      <span className="rl-value">{mlStats.rl_best_strategy || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="strategy-performance">
-                    <h4>Strategy Performance</h4>
-                    {mlStats.strategy_performance && mlStats.strategy_performance.map((strategy, idx) => (
-                      <div key={idx} className="strategy-item">
-                        <div className="strategy-header">
-                          <span className="strategy-name">{strategy.name}</span>
-                          <span className="strategy-reward">Avg Reward: {strategy.avg_reward.toFixed(3)}</span>
-                        </div>
-                        <div className="strategy-stats">
-                          <span>Uses: {strategy.use_count}</span>
-                          <span>Success Rate: {strategy.success_rate}%</span>
-                          <span>Confidence: {strategy.confidence.toFixed(2)}</span>
-                        </div>
+                  ))}
+                  <div className="an-param-row">
+                    {[['P(Learn)',mlStats.bkt_p_learn||'0.09','Per-interaction learning prob'],['P(Slip)',mlStats.bkt_p_slip||'0.10','Error despite knowledge'],['P(Guess)',mlStats.bkt_p_guess||'0.20','Correct despite no knowledge']].map(([n,v,d]) => (
+                      <div key={n} className="an-param-card">
+                        <span className="an-param-name">{n}</span>
+                        <span className="an-param-val">{v}</span>
+                        <span className="an-param-desc">{d}</span>
                       </div>
                     ))}
                   </div>
-
-                  <div className="rl-explanation">
-                    <Info size={20} />
-                    <div>
-                      <h4>How It Works</h4>
-                      <p>The RL agent uses Thompson Sampling to balance exploration (trying new strategies) and exploitation (using proven strategies). It learns which teaching approach works best for you based on your archetype, cognitive state, and mastery level.</p>
-                    </div>
-                  </div>
                 </div>
 
-                <div className="ml-section">
-                  <div className="ml-section-header">
-                    <Layers size={24} />
-                    <div>
-                      <h3>Affect Detection Pipeline</h3>
-                      <p>Real-time frustration and engagement monitoring</p>
-                    </div>
+                {/* RL */}
+                <div className="an-section-label">
+                  <span className="an-sec-num">02</span>
+                  <span className="an-sec-title">RL STRATEGY AGENT</span>
+                  <span className="an-sec-line" />
+                </div>
+                <div className="an-deep-card">
+                  <div className="an-deep-metrics">
+                    {[['Episodes',mlStats.rl_total_episodes||0],['Exploration',mlStats.rl_exploration_rate||'0%'],['Best Strategy',mlStats.rl_best_strategy||'N/A']].map(([l,v]) => (
+                      <div key={l} className="an-deep-metric">
+                        <span className="an-dm-val">{v}</span>
+                        <span className="an-dm-lbl">{l}</span>
+                      </div>
+                    ))}
                   </div>
+                  {mlStats.strategy_performance?.map((s,i) => (
+                    <div key={i} className="an-strategy-row">
+                      <span className="an-str-name">{s.name}</span>
+                      <div className="an-str-stats">
+                        <span>Uses: {s.use_count}</span>
+                        <span>Success: {s.success_rate}%</span>
+                        <span>Reward: {s.avg_reward.toFixed(3)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="an-info-note"><Info size={14}/><p>Thompson Sampling balances exploration of new strategies vs. exploitation of proven ones.</p></div>
+                </div>
 
-                  <div className="affect-overview">
-                    <div className="affect-chart">
-                      <h4>Frustration Trend (Last 10 Sessions)</h4>
-                      <div className="trend-line">
-                        {mlStats.frustration_trend && mlStats.frustration_trend.map((value, idx) => (
-                          <div 
-                            key={idx} 
-                            className="trend-bar"
-                            style={{ 
-                              height: `${value * 100}%`,
-                              background: value > 0.6 ? '#ef4444' : value > 0.3 ? '#f59e0b' : '#10b981'
-                            }}
-                          />
+                {/* Affect */}
+                <div className="an-section-label">
+                  <span className="an-sec-num">03</span>
+                  <span className="an-sec-title">AFFECT DETECTION</span>
+                  <span className="an-sec-line" />
+                </div>
+                <div className="an-deep-card">
+                  <div className="an-affect-row">
+                    {[{label:'Frustration',data:mlStats.frustration_trend,inv:true},{label:'Engagement',data:mlStats.engagement_trend,inv:false}].map(({label,data,inv}) => (
+                      <div key={label} className="an-affect-chart">
+                        <div className="an-affect-label">{label}</div>
+                        <div className="an-trend-bars">
+                          {(data||[]).map((v,i) => (
+                            <div key={i} className="an-tbar-wrap">
+                              <div className="an-tbar" style={{height:`${v*100}%`,background:inv?(v>0.6?'#ef4444':v>0.3?'#f59e0b':'#10b981'):(v>0.7?'#10b981':v>0.4?'#f59e0b':'#ef4444')}}/>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {mlStats.cognitive_state_distribution && (
+                      <div className="an-cog-states">
+                        <div className="an-ds-title">Cognitive States</div>
+                        {Object.entries(mlStats.cognitive_state_distribution).map(([state, count]) => (
+                          <div key={state} className="an-cog-chip">
+                            <span>{state}</span>
+                            <span className="an-cog-pct">{Math.round((count/(mlStats.total_ml_logs||1))*100)}%</span>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                    <div className="affect-chart">
-                      <h4>Engagement Trend (Last 10 Sessions)</h4>
-                      <div className="trend-line">
-                        {mlStats.engagement_trend && mlStats.engagement_trend.map((value, idx) => (
-                          <div 
-                            key={idx} 
-                            className="trend-bar"
-                            style={{ 
-                              height: `${value * 100}%`,
-                              background: value > 0.7 ? '#10b981' : value > 0.4 ? '#f59e0b' : '#ef4444'
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="cognitive-states">
-                    <h4>Cognitive State Distribution</h4>
-                    <div className="state-grid">
-                      {mlStats.cognitive_state_distribution && Object.entries(mlStats.cognitive_state_distribution).map(([state, count]) => (
-                        <div key={state} className="state-card">
-                          <span className="state-name">{state}</span>
-                          <span className="state-count">{count}</span>
-                          <span className="state-percent">{Math.round((count / mlStats.total_ml_logs) * 100)}%</span>
-                        </div>
-                      ))}
-                    </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="ml-section ds-card">
-                  <div className="ml-section-header">
-                    <Database size={24} />
-                    <div>
-                      <h3>Context Sessions</h3>
-                      <p>AI conversation context tracking and memory management</p>
-                    </div>
-                  </div>
-
-                  {contextSessions.length > 0 ? (
-                    <div className="context-sessions-list">
-                      {contextSessions.map((session, idx) => (
-                        <div key={idx} className="context-session-card ds-card-inner">
-                          <div className="session-header">
-                            <div className="session-info">
-                              <span className="session-id">Session #{session.session_id}</span>
-                              <span className="session-date">{new Date(session.started_at).toLocaleString()}</span>
-                            </div>
-                            <div className="session-stats">
-                              <span className="session-messages">{session.message_count} messages</span>
-                            </div>
-                          </div>
-                          
-                          {session.current_concept_id && (
-                            <div className="session-concept">
-                              <Sparkles size={14} />
-                              <span>Current Concept: {session.current_concept_id}</span>
-                            </div>
-                          )}
-                          
-                          {session.session_brief && (
-                            <div className="session-brief">
-                              <p>{session.session_brief}</p>
-                            </div>
-                          )}
-                          
-                          <div className="session-trends">
-                            <div className="trend-item">
-                              <span className="trend-label">Frustration</span>
-                              <div className="trend-mini-bars">
-                                {(session.frustration_trend || []).slice(-5).map((val, i) => (
-                                  <div 
-                                    key={i} 
-                                    className="trend-mini-bar"
-                                    style={{ 
-                                      height: `${val * 100}%`,
-                                      background: val > 0.6 ? '#ef4444' : val > 0.3 ? '#f59e0b' : '#10b981'
-                                    }}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <div className="trend-item">
-                              <span className="trend-label">Engagement</span>
-                              <div className="trend-mini-bars">
-                                {(session.engagement_trend || []).slice(-5).map((val, i) => (
-                                  <div 
-                                    key={i} 
-                                    className="trend-mini-bar"
-                                    style={{ 
-                                      height: `${val * 100}%`,
-                                      background: val > 0.7 ? '#10b981' : val > 0.4 ? '#f59e0b' : '#ef4444'
-                                    }}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {session.last_message_at && (
-                            <div className="session-footer">
-                              <Clock size={12} />
-                              <span>Last activity: {new Date(session.last_message_at).toLocaleString()}</span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="stats-loading">
-                      <div className="loading-spinner"></div>
-                      <p>Loading context sessions...</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="ml-section ds-card">
-                  <div className="ml-section-header">
-                    <Database size={24} />
-                    <div>
-                      <h3>Model Update History</h3>
-                      <p>Track how the models have evolved with your interactions</p>
-                    </div>
-                  </div>
-
-                  <div className="update-timeline">
-                    {mlStats.recent_updates && mlStats.recent_updates.map((update, idx) => (
-                      <div key={idx} className="update-item">
-                        <div className="update-timestamp">{new Date(update.timestamp).toLocaleString()}</div>
-                        <div className="update-content">
-                          <span className="update-type">{update.update_type}</span>
-                          <span className="update-desc">{update.description}</span>
-                        </div>
-                        <div className="update-impact">
-                          {update.impact > 0 ? (
-                            <><TrendingUp size={16} /> +{update.impact.toFixed(2)}</>
-                          ) : (
-                            <><TrendingDown size={16} /> {update.impact.toFixed(2)}</>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="ml-transparency-note">
-                  <AlertCircle size={20} />
-                  <div>
-                    <h4>Full Transparency Commitment</h4>
-                    <p>All ML models are trained exclusively on your data and adapt to your learning patterns. We never share your data with third parties. You can export all your ML data at any time from the Export button above.</p>
-                  </div>
+                <div className="an-transparency-note">
+                  <AlertCircle size={14}/>
+                  <span>All ML models train exclusively on your data and are never shared with third parties.</span>
                 </div>
               </>
             ) : (
-              <div className="stats-loading">
-                <div className="loading-spinner"></div>
-                <p>Loading ML insights...</p>
-              </div>
+              <div className="an-spinner an-spinner--lg"><div className="an-spin"/><span>Loading ML insights...</span></div>
             )}
           </div>
         )}
-      </div>
+
+      </main>
     </div>
   );
 };

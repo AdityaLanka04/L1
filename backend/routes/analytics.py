@@ -6,6 +6,12 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, Form, Header, HTTPException, Query
+
+try:
+    from services.redis_cache import get_analytics as _cache_get, set_analytics as _cache_set
+except Exception:
+    def _cache_get(key): return None
+    def _cache_set(key, val, ttl=300): pass
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 from services.admin_analytics import check_admin
@@ -81,6 +87,10 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
 
 @router.get("/get_activity_heatmap")
 def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db)):
+    cache_key = f"heatmap:{user_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -130,7 +140,7 @@ def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db
 
         total_count = sum(activity_dict.values())
 
-        return {
+        result = {
             "heatmap_data": heatmap_data,
             "total_count": total_count,
             "date_range": {
@@ -138,6 +148,8 @@ def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db
                 "end": end_date.isoformat() + 'Z'
             }
         }
+        _cache_set(cache_key, result, 600)
+        return result
     except Exception as e:
         logger.error(f"Error getting heatmap: {str(e)}")
         return {"heatmap_data": [], "total_count": 0, "date_range": {"start": "", "end": ""}}
@@ -148,6 +160,10 @@ def get_recent_activities(user_id: str = Query(...), limit: int = Query(5), db: 
 
 @router.get("/get_weekly_progress")
 def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
+    cache_key = f"weekly:{user_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -219,7 +235,7 @@ def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)
             models.UserGamificationStats.user_id == user.id
         ).first()
 
-        return {
+        result = {
             "weekly_data": weekly_data,
             "daily_breakdown": daily_breakdown,
             "total_points": total_points,
@@ -236,6 +252,8 @@ def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)
                 "study_minutes": stats.weekly_study_minutes if stats else 0
             }
         }
+        _cache_set(cache_key, result, 300)
+        return result
 
     except Exception as e:
         logger.error(f"Error getting weekly progress: {str(e)}")
@@ -251,6 +269,10 @@ def get_analytics_history(
     period: str = Query("week"),
     db: Session = Depends(get_db)
 ):
+    cache_key = f"history:{user_id}:{period}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -399,7 +421,7 @@ def get_analytics_history(
             for h in history
         )
 
-        return {
+        result = {
             "history": history,
             "period": period,
             "group_by": group_by,
@@ -409,6 +431,8 @@ def get_analytics_history(
             "total_activities": total_activities,
             "data_points_count": len(history)
         }
+        _cache_set(cache_key, result, 300)
+        return result
 
     except Exception as e:
         logger.error(f"Error getting analytics history: {str(e)}")
@@ -563,6 +587,122 @@ async def is_first_time_user(user_id: str = Query(...), db: Session = Depends(ge
     except Exception as e:
         logger.error(f"Error checking first-time user: {str(e)}")
         return {"is_first_time": False}
+
+@router.get("/get_quiz_performance")
+def get_quiz_performance(user_id: str = Query(...), limit: int = Query(30), db: Session = Depends(get_db)):
+    cache_key = f"quiz_perf:{user_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        quiz_txns = db.query(models.PointTransaction).filter(
+            models.PointTransaction.user_id == user.id,
+            models.PointTransaction.activity_type.in_(["quiz_completed", "solo_quiz"])
+        ).order_by(models.PointTransaction.created_at.desc()).limit(limit).all()
+
+        results = []
+        for t in quiz_txns:
+            meta = {}
+            try:
+                if t.activity_metadata:
+                    meta = ast.literal_eval(t.activity_metadata)
+            except Exception:
+                pass
+            score = meta.get("score", meta.get("percentage", meta.get("correct", 0)))
+            total = meta.get("total", meta.get("num_questions", meta.get("total_questions", 0)))
+            results.append({
+                "date": t.created_at.date().isoformat(),
+                "score": float(score) if score else 0,
+                "total": int(total) if total else 0,
+                "topic": str(meta.get("topic", meta.get("subject", "General")))[:40],
+                "points": t.points_earned,
+                "type": t.activity_type
+            })
+
+        avg_score = sum(r["score"] for r in results) / len(results) if results else 0
+        result = {
+            "quiz_history": list(reversed(results)),
+            "total_quizzes": len(results),
+            "avg_score": round(avg_score, 1)
+        }
+        _cache_set(cache_key, result, 300)
+        return result
+    except Exception as e:
+        logger.error(f"Error getting quiz performance: {str(e)}")
+        return {"quiz_history": [], "total_quizzes": 0, "avg_score": 0}
+
+
+@router.get("/get_activity_breakdown")
+def get_activity_breakdown(user_id: str = Query(...), period: str = Query("all"), db: Session = Depends(get_db)):
+    cache_key = f"breakdown:{user_id}:{period}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        query = db.query(models.PointTransaction).filter(models.PointTransaction.user_id == user.id)
+
+        end_dt = datetime.now(timezone.utc)
+        if period == "week":
+            query = query.filter(models.PointTransaction.created_at >= end_dt - timedelta(days=7))
+        elif period == "month":
+            query = query.filter(models.PointTransaction.created_at >= end_dt - timedelta(days=30))
+        elif period == "year":
+            query = query.filter(models.PointTransaction.created_at >= end_dt - timedelta(days=365))
+
+        txns = query.all()
+
+        cats = {
+            "ai_chats":   {"label": "AI Chats",   "count": 0, "points": 0},
+            "notes":      {"label": "Notes",       "count": 0, "points": 0},
+            "flashcards": {"label": "Flashcards",  "count": 0, "points": 0},
+            "quizzes":    {"label": "Quizzes",     "count": 0, "points": 0},
+            "battles":    {"label": "Battles",     "count": 0, "points": 0},
+            "other":      {"label": "Other",       "count": 0, "points": 0},
+        }
+
+        total_points = 0
+        for t in txns:
+            total_points += t.points_earned
+            at = t.activity_type or "other"
+            if at == "ai_chat":
+                cats["ai_chats"]["count"] += 1
+                cats["ai_chats"]["points"] += t.points_earned
+            elif at in ["note_created", "note_updated"]:
+                cats["notes"]["count"] += 1
+                cats["notes"]["points"] += t.points_earned
+            elif at in ["flashcard_set", "flashcard_reviewed", "flashcard_mastered"]:
+                cats["flashcards"]["count"] += 1
+                cats["flashcards"]["points"] += t.points_earned
+            elif at in ["quiz_completed", "solo_quiz"]:
+                cats["quizzes"]["count"] += 1
+                cats["quizzes"]["points"] += t.points_earned
+            elif at in ["battle_win", "battle_draw", "battle_loss"]:
+                cats["battles"]["count"] += 1
+                cats["battles"]["points"] += t.points_earned
+            else:
+                cats["other"]["count"] += 1
+                cats["other"]["points"] += t.points_earned
+
+        result = {
+            "breakdown": cats,
+            "total_activities": sum(c["count"] for c in cats.values()),
+            "total_points": total_points,
+            "period": period
+        }
+        _cache_set(cache_key, result, 300)
+        return result
+    except Exception as e:
+        logger.error(f"Error getting activity breakdown: {str(e)}")
+        return {"breakdown": {}, "total_activities": 0, "total_points": 0}
+
 
 @router.post("/start_session")
 def start_session(

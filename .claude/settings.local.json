@@ -12,7 +12,9 @@
       "Bash(node --input-type=module --eval ' *)",
       "Bash(tasklist)",
       "Bash(Get-ChildItem -Path \"D:\\\\Brainwave\\\\L1\\\\src\" -Recurse -File)",
-      "Bash(Select-Object -First 50)"
+      "Bash(Select-Object -First 50)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Brainwave\\\\L1\\\\backend\\\\routes\" -ErrorAction SilentlyContinue)",
+      "Bash(Format-List)"
     ]
   }
 }
