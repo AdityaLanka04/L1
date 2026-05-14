@@ -14,6 +14,8 @@ import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
 import { enableChatDock } from '../utils/chatDock';
 
+const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
+
 const SMART_ACTION_LIMIT = 8;
 
 const CORE_SMART_ACTIONS = [
@@ -1032,6 +1034,16 @@ const AIChat = ({ sharedMode = false }) => {
     setLoading(true);
 
     try {
+      let selectedContextDocIds = [];
+      try {
+        const parsed = JSON.parse(localStorage.getItem(CONTEXT_SELECTION_KEY) || '[]');
+        selectedContextDocIds = Array.isArray(parsed)
+          ? parsed.map((v) => String(v).trim()).filter(Boolean)
+          : [];
+      } catch {
+        selectedContextDocIds = [];
+      }
+
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
@@ -1042,6 +1054,9 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('question', messageForModel || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
       formData.append('use_hs_context', hsMode.toString());
+      if (selectedContextDocIds.length > 0) {
+        formData.append('context_doc_ids', selectedContextDocIds.join(','));
+      }
 
       messagedFiles.forEach(file => {
         formData.append('files', file);

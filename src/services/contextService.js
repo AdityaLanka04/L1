@@ -2,7 +2,118 @@
 
 import { API_URL } from '../config/api';
 
+const _memoryStore = new Map();
+
 class ContextService {
+  _currentUserKey() {
+    return localStorage.getItem('username') || localStorage.getItem('email') || 'anonymous';
+  }
+
+  _localFoldersKey() {
+    return `ctx_local_folders_${this._currentUserKey()}`;
+  }
+
+  _localDocFolderMapKey() {
+    return `ctx_local_doc_folders_${this._currentUserKey()}`;
+  }
+
+  _readLocalFolders() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(this._localFoldersKey()) || '[]');
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return _memoryStore.get(this._localFoldersKey()) || [];
+    }
+  }
+
+  _writeLocalFolders(folders) {
+    const normalized = Array.isArray(folders) ? folders : [];
+    _memoryStore.set(this._localFoldersKey(), normalized);
+    try {
+      localStorage.setItem(this._localFoldersKey(), JSON.stringify(normalized));
+    } catch {
+      // Keep memory store as fallback when localStorage is unavailable.
+    }
+  }
+
+  _readLocalDocFolderMap() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(this._localDocFolderMapKey()) || '{}');
+      return raw && typeof raw === 'object' ? raw : {};
+    } catch {
+      return _memoryStore.get(this._localDocFolderMapKey()) || {};
+    }
+  }
+
+  _writeLocalDocFolderMap(map) {
+    const normalized = map && typeof map === 'object' ? map : {};
+    _memoryStore.set(this._localDocFolderMapKey(), normalized);
+    try {
+      localStorage.setItem(this._localDocFolderMapKey(), JSON.stringify(normalized));
+    } catch {
+      // Keep memory store fallback.
+    }
+  }
+
+  _normalizeFolderArray(folders = []) {
+    return folders.map((f) => ({
+      id: f.id,
+      name: f.name,
+      color: f.color || '#D7B38C',
+      parent_id: f.parent_id ?? null,
+      doc_count: f.doc_count || 0,
+      created_at: f.created_at || '',
+      updated_at: f.updated_at || '',
+    }));
+  }
+
+  _shouldUseLocalFolderFallback(err) {
+    const msg = String(err?.message || '');
+    return (
+      msg.includes('(404)') ||
+      msg.includes('(405)') ||
+      msg.includes('(500)') ||
+      msg.includes('Failed to fetch') ||
+      msg.includes('NetworkError') ||
+      msg.includes('Load failed')
+    );
+  }
+
+  _nextLocalFolderId() {
+    return -Math.floor(Date.now() + Math.random() * 1000);
+  }
+
+  _mergeRemoteFolders(remoteFolders = []) {
+    const local = this._readLocalFolders();
+    const map = new Map();
+    local.forEach((f) => map.set(String(f.id), { ...f }));
+    remoteFolders.forEach((f) => {
+      const key = String(f.id);
+      const existing = map.get(key) || {};
+      map.set(key, { ...existing, ...f, id: f.id });
+    });
+    const merged = Array.from(map.values());
+    this._writeLocalFolders(this._normalizeFolderArray(merged));
+    return this._normalizeFolderArray(merged);
+  }
+
+  _replaceFolderIdEverywhere(fromId, toId) {
+    const folders = this._readLocalFolders().map((f) => ({
+      ...f,
+      id: String(f.id) === String(fromId) ? toId : f.id,
+      parent_id: String(f.parent_id || '') === String(fromId) ? toId : f.parent_id,
+    }));
+    this._writeLocalFolders(folders);
+
+    const docMap = this._readLocalDocFolderMap();
+    Object.keys(docMap).forEach((docId) => {
+      if (String(docMap[docId]) === String(fromId)) {
+        docMap[docId] = toId;
+      }
+    });
+    this._writeLocalDocFolderMap(docMap);
+  }
+
   _headers(isFormData = false) {
     const token = localStorage.getItem('token');
     const headers = { Authorization: `Bearer ${token}` };
@@ -16,12 +127,16 @@ class ContextService {
       sourceUrl = '',
       sourceName = '',
       license = '',
+      folderId = null,
     } = options || {};
     const formData = new FormData();
     formData.append('file', file);
     formData.append('subject', subject);
     formData.append('grade_level', gradeLevel);
     formData.append('scope', scope);
+    if (folderId !== null && folderId !== undefined && folderId !== '') {
+      formData.append('folder_id', String(folderId));
+    }
     formData.append('source_url', sourceUrl);
     formData.append('source_name', sourceName);
     formData.append('license', license);
@@ -46,6 +161,28 @@ class ContextService {
       cache: 'no-store',
     });
     if (!response.ok) throw new Error(`List failed (${response.status})`);
+    const data = await response.json();
+    const payload = Array.isArray(data) ? { user_docs: data } : (data || {});
+    const map = this._readLocalDocFolderMap();
+    if (Array.isArray(payload.user_docs)) {
+      payload.user_docs = payload.user_docs.map((doc) => {
+        const id = doc.doc_id || doc.id;
+        const fallbackFolderId = id ? map[String(id)] : null;
+        if ((doc.folder_id === undefined || doc.folder_id === null) && fallbackFolderId !== undefined) {
+          return { ...doc, folder_id: fallbackFolderId };
+        }
+        return doc;
+      });
+    }
+    return payload;
+  }
+
+  async getProgress() {
+    const response = await fetch(`${API_URL}/context/progress`, {
+      headers: this._headers(),
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(`Progress load failed (${response.status})`);
     return response.json();
   }
 
@@ -111,6 +248,182 @@ class ContextService {
       throw new Error(err.detail || `URL import failed (${response.status})`);
     }
     return response.json();
+  }
+
+  async listFolders() {
+    try {
+      const response = await fetch(`${API_URL}/context/folders`, {
+        headers: this._headers(),
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error(`Folder list failed (${response.status})`);
+      const data = await response.json();
+      const remoteFolders = this._normalizeFolderArray(data?.folders || []);
+      const folders = this._mergeRemoteFolders(remoteFolders);
+      return { folders };
+    } catch (e) {
+      if (!this._shouldUseLocalFolderFallback(e)) throw e;
+      return { folders: this._readLocalFolders() };
+    }
+  }
+
+  async createFolder({ name, color = '#D7B38C', parentId = null }) {
+    const localId = this._nextLocalFolderId();
+    const now = new Date().toISOString();
+    const localFolder = {
+      id: localId,
+      name,
+      color,
+      parent_id: parentId,
+      doc_count: 0,
+      created_at: now,
+      updated_at: now,
+    };
+    this._writeLocalFolders([...this._readLocalFolders(), localFolder]);
+
+    try {
+      const response = await fetch(`${API_URL}/context/folders`, {
+        method: 'POST',
+        headers: this._headers(),
+        body: JSON.stringify({
+          name,
+          color,
+          parent_id: (parentId && Number(parentId) > 0) ? Number(parentId) : null,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Create folder failed (${response.status})`);
+      }
+      const created = await response.json();
+      this._replaceFolderIdEverywhere(localId, created.id);
+      this._mergeRemoteFolders([created]);
+      return created;
+    } catch (e) {
+      if (!this._shouldUseLocalFolderFallback(e)) throw e;
+      return localFolder;
+    }
+  }
+
+  async updateFolder(folderId, updates = {}) {
+    const localFolders = this._readLocalFolders().map((f) => (
+      String(f.id) === String(folderId)
+        ? {
+            ...f,
+            ...(Object.prototype.hasOwnProperty.call(updates, 'name') ? { name: updates.name } : {}),
+            ...(Object.prototype.hasOwnProperty.call(updates, 'color') ? { color: updates.color } : {}),
+            ...(Object.prototype.hasOwnProperty.call(updates, 'parentId') ? { parent_id: updates.parentId } : {}),
+            updated_at: new Date().toISOString(),
+          }
+        : f
+    ));
+    this._writeLocalFolders(localFolders);
+
+    const payload = {};
+    if (Object.prototype.hasOwnProperty.call(updates, 'name')) payload.name = updates.name;
+    if (Object.prototype.hasOwnProperty.call(updates, 'color')) payload.color = updates.color;
+    if (Object.prototype.hasOwnProperty.call(updates, 'parentId')) payload.parent_id = updates.parentId;
+    if (Object.prototype.hasOwnProperty.call(payload, 'parent_id') && !(payload.parent_id && Number(payload.parent_id) > 0)) {
+      payload.parent_id = null;
+    }
+
+    if (!(Number(folderId) > 0)) {
+      return localFolders.find((f) => String(f.id) === String(folderId)) || { status: 'success' };
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/context/folders/${folderId}`, {
+        method: 'PUT',
+        headers: this._headers(),
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Update folder failed (${response.status})`);
+      }
+      const updated = await response.json();
+      this._mergeRemoteFolders([updated]);
+      return updated;
+    } catch (e) {
+      if (!this._shouldUseLocalFolderFallback(e)) throw e;
+      return localFolders.find((f) => String(f.id) === String(folderId)) || { status: 'success' };
+    }
+  }
+
+  async deleteFolder(folderId, { moveToFolderId = null } = {}) {
+    const localFolders = this._readLocalFolders();
+    const remapped = localFolders
+      .filter((f) => String(f.id) !== String(folderId))
+      .map((f) => (String(f.parent_id || '') === String(folderId) ? { ...f, parent_id: moveToFolderId } : f));
+    this._writeLocalFolders(remapped);
+
+    const docMap = this._readLocalDocFolderMap();
+    Object.keys(docMap).forEach((docId) => {
+      if (String(docMap[docId]) === String(folderId)) {
+        if (moveToFolderId === null || moveToFolderId === undefined || moveToFolderId === '') {
+          delete docMap[docId];
+        } else {
+          docMap[docId] = moveToFolderId;
+        }
+      }
+    });
+    this._writeLocalDocFolderMap(docMap);
+
+    const params = new URLSearchParams();
+    if (moveToFolderId !== null && moveToFolderId !== undefined && moveToFolderId !== '' && Number(moveToFolderId) > 0) {
+      params.set('move_to_folder_id', String(moveToFolderId));
+    }
+    const suffix = params.toString() ? `?${params.toString()}` : '';
+
+    if (!(Number(folderId) > 0)) {
+      return { status: 'success', deleted_folder_id: folderId, moved_to_folder_id: moveToFolderId };
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/context/folders/${folderId}${suffix}`, {
+        method: 'DELETE',
+        headers: this._headers(),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Delete folder failed (${response.status})`);
+      }
+      const deleted = await response.json();
+      return deleted;
+    } catch (e) {
+      if (!this._shouldUseLocalFolderFallback(e)) throw e;
+      return { status: 'success', deleted_folder_id: folderId, moved_to_folder_id: moveToFolderId };
+    }
+  }
+
+  async moveDocumentToFolder(docId, folderId = null) {
+    const map = this._readLocalDocFolderMap();
+    if (folderId === null || folderId === undefined || folderId === '') {
+      delete map[String(docId)];
+    } else {
+      map[String(docId)] = folderId;
+    }
+    this._writeLocalDocFolderMap(map);
+
+    if (folderId !== null && folderId !== undefined && folderId !== '' && !(Number(folderId) > 0)) {
+      return { status: 'success', doc_id: docId, folder_id: folderId };
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/context/documents/${docId}/folder`, {
+        method: 'PUT',
+        headers: this._headers(),
+        body: JSON.stringify({ folder_id: folderId }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Move document failed (${response.status})`);
+      }
+      return response.json();
+    } catch (e) {
+      if (!this._shouldUseLocalFolderFallback(e)) throw e;
+      return { status: 'success', doc_id: docId, folder_id: folderId };
+    }
   }
 
   async askKnowledgeBase(question, { useHs = true, topK = 6 } = {}) {

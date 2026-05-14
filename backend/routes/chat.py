@@ -62,9 +62,11 @@ async def ask_ai(
     question: str = Form(...),
     chat_id: Optional[str] = Form(None),
     use_hs_context: bool = Form(True),
+    context_doc_ids: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
     try:
+        selected_doc_ids = [x.strip() for x in (context_doc_ids or "").split(",") if x.strip()][:200]
         chat_id_int = int(chat_id) if chat_id else None
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -209,6 +211,7 @@ async def ask_ai(
                 chat_id=chat_id_int,
                 chat_history=chat_history_for_tutor,
                 use_hs_context=bool(use_hs_context),
+                context_doc_ids=selected_doc_ids,
                 ml_addendum=ml_addendum,
             )
             response_text = result.get("response", "")
@@ -320,9 +323,11 @@ async def ask_simple(
     question: str = Form(...),
     chat_id: Optional[str] = Form(None),
     use_hs_context: bool = Form(True),
+    context_doc_ids: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
     try:
+        selected_doc_ids = [x.strip() for x in (context_doc_ids or "").split(",") if x.strip()][:200]
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             return {
@@ -358,6 +363,7 @@ async def ask_simple(
                 chat_id=chat_id_int,
                 chat_history=chat_history,
                 use_hs_context=bool(use_hs_context),
+                context_doc_ids=selected_doc_ids,
             )
             response_text = result.get("response", "")
             try:
@@ -435,6 +441,7 @@ async def ask_with_files(
     question: str = Form(...),
     chat_id: Optional[str] = Form(None),
     use_hs_context: bool = Form(True),
+    context_doc_ids: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
 ):
@@ -444,6 +451,7 @@ async def ask_with_files(
     Falls back to /ask_simple/ behaviour when no valid files are present.
     """
     try:
+        selected_doc_ids = [x.strip() for x in (context_doc_ids or "").split(",") if x.strip()][:200]
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             return {
@@ -564,6 +572,7 @@ async def ask_with_files(
                         chat_id=chat_id_int,
                         chat_history=chat_history,
                         use_hs_context=bool(use_hs_context),
+                        context_doc_ids=selected_doc_ids,
                     )
                     response_text = result.get("response", "")
                 else:

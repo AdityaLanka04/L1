@@ -13,6 +13,8 @@ import contextService from '../services/contextService';
 import AbstractFx from '../components/AbstractFx';
 import GeoBackground from '../components/GeoBackground';
 
+const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
+
 const Flashcards = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -128,6 +130,15 @@ const Flashcards = () => {
   const [showAgentInsights, setShowAgentInsights] = useState(false);
   
   const [popup, setPopup] = useState({ isOpen: false, message: '', title: '' });
+  const autoGenerateKeyRef = useRef('');
+  const getSelectedContextDocIds = () => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(CONTEXT_SELECTION_KEY) || '[]');
+      return Array.isArray(raw) ? raw.map((v) => String(v).trim()).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  };
 
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
   const closePopup = () => setPopup({ isOpen: false, message: '', title: '' });
@@ -1130,14 +1141,41 @@ const Flashcards = () => {
     const openPanel = location.state?.openPanel;
     const initialTopic = location.state?.initialTopic;
     const requestedMode = location.state?.generationMode;
+    const contextDocIds = location.state?.contextDocIds;
+    const autoGenerateFromContext = Boolean(location.state?.autoGenerateFromContext);
+
+    if (Array.isArray(contextDocIds) && contextDocIds.length > 0) {
+      try {
+        localStorage.setItem(CONTEXT_SELECTION_KEY, JSON.stringify(contextDocIds));
+      } catch {
+        // no-op
+      }
+    }
+
     if (!userName || openPanel !== 'generator') return;
 
+    const mode = requestedMode === 'chat_history' ? 'chat_history' : 'topic';
+    const topicText = typeof initialTopic === 'string' ? initialTopic.trim() : '';
+
     setActivePanel('generator');
-    if (requestedMode === 'topic') setGenerationMode('topic');
-    if (typeof initialTopic === 'string') setTopic(initialTopic);
+    setGenerationMode(mode);
+    if (topicText) setTopic(topicText);
+
+    if (autoGenerateFromContext && mode === 'topic' && topicText && !generating) {
+      const contextKey = Array.isArray(contextDocIds) ? contextDocIds.map((id) => String(id)).join(',') : '';
+      const runKey = `${mode}|${topicText}|${contextKey}`;
+      if (autoGenerateKeyRef.current !== runKey) {
+        autoGenerateKeyRef.current = runKey;
+        generateFlashcards({
+          mode: 'topic',
+          topic: topicText,
+          skipValidation: true,
+        });
+      }
+    }
 
     navigate('/flashcards', { replace: true, state: {} });
-  }, [location.state, userName, navigate]);
+  }, [location.state, userName, navigate, generating]);
 
   useEffect(() => {
     const savedStreak = localStorage.getItem('flashcardStreak');
@@ -1401,9 +1439,13 @@ const Flashcards = () => {
     }
   };
 
-  const generateFlashcards = async () => {
-    if (generationMode === 'topic' && !topic.trim()) return;
-    if (generationMode === 'chat_history' && selectedSessions.length === 0) {
+  const generateFlashcards = async (options = {}) => {
+    const mode = options.mode || generationMode;
+    const topicValue = typeof options.topic === 'string' ? options.topic : topic;
+    const skipValidation = Boolean(options.skipValidation);
+
+    if (!skipValidation && mode === 'topic' && !topicValue.trim()) return;
+    if (mode === 'chat_history' && selectedSessions.length === 0) {
       showPopup('No Sessions Selected', 'Please select at least one chat session.');
       return;
     }
@@ -1419,11 +1461,15 @@ const Flashcards = () => {
       formData.append('additional_specs', additionalSpecs);
       formData.append('is_public', isPublic.toString());
       formData.append('use_hs_context', hsMode.toString());
+      const selectedContextDocIds = getSelectedContextDocIds();
+      if (selectedContextDocIds.length > 0) {
+        formData.append('context_doc_ids', selectedContextDocIds.join(','));
+      }
 
-      if (generationMode === 'topic') {
-        formData.append('topic', topic);
+      if (mode === 'topic') {
+        formData.append('topic', topicValue);
         formData.append('generation_type', 'topic');
-        formData.append('set_title', `Flashcards: ${topic}`);
+        formData.append('set_title', `Flashcards: ${topicValue}`);
       } else {
         const chatHistory = await loadChatHistoryData();
         const chatContent = chatHistory
@@ -1463,7 +1509,7 @@ const Flashcards = () => {
         saved: true,
         setId: data.set_id,
         shareCode: data.share_code,
-        setTitle: data.set_title || (generationMode === 'topic' ? `Flashcards: ${topic}` : 'Chat Study Cards'),
+        setTitle: data.set_title || (mode === 'topic' ? `Flashcards: ${topicValue}` : 'Chat Study Cards'),
         cardCount: cards.length
       });
 

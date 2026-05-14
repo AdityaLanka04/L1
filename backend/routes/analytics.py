@@ -1732,32 +1732,25 @@ def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_d
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Total reviews
-        total_reviews = db.query(func.count(models.FlashcardReview.id)).join(
-            models.Flashcard
-        ).filter(models.Flashcard.user_id == user.id).scalar() or 0
-        
-        # Accuracy rate
-        correct_reviews = db.query(func.count(models.FlashcardReview.id)).join(
-            models.Flashcard
+        flashcards = db.query(models.Flashcard).join(
+            models.FlashcardSet,
+            models.Flashcard.set_id == models.FlashcardSet.id
         ).filter(
-            models.Flashcard.user_id == user.id,
-            models.FlashcardReview.rating >= 3
-        ).scalar() or 0
-        
-        accuracy_rate = f"{(correct_reviews / total_reviews * 100):.1f}%" if total_reviews > 0 else "0%"
-        
-        # Study streak
-        reviews = db.query(models.FlashcardReview).join(
-            models.Flashcard
-        ).filter(models.Flashcard.user_id == user.id).order_by(
-            models.FlashcardReview.reviewed_at.desc()
+            models.FlashcardSet.user_id == user.id
         ).all()
-        
+
+        total_reviews = sum(max(card.times_reviewed or 0, 0) for card in flashcards)
+        correct_reviews = sum(
+            min(max(card.correct_count or 0, 0), max(card.times_reviewed or 0, 0))
+            for card in flashcards
+        )
+
+        accuracy_rate = f"{(correct_reviews / total_reviews * 100):.1f}%" if total_reviews > 0 else "0%"
+
         study_days = set()
-        for review in reviews:
-            if review.reviewed_at:
-                study_days.add(review.reviewed_at.date())
+        for card in flashcards:
+            if card.last_reviewed:
+                study_days.add(card.last_reviewed.date())
         
         # Calculate streak
         study_streak = 0
@@ -1766,30 +1759,36 @@ def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_d
             study_streak += 1
             current_date -= timedelta(days=1)
         
-        # Mastered cards (stability > 100 days)
-        mastered_cards = db.query(func.count(models.Flashcard.id)).filter(
-            models.Flashcard.user_id == user.id,
-            models.Flashcard.stability > 100
-        ).scalar() or 0
-        
-        # FSRS stats
-        flashcards = db.query(models.Flashcard).filter_by(user_id=user.id).all()
-        
-        avg_retention = sum(card.retrievability for card in flashcards if card.retrievability) / len(flashcards) if flashcards else 0
+        mastered_cards = 0
+        for card in flashcards:
+            reviews = max(card.times_reviewed or 0, 0)
+            if reviews < 5:
+                continue
+            accuracy = (max(card.correct_count or 0, 0) / reviews) if reviews else 0
+            if accuracy >= 0.8:
+                mastered_cards += 1
+
+        # Retention estimate from reviewed-card accuracy
+        reviewed_cards = [card for card in flashcards if (card.times_reviewed or 0) > 0]
+        avg_retention = (
+            sum(
+                (max(card.correct_count or 0, 0) / max(card.times_reviewed or 1, 1))
+                for card in reviewed_cards
+            ) / len(reviewed_cards)
+        ) if reviewed_cards else 0
         avg_retention = f"{avg_retention * 100:.1f}%"
         
         # Cards due today
         today = datetime.now(timezone.utc)
-        cards_due_today = db.query(func.count(models.Flashcard.id)).filter(
-            models.Flashcard.user_id == user.id,
-            models.Flashcard.next_review <= today
-        ).scalar() or 0
+        cards_due_today = sum(
+            1 for card in flashcards
+            if card.next_review_date is not None and card.next_review_date <= today
+        )
         
-        # Optimal review time (based on when user does most reviews)
         review_hours = {}
-        for review in reviews:
-            if review.reviewed_at:
-                hour = review.reviewed_at.hour
+        for card in flashcards:
+            if card.last_reviewed:
+                hour = card.last_reviewed.hour
                 review_hours[hour] = review_hours.get(hour, 0) + 1
         
         optimal_hour = max(review_hours.items(), key=lambda x: x[1])[0] if review_hours else None
@@ -1803,12 +1802,25 @@ def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_d
         }
         
         for card in flashcards:
-            if card.difficulty < 5:
+            difficulty_raw = str(card.difficulty or "").strip().lower()
+            if difficulty_raw in {"easy", "beginner"}:
                 difficulty_distribution["easy"] += 1
-            elif card.difficulty < 7:
-                difficulty_distribution["medium"] += 1
-            else:
+            elif difficulty_raw in {"hard", "advanced"}:
                 difficulty_distribution["hard"] += 1
+            elif difficulty_raw:
+                # Legacy values may contain numeric strings.
+                try:
+                    numeric = float(difficulty_raw)
+                    if numeric < 5:
+                        difficulty_distribution["easy"] += 1
+                    elif numeric < 7:
+                        difficulty_distribution["medium"] += 1
+                    else:
+                        difficulty_distribution["hard"] += 1
+                except ValueError:
+                    difficulty_distribution["medium"] += 1
+            else:
+                difficulty_distribution["medium"] += 1
 
         return {
             "total_reviews": total_reviews,

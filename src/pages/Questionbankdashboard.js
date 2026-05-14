@@ -14,6 +14,8 @@ import ImportExportModal from '../components/ImportExportModal';
 import questionBankAgentService from '../services/questionBankAgentService';
 import MathRenderer from '../components/MathRenderer';
 
+const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
+
 const QUICK_SECTIONS = [
   { label: 'AI Chat', route: '/ai-chat' },
   { label: 'Flashcards', route: '/flashcards' },
@@ -222,6 +224,80 @@ const QuestionBankDashboard = () => {
     alert('Please select at least one question type in Generation Settings.');
     return false;
   };
+
+  useEffect(() => {
+    const contextDocIds = location.state?.contextDocIds;
+    const openView = location.state?.openView;
+    const topicFromContext = location.state?.topic;
+
+    if (Array.isArray(contextDocIds) && contextDocIds.length > 0) {
+      try {
+        localStorage.setItem(CONTEXT_SELECTION_KEY, JSON.stringify(contextDocIds));
+      } catch {
+        // no-op
+      }
+    }
+    if (openView && QUESTION_VIEWS.some((v) => v.key === openView)) {
+      setActiveView(openView);
+    }
+    if (typeof topicFromContext === 'string' && topicFromContext.trim()) {
+      setCustomPrompt(topicFromContext.trim());
+      setCustomTitle(`Quiz: ${topicFromContext.trim().slice(0, 60)}`);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    const contextDocIds = location.state?.contextDocIds;
+    const autoGenerateFromContext = Boolean(location.state?.autoGenerateFromContext);
+    if (!autoGenerateFromContext || !userId || !token) return;
+    if (!Array.isArray(contextDocIds) || contextDocIds.length === 0) return;
+
+    const run = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_URL}/generate_practice_questions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            topic: location.state?.topic || 'Selected context files',
+            title: `Quiz: ${(location.state?.topic || 'Selected context').slice(0, 60)}`,
+            question_count: 12,
+            question_types: ['multiple_choice', 'true_false', 'short_answer'],
+            use_hs_context: true,
+            context_doc_ids: contextDocIds
+          })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data?.questions?.length) {
+          throw new Error(data.detail || 'Failed to generate quiz from selected context');
+        }
+
+        await fetchQuestionSets();
+        setSelectedQuestionSet({
+          id: data.question_set_id || data.id,
+          title: data.title || 'Context Quiz',
+          questions: data.questions
+        });
+        setShowStudyModal(true);
+        setCurrentQuestion(0);
+        setUserAnswers({});
+        setShowResults(false);
+        setSessionStartTime(Date.now());
+      } catch (error) {
+        alert(error.message || 'Failed to generate quiz from selected context');
+      } finally {
+        setLoading(false);
+        navigate('/question-bank', { replace: true, state: {} });
+      }
+    };
+
+    run();
+  }, [location.state, userId, token, navigate]);
 
   useEffect(() => {
     fetchQuestionSets();

@@ -1334,10 +1334,8 @@ const DashboardCerbyl = () => {
           {/* Heatmap full-width row */}
           <section className="cb-panel cb-panel--heat cb-heat-full">
             <div className="cb-panel-head">
-              <span className="cb-panel-title">Activity Heatmap</span>
-              <span className="cb-panel-sub">
-                Last 12 months · {heatmap.reduce((s, d) => s + (d.count || 0), 0)} activities
-              </span>
+              <span className="cb-panel-title">Heatmap</span>
+              <span className="cb-panel-sub">Activity over the last year</span>
             </div>
             <div className="cb-heat-grid">
               {heatmapWeeks.length === 0 ? (
@@ -1348,7 +1346,7 @@ const DashboardCerbyl = () => {
                     <span
                       key={di}
                       className={`cb-heat-cell cb-l${d.level || 0}`}
-                      title={d ? `${d.date}: ${d.count} activities` : ''}
+                      title={d ? `${d.date}: ${d.count}` : ''}
                     />
                   ))}
                 </div>
@@ -1356,7 +1354,11 @@ const DashboardCerbyl = () => {
             </div>
             <div className="cb-heat-legend">
               <span>less</span>
-              {[0,1,2,3,4].map(l => <span key={l} className={`cb-heat-cell cb-l${l}`}/>)}
+              <span className="cb-heat-cell cb-l0"/>
+              <span className="cb-heat-cell cb-l1"/>
+              <span className="cb-heat-cell cb-l2"/>
+              <span className="cb-heat-cell cb-l3"/>
+              <span className="cb-heat-cell cb-l4"/>
               <span>more</span>
             </div>
           </section>

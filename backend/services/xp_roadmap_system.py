@@ -3,10 +3,77 @@ XP Roadmap System with Topic-Based Personalized Milestones
 Tracks user's study topics and generates relevant milestones
 """
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 import models
 from typing import List, Dict, Any
+
+
+def _collect_quiz_topic_signals(db: Session, user_id: int) -> List[str]:
+    """Collect quiz-related topic names across legacy and current quiz models."""
+    topics: List[str] = []
+
+    if hasattr(models, "QuizSession"):
+        quiz_sessions = db.query(models.QuizSession).filter(
+            models.QuizSession.user_id == user_id
+        ).all()
+        for quiz in quiz_sessions:
+            topic = getattr(quiz, "topic", None)
+            if topic and str(topic).strip():
+                topics.append(str(topic).strip())
+
+    if hasattr(models, "SoloQuiz"):
+        solo_quizzes = db.query(models.SoloQuiz).filter(
+            models.SoloQuiz.user_id == user_id
+        ).all()
+        for quiz in solo_quizzes:
+            topic = getattr(quiz, "subject", None)
+            if topic and str(topic).strip():
+                topics.append(str(topic).strip())
+
+    if hasattr(models, "QuestionSession"):
+        question_sessions = db.query(models.QuestionSession).join(
+            models.QuestionSet,
+            models.QuestionSession.question_set_id == models.QuestionSet.id
+        ).filter(
+            models.QuestionSession.user_id == user_id
+        ).all()
+        for session in question_sessions:
+            question_set = getattr(session, "question_set", None)
+            title = getattr(question_set, "title", None) if question_set else None
+            if title and str(title).strip():
+                topics.append(str(title).strip())
+
+    return topics
+
+
+def _count_quiz_matches_for_topic(db: Session, user_id: int, topic: str) -> int:
+    """Count quiz attempts that match a topic across available quiz models."""
+    quiz_count = 0
+
+    if hasattr(models, "QuizSession"):
+        quiz_count += db.query(func.count(models.QuizSession.id)).filter(
+            models.QuizSession.user_id == user_id,
+            models.QuizSession.topic.ilike(f"%{topic}%")
+        ).scalar() or 0
+
+    if hasattr(models, "SoloQuiz"):
+        quiz_count += db.query(func.count(models.SoloQuiz.id)).filter(
+            models.SoloQuiz.user_id == user_id,
+            models.SoloQuiz.subject.ilike(f"%{topic}%")
+        ).scalar() or 0
+
+    if hasattr(models, "QuestionSession"):
+        quiz_count += db.query(func.count(models.QuestionSession.id)).join(
+            models.QuestionSet,
+            models.QuestionSession.question_set_id == models.QuestionSet.id
+        ).filter(
+            models.QuestionSession.user_id == user_id,
+            models.QuestionSet.title.ilike(f"%{topic}%")
+        ).scalar() or 0
+
+    return quiz_count
+
 
 def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dict[str, Any]]:
     """
@@ -42,14 +109,9 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
             topic = fs.title.strip()
             topics[topic] = topics.get(topic, 0) + 3
     
-    quiz_sessions = db.query(models.QuizSession).filter(
-        models.QuizSession.user_id == user_id
-    ).all()
-    
-    for quiz in quiz_sessions:
-        if quiz.topic and quiz.topic.strip():
-            topic = quiz.topic.strip()
-            topics[topic] = topics.get(topic, 0) + 2
+    quiz_topics = _collect_quiz_topic_signals(db, user_id)
+    for topic in quiz_topics:
+        topics[topic] = topics.get(topic, 0) + 2
     
     sorted_topics = sorted(topics.items(), key=lambda x: x[1], reverse=True)[:limit]
     
@@ -110,10 +172,7 @@ def get_topic_specific_milestones(db: Session, user_id: int, topic: str) -> List
         models.FlashcardSet.title.ilike(f'%{topic}%')
     ).scalar() or 0
     
-    quiz_count = db.query(func.count(models.QuizSession.id)).filter(
-        models.QuizSession.user_id == user_id,
-        models.QuizSession.topic.ilike(f'%{topic}%')
-    ).scalar() or 0
+    quiz_count = _count_quiz_matches_for_topic(db, user_id, topic)
     
     milestones = []
     

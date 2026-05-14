@@ -79,6 +79,185 @@ from services.suggestion_engine import (
     get_chroma_suggestions as _get_chroma_suggestions,
 )
 
+_PATH_DIFFICULTY_LEVELS = {"beginner", "intermediate", "advanced"}
+_PATH_LENGTH_LEVELS = {"short", "medium", "long"}
+_NOTE_DEPTH_LEVELS = {"brief", "standard", "deep"}
+_ACTION_REQUIRES_TOPIC = {
+    "create_note",
+    "create_flashcards",
+    "create_questions",
+    "create_quiz",
+    "create_learning_path",
+    "explain",
+}
+
+def _extract_count(query: str) -> Optional[int]:
+    if not query:
+        return None
+    m = re.search(r"\b(\d{1,2})\b", query)
+    if not m:
+        return None
+    count = int(m.group(1))
+    if 1 <= count <= 50:
+        return count
+    return None
+
+def _extract_difficulty(query: str) -> Optional[str]:
+    q = (query or "").lower()
+    if "easy" in q:
+        return "easy"
+    if "hard" in q:
+        return "hard"
+    if "medium" in q:
+        return "medium"
+    return None
+
+def _extract_topic_after_action(query: str) -> str:
+    q = (query or "").strip()
+    q = re.sub(
+        r"^/(flashcards?|notes?|quiz|quizzes|questions?|explain|path|roadmap)\s*",
+        "",
+        q,
+        flags=re.IGNORECASE,
+    ).strip()
+    q = re.sub(
+        r"^(create|make|generate|build)\s+",
+        "",
+        q,
+        flags=re.IGNORECASE,
+    ).strip()
+    q = re.sub(
+        r"^(flashcards?|notes?|quiz|quizzes|questions?|learning path|path|roadmap|study plan)\s+(on|for|about)\s+",
+        "",
+        q,
+        flags=re.IGNORECASE,
+    ).strip()
+    return q
+
+def _infer_action(query: str) -> dict:
+    text = (query or "").strip()
+    lower = text.lower()
+
+    difficulty = _extract_difficulty(lower)
+    count = _extract_count(lower)
+
+    if lower in {"help", "/help", "commands"}:
+        return {"action": "show_help", "topic": "", "confidence": 0.95}
+    if lower in {"hi", "hello", "hey", "yo"}:
+        return {"action": "greeting", "topic": "", "confidence": 0.95}
+    if "progress" in lower:
+        return {"action": "show_progress", "topic": "", "confidence": 0.9}
+    if "achievement" in lower:
+        return {"action": "show_achievements", "topic": "", "confidence": 0.85}
+    if "weak" in lower:
+        return {"action": "show_weak_areas", "topic": "", "confidence": 0.85}
+    if "review flashcard" in lower:
+        return {"action": "review_flashcards", "topic": "", "confidence": 0.9}
+
+    if lower.startswith("/notes") or "create note" in lower or lower.startswith("notes "):
+        topic = _extract_topic_after_action(text)
+        depth = "standard"
+        if "brief" in lower:
+            depth = "brief"
+        elif "deep" in lower or "detailed" in lower:
+            depth = "deep"
+        return {
+            "action": "create_note",
+            "topic": topic,
+            "depth": depth,
+            "tone": "professional",
+            "confidence": 0.88,
+        }
+
+    if lower.startswith("/flashcard") or lower.startswith("/flashcards") or "flashcard" in lower:
+        return {
+            "action": "create_flashcards",
+            "topic": _extract_topic_after_action(text),
+            "count": count or 10,
+            "difficulty": difficulty or "medium",
+            "confidence": 0.88,
+        }
+
+    if lower.startswith("/quiz") or "create quiz" in lower or "create question" in lower or lower.startswith("/questions"):
+        return {
+            "action": "create_quiz",
+            "topic": _extract_topic_after_action(text),
+            "count": count or 10,
+            "difficulty": difficulty or "medium",
+            "confidence": 0.88,
+        }
+
+    if "roadmap" in lower or "learning path" in lower or "study plan" in lower or lower.startswith("/path"):
+        topic = _extract_topic_after_action(text)
+        path_difficulty = "intermediate"
+        if "beginner" in lower:
+            path_difficulty = "beginner"
+        elif "advanced" in lower:
+            path_difficulty = "advanced"
+        path_length = "medium"
+        if "short" in lower:
+            path_length = "short"
+        elif "long" in lower:
+            path_length = "long"
+        return {
+            "action": "create_learning_path",
+            "topic": topic,
+            "difficulty": path_difficulty,
+            "length": path_length,
+            "confidence": 0.84,
+        }
+
+    if lower.startswith("/explain") or lower.startswith("explain "):
+        return {
+            "action": "explain",
+            "topic": _extract_topic_after_action(text),
+            "confidence": 0.82,
+        }
+
+    return {"action": "search", "topic": text, "confidence": 0.6}
+
+def _build_topic_suggestions(topic: str) -> list[str]:
+    clean = (topic or "").strip()
+    if not clean:
+        return _build_default_command_suggestions()
+    return [
+        f"/notes {clean}",
+        f"/flashcards {clean}",
+        f"/quiz {clean}",
+        f"/path {clean}",
+    ]
+
+def _build_default_command_suggestions() -> list[str]:
+    return [
+        "/notes photosynthesis",
+        "/flashcards cell biology",
+        "/quiz calculus derivatives",
+        "/path machine learning",
+        "/progress",
+    ]
+
+def _get_action_command_examples(action: str) -> list[str]:
+    mapping = {
+        "create_note": ["/notes world history", "/notes photosynthesis deep"],
+        "create_flashcards": ["/flashcards osmosis", "/flashcards algebra 15"],
+        "create_questions": ["/quiz electrochemistry 10", "/questions trigonometry"],
+        "create_quiz": ["/quiz probability", "/quiz thermodynamics hard"],
+        "create_learning_path": ["/path data structures", "/roadmap organic chemistry"],
+        "explain": ["/explain black body radiation", "/explain photosynthesis"],
+    }
+    return mapping.get(action, _build_default_command_suggestions())
+
+def _get_command_catalog() -> list[dict]:
+    return [
+        {"command": "/notes <topic>", "description": "Create notes from a topic"},
+        {"command": "/flashcards <topic>", "description": "Generate flashcards"},
+        {"command": "/quiz <topic>", "description": "Generate practice questions"},
+        {"command": "/path <topic>", "description": "Create a learning path"},
+        {"command": "/explain <topic>", "description": "Quick explanation"},
+        {"command": "/progress", "description": "Open study insights"},
+        {"command": "/help", "description": "Show command help"},
+    ]
+
 async def _create_note_with_ai(
     db: Session,
     user: models.User,

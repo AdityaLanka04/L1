@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import ReactFlow, {
   Background,
   Controls,
@@ -119,6 +119,7 @@ const CustomNode = ({ data, selected }) => {
 
 const KnowledgeRoadmap = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { roadmapId } = useParams();
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
@@ -161,6 +162,7 @@ const KnowledgeRoadmap = () => {
   const [showExportSuccessModal, setShowExportSuccessModal] = useState(false);
   const [exportedNodeCount, setExportedNodeCount] = useState(0);
   const [exportedNoteId, setExportedNoteId] = useState(null);
+  const contextRoadmapTriggeredRef = useRef(false);
 
   
   useEffect(() => {
@@ -293,6 +295,54 @@ const createRoadmapFromChat = async () => {
   useEffect(() => {
     fetchRoadmaps();
   }, []);
+
+  useEffect(() => {
+    const autoCreateFromContext = Boolean(location.state?.autoCreateFromContext);
+    const contextDocIds = location.state?.contextDocIds;
+    const sourceSummary = location.state?.sourceSummary;
+    if (!autoCreateFromContext) return;
+    if (contextRoadmapTriggeredRef.current) return;
+    if (!Array.isArray(contextDocIds) || contextDocIds.length === 0) return;
+    if (!userId || !token) return;
+
+    contextRoadmapTriggeredRef.current = true;
+
+    const run = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_URL}/create_roadmap_from_context_docs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            context_doc_ids: contextDocIds,
+            title: sourceSummary ? `Roadmap: ${sourceSummary}` : undefined,
+          }),
+        });
+        if (!response.ok) {
+          throw new Error('Failed to create roadmap from selected context');
+        }
+        const data = await response.json();
+        if (data?.roadmap_id) {
+          clearRoadmapState(data.roadmap_id);
+          navigate(`/knowledge-roadmap/${data.roadmap_id}`, { replace: true, state: {} });
+        } else {
+          navigate('/knowledge-roadmap', { replace: true, state: {} });
+          alert('Could not create roadmap from selected files.');
+        }
+      } catch (error) {
+        navigate('/knowledge-roadmap', { replace: true, state: {} });
+        alert('Failed to build roadmap from selected files. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+  }, [location.state, userId, token, navigate, clearRoadmapState]);
 
   
   useEffect(() => {

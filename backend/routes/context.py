@@ -28,7 +28,7 @@ from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 import models
@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/context", tags=["context"])
 
 MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
+_context_schema_checked = False
 
 class RelatedTopicsRequest(BaseModel):
     topics: list[str]
@@ -237,12 +238,296 @@ class ImportUrlRequest(BaseModel):
     scope: str = "private"
     source_name: str = ""
     license: str = ""
+    folder_id: Optional[int] = None
 
 class AskRequest(BaseModel):
     question: str
     use_hs: bool = True
     top_k: int = 6
     doc_ids: Optional[list[str]] = None
+
+
+class ContextFolderCreateRequest(BaseModel):
+    name: str
+    color: Optional[str] = "#D7B38C"
+    parent_id: Optional[int] = None
+
+
+class ContextFolderUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    color: Optional[str] = None
+    parent_id: Optional[int] = None
+
+
+class ContextDocumentFolderUpdateRequest(BaseModel):
+    folder_id: Optional[int] = None
+
+
+def _normalize_topic_key(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip().lower())
+
+
+def _parse_json_list(raw_value) -> list[str]:
+    if raw_value is None:
+        return []
+    if isinstance(raw_value, list):
+        return [str(v).strip() for v in raw_value if str(v).strip()]
+    if isinstance(raw_value, str):
+        value = raw_value.strip()
+        if not value:
+            return []
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                return [str(v).strip() for v in parsed if str(v).strip()]
+        except Exception:
+            pass
+        return [value]
+    return []
+
+
+def _lookup_topic_mastery_score(
+    topic: str,
+    exact_map: dict[str, float],
+    normalized_states: list[tuple[str, float]],
+) -> float:
+    key = _normalize_topic_key(topic)
+    if not key:
+        return -1.0
+    if key in exact_map:
+        return exact_map[key]
+
+    best = -1.0
+    for state_key, score in normalized_states:
+        if not state_key:
+            continue
+        if state_key in key or key in state_key:
+            best = max(best, score)
+    return best
+
+
+def _build_doc_progress_payload(db: Session, user_id: int) -> dict:
+    docs = (
+        db.query(models.ContextDocument)
+        .filter(models.ContextDocument.user_id == user_id)
+        .all()
+    )
+
+    states = (
+        db.query(models.StudentKnowledgeState)
+        .filter(models.StudentKnowledgeState.user_id == user_id)
+        .all()
+    )
+    exact_mastery: dict[str, float] = {}
+    normalized_states: list[tuple[str, float]] = []
+    for state in states:
+        key = _normalize_topic_key(state.concept_name or state.concept_id or "")
+        score = float(state.p_mastery or 0.0)
+        if not key:
+            continue
+        exact_mastery[key] = max(exact_mastery.get(key, -1.0), score)
+
+    normalized_states = list(exact_mastery.items())
+
+    doc_progress: list[dict] = []
+    folder_aggregate: dict[str, dict] = {}
+    overall_mastered_topics = 0
+    overall_total_topics = 0
+    docs_with_topics = 0
+    mastered_docs = 0
+
+    for doc in docs:
+        raw_topics = []
+        raw_topics.extend(_parse_json_list(doc.topic_tags))
+        raw_topics.extend(_parse_json_list(doc.key_concepts))
+        if doc.subject:
+            raw_topics.append(doc.subject)
+
+        dedup = {}
+        for t in raw_topics:
+            norm = _normalize_topic_key(t)
+            if norm and norm not in dedup:
+                dedup[norm] = t.strip()
+        topics = list(dedup.values())
+
+        mastered = []
+        weak = []
+        remaining = []
+
+        for topic in topics:
+            score = _lookup_topic_mastery_score(topic, exact_mastery, normalized_states)
+            if score < 0:
+                remaining.append(topic)
+            elif score >= 0.75:
+                mastered.append(topic)
+            elif score < 0.45:
+                weak.append(topic)
+            else:
+                remaining.append(topic)
+
+        total_topics = len(topics)
+        mastered_count = len(mastered)
+        weak_count = len(weak)
+        remaining_count = len(remaining)
+        mastery_pct = round((mastered_count / total_topics) * 100, 1) if total_topics > 0 else 0.0
+        doc_mastered = total_topics > 0 and mastery_pct >= 70.0 and weak_count == 0
+
+        folder_key = str(doc.folder_id) if doc.folder_id is not None else "uncategorized"
+        if folder_key not in folder_aggregate:
+            folder_aggregate[folder_key] = {
+                "folder_id": doc.folder_id,
+                "total_docs": 0,
+                "docs_with_topics": 0,
+                "mastered_docs": 0,
+                "weak_docs": 0,
+                "mastered_topics": 0,
+                "total_topics": 0,
+                "avg_mastery_sum": 0.0,
+            }
+        agg = folder_aggregate[folder_key]
+        agg["total_docs"] += 1
+        agg["docs_with_topics"] += 1 if total_topics > 0 else 0
+        agg["mastered_docs"] += 1 if doc_mastered else 0
+        agg["weak_docs"] += 1 if weak_count > 0 else 0
+        agg["mastered_topics"] += mastered_count
+        agg["total_topics"] += total_topics
+        agg["avg_mastery_sum"] += mastery_pct
+
+        if total_topics > 0:
+            docs_with_topics += 1
+            overall_total_topics += total_topics
+            overall_mastered_topics += mastered_count
+            if doc_mastered:
+                mastered_docs += 1
+
+        doc_progress.append({
+            "doc_id": doc.doc_id,
+            "folder_id": doc.folder_id,
+            "topics_total": total_topics,
+            "mastered_topics_count": mastered_count,
+            "weak_topics_count": weak_count,
+            "remaining_topics_count": remaining_count,
+            "mastery_pct": mastery_pct,
+            "is_mastered": doc_mastered,
+            "mastered_topics": mastered[:8],
+            "weak_topics": weak[:8],
+            "remaining_topics": remaining[:8],
+        })
+
+    folder_progress = []
+    for value in folder_aggregate.values():
+        total_docs = value["total_docs"]
+        total_topics = value["total_topics"]
+        mastered_topics = value["mastered_topics"]
+        avg_mastery_pct = round((value["avg_mastery_sum"] / total_docs), 1) if total_docs > 0 else 0.0
+        mastery_ratio_pct = round((mastered_topics / total_topics) * 100, 1) if total_topics > 0 else 0.0
+        folder_progress.append({
+            "folder_id": value["folder_id"],
+            "total_docs": total_docs,
+            "docs_with_topics": value["docs_with_topics"],
+            "mastered_docs": value["mastered_docs"],
+            "weak_docs": value["weak_docs"],
+            "mastered_topics": mastered_topics,
+            "total_topics": total_topics,
+            "mastery_ratio_pct": mastery_ratio_pct,
+            "avg_doc_mastery_pct": avg_mastery_pct,
+        })
+
+    overall = {
+        "total_docs": len(docs),
+        "docs_with_topics": docs_with_topics,
+        "mastered_docs": mastered_docs,
+        "mastered_docs_pct": round((mastered_docs / docs_with_topics) * 100, 1) if docs_with_topics > 0 else 0.0,
+        "mastered_topics": overall_mastered_topics,
+        "total_topics": overall_total_topics,
+        "mastered_topics_pct": round((overall_mastered_topics / overall_total_topics) * 100, 1) if overall_total_topics > 0 else 0.0,
+    }
+
+    return {
+        "overall": overall,
+        "folder_progress": folder_progress,
+        "doc_progress": doc_progress,
+    }
+
+
+def _normalize_scope(raw_scope: str) -> str:
+    scope = (raw_scope or "private").strip().lower()
+    if scope == "private":
+        return "private"
+    if scope in ("public", "community", "hs_shared"):
+        return "hs_shared"
+    raise HTTPException(status_code=400, detail="scope must be 'private' or 'hs_shared'")
+
+
+def _get_context_folder_or_404(db: Session, user_id: int, folder_id: Optional[int]):
+    if folder_id is None:
+        return None
+    folder = (
+        db.query(models.ContextFolder)
+        .filter(
+            models.ContextFolder.id == folder_id,
+            models.ContextFolder.user_id == user_id,
+        )
+        .first()
+    )
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    return folder
+
+
+def _would_create_folder_cycle(db: Session, user_id: int, folder_id: int, candidate_parent_id: Optional[int]) -> bool:
+    current = candidate_parent_id
+    visited = set()
+    while current is not None:
+        if current == folder_id:
+            return True
+        if current in visited:
+            return True
+        visited.add(current)
+        parent = (
+            db.query(models.ContextFolder)
+            .filter(
+                models.ContextFolder.id == current,
+                models.ContextFolder.user_id == user_id,
+            )
+            .first()
+        )
+        if not parent:
+            return False
+        current = parent.parent_id
+    return False
+
+
+def _ensure_context_schema(db: Session) -> None:
+    global _context_schema_checked
+    if _context_schema_checked:
+        return
+    bind = db.get_bind()
+    if bind is None:
+        return
+    dialect = getattr(bind.dialect, "name", "")
+    if dialect == "sqlite":
+        conn = bind.connect()
+        try:
+            conn.execute(text(
+                "CREATE TABLE IF NOT EXISTS context_folders ("
+                "id INTEGER PRIMARY KEY, "
+                "user_id INTEGER NOT NULL, "
+                "name VARCHAR(255) NOT NULL, "
+                "color VARCHAR(50), "
+                "parent_id INTEGER, "
+                "created_at DATETIME, "
+                "updated_at DATETIME)"
+            ))
+            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(context_documents)"))}
+            if "folder_id" not in cols:
+                conn.execute(text("ALTER TABLE context_documents ADD COLUMN folder_id INTEGER"))
+            conn.commit()
+        finally:
+            conn.close()
+    else:
+        models.Base.metadata.create_all(bind=bind)
+    _context_schema_checked = True
 
 def _generate_doc_summary(doc_id: str, chunks: list[str], filename: str, subject: str, db_session_factory):
     """
@@ -336,6 +621,7 @@ async def upload_document(
     subject: str = Form(""),
     grade_level: str = Form(""),
     scope: str = Form("private"),
+    folder_id: Optional[int] = Form(None),
     source_url: str = Form(""),
     source_name: str = Form(""),
     license: str = Form(""),
@@ -357,8 +643,9 @@ async def upload_document(
     Returns:
       { success, doc_id, filename, chunk_count, scope, message }
     """
-    if scope not in ("private", "hs_shared"):
-        raise HTTPException(status_code=400, detail="scope must be 'private' or 'hs_shared'")
+    _ensure_context_schema(db)
+    scope = _normalize_scope(scope)
+    folder = _get_context_folder_or_404(db, current_user.id, folder_id)
 
     lower_name = (file.filename or "").lower()
     if not lower_name.endswith((".pdf", ".txt", ".md")):
@@ -391,6 +678,7 @@ async def upload_document(
         subject=clean_subject[:100] if clean_subject else "",
         grade_level=clean_grade[:20] if clean_grade else "",
         scope=scope,
+        folder_id=folder.id if folder else None,
         source_url=source_url[:500] if source_url else "",
         source_name=clean_source[:200],
         license=clean_license[:80],
@@ -504,12 +792,13 @@ def import_document_url(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    if payload.scope not in ("private", "hs_shared"):
-        raise HTTPException(status_code=400, detail="scope must be 'private' or 'hs_shared'")
+    _ensure_context_schema(db)
+    normalized_scope = _normalize_scope(payload.scope)
 
     url = (payload.url or "").strip()
     if not url or not _is_safe_url(url):
         raise HTTPException(status_code=400, detail="URL must be http(s) and not a private address")
+    folder = _get_context_folder_or_404(db, current_user.id, payload.folder_id)
 
     clean_subject = context_store.canonicalize_subject(payload.subject) if payload.subject else ""
     clean_grade = (payload.grade_level or "").strip()
@@ -540,7 +829,8 @@ def import_document_url(
         file_type=filename.rsplit(".", 1)[-1].lower(),
         subject=clean_subject[:100] if clean_subject else "",
         grade_level=clean_grade[:20] if clean_grade else "",
-        scope=payload.scope,
+        scope=normalized_scope,
+        folder_id=folder.id if folder else None,
         source_url=url[:500],
         source_name=clean_source[:200],
         license=clean_license[:80],
@@ -556,7 +846,7 @@ def import_document_url(
             filename=filename,
             subject=clean_subject,
             grade_level=clean_grade,
-            scope=payload.scope,
+            scope=normalized_scope,
             source_url=url,
             chunk_size=clean_chunk_size,
             chunk_overlap=clean_chunk_overlap,
@@ -588,7 +878,7 @@ def import_document_url(
             chunks=result["chunks"],
             subject=final_subject,
             grade_level=final_grade,
-            scope=payload.scope,
+            scope=normalized_scope,
             source_url=url,
             source_name=clean_source,
             license=clean_license,
@@ -606,7 +896,7 @@ def import_document_url(
             "doc_id": doc_id,
             "filename": filename,
             "chunk_count": stored,
-            "scope": payload.scope,
+            "scope": normalized_scope,
             "message": f"Document processed into {stored} searchable chunks.",
             "subject": final_subject,
             "grade_level": final_grade,
@@ -623,6 +913,7 @@ def import_document_url(
             "source_name": clean_source,
             "license": clean_license,
             "source_url": url,
+            "folder_id": folder.id if folder else None,
         }
 
     except HTTPException:
@@ -641,6 +932,7 @@ def list_documents(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    _ensure_context_schema(db)
     """
     List user's uploaded documents and the HS curriculum summary.
 
@@ -673,6 +965,8 @@ def list_documents(
             "subject":      d.subject or "",
             "grade_level":  d.grade_level or "",
             "scope":        d.scope,
+            "folder_id":    d.folder_id,
+            "folder_name":  d.folder.name if getattr(d, "folder", None) else "",
             "chunk_count":  d.chunk_count,
             "status":       d.status,
             "source_url":   d.source_url or "",
@@ -747,6 +1041,180 @@ def list_documents(
         },
         "hs_mode_available": context_store.available(),
     }
+
+
+@router.get("/folders")
+def list_context_folders(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _ensure_context_schema(db)
+    folders = (
+        db.query(models.ContextFolder)
+        .filter(models.ContextFolder.user_id == current_user.id)
+        .order_by(models.ContextFolder.created_at.asc())
+        .all()
+    )
+    doc_counts = dict(
+        db.query(models.ContextDocument.folder_id, func.count(models.ContextDocument.id))
+        .filter(models.ContextDocument.user_id == current_user.id)
+        .group_by(models.ContextDocument.folder_id)
+        .all()
+    )
+    return {
+        "folders": [
+            {
+                "id": f.id,
+                "name": f.name,
+                "color": f.color,
+                "parent_id": f.parent_id,
+                "doc_count": doc_counts.get(f.id, 0),
+                "created_at": f.created_at.isoformat() + "Z" if f.created_at else "",
+                "updated_at": f.updated_at.isoformat() + "Z" if f.updated_at else "",
+            }
+            for f in folders
+        ]
+    }
+
+
+@router.post("/folders")
+def create_context_folder(
+    payload: ContextFolderCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _ensure_context_schema(db)
+    name = (payload.name or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Folder name is required")
+    if len(name) > 255:
+        raise HTTPException(status_code=400, detail="Folder name is too long")
+    parent = _get_context_folder_or_404(db, current_user.id, payload.parent_id)
+
+    folder = models.ContextFolder(
+        user_id=current_user.id,
+        name=name[:255],
+        color=(payload.color or "#D7B38C")[:50],
+        parent_id=parent.id if parent else None,
+    )
+    db.add(folder)
+    db.commit()
+    db.refresh(folder)
+    return {
+        "id": folder.id,
+        "name": folder.name,
+        "color": folder.color,
+        "parent_id": folder.parent_id,
+        "status": "success",
+    }
+
+
+@router.put("/folders/{folder_id}")
+def update_context_folder(
+    folder_id: int,
+    payload: ContextFolderUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _ensure_context_schema(db)
+    folder = _get_context_folder_or_404(db, current_user.id, folder_id)
+    fields_set = getattr(payload, "__fields_set__", set())
+
+    if "name" in fields_set:
+        new_name = (payload.name or "").strip()
+        if not new_name:
+            raise HTTPException(status_code=400, detail="Folder name is required")
+        if len(new_name) > 255:
+            raise HTTPException(status_code=400, detail="Folder name is too long")
+        folder.name = new_name[:255]
+
+    if "color" in fields_set and payload.color is not None:
+        folder.color = payload.color[:50]
+
+    if "parent_id" in fields_set:
+        if payload.parent_id == folder.id:
+            raise HTTPException(status_code=400, detail="Folder cannot be its own parent")
+        if payload.parent_id is not None:
+            _get_context_folder_or_404(db, current_user.id, payload.parent_id)
+            if _would_create_folder_cycle(db, current_user.id, folder.id, payload.parent_id):
+                raise HTTPException(status_code=400, detail="Folder move would create a cycle")
+        folder.parent_id = payload.parent_id
+
+    db.commit()
+    db.refresh(folder)
+    return {
+        "id": folder.id,
+        "name": folder.name,
+        "color": folder.color,
+        "parent_id": folder.parent_id,
+        "status": "success",
+    }
+
+
+@router.delete("/folders/{folder_id}")
+def delete_context_folder(
+    folder_id: int,
+    move_to_folder_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _ensure_context_schema(db)
+    folder = _get_context_folder_or_404(db, current_user.id, folder_id)
+    if move_to_folder_id == folder.id:
+        raise HTTPException(status_code=400, detail="Cannot move contents into the same folder")
+
+    target = _get_context_folder_or_404(db, current_user.id, move_to_folder_id)
+    target_id = target.id if target else None
+    if target_id is not None and _would_create_folder_cycle(db, current_user.id, folder.id, target_id):
+        raise HTTPException(status_code=400, detail="Cannot move folder contents into a nested child folder")
+
+    db.query(models.ContextDocument).filter(
+        models.ContextDocument.user_id == current_user.id,
+        models.ContextDocument.folder_id == folder.id,
+    ).update({"folder_id": target_id})
+
+    db.query(models.ContextFolder).filter(
+        models.ContextFolder.user_id == current_user.id,
+        models.ContextFolder.parent_id == folder.id,
+    ).update({"parent_id": target_id})
+
+    db.delete(folder)
+    db.commit()
+    return {"status": "success", "deleted_folder_id": folder_id, "moved_to_folder_id": target_id}
+
+
+@router.put("/documents/{doc_id}/folder")
+def move_document_to_folder(
+    doc_id: str,
+    payload: ContextDocumentFolderUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _ensure_context_schema(db)
+    doc = (
+        db.query(models.ContextDocument)
+        .filter(
+            models.ContextDocument.doc_id == doc_id,
+            models.ContextDocument.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    target_folder = _get_context_folder_or_404(db, current_user.id, payload.folder_id)
+    doc.folder_id = target_folder.id if target_folder else None
+    db.commit()
+    return {"status": "success", "doc_id": doc_id, "folder_id": doc.folder_id}
+
+
+@router.get("/progress")
+def get_context_progress(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _ensure_context_schema(db)
+    return _build_doc_progress_payload(db, current_user.id)
 
 @router.delete("/documents/{doc_id}")
 def delete_document(

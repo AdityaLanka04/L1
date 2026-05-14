@@ -81,6 +81,7 @@ def _apply_sqlite_migrations(engine):
         conn.commit()
 
     ctx_cols = {
+        "folder_id": "INTEGER",
         "source_name": "VARCHAR(200)",
         "license": "VARCHAR(80)",
         "curriculum": "VARCHAR(20)",

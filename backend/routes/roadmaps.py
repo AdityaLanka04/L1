@@ -3,7 +3,7 @@ import logging
 import math
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -39,6 +39,127 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
         })
     return profile
 
+def _create_roadmap_record(db: Session, user_id: int, root_topic: str, title: Optional[str] = None):
+    clean_topic = (root_topic or "").strip()
+    if not clean_topic:
+        raise HTTPException(status_code=400, detail="root_topic required")
+
+    root_node = models.KnowledgeNode(
+        user_id=user_id,
+        parent_node_id=None,
+        topic_name=clean_topic,
+        description=f"Explore {clean_topic} - Click 'Explore' to learn or 'Expand' to see subtopics",
+        depth_level=0,
+        ai_explanation=None,
+        key_concepts=None,
+        generated_subtopics=None,
+        is_explored=False,
+        exploration_count=0,
+        expansion_status="unexpanded",
+        position_x=0.0,
+        position_y=0.0,
+    )
+    db.add(root_node)
+    db.flush()
+
+    roadmap = models.KnowledgeRoadmap(
+        user_id=user_id,
+        title=(title or f"Exploring {clean_topic}")[:255],
+        root_topic=clean_topic,
+        root_node_id=root_node.id,
+        total_nodes=1,
+        max_depth_reached=0,
+        status="active",
+        last_accessed=datetime.now(timezone.utc),
+    )
+    db.add(roadmap)
+    db.commit()
+    db.refresh(roadmap)
+    db.refresh(root_node)
+    return roadmap, root_node
+
+def _extract_text_from_docs_for_topic(user_id: int, doc_ids: list[str], max_chars: int = 12000) -> str:
+    try:
+        from services import vector_store as vs
+    except Exception:
+        return ""
+    if not vs.available():
+        return ""
+
+    blocks: list[str] = []
+    used_chars = 0
+    for doc_id in doc_ids[:40]:
+        try:
+            rows = vs.get_by_metadata("user_docs", {"doc_id": doc_id}, user_id=str(user_id))
+        except Exception:
+            rows = []
+        if not rows:
+            continue
+        rows.sort(
+            key=lambda r: int(str((r.get("metadata") or {}).get("chunk_index", "0")).strip() or "0")
+            if str((r.get("metadata") or {}).get("chunk_index", "0")).strip().isdigit()
+            else 0
+        )
+        snippet_parts: list[str] = []
+        doc_chars = 0
+        for row in rows:
+            chunk = (row.get("content") or "").strip()
+            if not chunk:
+                continue
+            if len(chunk) > 520:
+                chunk = chunk[:520].rsplit(" ", 1)[0].strip() + "…"
+            if doc_chars + len(chunk) > 1700:
+                break
+            snippet_parts.append(chunk)
+            doc_chars += len(chunk)
+            if len(snippet_parts) >= 4:
+                break
+        if not snippet_parts:
+            continue
+        joined = "\n".join(f"- {s}" for s in snippet_parts)
+        if used_chars + len(joined) > max_chars:
+            break
+        used_chars += len(joined)
+        blocks.append(joined)
+    return "\n\n".join(blocks)
+
+def _infer_root_topic_from_docs(docs: list[models.ContextDocument], extracted_text: str) -> tuple[str, str]:
+    doc_lines = [
+        f"- {d.filename or d.doc_id} | subject: {d.subject or 'General'} | summary: {(d.ai_summary or '')[:220]}"
+        for d in docs[:40]
+    ]
+    prompt = (
+        "Infer one concise study topic for a knowledge roadmap from these selected documents.\n"
+        "Return JSON only:\n"
+        '{"root_topic":"2-6 word topic","title":"short roadmap title"}\n\n'
+        f"Document metadata:\n{chr(10).join(doc_lines)}\n\n"
+        f"Document excerpts:\n{extracted_text[:14000]}"
+    )
+
+    root_topic = ""
+    title = ""
+    try:
+        ai_text = call_ai(prompt, max_tokens=220, temperature=0.2)
+        json_match = re.search(r"\{.*\}", ai_text or "", re.DOTALL)
+        if json_match:
+            parsed = json.loads(json_match.group())
+            root_topic = str(parsed.get("root_topic", "")).strip()
+            title = str(parsed.get("title", "")).strip()
+    except Exception:
+        pass
+
+    if not root_topic:
+        subjects = [d.subject.strip() for d in docs if (d.subject or "").strip()]
+        if subjects:
+            common = max(set(subjects), key=subjects.count)
+            root_topic = common
+        else:
+            first = docs[0].filename if docs else "Selected Documents"
+            root_topic = (first or "Selected Documents").rsplit(".", 1)[0][:80]
+    if not title:
+        title = f"Exploring {root_topic}"
+    return root_topic[:120], title[:255]
+
 @router.post("/create_knowledge_roadmap")
 async def create_knowledge_roadmap(
     payload: dict = Body(...),
@@ -55,40 +176,12 @@ async def create_knowledge_roadmap(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        root_node = models.KnowledgeNode(
+        roadmap, root_node = _create_roadmap_record(
+            db=db,
             user_id=user.id,
-            parent_node_id=None,
-            topic_name=root_topic,
-            description=f"Explore {root_topic} - Click 'Explore' to learn or 'Expand' to see subtopics",
-            depth_level=0,
-            ai_explanation=None,
-            key_concepts=None,
-            generated_subtopics=None,
-            is_explored=False,
-            exploration_count=0,
-            expansion_status="unexpanded",
-            position_x=0.0,
-            position_y=0.0,
-        )
-
-        db.add(root_node)
-        db.flush()
-
-        roadmap = models.KnowledgeRoadmap(
-            user_id=user.id,
-            title=f"Exploring {root_topic}",
             root_topic=root_topic,
-            root_node_id=root_node.id,
-            total_nodes=1,
-            max_depth_reached=0,
-            status="active",
-            last_accessed=datetime.now(timezone.utc),
+            title=f"Exploring {root_topic}",
         )
-
-        db.add(roadmap)
-        db.commit()
-        db.refresh(roadmap)
-        db.refresh(root_node)
 
         return {
             "status": "success",
@@ -113,6 +206,68 @@ async def create_knowledge_roadmap(
         raise
     except Exception as e:
         logger.error(f"Error creating roadmap: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/create_roadmap_from_context_docs")
+async def create_roadmap_from_context_docs(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+):
+    try:
+        user_id = payload.get("user_id")
+        raw_doc_ids = payload.get("context_doc_ids") or []
+        title_hint = (payload.get("title") or "").strip()
+
+        if isinstance(raw_doc_ids, str):
+            doc_ids = [x.strip() for x in raw_doc_ids.split(",") if x.strip()]
+        else:
+            doc_ids = [str(x).strip() for x in raw_doc_ids if str(x).strip()]
+        doc_ids = list(dict.fromkeys(doc_ids))[:40]
+        if not user_id or not doc_ids:
+            raise HTTPException(status_code=400, detail="user_id and context_doc_ids required")
+
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        docs = (
+            db.query(models.ContextDocument)
+            .filter(
+                models.ContextDocument.user_id == user.id,
+                models.ContextDocument.doc_id.in_(doc_ids),
+            )
+            .all()
+        )
+        if not docs:
+            raise HTTPException(status_code=404, detail="No matching documents found")
+
+        doc_index = {doc_id: idx for idx, doc_id in enumerate(doc_ids)}
+        docs.sort(key=lambda d: doc_index.get(d.doc_id, 10**6))
+
+        extracted_text = _extract_text_from_docs_for_topic(user.id, doc_ids)
+        root_topic, inferred_title = _infer_root_topic_from_docs(docs, extracted_text)
+        final_title = (title_hint or inferred_title or f"Exploring {root_topic}")[:255]
+
+        roadmap, root_node = _create_roadmap_record(
+            db=db,
+            user_id=user.id,
+            root_topic=root_topic,
+            title=final_title,
+        )
+
+        return {
+            "status": "success",
+            "roadmap_id": roadmap.id,
+            "root_node_id": root_node.id,
+            "root_topic": root_topic,
+            "title": roadmap.title,
+            "source_doc_count": len(docs),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating roadmap from context docs: {str(e)}", exc_info=True)
         db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error")
 

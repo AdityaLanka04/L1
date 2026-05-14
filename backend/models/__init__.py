@@ -65,6 +65,7 @@ class User(Base):
     podcast_bookmarks = relationship("PodcastBookmark", back_populates="user")
     uploaded_slides = relationship("UploadedSlide", back_populates="user")
     uploaded_documents = relationship("UploadedDocument", back_populates="user")
+    context_folders = relationship("ContextFolder", back_populates="user")
     question_sets_new = relationship("QuestionSet", back_populates="user")
     question_sessions_new = relationship("QuestionSession", back_populates="user")
     performance_metrics = relationship("UserPerformanceMetrics", back_populates="user")
@@ -2121,6 +2122,7 @@ class ContextDocument(Base):
 
     id           = Column(Integer, primary_key=True, index=True)
     user_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
+    folder_id    = Column(Integer, ForeignKey("context_folders.id"), nullable=True)
     doc_id       = Column(String(36), unique=True, index=True, nullable=False)
     filename     = Column(String(255), nullable=False)
     file_type    = Column(String(10), nullable=False, default="pdf")
@@ -2141,6 +2143,22 @@ class ContextDocument(Base):
     updated_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", backref="context_documents")
+    folder = relationship("ContextFolder", back_populates="documents")
+
+
+class ContextFolder(Base):
+    __tablename__ = "context_folders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    color = Column(String(50), default="#D7B38C")
+    parent_id = Column(Integer, ForeignKey("context_folders.id"), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="context_folders")
+    documents = relationship("ContextDocument", back_populates="folder")
 
 class GeneratedQuestion(Base):
     """AI-generated questions for practice"""

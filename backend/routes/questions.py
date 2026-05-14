@@ -3,6 +3,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from typing import Any, Dict
+from collections import Counter
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -10,10 +11,119 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username, unified_ai
+from services.ai_json_parser import parse_json_array_response
 from services.math_processor import process_math_in_response
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["questions"])
+
+def _looks_like_filename_topic(topic: str) -> bool:
+    t = (topic or "").strip().lower()
+    if not t:
+        return True
+    if ".pdf" in t or ".docx" in t or ".txt" in t or ".md" in t:
+        return True
+    if re.search(r"[_-]", t) and len(t.split()) <= 3:
+        return True
+    return False
+
+def _clean_chunk_text(text: str) -> str:
+    clean = (text or "").replace("\u0000", " ").strip()
+    clean = re.sub(r"\(cid:\d+\)", " ", clean)
+    clean = re.sub(r"[ \t]+", " ", clean)
+    clean = re.sub(r"\n{3,}", "\n\n", clean)
+    return clean.strip()
+
+def _collect_context_doc_content(db: Session, user_id: int, doc_ids: list[str], max_chars: int = 24000) -> tuple[str, str]:
+    """
+    Returns:
+      (content_text, inferred_topic)
+    content_text is merged chunk content from selected docs in-order.
+    inferred_topic comes from dominant subject or first filename stem.
+    """
+    docs = (
+        db.query(models.ContextDocument)
+        .filter(
+            models.ContextDocument.user_id == user_id,
+            models.ContextDocument.doc_id.in_(doc_ids),
+        )
+        .all()
+    )
+    if not docs:
+        return "", ""
+
+    order_index = {d: i for i, d in enumerate(doc_ids)}
+    docs.sort(key=lambda d: order_index.get(d.doc_id, 10**6))
+
+    subject_candidates = [d.subject.strip() for d in docs if (d.subject or "").strip()]
+    inferred_topic = ""
+    if subject_candidates:
+        inferred_topic = Counter(subject_candidates).most_common(1)[0][0]
+    else:
+        first_name = (docs[0].filename or docs[0].doc_id or "Selected context").strip()
+        inferred_topic = re.sub(r"\.[A-Za-z0-9]+$", "", first_name).replace("_", " ").replace("-", " ").strip()
+
+    try:
+        from services import vector_store as vs
+    except Exception:
+        vs = None
+
+    if not vs or not vs.available():
+        summaries = []
+        for doc in docs:
+            sm = (doc.ai_summary or "").strip()
+            if sm:
+                summaries.append(f"[{doc.filename or doc.doc_id}]\n{sm}")
+        return "\n\n".join(summaries)[:max_chars], inferred_topic
+
+    content_blocks: list[str] = []
+    used = 0
+    for doc in docs:
+        try:
+            rows = vs.get_by_metadata("user_docs", {"doc_id": doc.doc_id}, user_id=str(user_id))
+        except Exception:
+            rows = []
+        if not rows:
+            if (doc.ai_summary or "").strip():
+                block = f"[{doc.filename or doc.doc_id}]\n{doc.ai_summary.strip()}"
+                if used + len(block) <= max_chars:
+                    content_blocks.append(block)
+                    used += len(block)
+            continue
+
+        rows.sort(
+            key=lambda r: int(str((r.get("metadata") or {}).get("chunk_index", "0")).strip() or "0")
+            if str((r.get("metadata") or {}).get("chunk_index", "0")).strip().isdigit()
+            else 0
+        )
+
+        chunk_lines = []
+        doc_chars = 0
+        for row in rows:
+            txt = _clean_chunk_text(row.get("content") or "")
+            if not txt:
+                continue
+            txt = txt[:1600]
+            if doc_chars + len(txt) > 9000:
+                break
+            chunk_lines.append(txt)
+            doc_chars += len(txt)
+            if len(chunk_lines) >= 30:
+                break
+
+        if not chunk_lines:
+            continue
+
+        block = f"[{doc.filename or doc.doc_id}]\n" + "\n\n".join(chunk_lines)
+        if used + len(block) > max_chars:
+            remaining = max_chars - used
+            if remaining > 800:
+                content_blocks.append(block[:remaining])
+            break
+        content_blocks.append(block)
+        used += len(block)
+
+    return "\n\n".join(content_blocks).strip(), inferred_topic
 
 def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
     profile = {
@@ -93,7 +203,19 @@ async def generate_practice_questions(
             f"HS_MODE={'ON  <-- curriculum RAG will run' if use_hs_context else 'OFF <-- no RAG, model-only'}"
         )
 
-        if not topic:
+        if doc_ids_list:
+            merged_content, inferred_topic = _collect_context_doc_content(db, user.id, doc_ids_list)
+            if merged_content:
+                content = merged_content
+                if not topic or _looks_like_filename_topic(topic):
+                    topic = inferred_topic or topic or "Selected context documents"
+                generation_type = "chat_history"
+                logger.info(
+                    f"[QUIZ ROUTE] Using selected context_doc_ids content for generation "
+                    f"(docs={len(doc_ids_list)}, content_chars={len(content)})"
+                )
+
+        if not topic and not content:
             raise HTTPException(status_code=400, detail="Topic or content required")
 
         questions_data = []
@@ -127,7 +249,11 @@ async def generate_practice_questions(
                 type_instructions.append("short answer questions")
             type_str = ", ".join(type_instructions) if type_instructions else "multiple choice questions"
 
-            fallback_prompt = f"""Generate {question_count} educational practice questions about: {topic}
+            source_block = ""
+            if content:
+                source_block = f"\n\n**SOURCE CONTENT (from selected docs/chat)**:\n{content[:12000]}\n"
+
+            fallback_prompt = f"""Generate {question_count} educational practice questions about: {topic or 'the provided content'}
 
 **DIFFICULTY DISTRIBUTION**:
 - Easy: {difficulty_mix.get('easy', 3)} questions (basic recall and understanding)
@@ -135,6 +261,7 @@ async def generate_practice_questions(
 - Hard: {difficulty_mix.get('hard', 2)} questions (synthesis and evaluation)
 
 **QUESTION TYPES**: Create {type_str}
+{source_block}
 
 **OUTPUT FORMAT** (JSON array only, no markdown):
 [
@@ -153,12 +280,8 @@ Generate exactly {question_count} high-quality questions:"""
 
             response_text = call_ai(fallback_prompt, max_tokens=4000, temperature=0.7)
             response_text = process_math_in_response(response_text)
-            response_text = re.sub(r'^```(?:json)?\n?', '', response_text, flags=re.MULTILINE)
-            response_text = re.sub(r'\n?```$', '', response_text, flags=re.MULTILINE)
-            json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
-            if json_match:
-                questions_data = json.loads(json_match.group())
-            else:
+            questions_data = parse_json_array_response(response_text)
+            if not questions_data:
                 raise HTTPException(status_code=500, detail="Failed to parse AI response")
 
         if not questions_data:
@@ -341,15 +464,9 @@ Generate exactly {question_count} questions:"""
         response_text = call_ai(prompt, max_tokens=3000, temperature=0.7)
         response_text = process_math_in_response(response_text)
 
-        try:
-            json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
-            if json_match:
-                questions_data = json.loads(json_match.group())
-            else:
-                raise ValueError("No JSON array found")
-        except Exception as e:
-            logger.error(f"Failed to parse questions: {str(e)}")
-            questions_data = []
+        questions_data = parse_json_array_response(response_text)
+        if not questions_data:
+            logger.error("Failed to parse questions: no valid JSON array in AI response")
 
         question_set = models.QuestionSet(
             user_id=user.id,

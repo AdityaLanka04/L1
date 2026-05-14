@@ -168,6 +168,7 @@ class IngestPipeline:
         with engine.connect() as conn:
             cols = {r[1] for r in conn.execute(text("PRAGMA table_info(context_documents)"))}
             additions = {
+                "folder_id": "INTEGER",
                 "source_name": "VARCHAR(200)",
                 "license": "VARCHAR(80)",
                 "curriculum": "VARCHAR(20)",

@@ -12,6 +12,19 @@ load_dotenv()
 if not os.getenv("SECRET_KEY"):
     raise RuntimeError("SECRET_KEY environment variable is not set")
 
+def _configure_langsmith_tracing() -> None:
+    """
+    Disable LangSmith/LangChain tracing by default in runtime to avoid noisy 403s.
+    Opt-in only when ENABLE_LANGSMITH_TRACING=true.
+    """
+    enabled = os.getenv("ENABLE_LANGSMITH_TRACING", "false").strip().lower() in {"1", "true", "yes", "on"}
+    if enabled:
+        return
+    os.environ["LANGCHAIN_TRACING_V2"] = "false"
+    os.environ["LANGSMITH_TRACING"] = "false"
+
+_configure_langsmith_tracing()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -87,6 +100,7 @@ if "sqlite" in DATABASE_URL:
     with engine.connect() as _conn:
         _ctx_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(context_documents)"))}
         _ctx_additions = {
+            "folder_id": "INTEGER",
             "source_name": "VARCHAR(200)",
             "license": "VARCHAR(80)",
             "curriculum": "VARCHAR(20)",

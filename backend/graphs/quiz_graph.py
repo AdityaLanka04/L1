@@ -5,6 +5,7 @@ import logging
 from typing import Any, Optional, TypedDict
 
 from langgraph.graph import StateGraph, END
+from services.ai_json_parser import parse_json_array_response
 
 logger = logging.getLogger(__name__)
 
@@ -322,15 +323,7 @@ def generate_questions_node(state: QuizGenState) -> dict:
 
     try:
         response = ai_client.generate(prompt, max_tokens=4000, temperature=0.7)
-        cleaned = response.strip()
-
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-
-        data = json.loads(cleaned)
-
-        if isinstance(data, dict):
-            data = data.get("questions", [])
+        data = parse_json_array_response(response)
 
         valid = []
         for q in data[:question_count]:

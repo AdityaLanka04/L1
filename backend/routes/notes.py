@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -54,6 +55,13 @@ class NoteAgentRequest(BaseModel):
     depth: Optional[str] = "standard"
     context: Optional[str] = None
 
+class ContextNotesCreateRequest(BaseModel):
+    user_id: str
+    context_doc_ids: list[str]
+    title: Optional[str] = None
+    depth: Optional[str] = "standard"
+    tone: Optional[str] = "professional"
+
 def _trim(text: Optional[str], limit: int) -> str:
     if not text:
         return ""
@@ -89,6 +97,236 @@ def _build_note_agent_prompt(req: NoteAgentRequest) -> str:
         prompt += f"\n\nContext:\n{_trim(context, 2000)}"
 
     return prompt
+
+def _build_context_note_title(title: Optional[str], docs: list[models.ContextDocument]) -> str:
+    clean = (title or "").strip()
+    if clean:
+        return clean[:220]
+    if len(docs) == 1:
+        raw = (docs[0].filename or "Document").rsplit(".", 1)[0].strip()
+        return f"Study Notes: {raw[:120] or 'Document'}"
+    return f"Study Notes ({len(docs)} Documents)"
+
+def _fetch_document_chunks(user_id: int, doc_id: str) -> list[str]:
+    try:
+        from services import vector_store as vs
+    except Exception:
+        return []
+
+    if not vs.available():
+        return []
+
+    try:
+        rows = vs.get_by_metadata("user_docs", {"doc_id": doc_id}, user_id=str(user_id))
+    except Exception:
+        rows = []
+    if not rows:
+        return []
+
+    rows.sort(
+        key=lambda r: int(str((r.get("metadata") or {}).get("chunk_index", "0")).strip() or "0")
+        if str((r.get("metadata") or {}).get("chunk_index", "0")).strip().isdigit()
+        else 0
+    )
+    chunks: list[str] = []
+    for row in rows:
+        text = (row.get("content") or "").strip()
+        if text:
+            chunks.append(text)
+    return chunks
+
+def _clean_chunk_text(text: str) -> str:
+    clean = (text or "").replace("\u0000", " ").strip()
+    # Common OCR/PDF artifacts.
+    clean = re.sub(r"\(cid:\d+\)", " ", clean)
+    clean = re.sub(r"[ \t]+", " ", clean)
+    clean = re.sub(r"\n{3,}", "\n\n", clean)
+    return clean.strip()
+
+def _build_chunk_batches(
+    chunks: list[str],
+    max_chunks_per_batch: int = 18,
+    max_chars_per_batch: int = 18000,
+) -> list[list[tuple[int, str]]]:
+    """Create labeled chunk batches preserving order: [(chunk_no, chunk_text), ...]."""
+    cleaned = [(idx + 1, _clean_chunk_text(ch)) for idx, ch in enumerate(chunks)]
+    cleaned = [(i, t) for i, t in cleaned if t]
+    if not cleaned:
+        return []
+
+    batches: list[list[tuple[int, str]]] = []
+    current: list[tuple[int, str]] = []
+    current_chars = 0
+    for chunk_no, text in cleaned:
+        t = text[:2200]
+        extra = len(t) + 32
+        if current and (len(current) >= max_chunks_per_batch or current_chars + extra > max_chars_per_batch):
+            batches.append(current)
+            current = [(chunk_no, t)]
+            current_chars = len(t)
+        else:
+            current.append((chunk_no, t))
+            current_chars += extra
+    if current:
+        batches.append(current)
+    return batches
+
+def _merge_markdown_parts(parts: list[str], merge_prompt_prefix: str, max_chars: int = 22000) -> str:
+    if not parts:
+        return ""
+    working = [p for p in parts if p and p.strip()]
+    if not working:
+        return ""
+
+    while len(working) > 1:
+        next_round: list[str] = []
+        batch: list[str] = []
+        batch_len = 0
+        for part in working:
+            part_len = len(part)
+            if batch and batch_len + part_len > max_chars:
+                prompt = (
+                    f"{merge_prompt_prefix}\n\n"
+                    "Draft note parts to merge:\n\n"
+                    + "\n\n---\n\n".join(batch)
+                )
+                merged = call_ai(prompt, max_tokens=4500, temperature=0.35).strip()
+                next_round.append(merged or "\n\n".join(batch))
+                batch = [part]
+                batch_len = part_len
+            else:
+                batch.append(part)
+                batch_len += part_len
+        if batch:
+            if len(batch) == 1:
+                next_round.append(batch[0])
+            else:
+                prompt = (
+                    f"{merge_prompt_prefix}\n\n"
+                    "Draft note parts to merge:\n\n"
+                    + "\n\n---\n\n".join(batch)
+                )
+                merged = call_ai(prompt, max_tokens=4500, temperature=0.35).strip()
+                next_round.append(merged or "\n\n".join(batch))
+        working = next_round
+    return working[0]
+
+def _generate_doc_level_notes(doc: models.ContextDocument, chunks: list[str], depth: str, tone: str) -> str:
+    if not chunks:
+        fallback = (doc.ai_summary or "").strip()
+        if fallback:
+            return f"## {doc.filename or doc.doc_id}\n\n{fallback}"
+        return ""
+
+    chunk_batches = _build_chunk_batches(chunks, max_chunks_per_batch=18, max_chars_per_batch=18000)
+    if not chunk_batches:
+        return ""
+
+    # Pass 1: Chunk -> clear intermediate notes.
+    intermediate_notes: list[str] = []
+    for idx, batch in enumerate(chunk_batches, start=1):
+        chunk_block = "\n\n".join([f"[Chunk {chunk_no}]\n{text}" for chunk_no, text in batch])
+        segment_prompt = (
+            "You are turning raw PDF chunks into clear study notes.\n"
+            f"Document: {doc.filename or doc.doc_id}\n"
+            f"Subject: {doc.subject or 'General'}\n"
+            f"Depth: {depth}\n"
+            f"Tone: {tone}\n"
+            f"Batch: {idx}/{len(chunk_batches)}\n\n"
+            "Instructions:\n"
+            "- Use ONLY provided chunks; do not invent facts.\n"
+            "- Convert noisy text into clear notes.\n"
+            "- Preserve definitions, formulas, examples, steps, and facts.\n"
+            "- If question-answer style is present, convert it into concept explanations.\n"
+            "- Remove OCR/PDF noise and duplicates.\n"
+            "- Keep this structure:\n"
+            f"  ### Batch {idx} Notes\n"
+            "  - Key Concepts\n"
+            "  - Important Details\n"
+            "  - Formulas / Facts\n"
+            "  - Examples / Applications\n"
+            "  - Potential Confusions\n"
+            "- Return markdown only.\n\n"
+            "Raw chunks:\n"
+            f"{chunk_block}"
+        )
+        segment = call_ai(segment_prompt, max_tokens=3600, temperature=0.2).strip()
+        if segment:
+            intermediate_notes.append(segment)
+
+    if not intermediate_notes:
+        return ""
+
+    # Pass 2: Merge intermediate notes into complete document note.
+    merge_prompt = (
+        f"Merge these batch notes into a single comprehensive, clear note for `{doc.filename or doc.doc_id}`.\n"
+        "Preserve all important information. Remove only redundancy.\n"
+        "Do not add facts that are not supported by the batch notes.\n"
+        "Required sections:\n"
+        "- Overview\n"
+        "- Core Concepts\n"
+        "- Detailed Explanations\n"
+        "- Key Facts / Definitions / Formulas\n"
+        "- Examples or Applications\n"
+        "- Misconceptions & Clarifications\n"
+        "- Quick Revision Checklist\n"
+        "Return markdown only."
+    )
+    merged = _merge_markdown_parts(intermediate_notes, merge_prompt, max_chars=20000)
+    if not merged:
+        merged = "\n\n".join(intermediate_notes)
+    return f"## {doc.filename or doc.doc_id}\n\n{merged}".strip()
+
+def _generate_notes_from_context(docs: list[models.ContextDocument], doc_chunks: dict[str, list[str]], depth: str, tone: str) -> str:
+    depth_key = (depth or "standard").lower()
+    tone_key = (tone or "professional").lower()
+
+    depth_instruction = {
+        "brief": "Keep it concise and revision-focused. Use compact bullets.",
+        "deep": "Go in depth with detailed explanations, examples, and conceptual links.",
+    }.get(depth_key, "Balance clarity and depth for practical studying.")
+
+    tone_instruction = {
+        "academic": "Use formal, textbook-style wording.",
+        "casual": "Use simple, conversational explanations.",
+        "concise": "Be direct and compact; remove fluff.",
+    }.get(tone_key, "Use clear, professional study-note language.")
+
+    per_doc_notes: list[str] = []
+    for doc in docs[:20]:
+        chunks = doc_chunks.get(doc.doc_id, [])
+        doc_note = _generate_doc_level_notes(doc, chunks, depth_key, tone_key)
+        if doc_note:
+            per_doc_notes.append(doc_note)
+
+    if not per_doc_notes:
+        # Last-resort fallback to summaries if full chunk retrieval failed.
+        fallback = "\n\n".join(
+            [
+                f"## {d.filename or d.doc_id}\n\n{(d.ai_summary or '').strip()}"
+                for d in docs[:20]
+                if (d.ai_summary or "").strip()
+            ]
+        ).strip()
+        return fallback
+
+    if len(per_doc_notes) == 1:
+        return per_doc_notes[0]
+
+    final_merge_prompt = (
+        "Merge the following document-level notes into one exhaustive study note.\n"
+        f"Style constraints:\n- {depth_instruction}\n- {tone_instruction}\n"
+        "Must preserve complete coverage of each document and keep document-specific sections.\n"
+        "Add top-level sections:\n"
+        "- Cross-Document Overview\n"
+        "- Document-by-Document Notes\n"
+        "- Common Themes\n"
+        "- Differences / Contrasts\n"
+        "- Final Master Revision Checklist\n"
+        "Return markdown only."
+    )
+    merged = _merge_markdown_parts(per_doc_notes, final_merge_prompt, max_chars=22000)
+    return merged or "\n\n".join(per_doc_notes)
 
 @router.get("/get_notes")
 def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -178,6 +416,81 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         "created_at": new_note.created_at.isoformat() + "Z",
         "updated_at": new_note.updated_at.isoformat() + "Z",
         "status": "success",
+    }
+
+@router.post("/create_note_from_context_docs")
+async def create_note_from_context_docs(
+    request: ContextNotesCreateRequest,
+    db: Session = Depends(get_db),
+):
+    user = get_user_by_username(db, request.user_id) or get_user_by_email(db, request.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    doc_ids = [str(d).strip() for d in (request.context_doc_ids or []) if str(d).strip()]
+    doc_ids = list(dict.fromkeys(doc_ids))[:40]
+    if not doc_ids:
+        raise HTTPException(status_code=400, detail="context_doc_ids required")
+
+    docs = (
+        db.query(models.ContextDocument)
+        .filter(
+            models.ContextDocument.user_id == user.id,
+            models.ContextDocument.doc_id.in_(doc_ids),
+        )
+        .all()
+    )
+    if not docs:
+        raise HTTPException(status_code=404, detail="No matching documents found")
+
+    # Preserve request order so generated notes follow user's selected sequence.
+    doc_index = {doc_id: idx for idx, doc_id in enumerate(doc_ids)}
+    docs.sort(key=lambda d: doc_index.get(d.doc_id, 10**6))
+
+    doc_chunks = {doc_id: _fetch_document_chunks(user.id, doc_id) for doc_id in doc_ids}
+    try:
+        content = _generate_notes_from_context(
+            docs=docs,
+            doc_chunks=doc_chunks,
+            depth=request.depth or "deep",
+            tone=request.tone or "professional",
+        )
+    except Exception as gen_err:
+        logger.warning(f"Context note generation failed: {gen_err}")
+        content = ""
+
+    if not content:
+        fallback_title = _build_context_note_title(request.title, docs)
+        content = (
+            f"## {fallback_title}\n\n"
+            "I could not generate full notes from the selected documents right now. "
+            "Please try again."
+        )
+
+    note_title = _build_context_note_title(request.title, docs)
+    new_note = models.Note(
+        user_id=user.id,
+        title=note_title,
+        content=content,
+        custom_font="Inter",
+    )
+    db.add(new_note)
+    db.commit()
+    db.refresh(new_note)
+
+    try:
+        from services.gamification_system import award_points
+        award_points(db, user.id, "note_created")
+        db.commit()
+    except Exception:
+        pass
+
+    return {
+        "status": "success",
+        "id": new_note.id,
+        "title": new_note.title,
+        "content": new_note.content,
+        "source_doc_count": len(docs),
     }
 
 @router.put("/update_note")
