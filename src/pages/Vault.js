@@ -1202,353 +1202,228 @@ const Vault = () => {
 
   // ── MY DOCS TAB ───────────────────────────────────────────────────────────
   const MyDocsTab = () => (
-    <div className="vlt-mydocs">
-      <div className="vlt-mydocs-layout vlt-mydocs-layout--workspace">
-        <aside className="vlt-workspace-sidebar">
-          <section className="vlt-ws-panel">
-            <div className="vlt-ws-head">
-              <span className="vlt-ws-title"><Folder size={14} /> Workspace</span>
-              <span className="vlt-ws-count">{folders.length} folders</span>
-            </div>
-            <div className="vlt-ws-create">
-              <div className="vlt-ws-create-row">
-                <div className="vlt-ws-create-input-wrap">
-                  <input
-                    className="vlt-folder-input"
-                    placeholder="Folder name"
-                    value={newFolderName}
-                    onChange={(e) => {
-                      setNewFolderName(e.target.value);
-                      if (folderError) setFolderError('');
-                    }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); }}
-                  />
-                  {newFolderName && (
-                    <button className="vlt-ws-input-clear" onClick={() => setNewFolderName('')} title="Clear name">
-                      <X size={11} />
-                    </button>
-                  )}
-                </div>
-                <button className="vlt-folder-create-btn" onClick={handleCreateFolder} disabled={creatingFolder}>
-                  {creatingFolder ? <Loader2 size={12} className="vlt-spin" /> : <FolderPlus size={12} />}
-                  {creatingFolder ? 'Creating…' : 'Create'}
-                </button>
-              </div>
-              <div className="vlt-ws-location-modes">
-                <button
-                  className={`vlt-ws-mode-btn ${newFolderLocationMode === 'root' ? 'active' : ''}`}
-                  onClick={() => setNewFolderLocationMode('root')}
-                >
-                  Root
-                </button>
-                <button
-                  className={`vlt-ws-mode-btn ${newFolderLocationMode === 'current' ? 'active' : ''}`}
-                  onClick={() => setNewFolderLocationMode('current')}
-                  disabled={!canUseCurrentFolderAsParent}
-                  title={canUseCurrentFolderAsParent ? 'Create in current folder' : 'Select a folder first'}
-                >
-                  Current
-                </button>
-                <button
-                  className={`vlt-ws-mode-btn ${newFolderLocationMode === 'custom' ? 'active' : ''}`}
-                  onClick={() => setNewFolderLocationMode('custom')}
-                >
-                  Choose
-                </button>
-              </div>
-              {newFolderLocationMode === 'custom' && (
-                <select
-                  className="vlt-folder-parent-select"
-                  value={newFolderParentId}
-                  onChange={(e) => setNewFolderParentId(e.target.value)}
-                >
-                  <option value="">Root folder</option>
-                  {flatFolders.map((folder) => (
-                    <option key={`create-parent-${folder.id}`} value={folder.id}>
-                      {'\u00A0'.repeat(folder.depth * 2)}{folder.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <p className="vlt-ws-create-hint">
-                New folder location: <strong>{createFolderLocationLabel}</strong>
-              </p>
-            </div>
-          </section>
-
-          <section className="vlt-ws-panel">
-            <div className="vlt-ws-head">
-              <span className="vlt-ws-title">Folders</span>
-              <div className="vlt-ws-actions">
-                <button className="vlt-bulk-link" onClick={selectVisibleFiles}>Select visible</button>
-                <button className="vlt-bulk-link" onClick={expandAllNodes}>Expand all</button>
-                <button className="vlt-bulk-link" onClick={collapseAllNodes}>Collapse all</button>
-              </div>
-            </div>
-            <div className="vlt-ws-folder-list">
-              <div className="vlt-ws-tree-root">
-                <div className="vlt-ws-tree-row">
-                  <button className="vlt-ws-tree-toggle" disabled><span className="vlt-ws-tree-toggle-spacer" /></button>
-                  <button
-                    className={`vlt-ws-folder-row ${activeFolderId === 'all' ? 'active' : ''}`}
-                    onClick={() => setActiveFolderId('all')}
-                  >
-                    <span className="vlt-ws-folder-name"><Folder size={13} /> All files</span>
-                    <span className="vlt-ws-folder-count">{userDocs.length}</span>
-                  </button>
-                </div>
-                <div className="vlt-ws-tree-row">
-                  <button className="vlt-ws-tree-toggle" disabled><span className="vlt-ws-tree-toggle-spacer" /></button>
-                  <button
-                    className={`vlt-ws-folder-row ${activeFolderId === 'uncategorized' ? 'active' : ''}`}
-                    onClick={() => setActiveFolderId('uncategorized')}
-                  >
-                    <span className="vlt-ws-folder-name"><Folder size={13} /> Uncategorized</span>
-                    <span className="vlt-ws-folder-count">{folderDocCounts.uncategorized || 0}</span>
-                  </button>
-                </div>
-                {renderFolderTree(folderTree, 0)}
-              </div>
-            </div>
-          </section>
-
-          <section className="vlt-ws-panel">
-            <div className="vlt-ws-head">
-              <span className="vlt-ws-title">Move Files</span>
-            </div>
-            <p className="vlt-ws-help">
-              {selectedFileIds.length > 0
-                ? `${selectedFileIds.length} selected file(s)`
-                : 'Select files from the table to move them'}
-            </p>
-            <div className="vlt-ws-move">
-              <select
-                className="vlt-folder-parent-select"
-                value={bulkMoveFolderId}
-                onChange={(e) => setBulkMoveFolderId(e.target.value)}
-              >
-                <option value="">Move to: Uncategorized</option>
-                {flatFolders.map((folder) => (
-                  <option key={`bulk-move-folder-${folder.id}`} value={folder.id}>
-                    {'\u00A0'.repeat(folder.depth * 2)}{folder.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                className="vlt-folder-create-btn"
-                onClick={handleBulkMoveSelected}
-                disabled={selectedFileIds.length === 0 || movingDocId === 'bulk'}
-              >
-                {movingDocId === 'bulk' ? <Loader2 size={12} className="vlt-spin" /> : <Folder size={12} />}
-                Move selected
-              </button>
-            </div>
-          </section>
-
-          {foldersLoading && <p className="vlt-folder-note">Loading folders…</p>}
-          {folderError && <p className="vlt-folder-note vlt-folder-note--error">{folderError}</p>}
-        </aside>
-
-        <div className="vlt-mydocs-main">
-          <div className="vlt-upload-panel">
-            <div className="vlt-upload-panel-head">
-              <Upload size={15} />
-              <span>Upload Document</span>
-            </div>
-            <div className="vlt-upload-row">
+    <div className="vlt-docs-layout">
+      <aside className="vlt-docs-sidebar">
+        {/* ── NEW FOLDER ── */}
+        <div className="vlt-docs-sidebar-section">
+          <p className="vlt-sidebar-label"><FolderPlus size={13} /> New Folder</p>
+          <div className="vlt-sidebar-create">
+            <div className="vlt-ws-create-input-wrap">
               <input
-                className="vlt-upload-subject"
-                placeholder="Subject (optional)"
-                value={uploadSubject}
-                onChange={e => setUploadSubject(e.target.value)}
+                className="vlt-sidebar-input"
+                placeholder="Folder name"
+                value={newFolderName}
+                onChange={(e) => { setNewFolderName(e.target.value); if (folderError) setFolderError(''); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); }}
               />
-              <select
-                className="vlt-upload-subject"
-                value={uploadFolderId}
-                onChange={(e) => setUploadFolderId(e.target.value)}
-              >
-                <option value="">No folder</option>
-                {flatFolders.map((folder) => (
-                  <option key={`upload-folder-${folder.id}`} value={folder.id}>
-                    {'\u00A0'.repeat(folder.depth * 2)}{folder.name}
-                  </option>
-                ))}
-              </select>
-              <label className={`vlt-upload-btn ${uploading ? 'vlt-upload-btn--busy' : ''}`}>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".pdf,.txt,.docx,.md"
-                  style={{ display: 'none' }}
-                  onChange={e => handleUpload(e.target.files[0])}
-                  disabled={uploading}
-                />
-                {uploading ? <><Loader2 size={14} className="vlt-spin" /> Uploading…</> : <><Upload size={14} /> Choose File</>}
-              </label>
+              {newFolderName && (
+                <button className="vlt-ws-input-clear" onClick={() => setNewFolderName('')}><X size={11} /></button>
+              )}
             </div>
-            {uploadError && <div className="vlt-upload-msg vlt-upload-msg--error"><AlertCircle size={13} />{uploadError}</div>}
-            {uploadOk    && <div className="vlt-upload-msg vlt-upload-msg--ok"><Check size={13} />{uploadOk}</div>}
-            <p className="vlt-upload-hint">PDF, DOCX, TXT or Markdown · max 50 MB</p>
+            <button className="vlt-sidebar-create-btn" onClick={handleCreateFolder} disabled={creatingFolder}>
+              {creatingFolder ? <Loader2 size={12} className="vlt-spin" /> : <FolderPlus size={12} />}
+              {creatingFolder ? '' : 'Create'}
+            </button>
           </div>
+          <div className="vlt-ws-location-modes">
+            <button className={`vlt-ws-mode-btn ${newFolderLocationMode === 'root' ? 'active' : ''}`} onClick={() => setNewFolderLocationMode('root')}>Root</button>
+            <button className={`vlt-ws-mode-btn ${newFolderLocationMode === 'current' ? 'active' : ''}`} onClick={() => setNewFolderLocationMode('current')} disabled={!canUseCurrentFolderAsParent}>Current</button>
+            <button className={`vlt-ws-mode-btn ${newFolderLocationMode === 'custom' ? 'active' : ''}`} onClick={() => setNewFolderLocationMode('custom')}>Choose</button>
+          </div>
+          {newFolderLocationMode === 'custom' && (
+            <select className="vlt-sidebar-select" value={newFolderParentId} onChange={(e) => setNewFolderParentId(e.target.value)}>
+              <option value="">Root folder</option>
+              {flatFolders.map((folder) => (
+                <option key={`create-parent-${folder.id}`} value={folder.id}>{' '.repeat(folder.depth * 2)}{folder.name}</option>
+              ))}
+            </select>
+          )}
+          <p className="vlt-sidebar-hint">In: <strong>{createFolderLocationLabel}</strong></p>
+          {folderError && <p className="vlt-folder-note vlt-folder-note--error">{folderError}</p>}
+        </div>
 
-          <div className="vlt-bulk-toolbar">
-            <div className="vlt-bulk-toolbar-left">
-              <span className="vlt-bulk-count">
-                {selectedFileIds.length > 0 ? `${selectedFileIds.length} file(s) selected` : 'No files selected'}
-              </span>
-              <button className="vlt-bulk-link" onClick={selectVisibleFiles}>Select visible</button>
-              <button className="vlt-bulk-link" onClick={clearFileSelection} disabled={selectedFileIds.length === 0}>Clear</button>
-            </div>
-            <div className="vlt-bulk-toolbar-right">
-              <button className="vlt-bulk-action" onClick={() => openSelectedDocsAction('chat')}>
-                <MessageCircle size={13} /> AI Chat
-              </button>
-              <button className="vlt-bulk-action" onClick={() => openSelectedDocsAction('flashcards')}>
-                <Layers size={13} /> Flashcards
-              </button>
-              <button
-                className="vlt-bulk-action"
-                onClick={() => openSelectedDocsAction('notes')}
-                disabled={bulkActionLoading === 'notes'}
-              >
-                {bulkActionLoading === 'notes' ? <Loader2 size={13} className="vlt-spin" /> : <FileText size={13} />} Notes
-              </button>
-              <button className="vlt-bulk-action" onClick={() => openSelectedDocsAction('quiz')}>
-                <Brain size={13} /> Quiz
-              </button>
-              <button className="vlt-bulk-action" onClick={() => openSelectedDocsAction('roadmap')}>
-                <Target size={13} /> Roadmap
-              </button>
+        {/* ── FOLDER NAV ── */}
+        <div className="vlt-docs-sidebar-nav">
+          <div className="vlt-docs-sidebar-nav-head">
+            <p className="vlt-sidebar-label"><Folder size={13} /> Folders</p>
+            <div className="vlt-sidebar-nav-actions">
+              <button className="vlt-sidebar-nav-action" onClick={selectVisibleFiles} title="Select all visible">All</button>
+              <button className="vlt-sidebar-nav-action" onClick={expandAllNodes} title="Expand all">+</button>
+              <button className="vlt-sidebar-nav-action" onClick={collapseAllNodes} title="Collapse all">−</button>
             </div>
           </div>
+          <nav className="vlt-folder-nav">
+            <button className={`vlt-folder-nav-item ${activeFolderId === 'all' ? 'active' : ''}`} onClick={() => setActiveFolderId('all')}>
+              <Folder size={14} className="vlt-folder-nav-icon" />
+              <span className="vlt-folder-nav-name">All files</span>
+              <span className="vlt-folder-nav-count">{userDocs.length}</span>
+            </button>
+            <button className={`vlt-folder-nav-item ${activeFolderId === 'uncategorized' ? 'active' : ''}`} onClick={() => setActiveFolderId('uncategorized')}>
+              <Folder size={14} className="vlt-folder-nav-icon" />
+              <span className="vlt-folder-nav-name">Uncategorized</span>
+              <span className="vlt-folder-nav-count">{folderDocCounts.uncategorized || 0}</span>
+            </button>
+            <div className="vlt-ws-tree-root">{renderFolderTree(folderTree, 0)}</div>
+          </nav>
+          {foldersLoading && <p className="vlt-folder-note">Loading…</p>}
+        </div>
 
-          <div className="vlt-progress-strip">
-            <span>
-              {overallProgress
-                ? `Mastered files: ${overallProgress.mastered_docs}/${overallProgress.docs_with_topics || overallProgress.total_docs} · Topic mastery: ${overallProgress.mastered_topics_pct}%`
-                : 'Progress data unavailable'}
+        {/* ── MOVE FILES FOOTER ── */}
+        <div className="vlt-docs-sidebar-footer">
+          <p className="vlt-sidebar-label">Move Files</p>
+          <p className="vlt-sidebar-hint">{selectedFileIds.length > 0 ? `${selectedFileIds.length} selected` : 'Select files to move'}</p>
+          <div className="vlt-sidebar-move">
+            <select className="vlt-sidebar-select" value={bulkMoveFolderId} onChange={(e) => setBulkMoveFolderId(e.target.value)}>
+              <option value="">Uncategorized</option>
+              {flatFolders.map((folder) => (
+                <option key={`bulk-move-folder-${folder.id}`} value={folder.id}>{' '.repeat(folder.depth * 2)}{folder.name}</option>
+              ))}
+            </select>
+            <button className="vlt-sidebar-create-btn" onClick={handleBulkMoveSelected} disabled={selectedFileIds.length === 0 || movingDocId === 'bulk'}>
+              {movingDocId === 'bulk' ? <Loader2 size={12} className="vlt-spin" /> : <Folder size={12} />}
+              Move
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── MAIN CONTENT ── */}
+      <div className="vlt-docs-main">
+
+        {/* Drop zone upload */}
+        <div className="vlt-dropzone">
+          <div className="vlt-dropzone-body">
+            <div className="vlt-dropzone-icon">
+              {uploading ? <Loader2 size={28} className="vlt-spin" /> : <Upload size={28} />}
+            </div>
+            <p className="vlt-dropzone-title">{uploading ? 'Uploading…' : 'Drop a file or click Choose File'}</p>
+            <p className="vlt-dropzone-hint">PDF · DOCX · TXT · Markdown · max 50 MB</p>
+          </div>
+          <div className="vlt-dropzone-form">
+            <input className="vlt-dz-input" placeholder="Subject (optional)" value={uploadSubject} onChange={e => setUploadSubject(e.target.value)} />
+            <select className="vlt-dz-input" value={uploadFolderId} onChange={(e) => setUploadFolderId(e.target.value)}>
+              <option value="">No folder</option>
+              {flatFolders.map((folder) => (
+                <option key={`upload-folder-${folder.id}`} value={folder.id}>{' '.repeat(folder.depth * 2)}{folder.name}</option>
+              ))}
+            </select>
+            <label className={`vlt-dz-btn ${uploading ? 'vlt-dz-btn--busy' : ''}`}>
+              <input ref={fileRef} type="file" accept=".pdf,.txt,.docx,.md" style={{ display: 'none' }} onChange={e => handleUpload(e.target.files[0])} disabled={uploading} />
+              <Upload size={14} /> Choose File
+            </label>
+          </div>
+          {uploadError && <div className="vlt-upload-msg vlt-upload-msg--error"><AlertCircle size={13} />{uploadError}</div>}
+          {uploadOk    && <div className="vlt-upload-msg vlt-upload-msg--ok"><Check size={13} />{uploadOk}</div>}
+        </div>
+
+        {/* Action bar */}
+        <div className={`vlt-action-bar ${selectedFileIds.length > 0 ? 'vlt-action-bar--active' : ''}`}>
+          <div className="vlt-action-bar-left">
+            <span className="vlt-action-selection">
+              {selectedFileIds.length > 0 ? `${selectedFileIds.length} file${selectedFileIds.length !== 1 ? 's' : ''} selected` : 'Select files below'}
             </span>
-            {progressLoading && <span className="vlt-progress-loading"><Loader2 size={12} className="vlt-spin" /> updating</span>}
-            {progressError && <span className="vlt-progress-error">{progressError}</span>}
+            <button className="vlt-action-link" onClick={selectVisibleFiles}>Select visible</button>
+            <button className="vlt-action-link" onClick={clearFileSelection} disabled={selectedFileIds.length === 0}>Clear</button>
           </div>
+          <div className="vlt-action-bar-right">
+            <button className="vlt-action-btn vlt-action-btn--chat" onClick={() => openSelectedDocsAction('chat')}><MessageCircle size={13} /> AI Chat</button>
+            <button className="vlt-action-btn vlt-action-btn--flash" onClick={() => openSelectedDocsAction('flashcards')}><Layers size={13} /> Flashcards</button>
+            <button className="vlt-action-btn vlt-action-btn--notes" onClick={() => openSelectedDocsAction('notes')} disabled={bulkActionLoading === 'notes'}>
+              {bulkActionLoading === 'notes' ? <Loader2 size={13} className="vlt-spin" /> : <FileText size={13} />} Notes
+            </button>
+            <button className="vlt-action-btn vlt-action-btn--quiz" onClick={() => openSelectedDocsAction('quiz')}><Brain size={13} /> Quiz</button>
+            <button className="vlt-action-btn vlt-action-btn--roadmap" onClick={() => openSelectedDocsAction('roadmap')}><Target size={13} /> Roadmap</button>
+          </div>
+        </div>
 
+        {/* Progress + search */}
+        <div className="vlt-docs-meta">
+          <span className="vlt-progress-strip">
+            {overallProgress
+              ? `Mastered: ${overallProgress.mastered_docs}/${overallProgress.docs_with_topics || overallProgress.total_docs} · ${overallProgress.mastered_topics_pct}% topics`
+              : 'No progress data'}
+            {progressLoading && <> <Loader2 size={11} className="vlt-spin" /> updating</>}
+          </span>
           <div className="vlt-doc-search">
             <Search size={14} />
-            <input
-              placeholder="Search your documents…"
-              value={docSearch}
-              onChange={e => setDocSearch(e.target.value)}
-            />
+            <input placeholder="Search documents…" value={docSearch} onChange={e => setDocSearch(e.target.value)} />
             {docSearch && <button className="vlt-doc-search-clear" onClick={() => setDocSearch('')}><X size={13}/></button>}
           </div>
-
-          {loading ? (
-            <div className="vlt-state-center"><Loader2 size={24} className="vlt-spin" /><p>Loading…</p></div>
-          ) : filteredUserDocs.length === 0 ? (
-            <div className="vlt-state-center">
-              <Library size={32} />
-              <h3>{userDocs.length === 0 ? 'No documents yet' : 'No results'}</h3>
-              <p>{userDocs.length === 0 ? 'Upload your first PDF, DOCX, or text file above.' : 'Try a different search or folder.'}</p>
-            </div>
-          ) : (
-            <div className="vlt-files-table-wrap">
-              <div className="vlt-files-table-head">
-                <span>Select</span>
-                <span>Name</span>
-                <span>Subject</span>
-                <span>Folder</span>
-                <span>Progress</span>
-                <span>Chunks</span>
-                <span>Actions</span>
-              </div>
-              <div className="vlt-files-table-body">
-                {filteredUserDocs.map(doc => {
-                  const id   = doc.doc_id || doc.id;
-                  const name = doc.filename || doc.title || 'Untitled';
-                  const sel  = deckSet.has(id);
-                  const selected = selectedFileIds.includes(id);
-                  const progress = docProgressMap[id];
-                  return (
-                    <div key={id} className={`vlt-file-row ${sel ? 'vlt-file-row--decked' : ''}`}>
-                      <div className="vlt-file-select-cell">
-                        <button
-                          className={`vlt-select-btn ${selected ? 'active' : ''}`}
-                          onClick={() => toggleFileSelection(id)}
-                          title={selected ? 'Deselect file' : 'Select file'}
-                        >
-                          {selected ? <CheckSquare size={13} /> : <Square size={13} />}
-                        </button>
-                      </div>
-                      <div className="vlt-file-name-cell" title={name}>
-                        <FileText size={15} />
-                        <span>{name}</span>
-                        {sel && <span className="vlt-file-deck-chip"><Zap size={9} /> Deck</span>}
-                      </div>
-                      <div className="vlt-file-subject-cell">
-                        {doc.subject ? (
-                          <span style={{ color: CAT_COLORS[doc.subject] || 'var(--accent)' }}>
-                            {subjectLabel(doc.subject)}
-                          </span>
-                        ) : <span className="vlt-file-muted">General</span>}
-                      </div>
-                      <div className="vlt-file-folder-cell">
-                        <select
-                          value={doc.folder_id || ''}
-                          onChange={(e) => handleMoveDocument(id, e.target.value)}
-                          disabled={movingDocId === id}
-                        >
-                          <option value="">Uncategorized</option>
-                          {flatFolders.map((folder) => (
-                            <option key={`doc-folder-${id}-${folder.id}`} value={folder.id}>
-                              {'\u00A0'.repeat(folder.depth * 2)}{folder.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="vlt-file-progress-cell">
-                        {progress ? (
-                          <>
-                            <div className="vlt-file-progress-line">
-                              <span>{progress.mastery_pct}%</span>
-                              <span>{progress.mastered_topics_count}/{progress.topics_total}</span>
-                            </div>
-                            <div className="vlt-file-progress-meta">
-                              <span className="ok">Done {progress.mastered_topics_count}</span>
-                              <span className="warn">Left {progress.remaining_topics_count}</span>
-                              <span className="bad">Weak {progress.weak_topics_count}</span>
-                            </div>
-                          </>
-                        ) : (
-                          <span className="vlt-file-muted">No data</span>
-                        )}
-                      </div>
-                      <div className="vlt-file-chunks-cell">{doc.chunk_count || 0}</div>
-                      <div className="vlt-file-actions-cell">
-                        <button
-                          className={`vlt-doc-deck-btn ${sel ? 'vlt-doc-deck-btn--remove' : ''}`}
-                          onClick={() => sel ? removeFromDeck(id) : addToDeck(id)}
-                          disabled={!sel && deckIds.length >= DECK_SIZE}
-                          title={sel ? 'Remove from deck' : deckIds.length >= DECK_SIZE ? 'Deck full' : 'Add to deck'}
-                        >
-                          {sel ? <X size={11} /> : <Plus size={11} />}
-                          {sel ? 'Remove' : 'Add'}
-                        </button>
-                        <button
-                          className="vlt-doc-del-btn"
-                          onClick={() => handleDelete(id, name)}
-                          disabled={deleting === id}
-                          aria-label="Delete"
-                        >
-                          {deleting === id ? <Loader2 size={12} className="vlt-spin" /> : <Trash2 size={12} />}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* File table / empty */}
+        {loading ? (
+          <div className="vlt-state-center"><Loader2 size={24} className="vlt-spin" /><p>Loading…</p></div>
+        ) : filteredUserDocs.length === 0 ? (
+          <div className="vlt-state-center">
+            <Library size={36} />
+            <h3>{userDocs.length === 0 ? 'No documents yet' : 'No results'}</h3>
+            <p>{userDocs.length === 0 ? 'Upload your first PDF, DOCX, or text file above.' : 'Try a different search or folder.'}</p>
+          </div>
+        ) : (
+          <div className="vlt-files-table-wrap">
+            <div className="vlt-files-table-head">
+              <span></span><span>Name</span><span>Subject</span><span>Folder</span><span>Progress</span><span>Chunks</span><span>Actions</span>
+            </div>
+            <div className="vlt-files-table-body">
+              {filteredUserDocs.map(doc => {
+                const id   = doc.doc_id || doc.id;
+                const name = doc.filename || doc.title || 'Untitled';
+                const sel  = deckSet.has(id);
+                const selected = selectedFileIds.includes(id);
+                const progress = docProgressMap[id];
+                return (
+                  <div key={id} className={`vlt-file-row ${sel ? 'vlt-file-row--decked' : ''} ${selected ? 'vlt-file-row--selected' : ''}`}>
+                    <div className="vlt-file-select-cell">
+                      <button className={`vlt-select-btn ${selected ? 'active' : ''}`} onClick={() => toggleFileSelection(id)}>
+                        {selected ? <CheckSquare size={13} /> : <Square size={13} />}
+                      </button>
+                    </div>
+                    <div className="vlt-file-name-cell" title={name}>
+                      <FileText size={15} /><span>{name}</span>
+                      {sel && <span className="vlt-file-deck-chip"><Zap size={9} /> Deck</span>}
+                    </div>
+                    <div className="vlt-file-subject-cell">
+                      {doc.subject ? <span style={{ color: CAT_COLORS[doc.subject] || 'var(--accent)' }}>{subjectLabel(doc.subject)}</span>
+                        : <span className="vlt-file-muted">General</span>}
+                    </div>
+                    <div className="vlt-file-folder-cell">
+                      <select value={doc.folder_id || ''} onChange={(e) => handleMoveDocument(id, e.target.value)} disabled={movingDocId === id}>
+                        <option value="">Uncategorized</option>
+                        {flatFolders.map((folder) => (
+                          <option key={`doc-folder-${id}-${folder.id}`} value={folder.id}>{' '.repeat(folder.depth * 2)}{folder.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="vlt-file-progress-cell">
+                      {progress ? (
+                        <>
+                          <div className="vlt-file-progress-line"><span>{progress.mastery_pct}%</span><span>{progress.mastered_topics_count}/{progress.topics_total}</span></div>
+                          <div className="vlt-file-progress-meta">
+                            <span className="ok">Done {progress.mastered_topics_count}</span>
+                            <span className="warn">Left {progress.remaining_topics_count}</span>
+                            <span className="bad">Weak {progress.weak_topics_count}</span>
+                          </div>
+                        </>
+                      ) : <span className="vlt-file-muted">No data</span>}
+                    </div>
+                    <div className="vlt-file-chunks-cell">{doc.chunk_count || 0}</div>
+                    <div className="vlt-file-actions-cell">
+                      <button className={`vlt-doc-deck-btn ${sel ? 'vlt-doc-deck-btn--remove' : ''}`}
+                        onClick={() => sel ? removeFromDeck(id) : addToDeck(id)}
+                        disabled={!sel && deckIds.length >= DECK_SIZE}>
+                        {sel ? <X size={11} /> : <Plus size={11} />}{sel ? 'Remove' : 'Add'}
+                      </button>
+                      <button className="vlt-doc-del-btn" onClick={() => handleDelete(id, name)} disabled={deleting === id}>
+                        {deleting === id ? <Loader2 size={12} className="vlt-spin" /> : <Trash2 size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1564,93 +1439,137 @@ const Vault = () => {
   }, [currSubjects]);
 
   const CurriculumTab = () => {
+    const selectedSubjectInfo = currSubject
+      ? currSubjects.find(s => s.id === currSubject)
+      : null;
+
     return (
-      <div className="vlt-curriculum">
-        {/* Curriculum selector */}
-        <div className="vlt-curr-selector">
-          {['uk', 'us'].map(c => (
-            <button
-              key={c}
-              className={`vlt-curr-btn ${currMode === c ? 'vlt-curr-btn--active' : ''}`}
-              onClick={() => { setCurrMode(c); setCurrSubject(null); }}
-            >
-              {c === 'uk' ? '🇬🇧 UK High School' : '🇺🇸 US High School'}
-            </button>
-          ))}
-        </div>
+      <div className="vlt-docs-layout">
+        {/* ── SIDEBAR ── */}
+        <aside className="vlt-docs-sidebar">
+          {/* Curriculum toggle */}
+          <div className="vlt-docs-sidebar-section">
+            <p className="vlt-sidebar-label"><GraduationCap size={13} /> Curriculum</p>
+            <div className="vlt-curr-toggle">
+              {['uk', 'us'].map(c => (
+                <button
+                  key={c}
+                  className={`vlt-curr-toggle-btn ${currMode === c ? 'active' : ''}`}
+                  onClick={() => { setCurrMode(c); setCurrSubject(null); }}
+                >
+                  {c === 'uk' ? '🇬🇧 UK' : '🇺🇸 US'}
+                </button>
+              ))}
+            </div>
+            <p className="vlt-sidebar-hint">{hsDocs.length} books available</p>
+          </div>
 
-        {/* Subject grid */}
-        <div className="vlt-curr-grid">
-          <button
-            className={`vlt-curr-subject ${!currSubject ? 'vlt-curr-subject--active' : ''}`}
-            onClick={() => setCurrSubject(null)}
-          >
-            <span className="vlt-curr-subject-name">All Subjects</span>
-            <span className="vlt-curr-subject-count">{hsDocs.length}</span>
-          </button>
-          {currSubjectCats.map(([, subs]) => subs.map(s => {
-            const matchCount = hsDocs.filter(d =>
-              (d.subject || '').toLowerCase().replace(/ /g,'_') === s.id ||
-              (d.subject || '').toLowerCase().includes(s.name.toLowerCase())
-            ).length;
-            if (matchCount === 0) return null;
-            return (
+          {/* Subject nav */}
+          <div className="vlt-docs-sidebar-nav">
+            <div className="vlt-docs-sidebar-nav-head">
+              <p className="vlt-sidebar-label"><BookOpen size={13} /> Subjects</p>
+            </div>
+            <nav className="vlt-folder-nav">
+              {/* All subjects */}
               <button
-                key={s.id}
-                className={`vlt-curr-subject ${currSubject === s.id ? 'vlt-curr-subject--active' : ''}`}
-                onClick={() => setCurrSubject(currSubject === s.id ? null : s.id)}
-                style={currSubject === s.id ? { borderColor: CAT_COLORS[s.cat], color: CAT_COLORS[s.cat] } : {}}
+                className={`vlt-folder-nav-item ${!currSubject ? 'active' : ''}`}
+                onClick={() => setCurrSubject(null)}
               >
-                <span className="vlt-curr-subject-cat" style={{ color: CAT_COLORS[s.cat] || 'var(--accent)' }}>
-                  {s.cat}
-                </span>
-                <span className="vlt-curr-subject-name">{s.name}</span>
-                <span className="vlt-curr-subject-count">{matchCount}</span>
+                <Layers size={14} className="vlt-folder-nav-icon" />
+                <span className="vlt-folder-nav-name">All Subjects</span>
+                <span className="vlt-folder-nav-count">{hsDocs.length}</span>
               </button>
-            );
-          }))}
-        </div>
 
-        {/* Books for selected subject */}
-        <div className="vlt-curr-books">
+              {/* Grouped by category */}
+              {currSubjectCats.map(([cat, subs]) => {
+                const catBooks = subs.reduce((n, s) => n + hsDocs.filter(d =>
+                  (d.subject || '').toLowerCase().replace(/ /g, '_') === s.id ||
+                  (d.subject || '').toLowerCase().includes(s.name.toLowerCase())
+                ).length, 0);
+                if (catBooks === 0) return null;
+                return (
+                  <div key={cat} className="vlt-curr-cat-group">
+                    <p className="vlt-curr-cat-label" style={{ color: CAT_COLORS[cat] || 'var(--accent)' }}>{cat}</p>
+                    {subs.map(s => {
+                      const matchCount = hsDocs.filter(d =>
+                        (d.subject || '').toLowerCase().replace(/ /g, '_') === s.id ||
+                        (d.subject || '').toLowerCase().includes(s.name.toLowerCase())
+                      ).length;
+                      if (matchCount === 0) return null;
+                      return (
+                        <button
+                          key={s.id}
+                          className={`vlt-folder-nav-item ${currSubject === s.id ? 'active' : ''}`}
+                          onClick={() => setCurrSubject(currSubject === s.id ? null : s.id)}
+                          style={currSubject === s.id ? { '--nav-active-color': CAT_COLORS[s.cat] } : {}}
+                        >
+                          <BookOpen size={13} className="vlt-folder-nav-icon" style={{ color: CAT_COLORS[s.cat] || 'var(--accent)' }} />
+                          <span className="vlt-folder-nav-name">{s.name}</span>
+                          <span className="vlt-folder-nav-count">{matchCount}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+        </aside>
+
+        {/* ── MAIN ── */}
+        <div className="vlt-docs-main">
+          {/* Header bar */}
+          <div className="vlt-curr-main-header">
+            <div className="vlt-curr-main-title">
+              <BookOpen size={16} />
+              <span>{selectedSubjectInfo ? selectedSubjectInfo.name : 'All Subjects'}</span>
+              {selectedSubjectInfo && (
+                <span className="vlt-curr-main-cat" style={{ color: CAT_COLORS[selectedSubjectInfo.cat] || 'var(--accent)' }}>
+                  {selectedSubjectInfo.cat}
+                </span>
+              )}
+            </div>
+            <span className="vlt-curr-main-count">{filteredHsDocs.length} book{filteredHsDocs.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {/* Books */}
           {filteredHsDocs.length === 0 ? (
             <div className="vlt-state-center">
-              <BookOpen size={28} />
-              <p>{currSubject ? 'No books for this subject yet.' : 'No curriculum books available.'}</p>
+              <BookOpen size={36} />
+              <h3>{currSubject ? 'No books for this subject' : 'No curriculum books available'}</h3>
+              <p>{currSubject ? 'Try selecting a different subject.' : 'Curriculum books appear here once loaded.'}</p>
             </div>
           ) : (
-            <div className="vlt-doc-grid">
+            <div className="vlt-curr-books-grid">
               {filteredHsDocs.map(doc => {
                 const id  = doc.doc_id || doc.id;
                 const sel = deckSet.has(id);
                 const full = !sel && deckIds.length >= DECK_SIZE;
+                const catColor = CAT_COLORS[doc.subject] || 'var(--accent)';
                 return (
-                  <div key={id} className={`vlt-doc-card vlt-doc-card--hs ${sel ? 'vlt-doc-card--decked' : ''}`}>
-                    <div className="vlt-doc-card-top">
-                      <span className="vlt-hs-badge"><Users size={9} /> Curriculum</span>
+                  <div key={id} className={`vlt-curr-book-card ${sel ? 'vlt-curr-book-card--decked' : ''}`}>
+                    <div className="vlt-curr-book-top">
+                      <div className="vlt-curr-book-icon" style={{ background: `color-mix(in srgb, ${catColor} 12%, transparent)`, color: catColor }}>
+                        <BookOpen size={18} />
+                      </div>
                       <button
                         className={`vlt-doc-deck-btn ${sel ? 'vlt-doc-deck-btn--remove' : ''}`}
                         onClick={() => sel ? removeFromDeck(id) : addToDeck(id)}
                         disabled={full}
                         title={sel ? 'Remove from deck' : full ? 'Deck full' : 'Add to deck'}
                       >
-                        {sel ? <><Check size={12} /> In Deck</> : <><Plus size={12} /> Add</>}
+                        {sel ? <><Check size={11} /> In Deck</> : <><Plus size={11} /> Add</>}
                       </button>
                     </div>
-                    <BookOpen size={22} className="vlt-doc-card-icon" />
-                    <div className="vlt-doc-card-name" title={doc.filename}>{doc.filename || 'Untitled'}</div>
-                    <div className="vlt-doc-card-meta">
-                      {doc.subject && (
-                        <span className="vlt-doc-card-tag" style={{ color: CAT_COLORS[doc.subject] || 'var(--accent)' }}>
-                          {subjectLabel(doc.subject)}
-                        </span>
-                      )}
-                      {doc.grade_level && <span className="vlt-doc-card-tag">Yr {doc.grade_level}</span>}
-                      {doc.chunk_count > 0 && <span className="vlt-doc-card-tag">{doc.chunk_count} chunks</span>}
+                    <div className="vlt-curr-book-name" title={doc.filename}>{doc.filename || 'Untitled'}</div>
+                    <div className="vlt-curr-book-meta">
+                      {doc.subject && <span style={{ color: catColor }}>{subjectLabel(doc.subject)}</span>}
+                      {doc.grade_level && <span>Yr {doc.grade_level}</span>}
+                      {doc.chunk_count > 0 && <span>{doc.chunk_count} chunks</span>}
                     </div>
-                    {doc.ai_summary && <p className="vlt-doc-card-summary">{doc.ai_summary}</p>}
+                    {doc.ai_summary && <p className="vlt-curr-book-summary">{doc.ai_summary}</p>}
                     {Array.isArray(doc.topic_tags) && doc.topic_tags.length > 0 && (
-                      <div className="vlt-doc-card-tags">
+                      <div className="vlt-curr-book-tags">
                         {doc.topic_tags.slice(0, 3).map((t, i) => <span key={i} className="vlt-pill">{t}</span>)}
                       </div>
                     )}
