@@ -58,6 +58,7 @@ import AdminAnalytics from './pages/AdminAnalytics';
 import ContextHub from './pages/ContextHub';
 import CanvasHub from './pages/CanvasHub';
 import Vault from './pages/Vault';
+import ContextFileAnalysis from './pages/ContextFileAnalysis';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import CerbylNavSidebar from './components/CerbylNavSidebar';
@@ -153,6 +154,7 @@ function App() {
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
               <Route path="/contexthub" element={<ProtectedRoute><Vault /></ProtectedRoute>} />
+              <Route path="/contexthub/file/:docId" element={<ProtectedRoute><ContextFileAnalysis /></ProtectedRoute>} />
               <Route path="/context" element={<Navigate to="/contexthub" replace />} />
               <Route path="/vault" element={<Navigate to="/contexthub" replace />} />
               <Route path="/canvas" element={<ProtectedRoute><CanvasHub /></ProtectedRoute>} />

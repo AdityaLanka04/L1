@@ -777,7 +777,8 @@
   gap: 10px; padding: 12px 14px;
   border-bottom: 1px solid var(--vlt-line-soft);
   align-items: center;
-  transition: background 100ms;
+  transition: background 100ms, box-shadow 140ms, border-color 140ms;
+  cursor: pointer;
 }
 .vlt-file-row:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
 .vlt-file-row:last-child { border-bottom: none; }

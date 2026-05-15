@@ -4,7 +4,7 @@ import {
   ArrowLeft, BookOpen, FileText, Search, Library, Lock, Users, Trash2,
   Upload, Layers, GraduationCap, Plus, X, Check, Clock, MessageCircle,
   Zap, Brain, ChevronRight, Sparkles, RefreshCw, AlertCircle, Loader2,
-  BarChart3, Target, Package, Folder, FolderPlus, PencilLine, Save, CheckSquare, Square
+  Target, Package, Folder, FolderPlus, PencilLine, Save, CheckSquare, Square
 } from 'lucide-react';
 import contextService from '../services/contextService';
 import { API_URL } from '../config/api';
@@ -15,6 +15,7 @@ import './Vault.css';
 
 const DECK_SIZE = 8;
 const DECK_KEY  = 'ctx_selected_doc_ids';
+const FILE_INSIGHTS_KEY = 'ctx_file_action_stats';
 
 const TABS = [
   { id: 'deck',       label: 'CONTEXT DECK', icon: Package },
@@ -118,6 +119,23 @@ const loadDeck = () => {
 
 const saveDeck = (ids) => localStorage.setItem(DECK_KEY, JSON.stringify(ids));
 
+const loadFileActionStats = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(FILE_INSIGHTS_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveFileActionStats = (payload) => {
+  try {
+    localStorage.setItem(FILE_INSIGHTS_KEY, JSON.stringify(payload || {}));
+  } catch {
+    // no-op
+  }
+};
+
 const buildFolderTree = (folders) => {
   const folderById = new Map();
   folders.forEach((folder) => {
@@ -207,6 +225,7 @@ const Vault = () => {
   const [docSearch, setDocSearch] = useState('');
   const [currMode, setCurrMode]   = useState('uk');  // 'uk' | 'us'
   const [currSubject, setCurrSubject] = useState(null);
+  const [, setFileActionStats] = useState(loadFileActionStats);
 
   // ── Load docs ──
   const loadDocs = useCallback(async () => {
@@ -336,6 +355,34 @@ const Vault = () => {
     fetch();
   }, [activeTab, recentKey]);
 
+  const recordDocActions = useCallback((docIds, actionId) => {
+    if (!actionId) return;
+    const normalizedIds = Array.from(new Set((docIds || []).filter(Boolean).map((id) => String(id))));
+    if (normalizedIds.length === 0) return;
+
+    setFileActionStats((prev) => {
+      const now = new Date().toISOString();
+      const base = prev && typeof prev === 'object' ? prev : {};
+      const next = { ...base };
+
+      normalizedIds.forEach((id) => {
+        const current = next[id] && typeof next[id] === 'object' ? next[id] : {};
+        const actions = current.actions && typeof current.actions === 'object' ? { ...current.actions } : {};
+        actions[actionId] = (actions[actionId] || 0) + 1;
+
+        next[id] = {
+          first_used_at: current.first_used_at || now,
+          last_used_at: now,
+          total_actions: (Number(current.total_actions) || 0) + 1,
+          actions,
+        };
+      });
+
+      saveFileActionStats(next);
+      return next;
+    });
+  }, []);
+
   // ── Deck helpers ──
   const deckSet = useMemo(() => new Set(deckIds), [deckIds]);
 
@@ -345,6 +392,7 @@ const Vault = () => {
     const next = [...deckIds, id];
     setDeckIds(next);
     saveDeck(next);
+    recordDocActions([id], 'deck');
   };
 
   const removeFromDeck = (id) => {
@@ -565,30 +613,34 @@ const Vault = () => {
     return userDocs.filter((doc) => selectedSet.has(doc.doc_id || doc.id));
   }, [selectedFileIds, userDocs]);
 
-  const openSelectedDocsAction = useCallback(async (target) => {
-    if (selectedFileIds.length === 0) {
+  const runContextAction = useCallback(async (target, docIds, sourceDocs) => {
+    const validDocIds = Array.from(new Set((docIds || []).filter(Boolean)));
+    if (validDocIds.length === 0) {
       alert('Select one or more files first.');
       return;
     }
     if (bulkActionLoading) return;
-    persistSelectedDocs(selectedFileIds);
-    const sourceNames = selectedUserDocs
+
+    persistSelectedDocs(validDocIds);
+    const sourceNames = (sourceDocs || [])
       .map((doc) => doc.filename || doc.title || 'Untitled')
       .slice(0, 6)
       .join(', ');
 
     if (target === 'chat') {
+      recordDocActions(validDocIds, 'chat');
       navigate('/ai-chat', {
         state: {
-          initialMessage: `Use my selected context files (${selectedFileIds.length}): ${sourceNames}. Help me study what matters most.`,
+          initialMessage: `Use my selected context files (${validDocIds.length}): ${sourceNames}. Help me study what matters most.`,
         },
       });
       return;
     }
     if (target === 'flashcards') {
+      recordDocActions(validDocIds, 'flashcards');
       navigate('/flashcards', {
         state: {
-          contextDocIds: selectedFileIds,
+          contextDocIds: validDocIds,
           initialTopic: sourceNames,
           generationMode: 'topic',
           openPanel: 'generator',
@@ -598,9 +650,10 @@ const Vault = () => {
       return;
     }
     if (target === 'quiz') {
+      recordDocActions(validDocIds, 'quiz');
       navigate('/question-bank', {
         state: {
-          contextDocIds: selectedFileIds,
+          contextDocIds: validDocIds,
           topic: sourceNames || 'Selected context files',
           openView: 'custom',
           autoGenerateFromContext: true,
@@ -625,7 +678,7 @@ const Vault = () => {
           },
           body: JSON.stringify({
             user_id: userId,
-            context_doc_ids: selectedFileIds,
+            context_doc_ids: validDocIds,
             title: sourceNames ? `Notes: ${sourceNames}` : 'Study Notes',
             depth: 'deep',
             tone: 'professional',
@@ -637,6 +690,7 @@ const Vault = () => {
         }
         const data = await response.json();
         if (data?.id) {
+          recordDocActions(validDocIds, 'notes');
           navigate(`/notes/editor/${data.id}`);
         } else {
           alert('Notes were generated, but opening the editor failed.');
@@ -648,14 +702,20 @@ const Vault = () => {
       }
       return;
     }
+
+    recordDocActions(validDocIds, 'roadmap');
     navigate('/knowledge-roadmap', {
       state: {
-        contextDocIds: selectedFileIds,
+        contextDocIds: validDocIds,
         sourceSummary: sourceNames,
         autoCreateFromContext: true,
       },
     });
-  }, [bulkActionLoading, navigate, persistSelectedDocs, selectedFileIds, selectedUserDocs]);
+  }, [bulkActionLoading, navigate, persistSelectedDocs, recordDocActions]);
+
+  const openSelectedDocsAction = useCallback((target) => {
+    runContextAction(target, selectedFileIds, selectedUserDocs);
+  }, [runContextAction, selectedFileIds, selectedUserDocs]);
 
   // ── Stats ──
   const stats = useMemo(() => ({
@@ -1373,9 +1433,24 @@ const Vault = () => {
                 const selected = selectedFileIds.includes(id);
                 const progress = docProgressMap[id];
                 return (
-                  <div key={id} className={`vlt-file-row ${sel ? 'vlt-file-row--decked' : ''} ${selected ? 'vlt-file-row--selected' : ''}`}>
+                  <div
+                    key={id}
+                    className={`vlt-file-row ${sel ? 'vlt-file-row--decked' : ''} ${selected ? 'vlt-file-row--selected' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/contexthub/file/${encodeURIComponent(String(id))}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/contexthub/file/${encodeURIComponent(String(id))}`);
+                      }
+                    }}
+                  >
                     <div className="vlt-file-select-cell">
-                      <button className={`vlt-select-btn ${selected ? 'active' : ''}`} onClick={() => toggleFileSelection(id)}>
+                      <button
+                        className={`vlt-select-btn ${selected ? 'active' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); toggleFileSelection(id); }}
+                      >
                         {selected ? <CheckSquare size={13} /> : <Square size={13} />}
                       </button>
                     </div>
@@ -1388,7 +1463,12 @@ const Vault = () => {
                         : <span className="vlt-file-muted">General</span>}
                     </div>
                     <div className="vlt-file-folder-cell">
-                      <select value={doc.folder_id || ''} onChange={(e) => handleMoveDocument(id, e.target.value)} disabled={movingDocId === id}>
+                      <select
+                        value={doc.folder_id || ''}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => handleMoveDocument(id, e.target.value)}
+                        disabled={movingDocId === id}
+                      >
                         <option value="">Uncategorized</option>
                         {flatFolders.map((folder) => (
                           <option key={`doc-folder-${id}-${folder.id}`} value={folder.id}>{' '.repeat(folder.depth * 2)}{folder.name}</option>
@@ -1409,12 +1489,18 @@ const Vault = () => {
                     </div>
                     <div className="vlt-file-chunks-cell">{doc.chunk_count || 0}</div>
                     <div className="vlt-file-actions-cell">
-                      <button className={`vlt-doc-deck-btn ${sel ? 'vlt-doc-deck-btn--remove' : ''}`}
-                        onClick={() => sel ? removeFromDeck(id) : addToDeck(id)}
-                        disabled={!sel && deckIds.length >= DECK_SIZE}>
+                      <button
+                        className={`vlt-doc-deck-btn ${sel ? 'vlt-doc-deck-btn--remove' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); sel ? removeFromDeck(id) : addToDeck(id); }}
+                        disabled={!sel && deckIds.length >= DECK_SIZE}
+                      >
                         {sel ? <X size={11} /> : <Plus size={11} />}{sel ? 'Remove' : 'Add'}
                       </button>
-                      <button className="vlt-doc-del-btn" onClick={() => handleDelete(id, name)} disabled={deleting === id}>
+                      <button
+                        className="vlt-doc-del-btn"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(id, name); }}
+                        disabled={deleting === id}
+                      >
                         {deleting === id ? <Loader2 size={12} className="vlt-spin" /> : <Trash2 size={12} />}
                       </button>
                     </div>
