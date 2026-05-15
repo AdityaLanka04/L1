@@ -1437,7 +1437,7 @@
 /* Full-width heatmap row */
 .cb-heat-full {
   width: 100%;
-  min-height: 220px;
+  min-height: 0;
   padding: 18px 24px 22px;
   margin-top: 0;
   display: flex;
@@ -1493,81 +1493,140 @@
   text-transform: uppercase;
 }
 
-/* Heatmap */
+/* ── HEATMAP — GitHub-style ───────────────────────────────── */
+
+/* Outer wrapper: column, centered */
+.cb-heat-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 18px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+/* Month labels row */
+.cb-heat-top {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 4px;
+}
+
+.cb-heat-day-pad {
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.cb-heat-month-row {
+  display: flex;
+  gap: 3px;
+}
+
+.cb-heat-month-slot {
+  width: 14px;
+  flex-shrink: 0;
+  position: relative;
+  height: 16px;
+}
+
+.cb-heat-month-lbl {
+  position: absolute;
+  left: 0;
+  bottom: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--cb-mute);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Body: day labels + grid side by side */
+.cb-heat-body {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+/* Day-of-week labels */
+.cb-heat-days {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 26px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.cb-heat-day-lbl {
+  height: 14px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--cb-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Week columns grid */
 .cb-heat-grid {
   display: flex;
   gap: 3px;
-  margin-top: 8px;
   overflow-x: auto;
-  padding-bottom: 6px;
-}
-
-.cb-heat-full .cb-heat-grid {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: stretch;
-  gap: 4px;
-  margin-top: 14px;
-  overflow: hidden;
 }
 
 .cb-heat-col {
   display: flex;
   flex-direction: column;
   gap: 3px;
-}
-
-.cb-heat-full .cb-heat-col {
-  flex: 1 1 0;
-  min-width: 0;
-  gap: 4px;
-}
-
-.cb-heat-cell {
-  width: 11px;
-  height: 11px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.04);
   flex-shrink: 0;
 }
 
-.cb-heat-full .cb-heat-col .cb-heat-cell {
-  width: 100%;
-  height: 18px;
+/* Individual cells — 14×14 squares */
+.cb-heat-cell {
+  width: 14px;
+  height: 14px;
   border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  transition: opacity 120ms;
 }
+.cb-heat-cell:hover { opacity: 0.75; }
 
-.cb-heat-legend .cb-heat-cell {
-  width: 11px;
-  height: 11px;
-  border-radius: 2px;
-}
-
-.cb-heat-cell.cb-l1 { background: color-mix(in srgb, var(--accent) 25%, transparent); }
-.cb-heat-cell.cb-l2 { background: color-mix(in srgb, var(--accent) 45%, transparent); }
-.cb-heat-cell.cb-l3 { background: color-mix(in srgb, var(--accent) 70%, transparent); }
-.cb-heat-cell.cb-l4 { background: var(--accent); }
+/* Activity levels */
+.cb-heat-cell.cb-l0 { background: rgba(255, 255, 255, 0.06); }
+.cb-heat-cell.cb-l1 { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+.cb-heat-cell.cb-l2 { background: color-mix(in srgb, var(--accent) 50%, transparent); }
+.cb-heat-cell.cb-l3 { background: color-mix(in srgb, var(--accent) 74%, transparent); }
+.cb-heat-cell.cb-l4 { background: var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 40%, transparent); }
 
 .cb-heat-empty {
   width: 100%;
   text-align: center;
   font-size: 12px;
-  font-weight: 400;
   color: var(--cb-faint);
-  padding: 30px 0;
+  padding: 40px 0;
+  margin-top: 12px;
 }
 
+/* Legend */
 .cb-heat-legend {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: auto;
+  margin-top: 14px;
   font-size: 10px;
   font-weight: 500;
   color: var(--cb-faint);
   letter-spacing: 0.04em;
+}
+
+.cb-heat-legend .cb-heat-cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
 }
 
 /* Rings */

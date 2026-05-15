@@ -1337,21 +1337,56 @@ const DashboardCerbyl = () => {
               <span className="cb-panel-title">Heatmap</span>
               <span className="cb-panel-sub">Activity over the last year</span>
             </div>
-            <div className="cb-heat-grid">
-              {heatmapWeeks.length === 0 ? (
-                <div className="cb-heat-empty">No activity yet</div>
-              ) : heatmapWeeks.map((week, wi) => (
-                <div className="cb-heat-col" key={wi}>
-                  {week.map((d, di) => (
-                    <span
-                      key={di}
-                      className={`cb-heat-cell cb-l${d.level || 0}`}
-                      title={d ? `${d.date}: ${d.count}` : ''}
-                    />
-                  ))}
+
+            {heatmapWeeks.length === 0 ? (
+              <div className="cb-heat-empty">No activity yet</div>
+            ) : (
+              <div className="cb-heat-wrapper">
+                {/* Month labels row */}
+                <div className="cb-heat-top">
+                  <div className="cb-heat-day-pad" />
+                  <div className="cb-heat-month-row">
+                    {heatmapWeeks.map((week, wi) => {
+                      const monthLabel = week.reduce((found, d) => {
+                        if (found || !d.date) return found;
+                        const dt = new Date(d.date);
+                        return dt.getDate() === 1
+                          ? dt.toLocaleString('default', { month: 'short' })
+                          : null;
+                      }, null);
+                      return (
+                        <div key={wi} className="cb-heat-month-slot">
+                          {monthLabel && <span className="cb-heat-month-lbl">{monthLabel}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Day labels + grid */}
+                <div className="cb-heat-body">
+                  <div className="cb-heat-days">
+                    {['', 'Mon', '', 'Wed', '', 'Fri', ''].map((d, i) => (
+                      <span key={i} className="cb-heat-day-lbl">{d}</span>
+                    ))}
+                  </div>
+                  <div className="cb-heat-grid">
+                    {heatmapWeeks.map((week, wi) => (
+                      <div className="cb-heat-col" key={wi}>
+                        {week.map((d, di) => (
+                          <span
+                            key={di}
+                            className={`cb-heat-cell cb-l${d.level || 0}`}
+                            title={d.date ? `${d.date} · ${d.count} session${d.count !== 1 ? 's' : ''}` : ''}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="cb-heat-legend">
               <span>less</span>
               <span className="cb-heat-cell cb-l0"/>
