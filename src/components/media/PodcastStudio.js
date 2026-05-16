@@ -232,13 +232,12 @@ const rankPreferredVoices = (voices) => {
   const isEnglish = (voice) => voice.lang?.toLowerCase().startsWith('en');
   const isEnglishUS = (voice) => voice.lang?.toLowerCase().startsWith('en-us');
   const isGoogle = (voice) => voice.name?.toLowerCase().includes('google');
+  const googleVoices = voices.filter((voice) => isGoogle(voice));
 
   const sorted = [
-    ...voices.filter((voice) => isGoogle(voice) && isEnglishUS(voice)),
-    ...voices.filter((voice) => isGoogle(voice) && isEnglish(voice)),
-    ...voices.filter((voice) => isEnglishUS(voice)),
-    ...voices.filter((voice) => isEnglish(voice)),
-    ...voices,
+    ...googleVoices.filter((voice) => isEnglishUS(voice)),
+    ...googleVoices.filter((voice) => isEnglish(voice)),
+    ...googleVoices,
   ];
 
   const seen = new Set();
@@ -697,9 +696,10 @@ const PodcastStudio = ({ results, userName, onExit }) => {
 
     const loadVoices = async () => {
       const list = synth.getVoices() || [];
-      setVoices(list);
-      if (!selectedVoiceUri && list.length > 0) {
-        const ranked = rankPreferredVoices(list);
+      const ranked = rankPreferredVoices(list);
+
+      setVoices(ranked);
+      if (!selectedVoiceUri && ranked.length > 0) {
         for (const voice of ranked) {
           // Ensure selected voice supports boundary events for word-by-word sync.
           // eslint-disable-next-line no-await-in-loop
@@ -710,9 +710,12 @@ const PodcastStudio = ({ results, userName, onExit }) => {
             return;
           }
         }
-        if (!cancelled) {
+        if (!cancelled && ranked[0]) {
           setSelectedVoiceUri(ranked[0].voiceURI);
         }
+      }
+      if (!ranked.length && !cancelled) {
+        setSelectedVoiceUri('');
       }
     };
 
@@ -1725,7 +1728,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
                 <div className="podcast-setting-row">
                   <label>Voice</label>
                   <select value={selectedVoiceUri} onChange={(e) => setSelectedVoiceUri(e.target.value)} disabled={!speechSupported || voices.length === 0}>
-                    {voices.length === 0 && <option value="">No voices available</option>}
+                    {voices.length === 0 && <option value="">No Google voices available</option>}
                     {voices.map((v) => <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>)}
                   </select>
                 </div>

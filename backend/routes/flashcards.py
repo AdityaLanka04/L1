@@ -9,10 +9,14 @@ from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 import models
-from deps import call_ai, get_current_user, get_db, get_user_by_email, get_user_by_username, unified_ai
+from deps import call_ai, enforce_request_user_scope, get_current_user, get_db, get_user_by_email, get_user_by_username, unified_ai
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["flashcards"])
+router = APIRouter(
+    prefix="/api",
+    tags=["flashcards"],
+    dependencies=[Depends(enforce_request_user_scope)],
+)
 
 class FlashcardReviewRequest(BaseModel):
     user_id: str

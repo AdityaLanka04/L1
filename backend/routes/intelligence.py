@@ -25,10 +25,14 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import get_user_by_email, get_user_by_username, verify_token
+from deps import enforce_request_user_scope, get_user_by_email, get_user_by_username, verify_token
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/intelligence", tags=["intelligence"])
+router = APIRouter(
+    prefix="/api/intelligence",
+    tags=["intelligence"],
+    dependencies=[Depends(enforce_request_user_scope)],
+)
 
 
 def _resolve_user(db: Session, user_id: str) -> models.User:

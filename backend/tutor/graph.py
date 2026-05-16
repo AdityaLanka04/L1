@@ -51,14 +51,17 @@ class TutorGraph:
         use_hs_context: bool = True,
         ml_addendum: str = "",
         context_doc_ids: list = None,
+        context_only: bool = False,
     ) -> dict:
+        selected_doc_ids = context_doc_ids or []
         initial_state: TutorState = {
             "user_id": user_id,
             "user_input": user_input,
             "chat_id": chat_id,
             "chat_history": chat_history or [],
             "use_hs_context": use_hs_context,
-            "context_doc_ids": context_doc_ids or [],
+            "context_doc_ids": selected_doc_ids,
+            "context_only": bool(context_only or selected_doc_ids),
             "intelligence_context": ml_addendum or None,
             "_ai_client": self.ai_client,
             "_hs_ai_client": self.hs_ai_client,

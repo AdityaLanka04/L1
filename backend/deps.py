@@ -1,11 +1,13 @@
 import os
 import logging
 from datetime import datetime, timezone, timedelta
+import json
+from typing import Any, Iterable
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -28,6 +30,7 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 ph = PasswordHasher()
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 GEMINI_API_KEY = os.getenv("GOOGLE_GENERATIVE_AI_KEY") or os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -116,6 +119,113 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(verify_
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+def get_current_user_optional(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(optional_security),
+):
+    if credentials is None or not credentials.credentials:
+        return None
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            audience=JWT_AUDIENCE,
+            issuer=JWT_ISSUER,
+        )
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+    username: str = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if not user:
+        user = db.query(models.User).filter(models.User.email == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+def _iter_user_scope_values(payload: Any, keys: set[str], depth: int = 0) -> Iterable[str]:
+    if payload is None or depth > 4:
+        return
+    if isinstance(payload, dict):
+        for k, v in payload.items():
+            if k in keys and v is not None:
+                if isinstance(v, (list, tuple, set)):
+                    for item in v:
+                        if item is not None:
+                            yield str(item)
+                else:
+                    yield str(v)
+            if isinstance(v, (dict, list, tuple)):
+                yield from _iter_user_scope_values(v, keys, depth + 1)
+    elif isinstance(payload, (list, tuple)):
+        for item in payload[:200]:
+            if isinstance(item, (dict, list, tuple)):
+                yield from _iter_user_scope_values(item, keys, depth + 1)
+
+async def enforce_request_user_scope(
+    request: Request,
+    current_user: models.User = Depends(get_current_user_optional),
+):
+    """
+    Enforce ownership for legacy endpoints that still pass user identifiers in requests.
+    If request carries user_id/student_id identifiers, a valid token must be present and
+    the identifier must match the authenticated user.
+    """
+    keys = {"user_id", "user_id_param", "student_id"}
+    candidates: list[str] = []
+
+    for key in keys:
+        path_val = request.path_params.get(key)
+        if path_val is not None:
+            candidates.append(str(path_val))
+        query_vals = request.query_params.getlist(key)
+        candidates.extend([str(v) for v in query_vals if v is not None])
+
+    content_type = (request.headers.get("content-type") or "").lower()
+
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+            candidates.extend(list(_iter_user_scope_values(body, keys)))
+        except (json.JSONDecodeError, ValueError, RuntimeError):
+            pass
+    elif "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        try:
+            form_data = await request.form()
+            for key in keys:
+                for value in form_data.getlist(key):
+                    if value is not None:
+                        candidates.append(str(value))
+        except Exception:
+            pass
+
+    normalized_candidates = [c.strip() for c in candidates if isinstance(c, str) and c.strip()]
+    if not normalized_candidates:
+        return None
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    allowed_exact = {
+        str(current_user.id).strip(),
+    }
+    allowed_lower = {
+        (current_user.username or "").strip().lower(),
+        (current_user.email or "").strip().lower(),
+    }
+
+    for requested in normalized_candidates:
+        if requested in allowed_exact:
+            continue
+        if requested.lower() in allowed_lower:
+            continue
+        raise HTTPException(status_code=403, detail="Access denied")
+    return current_user
 
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()

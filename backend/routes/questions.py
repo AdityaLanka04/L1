@@ -10,12 +10,23 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username, unified_ai
+from deps import (
+    call_ai,
+    enforce_request_user_scope,
+    get_current_user,
+    get_user_by_email,
+    get_user_by_username,
+    unified_ai,
+)
 from services.ai_json_parser import parse_json_array_response
 from services.math_processor import process_math_in_response
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["questions"])
+router = APIRouter(
+    prefix="/api",
+    tags=["questions"],
+    dependencies=[Depends(enforce_request_user_scope)],
+)
 
 def _looks_like_filename_topic(topic: str) -> bool:
     t = (topic or "").strip().lower()
@@ -27,6 +38,10 @@ def _looks_like_filename_topic(topic: str) -> bool:
         return True
     return False
 
+def _topic_concept_id(topic: str) -> str:
+    cleaned = re.sub(r"[^a-z0-9]+", "_", (topic or "").strip().lower()).strip("_")
+    return f"topic::{(cleaned or 'general')[:120]}"
+
 def _clean_chunk_text(text: str) -> str:
     clean = (text or "").replace("\u0000", " ").strip()
     clean = re.sub(r"\(cid:\d+\)", " ", clean)
@@ -34,7 +49,13 @@ def _clean_chunk_text(text: str) -> str:
     clean = re.sub(r"\n{3,}", "\n\n", clean)
     return clean.strip()
 
-def _collect_context_doc_content(db: Session, user_id: int, doc_ids: list[str], max_chars: int = 24000) -> tuple[str, str]:
+def _collect_context_doc_content(
+    db: Session,
+    user_id: int,
+    doc_ids: list[str],
+    max_chars: int = 24000,
+    focus_topic: str = "",
+) -> tuple[str, str]:
     """
     Returns:
       (content_text, inferred_topic)
@@ -62,6 +83,62 @@ def _collect_context_doc_content(db: Session, user_id: int, doc_ids: list[str], 
     else:
         first_name = (docs[0].filename or docs[0].doc_id or "Selected context").strip()
         inferred_topic = re.sub(r"\.[A-Za-z0-9]+$", "", first_name).replace("_", " ").replace("-", " ").strip()
+
+    focused_topic = (focus_topic or "").strip()
+    if focused_topic:
+        try:
+            from services import context_store
+        except Exception:
+            context_store = None
+
+        if context_store and context_store.available():
+            try:
+                ranked = context_store.search_context(
+                    query=focused_topic,
+                    user_id=str(user_id),
+                    use_hs=False,
+                    top_k=min(max(len(doc_ids) * 6, 8), 36),
+                    doc_ids=doc_ids,
+                )
+            except Exception:
+                ranked = []
+
+            if ranked:
+                grouped: dict[str, list[str]] = {d.doc_id: [] for d in docs}
+                for row in ranked:
+                    md = row.get("metadata") if isinstance(row, dict) else {}
+                    if not isinstance(md, dict):
+                        md = {}
+                    did = str(md.get("doc_id") or "").strip()
+                    if did not in grouped:
+                        continue
+                    txt = _clean_chunk_text(str(row.get("text") or ""))
+                    if not txt:
+                        continue
+                    txt = txt[:1600]
+                    if txt in grouped[did]:
+                        continue
+                    if len(grouped[did]) >= 12:
+                        continue
+                    grouped[did].append(txt)
+
+                focused_blocks: list[str] = []
+                used = 0
+                for doc in docs:
+                    lines = grouped.get(doc.doc_id, [])
+                    if not lines:
+                        continue
+                    block = f"[{doc.filename or doc.doc_id}]\n" + "\n\n".join(lines)
+                    if used + len(block) > max_chars:
+                        remaining = max_chars - used
+                        if remaining > 800:
+                            focused_blocks.append(block[:remaining])
+                        break
+                    focused_blocks.append(block)
+                    used += len(block)
+
+                if focused_blocks:
+                    return "\n\n".join(focused_blocks).strip(), inferred_topic
 
     try:
         from services import vector_store as vs
@@ -204,7 +281,12 @@ async def generate_practice_questions(
         )
 
         if doc_ids_list:
-            merged_content, inferred_topic = _collect_context_doc_content(db, user.id, doc_ids_list)
+            merged_content, inferred_topic = _collect_context_doc_content(
+                db,
+                user.id,
+                doc_ids_list,
+                focus_topic=topic,
+            )
             if merged_content:
                 content = merged_content
                 if not topic or _looks_like_filename_topic(topic):
@@ -635,7 +717,9 @@ def delete_question_set(
 
 @router.post("/submit_question_answers")
 async def submit_question_answers(
-    payload: dict = Body(...), db: Session = Depends(get_db)
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         question_set_id = payload.get("question_set_id")
@@ -643,7 +727,10 @@ async def submit_question_answers(
 
         question_set = (
             db.query(models.QuestionSet)
-            .filter(models.QuestionSet.id == question_set_id)
+            .filter(
+                models.QuestionSet.id == question_set_id,
+                models.QuestionSet.user_id == current_user.id,
+            )
             .first()
         )
 
@@ -782,8 +869,9 @@ async def submit_question_answers(
                     student_id=str(question_set.user_id),
                     source="quiz",
                     event_type="completed",
-                    concept_id=str(question_set_id),
+                    concept_id=_topic_concept_id(topic),
                     concept_name=topic[:100],
+                    correct=score >= 70,
                     score=score / 100.0,
                     wrong_questions=incorrect_count,
                     time_seconds=0,
@@ -808,11 +896,18 @@ async def submit_question_answers(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_question_set_details/{question_set_id}")
-def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)):
+def get_question_set_details(
+    question_set_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     try:
         question_set = (
             db.query(models.QuestionSet)
-            .filter(models.QuestionSet.id == question_set_id)
+            .filter(
+                models.QuestionSet.id == question_set_id,
+                models.QuestionSet.user_id == current_user.id,
+            )
             .first()
         )
 
@@ -853,7 +948,9 @@ def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)
 
 @router.post("/submit_learning_response")
 async def submit_learning_response(
-    payload: dict = Body(...), db: Session = Depends(get_db)
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         review_id = payload.get("review_id")
@@ -865,7 +962,10 @@ async def submit_learning_response(
 
         review = (
             db.query(models.LearningReview)
-            .filter(models.LearningReview.id == review_id)
+            .filter(
+                models.LearningReview.id == review_id,
+                models.LearningReview.user_id == current_user.id,
+            )
             .first()
         )
 
@@ -1028,11 +1128,18 @@ def get_generated_questions(user_id: str = Query(...), db: Session = Depends(get
         return {"question_sets": []}
 
 @router.get("/get_question_set/{question_set_id}")
-def get_question_set_with_questions(question_set_id: int, db: Session = Depends(get_db)):
+def get_question_set_with_questions(
+    question_set_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     try:
         question_set = (
             db.query(models.QuestionSet)
-            .filter(models.QuestionSet.id == question_set_id)
+            .filter(
+                models.QuestionSet.id == question_set_id,
+                models.QuestionSet.user_id == current_user.id,
+            )
             .first()
         )
 
@@ -1069,19 +1176,22 @@ def get_question_set_with_questions(question_set_id: int, db: Session = Depends(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/submit_answers")
-async def submit_answers(payload: dict = Body(...), db: Session = Depends(get_db)):
+async def submit_answers(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     try:
-        user_id = payload.get("user_id")
         question_set_id = payload.get("question_set_id")
         answers = payload.get("answers", {})
-
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        user = current_user
 
         question_set = (
             db.query(models.QuestionSet)
-            .filter(models.QuestionSet.id == question_set_id)
+            .filter(
+                models.QuestionSet.id == question_set_id,
+                models.QuestionSet.user_id == current_user.id,
+            )
             .first()
         )
 
@@ -1158,10 +1268,20 @@ async def submit_answers(payload: dict = Body(...), db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_hints/{question_id}")
-def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
+def get_hints_for_question(
+    question_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     try:
         question = (
-            db.query(models.Question).filter(models.Question.id == question_id).first()
+            db.query(models.Question)
+            .join(models.QuestionSet, models.Question.question_set_id == models.QuestionSet.id)
+            .filter(
+                models.Question.id == question_id,
+                models.QuestionSet.user_id == current_user.id,
+            )
+            .first()
         )
 
         if not question:

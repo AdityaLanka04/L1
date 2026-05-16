@@ -10,6 +10,7 @@ import models
 from database import get_db
 from deps import (
     call_ai,
+    enforce_request_user_scope,
     get_comprehensive_profile_safe,
     get_current_user,
     get_user_by_email,
@@ -17,7 +18,11 @@ from deps import (
 )
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["reviews"])
+router = APIRouter(
+    prefix="/api",
+    tags=["reviews"],
+    dependencies=[Depends(enforce_request_user_scope)],
+)
 
 @router.get("/get_learning_reviews")
 def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -192,13 +197,15 @@ async def create_learning_review(
 async def update_learning_review(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         review_id = payload.get("review_id")
         slide_ids = payload.get("slide_ids", [])
 
         review = db.query(models.LearningReview).filter(
-            models.LearningReview.id == review_id
+            models.LearningReview.id == review_id,
+            models.LearningReview.user_id == current_user.id,
         ).first()
 
         if not review:
@@ -206,7 +213,8 @@ async def update_learning_review(
 
         if slide_ids:
             slides = db.query(models.UploadedSlide).filter(
-                models.UploadedSlide.id.in_(slide_ids)
+                models.UploadedSlide.id.in_(slide_ids),
+                models.UploadedSlide.user_id == current_user.id,
             ).all()
 
             slide_content = ""
@@ -238,11 +246,21 @@ async def update_learning_review(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get_hints/{question_id}")
-def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
+def get_hints_for_question(
+    question_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     try:
-        question = db.query(models.Question).filter(
-            models.Question.id == question_id
-        ).first()
+        question = (
+            db.query(models.Question)
+            .join(models.QuestionSet, models.Question.question_set_id == models.QuestionSet.id)
+            .filter(
+                models.Question.id == question_id,
+                models.QuestionSet.user_id == current_user.id,
+            )
+            .first()
+        )
 
         if not question:
             raise HTTPException(status_code=404, detail="Question not found")
@@ -278,18 +296,16 @@ def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
 async def submit_review_response(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user_id = payload.get("user_id")
         review_id = payload.get("review_id")
         response_text = payload.get("response_text", "")
-
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        user = current_user
 
         review = db.query(models.LearningReview).filter(
-            models.LearningReview.id == review_id
+            models.LearningReview.id == review_id,
+            models.LearningReview.user_id == current_user.id,
         ).first()
 
         if not review:

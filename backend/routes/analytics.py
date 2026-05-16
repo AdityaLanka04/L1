@@ -21,6 +21,7 @@ from database import get_db
 from deps import (
     call_ai,
     calculate_day_streak,
+    enforce_request_user_scope,
     get_comprehensive_profile_safe,
     get_current_user,
     get_user_by_email,
@@ -30,7 +31,11 @@ from deps import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api", tags=["analytics"])
+router = APIRouter(
+    prefix="/api",
+    tags=["analytics"],
+    dependencies=[Depends(enforce_request_user_scope)],
+)
 
 @router.get("/get_enhanced_user_stats")
 def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get_db)):

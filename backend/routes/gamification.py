@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 import models
 from deps import (
     calculate_day_streak,
+    enforce_request_user_scope,
     get_current_user,
     get_db,
     get_user_by_email,
@@ -15,7 +16,11 @@ from deps import (
 )
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["gamification"])
+router = APIRouter(
+    prefix="/api",
+    tags=["gamification"],
+    dependencies=[Depends(enforce_request_user_scope)],
+)
 
 @router.get("/get_user_achievements")
 def get_user_achievements(user_id: str = Query(...), db: Session = Depends(get_db)):

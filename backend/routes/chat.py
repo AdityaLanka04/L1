@@ -14,13 +14,8 @@ from sqlalchemy.orm import Session
 import models
 from deps import (
     call_ai,
-    get_comprehensive_profile_safe,
     get_current_user,
     get_db,
-    get_user_by_email,
-    get_user_by_username,
-    unified_ai,
-    verify_token,
 )
 
 CHAT_UPLOAD_DIR = Path("uploads/chat_images")
@@ -32,6 +27,71 @@ _MAX_IMAGES_PER_MESSAGE = 10
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
+
+def _assert_user_matches_request(user_id: Optional[str], current_user: models.User) -> None:
+    """
+    Backward-compatible guard for endpoints that still receive user_id from clients.
+    Ensures callers can only act on their own account.
+    """
+    if user_id is None:
+        return
+    requested = str(user_id).strip().lower()
+    allowed = {
+        (current_user.username or "").strip().lower(),
+        (current_user.email or "").strip().lower(),
+    }
+    if requested and requested not in allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+
+def _context_only_fallback_answer(user_id: str, question: str, context_doc_ids: list[str]) -> str:
+    """
+    Generate a strictly context-grounded response from selected documents only.
+    Used as a safe fallback when tutor graph isn't available.
+    """
+    selected_ids = [str(d).strip() for d in (context_doc_ids or []) if str(d).strip()]
+    if not selected_ids:
+        return call_ai(question)
+
+    try:
+        from services import context_store
+        if not context_store.available():
+            return (
+                "Selected context retrieval is unavailable right now, so I can't answer "
+                "strictly from the chosen context documents."
+            )
+
+        q = (question or "").strip() or "Summarize the selected context."
+        results = context_store.search_context(
+            query=q,
+            user_id=str(user_id),
+            use_hs=False,
+            top_k=8,
+            doc_ids=selected_ids,
+        )
+        chunks = [r.get("text", "").strip() for r in results if r.get("text")]
+        if not chunks:
+            return (
+                "I couldn’t find enough relevant information in the selected context documents "
+                "to answer that. Please select more relevant context pages/files and try again."
+            )
+
+        context_blob = "\n\n".join(f"--- Chunk {i+1} ---\n{c}" for i, c in enumerate(chunks[:6]))
+        prompt = (
+            "You are a tutor in STRICT CONTEXT-ONLY mode.\n"
+            "Use only the provided context chunks.\n"
+            "Do not use outside knowledge.\n"
+            "If the answer is not supported by these chunks, say so clearly.\n\n"
+            f"Question:\n{q}\n\n"
+            f"Selected context chunks:\n{context_blob}\n"
+        )
+        return call_ai(prompt)
+    except Exception as e:
+        logger.warning(f"Context-only fallback failed: {e}")
+        return (
+            "I couldn't complete a context-only answer right now. "
+            "Please try again in a moment."
+        )
 
 class ChatSessionCreate(BaseModel):
     user_id: str
@@ -64,14 +124,14 @@ async def ask_ai(
     use_hs_context: bool = Form(True),
     context_doc_ids: Optional[str] = Form(None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         selected_doc_ids = [x.strip() for x in (context_doc_ids or "").split(",") if x.strip()][:200]
         chat_id_int = int(chat_id) if chat_id else None
 
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         logger.info(
             f"[CHAT ROUTE] message | user={user.id} "
@@ -212,6 +272,7 @@ async def ask_ai(
                 chat_history=chat_history_for_tutor,
                 use_hs_context=bool(use_hs_context),
                 context_doc_ids=selected_doc_ids,
+                context_only=bool(selected_doc_ids),
                 ml_addendum=ml_addendum,
             )
             response_text = result.get("response", "")
@@ -221,7 +282,7 @@ async def ask_ai(
             except Exception:
                 pass
         else:
-            response_text = call_ai(question)
+            response_text = _context_only_fallback_answer(str(user.id), question, selected_doc_ids)
 
         if ml_output:
             try:
@@ -256,7 +317,8 @@ async def ask_ai(
             db.add(msg)
 
             session = db.query(models.ChatSession).filter(
-                models.ChatSession.id == chat_id_int
+                models.ChatSession.id == chat_id_int,
+                models.ChatSession.user_id == user.id,
             ).first()
             if session:
                 session.updated_at = datetime.now(timezone.utc)
@@ -325,22 +387,24 @@ async def ask_simple(
     use_hs_context: bool = Form(True),
     context_doc_ids: Optional[str] = Form(None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         selected_doc_ids = [x.strip() for x in (context_doc_ids or "").split(",") if x.strip()][:200]
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            return {
-                "answer": "Please log in again - your session may have expired.",
-                "ai_confidence": 0.0,
-                "topics_discussed": ["error"],
-                "query_type": "error",
-            }
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         chat_id_int = int(chat_id) if chat_id else None
 
         chat_history = []
         if chat_id_int:
+            chat_session = db.query(models.ChatSession).filter(
+                models.ChatSession.id == chat_id_int,
+                models.ChatSession.user_id == user.id,
+            ).first()
+            if not chat_session:
+                raise HTTPException(status_code=404, detail="Chat session not found")
+
             recent_msgs = (
                 db.query(models.ChatMessage)
                 .filter(models.ChatMessage.chat_session_id == chat_id_int)
@@ -364,6 +428,7 @@ async def ask_simple(
                 chat_history=chat_history,
                 use_hs_context=bool(use_hs_context),
                 context_doc_ids=selected_doc_ids,
+                context_only=bool(selected_doc_ids),
             )
             response_text = result.get("response", "")
             try:
@@ -372,7 +437,7 @@ async def ask_simple(
             except Exception:
                 pass
         else:
-            response_text = call_ai(question)
+            response_text = _context_only_fallback_answer(str(user.id), question, selected_doc_ids)
 
         if chat_id_int:
             msg = models.ChatMessage(
@@ -385,7 +450,8 @@ async def ask_simple(
             db.add(msg)
 
             session = db.query(models.ChatSession).filter(
-                models.ChatSession.id == chat_id_int
+                models.ChatSession.id == chat_id_int,
+                models.ChatSession.user_id == user.id,
             ).first()
             if session:
                 session.updated_at = datetime.now(timezone.utc)
@@ -426,6 +492,8 @@ async def ask_simple(
             "query_type":    "conversational_learning",
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in /api/ask_simple/: {e}", exc_info=True)
         return {
@@ -444,6 +512,7 @@ async def ask_with_files(
     context_doc_ids: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     """
     Handle chat messages that include image uploads or pastes.
@@ -452,16 +521,18 @@ async def ask_with_files(
     """
     try:
         selected_doc_ids = [x.strip() for x in (context_doc_ids or "").split(",") if x.strip()][:200]
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            return {
-                "answer": "Please log in again — your session may have expired.",
-                "ai_confidence": 0.0,
-                "topics_discussed": ["error"],
-                "query_type": "error",
-            }
+        context_only_mode = bool(selected_doc_ids)
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         chat_id_int = int(chat_id) if chat_id else None
+        if chat_id_int:
+            chat_session = db.query(models.ChatSession).filter(
+                models.ChatSession.id == chat_id_int,
+                models.ChatSession.user_id == user.id,
+            ).first()
+            if not chat_session:
+                raise HTTPException(status_code=404, detail="Chat session not found")
 
         # ── Read & validate uploaded files ────────────────────────────────────
         image_payloads: list[dict] = []   # for vision API
@@ -541,7 +612,7 @@ async def ask_with_files(
         from services.ai_utils import NoVisionProviderError
         ai_client = _unified_ai
 
-        if ai_client and image_payloads:
+        if ai_client and image_payloads and not context_only_mode:
             try:
                 response_text = ai_client.generate_with_images(
                     prompt=enriched_question,
@@ -560,7 +631,7 @@ async def ask_with_files(
         # the vision-unavailable case where we still want to answer the question)
         if not response_text:
             tutor_input = question.strip() or "What can you help me with?"
-            if text_extracts:
+            if text_extracts and not context_only_mode:
                 tutor_input += "\n\n" + "\n\n".join(text_extracts)
             try:
                 from tutor.graph import get_tutor
@@ -573,13 +644,14 @@ async def ask_with_files(
                         chat_history=chat_history,
                         use_hs_context=bool(use_hs_context),
                         context_doc_ids=selected_doc_ids,
+                        context_only=bool(selected_doc_ids),
                     )
                     response_text = result.get("response", "")
                 else:
-                    response_text = call_ai(tutor_input)
+                    response_text = _context_only_fallback_answer(str(user.id), tutor_input, selected_doc_ids)
             except Exception as e:
                 logger.error(f"Tutor graph failed in ask_with_files: {e}")
-                response_text = call_ai(tutor_input)
+                response_text = _context_only_fallback_answer(str(user.id), tutor_input, selected_doc_ids)
 
             # Append a single honest note if vision was requested but not available
             if vision_unavailable and image_payloads:
@@ -607,7 +679,8 @@ async def ask_with_files(
             db.add(msg)
 
             session = db.query(models.ChatSession).filter(
-                models.ChatSession.id == chat_id_int
+                models.ChatSession.id == chat_id_int,
+                models.ChatSession.user_id == user.id,
             ).first()
             if session:
                 session.updated_at = datetime.now(timezone.utc)
@@ -650,6 +723,8 @@ async def ask_with_files(
             "ai_provider":     ai_provider,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in /api/ask_with_files/: {e}", exc_info=True)
         return {
@@ -843,9 +918,14 @@ async def get_chat_history(
     }
 
 @router.post("/save_chat_message")
-def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_db)):
+def save_chat_message(
+    message_data: ChatMessageSave,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     chat_session = db.query(models.ChatSession).filter(
-        models.ChatSession.id == message_data.chat_id
+        models.ChatSession.id == message_data.chat_id,
+        models.ChatSession.user_id == current_user.id,
     ).first()
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
@@ -861,6 +941,7 @@ def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_d
 
     chat_message = models.ChatMessage(
         chat_session_id=message_data.chat_id,
+        user_id=current_user.id,
         user_message=message_data.user_message,
         ai_response=message_data.ai_response,
         is_user=True,
@@ -926,10 +1007,10 @@ async def submit_response_feedback(
     rating: int = Form(...),
     message_context: str = Form(None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    _assert_user_matches_request(user_id, current_user)
+    user = current_user
 
     feedback = models.UserFeedback(
         user_id=user.id,
@@ -951,10 +1032,10 @@ async def submit_advanced_feedback(
     improvement_suggestion: str = Form(None),
     message_content: str = Form(None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    _assert_user_matches_request(user_id, current_user)
+    user = current_user
 
     feedback = models.UserFeedback(
         user_id=user.id,
@@ -970,14 +1051,22 @@ async def submit_advanced_feedback(
     return {"status": "success", "message": "Feedback recorded"}
 
 @router.post("/generate_chat_title")
-async def generate_chat_title(request: GenerateChatTitleRequest, db: Session = Depends(get_db)):
-    user = get_user_by_username(db, str(request.user_id)) or get_user_by_email(db, str(request.user_id))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+async def generate_chat_title(
+    request: GenerateChatTitleRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _assert_user_matches_request(request.user_id, current_user)
+    chat_session = db.query(models.ChatSession).filter(
+        models.ChatSession.id == request.chat_id,
+        models.ChatSession.user_id == current_user.id,
+    ).first()
+    if not chat_session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
 
     messages = (
         db.query(models.ChatMessage)
-        .filter(models.ChatMessage.chat_session_id == request.chat_id)
+        .filter(models.ChatMessage.chat_session_id == chat_session.id)
         .order_by(models.ChatMessage.timestamp.asc())
         .limit(5)
         .all()
@@ -1000,12 +1089,8 @@ async def generate_chat_title(request: GenerateChatTitleRequest, db: Session = D
         if len(title) > 50:
             title = title[:47] + "..."
 
-        chat_session = db.query(models.ChatSession).filter(
-            models.ChatSession.id == request.chat_id
-        ).first()
-        if chat_session:
-            chat_session.title = title
-            db.commit()
+        chat_session.title = title
+        db.commit()
 
         return {"title": title, "status": "success"}
     except Exception as e:
@@ -1017,10 +1102,19 @@ async def generate_chat_summary(
     chat_id: int = Form(...),
     user_id: str = Form(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    _assert_user_matches_request(user_id, current_user)
+    chat_session = db.query(models.ChatSession).filter(
+        models.ChatSession.id == chat_id,
+        models.ChatSession.user_id == current_user.id,
+    ).first()
+    if not chat_session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
     messages = (
         db.query(models.ChatMessage)
-        .filter(models.ChatMessage.chat_session_id == chat_id)
+        .filter(models.ChatMessage.chat_session_id == chat_session.id)
         .order_by(models.ChatMessage.timestamp.asc())
         .all()
     )
@@ -1053,8 +1147,10 @@ async def check_proactive_message(
 async def generate_welcome_message(
     user_id: str = Form(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+    _assert_user_matches_request(user_id, current_user)
+    user = current_user
     name = user.first_name if user else "there"
     return {
         "message": f"Hey {name}! What would you like to learn today?",
@@ -1076,10 +1172,13 @@ async def get_conversation_starters(
     }
 
 @router.post("/create_chat_folder")
-def create_chat_folder(folder_data: ChatFolderCreate, db: Session = Depends(get_db)):
-    user = get_user_by_username(db, folder_data.user_id) or get_user_by_email(db, folder_data.user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+def create_chat_folder(
+    folder_data: ChatFolderCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _assert_user_matches_request(folder_data.user_id, current_user)
+    user = current_user
 
     folder = models.ChatFolder(
         user_id=user.id,
@@ -1099,10 +1198,13 @@ def create_chat_folder(folder_data: ChatFolderCreate, db: Session = Depends(get_
     }
 
 @router.get("/get_chat_folders")
-def get_chat_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
-    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+def get_chat_folders(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _assert_user_matches_request(user_id, current_user)
+    user = current_user
 
     folders = db.query(models.ChatFolder).filter(models.ChatFolder.user_id == user.id).all()
 
@@ -1171,10 +1273,19 @@ async def convert_chat_to_note_content(
     chat_id: int = Form(...),
     user_id: str = Form(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    _assert_user_matches_request(user_id, current_user)
+    chat_session = db.query(models.ChatSession).filter(
+        models.ChatSession.id == chat_id,
+        models.ChatSession.user_id == current_user.id,
+    ).first()
+    if not chat_session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
     messages = (
         db.query(models.ChatMessage)
-        .filter(models.ChatMessage.chat_session_id == chat_id)
+        .filter(models.ChatMessage.chat_session_id == chat_session.id)
         .order_by(models.ChatMessage.timestamp.asc())
         .all()
     )
@@ -1201,10 +1312,10 @@ async def convert_chat_to_note_content(
 async def ai_group_notes(
     user_id: str = Form(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    _assert_user_matches_request(user_id, current_user)
+    user = current_user
 
     notes = (
         db.query(models.Note)

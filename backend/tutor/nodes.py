@@ -797,6 +797,8 @@ def gate_and_retrieve(state: TutorState) -> dict:
     student = state.get("student_state")
     db_factory = state.get("_db_factory")
     user_id = state.get("user_id", "")
+    context_doc_ids = state.get("context_doc_ids") or []
+    context_only = bool(state.get("context_only") or context_doc_ids)
 
     should_retrieve = intent in ("recall", "confusion", "followup", "question")
 
@@ -823,7 +825,7 @@ def gate_and_retrieve(state: TutorState) -> dict:
 
     domains = _detect_query_domain(user_input)
 
-    if should_retrieve:
+    if should_retrieve and not context_only:
         # For recall: use DB only (ground truth). ChromaDB episode summaries are noisy.
         # For specific domain questions (flashcard/note): use DB + filtered ChromaDB.
         if intent != "recall":
@@ -915,17 +917,22 @@ def gate_and_retrieve(state: TutorState) -> dict:
 
     rag_chunks: list[str] = []
     use_hs = state.get("use_hs_context", True)
-    context_doc_ids = state.get("context_doc_ids") or []
-    logger.info(f"[TUTOR RAG] query='{user_input[:80]}' use_hs_context={use_hs} user_id={user_id}")
-    if use_hs:
+    use_hs_for_query = bool(use_hs) and not bool(context_doc_ids)
+    should_query_context = bool(user_input.strip()) and (bool(use_hs) or bool(context_doc_ids))
+    logger.info(
+        f"[TUTOR RAG] query='{user_input[:80]}' use_hs_context={use_hs} "
+        f"use_hs_for_query={use_hs_for_query} context_only={context_only} "
+        f"user_id={user_id} context_doc_ids={len(context_doc_ids)}"
+    )
+    if should_query_context:
         try:
             import context_store
             if context_store.available():
                 rag_results = context_store.search_context(
                     query=user_input,
                     user_id=user_id,
-                    use_hs=True,
-                    top_k=5,
+                    use_hs=use_hs_for_query,
+                    top_k=8,
                     doc_ids=context_doc_ids or None,
                 )
                 rag_chunks = [r["text"] for r in rag_results]
@@ -939,19 +946,21 @@ def gate_and_retrieve(state: TutorState) -> dict:
                             f"[TUTOR RAG]   chunk[{i}] source={r['source']} dist={r['distance']:.4f} | {preview}..."
                         )
                 else:
-                    logger.info(f"[TUTOR RAG] No matching chunks found for query in curriculum/docs")
+                    logger.info("[TUTOR RAG] No matching chunks found for query")
             else:
                 logger.info("[TUTOR RAG] context_store not available — skipping RAG")
         except Exception as e:
             logger.warning(f"RAG context fetch failed in tutor: {e}")
     else:
-        logger.info(f"[TUTOR RAG] HS Mode OFF — RAG skipped")
+        logger.info("[TUTOR RAG] Context query skipped (HS off and no selected docs)")
 
     return {
         "retrieval_gated": should_retrieve,
         "episodic_memories": memories,
         "structured_context": structured_context,
         "rag_context": rag_chunks,
+        "context_only": context_only,
+        "context_only_no_match": bool(context_only and not rag_chunks),
     }
 
 def select_teaching_style(state: TutorState) -> dict:
@@ -1205,6 +1214,18 @@ def _build_instructional_task(state: TutorState) -> str:
 
 def build_prompt_and_respond(state: TutorState) -> dict:
     rag_active = bool(state.get("rag_context"))
+    context_only = bool(state.get("context_only"))
+    context_only_no_match = bool(state.get("context_only_no_match"))
+
+    if context_only and context_only_no_match:
+        return {
+            "response": (
+                "I couldn’t find enough relevant information in the selected context documents "
+                "to answer that. Please select more relevant context pages/files and try again."
+            ),
+            "instructional_task": state.get("instructional_task", ""),
+        }
+
     hs_ai = state.get("_hs_ai_client")
     ai_client = (hs_ai if rag_active and hs_ai else None) or state.get("_ai_client")
 
@@ -1251,8 +1272,17 @@ def build_prompt_and_respond(state: TutorState) -> dict:
     # Injecting it during greetings causes the LLM to hallucinate topic suggestions,
     # equations, and worked examples even though GREETING MODE rules come after.
     intelligence_ctx = state.get("intelligence_context", "")
-    if intelligence_ctx and intent not in ("greeting", "returning_greeting"):
+    if intelligence_ctx and intent not in ("greeting", "returning_greeting") and not context_only:
         system = intelligence_ctx + "\n\n" + system
+
+    if context_only:
+        system += (
+            "\n\nCONTEXT-ONLY MODE — HARD RULES:\n"
+            "1. Use only the provided CURRICULUM CONTEXT chunks from selected documents.\n"
+            "2. Do NOT use general knowledge, prior chat memory, or inferred facts.\n"
+            "3. If the answer is not supported by the provided chunks, say that clearly.\n"
+            "4. Quote or paraphrase only what is present in those chunks."
+        )
 
     if intent in ("greeting", "returning_greeting"):
         system += (

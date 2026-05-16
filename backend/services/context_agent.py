@@ -170,12 +170,27 @@ class CentralContextAgent:
         if event.source in ("flashcard", "quiz"):
             pl, ps, pg = state.p_learn, state.p_slip, state.p_guess
             p = state.p_mastery
-            if event.correct:
+            observed_correct = bool(event.correct)
+            if event.source == "quiz" and event.correct is None:
+                observed_correct = (event.score or 0.0) >= 0.65
+
+            if observed_correct:
                 p_update = (p * (1 - ps)) / max((p * (1 - ps) + (1 - p) * pg), 1e-9)
             else:
                 p_update = (p * ps) / max((p * ps + (1 - p) * (1 - pg)), 1e-9)
             p_next = p_update + (1 - p_update) * pl
             state.p_mastery = min(max(p_next, 0.01), 0.99)
+
+            if event.source == "quiz":
+                # Blend in score signal so strong quiz scores can promote mastery quickly.
+                score = max(0.0, min(float(event.score or 0.0), 1.0))
+                score_target = 0.05 + (0.9 * score)
+                blended = (state.p_mastery * 0.45) + (score_target * 0.55)
+                state.p_mastery = min(max(blended, 0.01), 0.99)
+                if score >= 0.8:
+                    state.p_mastery = max(state.p_mastery, 0.78)
+                elif score <= 0.45:
+                    state.p_mastery = min(state.p_mastery, 0.45)
         elif event.source == "chat":
             delta = 0.01 if event.frustration < 0.3 else -0.005
             state.p_mastery = min(max(state.p_mastery + delta, 0.01), 0.99)

@@ -142,12 +142,13 @@ async def transcribe_audio(
     audio_file: UploadFile = File(...),
     user_id: str = Form(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     temp_audio_path = None
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        requested_user = _resolve_user_or_404(db, user_id)
+        _verify_user_access(requested_user, current_user)
+        user = requested_user
 
         audio_content = await audio_file.read()
         if len(audio_content) == 0:
@@ -211,11 +212,12 @@ def test_transcribe_endpoint():
 async def transcribe_audio_test(
     user_id: str = Form(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        requested_user = _resolve_user_or_404(db, user_id)
+        _verify_user_access(requested_user, current_user)
+        user = requested_user
 
         groq_api_key = os.getenv("GROQ_API_KEY")
         return {
@@ -242,11 +244,12 @@ async def process_media(
     generate_flashcards: bool = Form(False),
     generate_quiz: bool = Form(False),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        requested_user = _resolve_user_or_404(db, user_id)
+        _verify_user_access(requested_user, current_user)
+        user = requested_user
 
         if not ai_media_processor:
             raise HTTPException(status_code=500, detail="Media processor not available")
@@ -404,11 +407,12 @@ async def save_media_notes(
     quiz_questions: list = Body(None),
     key_moments: list = Body(None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        requested_user = _resolve_user_or_404(db, user_id)
+        _verify_user_access(requested_user, current_user)
+        user = requested_user
 
         new_note = models.Note(
             user_id=user.id,
@@ -614,11 +618,12 @@ async def get_single_note(
 async def get_media_history(
     user_id: str = Query(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        requested_user = _resolve_user_or_404(db, user_id)
+        _verify_user_access(requested_user, current_user)
+        user = requested_user
 
         all_notes = (
             db.query(models.Note)
@@ -770,11 +775,12 @@ async def upload_slides(
 def get_uploaded_slides(
     user_id: str = Query(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        requested_user = _resolve_user_or_404(db, user_id)
+        _verify_user_access(requested_user, current_user)
+        user = requested_user
 
         slides = (
             db.query(models.UploadedSlide)
@@ -845,12 +851,14 @@ async def analyze_slide(
     slide_id: int,
     force_reanalyze: bool = Query(False),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         from services.comprehensive_slide_analyzer import get_or_create_analysis
 
         slide = db.query(models.UploadedSlide).filter(
-            models.UploadedSlide.id == slide_id
+            models.UploadedSlide.id == slide_id,
+            models.UploadedSlide.user_id == current_user.id,
         ).first()
 
         if not slide:

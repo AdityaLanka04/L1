@@ -311,11 +311,19 @@ def search_context(
     bm25_boost    = 0.18
     subject_boost = 0.05
 
-    def _fetch_from(col_name: str, source_label: str, uid: Optional[str], where: Optional[dict], n_multiplier: int = 2):
+    def _fetch_from(
+        col_name: str,
+        source_label: str,
+        uid: Optional[str],
+        where: Optional[dict],
+        n_multiplier: int = 2,
+        n_override: Optional[int] = None,
+        fallback_on_empty_where: bool = True,
+    ):
         try:
-            n = max(top_k * n_multiplier, top_k)
+            n = max(int(n_override or 0), top_k) if n_override else max(top_k * n_multiplier, top_k)
             rows = vs.search(col_name, query_embedding, n, user_id=uid, where=where)
-            if not rows and where:
+            if not rows and where and fallback_on_empty_where:
                 rows = vs.search(col_name, query_embedding, n, user_id=uid, where=None)
 
             for r in rows:
@@ -339,8 +347,24 @@ def search_context(
         except Exception as e:
             logger.warning(f"context_store search failed for {col_name}: {e}")
 
-    _fetch_from("user_docs", "private", str(user_id), None, n_multiplier=2)
-    if use_hs:
+    if normalized_doc_ids:
+        # Strict selected-doc retrieval: search each selected doc directly so
+        # results are guaranteed to come from requested documents.
+        per_doc_k = max(4, min(12, top_k * 2))
+        for doc_id in normalized_doc_ids:
+            _fetch_from(
+                "user_docs",
+                "private",
+                str(user_id),
+                {"doc_id": doc_id},
+                n_multiplier=1,
+                n_override=per_doc_k,
+                fallback_on_empty_where=False,
+            )
+    else:
+        _fetch_from("user_docs", "private", str(user_id), None, n_multiplier=2)
+
+    if use_hs and not normalized_doc_ids:
         hs_where: dict = {}
         if subject_filter:
             hs_where["subject"] = subject_filter

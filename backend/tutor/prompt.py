@@ -19,11 +19,12 @@ def build_tutor_prompt(state: TutorState) -> str:
     analysis           = state.get("language_analysis") or {}
     selected_style     = state.get("selected_style", "")
     intent             = state.get("intent", "")
+    context_only       = bool(state.get("context_only"))
 
     is_greeting = intent in ("greeting", "returning_greeting")
 
     sections = []
-    sections.append(_student_section(student, intent=intent))
+    sections.append(_student_section(student, intent=intent, context_only=context_only))
 
     # Preferences always shown — survive greetings
     pref_memories = [m for m in memories if m.startswith("[STUDENT PREFERENCE]")]
@@ -33,37 +34,47 @@ def build_tutor_prompt(state: TutorState) -> str:
 
     # Everything below is suppressed for greetings — prevents topic seeding
     if not is_greeting:
-        if chat_history:
-            sections.append(_chat_history_section(chat_history))
-        sections.append(_concept_section(insights))
-        if structured_context:
-            sections.append(_structured_context_section(structured_context))
-        if other_memories:
-            sections.append(_memory_section(other_memories))
-        if rag_context:
-            logger.info(f"[TUTOR PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) ***")
-            sections.append(_rag_section(rag_context))
+        if context_only:
+            sections.append(_context_only_section())
+            if rag_context:
+                logger.info(f"[TUTOR PROMPT] *** CONTEXT-ONLY: INJECTING {len(rag_context)} RAG chunk(s) ***")
+                sections.append(_rag_section(rag_context))
+            else:
+                logger.info("[TUTOR PROMPT] CONTEXT-ONLY mode with no RAG chunks")
+            if selected_style:
+                sections.append(_style_section(selected_style))
         else:
-            logger.info("[TUTOR PROMPT] No RAG context — model knowledge only")
-        if analysis:
-            conf_section = _confidence_section(analysis)
-            if conf_section:
-                sections.append(conf_section)
-        if selected_style:
-            sections.append(_style_section(selected_style))
+            if chat_history:
+                sections.append(_chat_history_section(chat_history))
+            sections.append(_concept_section(insights))
+            if structured_context:
+                sections.append(_structured_context_section(structured_context))
+            if other_memories:
+                sections.append(_memory_section(other_memories))
+            if rag_context:
+                logger.info(f"[TUTOR PROMPT] *** INJECTING {len(rag_context)} RAG chunk(s) ***")
+                sections.append(_rag_section(rag_context))
+            else:
+                logger.info("[TUTOR PROMPT] No RAG context — model knowledge only")
+            if analysis:
+                conf_section = _confidence_section(analysis)
+                if conf_section:
+                    sections.append(conf_section)
+            if selected_style:
+                sections.append(_style_section(selected_style))
 
     sections.append(_task_section(task, user_input))
 
     return "\n\n".join(sections)
 
-def _student_section(s: StudentState | None, intent: str = "") -> str:
+def _student_section(s: StudentState | None, intent: str = "", context_only: bool = False) -> str:
     if not s:
         return "[STUDENT STATE]\nNo profile available."
     lines = ["[STUDENT STATE]"]
     if s.first_name:
         lines.append(f"- Name: {s.first_name}")
     # Don't expose topic lists for greetings — LLM uses them to hallucinate suggestions
-    if intent not in ("greeting", "returning_greeting"):
+    if intent not in ("greeting", "returning_greeting") and not context_only:
         if s.strengths:
             lines.append(f"- Strengths: {', '.join(s.strengths)}")
         if s.weaknesses:
@@ -126,6 +137,14 @@ def _rag_section(chunks: list[str]) -> str:
         lines.append(f"\n--- Source {i} ---")
         lines.append(chunk)
     return "\n".join(lines)
+
+
+def _context_only_section() -> str:
+    return (
+        "[CONTEXT-ONLY GROUNDED ANSWERING]\n"
+        "Use only the selected context chunks below. "
+        "Do not rely on prior conversation, profile data, or general knowledge."
+    )
 
 def _confidence_section(analysis: dict) -> str:
     signal_type      = analysis.get("signal_type", "neutral")

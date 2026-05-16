@@ -14,6 +14,8 @@
     color-mix(in srgb, var(--accent) 18%, #ffffff) 100%);
   --ch-border: color-mix(in srgb, var(--accent) 20%, transparent);
   --ch-border-strong: color-mix(in srgb, var(--accent) 40%, transparent);
+  --ch-scrollbar-thumb: color-mix(in srgb, var(--text-secondary) 34%, transparent);
+  --ch-scrollbar-thumb-hover: color-mix(in srgb, var(--text-secondary) 50%, transparent);
   --ch-card-bg: var(--bg-secondary);
   --ch-card-hover: var(--bg-tertiary, color-mix(in srgb, var(--bg-primary) 80%, var(--accent) 20%));
   --ch-radius: 14px;
@@ -94,12 +96,22 @@
   overflow-x: hidden;
   padding: 0 0 16px;
   scrollbar-width: thin;
-  scrollbar-color: var(--ch-border) transparent;
+  scrollbar-color: var(--ch-scrollbar-thumb) transparent;
 }
 
 .ch-sidebar-inner::-webkit-scrollbar { width: 4px; }
 .ch-sidebar-inner::-webkit-scrollbar-track { background: transparent; }
-.ch-sidebar-inner::-webkit-scrollbar-thumb { background: var(--ch-border); border-radius: 4px; }
+.ch-sidebar-inner::-webkit-scrollbar-thumb { background: var(--ch-scrollbar-thumb); border-radius: 4px; }
+.ch-sidebar-inner:hover,
+.ch-sidebar-inner:focus,
+.ch-sidebar-inner:active {
+  scrollbar-color: var(--ch-scrollbar-thumb-hover) transparent;
+}
+.ch-sidebar-inner:hover::-webkit-scrollbar-thumb,
+.ch-sidebar-inner:focus::-webkit-scrollbar-thumb,
+.ch-sidebar-inner:active::-webkit-scrollbar-thumb {
+  background: var(--ch-scrollbar-thumb-hover);
+}
 
 /* Sidebar top padding (logo removed) */
 .ch-sidebar-inner { padding-top: 8px; }
@@ -429,12 +441,22 @@
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--ch-border) transparent;
+  scrollbar-color: var(--ch-scrollbar-thumb) transparent;
 }
 
 .ch-main-content::-webkit-scrollbar { width: 6px; }
 .ch-main-content::-webkit-scrollbar-track { background: transparent; }
-.ch-main-content::-webkit-scrollbar-thumb { background: var(--ch-border); border-radius: 4px; }
+.ch-main-content::-webkit-scrollbar-thumb { background: var(--ch-scrollbar-thumb); border-radius: 4px; }
+.ch-main-content:hover,
+.ch-main-content:focus,
+.ch-main-content:active {
+  scrollbar-color: var(--ch-scrollbar-thumb-hover) transparent;
+}
+.ch-main-content:hover::-webkit-scrollbar-thumb,
+.ch-main-content:focus::-webkit-scrollbar-thumb,
+.ch-main-content:active::-webkit-scrollbar-thumb {
+  background: var(--ch-scrollbar-thumb-hover);
+}
 
 /* ── Breadcrumb ─────────────────────────────────────────────── */
 .ch-breadcrumb {

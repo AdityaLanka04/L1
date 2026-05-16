@@ -87,13 +87,23 @@
   flex: 1;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.08) transparent;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
 }
 
 .cp-body::-webkit-scrollbar { width: 4px; }
 .cp-body::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.12);
   border-radius: 4px;
+}
+.cp-body:hover,
+.cp-body:focus,
+.cp-body:active {
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+.cp-body:hover::-webkit-scrollbar-thumb,
+.cp-body:focus::-webkit-scrollbar-thumb,
+.cp-body:active::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
 }
 
 .cp-section {

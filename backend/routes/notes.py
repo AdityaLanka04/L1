@@ -8,10 +8,22 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 import models
-from deps import call_ai, get_current_user, get_db, get_user_by_email, get_user_by_username, unified_ai
+from deps import (
+    call_ai,
+    enforce_request_user_scope,
+    get_current_user,
+    get_db,
+    get_user_by_email,
+    get_user_by_username,
+    unified_ai,
+)
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["notes"])
+router = APIRouter(
+    prefix="/api",
+    tags=["notes"],
+    dependencies=[Depends(enforce_request_user_scope)],
+)
 
 class NoteCreate(BaseModel):
     user_id: str
@@ -59,6 +71,7 @@ class ContextNotesCreateRequest(BaseModel):
     user_id: str
     context_doc_ids: list[str]
     title: Optional[str] = None
+    topic: Optional[str] = None
     depth: Optional[str] = "standard"
     tone: Optional[str] = "professional"
 
@@ -134,6 +147,56 @@ def _fetch_document_chunks(user_id: int, doc_id: str) -> list[str]:
         if text:
             chunks.append(text)
     return chunks
+
+def _fetch_topic_chunks_for_docs(
+    user_id: int,
+    doc_ids: list[str],
+    topic: str,
+    top_k: int = 16,
+) -> dict[str, list[str]]:
+    clean_topic = (topic or "").strip()
+    if not clean_topic or not doc_ids:
+        return {}
+
+    try:
+        from services import context_store
+    except Exception:
+        return {}
+
+    if not context_store.available():
+        return {}
+
+    try:
+        rows = context_store.search_context(
+            query=clean_topic,
+            user_id=str(user_id),
+            use_hs=False,
+            top_k=max(4, min(int(top_k or 16), 30)),
+            doc_ids=doc_ids,
+        )
+    except Exception:
+        rows = []
+
+    if not rows:
+        return {}
+
+    grouped: dict[str, list[str]] = {str(d): [] for d in doc_ids}
+    for row in rows:
+        metadata = row.get("metadata") if isinstance(row, dict) else {}
+        if not isinstance(metadata, dict):
+            metadata = {}
+        doc_id = str(metadata.get("doc_id") or "").strip()
+        if not doc_id or doc_id not in grouped:
+            continue
+        text = _clean_chunk_text(str(row.get("text") or ""))
+        if not text:
+            continue
+        text = text[:2200]
+        if text in grouped[doc_id]:
+            continue
+        grouped[doc_id].append(text)
+
+    return {doc_id: chunks for doc_id, chunks in grouped.items() if chunks}
 
 def _clean_chunk_text(text: str) -> str:
     clean = (text or "").replace("\u0000", " ").strip()
@@ -422,10 +485,9 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
 async def create_note_from_context_docs(
     request: ContextNotesCreateRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    user = get_user_by_username(db, request.user_id) or get_user_by_email(db, request.user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = current_user
 
     doc_ids = [str(d).strip() for d in (request.context_doc_ids or []) if str(d).strip()]
     doc_ids = list(dict.fromkeys(doc_ids))[:40]
@@ -448,6 +510,17 @@ async def create_note_from_context_docs(
     docs.sort(key=lambda d: doc_index.get(d.doc_id, 10**6))
 
     doc_chunks = {doc_id: _fetch_document_chunks(user.id, doc_id) for doc_id in doc_ids}
+    topic_focus = (request.topic or "").strip()
+    if topic_focus:
+        topic_chunks = _fetch_topic_chunks_for_docs(
+            user_id=user.id,
+            doc_ids=doc_ids,
+            topic=topic_focus,
+        )
+        if topic_chunks:
+            for doc_id, chunks in topic_chunks.items():
+                if chunks:
+                    doc_chunks[doc_id] = chunks
     try:
         content = _generate_notes_from_context(
             docs=docs,

@@ -22,6 +22,7 @@ from deps import (
     authenticate_user,
     call_ai,
     create_access_token,
+    enforce_request_user_scope,
     get_comprehensive_profile_safe,
     get_current_user,
     get_db,
@@ -38,7 +39,11 @@ from deps import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api", tags=["auth"])
+router = APIRouter(
+    prefix="/api",
+    tags=["auth"],
+    dependencies=[Depends(enforce_request_user_scope)],
+)
 
 # ── In-memory brute-force protection ──────────────────────────────────────────
 _auth_attempts: dict = defaultdict(list)

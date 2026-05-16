@@ -8,11 +8,26 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import get_current_user, get_user_by_username, get_user_by_email
+from deps import get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["notifications"])
+
+def _assert_user_matches_request(user_id: Optional[str], current_user: models.User) -> None:
+    """
+    Backward-compatible guard for endpoints that still receive user_id from clients.
+    Ensures callers can only act on their own account.
+    """
+    if user_id is None:
+        return
+    requested = str(user_id).strip().lower()
+    allowed = {
+        (current_user.username or "").strip().lower(),
+        (current_user.email or "").strip().lower(),
+    }
+    if requested and requested not in allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
 
 def _parse_hours_list(raw: str) -> List[float]:
     hours = []
@@ -57,13 +72,12 @@ def _get_reminder_notif_meta(reminder: models.Reminder) -> tuple[str, str]:
 @router.get("/get_notifications")
 async def get_notifications(
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-
-        if not user:
-            return {"notifications": []}
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
 
         now = _normalize_dt(datetime.now(timezone.utc))
@@ -189,11 +203,13 @@ async def get_notifications(
 @router.put("/mark_notification_read/{notification_id}")
 async def mark_notification_read(
     notification_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         notification = db.query(models.Notification).filter(
-            models.Notification.id == notification_id
+            models.Notification.id == notification_id,
+            models.Notification.user_id == current_user.id,
         ).first()
 
         if not notification:
@@ -203,6 +219,8 @@ async def mark_notification_read(
         db.commit()
 
         return {"status": "success", "message": "Notification marked as read"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error marking notification as read: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -210,12 +228,12 @@ async def mark_notification_read(
 @router.put("/mark_all_notifications_read")
 async def mark_all_notifications_read(
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         db.query(models.Notification).filter(
             models.Notification.user_id == user.id,
@@ -225,6 +243,8 @@ async def mark_all_notifications_read(
         db.commit()
 
         return {"status": "success", "message": "All notifications marked as read"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error marking all notifications as read: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -232,7 +252,8 @@ async def mark_all_notifications_read(
 @router.post("/create_notification")
 async def create_notification(
     payload: dict = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         user_id = payload.get("user_id")
@@ -240,9 +261,8 @@ async def create_notification(
         message = payload.get("message")
         notification_type = payload.get("notification_type", "general")
 
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         notification = models.Notification(
             user_id=user.id,
@@ -260,6 +280,8 @@ async def create_notification(
             "notification_id": notification.id,
             "message": "Notification created"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating notification: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -267,12 +289,12 @@ async def create_notification(
 @router.get("/debug_notifications")
 async def debug_notifications(
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            return {"error": "User not found", "user_id": user_id}
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         notifications = db.query(models.Notification).filter(
             models.Notification.user_id == user.id
@@ -300,11 +322,13 @@ async def debug_notifications(
 @router.delete("/delete_notification/{notification_id}")
 async def delete_notification(
     notification_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         notification = db.query(models.Notification).filter(
-            models.Notification.id == notification_id
+            models.Notification.id == notification_id,
+            models.Notification.user_id == current_user.id,
         ).first()
 
         if not notification:
@@ -314,6 +338,8 @@ async def delete_notification(
         db.commit()
 
         return {"status": "success", "message": "Notification deleted"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error deleting notification: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -321,15 +347,13 @@ async def delete_notification(
 @router.post("/clear_old_notifications")
 async def clear_old_notifications(
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        logger.info(f"Clearing old notifications for user: {user_id}")
-
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            logger.warning(f"User not found: {user_id}")
-            return {"status": "success", "cleared": 0, "message": "User not found, nothing to clear"}
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
+        logger.info(f"Clearing old notifications for user_id={user.id}")
 
         deleted = db.query(models.Notification).filter(
             models.Notification.user_id == user.id
@@ -337,8 +361,10 @@ async def clear_old_notifications(
 
         db.commit()
 
-        logger.info(f"Cleared {deleted} old notifications for user {user_id}")
+        logger.info(f"Cleared {deleted} old notifications for user_id={user.id}")
         return {"status": "success", "cleared": deleted, "message": f"Cleared {deleted} old notifications"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error clearing notifications: {str(e)}")
         return {"status": "error", "cleared": 0, "message": str(e)}
@@ -346,15 +372,13 @@ async def clear_old_notifications(
 @router.delete("/clear_all_notifications")
 async def clear_all_notifications(
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        logger.info(f"Clearing ALL notifications for user: {user_id}")
-
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            logger.warning(f"User not found: {user_id}")
-            return {"status": "success", "cleared": 0, "message": "User not found"}
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
+        logger.info(f"Clearing ALL notifications for user_id={user.id}")
 
         deleted = db.query(models.Notification).filter(
             models.Notification.user_id == user.id
@@ -362,8 +386,10 @@ async def clear_all_notifications(
 
         db.commit()
 
-        logger.info(f"Cleared {deleted} notifications for user {user_id}")
+        logger.info(f"Cleared {deleted} notifications for user_id={user.id}")
         return {"status": "success", "cleared": deleted, "message": f"Cleared {deleted} notifications"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error clearing all notifications: {str(e)}")
         db.rollback()
@@ -373,12 +399,12 @@ async def clear_all_notifications(
 async def check_reminder_notifications(
     user_id: str = Query(...),
     current_time: str = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            return {"status": "error", "message": "User not found", "notifications_created": 0}
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         if current_time:
             try:

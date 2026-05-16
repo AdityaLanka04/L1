@@ -10,10 +10,21 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username, unified_ai
+from deps import (
+    call_ai,
+    enforce_request_user_scope,
+    get_current_user,
+    get_user_by_email,
+    get_user_by_username,
+    unified_ai,
+)
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["roadmaps"])
+router = APIRouter(
+    prefix="/api",
+    tags=["roadmaps"],
+    dependencies=[Depends(enforce_request_user_scope)],
+)
 
 def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
     profile = {
@@ -331,11 +342,13 @@ Topic:"""
 async def expand_knowledge_node(
     node_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     node = None
     try:
         node = db.query(models.KnowledgeNode).filter(
-            models.KnowledgeNode.id == node_id
+            models.KnowledgeNode.id == node_id,
+            models.KnowledgeNode.user_id == current_user.id,
         ).first()
 
         if not node:
@@ -343,7 +356,8 @@ async def expand_knowledge_node(
 
         if node.expansion_status == "expanded":
             children = db.query(models.KnowledgeNode).filter(
-                models.KnowledgeNode.parent_node_id == node_id
+                models.KnowledgeNode.parent_node_id == node_id,
+                models.KnowledgeNode.user_id == current_user.id,
             ).all()
 
             return {
@@ -376,7 +390,8 @@ async def expand_knowledge_node(
             context_path.insert(0, current.topic_name)
             if current.parent_node_id:
                 current = db.query(models.KnowledgeNode).filter(
-                    models.KnowledgeNode.id == current.parent_node_id
+                    models.KnowledgeNode.id == current.parent_node_id,
+                    models.KnowledgeNode.user_id == current_user.id,
                 ).first()
             else:
                 current = None
@@ -498,10 +513,12 @@ Generate 4-5 specific subtopics (more specific than parent, 2-5 words each).
 async def explore_node(
     node_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         node = db.query(models.KnowledgeNode).filter(
-            models.KnowledgeNode.id == node_id
+            models.KnowledgeNode.id == node_id,
+            models.KnowledgeNode.user_id == current_user.id,
         ).first()
 
         if not node:
@@ -532,7 +549,8 @@ async def explore_node(
         current = node.parent_node_id
         while current:
             parent = db.query(models.KnowledgeNode).filter(
-                models.KnowledgeNode.id == current
+                models.KnowledgeNode.id == current,
+                models.KnowledgeNode.user_id == current_user.id,
             ).first()
             if parent:
                 context_path.insert(0, parent.topic_name)
@@ -620,17 +638,20 @@ Level: {user_profile.get('difficulty_level', 'intermediate')}
 async def get_knowledge_roadmap(
     roadmap_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         roadmap = db.query(models.KnowledgeRoadmap).filter(
-            models.KnowledgeRoadmap.id == roadmap_id
+            models.KnowledgeRoadmap.id == roadmap_id,
+            models.KnowledgeRoadmap.user_id == current_user.id,
         ).first()
 
         if not roadmap:
             raise HTTPException(status_code=404, detail="Roadmap not found")
 
         root_node = db.query(models.KnowledgeNode).filter(
-            models.KnowledgeNode.id == roadmap.root_node_id
+            models.KnowledgeNode.id == roadmap.root_node_id,
+            models.KnowledgeNode.user_id == current_user.id,
         ).first()
 
         roadmap_node_ids = set()
@@ -638,7 +659,8 @@ async def get_knowledge_roadmap(
         def collect_node_ids(node_id):
             roadmap_node_ids.add(node_id)
             children = db.query(models.KnowledgeNode).filter(
-                models.KnowledgeNode.parent_node_id == node_id
+                models.KnowledgeNode.parent_node_id == node_id,
+                models.KnowledgeNode.user_id == current_user.id,
             ).all()
             for child in children:
                 collect_node_ids(child.id)
@@ -647,7 +669,8 @@ async def get_knowledge_roadmap(
             collect_node_ids(root_node.id)
 
         all_nodes = db.query(models.KnowledgeNode).filter(
-            models.KnowledgeNode.id.in_(roadmap_node_ids)
+            models.KnowledgeNode.id.in_(roadmap_node_ids),
+            models.KnowledgeNode.user_id == current_user.id,
         ).all()
 
         node_map = {node.id: node for node in all_nodes}
@@ -660,7 +683,8 @@ async def get_knowledge_roadmap(
             if node.expansion_status == "expanded":
                 expanded_nodes.add(node_id)
                 children = db.query(models.KnowledgeNode).filter(
-                    models.KnowledgeNode.parent_node_id == node_id
+                    models.KnowledgeNode.parent_node_id == node_id,
+                    models.KnowledgeNode.user_id == current_user.id,
                 ).all()
                 for child in children:
                     build_expansion_hierarchy(child.id, expanded_nodes, current_path)
@@ -784,10 +808,12 @@ async def save_node_notes(
     node_id: int,
     payload: dict = Body(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         node = db.query(models.KnowledgeNode).filter(
-            models.KnowledgeNode.id == node_id
+            models.KnowledgeNode.id == node_id,
+            models.KnowledgeNode.user_id == current_user.id,
         ).first()
 
         if not node:
@@ -809,10 +835,12 @@ async def save_node_notes(
 async def delete_roadmap(
     roadmap_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         roadmap = db.query(models.KnowledgeRoadmap).filter(
-            models.KnowledgeRoadmap.id == roadmap_id
+            models.KnowledgeRoadmap.id == roadmap_id,
+            models.KnowledgeRoadmap.user_id == current_user.id,
         ).first()
 
         if not roadmap:
@@ -820,7 +848,8 @@ async def delete_roadmap(
 
         def delete_node_tree(node_id):
             children = db.query(models.KnowledgeNode).filter(
-                models.KnowledgeNode.parent_node_id == node_id
+                models.KnowledgeNode.parent_node_id == node_id,
+                models.KnowledgeNode.user_id == current_user.id,
             ).all()
 
             for child in children:
@@ -831,7 +860,8 @@ async def delete_roadmap(
             ).delete()
 
             db.query(models.KnowledgeNode).filter(
-                models.KnowledgeNode.id == node_id
+                models.KnowledgeNode.id == node_id,
+                models.KnowledgeNode.user_id == current_user.id,
             ).delete()
 
         if roadmap.root_node_id:
@@ -851,6 +881,7 @@ async def delete_roadmap(
 async def add_manual_node(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         roadmap_id = payload.get("roadmap_id")
@@ -862,20 +893,23 @@ async def add_manual_node(
             raise HTTPException(status_code=400, detail="Missing required fields")
 
         parent_node = db.query(models.KnowledgeNode).filter(
-            models.KnowledgeNode.id == parent_id
+            models.KnowledgeNode.id == parent_id,
+            models.KnowledgeNode.user_id == current_user.id,
         ).first()
 
         if not parent_node:
             raise HTTPException(status_code=404, detail="Parent node not found")
 
         roadmap = db.query(models.KnowledgeRoadmap).filter(
-            models.KnowledgeRoadmap.id == roadmap_id
+            models.KnowledgeRoadmap.id == roadmap_id,
+            models.KnowledgeRoadmap.user_id == current_user.id,
         ).first()
 
         if not roadmap:
             raise HTTPException(status_code=404, detail="Roadmap not found")
 
         new_node = models.KnowledgeNode(
+            user_id=current_user.id,
             roadmap_id=roadmap_id,
             parent_node_id=parent_id,
             topic_name=topic_name,
@@ -922,10 +956,12 @@ async def add_manual_node(
 async def delete_roadmap_node(
     node_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         node = db.query(models.KnowledgeNode).filter(
-            models.KnowledgeNode.id == node_id
+            models.KnowledgeNode.id == node_id,
+            models.KnowledgeNode.user_id == current_user.id,
         ).first()
 
         if not node:
@@ -940,7 +976,8 @@ async def delete_roadmap_node(
         def delete_node_tree(nid):
             nonlocal deleted_count
             children = db.query(models.KnowledgeNode).filter(
-                models.KnowledgeNode.parent_node_id == nid
+                models.KnowledgeNode.parent_node_id == nid,
+                models.KnowledgeNode.user_id == current_user.id,
             ).all()
 
             for child in children:
@@ -951,7 +988,8 @@ async def delete_roadmap_node(
             ).delete()
 
             db.query(models.KnowledgeNode).filter(
-                models.KnowledgeNode.id == nid
+                models.KnowledgeNode.id == nid,
+                models.KnowledgeNode.user_id == current_user.id,
             ).delete()
 
             deleted_count += 1
@@ -959,7 +997,8 @@ async def delete_roadmap_node(
         delete_node_tree(node_id)
 
         roadmap = db.query(models.KnowledgeRoadmap).filter(
-            models.KnowledgeRoadmap.id == roadmap_id
+            models.KnowledgeRoadmap.id == roadmap_id,
+            models.KnowledgeRoadmap.user_id == current_user.id,
         ).first()
 
         if roadmap:
@@ -984,6 +1023,7 @@ async def delete_roadmap_node(
 async def get_learning_hints(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         review_id = payload.get("review_id")
@@ -993,7 +1033,8 @@ async def get_learning_hints(
             raise HTTPException(status_code=400, detail="Review ID and missing points required")
 
         review = db.query(models.LearningReview).filter(
-            models.LearningReview.id == review_id
+            models.LearningReview.id == review_id,
+            models.LearningReview.user_id == current_user.id,
         ).first()
 
         if not review:
@@ -1472,6 +1513,7 @@ async def add_concept_node(
 async def update_node_position(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         node_id = payload.get("node_id")
@@ -1479,7 +1521,8 @@ async def update_node_position(
         y = payload.get("y")
 
         node = db.query(models.ConceptNode).filter(
-            models.ConceptNode.id == node_id
+            models.ConceptNode.id == node_id,
+            models.ConceptNode.user_id == current_user.id,
         ).first()
 
         if node:
@@ -1498,6 +1541,7 @@ async def update_node_position(
 async def update_concept_mastery(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         node_id = payload.get("node_id")
@@ -1507,7 +1551,8 @@ async def update_concept_mastery(
             raise HTTPException(status_code=400, detail="Mastery level must be between 0 and 1")
 
         node = db.query(models.ConceptNode).filter(
-            models.ConceptNode.id == node_id
+            models.ConceptNode.id == node_id,
+            models.ConceptNode.user_id == current_user.id,
         ).first()
 
         if node:
@@ -1777,15 +1822,27 @@ Return ONLY a JSON array:
 async def delete_concept_node(
     node_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
+        node = db.query(models.ConceptNode).filter(
+            models.ConceptNode.id == node_id,
+            models.ConceptNode.user_id == current_user.id,
+        ).first()
+        if not node:
+            raise HTTPException(status_code=404, detail="Concept node not found")
+
         db.query(models.ConceptConnection).filter(
-            (models.ConceptConnection.source_concept_id == node_id)
-            | (models.ConceptConnection.target_concept_id == node_id)
+            models.ConceptConnection.user_id == current_user.id,
+            (
+                (models.ConceptConnection.source_concept_id == node_id)
+                | (models.ConceptConnection.target_concept_id == node_id)
+            ),
         ).delete()
 
         db.query(models.ConceptNode).filter(
-            models.ConceptNode.id == node_id
+            models.ConceptNode.id == node_id,
+            models.ConceptNode.user_id == current_user.id,
         ).delete()
 
         db.commit()

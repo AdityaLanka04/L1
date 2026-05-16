@@ -9,10 +9,21 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username, verify_token
+from deps import (
+    call_ai,
+    enforce_request_user_scope,
+    get_current_user,
+    get_user_by_email,
+    get_user_by_username,
+    verify_token,
+)
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["weakness"])
+router = APIRouter(
+    prefix="/api",
+    tags=["weakness"],
+    dependencies=[Depends(enforce_request_user_scope)],
+)
 
 def _get_topic_mastery(db: Session, user_id: int) -> list[dict]:
     records = db.query(models.TopicMastery).filter(

@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
@@ -14,6 +14,22 @@ from deps import get_current_user, get_user_by_email, get_user_by_username
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["reminders"])
+
+
+def _assert_user_matches_request(user_id: Optional[str], current_user: models.User) -> None:
+    """
+    Backward-compatible guard for endpoints that still receive user_id from clients.
+    Ensures callers can only act on their own account.
+    """
+    if user_id is None:
+        return
+    requested = str(user_id).strip().lower()
+    allowed = {
+        (current_user.username or "").strip().lower(),
+        (current_user.email or "").strip().lower(),
+    }
+    if requested and requested not in allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
 
 def serialize_reminder(r):
     return {
@@ -101,11 +117,11 @@ async def create_reminder_list(
     color: str = Form("#3b82f6"),
     icon: str = Form("list"),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         max_order = (
             db.query(func.max(models.ReminderList.sort_order))
@@ -143,11 +159,11 @@ async def create_reminder_list(
 async def get_reminder_lists(
     user_id: str = Query(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         lists = (
             db.query(models.ReminderList)
@@ -254,10 +270,14 @@ async def update_reminder_list(
     color: str = Form(None),
     icon: str = Form(None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         reminder_list = (
-            db.query(models.ReminderList).filter(models.ReminderList.id == list_id).first()
+            db.query(models.ReminderList).filter(
+                models.ReminderList.id == list_id,
+                models.ReminderList.user_id == current_user.id,
+            ).first()
         )
         if not reminder_list:
             raise HTTPException(status_code=404, detail="List not found")
@@ -282,10 +302,14 @@ async def update_reminder_list(
 async def delete_reminder_list(
     list_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         reminder_list = (
-            db.query(models.ReminderList).filter(models.ReminderList.id == list_id).first()
+            db.query(models.ReminderList).filter(
+                models.ReminderList.id == list_id,
+                models.ReminderList.user_id == current_user.id,
+            ).first()
         )
         if not reminder_list:
             raise HTTPException(status_code=404, detail="List not found")
@@ -323,11 +347,27 @@ async def create_reminder(
     user_timezone: str = Form("UTC"),
     timezone_offset: int = Form(0),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
+
+        if list_id is not None:
+            list_record = db.query(models.ReminderList).filter(
+                models.ReminderList.id == list_id,
+                models.ReminderList.user_id == user.id,
+            ).first()
+            if not list_record:
+                raise HTTPException(status_code=404, detail="Reminder list not found")
+
+        if parent_id is not None:
+            parent = db.query(models.Reminder).filter(
+                models.Reminder.id == parent_id,
+                models.Reminder.user_id == user.id,
+            ).first()
+            if not parent:
+                raise HTTPException(status_code=404, detail="Parent reminder not found")
 
         parsed_reminder_date = None
         parsed_due_date = None
@@ -406,11 +446,11 @@ async def get_reminders(
     end_date: str = Query(None),
     include_completed: bool = Query(False),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         query = db.query(models.Reminder).filter(
             models.Reminder.user_id == user.id,
@@ -492,10 +532,14 @@ async def update_reminder(
     location: str = Form(None),
     tags: str = Form(None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         reminder = (
-            db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
+            db.query(models.Reminder).filter(
+                models.Reminder.id == reminder_id,
+                models.Reminder.user_id == current_user.id,
+            ).first()
         )
         if not reminder:
             raise HTTPException(status_code=404, detail="Reminder not found")
@@ -541,6 +585,13 @@ async def update_reminder(
         if notify_before_minutes is not None:
             reminder.notify_before_minutes = notify_before_minutes
         if list_id is not None:
+            if list_id > 0:
+                list_record = db.query(models.ReminderList).filter(
+                    models.ReminderList.id == list_id,
+                    models.ReminderList.user_id == current_user.id,
+                ).first()
+                if not list_record:
+                    raise HTTPException(status_code=404, detail="Reminder list not found")
             reminder.list_id = list_id if list_id > 0 else None
         if recurring is not None:
             reminder.recurring = recurring
@@ -575,10 +626,14 @@ async def update_reminder(
 async def delete_reminder(
     reminder_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         reminder = (
-            db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
+            db.query(models.Reminder).filter(
+                models.Reminder.id == reminder_id,
+                models.Reminder.user_id == current_user.id,
+            ).first()
         )
         if not reminder:
             raise HTTPException(status_code=404, detail="Reminder not found")
@@ -597,9 +652,13 @@ async def add_subtask(
     reminder_id: int,
     title: str = Form(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        parent = db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
+        parent = db.query(models.Reminder).filter(
+            models.Reminder.id == reminder_id,
+            models.Reminder.user_id == current_user.id,
+        ).first()
         if not parent:
             raise HTTPException(status_code=404, detail="Parent reminder not found")
 
@@ -625,10 +684,14 @@ async def add_subtask(
 async def toggle_reminder_flag(
     reminder_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         reminder = (
-            db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
+            db.query(models.Reminder).filter(
+                models.Reminder.id == reminder_id,
+                models.Reminder.user_id == current_user.id,
+            ).first()
         )
         if not reminder:
             raise HTTPException(status_code=404, detail="Reminder not found")
@@ -648,11 +711,11 @@ async def get_upcoming_reminders(
     user_id: str = Query(...),
     hours: int = Query(24),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         now = datetime.now()
         future = now + timedelta(hours=hours)
@@ -681,11 +744,11 @@ async def search_reminders(
     user_id: str = Query(...),
     query: str = Query(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        _assert_user_matches_request(user_id, current_user)
+        user = current_user
 
         reminders = (
             db.query(models.Reminder)

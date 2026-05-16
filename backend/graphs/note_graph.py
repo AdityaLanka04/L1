@@ -93,22 +93,27 @@ async def fetch_context(state: NoteGenState) -> dict:
     rag_chunks: list[str] = []
     use_hs = state.get("use_hs_context", True)
     context_doc_ids = state.get("context_doc_ids") or []
-    logger.info(f"[NOTE RAG] topic='{topic}' use_hs_context={use_hs} user_id={user_id}")
-    if topic and use_hs:
+    logger.info(
+        f"[NOTE RAG] topic='{topic}' use_hs_context={use_hs} "
+        f"user_id={user_id} context_doc_ids={len(context_doc_ids)}"
+    )
+    should_query_context = bool(topic and (use_hs or context_doc_ids))
+    if should_query_context:
         try:
             from services import context_store
             if context_store.available():
                 results = context_store.search_context(
                     query=topic,
                     user_id=user_id,
-                    use_hs=True,
-                    top_k=5,
+                    use_hs=bool(use_hs),
+                    top_k=8,
                     doc_ids=context_doc_ids or None,
                 )
                 rag_chunks = [r["text"] for r in results]
                 if rag_chunks:
                     logger.info(
-                        f"[NOTE RAG] *** HS CONTEXT FOUND *** {len(rag_chunks)} chunk(s) retrieved for '{topic}'"
+                        f"[NOTE RAG] Retrieved {len(rag_chunks)} chunk(s) for '{topic}' "
+                        f"(use_hs_context={use_hs})"
                     )
                     for i, r in enumerate(results):
                         preview = r["text"][:120].replace("\n", " ")
@@ -122,8 +127,7 @@ async def fetch_context(state: NoteGenState) -> dict:
         except Exception as e:
             logger.warning(f"RAG context fetch failed: {e}")
     else:
-        if not use_hs:
-            logger.info(f"[NOTE RAG] HS Mode OFF — RAG skipped for '{topic}'")
+        logger.info("[NOTE RAG] No context query (missing topic and no selected docs)")
 
     return {
         "student_weaknesses": weaknesses,

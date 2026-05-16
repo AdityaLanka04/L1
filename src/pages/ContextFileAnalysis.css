@@ -204,6 +204,61 @@
   color: color-mix(in srgb, var(--text-primary, #fff) 85%, transparent);
 }
 
+.cfp-topic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cfp-topic-btn {
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  color: color-mix(in srgb, var(--text-primary, #fff) 90%, transparent);
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+}
+
+.cfp-topic-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.cfp-topic-btn.active {
+  border-color: color-mix(in srgb, var(--accent) 48%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.cfp-topic-btn em {
+  font-style: normal;
+  font-size: 11px;
+  color: #86efac;
+  border: 1px solid rgba(134, 239, 172, 0.35);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.cfp-topic-actions {
+  margin-top: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: 10px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--accent) 4%, #0f1011);
+}
+
+.cfp-topic-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .cfp-checks {
   display: flex;
   flex-wrap: wrap;
