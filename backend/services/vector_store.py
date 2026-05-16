@@ -178,13 +178,13 @@ def _execute_upsert(conn, params: dict) -> None:
         raise
 
 
-def initialize(embed_model) -> None:
+def initialize(embed_model, db_url: str | None = None) -> None:
     global _engine, _embed_model
-    db_url = os.environ.get("DATABASE_URL", "")
-    if not db_url:
+    resolved_url = db_url or os.environ.get("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
+    if not resolved_url:
         raise RuntimeError("DATABASE_URL not set — cannot initialize vector_store")
 
-    sync_url = db_url
+    sync_url = resolved_url
     if "+asyncpg" in sync_url:
         sync_url = sync_url.replace("+asyncpg", "+psycopg2")
     elif sync_url.startswith("postgres://"):
@@ -192,7 +192,10 @@ def initialize(embed_model) -> None:
     elif sync_url.startswith("postgresql://") and "+psycopg2" not in sync_url:
         sync_url = "postgresql+psycopg2://" + sync_url[len("postgresql://"):]
 
-    _engine = create_engine(sync_url, pool_size=5, max_overflow=10, pool_pre_ping=True)
+    if "sqlite" in sync_url:
+        _engine = create_engine(sync_url, connect_args={"check_same_thread": False})
+    else:
+        _engine = create_engine(sync_url, pool_size=5, max_overflow=10, pool_pre_ping=True)
     _embed_model = embed_model
     try:
         _ensure_schema()

@@ -58,6 +58,17 @@
   letter-spacing: 0;
 }
 
+.context-selector-btn.has-doc {
+  color: var(--accent, #7c6ff7);
+  opacity: 1;
+  background: color-mix(in srgb, var(--accent, #7c6ff7) 12%, transparent);
+  border-radius: 8px;
+}
+
+.context-selector-btn.has-doc:hover {
+  background: color-mix(in srgb, var(--accent, #7c6ff7) 20%, transparent);
+}
+
 .search-hub-page .context-selector-btn {
   color: var(--accent);
   opacity: 1;

@@ -43,11 +43,14 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
     if (isOpen) loadDocs();
   }, [isOpen, loadDocs]);
 
-  const toggleDoc = (id) => {
+  const toggleDoc = (id, filename) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else {
+        next.add(id);
+        if (filename) contextService.setDocName(id, filename);
+      }
       saveSelected(next);
       return next;
     });
@@ -172,7 +175,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
                     <div
                       key={id}
                       className={`cp-doc-item cp-doc-item--selectable ${sel ? 'cp-doc-item--selected' : ''}`}
-                      onClick={() => toggleDoc(id)}
+                      onClick={() => toggleDoc(id, name)}
                       role="checkbox"
                       aria-checked={sel}
                     >
@@ -216,7 +219,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
                     <div
                       key={id}
                       className={`cp-doc-item cp-doc-item--selectable ${sel ? 'cp-doc-item--selected' : ''}`}
-                      onClick={() => toggleDoc(id)}
+                      onClick={() => toggleDoc(id, name)}
                       role="checkbox"
                       aria-checked={sel}
                     >

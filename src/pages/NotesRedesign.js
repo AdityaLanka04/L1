@@ -2823,6 +2823,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>
+          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
         </nav>
       </header>
 

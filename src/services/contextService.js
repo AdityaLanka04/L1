@@ -121,6 +121,46 @@ class ContextService {
     return headers;
   }
 
+  _docNamesKey() {
+    return `ctx_doc_names_${this._currentUserKey()}`;
+  }
+
+  _readDocNames() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(this._docNamesKey()) || '{}');
+      return raw && typeof raw === 'object' ? raw : {};
+    } catch { return {}; }
+  }
+
+  _writeDocNames(map) {
+    try {
+      localStorage.setItem(this._docNamesKey(), JSON.stringify(map || {}));
+    } catch {}
+  }
+
+  setDocName(docId, filename) {
+    const map = this._readDocNames();
+    map[String(docId)] = filename;
+    this._writeDocNames(map);
+  }
+
+  getSelectedDocNames() {
+    const ids = this._getSelectedDocIds();
+    if (!ids || ids.length === 0) return [];
+    const map = this._readDocNames();
+    return ids.map(id => ({ id, name: map[String(id)] || null })).filter(d => d.name);
+  }
+
+  autoSelectDoc(docId, filename) {
+    try {
+      const raw = localStorage.getItem('ctx_selected_doc_ids');
+      const arr = JSON.parse(raw || '[]');
+      if (!arr.includes(String(docId))) arr.push(String(docId));
+      localStorage.setItem('ctx_selected_doc_ids', JSON.stringify(arr));
+    } catch {}
+    this.setDocName(docId, filename);
+  }
+
   
   async uploadDocument(file, subject = '', gradeLevel = '', scope = 'private', options = {}) {
     const {

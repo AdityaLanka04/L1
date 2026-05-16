@@ -9,7 +9,7 @@ import {
   Dna, FlaskConical, Zap, Microscope, Landmark, Code2, BarChart2,
   Palette, Wrench, Dumbbell, Music, Tv, Brain, Scale, Hash,
   Triangle, Heart, Film, Leaf, Mic2, Languages, Building2, Sun,
-  MessageCircle, Globe2, Sigma, Clock, Menu, Send,
+  MessageCircle, Globe2, Sigma, Menu, Send,
   Tag, ArrowRight, CheckSquare, Square, Filter
 } from 'lucide-react';
 import contextService from '../services/contextService';
@@ -306,95 +306,89 @@ function Breadcrumb({ curriculum, grade, subject, onLanding, onCurriculum, onGra
   );
 }
 
-function DocCard({ doc, viewMode, onDelete, isOwn, isSelected, onToggleSelect }) {
-  const IconComp = FileText;
-  const isPublic = doc.scope === 'public' || doc.scope === 'community';
+// Unified doc row with action buttons — used in Library and Subject views
+function DocRow({ doc, isNew, isSelected, onSelect, onDelete, onAction, isOwn = true }) {
   const docId = doc.doc_id || doc.id;
-  if (viewMode === 'list') {
-    return (
-      <div className={`ch-doc-row ${isOwn ? 'ch-doc-row--mine' : ''}`}>
-        <IconComp size={18} className="ch-doc-row-icon" />
-        <div className="ch-doc-row-info">
-          <span className="ch-doc-row-title">{doc.title || doc.filename || 'Untitled'}</span>
-          <span className="ch-doc-row-meta">
-            {isPublic ? <><Unlock size={10} /> Community</> : <><Lock size={10} /> Private</>}
-            {doc.created_at && <> · {fmtDate(doc.created_at)}</>}
-            {doc.file_size && <> · {fmtBytes(doc.file_size)}</>}
-          </span>
-        </div>
-        <div className="ch-doc-row-actions">
-          {docId && (
-            <button
-              className="ch-doc-action ch-doc-action--select"
-              onClick={() => onToggleSelect(docId)}
-              title={isSelected ? 'Remove from context selection' : 'Use for context'}
-            >
-              {isSelected ? <CheckSquare size={13} /> : <Square size={13} />}
-            </button>
-          )}
-          {isOwn && (
-            <button className="ch-doc-action ch-doc-action--delete" onClick={() => onDelete(doc.doc_id || doc.id)} title="Delete">
-              <Trash2 size={13} />
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const name  = doc.title || doc.filename || 'Untitled';
+  const isPublic = doc.scope === 'public' || doc.scope === 'community';
+
   return (
-    <div className={`ch-doc-card ${isOwn ? 'ch-doc-card--mine' : ''}`}>
-      <div className="ch-doc-card-top">
-        <IconComp size={28} className="ch-doc-card-icon" />
-        <div className="ch-doc-card-badges">
-          {isPublic
-            ? <span className="ch-badge ch-badge--community"><Users size={9} />Community</span>
-            : <span className="ch-badge ch-badge--private"><Lock size={9} />Private</span>}
-          {isOwn && <span className="ch-badge ch-badge--mine"><Star size={9} />Mine</span>}
-          {docId && (
-            <button
-              className={`ch-doc-select-chip ${isSelected ? 'ch-doc-select-chip--selected' : ''}`}
-              onClick={() => onToggleSelect(docId)}
-              title={isSelected ? 'Selected for context' : 'Select for context'}
-            >
-              {isSelected ? <CheckSquare size={11} /> : <Square size={11} />}
-              {isSelected ? 'Selected' : 'Select'}
-            </button>
-          )}
-        </div>
+    <div className={`doc-row ${isSelected ? 'doc-row--selected' : ''} ${isNew ? 'doc-row--new' : ''}`}>
+      <button className="doc-row-select" onClick={() => docId && onSelect(docId, name)}
+        title={isSelected ? 'Remove from context' : 'Select for context'}>
+        {isSelected ? <CheckSquare size={15} /> : <Square size={15} />}
+      </button>
+
+      <div className="doc-row-icon-wrap">
+        <FileText size={18} />
       </div>
-      <div className="ch-doc-card-body">
-        <h4 className="ch-doc-card-title">{doc.title || doc.filename || 'Untitled'}</h4>
-        {doc.subject && <p className="ch-doc-card-subject">{doc.subject}</p>}
-        {doc.ai_summary && <p className="ch-doc-card-summary">{doc.ai_summary}</p>}
-        {doc.topic_tags && doc.topic_tags.length > 0 && (
-          <div className="ch-doc-card-tags">
-            {doc.topic_tags.slice(0, 4).map(tag => (
-              <span key={tag} className="ch-doc-tag"><Tag size={9} />{tag}</span>
-            ))}
-          </div>
-        )}
-        <p className="ch-doc-card-meta">
-          {doc.created_at && fmtDate(doc.created_at)}
+
+      <div className="doc-row-info">
+        <div className="doc-row-name">
+          {name}
+          {isNew && <span className="doc-row-new-tag">New</span>}
+        </div>
+        <div className="doc-row-meta">
+          {isPublic ? 'Community' : 'Private'}
+          {doc.created_at && <> · {fmtDate(doc.created_at)}</>}
           {doc.chunk_count ? <> · {doc.chunk_count} chunks</> : null}
-        </p>
-      </div>
-      {isOwn && (
-        <div className="ch-doc-card-footer">
-          <button className="ch-doc-action ch-doc-action--delete" onClick={() => onDelete(doc.doc_id || doc.id)}>
-            <Trash2 size={12} /> Delete
-          </button>
         </div>
-      )}
+      </div>
+
+      <div className="doc-row-actions">
+        <button className="doc-action-chip doc-action-chip--chat"
+          onClick={() => docId && onAction(doc, 'chat')} title="Open in AI Chat">
+          <MessageCircle size={12} />AI Chat
+        </button>
+        <button className="doc-action-chip doc-action-chip--notes"
+          onClick={() => docId && onAction(doc, 'notes')} title="Open in Notes">
+          <PenLine size={12} />Notes
+        </button>
+        <button className="doc-action-chip doc-action-chip--flash"
+          onClick={() => docId && onAction(doc, 'flash')} title="Create Flashcards">
+          <BookOpen size={12} />Flashcards
+        </button>
+        <button className="doc-action-chip doc-action-chip--quiz"
+          onClick={() => docId && onAction(doc, 'quiz')} title="Create Quiz">
+          <Brain size={12} />Quiz
+        </button>
+        {isOwn && (
+          <button className="doc-action-chip doc-action-chip--delete"
+            onClick={() => docId && onDelete(docId)} title="Delete">
+            <Trash2 size={12} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
+// Keep DocCard for backward compat with SubjectView grid mode
+function DocCard({ doc, viewMode, onDelete, isOwn, isSelected, onToggleSelect, onAction, isNew = false }) {
+  const isPublic = doc.scope === 'public' || doc.scope === 'community';
+  const docId = doc.doc_id || doc.id;
+  const name = doc.title || doc.filename || 'Untitled';
+  return (
+    <DocRow
+      doc={doc}
+      isNew={isNew}
+      isSelected={isSelected}
+      onSelect={(id, n) => onToggleSelect(id)}
+      onDelete={onDelete}
+      onAction={onAction || (() => {})}
+      isOwn={isOwn}
+    />
+  );
+}
+
 function UploadModal({ isOpen, onClose, curriculum, grade, subject, onUploaded }) {
+  const navigate = useNavigate();
   const [file, setFile]       = useState(null);
   const [scope, setScope]     = useState('private');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [success, setSuccess] = useState(false);
+  const [uploadedFilename, setUploadedFilename] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef();
 
@@ -402,7 +396,7 @@ function UploadModal({ isOpen, onClose, curriculum, grade, subject, onUploaded }
   const gradeInfo = curr && grade ? curr.grades[grade] : null;
 
   useEffect(() => {
-    if (isOpen) { setFile(null); setError(''); setSuccess(false); setScope('private'); }
+    if (isOpen) { setFile(null); setError(''); setSuccess(false); setUploadedFilename(''); setScope('private'); }
   }, [isOpen]);
 
   const handleDrop = useCallback((e) => {
@@ -417,16 +411,16 @@ function UploadModal({ isOpen, onClose, curriculum, grade, subject, onUploaded }
     setLoading(true);
     setError('');
     try {
-      await contextService.uploadDocument(
+      const result = await contextService.uploadDocument(
         file,
         subject?.id || '',
         grade ? String(grade) : '',
         scope,
         { sourceName: curr?.shortName || '' }
       );
+      setUploadedFilename(result?.filename || file.name);
       setSuccess(true);
-      if (onUploaded) onUploaded();
-      setTimeout(onClose, 1500);
+      if (onUploaded) onUploaded(result);
     } catch (e) {
       setError(e.message || 'Upload failed');
     } finally {
@@ -453,8 +447,22 @@ function UploadModal({ isOpen, onClose, curriculum, grade, subject, onUploaded }
         <div className="ch-modal-body">
           {success ? (
             <div className="ch-modal-success">
-              <CheckCircle size={40} />
-              <p>Document uploaded successfully!</p>
+              <CheckCircle size={36} className="ch-modal-success-icon" />
+              <p className="ch-modal-success-title">Document uploaded!</p>
+              {uploadedFilename && (
+                <p className="ch-modal-success-file">{uploadedFilename}</p>
+              )}
+              <p className="ch-modal-success-sub">
+                Auto-selected as context. Open AI Chat or Notes to use it.
+              </p>
+              <div className="ch-modal-success-actions">
+                <button className="ch-btn ch-btn--primary" onClick={() => navigate('/ai-chat')}>
+                  <MessageCircle size={14} />Open AI Chat
+                </button>
+                <button className="ch-btn ch-btn--ghost" onClick={onClose}>
+                  Stay Here
+                </button>
+              </div>
             </div>
           ) : (
             <>
@@ -540,6 +548,81 @@ function UploadModal({ isOpen, onClose, curriculum, grade, subject, onUploaded }
   );
 }
 
+// ─── UPLOAD VIEW — minimal: pick file → upload → go to library ───────────────
+
+function UploadView({ onSuccess }) {
+  const [file, setFile]       = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const fileRef = useRef();
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault(); setDragOver(false);
+    const f = e.dataTransfer.files[0];
+    if (f) setFile(f);
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!file) return;
+    setLoading(true); setError('');
+    try {
+      const result = await contextService.uploadDocument(file, '', '', 'private');
+      if (onSuccess) onSuccess(result);
+    } catch (e) {
+      setError(e.message || 'Upload failed');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="ch-upload-page">
+      <div className="ch-upload-page-header">
+        <h2><Upload size={20} />Upload Document</h2>
+        <p>Supports PDF, TXT, Markdown — up to 50 MB. After upload, you'll be taken to your document library.</p>
+      </div>
+
+      <div
+        className={`ch-upload-dz ${dragOver ? 'ch-upload-dz--active' : ''} ${file ? 'ch-upload-dz--ready' : ''}`}
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        onClick={() => !file && fileRef.current?.click()}
+      >
+        <input ref={fileRef} type="file" accept=".pdf,.txt,.md" style={{ display: 'none' }}
+          onChange={e => { setFile(e.target.files[0]); setError(''); }} />
+
+        {file ? (
+          <div className="ch-upload-dz-file">
+            <FileText size={40} className="ch-upload-dz-file-icon" />
+            <div>
+              <p className="ch-upload-dz-file-name">{file.name}</p>
+              <p className="ch-upload-dz-file-size">{fmtBytes(file.size)}</p>
+            </div>
+            <button className="ch-upload-dz-remove" onClick={e => { e.stopPropagation(); setFile(null); }}>
+              <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="ch-upload-dz-icon"><Upload size={40} /></div>
+            <p className="ch-upload-dz-label">Drop file here or <span onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}>browse</span></p>
+            <div className="ch-upload-dz-pills">
+              <span>PDF</span><span>TXT</span><span>MD</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {error && <div className="ch-upload-page-error"><AlertCircle size={14} />{error}</div>}
+
+      <button className="ch-upload-page-btn" onClick={handleSubmit} disabled={!file || loading}>
+        {loading ? <><Loader2 size={16} className="ch-spinner" />Uploading…</> : <><Upload size={16} />Upload</>}
+      </button>
+    </div>
+  );
+}
+
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 
 export default function ContextHub() {
@@ -557,8 +640,10 @@ export default function ContextHub() {
   const selectedGrade      = curr && urlG && curr.grades[urlG] ? urlG : null;
   const gradeInfo          = curr && selectedGrade ? curr.grades[selectedGrade] : null;
   const selectedSubject    = gradeInfo && urlS ? (gradeInfo.subjects.find(s => s.id === urlS) || null) : null;
-  const view               = urlViewParam === 'ask'    ? 'ask'
-    : urlViewParam === 'custom' ? 'custom'
+  const view               = urlViewParam === 'ask'     ? 'ask'
+    : urlViewParam === 'upload'  ? 'upload'
+    : urlViewParam === 'library' ? 'library'
+    : urlViewParam === 'custom'  ? 'library'
     : selectedSubject    ? 'subject'
     : selectedGrade      ? 'grade'
     : selectedCurriculum ? 'curriculum'
@@ -579,13 +664,11 @@ export default function ContextHub() {
   });
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
 
-  const [recentContexts, setRecentContexts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('context_history') || '[]'); } catch { return []; }
-  });
-
   const [uploadOpen, setUploadOpen]   = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [stats, setStats]             = useState({ myDocs: 0, communityDocs: 0 });
+  const [libScope, setLibScope]       = useState('all');
+  const [highlightedDocId, setHighlightedDocId] = useState(null);
 
   // ── Ask Your Notes state ───────────────────────────────────────────────────
   const [askHistory, setAskHistory]   = useState([]);
@@ -643,7 +726,7 @@ export default function ContextHub() {
       loadDocs();
       loadCommunityDocs(selectedCurriculum, selectedGrade, selectedSubject?.id);
     }
-    if (view === 'ask' || view === 'custom') {
+    if (view === 'ask' || view === 'library') {
       loadDocs();
     }
   }, [urlC, urlG, urlS, urlViewParam, loadDocs, loadCommunityDocs]); // eslint-disable-line
@@ -651,13 +734,12 @@ export default function ContextHub() {
   // ── Active Context ─────────────────────────────────────────────────────────
   const addToRecent = useCallback((curriculum, grade, subject) => {
     if (!curriculum || !grade || !subject) return;
-    const entry = { curriculum, grade, subject: subject.id, name: subject.name };
-    setRecentContexts(prev => {
-      const filtered = prev.filter(r => !(r.curriculum === curriculum && r.grade === grade && r.subject === subject.id));
-      const next = [entry, ...filtered].slice(0, 4);
+    try {
+      const raw = JSON.parse(localStorage.getItem('context_history') || '[]');
+      const filtered = raw.filter(r => !(r.curriculum === curriculum && r.grade === grade && r.subject === subject.id));
+      const next = [{ curriculum, grade, subject: subject.id, name: subject.name }, ...filtered].slice(0, 4);
       localStorage.setItem('context_history', JSON.stringify(next));
-      return next;
-    });
+    } catch {}
   }, []);
 
   const setAsActiveContext = useCallback(() => {
@@ -807,6 +889,24 @@ export default function ContextHub() {
   const activeCtxCurr  = activeContext?.curriculum ? CURRICULA[activeContext.curriculum] : null;
   const activeCtxGrade = activeCtxCurr && activeContext?.grade ? activeCtxCurr.grades[activeContext.grade] : null;
 
+  // ── Doc actions (select + navigate to AI tool) ────────────────────────────
+  const handleDocAction = useCallback((doc, action) => {
+    const docId = doc.doc_id || doc.id;
+    const fname = doc.title || doc.filename || String(docId);
+    if (docId) {
+      contextService.autoSelectDoc(docId, fname);
+      setSelectedDocIds(prev => {
+        const id = String(docId);
+        if (prev.includes(id)) return prev;
+        const next = [...prev, id];
+        persistSelectedDocs(next);
+        return next;
+      });
+    }
+    const routes = { chat: '/ai-chat', notes: '/notes/my-notes', flash: '/flashcards', quiz: '/quiz-hub' };
+    navigate(routes[action] || '/ai-chat');
+  }, [navigate, persistSelectedDocs]);
+
   // ── Ask Your Notes ─────────────────────────────────────────────────────────
   const handleAsk = useCallback(async () => {
     const q = askInput.trim();
@@ -841,148 +941,68 @@ export default function ContextHub() {
   const Sidebar = () => (
     <aside className={`ch-sidebar ${sidebarOpen ? '' : 'ch-sidebar--collapsed'}`}>
       <div className="ch-sidebar-inner">
-        {activeContext && activeCtxCurr ? (
-          <div className="ch-sidebar-active-ctx">
-            <div className="ch-sac-header">
-              <div className="ch-sac-dot" />
-              <span className="ch-sac-label">Active Context</span>
-              <span className="ch-sac-hs">HS ON</span>
+        <nav className="ch-sidebar-nav ch-sidebar-nav--main">
+
+          <button className={`ch-sidebar-nav-item ch-sidebar-upload-btn ${view === 'upload' ? 'ch-sidebar-nav-item--active' : ''}`}
+            onClick={() => setSearchParams({ view: 'upload' })}>
+            <Upload size={14} /><span>Upload</span>
+          </button>
+
+          <button className={`ch-sidebar-nav-item ${view === 'library' ? 'ch-sidebar-nav-item--active' : ''}`}
+            onClick={() => { setSearchParams({ view: 'library' }); loadDocs(); }}>
+            <FolderOpen size={14} />
+            <span>My Documents</span>
+            {stats.myDocs > 0 && <span className="ch-sidebar-count">{stats.myDocs}</span>}
+          </button>
+
+          <div className="ch-sidebar-divider" />
+
+          <button className={`ch-sidebar-nav-item ${view === 'landing' ? 'ch-sidebar-nav-item--active' : ''}`}
+            onClick={goLanding}>
+            <Library size={14} /><span>Curriculum</span>
+          </button>
+
+          <button className={`ch-sidebar-nav-item ${selectedCurriculum === 'uk' ? 'ch-sidebar-nav-item--active' : ''}`}
+            onClick={() => goCurriculum('uk')}>
+            <FlagUK size={18} /><span>UK High School</span>
+          </button>
+          {selectedCurriculum === 'uk' && (
+            <div className="ch-sidebar-nav-children">
+              {Object.entries(CURRICULA.uk.grades).map(([g, info], idx) => (
+                <button key={g}
+                  className={`ch-sidebar-nav-item ch-sidebar-nav-item--child ${selectedGrade === Number(g) ? 'ch-sidebar-nav-item--active' : ''}`}
+                  onClick={() => goGrade(Number(g))}>
+                  <span className="ch-sidebar-nav-grade-dot" style={{ background: GRADE_COLORS[idx] }} />
+                  <span>{info.label}</span>
+                </button>
+              ))}
             </div>
-            <div className="ch-sac-body">
-              <activeCtxCurr.Flag size={22} />
-              <div className="ch-sac-info">
-                <span className="ch-sac-curriculum">{activeCtxCurr.shortName}</span>
-                {activeCtxGrade && <span className="ch-sac-grade">{activeCtxGrade.label}</span>}
-                {activeContext.subject && (
-                  <span className="ch-sac-subject">
-                    {activeCtxGrade?.subjects.find(s => s.id === activeContext.subject)?.name || activeContext.subject}
-                  </span>
-                )}
-              </div>
+          )}
+
+          <button className={`ch-sidebar-nav-item ${selectedCurriculum === 'us' ? 'ch-sidebar-nav-item--active' : ''}`}
+            onClick={() => goCurriculum('us')}>
+            <FlagUS size={18} /><span>US High School</span>
+          </button>
+          {selectedCurriculum === 'us' && (
+            <div className="ch-sidebar-nav-children">
+              {Object.entries(CURRICULA.us.grades).map(([g, info], idx) => (
+                <button key={g}
+                  className={`ch-sidebar-nav-item ch-sidebar-nav-item--child ${selectedGrade === Number(g) ? 'ch-sidebar-nav-item--active' : ''}`}
+                  onClick={() => goGrade(Number(g))}>
+                  <span className="ch-sidebar-nav-grade-dot" style={{ background: GRADE_COLORS[idx] }} />
+                  <span>{info.label}</span>
+                </button>
+              ))}
             </div>
-            <button className="ch-sac-clear" onClick={clearActiveContext}>
-              <X size={12} /> Clear
-            </button>
-          </div>
-        ) : (
-          <div className="ch-sidebar-no-ctx">
-            <Sparkles size={14} />
-            <p>No active context. Browse a subject below to set one.</p>
-          </div>
-        )}
+          )}
 
-        {recentContexts.length > 0 && (
-          <div className="ch-sidebar-section">
-            <p className="ch-sidebar-section-title">Recent</p>
-            <nav className="ch-sidebar-nav">
-              {recentContexts.map((r, i) => {
-                const rCurr = CURRICULA[r.curriculum];
-                const rGrade = rCurr?.grades[r.grade];
-                if (!rCurr || !rGrade) return null;
-                const isActive = urlC === r.curriculum && urlG === Number(r.grade) && urlS === r.subject;
-                return (
-                  <button
-                    key={i}
-                    className={`ch-sidebar-nav-item ch-sidebar-nav-item--recent ${isActive ? 'ch-sidebar-nav-item--active' : ''}`}
-                    onClick={() => {
-                      setDocTab('all');
-                      setSearchQuery('');
-                      setSearchParams({ c: r.curriculum, g: String(r.grade), s: r.subject });
-                    }}
-                  >
-                    <Clock size={13} className="ch-sidebar-recent-icon" />
-                    <span className="ch-sidebar-recent-text">
-                      <span className="ch-sidebar-recent-name">{r.name}</span>
-                      <span className="ch-sidebar-recent-sub">{rCurr.shortName} · {rGrade.label}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        )}
+          <div className="ch-sidebar-divider" />
 
-        <div className="ch-sidebar-section">
-          <p className="ch-sidebar-section-title">Navigation</p>
-          <nav className="ch-sidebar-nav">
-            <button
-              className={`ch-sidebar-nav-item ${view === 'landing' ? 'ch-sidebar-nav-item--active' : ''}`}
-              onClick={goLanding}
-            >
-              <Home size={14} /><span>Home</span>
-            </button>
-
-            <button
-              className={`ch-sidebar-nav-item ${selectedCurriculum === 'uk' ? 'ch-sidebar-nav-item--active' : ''}`}
-              onClick={() => goCurriculum('uk')}
-            >
-              <FlagUK size={18} /><span>UK High School</span>
-            </button>
-            {selectedCurriculum === 'uk' && (
-              <div className="ch-sidebar-nav-children">
-                {Object.entries(CURRICULA.uk.grades).map(([g, info], idx) => (
-                  <button
-                    key={g}
-                    className={`ch-sidebar-nav-item ch-sidebar-nav-item--child ${selectedGrade === Number(g) ? 'ch-sidebar-nav-item--active' : ''}`}
-                    onClick={() => goGrade(Number(g))}
-                  >
-                    <span className="ch-sidebar-nav-grade-dot" style={{ background: GRADE_COLORS[idx] }} />
-                    <span>{info.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <button
-              className={`ch-sidebar-nav-item ${selectedCurriculum === 'us' ? 'ch-sidebar-nav-item--active' : ''}`}
-              onClick={() => goCurriculum('us')}
-            >
-              <FlagUS size={18} /><span>American High School</span>
-            </button>
-            {selectedCurriculum === 'us' && (
-              <div className="ch-sidebar-nav-children">
-                {Object.entries(CURRICULA.us.grades).map(([g, info], idx) => (
-                  <button
-                    key={g}
-                    className={`ch-sidebar-nav-item ch-sidebar-nav-item--child ${selectedGrade === Number(g) ? 'ch-sidebar-nav-item--active' : ''}`}
-                    onClick={() => goGrade(Number(g))}
-                  >
-                    <span className="ch-sidebar-nav-grade-dot" style={{ background: GRADE_COLORS[idx] }} />
-                    <span>{info.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <button
-              className={`ch-sidebar-nav-item ${view === 'custom' ? 'ch-sidebar-nav-item--active' : ''}`}
-              onClick={() => setSearchParams({ view: 'custom' })}
-            >
-              <Plus size={14} /><span>Add Your Own</span>
-            </button>
-
-            <button
-              className={`ch-sidebar-nav-item ch-sidebar-nav-item--ask ${urlViewParam === 'ask' ? 'ch-sidebar-nav-item--active' : ''}`}
-              onClick={() => setSearchParams({ view: 'ask' })}
-            >
-              <MessageCircle size={14} /><span>Ask Your Notes</span>
-            </button>
-          </nav>
-        </div>
-
-        <div className="ch-sidebar-section ch-sidebar-stats">
-          <p className="ch-sidebar-section-title">Library Stats</p>
-          <div className="ch-stat-row">
-            <FileText size={13} />
-            <span className="ch-stat-label">My Documents</span>
-            <span className="ch-stat-val">{stats.myDocs}</span>
-          </div>
-          <div className="ch-stat-row">
-            <Users size={13} />
-            <span className="ch-stat-label">Community Docs</span>
-            <span className="ch-stat-val">{stats.communityDocs}</span>
-          </div>
-        </div>
+          <button className={`ch-sidebar-nav-item ${urlViewParam === 'ask' ? 'ch-sidebar-nav-item--active' : ''}`}
+            onClick={() => setSearchParams({ view: 'ask' })}>
+            <MessageCircle size={14} /><span>Ask Your Notes</span>
+          </button>
+        </nav>
 
         <div className="ch-sidebar-footer">
           <button className="ch-sidebar-footer-btn" onClick={() => navigate('/dashboard')}>
@@ -999,12 +1019,37 @@ export default function ContextHub() {
       <div className="ch-landing-header">
         <h1 className="ch-landing-title">
           <BookCopy size={28} />
-          Curriculum Library
+          Context Hub
         </h1>
         <p className="ch-landing-desc">
-          Select a curriculum to browse subjects, access community-uploaded study resources,
-          and set context for your AI tutor.
+          Upload your study materials or browse the curriculum library — your AI tutor, flashcards, quizzes, and notes will use them as context.
         </p>
+      </div>
+
+      <div className="ch-how-it-works">
+        <div className="ch-hiw-step">
+          <div className="ch-hiw-num">1</div>
+          <div className="ch-hiw-text">
+            <strong>Browse or upload</strong>
+            <span>Pick a curriculum subject or upload your own notes/PDFs</span>
+          </div>
+        </div>
+        <div className="ch-hiw-arrow"><ChevronRight size={16} /></div>
+        <div className="ch-hiw-step">
+          <div className="ch-hiw-num">2</div>
+          <div className="ch-hiw-text">
+            <strong>Select documents</strong>
+            <span>Tick the docs you want the AI to read from</span>
+          </div>
+        </div>
+        <div className="ch-hiw-arrow"><ChevronRight size={16} /></div>
+        <div className="ch-hiw-step">
+          <div className="ch-hiw-num">3</div>
+          <div className="ch-hiw-text">
+            <strong>Use AI tools</strong>
+            <span>AI Chat, Notes, Flashcards & Quizzes all use your context</span>
+          </div>
+        </div>
       </div>
 
       <div className="ch-bento">
@@ -1048,19 +1093,20 @@ export default function ContextHub() {
           </div>
         </button>
 
-        <button className="ch-bento-card ch-bento-card--custom" onClick={() => setUploadOpen(true)}>
+        <button className="ch-bento-card ch-bento-card--custom" onClick={() => setSearchParams({ view: 'upload' })}>
           <div className="ch-bento-card-inner">
-            <div className="ch-bento-card-plus-icon"><Plus size={32} /></div>
+            <div className="ch-bento-card-plus-icon"><Upload size={28} /></div>
             <div className="ch-bento-card-text">
-              <h2 className="ch-bento-card-title">Add Your Own Context</h2>
+              <h2 className="ch-bento-card-title">Upload Your Own Docs</h2>
               <p className="ch-bento-card-desc">
-                Upload your own syllabi, textbooks, notes or any study material. Keep it private or contribute to the community.
+                Drop in your textbook, syllabus, or notes. It auto-selects as context — open AI Chat and it's already reading from it.
               </p>
             </div>
             <div className="ch-bento-card-meta">
               <span className="ch-bento-meta-pill"><Upload size={11} />PDF / TXT / MD</span>
-              <span className="ch-bento-meta-pill"><Lock size={11} />Private or Public</span>
+              <span className="ch-bento-meta-pill"><Sparkles size={11} />Auto-selects as context</span>
             </div>
+            <div className="ch-bento-card-cta">Upload Now <ChevronRight size={14} /></div>
           </div>
         </button>
 
@@ -1301,41 +1347,14 @@ export default function ContextHub() {
           </div>
 
           <div className="ch-docs-controls-right">
-            <div className="ch-doc-select-toolbar">
-              <span className="ch-doc-select-status">
-                <Filter size={12} />
-                {selectedDocIds.length > 0
-                  ? `${selectedDocIds.length} selected`
-                  : 'Using all docs'}
-              </span>
-              <button className="ch-doc-select-btn" onClick={selectFilteredDocs} disabled={filteredDocs.length === 0}>
-                Select Visible
-              </button>
-              <button className="ch-doc-select-btn" onClick={clearFilteredDocs} disabled={filteredSelectedCount === 0}>
-                Clear Visible
-              </button>
-              <button className="ch-doc-select-btn ch-doc-select-btn--danger" onClick={clearSelectedDocs} disabled={selectedDocIds.length === 0}>
-                Clear All
-              </button>
-            </div>
             <div className="ch-search-bar">
               <Search size={14} />
               <input type="text" placeholder="Search documents…" value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)} className="ch-search-input" />
               {searchQuery && <button className="ch-search-clear" onClick={() => setSearchQuery('')}><X size={12} /></button>}
             </div>
-            <div className="ch-view-toggle">
-              <button className={`ch-view-toggle-btn ${viewMode === 'grid' ? 'ch-view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('grid')}><Grid size={14} /></button>
-              <button className={`ch-view-toggle-btn ${viewMode === 'list' ? 'ch-view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('list')}><ListIcon size={14} /></button>
-            </div>
             <button className="ch-icon-btn" onClick={loadDocs} title="Refresh"><RefreshCw size={14} /></button>
           </div>
-        </div>
-
-        <div className="ch-docs-selection-hint">
-          Context retrieval uses only selected documents when any are selected.
         </div>
 
         {docsLoading ? (
@@ -1348,102 +1367,140 @@ export default function ContextHub() {
           <div className="ch-docs-empty">
             <div className="ch-docs-empty-illustration"><FileText size={48} /></div>
             <h3>No documents yet</h3>
-            <p>{docTab === 'community' ? 'No community resources uploaded yet. Be the first!'
-              : docTab === 'mine' ? "You haven't uploaded any documents for this subject yet."
-              : 'No documents available. Upload one to get started!'}</p>
+            <p>No resources for this subject. Upload your own or be the first to contribute!</p>
             <button className="ch-btn ch-btn--primary" onClick={() => setUploadOpen(true)}>
-              <Upload size={14} />Upload First Document
+              <Upload size={14} />Upload Document
             </button>
           </div>
         ) : (
-          <>
-            {filteredDocs.length > MAX_RENDERED_DOCS && (
-              <div className="ch-docs-truncated-note">
-                Showing first {MAX_RENDERED_DOCS} results. Use search to narrow down.
-              </div>
-            )}
-            <div className={viewMode === 'grid' ? 'ch-docs-grid' : 'ch-docs-list'}>
+          <div className="ch-doc-list-rows">
             {visibleDocs.map(doc => (
-              <DocCard key={getDocKey(doc)} doc={doc} viewMode={viewMode}
-                onDelete={handleDelete}
-                isOwn={doc.owner_is_me !== false}
+              <DocRow key={getDocKey(doc)}
+                doc={doc}
+                isNew={false}
                 isSelected={selectedDocIdSet.has(doc.doc_id || doc.id)}
-                onToggleSelect={toggleDocSelection}
+                onSelect={(id, name) => { toggleDocSelection(id); contextService.setDocName(id, name); }}
+                onDelete={handleDelete}
+                onAction={handleDocAction}
+                isOwn={doc.owner_is_me !== false}
               />
             ))}
-            </div>
-          </>
+          </div>
         )}
       </div>
     );
   };
 
-  // ─── CUSTOM VIEW ──────────────────────────────────────────────────────────
-  const CustomView = () => (
-    <div className="ch-custom-view">
-      <div className="ch-view-header">
-        <button className="ch-back-btn" onClick={goBack}><ChevronLeft size={20} /></button>
-        <div className="ch-view-header-info">
-          <Plus size={20} />
-          <div>
-            <h2 className="ch-view-title">Add Your Own Context</h2>
-            <p className="ch-view-subtitle">Upload your own study materials for AI context</p>
+  // ─── LIBRARY VIEW ─────────────────────────────────────────────────────────
+  const now = Date.now();
+  const isNewDoc = (doc) => doc.created_at && (now - new Date(doc.created_at).getTime()) < 24 * 60 * 60 * 1000;
+
+  const libDocs = useMemo(() => {
+    let base = libScope === 'private'
+      ? myDocs.filter(d => d.scope !== 'public' && d.scope !== 'hs_shared')
+      : libScope === 'community'
+      ? myDocs.filter(d => d.scope === 'public' || d.scope === 'hs_shared')
+      : myDocs;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      base = base.filter(d => (d.title || d.filename || '').toLowerCase().includes(q));
+    }
+    return [...base].sort((a, b) => {
+      if (!a.created_at) return 1;
+      if (!b.created_at) return -1;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+  }, [myDocs, libScope, searchQuery]);
+
+  const LibraryView = () => (
+    <div className="ch-library-view">
+      <div className="ch-library-header">
+        <div className="ch-library-header-left">
+          <h2 className="ch-library-title">
+            <FolderOpen size={20} />My Library
+          </h2>
+          <span className="ch-library-count">{myDocs.length} doc{myDocs.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div className="ch-library-header-right">
+          <div className="ch-search-bar">
+            <Search size={14} />
+            <input type="text" placeholder="Search…" value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)} className="ch-search-input" />
+            {searchQuery && <button className="ch-search-clear" onClick={() => setSearchQuery('')}><X size={12} /></button>}
           </div>
-        </div>
-      </div>
-
-      <div className="ch-custom-grid">
-        <div className="ch-custom-card">
-          <Upload size={24} />
-          <h3>Upload Documents</h3>
-          <p>Upload PDFs, text files, or markdown notes. The AI will use these as additional context when you chat.</p>
-          <button className="ch-btn ch-btn--primary" onClick={() => setUploadOpen(true)}>
-            <Upload size={14} />Choose File
+          <button className="ch-btn ch-btn--primary" onClick={() => setSearchParams({ view: 'upload' })}>
+            <Upload size={14} />Upload New
           </button>
-        </div>
-        <div className="ch-custom-card">
-          <Globe size={24} />
-          <h3>Import from URL</h3>
-          <p>Paste a direct link to a PDF or text file hosted online. Works with direct download links.</p>
-          <button className="ch-btn ch-btn--ghost" disabled><Globe size={14} />Coming Soon</button>
-        </div>
-        <div className="ch-custom-card ch-custom-card--info">
-          <Shield size={24} />
-          <h3>Privacy Controls</h3>
-          <p>Every document you upload can be kept <strong>private</strong> (only you) or shared as <strong>community</strong> resources to help other students.</p>
-        </div>
-        <div className="ch-custom-card ch-custom-card--info">
-          <Sparkles size={24} />
-          <h3>How Context Works</h3>
-          <p>When HS Mode is on, the AI tutor, flashcard generator, quiz maker, and notes all receive relevant excerpts from your selected documents — making answers more curriculum-specific.</p>
-        </div>
-      </div>
-
-      <div className="ch-custom-my-docs">
-        <div className="ch-custom-my-docs-header">
-          <h3><FileText size={16} />My Documents</h3>
           <button className="ch-icon-btn" onClick={loadDocs} title="Refresh"><RefreshCw size={14} /></button>
         </div>
-        {docsLoading ? (
-          <div className="ch-docs-loading"><Loader2 size={20} className="ch-spinner" /><p>Loading…</p></div>
-        ) : myDocs.length === 0 ? (
-          <div className="ch-docs-empty-inline"><FileText size={24} /><p>No documents uploaded yet.</p></div>
-        ) : (
-          <div className="ch-docs-list">
-            {myDocs.map(doc => (
-              <DocCard
+      </div>
+
+      <div className="ch-library-controls">
+        <div className="ch-lib-scope-tabs">
+          {[
+            { key: 'all',       label: `All (${myDocs.length})` },
+            { key: 'private',   label: 'Private' },
+            { key: 'community', label: 'Community' },
+          ].map(t => (
+            <button key={t.key}
+              className={`ch-lib-tab ${libScope === t.key ? 'ch-lib-tab--active' : ''}`}
+              onClick={() => setLibScope(t.key)}>{t.label}
+            </button>
+          ))}
+        </div>
+        <div className="ch-library-controls-right">
+          {selectedDocIds.length > 0 && (
+            <div className="ch-lib-sel-banner">
+              <Filter size={12} />
+              <span>{selectedDocIds.length} selected for context</span>
+              <button className="ch-lib-sel-clear" onClick={clearSelectedDocs}>Clear</button>
+            </div>
+          )}
+          <div className="ch-view-toggle">
+            <button className={`ch-view-toggle-btn ${viewMode === 'grid' ? 'ch-view-toggle-btn--active' : ''}`}
+              onClick={() => setViewMode('grid')}><Grid size={14} /></button>
+            <button className={`ch-view-toggle-btn ${viewMode === 'list' ? 'ch-view-toggle-btn--active' : ''}`}
+              onClick={() => setViewMode('list')}><ListIcon size={14} /></button>
+          </div>
+        </div>
+      </div>
+
+      {docsLoading ? (
+        <div className="ch-docs-loading"><Loader2 size={24} className="ch-spinner" /><p>Loading…</p></div>
+      ) : docsError ? (
+        <div className="ch-docs-error"><AlertCircle size={20} /><p>{docsError}</p>
+          <button className="ch-btn ch-btn--ghost" onClick={loadDocs}>Retry</button>
+        </div>
+      ) : libDocs.length === 0 ? (
+        <div className="ch-library-empty">
+          <FolderOpen size={48} className="ch-library-empty-icon" />
+          <h3>{searchQuery ? 'No matches' : 'Your library is empty'}</h3>
+          <p>{searchQuery ? `Nothing found for "${searchQuery}"` : 'Upload your first document to get started.'}</p>
+          {!searchQuery && (
+            <button className="ch-btn ch-btn--primary" onClick={() => setSearchParams({ view: 'upload' })}>
+              <Upload size={14} />Upload Document
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="ch-doc-list-rows">
+          {libDocs.map(doc => {
+            const id = String(doc.doc_id || doc.id);
+            return (
+              <DocRow
                 key={getDocKey(doc)}
                 doc={doc}
-                viewMode="list"
-                onDelete={handleDelete}
-                isOwn
+                isNew={isNewDoc(doc) || id === highlightedDocId}
                 isSelected={selectedDocIdSet.has(doc.doc_id || doc.id)}
-                onToggleSelect={toggleDocSelection}
+                onSelect={(docId, name) => { toggleDocSelection(docId); contextService.setDocName(docId, name); }}
+                onDelete={handleDelete}
+                onAction={handleDocAction}
+                isOwn={doc.owner_is_me !== false}
               />
-            ))}
-          </div>
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 
@@ -1592,7 +1649,22 @@ export default function ContextHub() {
     if (view === 'curriculum') return <CurriculumView />;
     if (view === 'grade')      return <GradeView />;
     if (view === 'subject')    return <SubjectView />;
-    if (view === 'custom')     return <CustomView />;
+    if (view === 'library')    return <LibraryView />;
+    if (view === 'upload')     return (
+      <UploadView
+        onSuccess={(result) => {
+          const fname = result?.filename || '';
+          if (result?.doc_id) {
+            const id = String(result.doc_id);
+            contextService.autoSelectDoc(result.doc_id, fname);
+            setSelectedDocIds(prev => prev.includes(id) ? prev : (() => { const n = [...prev, id]; persistSelectedDocs(n); return n; })());
+            setHighlightedDocId(id);
+          }
+          loadDocs();
+          setSearchParams({ view: 'library' });
+        }}
+      />
+    );
     if (view === 'ask')        return <AskView />;
     return <LandingView />;
   };
@@ -1620,7 +1692,7 @@ export default function ContextHub() {
             {sidebarOpen ? <X size={16} /> : <Library size={16} />}
           </button>
 
-          {view !== 'landing' && (
+          {view !== 'landing' && view !== 'upload' && view !== 'library' && view !== 'ask' && (
             <Breadcrumb
               curriculum={selectedCurriculum}
               grade={selectedGrade}
@@ -1641,7 +1713,20 @@ export default function ContextHub() {
         curriculum={selectedCurriculum}
         grade={selectedGrade}
         subject={selectedSubject}
-        onUploaded={loadDocs}
+        onUploaded={(result) => {
+          loadDocs();
+          if (result?.doc_id) {
+            const fname = result.filename || result.doc_id;
+            contextService.autoSelectDoc(result.doc_id, fname);
+            setSelectedDocIds(prev => {
+              const id = String(result.doc_id);
+              if (prev.includes(id)) return prev;
+              const next = [...prev, id];
+              persistSelectedDocs(next);
+              return next;
+            });
+          }
+        }}
       />
     </div>
   );

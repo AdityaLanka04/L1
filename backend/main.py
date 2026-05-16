@@ -289,7 +289,7 @@ async def lifespan(app: FastAPI):
             logger.info("Embedding model loaded: all-MiniLM-L6-v2 (fallback)")
 
         from services import vector_store
-        vector_store.initialize(_embed_model_inst)
+        vector_store.initialize(_embed_model_inst, db_url=DATABASE_URL)
         logger.info("vector_store (pgvector) initialized")
 
         try:
