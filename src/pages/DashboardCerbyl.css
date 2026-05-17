@@ -1434,6 +1434,15 @@
   min-height: 240px;
 }
 
+.cb-panel--interactive {
+  cursor: pointer;
+}
+
+.cb-panel--interactive:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, white 30%);
+  outline-offset: 2px;
+}
+
 /* Full-width heatmap row */
 .cb-heat-full {
   width: 100%;

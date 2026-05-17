@@ -1250,10 +1250,28 @@ const DashboardCerbyl = () => {
 
           {/* Top analytics row: 3 panels */}
           <section className="cb-bottom">
-            <div className="cb-panel cb-panel--act" onMouseEnter={runWeeklyHoverAnimation}>
+            <div
+              className="cb-panel cb-panel--act cb-panel--interactive"
+              onMouseEnter={runWeeklyHoverAnimation}
+              onClick={() => navigate('/analytics')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate('/analytics');
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
               <div className="cb-panel-head">
                 <span className="cb-panel-title">Past Week Activity</span>
-                <button className="cb-panel-link" onClick={() => navigate('/analytics')}>
+                <button
+                  className="cb-panel-link"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/analytics');
+                  }}
+                >
                   all <ArrowUpRight size={12}/>
                 </button>
               </div>
