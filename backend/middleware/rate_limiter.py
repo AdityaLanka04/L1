@@ -30,6 +30,7 @@ import os
 import threading
 import time
 import uuid
+import ipaddress
 from collections import defaultdict, deque
 from typing import Optional, Tuple
 
@@ -163,6 +164,32 @@ _ALGORITHM = "HS256"
 _JWT_AUDIENCE = "brainwave-client"
 _JWT_ISSUER = "brainwave-backend"
 
+# Trust X-Forwarded-For only when the direct peer is a trusted proxy.
+_TRUSTED_PROXY_CIDRS_RAW = os.getenv("RATE_LIMIT_TRUSTED_PROXY_CIDRS", "127.0.0.1/32,::1/128")
+
+# Bound in-memory fallback state to avoid unbounded growth.
+_MEM_MAX_KEYS = max(1000, int(os.getenv("RATE_LIMIT_MEMORY_MAX_KEYS", "20000")))
+_MEM_EVICT_BATCH = max(100, _MEM_MAX_KEYS // 4)
+
+# Routes that must match exact path (not prefix).
+_EXACT_MATCH_PATHS = {"/api/health"}
+
+
+def _parse_cidrs(raw: str) -> list[ipaddress._BaseNetwork]:
+    networks: list[ipaddress._BaseNetwork] = []
+    for token in (raw or "").split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            networks.append(ipaddress.ip_network(token, strict=False))
+        except ValueError:
+            logger.warning("Rate limiter: ignoring invalid proxy CIDR '%s'", token)
+    return networks
+
+
+_TRUSTED_PROXY_NETWORKS = _parse_cidrs(_TRUSTED_PROXY_CIDRS_RAW)
+
 
 def init_redis_for_rate_limiter(redis_client) -> None:
     """
@@ -182,10 +209,37 @@ def init_redis_for_rate_limiter(redis_client) -> None:
 
 # ─── Identity extraction ───────────────────────────────────────────────────────
 
+def _is_from_trusted_proxy(request: Request) -> bool:
+    if not _TRUSTED_PROXY_NETWORKS:
+        return False
+    if not request.client or not request.client.host:
+        return False
+    try:
+        peer_ip = ipaddress.ip_address(request.client.host)
+    except ValueError:
+        return False
+    return any(peer_ip in net for net in _TRUSTED_PROXY_NETWORKS)
+
+
+def _extract_leftmost_ip(xff: str) -> Optional[str]:
+    if not xff:
+        return None
+    candidate = xff.split(",")[0].strip()
+    if not candidate:
+        return None
+    try:
+        ipaddress.ip_address(candidate)
+        return candidate
+    except ValueError:
+        return None
+
+
 def _get_client_ip(request: Request) -> str:
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip()
+    xff = request.headers.get("x-forwarded-for", "")
+    if _is_from_trusted_proxy(request):
+        client_ip = _extract_leftmost_ip(xff)
+        if client_ip:
+            return client_ip
     if request.client:
         return request.client.host or "unknown"
     return "unknown"
@@ -231,7 +285,10 @@ def _classify(method: str, path: str) -> Optional[str]:
         if rule_methods is not None and method not in rule_methods:
             continue
         if rule_path is not None:
-            if len(rule_path) > 1:
+            if rule_path in _EXACT_MATCH_PATHS:
+                if path != rule_path:
+                    continue
+            elif len(rule_path) > 1:
                 if not path.startswith(rule_path):
                     continue
             else:
@@ -262,16 +319,53 @@ def _check_memory(key: str, limit: int, window: int) -> Tuple[bool, int, float]:
     now = time.time()
     cutoff = now - window
     with _mem_lock:
-        dq = _mem_store[key]
+        dq = _mem_store.get(key)
+        if dq is None:
+            dq = deque()
+            _mem_store[key] = dq
+
         while dq and dq[0] < cutoff:
             dq.popleft()
+
+        if not dq:
+            _mem_store.pop(key, None)
+            dq = deque()
+            _mem_store[key] = dq
+
         count = len(dq)
         if count < limit:
             dq.append(now)
+            _evict_memory_if_needed_locked()
             oldest = dq[0]
             return True, count + 1, oldest
+
+        _evict_memory_if_needed_locked()
         oldest = dq[0] if dq else now
         return False, count, oldest
+
+
+def _evict_memory_if_needed_locked() -> None:
+    """Requires _mem_lock. Evicts stale/old entries when key count grows too large."""
+    if len(_mem_store) <= _MEM_MAX_KEYS:
+        return
+
+    # Drop empty deques first (they can appear after window trimming).
+    empty_keys = [k for k, v in _mem_store.items() if not v]
+    for k in empty_keys:
+        _mem_store.pop(k, None)
+    if len(_mem_store) <= _MEM_MAX_KEYS:
+        return
+
+    overage = len(_mem_store) - _MEM_MAX_KEYS
+    to_remove = min(len(_mem_store), max(_MEM_EVICT_BATCH, overage))
+
+    # Evict least-recently-seen keys (oldest right edge timestamp).
+    oldest_keys = sorted(
+        _mem_store.keys(),
+        key=lambda k: _mem_store[k][-1] if _mem_store[k] else 0.0,
+    )[:to_remove]
+    for k in oldest_keys:
+        _mem_store.pop(k, None)
 
 
 def _check(key: str, limit: int, window: int) -> Tuple[bool, int, float]:
