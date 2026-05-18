@@ -82,7 +82,7 @@ class ChatSession(Base):
     __tablename__ = "chat_sessions"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(255), default="New Chat")
     folder_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -97,7 +97,7 @@ class ChatMessage(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     user_message = Column(Text, nullable=False)
     ai_response = Column(Text, nullable=False)
     is_user = Column(Boolean, default=True)
@@ -112,7 +112,7 @@ class KnowledgeNode(Base):
     __tablename__ = "knowledge_nodes"
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     parent_node_id = Column(Integer, ForeignKey("knowledge_nodes.id"), nullable=True)
     roadmap_id = Column(Integer, ForeignKey("knowledge_roadmaps.id"), nullable=True)
     
@@ -149,7 +149,7 @@ class KnowledgeRoadmap(Base):
     __tablename__ = "knowledge_roadmaps"
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     title = Column(String(255), nullable=False)
     root_topic = Column(String(200), nullable=False)
@@ -174,7 +174,7 @@ class NodeExplorationHistory(Base):
     
     id = Column(Integer, primary_key=True)
     node_id = Column(Integer, ForeignKey("knowledge_nodes.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     roadmap_id = Column(Integer, ForeignKey("knowledge_roadmaps.id"))
     
     exploration_duration = Column(Integer, default=0)
@@ -203,7 +203,7 @@ class MediaFile(Base):
     __tablename__ = "media_files"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     file_type = Column(String(20))
     original_filename = Column(String(255))
@@ -229,7 +229,7 @@ class Note(Base):
     __tablename__ = "notes"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     media_file_id = Column(Integer, ForeignKey("media_files.id"), nullable=True)
     title = Column(String(255), default="Untitled Note")
     content = Column(Text, default="")
@@ -304,7 +304,7 @@ class Folder(Base):
     __tablename__ = "folders"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     color = Column(String(50), default="#D7B38C")
     parent_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
@@ -318,7 +318,7 @@ class ChatFolder(Base):
     __tablename__ = "chat_folders"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     color = Column(String(50), default="#D7B38C")
     parent_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=True)
@@ -332,7 +332,7 @@ class Activity(Base):
     __tablename__ = "activities"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     topic = Column(String(200), default="General")
@@ -351,7 +351,7 @@ class FlashcardSet(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     share_code = Column(String(6), unique=True, index=True, nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     title = Column(String(200), default="New Flashcard Set")
     description = Column(Text, default="")
     source_type = Column(String(50), default="manual")
@@ -396,7 +396,7 @@ class FlashcardStudySession(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     set_id = Column(Integer, ForeignKey("flashcard_sets.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     cards_studied = Column(Integer, nullable=False)
     correct_answers = Column(Integer, nullable=False)
     session_duration = Column(Integer, nullable=False)
@@ -441,7 +441,7 @@ class LearningPattern(Base):
     __tablename__ = "learning_patterns"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     most_active_hour = Column(Integer, nullable=True)
     most_active_day = Column(Integer, nullable=True)
@@ -502,7 +502,7 @@ class TopicMastery(Base):
     __tablename__ = "topic_mastery"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     topic_name = Column(String(100), index=True)
     mastery_level = Column(Float, default=0.0)
@@ -562,7 +562,7 @@ class DailyLearningMetrics(Base):
     __tablename__ = "daily_learning_metrics"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     date = Column(Date, default=datetime.now(timezone.utc).date)
     
     sessions_completed = Column(Integer, default=0)
@@ -601,7 +601,7 @@ class UserAchievement(Base):
     __tablename__ = "user_achievements"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     achievement_id = Column(Integer, ForeignKey("achievements.id"))
     
     earned_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -644,7 +644,7 @@ class AIResponseImprovement(Base):
     
     improvement_suggestion = Column(Text)
     improvement_type = Column(String(50))
-    suggested_by_user_id = Column(Integer, ForeignKey("users.id"))
+    suggested_by_user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     is_implemented = Column(Boolean, default=False)
     implementation_notes = Column(Text, nullable=True)
@@ -680,7 +680,7 @@ class UserFeedback(Base):
     __tablename__ = "user_feedback"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     feedback_type = Column(String(50))
     feedback_text = Column(Text, nullable=True)
@@ -727,7 +727,7 @@ class ConversationMemory(Base):
     __tablename__ = "conversation_memories"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     session_id = Column(Integer, nullable=True)
     
     question = Column(Text, nullable=False)
@@ -775,7 +775,7 @@ class LearningReview(Base):
     __tablename__ = "learning_reviews"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(255), nullable=False)
     source_sessions = Column(Text)
     source_slides = Column(Text)
@@ -822,7 +822,7 @@ class LearningReviewStats(Base):
     __tablename__ = "learning_review_stats"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     total_reviews_created = Column(Integer, default=0)
     total_reviews_completed = Column(Integer, default=0)
     total_attempts = Column(Integer, default=0)
@@ -838,7 +838,7 @@ class UploadedSlide(Base):
     __tablename__ = "uploaded_slides"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     filename = Column(String(255), nullable=False)
     original_filename = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=False)
@@ -869,7 +869,7 @@ class UserWeakArea(Base):
     __tablename__ = "user_weak_areas"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     topic = Column(String(255), nullable=False, index=True)
     subtopic = Column(String(255), nullable=True)
     
@@ -899,7 +899,7 @@ class WrongAnswerLog(Base):
     __tablename__ = "wrong_answer_logs"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
     question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=False)
     attempt_id = Column(Integer, ForeignKey("question_attempts.id"), nullable=True)
@@ -928,7 +928,7 @@ class PracticeRecommendation(Base):
     __tablename__ = "practice_recommendations"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     recommendation_type = Column(String(50), nullable=False)
     topic = Column(String(255), nullable=False)
@@ -989,7 +989,7 @@ class QuestionAttempt(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     attempt_number = Column(Integer, nullable=False)
     answers = Column(Text, nullable=False)
     score = Column(Float, default=0.0)
@@ -1138,8 +1138,8 @@ class Friendship(Base):
     __tablename__ = "friendships"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    friend_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    friend_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     status = Column(String(20), default="active")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
@@ -1151,8 +1151,8 @@ class FriendRequest(Base):
     __tablename__ = "friend_requests"
     
     id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     status = Column(String(20), default="pending")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     responded_at = Column(DateTime, nullable=True)
@@ -1165,7 +1165,7 @@ class FriendActivity(Base):
     __tablename__ = "friend_activities"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     activity_type = Column(String(50), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
@@ -1181,7 +1181,7 @@ class Kudos(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     activity_id = Column(Integer, ForeignKey("friend_activities.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     reaction_type = Column(String(20), default="👏")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
@@ -1193,7 +1193,7 @@ class Leaderboard(Base):
     __tablename__ = "leaderboards"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     category = Column(String(50), nullable=False)
     metric = Column(String(50), nullable=False)
     period = Column(String(20), default="all_time")
@@ -1209,8 +1209,8 @@ class QuizBattle(Base):
     __tablename__ = "quiz_battles"
     
     id = Column(Integer, primary_key=True, index=True)
-    challenger_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    opponent_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    challenger_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    opponent_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     subject = Column(String(100), nullable=False)
     difficulty = Column(String(20), default="intermediate")
     status = Column(String(20), default="pending")
@@ -1239,7 +1239,7 @@ class Challenge(Base):
     __tablename__ = "challenges"
     
     id = Column(Integer, primary_key=True, index=True)
-    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     challenge_type = Column(String(50), nullable=False)
@@ -1264,7 +1264,7 @@ class ChallengeParticipation(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     score = Column(Float, default=0.0)
     progress = Column(Float, default=0.0)
@@ -1308,7 +1308,7 @@ class BattleAnswer(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     battle_id = Column(Integer, ForeignKey("quiz_battles.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     question_id = Column(Integer, ForeignKey("battle_questions.id"), nullable=False)
     selected_answer = Column(Integer, nullable=False)
     is_correct = Column(Boolean, nullable=False)
@@ -1324,7 +1324,7 @@ class ChallengeAnswer(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     question_id = Column(Integer, ForeignKey("challenge_questions.id"), nullable=False)
     selected_answer = Column(Integer, nullable=False)
     is_correct = Column(Boolean, nullable=False)
@@ -1341,8 +1341,8 @@ class SharedContent(Base):
     id = Column(Integer, primary_key=True, index=True)
     content_type = Column(String(20), nullable=False)
     content_id = Column(Integer, nullable=False)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    shared_with_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    shared_with_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     permission = Column(String(10), default="view")
     message = Column(Text, nullable=True)
     shared_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -1357,7 +1357,7 @@ class SharedContentAccess(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     shared_content_id = Column(Integer, ForeignKey("shared_content.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     accessed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     action = Column(String(20), nullable=False)
     
@@ -1368,7 +1368,7 @@ class SoloQuiz(Base):
     __tablename__ = "solo_quizzes"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     subject = Column(String(100), nullable=False)
     difficulty = Column(String(20), default="intermediate")
     status = Column(String(20), default="active")
@@ -1454,7 +1454,7 @@ class PointTransaction(Base):
     __tablename__ = "point_transactions"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     activity_type = Column(String(50), nullable=False)
     points_earned = Column(Integer, nullable=False)
     description = Column(String(255), nullable=True)
@@ -1468,7 +1468,7 @@ class WeeklyBingoProgress(Base):
     __tablename__ = "weekly_bingo_progress"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     week_start_date = Column(DateTime, nullable=False)
     
     task_1_completed = Column(Boolean, default=False)
@@ -1498,7 +1498,7 @@ class Notification(Base):
     __tablename__ = "notifications"
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     title = Column(String(200), nullable=False)
     message = Column(Text, nullable=False)
@@ -1514,7 +1514,7 @@ class ReminderList(Base):
     __tablename__ = "reminder_lists"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     name = Column(String(100), nullable=False)
     color = Column(String(20), default="#3b82f6")
@@ -1534,7 +1534,7 @@ class Reminder(Base):
     __tablename__ = "reminders"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     list_id = Column(Integer, ForeignKey("reminder_lists.id"), nullable=True)
     parent_id = Column(Integer, ForeignKey("reminders.id"), nullable=True)
     
@@ -1579,7 +1579,7 @@ class ConceptNode(Base):
     __tablename__ = "concept_nodes"
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     concept_name = Column(String(200), nullable=False)
     description = Column(Text)
@@ -1605,7 +1605,7 @@ class ConceptConnection(Base):
     __tablename__ = "concept_connections"
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     source_concept_id = Column(Integer, ForeignKey("concept_nodes.id"))
     target_concept_id = Column(Integer, ForeignKey("concept_nodes.id"))
@@ -1638,7 +1638,7 @@ class NoteBlock(Base):
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
 
 class NoteProperty(Base):
     """Custom properties for notes (tags, status, dates, etc.)"""
@@ -1659,7 +1659,7 @@ class NoteTemplate(Base):
     __tablename__ = "note_templates"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
@@ -1696,7 +1696,7 @@ class NoteComment(Base):
     id = Column(Integer, primary_key=True, index=True)
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
     block_id = Column(Integer, ForeignKey("note_blocks.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     parent_comment_id = Column(Integer, ForeignKey("note_comments.id"), nullable=True)
     
     content = Column(Text, nullable=False)
@@ -1711,7 +1711,7 @@ class NoteVersion(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     version_number = Column(Integer, nullable=False)
     title = Column(String(255), nullable=False)
@@ -1728,10 +1728,10 @@ class NoteCollaborator(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     permission = Column(String(20), default="view")
-    invited_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    invited_by = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     
     last_viewed = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -1741,7 +1741,7 @@ class NoteDatabase(Base):
     __tablename__ = "note_databases"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
     
     name = Column(String(255), nullable=False)
@@ -1791,7 +1791,7 @@ class NoteAttachment(Base):
     id = Column(Integer, primary_key=True, index=True)
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
     block_id = Column(Integer, ForeignKey("note_blocks.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     filename = Column(String(255), nullable=False)
     original_filename = Column(String(255), nullable=False)
@@ -1811,8 +1811,8 @@ class NoteMention(Base):
     id = Column(Integer, primary_key=True, index=True)
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
     block_id = Column(Integer, ForeignKey("note_blocks.id"), nullable=True)
-    mentioned_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    mentioned_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    mentioned_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    mentioned_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     context = Column(Text, nullable=True)
     is_read = Column(Boolean, default=False)
@@ -1825,7 +1825,7 @@ class NoteActivity(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     activity_type = Column(String(50), nullable=False)
     activity_data = Column(JSON, nullable=True)
@@ -1837,7 +1837,7 @@ class LearningPlaylist(Base):
     __tablename__ = "learning_playlists"
     
     id = Column(Integer, primary_key=True, index=True)
-    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     category = Column(String(100), nullable=True)
@@ -1888,7 +1888,7 @@ class PlaylistFollower(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_accessed = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -1907,7 +1907,7 @@ class PlaylistFork(Base):
     id = Column(Integer, primary_key=True, index=True)
     original_playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
     forked_playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
-    forked_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    forked_by_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     forked_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
@@ -1921,11 +1921,11 @@ class PlaylistCollaborator(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     permission = Column(String(20), default="edit")
     
     added_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    added_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    added_by_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     
     playlist = relationship("LearningPlaylist", foreign_keys=[playlist_id])
     user = relationship("User", foreign_keys=[user_id])
@@ -1937,7 +1937,7 @@ class PlaylistComment(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     comment_text = Column(Text, nullable=False)
     rating = Column(Integer, nullable=True)
@@ -1953,7 +1953,7 @@ class ImportExportHistory(Base):
     __tablename__ = "import_export_history"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     operation_type = Column(String(20), nullable=False)
     source_type = Column(String(50), nullable=False)
@@ -1978,7 +1978,7 @@ class ExportedFile(Base):
     __tablename__ = "exported_files"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     history_id = Column(Integer, ForeignKey("import_export_history.id"), nullable=True)
     
     file_name = Column(String(255), nullable=False)
@@ -2000,7 +2000,7 @@ class BatchOperation(Base):
     __tablename__ = "batch_operations"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     operation_name = Column(String(100), nullable=False)
     source_type = Column(String(50), nullable=False)
@@ -2022,7 +2022,7 @@ class ExternalImport(Base):
     __tablename__ = "external_imports"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     source_platform = Column(String(50), nullable=False)
     source_url = Column(String(500), nullable=True)
@@ -2060,7 +2060,7 @@ class PracticeSession(Base):
     __tablename__ = "practice_sessions"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     topic = Column(String, nullable=False)
     difficulty = Column(String, default="intermediate")
     target_question_count = Column(Integer, default=10)
@@ -2096,7 +2096,7 @@ class StudyPlan(Base):
     __tablename__ = "study_plans"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     goal = Column(String, nullable=False)
     duration_weeks = Column(Integer, default=4)
     plan_data = Column(Text, nullable=False)
@@ -2121,7 +2121,7 @@ class ContextDocument(Base):
     __tablename__ = "context_documents"
 
     id           = Column(Integer, primary_key=True, index=True)
-    user_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id      = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     folder_id    = Column(Integer, ForeignKey("context_folders.id"), nullable=True)
     doc_id       = Column(String(36), unique=True, index=True, nullable=False)
     filename     = Column(String(255), nullable=False)

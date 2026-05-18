@@ -45,23 +45,36 @@ router = APIRouter(
     dependencies=[Depends(enforce_request_user_scope)],
 )
 
-# ── In-memory brute-force protection ──────────────────────────────────────────
+# ── In-memory brute-force protection (secondary layer, per-IP) ─────────────────
+# Primary rate limiting is handled by RateLimitMiddleware.
+# This secondary guard uses a stricter per-endpoint check and caps the dict
+# to prevent unbounded memory growth.
 _auth_attempts: dict = defaultdict(list)
 _auth_lock = threading.Lock()
+_AUTH_DICT_MAX = 5000   # evict oldest keys if dict exceeds this size
 
-def _check_auth_rate_limit(request: Request, max_attempts: int = 10, window_seconds: int = 60) -> None:
+def _check_auth_rate_limit(request: Request, max_attempts: int = 5, window_seconds: int = 60) -> None:
     ip = (request.client.host if request.client else None) or "unknown"
     now = datetime.now(timezone.utc).timestamp()
     cutoff = now - window_seconds
     with _auth_lock:
         _auth_attempts[ip] = [t for t in _auth_attempts[ip] if t > cutoff]
         if len(_auth_attempts[ip]) >= max_attempts:
+            retry_after = int(window_seconds - (now - _auth_attempts[ip][0]))
             raise HTTPException(
                 status_code=429,
-                detail="Too many requests. Please wait before trying again.",
-                headers={"Retry-After": str(window_seconds)},
+                detail="Too many login attempts. Please wait before trying again.",
+                headers={"Retry-After": str(max(1, retry_after))},
             )
         _auth_attempts[ip].append(now)
+        # Evict excess keys to prevent memory leak
+        if len(_auth_attempts) > _AUTH_DICT_MAX:
+            oldest_keys = sorted(
+                _auth_attempts.keys(),
+                key=lambda k: _auth_attempts[k][-1] if _auth_attempts[k] else 0,
+            )[:_AUTH_DICT_MAX // 4]
+            for k in oldest_keys:
+                del _auth_attempts[k]
 
 class Token(BaseModel):
     access_token: str

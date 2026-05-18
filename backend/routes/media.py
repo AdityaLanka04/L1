@@ -1,3 +1,4 @@
+import asyncio
 import os
 import io
 import json
@@ -1027,7 +1028,8 @@ async def get_slide_image(
             try:
                 with tempfile.TemporaryDirectory() as temp_dir:
                     try:
-                        result = subprocess.run(
+                        result = await asyncio.to_thread(
+                            subprocess.run,
                             [
                                 "soffice",
                                 "--headless",

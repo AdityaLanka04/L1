@@ -257,7 +257,7 @@ async def get_weakness_profile(
         raise
     except Exception as e:
         logger.error(f"[Intelligence] weakness profile failed: {e}", exc_info=True)
-        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+        return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
 
 @router.get("/weakness/recommendations")
@@ -307,7 +307,7 @@ async def get_weakness_recommendations(
         raise
     except Exception as e:
         logger.error(f"[Intelligence] recommendations failed: {e}")
-        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+        return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
 
 class RecordEventRequest(BaseModel):
@@ -370,7 +370,7 @@ async def record_event(
 
     except Exception as e:
         logger.error(f"[Intelligence] record event failed: {e}")
-        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+        return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
 
 @router.get("/session/brief")
@@ -403,7 +403,7 @@ async def get_session_brief(
         raise
     except Exception as e:
         logger.error(f"[Intelligence] session brief failed: {e}")
-        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+        return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
 
 @router.get("/memory")
@@ -443,7 +443,7 @@ async def get_student_memories(
         raise
     except Exception as e:
         logger.error(f"[Intelligence] memory list failed: {e}")
-        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+        return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
 
 class WriteMemoryRequest(BaseModel):
@@ -499,7 +499,7 @@ async def write_memory(
 
     except Exception as e:
         logger.error(f"[Intelligence] memory write failed: {e}")
-        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+        return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
 
 def _mastery_color(p: float) -> str:

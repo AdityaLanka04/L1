@@ -284,5 +284,49 @@ def _run_postgres_migration():
             except Exception as e:
                 print(f" share_code index: {e}")
 
+    # ── user_id performance indexes ──────────────────────────────────────────
+    # These were missing from the original schema and cause full-table scans
+    # on every per-user query.  CREATE INDEX IF NOT EXISTS is idempotent.
+    _user_id_indexes = [
+        ("ix_activities_user_id",              "activities",             "user_id"),
+        ("ix_chat_sessions_user_id",           "chat_sessions",          "user_id"),
+        ("ix_chat_messages_user_id",           "chat_messages",          "user_id"),
+        ("ix_notes_user_id",                   "notes",                  "user_id"),
+        ("ix_flashcard_sets_user_id",          "flashcard_sets",         "user_id"),
+        ("ix_flashcards_user_id",              "flashcards",             "user_id"),
+        ("ix_question_sets_user_id",           "question_sets",          "user_id"),
+        ("ix_uploaded_slides_user_id",         "uploaded_slides",        "user_id"),
+        ("ix_solo_quizzes_user_id",            "solo_quizzes",           "user_id"),
+        ("ix_daily_learning_metrics_user_id",  "daily_learning_metrics", "user_id"),
+        ("ix_folders_user_id",                 "folders",                "user_id"),
+        ("ix_playlists_user_id",               "playlists",              "user_id"),
+        ("ix_reminders_user_id",               "reminders",              "user_id"),
+        ("ix_learning_reviews_user_id",        "learning_reviews",       "user_id"),
+        ("ix_roadmaps_user_id",                "roadmaps",               "user_id"),
+        ("ix_learning_paths_user_id",          "learning_paths",         "user_id"),
+        ("ix_notifications_user_id",           "notifications",          "user_id"),
+        ("ix_friendships_user_id",             "friendships",            "user_id"),
+        ("ix_friendships_friend_id",           "friendships",            "friend_id"),
+        ("ix_friend_requests_sender_id",       "friend_requests",        "sender_id"),
+        ("ix_friend_requests_receiver_id",     "friend_requests",        "receiver_id"),
+        ("ix_student_knowledge_states_uid",    "student_knowledge_states", "user_id"),
+    ]
+    with engine.connect() as conn:
+        for idx_name, tbl, col in _user_id_indexes:
+            if tbl not in tables:
+                continue
+            try:
+                conn.execute(text(
+                    f"CREATE INDEX IF NOT EXISTS {idx_name} ON {tbl}({col})"
+                ))
+            except Exception:
+                pass
+        try:
+            conn.commit()
+            print(" user_id performance indexes created/verified")
+        except Exception as e:
+            print(f" user_id index commit error: {e}")
+
+
 if __name__ == '__main__':
     run_migration()

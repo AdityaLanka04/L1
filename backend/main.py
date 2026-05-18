@@ -156,7 +156,8 @@ if "sqlite" in DATABASE_URL:
                            "cerbyl_session_states", "agent_events",
                            "bandit_state", "bandit_reward_queue", "bandit_episode_log"):
             _exists = _conn.execute(
-                text(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{_new_table}'")
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name=:tbl"),
+                {"tbl": _new_table},
             ).fetchone()
             if not _exists:
                 logger.info(f"Table {_new_table} will be created by SQLAlchemy metadata")
@@ -312,6 +313,11 @@ async def lifespan(app: FastAPI):
         connected = redis_cache.init_redis()
         if connected:
             logger.info("Redis cache connected")
+            try:
+                from middleware.rate_limiter import init_redis_for_rate_limiter
+                init_redis_for_rate_limiter(redis_cache._redis_client)
+            except Exception as rl_e:
+                logger.warning(f"Rate limiter Redis init failed: {rl_e}")
         else:
             logger.info("Redis unavailable — using in-memory cache fallback")
     except Exception as e:
@@ -394,12 +400,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Brainwave Backend API", version="4.0.0", lifespan=lifespan)
 
-_is_dev = os.getenv("ENVIRONMENT", "development") != "production"
+_env = os.getenv("ENVIRONMENT", "").strip().lower()
+_is_dev = _env != "production"
+if not _env:
+    logger.warning(
+        "ENVIRONMENT env var is not set — defaulting to DEVELOPMENT mode. "
+        "Set ENVIRONMENT=production in production deployments."
+    )
 _dev_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
-allowed_origins = os.getenv(
-    "ALLOWED_ORIGINS",
-    "https://cerbyl.com,https://www.cerbyl.com"
-).split(",")
+allowed_origins = [
+    o.strip() for o in
+    os.getenv("ALLOWED_ORIGINS", "https://cerbyl.com,https://www.cerbyl.com").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_dev_origins if _is_dev else allowed_origins,
@@ -408,6 +421,13 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
 )
+
+from middleware.rate_limiter import RateLimitMiddleware
+from middleware.security_headers import SecurityHeadersMiddleware
+from middleware.body_limit import BodySizeLimitMiddleware
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(BodySizeLimitMiddleware)
 
 try:
     from activity_middleware import log_request_activity
@@ -438,6 +458,7 @@ from routes import (
     context as context_routes,
     knowledge_tracing,
     intelligence,
+    rate_limits,
 )
 
 app.include_router(auth.router)
@@ -463,6 +484,7 @@ app.include_router(imports.router)
 app.include_router(context_routes.router)
 app.include_router(knowledge_tracing.router)
 app.include_router(intelligence.router)
+app.include_router(rate_limits.router)
 
 try:
     from flashcard_api_minimal import register_flashcard_api_minimal
@@ -487,12 +509,50 @@ except ImportError:
 
 @app.get("/api/health")
 def health_check():
-    return {
-        "status": "healthy",
-        "message": "Brainwave API is running",
-        "version": "4.0.0",
-        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
-    }
+    checks: dict[str, str] = {}
+    overall = "healthy"
+
+    # Database
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        checks["database"] = "ok"
+    except Exception as _db_err:
+        checks["database"] = "error"
+        overall = "degraded"
+        logger.error("Health check: DB error: %s", _db_err)
+
+    # Redis
+    try:
+        from services import redis_cache as _rc
+        if _rc._redis_client is not None:
+            _rc._redis_client.ping()
+            checks["redis"] = "ok"
+        else:
+            checks["redis"] = "fallback"
+    except Exception:
+        checks["redis"] = "error"
+
+    # AI keys
+    _has_groq   = bool(os.getenv("GROQ_API_KEY"))
+    _has_gemini = bool(os.getenv("GOOGLE_GENERATIVE_AI_KEY") or os.getenv("GEMINI_API_KEY"))
+    checks["ai_groq"]   = "ok" if _has_groq   else "missing"
+    checks["ai_gemini"] = "ok" if _has_gemini else "missing"
+    if not _has_groq and not _has_gemini:
+        overall = "degraded"
+
+    status_code = 200 if overall == "healthy" else 207
+    from fastapi.responses import JSONResponse as _JR
+    return _JR(
+        status_code=status_code,
+        content={
+            "status": overall,
+            "version": "4.0.0",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+            "checks": checks,
+        },
+    )
 
 
 build_dir = Path(__file__).parent.parent / "build"

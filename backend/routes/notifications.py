@@ -317,7 +317,8 @@ async def debug_notifications(
             ]
         }
     except Exception as e:
-        return {"error": str(e)}
+        logger.error("notification error: %s", e, exc_info=True)
+        return {"error": "Internal server error"}
 
 @router.delete("/delete_notification/{notification_id}")
 async def delete_notification(
@@ -366,8 +367,8 @@ async def clear_old_notifications(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error clearing notifications: {str(e)}")
-        return {"status": "error", "cleared": 0, "message": str(e)}
+        logger.error("Error clearing notifications: %s", e, exc_info=True)
+        return {"status": "error", "cleared": 0, "message": "Internal server error"}
 
 @router.delete("/clear_all_notifications")
 async def clear_all_notifications(
@@ -391,9 +392,9 @@ async def clear_all_notifications(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error clearing all notifications: {str(e)}")
+        logger.error("Error clearing all notifications: %s", e, exc_info=True)
         db.rollback()
-        return {"status": "error", "cleared": 0, "message": str(e)}
+        return {"status": "error", "cleared": 0, "message": "Internal server error"}
 
 @router.get("/check_reminder_notifications")
 async def check_reminder_notifications(
@@ -507,7 +508,6 @@ async def check_reminder_notifications(
         }
     except Exception as e:
         logger.error(f"Error checking reminder notifications: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.error("reminder notification check error: %s", e, exc_info=True)
         db.rollback()
-        return {"status": "error", "message": str(e), "notifications_created": 0}
+        return {"status": "error", "message": "Internal server error", "notifications_created": 0}

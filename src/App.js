@@ -65,6 +65,7 @@ import CerbylNavSidebar from './components/CerbylNavSidebar';
 import AIChatDock from './components/AIChatDock';
 import { useGlobalNav } from './hooks/useGlobalNav';
 import GlobalNotifications from './components/GlobalNotifications';
+import RateLimitHandler from './components/RateLimitHandler';
 
 function App() {
   const [notification, setNotification] = useState(null);
@@ -81,6 +82,7 @@ function App() {
     <ThemeProvider>
       <NotificationProvider>
         <ToastProvider>
+          <RateLimitHandler />
           <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
             <CerbylNavSidebar isOpen={isOpen} onClose={closeNav} />
             <GlobalNotifications />

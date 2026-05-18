@@ -855,7 +855,8 @@ async def generate_note_content(
         content = call_ai(prompt, max_tokens=2000, temperature=0.7)
         return {"content": content.strip(), "status": "success"}
     except Exception as e:
-        return {"content": "", "status": "error", "error": str(e)}
+        logger.error("note generation error: %s", e, exc_info=True)
+        return {"content": "", "status": "error", "error": "AI generation failed"}
 
 @router.post("/generate_note_summary/")
 async def generate_note_summary(
@@ -919,7 +920,8 @@ async def ai_writing_assistant(
         result = call_ai(prompt, max_tokens=1500, temperature=0.7)
         return {"content": result.strip(), "status": "success", "action": request.action}
     except Exception as e:
-        return {"content": "", "status": "error", "error": str(e)}
+        logger.error("note generation error: %s", e, exc_info=True)
+        return {"content": "", "status": "error", "error": "AI generation failed"}
 
 @router.post("/agents/notes")
 async def notes_agent(
@@ -935,7 +937,8 @@ async def notes_agent(
         result = call_ai(prompt, max_tokens=1500, temperature=0.7)
         return {"success": True, "content": result.strip(), "action": request.action}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logger.error("note agent error: %s", e, exc_info=True)
+        return {"success": False, "error": "AI generation failed"}
 
 @router.put("/update_shared_note/{note_id}")
 def update_shared_note(

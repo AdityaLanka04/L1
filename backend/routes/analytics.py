@@ -1648,7 +1648,7 @@ def get_ml_analytics(user_id: str = Query(...), db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error getting ML analytics: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/get_chat_details")
@@ -1726,7 +1726,7 @@ def get_chat_details(user_id: str = Query(...), db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error getting chat details: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/get_flashcard_details")
@@ -1841,7 +1841,7 @@ def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_d
     except Exception as e:
         logger.error(f"Error getting flashcard details: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/get_context_sessions")
@@ -1875,4 +1875,4 @@ def get_context_sessions(user_id: str = Query(...), db: Session = Depends(get_db
     except Exception as e:
         logger.error(f"Error getting context sessions: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

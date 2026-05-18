@@ -15,7 +15,13 @@
       "Bash(Select-Object -First 50)",
       "Bash(Get-ChildItem -Path \"D:\\\\Brainwave\\\\L1\\\\backend\\\\routes\" -ErrorAction SilentlyContinue)",
       "Bash(Format-List)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Brainwave\\\\L1\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(sed 's/@router\\\\.//')",
+      "Bash(New-Item -ItemType Directory -Force -Path \"D:\\\\Brainwave\\\\L1\\\\backend\\\\middleware\")",
+      "Bash(Out-Null)",
+      "Bash(Write-Host \"done\")"
     ]
   }
 }

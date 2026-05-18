@@ -19,8 +19,22 @@ export const apiRequest = async (endpoint, options = {}) => {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('userProfile');
-window.location.href = '/login';
+    window.location.href = '/login';
     throw new Error('Session expired. Please login again.');
+  }
+
+  if (response.status === 429) {
+    const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10);
+    const tier = response.headers.get('X-RateLimit-Tier') || 'unknown';
+    const limit = response.headers.get('X-RateLimit-Limit');
+    const windowSecs = response.headers.get('X-RateLimit-Window');
+    const err = new Error(`Rate limit exceeded. Please wait ${retryAfter} second(s).`);
+    err.isRateLimit = true;
+    err.retryAfter = retryAfter;
+    err.tier = tier;
+    err.limit = parseInt(limit, 10);
+    err.window = parseInt(windowSecs, 10);
+    throw err;
   }
 
   if (!response.ok) {
