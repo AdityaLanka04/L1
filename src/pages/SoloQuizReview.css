@@ -394,3 +394,33 @@
   border-radius: 6px;
   transition: width 0.5s ease;
 }
+
+@media (max-width: 768px) {
+  .sqr-header {
+    padding: 0 20px;
+  }
+
+  .sqr-content {
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sqr-header {
+    padding: 0 12px;
+  }
+
+  .sqr-divider,
+  .sqr-subtitle {
+    display: none;
+  }
+
+  .sqr-content {
+    padding: 16px 12px;
+    height: calc(100dvh - 70px);
+  }
+
+  .sqr-header-right {
+    gap: 8px;
+  }
+}

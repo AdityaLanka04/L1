@@ -319,4 +319,46 @@
     width: 100%;
     left: -100%;
   }
+
+  .global-nav-header {
+    padding: 16px 20px;
+  }
+
+  .global-nav-logo {
+    font-size: 24px;
+  }
+
+  .global-nav-logo-icon {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .global-nav-header {
+    padding: 12px 16px;
+  }
+
+  .global-nav-logo {
+    font-size: 20px;
+  }
+
+  .global-nav-logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .global-nav-section-title {
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .global-nav-item {
+    padding: 10px 16px 10px 36px;
+    gap: 10px;
+  }
+
+  .global-nav-footer {
+    padding: 16px 20px;
+  }
 }

@@ -565,12 +565,29 @@
 }
 
 @media (max-width: 480px) {
-  .nh-logo {
-    font-size: 20px;
+  .nh-header-divider,
+  .nh-subtitle {
+    display: none;
   }
 
-  .nh-subtitle {
-    font-size: 9px;
+  .nh-header {
+    padding: 12px 16px;
+    flex-direction: row;
+  }
+
+  .nh-header-left,
+  .nh-header-right {
+    width: auto;
+    justify-content: flex-start;
+  }
+
+  .nh-logo {
+    font-size: 18px;
+  }
+
+  .nh-logo-img {
+    height: 36px;
+    width: 36px;
   }
 
   .nh-section-inner {

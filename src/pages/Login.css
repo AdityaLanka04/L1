@@ -274,3 +274,19 @@
   color: rgba(215,179,140,1);
   text-decoration: underline;
 }
+
+@media (max-width: 480px) {
+  .lg-card {
+    padding: 32px 24px 28px;
+    margin: 0 12px;
+  }
+
+  .lg-back-link {
+    top: 16px;
+    left: 16px;
+  }
+
+  .lg-brand-name {
+    font-size: 2rem;
+  }
+}

@@ -1345,3 +1345,38 @@
 }
 
 .nav-menu-btn:hover { background: var(--hover-bg); color: var(--text-primary); }
+
+@media (max-width: 768px) {
+  .se-header {
+    padding: 0 16px;
+  }
+
+  .se-header-divider {
+    display: none;
+  }
+
+  .se-main-layout {
+    flex-direction: column;
+  }
+
+  .se-sidebar {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .se-header {
+    padding: 0 12px;
+  }
+
+  .se-subtitle {
+    display: none;
+  }
+}

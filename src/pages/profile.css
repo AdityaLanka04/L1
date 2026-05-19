@@ -731,49 +731,123 @@
   .profile-header {
     padding: 0 16px;
   }
-  
+
   .profile-header-content {
     flex-direction: column;
     gap: 12px;
     padding: 12px 0;
   }
-  
+
   .profile-header-left,
   .profile-header-right {
     width: 100%;
     justify-content: center;
   }
-  
+
   .profile-page-title {
     font-size: 18px;
     flex-direction: column;
     gap: 4px;
     text-align: center;
   }
-  
+
   .profile-grid {
     padding: 16px;
     gap: 16px;
   }
-  
+
   .profile-card {
     padding: 16px;
   }
-  
+
   .archetype-main {
     padding: 20px;
   }
-  
+
   .archetype-icon-large {
     font-size: 40px;
   }
-  
+
   .archetype-name {
     font-size: 16px;
   }
-  
+
   .archetype-description {
     font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-header {
+    padding: 0 12px;
+  }
+
+  .profile-header-divider,
+  .profile-subtitle {
+    display: none;
+  }
+
+  .profile-logo {
+    font-size: 18px;
+  }
+
+  .profile-logo-img {
+    height: 36px;
+    width: 36px;
+  }
+
+  .profile-nav-btn {
+    padding: 8px 12px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .profile-grid {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .profile-card {
+    padding: 12px;
+  }
+
+  .archetype-display {
+    grid-template-columns: 1fr;
+  }
+
+  .archetype-main {
+    padding: 16px;
+  }
+
+  .archetype-icon-large {
+    font-size: 32px;
+    margin: 8px 0;
+  }
+
+  .archetype-name {
+    font-size: 14px;
+  }
+
+  .archetype-tagline {
+    font-size: 10px;
+  }
+
+  .card-title {
+    font-size: 14px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .learning-preferences-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 }
 

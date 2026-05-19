@@ -1337,21 +1337,49 @@
   .nt-sidebar {
     display: none;
   }
-  
+
   .nt-header {
     padding: 0 16px;
   }
-  
+
   .nt-content {
     padding: 16px;
   }
-  
+
   .nt-notes-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .nt-search {
     min-width: 160px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nt-header {
+    padding: 0 12px;
+  }
+
+  .nt-content {
+    padding: 12px;
+  }
+
+  .nt-notes-grid {
+    gap: 12px;
+  }
+
+  .nt-search {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .nt-filter-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .nt-sort-select {
+    width: 100%;
   }
 }
 

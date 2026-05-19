@@ -867,3 +867,55 @@
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+@media (max-width: 768px) {
+  .profile-quiz-page {
+    padding: 24px 16px;
+    align-items: flex-start;
+  }
+
+  .bento-grid {
+    display: none;
+  }
+
+  .quiz-container {
+    padding: 24px 20px;
+    max-height: none;
+  }
+
+  .quiz-title-single {
+    font-size: 28px;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+
+  .quiz-header-single {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-quiz-page {
+    padding: 16px 12px;
+  }
+
+  .quiz-container {
+    padding: 20px 16px;
+    border-radius: 8px;
+  }
+
+  .quiz-title-single {
+    font-size: 22px;
+  }
+
+  .question-section {
+    padding: 16px;
+  }
+
+  .question-text {
+    font-size: 16px;
+  }
+}

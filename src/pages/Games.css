@@ -1195,25 +1195,53 @@
 }
 
 @media (max-width: 768px) {
+  .gm-header {
+    padding: 0 20px !important;
+  }
+
+  .gm-header-divider,
+  .gm-subtitle {
+    display: none;
+  }
+
+  .gm-nav-btn span {
+    display: none;
+  }
+
   .stats-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .bingo-board {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .daily-challenge-content {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .daily-challenge-reward {
     width: 100%;
   }
-  
+
   .modal-progress-stats {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .gm-header {
+    padding: 0 12px !important;
+  }
+
+  .gm-logo {
+    font-size: 18px;
+  }
+
+  .gm-logo-img {
+    height: 36px;
+    width: 36px;
   }
 }
 

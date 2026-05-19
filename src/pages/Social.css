@@ -998,3 +998,37 @@
   text-transform: uppercase;
   color: var(--sh-accent);
 }
+
+@media (max-width: 1024px) {
+  .bento-container {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .gm-header {
+    padding: 0 16px;
+  }
+
+  .bento-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .users-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .gm-header {
+    padding: 0 12px;
+  }
+
+  .bento-container {
+    padding: 12px;
+  }
+}

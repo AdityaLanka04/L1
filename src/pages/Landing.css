@@ -1013,3 +1013,32 @@
   color: var(--text-secondary, #B8C0CC);
   line-height: 1.55;
 }
+
+@media (max-width: 768px) {
+  .lnd-header {
+    padding: 0 16px;
+  }
+
+  .lnd-slide {
+    padding: 20px 24px 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lnd-header {
+    padding: 0 12px;
+    height: 44px;
+  }
+
+  .lnd-slide {
+    padding: 16px 16px 28px;
+  }
+
+  .lnd-slide-title {
+    font-size: clamp(24px, 6vw, 40px);
+  }
+
+  .lnd-slide-sub {
+    font-size: 0.85rem;
+  }
+}

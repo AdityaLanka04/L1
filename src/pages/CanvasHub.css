@@ -450,3 +450,45 @@
 }
 
 .ch-modal-create:hover { opacity: 0.85; }
+
+@media (max-width: 768px) {
+  .ch-header {
+    padding: 0 16px;
+  }
+
+  .ch-header-divider {
+    display: none;
+  }
+
+  .ch-content {
+    padding: 20px 16px;
+  }
+
+  .ch-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .ch-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ch-header {
+    padding: 0 12px;
+  }
+
+  .ch-logo {
+    font-size: 18px;
+  }
+
+  .ch-content {
+    padding: 16px 12px;
+  }
+
+  .ch-grid {
+    grid-template-columns: 1fr;
+  }
+}

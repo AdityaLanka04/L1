@@ -659,6 +659,25 @@
   }
 }
 
+@media (max-width: 480px) {
+  .challenges-container {
+    padding: 16px 12px;
+  }
+
+  .challenges-header {
+    padding: 12px;
+  }
+
+  .challenges-title {
+    font-size: 20px;
+  }
+
+  .create-challenge-btn {
+    padding: 10px 16px;
+    font-size: 11px;
+  }
+}
+
 .challenges-page *,
 .challenges-page *::before,
 .challenges-page *::after {

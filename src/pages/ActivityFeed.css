@@ -993,12 +993,22 @@
 }
 
 @media (max-width: 480px) {
+  .af-header-divider,
+  .af-subtitle {
+    display: none;
+  }
+
   .af-header {
     padding: 0 12px;
   }
-  
+
   .af-logo {
     font-size: 18px;
+  }
+
+  .af-logo-img {
+    height: 36px;
+    width: 36px;
   }
   
   .af-nav-btn {

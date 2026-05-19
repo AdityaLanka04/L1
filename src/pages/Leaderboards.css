@@ -426,6 +426,9 @@
     flex-direction: column;
     gap: 12px;
     padding: 16px;
+    height: auto;
+    min-height: unset;
+    max-height: unset;
   }
 
   .leaderboard-header-left,
@@ -444,6 +447,7 @@
 
   .filter-buttons {
     gap: 6px;
+    flex-wrap: wrap;
   }
 
   .filter-btn {
@@ -463,6 +467,81 @@
 
   .entry-rank {
     width: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .leaderboard-header {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .leaderboard-header-divider {
+    display: none;
+  }
+
+  .leaderboard-subtitle {
+    display: none;
+  }
+
+  .leaderboard-logo {
+    font-size: 18px;
+  }
+
+  .leaderboard-logo-img {
+    height: 36px;
+    width: 36px;
+  }
+
+  .leaderboard-nav-btn span {
+    display: none;
+  }
+
+  .leaderboard-nav-btn {
+    padding: 8px 12px;
+  }
+
+  .leaderboard-title {
+    font-size: 20px;
+  }
+
+  .leaderboard-description {
+    font-size: 13px;
+  }
+
+  .leaderboard-container {
+    padding: 16px 12px;
+  }
+
+  .leaderboard-entry {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .entry-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .entry-name {
+    font-size: 13px;
+  }
+
+  .entry-score {
+    font-size: 14px;
+  }
+
+  .current-user-rank {
+    padding: 14px 16px;
+  }
+
+  .rank-badge {
+    font-size: 13px;
+  }
+
+  .filter-btn {
+    padding: 6px 10px;
+    font-size: 10px;
   }
 }
 

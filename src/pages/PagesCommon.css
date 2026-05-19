@@ -42,7 +42,7 @@ html {
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   padding: 24px 0;
-  display: sticky;
+  position: sticky;
   top: 0;
   z-index: 100;
   box-shadow: var(--shadow-md);
@@ -288,6 +288,7 @@ html {
 
 .button-group {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   margin-top: 12px;
 }
@@ -511,5 +512,66 @@ html {
 @media (max-width: 1024px) {
   .saved-items {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .hub-header {
+    padding: 12px 0;
+  }
+
+  .header-content {
+    padding: 0 16px;
+    gap: 12px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .page-subtitle {
+    display: none;
+  }
+
+  .hub-main {
+    padding: 24px 0;
+  }
+
+  .content-wrapper {
+    padding: 0 16px;
+  }
+
+  .generator-section,
+  .saved-section {
+    padding: 16px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+
+  .panel-btn {
+    padding: 10px 14px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .primary-btn,
+  .secondary-btn,
+  .back-btn,
+  .logout-btn {
+    padding: 10px 14px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .saved-items {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-zone {
+    padding: 24px 16px;
+    min-height: 140px;
   }
 }

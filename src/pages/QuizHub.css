@@ -543,22 +543,69 @@
   .qh-header {
     padding: 16px 20px;
   }
-  
+
   .qh-logo {
     font-size: 20px;
   }
-  
+
   .qh-nav-btn span {
     display: none;
   }
-  
+
   .qh-section-title {
     font-size: 32px;
   }
-  
+
   .qh-section-icon {
     width: 80px;
     height: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .qh-header-divider,
+  .qh-subtitle {
+    display: none;
+  }
+
+  .qh-header {
+    padding: 12px 16px;
+  }
+
+  .qh-logo {
+    font-size: 18px;
+  }
+
+  .qh-logo-img {
+    height: 40px;
+    width: 40px;
+  }
+
+  .qh-section-inner {
+    padding: 24px 20px;
+  }
+
+  .qh-section-title {
+    font-size: 26px;
+  }
+
+  .qh-section-icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 16px;
+  }
+
+  .qh-section-content {
+    margin-bottom: 20px;
+  }
+
+  .qh-section-cta {
+    padding: 12px 20px;
+    font-size: 10px;
+  }
+
+  .qh-features {
+    gap: 10px;
   }
 }
 

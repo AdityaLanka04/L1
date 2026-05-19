@@ -3276,6 +3276,32 @@
   }
 }
 
+@media (max-width: 480px) {
+  .fc-header {
+    padding: 0 12px;
+  }
+
+  .fc-content {
+    padding: 12px;
+  }
+
+  .fc-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fc-study-card {
+    padding: 20px 16px;
+  }
+
+  .fc-card-text {
+    font-size: 16px;
+  }
+
+  .fc-header-actions {
+    gap: 6px;
+  }
+}
+
 .fc-preview-vertical {
   display: flex;
   flex-direction: column;
