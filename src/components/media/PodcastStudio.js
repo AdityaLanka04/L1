@@ -764,6 +764,25 @@ const PodcastStudio = ({ results, userName, onExit }) => {
   }, [results?.filename]);
 
   useEffect(() => {
+    const settings = results?.podcast_settings || {};
+    const sessionOptions = settings.session_options || {};
+
+    if (settings.voice_mode) setSelectedVoiceMode(settings.voice_mode);
+    if (settings.voice_persona) setSelectedPersona(settings.voice_persona);
+    if (settings.difficulty) setSelectedDifficulty(settings.difficulty);
+    if (settings.answer_language) {
+      setAnswerLanguage(settings.answer_language);
+      setQuestionLanguage(settings.answer_language);
+    }
+    if (typeof sessionOptions.hands_free === 'boolean') {
+      setHandsFreeEnabled(sessionOptions.hands_free);
+    }
+    if (sessionOptions.wake_phrase) {
+      setWakePhrase(sessionOptions.wake_phrase);
+    }
+  }, [results?.filename]);
+
+  useEffect(() => {
     if (chatListRef.current) {
       chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
     }

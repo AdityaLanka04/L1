@@ -276,6 +276,57 @@ async def convert_notes_to_questions(
         logger.error(f"Error in notes_to_questions: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+@router.post("/import_export/notes_to_podcast")
+async def convert_notes_to_podcast(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    try:
+        note_ids = payload.get("note_ids", [])
+        voice_mode = payload.get("voice_mode", "coach")
+        voice_persona = payload.get("voice_persona", "mentor")
+        difficulty = payload.get("difficulty", "intermediate")
+        answer_language = payload.get("answer_language", "en")
+        session_options = payload.get("session_options", {}) or {}
+
+        service = ImportExportService(db)
+        result = await service.notes_to_podcast(
+            note_ids=note_ids,
+            user_id=current_user.id,
+            voice_mode=voice_mode,
+            voice_persona=voice_persona,
+            difficulty=difficulty,
+            answer_language=answer_language,
+            session_options=session_options,
+        )
+
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="import",
+                source_type="notes",
+                destination_type="podcast",
+                source_ids=json.dumps(note_ids),
+                destination_ids=json.dumps(result.get("note_ids", [])),
+                item_count=result.get("note_count", 0),
+                status="completed",
+                operation_metadata={
+                    "voice_mode": voice_mode,
+                    "voice_persona": voice_persona,
+                    "difficulty": difficulty,
+                    "answer_language": answer_language,
+                },
+                completed_at=datetime.now(timezone.utc)
+            )
+            db.add(history)
+            db.commit()
+
+        return result
+    except Exception as e:
+        logger.error(f"Error in notes_to_podcast: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @router.post("/import_export/flashcards_to_notes")
 async def convert_flashcards_to_notes(
     payload: dict = Body(...),

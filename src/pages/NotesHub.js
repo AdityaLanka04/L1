@@ -183,6 +183,10 @@ const NotesHub = () => {
               }
             } else if (result.destinationType === 'questions') {
               navigate('/question-bank');
+            } else if (result.destinationType === 'podcast') {
+              const noteIds = Array.isArray(result.note_ids) ? result.note_ids.join(',') : '';
+              const route = noteIds ? `/notes/podcast?note_ids=${encodeURIComponent(noteIds)}` : '/notes/podcast';
+              navigate(route, { state: { podcastPayload: result } });
             } else if (result.destinationType === 'notes') {
               if (result.note_id) {
                 navigate(`/notes/editor/${result.note_id}`);

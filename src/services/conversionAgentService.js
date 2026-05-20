@@ -89,7 +89,7 @@ class ConversionAgentService {
       options = {}
     } = params;
 
-    const target = targetType || destinationType;
+    const target = targetType || destinationType || params.target;
 
     if (!target) {
       throw new Error('targetType or destinationType is required');
@@ -106,7 +106,12 @@ class ConversionAgentService {
       mediaIds: sourceIds || options.mediaIds || [],
       playlistIds: sourceIds || options.playlistIds || [],
       formatStyle: params.formatStyle || options.formatStyle,
-      depthLevel: params.depthLevel || options.depthLevel
+      depthLevel: params.depthLevel || options.depthLevel,
+      voiceMode: params.voiceMode || options.voiceMode,
+      voicePersona: params.voicePersona || options.voicePersona,
+      answerLanguage: params.answerLanguage || options.answerLanguage,
+      handsFree: typeof params.handsFree === 'boolean' ? params.handsFree : options.handsFree,
+      wakePhrase: params.wakePhrase || options.wakePhrase
     };
 
     if (sourceType === 'notes' && target === 'flashcards') {
@@ -131,6 +136,21 @@ class ConversionAgentService {
         questionTypes: mergedOptions.questionTypes || ['multiple_choice'],
         difficulty: mergedOptions.difficulty || 'medium',
         sessionId: mergedOptions.sessionId
+      });
+    }
+
+    if (sourceType === 'notes' && target === 'podcast') {
+      return this.convertNotesToPodcast({
+        userId,
+        noteIds: mergedOptions.noteIds,
+        voiceMode: mergedOptions.voiceMode || 'coach',
+        voicePersona: mergedOptions.voicePersona || 'mentor',
+        difficulty: mergedOptions.difficulty || 'intermediate',
+        answerLanguage: mergedOptions.answerLanguage || 'en',
+        sessionOptions: {
+          hands_free: typeof mergedOptions.handsFree === 'boolean' ? mergedOptions.handsFree : false,
+          wake_phrase: mergedOptions.wakePhrase || 'hey cerbyl',
+        },
       });
     }
 
@@ -288,6 +308,28 @@ class ConversionAgentService {
       return this.normalizeResult(data);
     } catch (error) {
       console.error('Convert notes to questions error:', error);
+      throw error;
+    }
+  }
+
+  async convertNotesToPodcast(params) {
+    try {
+      const data = await this.fetchJson(`${this.baseUrl}/notes_to_podcast`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          note_ids: params.noteIds || params.note_ids || [],
+          voice_mode: params.voiceMode || params.voice_mode || 'coach',
+          voice_persona: params.voicePersona || params.voice_persona || 'mentor',
+          difficulty: params.difficulty || 'intermediate',
+          answer_language: params.answerLanguage || params.answer_language || 'en',
+          session_options: params.sessionOptions || params.session_options || {},
+        })
+      });
+
+      return this.normalizeResult(data);
+    } catch (error) {
+      console.error('Convert notes to podcast error:', error);
       throw error;
     }
   }

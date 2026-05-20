@@ -46,7 +46,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if request.url.path.startswith("/api/"):
             response.headers["Cache-Control"] = _CACHE_CONTROL
 
-        # Strip the Server header to avoid leaking uvicorn version
-        response.headers.pop("server", None)
+        # Strip the Server header to avoid leaking uvicorn version.
+        # MutableHeaders does not implement .pop() on some Starlette versions.
+        if "server" in response.headers:
+            del response.headers["server"]
 
         return response

@@ -5,6 +5,8 @@ Handles all conversions between different content types
 
 import json
 import logging
+import html
+import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
@@ -69,6 +71,49 @@ class ImportExportService:
             )
         except Exception:
             pass
+
+    def _strip_html_to_text(self, content: str) -> str:
+        """Convert note HTML into podcast-friendly plain text."""
+        if not content:
+            return ""
+
+        text = str(content)
+        text = re.sub(r"<\s*br\s*/?\s*>", "\n", text, flags=re.IGNORECASE)
+        text = re.sub(r"</\s*(p|div|h1|h2|h3|h4|h5|h6|li|tr|section|article)\s*>", "\n", text, flags=re.IGNORECASE)
+        text = re.sub(r"<\s*li[^>]*>", "- ", text, flags=re.IGNORECASE)
+        text = re.sub(r"<[^>]+>", " ", text)
+        text = html.unescape(text)
+        text = re.sub(r"[ \t]+", " ", text)
+        text = re.sub(r"\n[ \t]+", "\n", text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip()
+
+    def _build_notes_podcast_analysis(self, notes: List[Any], transcript: str) -> Dict[str, Any]:
+        key_concepts: List[str] = []
+        seen = set()
+
+        for note in notes:
+            title = (getattr(note, "title", "") or "").strip()
+            if not title:
+                continue
+            key = title.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            key_concepts.append(title)
+            if len(key_concepts) >= 12:
+                break
+
+        summary = transcript[:1200].strip()
+        if len(transcript) > 1200:
+            summary = f"{summary}..."
+
+        return {
+            "summary": summary,
+            "key_concepts": key_concepts,
+            "topics": key_concepts[:8],
+            "source": "notes_conversion",
+        }
         
     
     async def notes_to_flashcards(
@@ -244,6 +289,88 @@ Return ONLY a JSON array with this exact format:
             
         except Exception as e:
             logger.error(f"Error converting notes to questions: {e}")
+            self.db.rollback()
+            return {"success": False, "error": str(e)}
+
+    async def notes_to_podcast(
+        self,
+        note_ids: List[int],
+        user_id: int,
+        voice_mode: str = "coach",
+        voice_persona: str = "mentor",
+        difficulty: str = "intermediate",
+        answer_language: str = "en",
+        session_options: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Prepare one or more notes for podcast mode."""
+        from models import Note
+
+        try:
+            normalized_ids: List[int] = []
+            for raw_id in note_ids or []:
+                try:
+                    normalized_ids.append(int(raw_id))
+                except (TypeError, ValueError):
+                    continue
+
+            if not normalized_ids:
+                return {"success": False, "error": "No notes selected"}
+
+            notes = self.db.query(Note).filter(
+                Note.id.in_(normalized_ids),
+                Note.user_id == user_id
+            ).all()
+
+            if not notes:
+                return {"success": False, "error": "No notes found"}
+
+            note_map = {note.id: note for note in notes}
+            ordered_notes = [note_map[nid] for nid in normalized_ids if nid in note_map]
+            if not ordered_notes:
+                return {"success": False, "error": "No accessible notes found"}
+
+            transcript_sections: List[str] = []
+            for note in ordered_notes:
+                plain_text = self._strip_html_to_text(getattr(note, "content", "") or "")
+                if not plain_text:
+                    continue
+                title = (getattr(note, "title", "") or "Untitled").strip()
+                transcript_sections.append(f"{title}\n{plain_text}")
+
+            transcript = "\n\n".join(transcript_sections).strip()
+            if len(transcript) < 120:
+                return {"success": False, "error": "Selected notes do not have enough content for podcast mode"}
+            max_transcript_chars = 60000
+            was_truncated = len(transcript) > max_transcript_chars
+            if was_truncated:
+                transcript = transcript[:max_transcript_chars].strip()
+
+            note_title = self._combine_titles(
+                [getattr(note, "title", "") for note in ordered_notes],
+                fallback="Notes Podcast"
+            )
+            analysis = self._build_notes_podcast_analysis(ordered_notes, transcript)
+
+            return {
+                "success": True,
+                "note_ids": [note.id for note in ordered_notes],
+                "note_titles": [(getattr(note, "title", "") or "Untitled").strip() for note in ordered_notes],
+                "note_count": len(ordered_notes),
+                "title": note_title,
+                "source_type": "notes",
+                "transcript": transcript,
+                "analysis": analysis,
+                "transcript_truncated": was_truncated,
+                "podcast_settings": {
+                    "voice_mode": voice_mode or "coach",
+                    "voice_persona": voice_persona or "mentor",
+                    "difficulty": difficulty or "intermediate",
+                    "answer_language": answer_language or "en",
+                    "session_options": session_options or {},
+                },
+            }
+        except Exception as e:
+            logger.error(f"Error converting notes to podcast payload: {e}")
             self.db.rollback()
             return {"success": False, "error": str(e)}
 

@@ -31,6 +31,7 @@ import NotesHub from './pages/NotesHub';
 import AudioVideoNotes from './pages/AudioVideoNotes';
 import AIMediaNotes from './pages/AIMediaNotes';
 import MyNotes from './pages/MyNotes';
+import NotesPodcastMode from './pages/NotesPodcastMode';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/ProfileNew';
@@ -150,6 +151,7 @@ function App() {
               <Route path="/notes/ai-media" element={<ProtectedRoute><AIMediaNotes /></ProtectedRoute>} />
               <Route path="/notes/ai-media/:noteId" element={<ProtectedRoute><AIMediaNotes /></ProtectedRoute>} />
               <Route path="/notes/my-notes" element={<ProtectedRoute><MyNotes /></ProtectedRoute>} />
+              <Route path="/notes/podcast" element={<ProtectedRoute><NotesPodcastMode /></ProtectedRoute>} />
               <Route path="/notes/editor/:noteId" element={<ProtectedRoute><NotesRedesign /></ProtectedRoute>} />
               <Route path="/activity-timeline" element={<ProtectedRoute><ActivityTimeline /></ProtectedRoute>} />
               <Route path="/customize-dashboard" element={<ProtectedRoute><CustomizeDashboard /></ProtectedRoute>} />

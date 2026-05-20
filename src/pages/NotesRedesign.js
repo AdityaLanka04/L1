@@ -4077,6 +4077,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
             } else if (result.destinationType === 'questions') {
               // Navigate to question bank
               navigate('/question-bank');
+            } else if (result.destinationType === 'podcast') {
+              const noteIds = Array.isArray(result.note_ids) ? result.note_ids.join(',') : '';
+              const route = noteIds ? `/notes/podcast?note_ids=${encodeURIComponent(noteIds)}` : '/notes/podcast';
+              navigate(route, { state: { podcastPayload: result } });
             } else if (result.destinationType === 'notes') {
               // Navigate to the created note
               if (result.note_id) {

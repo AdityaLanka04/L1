@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   X, Download, FileText, HelpCircle, 
-  Zap, CheckCircle, Loader, ChevronRight 
+  Zap, CheckCircle, Loader, ChevronRight, Mic
 } from 'lucide-react';
 import { API_URL } from '../config';
 import conversionAgentService from '../services/conversionAgentService';
@@ -26,7 +26,12 @@ const ImportExportModal = ({
     questionCount: 10,
     difficulty: 'medium',
     formatStyle: 'structured',
-    depthLevel: 'standard'
+    depthLevel: 'standard',
+    voiceMode: 'coach',
+    voicePersona: 'mentor',
+    answerLanguage: 'en',
+    handsFree: false,
+    wakePhrase: 'hey cerbyl'
   });
 
   const userName = localStorage.getItem('username');
@@ -35,7 +40,8 @@ const ImportExportModal = ({
   const conversionOptions = {
     notes: [
       { value: 'flashcards', label: 'Flashcards', icon: <Zap size={24} />, description: 'Convert to study flashcards' },
-      { value: 'questions', label: 'Questions', icon: <HelpCircle size={24} />, description: 'Generate practice questions' }
+      { value: 'questions', label: 'Questions', icon: <HelpCircle size={24} />, description: 'Generate practice questions' },
+      { value: 'podcast', label: 'Podcast Mode', icon: <Mic size={24} />, description: 'Turn notes into an interactive podcast session' }
     ],
     flashcards: [
       { value: 'notes', label: 'Notes', icon: <FileText size={24} />, description: 'Create study guide' },
@@ -193,7 +199,12 @@ const ImportExportModal = ({
         questionCount: options.questionCount,
         difficulty: options.difficulty,
         formatStyle: options.formatStyle,
-        depthLevel: options.depthLevel
+        depthLevel: options.depthLevel,
+        voiceMode: options.voiceMode,
+        voicePersona: options.voicePersona,
+        answerLanguage: options.answerLanguage,
+        handsFree: options.handsFree,
+        wakePhrase: options.wakePhrase
       });
 
       const conversionDetails = conversionResult.result || conversionResult;
@@ -249,7 +260,12 @@ const ImportExportModal = ({
       questionCount: 10,
       difficulty: 'medium',
       formatStyle: 'structured',
-      depthLevel: 'standard'
+      depthLevel: 'standard',
+      voiceMode: 'coach',
+      voicePersona: 'mentor',
+      answerLanguage: 'en',
+      handsFree: false,
+      wakePhrase: 'hey cerbyl'
     });
   };
 
@@ -362,7 +378,20 @@ const ImportExportModal = ({
                   <div
                     key={option.value}
                     className={`iem-conversion-card ${destinationType === option.value ? 'selected' : ''}`}
-                    onClick={() => setDestinationType(option.value)}
+                    onClick={() => {
+                      setDestinationType(option.value);
+                      if (option.value === 'podcast') {
+                        setOptions((prev) => ({
+                          ...prev,
+                          difficulty: ['basic', 'intermediate', 'advanced'].includes(prev.difficulty)
+                            ? prev.difficulty
+                            : 'intermediate',
+                          voiceMode: prev.voiceMode || 'coach',
+                          voicePersona: prev.voicePersona || 'mentor',
+                          answerLanguage: prev.answerLanguage || 'en',
+                        }));
+                      }
+                    }}
                   >
                     <div className="iem-conversion-icon">{option.icon}</div>
                     <h4>{option.label}</h4>
@@ -466,6 +495,69 @@ const ImportExportModal = ({
                       </select>
                     </div>
                   )}
+
+                  {destinationType === 'podcast' && (
+                    <>
+                      <div className="iem-setting-group">
+                        <label>Voice Mode</label>
+                        <select
+                          className="iem-select"
+                          value={options.voiceMode}
+                          onChange={(e) => setOptions(prev => ({ ...prev, voiceMode: e.target.value }))}
+                        >
+                          <option value="coach">Coach</option>
+                          <option value="story">Story Mode</option>
+                          <option value="rapid">Rapid Review</option>
+                          <option value="socratic">Socratic</option>
+                          <option value="exam">Exam Prep</option>
+                        </select>
+                      </div>
+
+                      <div className="iem-setting-group">
+                        <label>Voice Persona</label>
+                        <select
+                          className="iem-select"
+                          value={options.voicePersona}
+                          onChange={(e) => setOptions(prev => ({ ...prev, voicePersona: e.target.value }))}
+                        >
+                          <option value="mentor">Mentor</option>
+                          <option value="professor">Professor</option>
+                          <option value="friend">Study Friend</option>
+                          <option value="host">Podcast Host</option>
+                          <option value="minimal">Minimal</option>
+                        </select>
+                      </div>
+
+                      <div className="iem-setting-group">
+                        <label>Difficulty</label>
+                        <select
+                          className="iem-select"
+                          value={options.difficulty}
+                          onChange={(e) => setOptions(prev => ({ ...prev, difficulty: e.target.value }))}
+                        >
+                          <option value="basic">Basic</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="advanced">Advanced</option>
+                        </select>
+                      </div>
+
+                      <div className="iem-setting-group">
+                        <label>Answer Language</label>
+                        <select
+                          className="iem-select"
+                          value={options.answerLanguage}
+                          onChange={(e) => setOptions(prev => ({ ...prev, answerLanguage: e.target.value }))}
+                        >
+                          <option value="en">English</option>
+                          <option value="hi">Hindi</option>
+                          <option value="es">Spanish</option>
+                          <option value="fr">French</option>
+                          <option value="de">German</option>
+                          <option value="te">Telugu</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -515,6 +607,9 @@ const ImportExportModal = ({
                   {result.details.question_count && (
                     <p><strong>Questions:</strong> {result.details.question_count}</p>
                   )}
+                  {result.details.note_count && (
+                    <p><strong>Notes:</strong> {result.details.note_count}</p>
+                  )}
                 </div>
               )}
 
@@ -541,7 +636,15 @@ const ImportExportModal = ({
                         }
                       }}
                     >
-                      View {destinationType === 'flashcards' ? 'Flashcards' : destinationType === 'questions' ? 'Questions' : 'Note'} <ChevronRight size={16} />
+                      View {
+                        destinationType === 'flashcards'
+                          ? 'Flashcards'
+                          : destinationType === 'questions'
+                            ? 'Questions'
+                            : destinationType === 'podcast'
+                              ? 'Podcast'
+                              : 'Note'
+                      } <ChevronRight size={16} />
                     </button>
                   </>
                 )}

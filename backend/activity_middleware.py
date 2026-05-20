@@ -22,6 +22,7 @@ ENDPOINT_TOOL_RULES = [
     ('/api/flashcards', 'flashcards'),
     ('/api/generate_notes', 'notes_ai'),
     ('/api/convert_to_notes', 'notes_ai'),
+    ('/api/import_export/notes_to_podcast', 'podcast_ai'),
     ('/api/save_note', 'notes'),
     ('/api/notes', 'notes'),
     ('/api/generate_quiz', 'quiz_ai'),
