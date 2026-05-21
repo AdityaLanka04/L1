@@ -928,7 +928,7 @@ const DashboardCerbyl = () => {
           >
             {isSidebarOpen ? 'HIDE SIDEBAR' : 'SHOW SIDEBAR'}
           </button>
-          <button className="cb-topbar-text-btn" onClick={() => navigate('/dashboard')}>
+          <button className="cb-topbar-text-btn" onClick={() => navigate('/dashboard-cerbyl')}>
             CLASSIC
           </button>
           <div className="cb-date">{formatDateLong(now)}</div>

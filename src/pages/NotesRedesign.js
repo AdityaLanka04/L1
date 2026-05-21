@@ -1642,7 +1642,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       if (editor) editor.scrollTo({ top: editor.scrollHeight, behavior: 'smooth' });
     },
     onToggleSidebar: () => setSidebarOpen(!sidebarOpen),
-    onGoToDashboard: () => navigate('/dashboard'),
+    onGoToDashboard: () => navigate('/dashboard-cerbyl'),
     onGoToAIChat: () => navigate('/ai-chat'),
     onGoToNotes: () => navigate('/notes/dashboard'),
     onFullscreen: () => setIsFullscreen(!isFullscreen),
@@ -2786,7 +2786,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
               <ChevronLeft size={18} />
             </button>
           )}
-          <h1 className="nr-header-title" onClick={() => navigate('/dashboard')}>
+          <h1 className="nr-header-title" onClick={() => navigate('/dashboard-cerbyl')}>
             <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
             cerbyl
           </h1>
@@ -2819,7 +2819,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             <span>My Notes</span>
             <ChevronRight size={14} />
           </button>
-          <button className="nr-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="nr-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>

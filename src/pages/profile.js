@@ -331,7 +331,7 @@ const Profile = () => {
         : [...prev.preferredSubjects, subject]
     }));
   };  const goBack = () => {
-    navigate('/dashboard');
+    navigate('/dashboard-cerbyl');
   };
 
   const retakeQuiz = () => {

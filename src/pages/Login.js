@@ -65,7 +65,7 @@ function Login() {
 
       if (response.data.completed) {
         sessionStorage.setItem('justLoggedIn', 'true');
-        navigate('/dashboard');
+        navigate('/dashboard-cerbyl');
       } else {
         navigate('/profile-quiz');
       }

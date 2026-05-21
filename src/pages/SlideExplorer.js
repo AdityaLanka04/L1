@@ -500,7 +500,7 @@ const SlideExplorer = () => {
           </nav>
 
           <div className="se-sidebar-footer">
-            <button className="se-nav-item" onClick={() => navigate('/dashboard')}>
+            <button className="se-nav-item" onClick={() => navigate('/dashboard-cerbyl')}>
               <span className="se-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
               <span className="se-nav-text">Dashboard</span>
             </button>

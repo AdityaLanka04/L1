@@ -124,7 +124,7 @@ const CanvasHub = () => {
           <button className="ch-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="ch-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="ch-logo" onClick={() => navigate('/dashboard-cerbyl')}>
             <img
               src="/logo.svg"
               alt=""
@@ -140,7 +140,7 @@ const CanvasHub = () => {
             <span>My Notes</span>
             <ChevronRight size={14} />
           </button>
-          <button className="ch-nav-btn" onClick={() => navigate('/dashboard')}>
+          <button className="ch-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>

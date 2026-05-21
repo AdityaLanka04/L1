@@ -141,7 +141,7 @@ const SoloQuiz = () => {
             <Zap size={16} />
             <span>Quiz Hub</span>
           </button>
-          <button className="sq-nav-btn sq-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="sq-nav-btn sq-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>

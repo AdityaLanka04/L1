@@ -513,7 +513,7 @@ const SoloQuizSession = () => {
               <RefreshCw size={18} />
               Try Another Quiz
             </button>
-            <button className="result-button secondary" onClick={() => navigate('/dashboard')}>
+            <button className="result-button secondary" onClick={() => navigate('/dashboard-cerbyl')}>
               Back to Dashboard
             </button>
           </div>

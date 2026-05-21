@@ -77,7 +77,7 @@ const NotesHub = () => {
             <Zap size={16} />
             <span>Convert</span>
           </button>
-          <button className="nh-nav-btn nh-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="nh-nav-btn nh-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>

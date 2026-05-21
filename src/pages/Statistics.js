@@ -126,7 +126,7 @@ const Statistics = () => {
           </div>
         </div>
         <div className="st-header-right">
-          <button className="st-nav-btn" onClick={() => navigate('/dashboard')}>
+          <button className="st-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>
                   Dashboard</button>
           <button className="st-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
         </div>

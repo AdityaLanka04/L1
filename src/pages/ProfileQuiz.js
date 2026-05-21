@@ -194,7 +194,7 @@ const ProfileQuiz = () => {
       if (response.ok) {
         const data = await response.json();
                 if (data.completed) {
-                    navigate('/dashboard');
+                    navigate('/dashboard-cerbyl');
         }
       }
     } catch (error) {
@@ -301,12 +301,12 @@ const ProfileQuiz = () => {
         
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        navigate('/dashboard');
+        navigate('/dashboard-cerbyl');
       } else {
-                navigate('/dashboard');
+                navigate('/dashboard-cerbyl');
       }
     } catch (error) {
-            navigate('/dashboard');
+            navigate('/dashboard-cerbyl');
     }
   };
 
@@ -497,7 +497,7 @@ const ProfileQuiz = () => {
         sessionStorage.setItem('justLoggedIn', 'true');
         
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/dashboard-cerbyl');
         }, 3000);
       } catch (error) {
         console.error('Error saving profile:', error);
@@ -626,7 +626,7 @@ const ProfileQuiz = () => {
             <h1 className="quiz-title-single">profile</h1>
             <p className="quiz-subtitle-single">customize your ai learning experience</p>
           </div>
-          <button className="back-to-dashboard-btn" onClick={() => navigate('/dashboard')}>
+          <button className="back-to-dashboard-btn" onClick={() => navigate('/dashboard-cerbyl')}>
             ◄ back to dashboard
           </button>
         </div>

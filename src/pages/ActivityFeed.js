@@ -257,7 +257,7 @@ const ActivityFeed = () => {
             <Users size={16} />
             Social
           </button>
-          <button className="af-nav-btn af-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="af-nav-btn af-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard
           </button>
         </nav>

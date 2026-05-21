@@ -140,7 +140,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         
         break;
       default:
-        navigate('/dashboard');
+        navigate('/dashboard-cerbyl');
     }
     handleClose();
   };

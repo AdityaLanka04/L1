@@ -499,7 +499,7 @@ const AIMediaNotes = () => {
               <span className="mn-nav-icon">{Icons.notes}</span>
               <span className="mn-nav-text">MY NOTES</span>
             </button>
-            <button className="mn-nav-item" onClick={() => navigate('/dashboard')}>
+            <button className="mn-nav-item" onClick={() => navigate('/dashboard-cerbyl')}>
               <span className="mn-nav-icon">{Icons.home}</span>
               <span className="mn-nav-text">DASHBOARD</span>
             </button>

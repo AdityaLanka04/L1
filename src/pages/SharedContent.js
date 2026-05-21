@@ -141,7 +141,7 @@ const SharedContent = () => {
             <Users size={16} />
             Social
           </button>
-          <button className="sc-ghost-btn" onClick={() => navigate('/dashboard')}>
+          <button className="sc-ghost-btn" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard
           </button>
         </nav>

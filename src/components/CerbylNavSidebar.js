@@ -44,7 +44,7 @@ const NAV_GROUPS = [
   {
     label: 'MAIN',
     links: [
-      { label: 'Dashboard', route: '/dashboard' },
+      { label: 'Dashboard', route: '/dashboard-cerbyl' },
       { label: 'Cerbyl Dashboard', route: '/dashboard-cerbyl' },
       { label: 'Search Hub', route: '/search-hub' },
     ]

@@ -880,7 +880,7 @@ export default function Atlas(){
           {/* Bottom strip */}
           <div className="atl-home-bottom">
             <p className="atl-home-hint">CLICK A WORLD TO EXPLORE</p>
-            <button className="atl-home-dash-btn" onClick={()=>navigate('/dashboard')}>
+            <button className="atl-home-dash-btn" onClick={()=>navigate('/dashboard-cerbyl')}>
               <Home size={14}/>DASHBOARD
             </button>
           </div>

@@ -656,12 +656,12 @@ const CustomizeDashboard = () => {
         show: true,
         message: 'You have unsaved changes. Leave anyway?',
         onConfirm: () => {
-          navigate('/dashboard');
+          navigate('/dashboard-cerbyl');
         }
       });
       return;
     }
-    navigate('/dashboard');
+    navigate('/dashboard-cerbyl');
   };
 
   

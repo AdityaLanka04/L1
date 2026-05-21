@@ -1005,7 +1005,7 @@ export default function ContextHub() {
         </nav>
 
         <div className="ch-sidebar-footer">
-          <button className="ch-sidebar-footer-btn" onClick={() => navigate('/dashboard')}>
+          <button className="ch-sidebar-footer-btn" onClick={() => navigate('/dashboard-cerbyl')}>
             <Home size={14} /><span>Dashboard</span>
           </button>
         </div>

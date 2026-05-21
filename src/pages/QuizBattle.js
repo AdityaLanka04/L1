@@ -272,7 +272,7 @@ const QuizBattle = () => {
             <Users size={16} />
             Social
           </button>
-          <button className="qb-nav-btn" onClick={() => navigate('/dashboard')}>
+          <button className="qb-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>
                   Dashboard
           </button>
         </div>

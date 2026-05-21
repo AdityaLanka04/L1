@@ -242,7 +242,7 @@ const LearningPaths = () => {
           <p className="lp-header-subtitle">LEARNING PATHS</p>
         </div>
         <div className="lp-header-right">
-          <button className="lp-back-btn" onClick={() => navigate('/dashboard')}>
+          <button className="lp-back-btn" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard
             <ChevronRight size={14} />
           </button>

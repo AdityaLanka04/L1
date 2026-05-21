@@ -27,7 +27,7 @@ const StudyInsights = () => {
       try {
         const parsed = JSON.parse(profile);
         if (parsed.showStudyInsights === false) {
-          navigate('/dashboard', { replace: true });
+          navigate('/dashboard-cerbyl', { replace: true });
           return;
         }
       } catch (e) {
@@ -100,7 +100,7 @@ const StudyInsights = () => {
           <p>Unable to load insights</p>
           {error && <p className="si-error-detail">{error}</p>}
           <button className="si-btn" onClick={loadComprehensiveInsights}>Retry</button>
-          <button className="si-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+          <button className="si-btn" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
         </div>
       </div>
     );
@@ -121,7 +121,7 @@ const StudyInsights = () => {
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="si-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="si-logo" onClick={() => navigate('/dashboard-cerbyl')}>
             <div className="si-logo-img" />
             cerbyl
           </h1>
@@ -129,7 +129,7 @@ const StudyInsights = () => {
           <span className="si-subtitle">STUDY INSIGHTS</span>
         </div>
         <nav className="si-header-right">
-          <button className="si-nav-btn si-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="si-nav-btn si-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>

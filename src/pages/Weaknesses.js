@@ -133,7 +133,7 @@ const Weaknesses = () => {
               Refresh
             </button>
           )}
-          <button className="wk-nav-btn wk-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="wk-nav-btn wk-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard
             <ChevronRight size={14} />
           </button>

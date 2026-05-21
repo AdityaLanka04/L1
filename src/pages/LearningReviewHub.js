@@ -89,7 +89,7 @@ const LearningReviewHub = () => {
           <span className="lrh-subtitle">LEARNING HUB</span>
         </div>
         <nav className="lrh-header-right">
-          <button className="lrh-nav-btn lrh-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="lrh-nav-btn lrh-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>

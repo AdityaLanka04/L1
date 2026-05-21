@@ -2870,7 +2870,7 @@ const Flashcards = () => {
           </nav>
 
           <div className="fc-sidebar-footer">
-            <button className="fc-nav-item" onClick={() => navigate('/dashboard')}>
+            <button className="fc-nav-item" onClick={() => navigate('/dashboard-cerbyl')}>
               <span className="fc-nav-icon">{Icons.home}</span>
               <span className="fc-nav-text">Dashboard</span>
             </button>

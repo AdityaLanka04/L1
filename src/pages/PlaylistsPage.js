@@ -268,7 +268,7 @@ const PlaylistsPage = () => {
             <Plus size={16} />
             <span>Create Playlist</span>
           </button>
-          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>

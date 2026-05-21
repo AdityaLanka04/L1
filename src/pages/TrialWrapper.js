@@ -18,7 +18,7 @@ const TrialWrapper = ({ children }) => {
   const location = useLocation();
 
   
-  const trialAccessibleRoutes = ['/dashboard', '/ai-chat', '/flashcards', '/notes', '/learning-review'];
+  const trialAccessibleRoutes = ['/dashboard-cerbyl', '/dashboard', '/ai-chat', '/flashcards', '/notes', '/learning-review'];
   const isTrialAccessibleRoute = trialAccessibleRoutes.includes(location.pathname);
 
   const initializeTrial = useCallback(async () => {

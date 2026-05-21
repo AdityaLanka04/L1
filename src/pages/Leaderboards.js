@@ -94,7 +94,7 @@ const Leaderboards = () => {
             <Users size={16} />
             Social
           </button>
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard
           </button>
         </nav>

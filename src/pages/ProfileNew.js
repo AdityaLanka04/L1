@@ -396,7 +396,7 @@ const ProfileNew = () => {
       <GeoBackground />
 
       <div className="pn-topbar">
-        <button className="pn-back-btn" onClick={() => navigate('/dashboard')}>
+        <button className="pn-back-btn" onClick={() => navigate('/dashboard-cerbyl')}>
           ← Dashboard
         </button>
         <div className="pn-topbar-center">profile</div>

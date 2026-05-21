@@ -103,8 +103,9 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/homepage" element={<ProtectedRoute><Homepage /></ProtectedRoute>} />
               <Route path="/profile-quiz" element={<ProtectedRoute><ProfileQuiz /></ProtectedRoute>} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/dashboard-cerbyl" element={<ProtectedRoute><DashboardCerbyl /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<Navigate to="/dashboard-cerbyl" replace />} />
+              <Route path="/dashboard-classic" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/study-insights" element={<ProtectedRoute><StudyInsights /></ProtectedRoute>} />
               <Route path="/weaknesses" element={<ProtectedRoute><Weaknesses /></ProtectedRoute>} />
               <Route path="/weakness-practice" element={<ProtectedRoute><WeaknessPractice /></ProtectedRoute>} />
@@ -162,7 +163,7 @@ function App() {
               <Route path="/context" element={<Navigate to="/contexthub" replace />} />
               <Route path="/vault" element={<Navigate to="/contexthub" replace />} />
               <Route path="/canvas" element={<ProtectedRoute><CanvasHub /></ProtectedRoute>} />
-              <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/home" element={<Navigate to="/dashboard-cerbyl" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>

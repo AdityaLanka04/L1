@@ -1904,7 +1904,7 @@ Instructions:
               </button>
             </>
           ) : (
-            <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>
+            <button className="kr-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>
                   Dashboard
               <ChevronRight size={14} />
             </button>

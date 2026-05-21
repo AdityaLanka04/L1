@@ -1701,11 +1701,11 @@ const AIChat = ({ sharedMode = false }) => {
 
   const goToDashboard = async () => {
     await cleanupEmptyNewChats();
-    navigate('/dashboard');
+    navigate('/dashboard-cerbyl');
   };
 
   const handleLogoClick = () => {
-    navigate('/dashboard');
+    navigate('/dashboard-cerbyl');
   };
 
   const copyToClipboard = (text, codeIndex) => {
@@ -2596,7 +2596,7 @@ const AIChat = ({ sharedMode = false }) => {
           </nav>
 
           <div className="ac-sidebar-footer">
-            <button className="ac-nav-item" onClick={() => navigate('/dashboard')}>
+            <button className="ac-nav-item" onClick={() => navigate('/dashboard-cerbyl')}>
               <span className="ac-nav-icon">{Icons.home}</span>
               <span className="ac-nav-text">Dashboard</span>
             </button>

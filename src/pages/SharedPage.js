@@ -214,7 +214,7 @@ const SharedPage = () => {
             <Users size={16} />
             Social
           </button>
-          <button className="sp-ghost-btn" onClick={() => navigate('/dashboard')}>
+          <button className="sp-ghost-btn" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard
           </button>
         </nav>

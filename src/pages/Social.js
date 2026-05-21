@@ -458,7 +458,7 @@ const Social = () => {
           <span className="gm-subtitle">SOCIAL HUB</span>
         </div>
         <nav className="gm-header-right">
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard <ChevronRight size={14} />
           </button>
         </nav>
