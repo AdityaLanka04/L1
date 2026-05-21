@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from datetime import datetime, timezone, timedelta
@@ -635,8 +636,29 @@ def get_single_note(note_id: int, db: Session = Depends(get_db), current_user: m
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if note.user_id != current_user.id:
+
+    can_access = note.user_id == current_user.id
+    if not can_access:
+        shared = db.query(models.SharedContent).filter(
+            models.SharedContent.content_type == "note",
+            models.SharedContent.content_id == note_id,
+            models.SharedContent.shared_with_id == current_user.id,
+        ).first()
+        can_access = shared is not None
+
+    if not can_access:
         raise HTTPException(status_code=403, detail="Access denied")
+
+    def _safe_json(value, default):
+        if not value:
+            return default
+        if isinstance(value, (list, dict)):
+            return value
+        try:
+            return json.loads(value)
+        except Exception:
+            return default
+
     return {
         "id": note.id,
         "title": note.title,
@@ -646,6 +668,11 @@ def get_single_note(note_id: int, db: Session = Depends(get_db), current_user: m
         "is_favorite": getattr(note, "is_favorite", False),
         "folder_id": getattr(note, "folder_id", None),
         "custom_font": getattr(note, "custom_font", "Inter"),
+        "transcript": getattr(note, "transcript", "") or "",
+        "analysis": _safe_json(getattr(note, "analysis", None), {}),
+        "flashcards": _safe_json(getattr(note, "flashcards", None), []),
+        "quiz_questions": _safe_json(getattr(note, "quiz_questions", None), []),
+        "key_moments": _safe_json(getattr(note, "key_moments", None), []),
     }
 
 @router.put("/soft_delete_note/{note_id}")
@@ -947,12 +974,22 @@ def update_shared_note(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    note = db.query(models.Note).filter(
-        models.Note.id == note_id,
-        models.Note.user_id == current_user.id,
-    ).first()
+    note = db.query(models.Note).filter(models.Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+
+    can_edit = note.user_id == current_user.id
+    if not can_edit:
+        shared = db.query(models.SharedContent).filter(
+            models.SharedContent.content_type == "note",
+            models.SharedContent.content_id == note_id,
+            models.SharedContent.shared_with_id == current_user.id,
+            models.SharedContent.permission == "edit",
+        ).first()
+        can_edit = shared is not None
+
+    if not can_edit:
+        raise HTTPException(status_code=403, detail="No edit permission for this note")
 
     if "title" in data:
         note.title = str(data["title"])[:500]

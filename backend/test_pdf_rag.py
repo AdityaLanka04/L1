@@ -35,6 +35,14 @@ import time
 import uuid
 from pathlib import Path
 
+try:
+    import pytest
+    pytestmark = pytest.mark.skip(
+        reason="Integration harness: run directly with `python backend/test_pdf_rag.py`."
+    )
+except Exception:  # pragma: no cover
+    pytestmark = None
+
 # Force UTF-8 output on Windows terminals (avoids CP1252 encode errors)
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")

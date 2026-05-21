@@ -499,7 +499,7 @@ def get_learning_analytics(user_id: str = Query(...), period: str = Query("week"
         "daily_data": []
     }
 
-@router.get("/check_profile_quiz")
+@router.get("/analytics/check_profile_quiz")
 async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -536,7 +536,7 @@ async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(ge
         logger.error(f"Error checking quiz: {str(e)}")
         return {"completed": False}
 
-@router.get("/is_first_time_user")
+@router.get("/analytics/is_first_time_user")
 async def is_first_time_user(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -709,7 +709,7 @@ def get_activity_breakdown(user_id: str = Query(...), period: str = Query("all")
         return {"breakdown": {}, "total_activities": 0, "total_points": 0}
 
 
-@router.post("/start_session")
+@router.post("/analytics/start_session")
 def start_session(
     user_id: str = Form(...),
     session_type: str = Form(...),
@@ -733,7 +733,7 @@ def start_session(
         logger.error(f"Error starting session: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to start session")
 
-@router.post("/end_session")
+@router.post("/analytics/end_session")
 def end_session(
     user_id: str = Form(...),
     session_id: str = Form(...),
@@ -796,7 +796,7 @@ def end_session(
         logger.error(f"Error ending session: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to end session")
 
-@router.get("/get_daily_goal_progress")
+@router.get("/analytics/get_daily_goal_progress")
 def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)

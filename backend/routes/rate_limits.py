@@ -2,11 +2,9 @@
 Public read-only endpoint that exposes the current rate limit tier definitions.
 Useful for frontend to display limits to users and for debugging.
 """
-from fastapi import APIRouter, Depends, Request
-from jose import jwt, JWTError
-
-from deps import SECRET_KEY, ALGORITHM
-from middleware.rate_limiter import TIERS, _AUTH_TIERS, _classify, _check, _get_client_ip, _get_jwt_sub
+from fastapi import APIRouter, Request
+from middleware.rate_limiter import TIERS, _AUTH_TIERS, _get_client_ip, _get_jwt_sub, get_subscription_tier
+from services.subscription_catalog import DEFAULT_PLAN_ID, get_effective_rate_limit, list_plans
 
 router = APIRouter(prefix="/api", tags=["rate-limits"])
 
@@ -14,14 +12,20 @@ router = APIRouter(prefix="/api", tags=["rate-limits"])
 @router.get("/rate-limits/tiers")
 def get_rate_limit_tiers():
     """Return the rate limit tier definitions (public)."""
+    plans = list_plans()
     return {
         tier: {
             "limit": limit,
+            "base_limit": limit,
             "window_seconds": window,
             "window_label": (
                 f"{window // 3600}h" if window >= 3600 else f"{window}s"
             ),
             "identity_basis": "ip" if tier in _AUTH_TIERS else "user",
+            "plan_limits": {
+                plan["id"]: get_effective_rate_limit(plan["id"], tier, limit)
+                for plan in plans
+            },
         }
         for tier, (limit, window) in TIERS.items()
     }
@@ -34,12 +38,14 @@ def get_rate_limit_status(request: Request):
     Reads current sliding-window counts without incrementing them.
     """
     sub = _get_jwt_sub(request)
+    plan_id = get_subscription_tier(sub) if sub else DEFAULT_PLAN_ID
     ip = _get_client_ip(request)
     identity_user = sub or ip
     identity_ip = ip
 
     result = {}
-    for tier, (limit, window) in TIERS.items():
+    for tier, (base_limit, window) in TIERS.items():
+        limit = get_effective_rate_limit(plan_id, tier, base_limit)
         identity = identity_ip if tier in _AUTH_TIERS else identity_user
         rl_key = f"rl:{tier}:{identity}"
 
@@ -79,11 +85,13 @@ def get_rate_limit_status(request: Request):
                 "reset_at": int(reset_at),
                 "window_seconds": window,
                 "identity": identity if tier in _AUTH_TIERS else ("user" if sub else "ip"),
+                "plan": plan_id,
             }
         except Exception:
             result[tier] = {"limit": limit, "used": 0, "remaining": limit, "error": True}
 
     return {
         "identity": "user" if sub else "ip",
+        "plan": plan_id,
         "tiers": result,
     }

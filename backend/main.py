@@ -78,9 +78,17 @@ if "sqlite" in DATABASE_URL:
 
     with engine.connect() as _conn:
         _profile_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(comprehensive_user_profiles)"))}
-        if "notifications_enabled" not in _profile_cols:
-            _conn.execute(text("ALTER TABLE comprehensive_user_profiles ADD COLUMN notifications_enabled BOOLEAN DEFAULT 1"))
-            logger.info("Added column comprehensive_user_profiles.notifications_enabled")
+        _profile_additions = {
+            "notifications_enabled": "BOOLEAN DEFAULT 1",
+            "subscription_tier": "VARCHAR(30) DEFAULT 'starter'",
+            "billing_cycle": "VARCHAR(20) DEFAULT 'monthly'",
+            "subscription_status": "VARCHAR(20) DEFAULT 'active'",
+            "subscription_started_at": "DATETIME",
+        }
+        for _col, _typ in _profile_additions.items():
+            if _col not in _profile_cols:
+                _conn.execute(text(f"ALTER TABLE comprehensive_user_profiles ADD COLUMN {_col} {_typ}"))
+                logger.info("Added column comprehensive_user_profiles.%s", _col)
         _conn.commit()
 
     with engine.connect() as _conn:

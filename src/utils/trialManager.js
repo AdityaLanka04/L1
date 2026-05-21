@@ -1,141 +1,139 @@
-
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 class TrialManager {
   constructor() {
-    this.TRIAL_DURATION = 5 * 60 * 1000; 
+    this.TRIAL_DURATION = 5 * 60 * 1000;
     this.STORAGE_KEY = 'brainwave_trial';
     this.FINGERPRINT_KEY = 'brainwave_fp';
-    this.WARNING_TIME = 60 * 1000; 
+    this.WARNING_TIME = 60 * 1000;
   }
 
-  
   generateFingerprint() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    ctx.textBaseline = 'top';
-    ctx.font = '14px Arial';
-    ctx.fillText('BrainwaveFingerprint', 2, 2);
-    
+    if (ctx) {
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('BrainwaveFingerprint', 2, 2);
+    }
+
+    const screenInfo = window.screen || { width: 0, height: 0, colorDepth: 0 };
     const fingerprint = {
-      screen: `${screen.width}x${screen.height}`,
+      screen: `${screenInfo.width}x${screenInfo.height}`,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       language: navigator.language,
-      platform: navigator.platform.substring(0, 20),
-      userAgent: navigator.userAgent.substring(0, 50),
+      platform: (navigator.platform || '').substring(0, 20),
+      userAgent: (navigator.userAgent || '').substring(0, 50),
       canvas: canvas.toDataURL().substring(0, 50),
       memory: navigator.deviceMemory || 'unknown',
       cores: navigator.hardwareConcurrency || 'unknown',
-      colorDepth: screen.colorDepth,
-      pixelRatio: window.devicePixelRatio
+      colorDepth: screenInfo.colorDepth,
+      pixelRatio: window.devicePixelRatio || 1,
     };
-    
-    
+
     const hashCode = (str) => {
       let hash = 0;
-      for (let i = 0; i < str.length; i++) {
+      for (let i = 0; i < str.length; i += 1) {
         const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
+        hash = (hash << 5) - hash + char;
+        hash &= hash;
       }
       return Math.abs(hash).toString(36);
     };
-    
+
     return hashCode(JSON.stringify(fingerprint));
   }
 
-  
   async initializeTrial() {
     const fingerprint = this.generateFingerprint();
     const now = Date.now();
-    
-    
+
     const indexedDBTrial = await this.checkIndexedDBTrial(fingerprint);
     if (indexedDBTrial && indexedDBTrial.blocked) {
       return { expired: true, timeUsed: this.TRIAL_DURATION, reason: 'previous_session' };
     }
-    
-    
+
     const localTrial = localStorage.getItem(this.STORAGE_KEY);
     const storedFingerprint = localStorage.getItem(this.FINGERPRINT_KEY);
-    
+
     if (localTrial && storedFingerprint === fingerprint) {
       const trialData = JSON.parse(localTrial);
       if (this.isTrialExpired(trialData.startTime)) {
         await this.storeTrialInIndexedDB(fingerprint, trialData.startTime);
         return { expired: true, timeUsed: this.TRIAL_DURATION, reason: 'time_expired' };
       }
-      return { 
-        expired: false, 
+      return {
+        expired: false,
         timeUsed: now - trialData.startTime,
-        timeRemaining: this.TRIAL_DURATION - (now - trialData.startTime)
+        timeRemaining: this.TRIAL_DURATION - (now - trialData.startTime),
       };
     }
-    
-    
+
     try {
       const serverCheck = await this.checkServerTrial(fingerprint);
       if (serverCheck.blocked) {
         return { expired: true, timeUsed: this.TRIAL_DURATION, reason: 'server_blocked' };
       }
     } catch (error) {
-    // silenced
-  }
-    
-    
+      // best effort only
+    }
+
     const trialData = {
       startTime: now,
-      fingerprint: fingerprint,
-      sessionId: this.generateSessionId()
+      fingerprint,
+      sessionId: this.generateSessionId(),
     };
-    
+
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(trialData));
     localStorage.setItem(this.FINGERPRINT_KEY, fingerprint);
     sessionStorage.setItem('trial_active', 'true');
-    
-    
+
     try {
       await this.notifyServerTrialStart(fingerprint);
     } catch (error) {
-    // silenced
-  }
-    
-    return { 
-      expired: false, 
+      // best effort only
+    }
+
+    return {
+      expired: false,
       timeUsed: 0,
-      timeRemaining: this.TRIAL_DURATION
+      timeRemaining: this.TRIAL_DURATION,
     };
   }
 
-  
   async checkIndexedDBTrial(fingerprint) {
+    if (!window.indexedDB) {
+      return null;
+    }
+
     return new Promise((resolve) => {
       try {
         const request = indexedDB.open('BrainwaveTrials', 1);
-        
+
         request.onerror = () => resolve(null);
-        
+
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
           if (!db.objectStoreNames.contains('trials')) {
             db.createObjectStore('trials', { keyPath: 'fingerprint' });
           }
         };
-        
+
         request.onsuccess = (event) => {
           const db = event.target.result;
           const transaction = db.transaction(['trials'], 'readonly');
           const store = transaction.objectStore('trials');
           const getRequest = store.get(fingerprint);
-          
+
           getRequest.onsuccess = () => {
             const result = getRequest.result;
-            if (result && (Date.now() - result.timestamp) < 24 * 60 * 60 * 1000) {
+            if (result && Date.now() - result.timestamp < 24 * 60 * 60 * 1000) {
               resolve({ blocked: true });
             } else {
               resolve(null);
             }
           };
-          
+
           getRequest.onerror = () => resolve(null);
         };
       } catch (error) {
@@ -145,24 +143,28 @@ class TrialManager {
   }
 
   async storeTrialInIndexedDB(fingerprint, startTime) {
+    if (!window.indexedDB) {
+      return;
+    }
+
     return new Promise((resolve) => {
       try {
         const request = indexedDB.open('BrainwaveTrials', 1);
-        
+
         request.onsuccess = (event) => {
           const db = event.target.result;
           const transaction = db.transaction(['trials'], 'readwrite');
           const store = transaction.objectStore('trials');
-          
+
           store.put({
-            fingerprint: fingerprint,
+            fingerprint,
             timestamp: startTime,
-            expired: true
+            expired: true,
           });
-          
+
           resolve();
         };
-        
+
         request.onerror = () => resolve();
       } catch (error) {
         resolve();
@@ -170,43 +172,40 @@ class TrialManager {
     });
   }
 
-  
   isTrialExpired(startTime) {
-    return (Date.now() - startTime) >= this.TRIAL_DURATION;
+    return Date.now() - startTime >= this.TRIAL_DURATION;
   }
 
-  
   getCurrentStatus() {
     const localTrial = localStorage.getItem(this.STORAGE_KEY);
     if (!localTrial) {
       return { active: false, timeRemaining: this.TRIAL_DURATION };
     }
-    
+
     const trialData = JSON.parse(localTrial);
     const timeUsed = Date.now() - trialData.startTime;
     const timeRemaining = Math.max(0, this.TRIAL_DURATION - timeUsed);
-    
+
     return {
       active: true,
       expired: timeRemaining === 0,
-      timeUsed: timeUsed,
-      timeRemaining: timeRemaining,
+      timeUsed,
+      timeRemaining,
       startTime: trialData.startTime,
-      showWarning: timeRemaining <= this.WARNING_TIME && timeRemaining > 0
+      showWarning: timeRemaining <= this.WARNING_TIME && timeRemaining > 0,
     };
   }
 
-  
   async checkServerTrial(fingerprint) {
     try {
       const response = await fetch(`${API_URL}/check_trial`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fingerprint })
+        body: JSON.stringify({ fingerprint }),
       });
       return await response.json();
     } catch (error) {
-      return { blocked: false }; 
+      return { blocked: false };
     }
   }
 
@@ -215,49 +214,43 @@ class TrialManager {
       await fetch(`${API_URL}/start_trial`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           fingerprint,
           timestamp: Date.now(),
-          userAgent: navigator.userAgent.substring(0, 100),
-          ip: 'client_side' 
-        })
+          userAgent: (navigator.userAgent || '').substring(0, 100),
+          ip: 'client_side',
+        }),
       });
     } catch (error) {
-    // silenced
-  }
+      // best effort only
+    }
   }
 
-  
   generateSessionId() {
-    return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    return Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
   }
 
-  
   formatTimeRemaining(milliseconds) {
     const totalSeconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    
+
     if (minutes > 0) {
       return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    } else {
-      return `${seconds}s`;
     }
+    return `${seconds}s`;
   }
 
-  
   clearTrial() {
     localStorage.removeItem(this.STORAGE_KEY);
     localStorage.removeItem(this.FINGERPRINT_KEY);
     sessionStorage.removeItem('trial_active');
   }
 
-  
   isUserLoggedIn() {
-    return !!localStorage.getItem('token');
+    return Boolean(localStorage.getItem('token'));
   }
 
-  
   async getClientIP() {
     try {
       const response = await fetch('https://api.ipify.org?format=json');

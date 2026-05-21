@@ -36,6 +36,13 @@ from deps import (
     verify_password,
     verify_token,
 )
+from services.subscription_catalog import (
+    DEFAULT_PLAN_ID,
+    estimate_usage_cost_usd,
+    get_plan,
+    list_plans,
+    normalize_plan_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +135,75 @@ class UserProfileUpdate(BaseModel):
     preferredLanguage: Optional[str] = "english"
     preferredSessionLength: Optional[int] = None
     bestStudyTimes: Optional[List[str]] = []
+
+
+_VALID_BILLING_CYCLES = {"monthly", "yearly"}
+_VALID_SUBSCRIPTION_STATUSES = {"active", "trial", "grace", "paused", "cancelled"}
+
+
+def _normalize_billing_cycle(raw: Optional[str]) -> str:
+    candidate = (raw or "monthly").strip().lower()
+    return candidate if candidate in _VALID_BILLING_CYCLES else "monthly"
+
+
+def _normalize_subscription_status(raw: Optional[str]) -> str:
+    candidate = (raw or "active").strip().lower()
+    return candidate if candidate in _VALID_SUBSCRIPTION_STATUSES else "active"
+
+
+def _subscription_usage_snapshot(db: Session, user_pk: int, days: int = 30) -> dict:
+    snapshot = {
+        "window_days": days,
+        "total_tokens": 0,
+        "ai_requests": 0,
+        "top_tools": [],
+    }
+    try:
+        since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        totals = db.execute(
+            text(
+                """
+                SELECT
+                    COALESCE(SUM(tokens_used), 0) AS total_tokens,
+                    COALESCE(SUM(CASE WHEN tokens_used > 0 THEN 1 ELSE 0 END), 0) AS ai_requests
+                FROM user_activity_log
+                WHERE user_id = :uid AND timestamp >= :since
+                """
+            ),
+            {"uid": user_pk, "since": since},
+        ).mappings().first()
+        if totals:
+            snapshot["total_tokens"] = int(totals.get("total_tokens") or 0)
+            snapshot["ai_requests"] = int(totals.get("ai_requests") or 0)
+
+        top_rows = db.execute(
+            text(
+                """
+                SELECT
+                    tool_name,
+                    COUNT(*) AS usage_count,
+                    COALESCE(SUM(tokens_used), 0) AS tokens_used
+                FROM user_activity_log
+                WHERE user_id = :uid AND timestamp >= :since
+                GROUP BY tool_name
+                ORDER BY tokens_used DESC, usage_count DESC
+                LIMIT 6
+                """
+            ),
+            {"uid": user_pk, "since": since},
+        ).mappings().all()
+        snapshot["top_tools"] = [
+            {
+                "tool_name": row.get("tool_name") or "unknown",
+                "usage_count": int(row.get("usage_count") or 0),
+                "tokens_used": int(row.get("tokens_used") or 0),
+            }
+            for row in top_rows
+        ]
+    except Exception:
+        # user_activity_log may not exist in fresh environments
+        pass
+    return snapshot
 
 @router.get("/get_daily_goal_progress")
 def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -711,7 +787,11 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
             "learningPace": "moderate",
             "primaryArchetype": "",
             "secondaryArchetype": "",
-            "archetypeDescription": ""
+            "archetypeDescription": "",
+            "subscriptionTier": DEFAULT_PLAN_ID,
+            "billingCycle": "monthly",
+            "subscriptionStatus": "active",
+            "subscriptionStartedAt": None,
         }
 
         if comprehensive_profile:
@@ -727,7 +807,14 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
                 "secondaryArchetype": comprehensive_profile.secondary_archetype or "",
                 "archetypeDescription": comprehensive_profile.archetype_description or "",
                 "showStudyInsights": show_insights_value if show_insights_value is not None else True,
-                "notificationsEnabled": notifications_value if notifications_value is not None else True
+                "notificationsEnabled": notifications_value if notifications_value is not None else True,
+                "subscriptionTier": normalize_plan_id(comprehensive_profile.subscription_tier),
+                "billingCycle": _normalize_billing_cycle(comprehensive_profile.billing_cycle),
+                "subscriptionStatus": _normalize_subscription_status(comprehensive_profile.subscription_status),
+                "subscriptionStartedAt": (
+                    comprehensive_profile.subscription_started_at.isoformat()
+                    if comprehensive_profile.subscription_started_at else None
+                ),
             })
 
             try:
@@ -744,6 +831,111 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
     except Exception as e:
         logger.error(f"Error getting profile: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to load profile. Please try again.")
+
+
+@router.get("/subscription/overview")
+async def get_subscription_overview(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+
+        plan_id = normalize_plan_id(comprehensive_profile.subscription_tier if comprehensive_profile else None)
+        billing_cycle = _normalize_billing_cycle(comprehensive_profile.billing_cycle if comprehensive_profile else None)
+        subscription_status = _normalize_subscription_status(
+            comprehensive_profile.subscription_status if comprehensive_profile else None
+        )
+        started_at = comprehensive_profile.subscription_started_at if comprehensive_profile else None
+
+        usage = _subscription_usage_snapshot(db, user.id, days=30)
+        current_plan = get_plan(plan_id)
+        monthly_price = float(current_plan.get("monthly_price_usd") or 0.0)
+        current_usage_cost = estimate_usage_cost_usd(plan_id, usage.get("total_tokens") or 0)
+        usage_margin = round(monthly_price - current_usage_cost, 2)
+        usage_margin_pct = round((usage_margin / monthly_price) * 100, 1) if monthly_price > 0 else None
+        included_tokens = int(current_plan.get("included_tokens_monthly") or 0)
+        token_utilization_pct = round(
+            ((usage.get("total_tokens") or 0) / included_tokens) * 100, 1
+        ) if included_tokens > 0 else None
+
+        return {
+            "currentPlanId": plan_id,
+            "billingCycle": billing_cycle,
+            "subscriptionStatus": subscription_status,
+            "subscriptionStartedAt": started_at.isoformat() if started_at else None,
+            "plans": list_plans(),
+            "usage": usage,
+            "profitability": {
+                "price_usd": monthly_price,
+                "estimated_cost_for_current_usage_usd": current_usage_cost,
+                "estimated_margin_for_current_usage_usd": usage_margin,
+                "estimated_margin_for_current_usage_pct": usage_margin_pct,
+                "included_token_utilization_pct": token_utilization_pct,
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting subscription overview: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to load subscription overview")
+
+
+@router.post("/subscription/select")
+async def select_subscription_plan(payload: dict = Body(...), db: Session = Depends(get_db)):
+    try:
+        user_id = payload.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
+
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        requested_tier = normalize_plan_id(payload.get("tier") or payload.get("subscriptionTier"))
+        requested_cycle = _normalize_billing_cycle(payload.get("billingCycle"))
+        requested_status = _normalize_subscription_status(payload.get("subscriptionStatus"))
+
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+        if not comprehensive_profile:
+            comprehensive_profile = models.ComprehensiveUserProfile(user_id=user.id)
+            db.add(comprehensive_profile)
+
+        previous_tier = normalize_plan_id(comprehensive_profile.subscription_tier)
+        comprehensive_profile.subscription_tier = requested_tier
+        comprehensive_profile.billing_cycle = requested_cycle
+        comprehensive_profile.subscription_status = requested_status
+
+        if previous_tier != requested_tier or not comprehensive_profile.subscription_started_at:
+            comprehensive_profile.subscription_started_at = datetime.now(timezone.utc)
+        comprehensive_profile.updated_at = datetime.now(timezone.utc)
+
+        db.commit()
+
+        try:
+            from middleware.rate_limiter import invalidate_subscription_cache
+
+            invalidate_subscription_cache(user.username, user.email)
+        except Exception:
+            pass
+
+        return {
+            "status": "success",
+            "subscriptionTier": requested_tier,
+            "billingCycle": requested_cycle,
+            "subscriptionStatus": requested_status,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error selecting subscription plan: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update subscription plan")
 
 @router.post("/update_comprehensive_profile")
 async def update_comprehensive_profile(
@@ -779,6 +971,8 @@ async def update_comprehensive_profile(
             comprehensive_profile = models.ComprehensiveUserProfile(user_id=user.id)
             db.add(comprehensive_profile)
 
+        previous_subscription_tier = normalize_plan_id(comprehensive_profile.subscription_tier)
+
         if payload.get("difficultyLevel"):
             comprehensive_profile.difficulty_level = payload["difficultyLevel"]
         if payload.get("learningPace"):
@@ -802,9 +996,29 @@ async def update_comprehensive_profile(
                 value = value.lower() == "true"
             comprehensive_profile.notifications_enabled = bool(value)
 
+        if "subscriptionTier" in payload:
+            next_tier = normalize_plan_id(payload.get("subscriptionTier"))
+            comprehensive_profile.subscription_tier = next_tier
+            if previous_subscription_tier != next_tier or not comprehensive_profile.subscription_started_at:
+                comprehensive_profile.subscription_started_at = datetime.now(timezone.utc)
+
+        if "billingCycle" in payload:
+            comprehensive_profile.billing_cycle = _normalize_billing_cycle(payload.get("billingCycle"))
+
+        if "subscriptionStatus" in payload:
+            comprehensive_profile.subscription_status = _normalize_subscription_status(payload.get("subscriptionStatus"))
+
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 
         db.commit()
+
+        if "subscriptionTier" in payload or "billingCycle" in payload or "subscriptionStatus" in payload:
+            try:
+                from middleware.rate_limiter import invalidate_subscription_cache
+
+                invalidate_subscription_cache(user.username, user.email)
+            except Exception:
+                pass
 
         return {
             "status": "success",

@@ -37,8 +37,12 @@ from typing import Optional, Tuple
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from jose import jwt, JWTError
+from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
+
+from database import engine
+from services.subscription_catalog import DEFAULT_PLAN_ID, get_effective_rate_limit, normalize_plan_id
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +174,10 @@ _TRUSTED_PROXY_CIDRS_RAW = os.getenv("RATE_LIMIT_TRUSTED_PROXY_CIDRS", "127.0.0.
 # Bound in-memory fallback state to avoid unbounded growth.
 _MEM_MAX_KEYS = max(1000, int(os.getenv("RATE_LIMIT_MEMORY_MAX_KEYS", "20000")))
 _MEM_EVICT_BATCH = max(100, _MEM_MAX_KEYS // 4)
+_SUBSCRIPTION_CACHE_TTL = max(30, int(os.getenv("RATE_LIMIT_SUBSCRIPTION_CACHE_TTL", "120")))
+
+_subscription_lock = threading.Lock()
+_subscription_cache: dict[str, tuple[str, float]] = {}
 
 # Routes that must match exact path (not prefix).
 _EXACT_MATCH_PATHS = {"/api/health"}
@@ -272,6 +280,63 @@ def _get_identity(request: Request, use_ip: bool) -> str:
     if sub:
         return sub
     return _get_client_ip(request)
+
+
+def _prune_subscription_cache_locked(now: float) -> None:
+    if len(_subscription_cache) < 2000:
+        return
+    expired = [k for k, (_, expires_at) in _subscription_cache.items() if expires_at <= now]
+    for key in expired:
+        _subscription_cache.pop(key, None)
+    if len(_subscription_cache) < 2500:
+        return
+    oldest = sorted(_subscription_cache.keys(), key=lambda k: _subscription_cache[k][1])[:1000]
+    for key in oldest:
+        _subscription_cache.pop(key, None)
+
+
+def invalidate_subscription_cache(*subjects: str) -> None:
+    with _subscription_lock:
+        for subject in subjects:
+            if subject:
+                _subscription_cache.pop(subject, None)
+
+
+def get_subscription_tier(subject: Optional[str]) -> str:
+    normalized_subject = (subject or "").strip()
+    if not normalized_subject:
+        return DEFAULT_PLAN_ID
+
+    now = time.time()
+    with _subscription_lock:
+        cached = _subscription_cache.get(normalized_subject)
+        if cached and cached[1] > now:
+            return cached[0]
+
+    tier = DEFAULT_PLAN_ID
+    try:
+        with engine.connect() as conn:
+            row = conn.execute(
+                text(
+                    """
+                    SELECT cp.subscription_tier
+                    FROM users u
+                    LEFT JOIN comprehensive_user_profiles cp ON cp.user_id = u.id
+                    WHERE u.username = :subject OR u.email = :subject
+                    LIMIT 1
+                    """
+                ),
+                {"subject": normalized_subject},
+            ).first()
+        if row and row[0]:
+            tier = normalize_plan_id(str(row[0]))
+    except Exception as e:
+        logger.debug("Rate limiter subscription lookup failed for %s: %s", normalized_subject, e)
+
+    with _subscription_lock:
+        _subscription_cache[normalized_subject] = (tier, now + _SUBSCRIPTION_CACHE_TTL)
+        _prune_subscription_cache_locked(now)
+    return tier
 
 
 # ─── Route classification ──────────────────────────────────────────────────────
@@ -398,9 +463,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if tier_name is None:
             return await call_next(request)
 
-        limit, window = TIERS[tier_name]
+        base_limit, window = TIERS[tier_name]
         use_ip = tier_name in _AUTH_TIERS
         identity = _get_identity(request, use_ip=use_ip)
+        plan_id = DEFAULT_PLAN_ID
+        if not use_ip:
+            plan_id = get_subscription_tier(_get_jwt_sub(request))
+        limit = get_effective_rate_limit(plan_id, tier_name, base_limit)
 
         rl_key = f"rl:{tier_name}:{identity}"
         allowed, current, oldest = _check(rl_key, limit, window)
@@ -433,6 +502,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     "X-RateLimit-Reset":    str(int(reset_at)),
                     "X-RateLimit-Window":   str(window),
                     "X-RateLimit-Tier":     tier_name,
+                    "X-RateLimit-Plan":     plan_id,
                 },
             )
 
@@ -442,4 +512,5 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Reset"]     = str(int(reset_at))
         response.headers["X-RateLimit-Window"]    = str(window)
         response.headers["X-RateLimit-Tier"]      = tier_name
+        response.headers["X-RateLimit-Plan"]      = plan_id
         return response

@@ -57,12 +57,29 @@
       "no-unused-vars": "off",
       "react-hooks/exhaustive-deps": "off",
       "no-useless-escape": "off",
+      "no-template-curly-in-string": "off",
+      "no-useless-constructor": "off",
       "import/no-anonymous-default-export": "off",
       "no-use-before-define": "off",
       "no-loop-func": "off",
       "no-duplicate-case": "warn",
       "jsx-a11y/heading-has-content": "off"
-    }
+    },
+    "overrides": [
+      {
+        "files": [
+          "src/__tests__/**/*.js"
+        ],
+        "rules": {
+          "import/first": "off",
+          "jest/no-conditional-expect": "off",
+          "testing-library/no-node-access": "off",
+          "testing-library/no-unnecessary-act": "off",
+          "testing-library/no-wait-for-multiple-assertions": "off",
+          "testing-library/prefer-presence-queries": "off"
+        }
+      }
+    ]
   },
   "browserslist": {
     "production": [

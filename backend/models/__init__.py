@@ -1127,6 +1127,11 @@ class ComprehensiveUserProfile(Base):
     
     show_study_insights = Column(Boolean, default=True)
     notifications_enabled = Column(Boolean, default=True)
+
+    subscription_tier = Column(String(30), default="starter")
+    billing_cycle = Column(String(20), default="monthly")
+    subscription_status = Column(String(20), default="active")
+    subscription_started_at = Column(DateTime, nullable=True)
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

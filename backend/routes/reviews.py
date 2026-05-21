@@ -245,7 +245,7 @@ async def update_learning_review(
         db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/get_hints/{question_id}")
+@router.get("/reviews/get_hints/{question_id}")
 def get_hints_for_question(
     question_id: int,
     db: Session = Depends(get_db),
@@ -373,7 +373,7 @@ async def submit_review_response(
         db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/save_archetype_profile")
+@router.post("/reviews/save_archetype_profile")
 async def save_archetype_profile(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
@@ -425,7 +425,7 @@ async def save_archetype_profile(
         logger.error(f"Error saving archetype: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/get_comprehensive_profile")
+@router.get("/reviews/get_comprehensive_profile")
 async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -479,7 +479,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
         logger.error(f"Error getting profile: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/update_comprehensive_profile")
+@router.post("/reviews/update_comprehensive_profile")
 async def update_comprehensive_profile(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
@@ -552,7 +552,7 @@ async def update_comprehensive_profile(
         db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/suggest_subjects")
+@router.post("/reviews/suggest_subjects")
 async def suggest_subjects(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
@@ -596,7 +596,7 @@ Suggestions:"""
         logger.error(f"Error generating subject suggestions: {str(e)}")
         return {"suggestions": []}
 
-@router.post("/save_complete_profile")
+@router.post("/reviews/save_complete_profile")
 async def save_complete_profile(
     payload: dict = Body(...),
     db: Session = Depends(get_db),

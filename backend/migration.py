@@ -247,6 +247,10 @@ def _run_postgres_migration():
         {
             "show_study_insights": "BOOLEAN DEFAULT TRUE",
             "notifications_enabled": "BOOLEAN DEFAULT TRUE",
+            "subscription_tier": "VARCHAR(30) DEFAULT 'starter'",
+            "billing_cycle": "VARCHAR(20) DEFAULT 'monthly'",
+            "subscription_status": "VARCHAR(20) DEFAULT 'active'",
+            "subscription_started_at": "TIMESTAMP",
         },
     )
 

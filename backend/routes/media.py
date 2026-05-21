@@ -548,7 +548,7 @@ Return ONLY the title, nothing else. Make it descriptive and catchy."""
         logger.error(f"Title generation error: {str(e)}")
         return {"title": "Media Notes"}
 
-@router.get("/get_note/{note_id}")
+@router.get("/media/note/{note_id}")
 async def get_single_note(
     note_id: int,
     current_user: models.User = Depends(get_current_user),

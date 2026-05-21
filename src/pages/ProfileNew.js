@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Pencil, Award } from 'lucide-react';
+import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck } from 'lucide-react';
 import { API_URL } from '../config';
 import './ProfileNew.css';
 
@@ -57,6 +57,24 @@ const ARCHETYPE_INFO = {
   Empathion: { tagline: 'The Empathetic Learner', desc: 'You connect deeply with meaning and understand through emotional intelligence.' },
   Seeker: { tagline: 'The Curious Explorer', desc: 'You\'re motivated by discovery and love expanding your knowledge horizons.' },
   Resonant: { tagline: 'The Adaptive Mind', desc: 'You\'re highly flexible and tune into different learning environments effortlessly.' }
+};
+
+const PLAN_META = {
+  starter: { icon: ShieldCheck, theme: 'starter' },
+  pro: { icon: Crown, theme: 'pro' },
+  power: { icon: Rocket, theme: 'power' }
+};
+
+const formatUsd = (value) => {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return '$0';
+  return `$${n.toFixed(n % 1 === 0 ? 0 : 2)}`;
+};
+
+const formatTokens = (value) => {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return '0';
+  return n.toLocaleString();
 };
 
 const GeoBackground = () => (
@@ -189,6 +207,17 @@ const ProfileNew = () => {
   const lastSavedRef = useRef(null);
   const saveTimerRef = useRef(null);
   const isSavingRef = useRef(false);
+  const [subscriptionData, setSubscriptionData] = useState({
+    loading: true,
+    saving: false,
+    currentPlanId: 'starter',
+    billingCycle: 'monthly',
+    subscriptionStatus: 'active',
+    subscriptionStartedAt: null,
+    plans: [],
+    usage: null,
+    error: null
+  });
 
   const [typedName, setTypedName] = useState('');
   const [nameDone, setNameDone] = useState(false);
@@ -198,6 +227,7 @@ const ProfileNew = () => {
     if (userName) {
       loadProfile();
       loadGamificationStats();
+      loadSubscriptionOverview();
     }
   }, []);
 
@@ -225,6 +255,56 @@ const ProfileNew = () => {
     }, 80);
     return () => clearInterval(t);
   }, [displayName]);
+
+  const loadSubscriptionOverview = useCallback(async () => {
+    if (!userName) return;
+    setSubscriptionData(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const resp = await fetch(`${API_URL}/subscription/overview?user_id=${encodeURIComponent(userName)}`, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (!resp.ok) {
+        throw new Error(`Subscription overview failed: ${resp.status}`);
+      }
+      const data = await resp.json();
+      setSubscriptionData(prev => ({
+        ...prev,
+        loading: false,
+        currentPlanId: data.currentPlanId || 'starter',
+        billingCycle: data.billingCycle || 'monthly',
+        subscriptionStatus: data.subscriptionStatus || 'active',
+        subscriptionStartedAt: data.subscriptionStartedAt || null,
+        plans: Array.isArray(data.plans) ? data.plans : [],
+        usage: data.usage || null
+      }));
+    } catch (e) {
+      setSubscriptionData(prev => ({ ...prev, loading: false, error: 'Unable to load subscription data.' }));
+    }
+  }, [API_URL, token, userName]);
+
+  const handleSelectPlan = async (planId) => {
+    if (!userName || !planId || subscriptionData.saving || planId === subscriptionData.currentPlanId) return;
+    setSubscriptionData(prev => ({ ...prev, saving: true, error: null }));
+    try {
+      const resp = await fetch(`${API_URL}/subscription/select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          user_id: userName,
+          tier: planId,
+          billingCycle: subscriptionData.billingCycle || 'monthly'
+        })
+      });
+      if (!resp.ok) {
+        throw new Error(`Subscription update failed: ${resp.status}`);
+      }
+      await loadSubscriptionOverview();
+    } catch (e) {
+      setSubscriptionData(prev => ({ ...prev, error: 'Unable to switch plan right now.' }));
+    } finally {
+      setSubscriptionData(prev => ({ ...prev, saving: false }));
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -380,6 +460,7 @@ const ProfileNew = () => {
     constructive: 'Constructive', direct: 'Direct & Concise'
   };
 
+  const currentPlan = subscriptionData.plans.find(p => p.id === subscriptionData.currentPlanId) || null;
   if (!dataLoaded) {
     return (
       <div className="pn-root">
@@ -501,6 +582,59 @@ const ProfileNew = () => {
             </button>
           </section>
         )}
+
+        <section className="pn-section">
+          <div className="pn-section-label">SUBSCRIPTION</div>
+          <div className="pn-subscription-header">
+            <div className="pn-subscription-current">
+              <BarChart3 size={14} />
+              <span>
+                {currentPlan
+                  ? `Current plan: ${currentPlan.name} · ${formatUsd(currentPlan.monthly_price_usd)}/mo`
+                  : 'Current plan: Starter'}
+              </span>
+            </div>
+            <span className="pn-subscription-note">Choose the plan that fits your study flow. You can switch anytime.</span>
+          </div>
+
+          {subscriptionData.loading ? (
+            <div className="pn-subscription-loading">Loading subscription plans...</div>
+          ) : (
+            <>
+              <div className="pn-plan-grid">
+                {subscriptionData.plans.map((plan) => {
+                  const meta = PLAN_META[plan.id] || PLAN_META.starter;
+                  const Icon = meta.icon;
+                  const isCurrent = subscriptionData.currentPlanId === plan.id;
+                  return (
+                    <article key={plan.id} className={`pn-plan-card pn-plan-card--${meta.theme} ${isCurrent ? 'pn-plan-card--active' : ''}`}>
+                      <div className="pn-plan-top">
+                        <span className="pn-plan-icon"><Icon size={14} /></span>
+                        <span className="pn-plan-name">{plan.name}</span>
+                      </div>
+                      <div className="pn-plan-price">{formatUsd(plan.monthly_price_usd)}<small>/mo</small></div>
+                      <div className="pn-plan-meta">Includes {formatTokens(plan.included_tokens_monthly)} monthly AI credits</div>
+                      {plan.summary && <div className="pn-plan-summary">{plan.summary}</div>}
+                      <ul className="pn-plan-features">
+                        {(plan.features || []).map((feature) => (
+                          <li key={feature}><Check size={11} />{feature}</li>
+                        ))}
+                      </ul>
+                      <button
+                        className={`pn-plan-cta ${isCurrent ? 'pn-plan-cta--current' : ''}`}
+                        onClick={() => handleSelectPlan(plan.id)}
+                        disabled={isCurrent || subscriptionData.saving}
+                      >
+                        {isCurrent ? 'Current Plan' : (subscriptionData.saving ? 'Switching...' : 'Switch Plan')}
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            </>
+          )}
+          {subscriptionData.error && <div className="pn-subscription-error">{subscriptionData.error}</div>}
+        </section>
 
         <div className="pn-divider" />
 

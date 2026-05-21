@@ -1956,7 +1956,7 @@ def remove_shared_access(
         db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.put("/update_shared_note/{note_id}")
+@router.put("/social/update_shared_note/{note_id}")
 def update_shared_note(
     note_id: int,
     note_data: dict,
