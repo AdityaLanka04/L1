@@ -10,7 +10,7 @@ import {
   Palette, Wrench, Dumbbell, Music, Tv, Brain, Scale, Hash,
   Triangle, Heart, Film, Leaf, Mic2, Languages, Building2, Sun,
   MessageCircle, Globe2, Sigma, Menu, Send,
-  Tag, ArrowRight, CheckSquare, Square, Filter
+  Tag, ArrowRight, CheckSquare, Square, Filter, Target
 } from 'lucide-react';
 import contextService from '../services/contextService';
 import './ContextHub.css';
@@ -240,6 +240,10 @@ function fmtDate(iso) {
   } catch { return iso; }
 }
 
+function subjectLabel(s) {
+  return (s || 'General').replace(/_/g, ' ');
+}
+
 function fmtBytes(bytes) {
   if (!bytes) return '';
   if (bytes < 1024) return `${bytes} B`;
@@ -365,9 +369,6 @@ function DocRow({ doc, isNew, isSelected, onSelect, onDelete, onAction, isOwn = 
 
 // Keep DocCard for backward compat with SubjectView grid mode
 function DocCard({ doc, viewMode, onDelete, isOwn, isSelected, onToggleSelect, onAction, isNew = false }) {
-  const isPublic = doc.scope === 'public' || doc.scope === 'community';
-  const docId = doc.doc_id || doc.id;
-  const name = doc.title || doc.filename || 'Untitled';
   return (
     <DocRow
       doc={doc}
@@ -378,6 +379,106 @@ function DocCard({ doc, viewMode, onDelete, isOwn, isSelected, onToggleSelect, o
       onAction={onAction || (() => {})}
       isOwn={isOwn}
     />
+  );
+}
+
+// ─── MY DOC FILE CARD (aesthetic card for library grid) ──────────────────────
+
+const CARD_FEATURE_STATS = [
+  { id: 'chat',       icon: MessageCircle, color: '#c084fc', label: 'Chat'  },
+  { id: 'flashcards', icon: Layers,        color: '#34d399', label: 'Cards' },
+  { id: 'notes',      icon: PenLine,       color: '#60a5fa', label: 'Notes' },
+  { id: 'quiz',       icon: Brain,         color: '#fb923c', label: 'Quiz'  },
+  { id: 'roadmap',    icon: Target,        color: '#22d3ee', label: 'Map'   },
+];
+
+function MyDocFileCard({ doc, usageStats, isNew, isSelected, onToggleSelect, onDelete, onAction, onNavigate }) {
+  const docId = doc.doc_id || doc.id;
+  const name  = doc.filename || doc.title || 'Untitled';
+  const acts  = usageStats?.actions && typeof usageStats.actions === 'object' ? usageStats.actions : {};
+  const total = CARD_FEATURE_STATS.reduce((a, f) => a + (Number(acts[f.id] || 0)), 0);
+  const isPublic = doc.scope === 'public' || doc.scope === 'hs_shared';
+
+  return (
+    <article
+      className={`ch-myfile-card ${isSelected ? 'ch-myfile-card--ctx' : ''} ${isNew ? 'ch-myfile-card--new' : ''}`}
+      onClick={() => onNavigate(docId)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && onNavigate(docId)}
+    >
+      <div className="ch-myfile-top">
+        <div className="ch-myfile-icon"><FileText size={18} /></div>
+        <div className="ch-myfile-pill-row">
+          {isPublic
+            ? <span className="ch-myfile-pill ch-myfile-pill--pub">Community</span>
+            : <span className="ch-myfile-pill">Private</span>}
+          {isNew && <span className="ch-myfile-pill ch-myfile-pill--new">New</span>}
+          {isSelected && <span className="ch-myfile-pill ch-myfile-pill--ctx">In Deck</span>}
+        </div>
+      </div>
+
+      <div className="ch-myfile-name">{name}</div>
+
+      <div className="ch-myfile-meta">
+        <span>{subjectLabel(doc.subject || 'General')}</span>
+        <span className="ch-myfile-dot">·</span>
+        <span>{doc.chunk_count || 0} chunks</span>
+        {doc.created_at && (
+          <><span className="ch-myfile-dot">·</span><span>{fmtDate(doc.created_at)}</span></>
+        )}
+      </div>
+
+      <div className="ch-myfile-usage">
+        {CARD_FEATURE_STATS.map(f => {
+          const count = Number(acts[f.id] || 0);
+          const FIcon = f.icon;
+          return (
+            <div
+              key={f.id}
+              className="ch-myfile-usage-item"
+              style={{ '--fsc': f.color, opacity: count > 0 ? 1 : 0.28 }}
+              title={`${f.label}: ${count}×`}
+            >
+              <FIcon size={10} />
+              <span>{count}</span>
+            </div>
+          );
+        })}
+        {total > 0 && <span className="ch-myfile-total-uses">{total}× total</span>}
+      </div>
+
+      <div className="ch-myfile-actions" onClick={e => e.stopPropagation()}>
+        <button
+          className={`ch-myfile-btn ${isSelected ? 'ch-myfile-btn--in-deck' : 'ch-myfile-btn--add'}`}
+          onClick={e => { e.stopPropagation(); onToggleSelect(docId); }}
+        >
+          {isSelected ? <CheckSquare size={12} /> : <Square size={12} />}
+          {isSelected ? 'In Deck' : 'Add to Deck'}
+        </button>
+        <button
+          className="ch-myfile-btn ch-myfile-btn--action ch-myfile-btn--chat"
+          onClick={e => { e.stopPropagation(); onAction(doc, 'chat'); }}
+          title="Open in AI Chat"
+        >
+          <MessageCircle size={12} />Chat
+        </button>
+        <button
+          className="ch-myfile-btn ch-myfile-btn--action ch-myfile-btn--quiz"
+          onClick={e => { e.stopPropagation(); onAction(doc, 'quiz'); }}
+          title="Create Quiz"
+        >
+          <Brain size={12} />Quiz
+        </button>
+        <button
+          className="ch-myfile-btn ch-myfile-btn--del"
+          onClick={e => { e.stopPropagation(); onDelete(docId); }}
+          title="Delete"
+        >
+          <Trash2 size={12} />
+        </button>
+      </div>
+    </article>
   );
 }
 
@@ -669,6 +770,24 @@ export default function ContextHub() {
   const [stats, setStats]             = useState({ myDocs: 0, communityDocs: 0 });
   const [libScope, setLibScope]       = useState('all');
   const [highlightedDocId, setHighlightedDocId] = useState(null);
+
+  const [allActionStats, setAllActionStats] = useState(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem('ctx_file_action_stats') || '{}');
+      return p && typeof p === 'object' ? p : {};
+    } catch { return {}; }
+  });
+
+  useEffect(() => {
+    const refresh = () => {
+      try {
+        const p = JSON.parse(localStorage.getItem('ctx_file_action_stats') || '{}');
+        setAllActionStats(p && typeof p === 'object' ? p : {});
+      } catch {}
+    };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, []);
 
   // ── Ask Your Notes state ───────────────────────────────────────────────────
   const [askHistory, setAskHistory]   = useState([]);
@@ -1412,97 +1531,152 @@ export default function ContextHub() {
     });
   }, [myDocs, libScope, searchQuery]);
 
-  const LibraryView = () => (
-    <div className="ch-library-view">
-      <div className="ch-library-header">
-        <div className="ch-library-header-left">
-          <h2 className="ch-library-title">
-            <FolderOpen size={20} />My Library
-          </h2>
-          <span className="ch-library-count">{myDocs.length} doc{myDocs.length !== 1 ? 's' : ''}</span>
-        </div>
-        <div className="ch-library-header-right">
-          <div className="ch-search-bar">
-            <Search size={14} />
-            <input type="text" placeholder="Search…" value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)} className="ch-search-input" />
-            {searchQuery && <button className="ch-search-clear" onClick={() => setSearchQuery('')}><X size={12} /></button>}
-          </div>
-          <button className="ch-btn ch-btn--primary" onClick={() => setSearchParams({ view: 'upload' })}>
-            <Upload size={14} />Upload New
+  const LibraryView = () => {
+    const isUploadTab = view === 'upload';
+
+    return (
+      <div className="ch-library-view">
+        {/* My Docs | Upload tab bar */}
+        <div className="ch-inner-tabs">
+          <button
+            className={`ch-inner-tab ${!isUploadTab ? 'ch-inner-tab--active' : ''}`}
+            onClick={() => { setSearchParams({ view: 'library' }); if (myDocs.length === 0) loadDocs(); }}
+          >
+            <FolderOpen size={14} />
+            My Docs
+            {myDocs.length > 0 && <span className="ch-inner-tab-count">{myDocs.length}</span>}
           </button>
-          <button className="ch-icon-btn" onClick={loadDocs} title="Refresh"><RefreshCw size={14} /></button>
+          <button
+            className={`ch-inner-tab ${isUploadTab ? 'ch-inner-tab--active' : ''}`}
+            onClick={() => setSearchParams({ view: 'upload' })}
+          >
+            <Upload size={14} />
+            Upload
+          </button>
         </div>
-      </div>
 
-      <div className="ch-library-controls">
-        <div className="ch-lib-scope-tabs">
-          {[
-            { key: 'all',       label: `All (${myDocs.length})` },
-            { key: 'private',   label: 'Private' },
-            { key: 'community', label: 'Community' },
-          ].map(t => (
-            <button key={t.key}
-              className={`ch-lib-tab ${libScope === t.key ? 'ch-lib-tab--active' : ''}`}
-              onClick={() => setLibScope(t.key)}>{t.label}
-            </button>
-          ))}
-        </div>
-        <div className="ch-library-controls-right">
-          {selectedDocIds.length > 0 && (
-            <div className="ch-lib-sel-banner">
-              <Filter size={12} />
-              <span>{selectedDocIds.length} selected for context</span>
-              <button className="ch-lib-sel-clear" onClick={clearSelectedDocs}>Clear</button>
-            </div>
-          )}
-          <div className="ch-view-toggle">
-            <button className={`ch-view-toggle-btn ${viewMode === 'grid' ? 'ch-view-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode('grid')}><Grid size={14} /></button>
-            <button className={`ch-view-toggle-btn ${viewMode === 'list' ? 'ch-view-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode('list')}><ListIcon size={14} /></button>
+        {isUploadTab ? (
+          /* ── Upload tab ─────────────────────────────────────────────── */
+          <div className="ch-lib-upload-wrap">
+            <UploadView
+              onSuccess={(result) => {
+                if (result?.doc_id) {
+                  const fname = result.filename || String(result.doc_id);
+                  contextService.autoSelectDoc(result.doc_id, fname);
+                  setSelectedDocIds(prev => {
+                    const id = String(result.doc_id);
+                    if (prev.includes(id)) return prev;
+                    const next = [...prev, id];
+                    persistSelectedDocs(next);
+                    return next;
+                  });
+                  setHighlightedDocId(String(result.doc_id));
+                }
+                loadDocs();
+                setSearchParams({ view: 'library' });
+              }}
+            />
           </div>
-        </div>
-      </div>
+        ) : (
+          /* ── My Docs tab ────────────────────────────────────────────── */
+          <div className="ch-lib-docs-wrap">
+            <div className="ch-lib-docs-header">
+              <div className="ch-lib-docs-header-left">
+                <span className="ch-lib-docs-count">
+                  {myDocs.length} document{myDocs.length !== 1 ? 's' : ''}
+                </span>
+                {selectedDocIds.length > 0 && (
+                  <span className="ch-lib-sel-info">
+                    · {selectedDocIds.length} in context deck
+                    <button className="ch-lib-sel-clear-sm" onClick={clearSelectedDocs}>Clear</button>
+                  </span>
+                )}
+              </div>
+              <div className="ch-lib-docs-header-right">
+                <div className="ch-search-bar">
+                  <Search size={14} />
+                  <input
+                    type="text"
+                    placeholder="Search documents…"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="ch-search-input"
+                  />
+                  {searchQuery && (
+                    <button className="ch-search-clear" onClick={() => setSearchQuery('')}><X size={12} /></button>
+                  )}
+                </div>
+                <button className="ch-icon-btn" onClick={loadDocs} title="Refresh"><RefreshCw size={14} /></button>
+              </div>
+            </div>
 
-      {docsLoading ? (
-        <div className="ch-docs-loading"><Loader2 size={24} className="ch-spinner" /><p>Loading…</p></div>
-      ) : docsError ? (
-        <div className="ch-docs-error"><AlertCircle size={20} /><p>{docsError}</p>
-          <button className="ch-btn ch-btn--ghost" onClick={loadDocs}>Retry</button>
-        </div>
-      ) : libDocs.length === 0 ? (
-        <div className="ch-library-empty">
-          <FolderOpen size={48} className="ch-library-empty-icon" />
-          <h3>{searchQuery ? 'No matches' : 'Your library is empty'}</h3>
-          <p>{searchQuery ? `Nothing found for "${searchQuery}"` : 'Upload your first document to get started.'}</p>
-          {!searchQuery && (
-            <button className="ch-btn ch-btn--primary" onClick={() => setSearchParams({ view: 'upload' })}>
-              <Upload size={14} />Upload Document
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="ch-doc-list-rows">
-          {libDocs.map(doc => {
-            const id = String(doc.doc_id || doc.id);
-            return (
-              <DocRow
-                key={getDocKey(doc)}
-                doc={doc}
-                isNew={isNewDoc(doc) || id === highlightedDocId}
-                isSelected={selectedDocIdSet.has(doc.doc_id || doc.id)}
-                onSelect={(docId, name) => { toggleDocSelection(docId); contextService.setDocName(docId, name); }}
-                onDelete={handleDelete}
-                onAction={handleDocAction}
-                isOwn={doc.owner_is_me !== false}
-              />
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+            <div className="ch-lib-scope-row">
+              {[
+                { key: 'all',       label: `All (${myDocs.length})` },
+                { key: 'private',   label: 'Private' },
+                { key: 'community', label: 'Community' },
+              ].map(t => (
+                <button
+                  key={t.key}
+                  className={`ch-lib-scope-pill ${libScope === t.key ? 'ch-lib-scope-pill--active' : ''}`}
+                  onClick={() => setLibScope(t.key)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {docsLoading ? (
+              <div className="ch-docs-loading"><Loader2 size={24} className="ch-spinner" /><p>Loading…</p></div>
+            ) : docsError ? (
+              <div className="ch-docs-error">
+                <AlertCircle size={20} /><p>{docsError}</p>
+                <button className="ch-btn ch-btn--ghost" onClick={loadDocs}>Retry</button>
+              </div>
+            ) : libDocs.length === 0 ? (
+              <div className="ch-library-empty">
+                <FolderOpen size={48} className="ch-library-empty-icon" />
+                <h3>{searchQuery ? 'No matches' : 'Your library is empty'}</h3>
+                <p>
+                  {searchQuery
+                    ? `Nothing found for "${searchQuery}"`
+                    : 'Upload your first document to get started.'}
+                </p>
+                {!searchQuery && (
+                  <button className="ch-btn ch-btn--primary" onClick={() => setSearchParams({ view: 'upload' })}>
+                    <Upload size={14} />Upload Document
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="ch-myfile-grid">
+                {libDocs.map(doc => {
+                  const docId = String(doc.doc_id || doc.id);
+                  const stats = allActionStats[docId] || {};
+                  return (
+                    <MyDocFileCard
+                      key={getDocKey(doc)}
+                      doc={doc}
+                      usageStats={stats}
+                      isNew={isNewDoc(doc) || docId === highlightedDocId}
+                      isSelected={selectedDocIdSet.has(doc.doc_id || doc.id)}
+                      onToggleSelect={(id) => {
+                        toggleDocSelection(id);
+                        contextService.setDocName(id, doc.filename || doc.title || '');
+                      }}
+                      onDelete={handleDelete}
+                      onAction={handleDocAction}
+                      onNavigate={(id) => navigate(`/contexthub/file/${encodeURIComponent(id)}`)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // ─── ASK YOUR NOTES ───────────────────────────────────────────────────────
   const AskView = () => (
@@ -1645,27 +1819,12 @@ export default function ContextHub() {
 
   // ─── RENDER ───────────────────────────────────────────────────────────────
   const renderView = () => {
-    if (view === 'landing')    return <LandingView />;
-    if (view === 'curriculum') return <CurriculumView />;
-    if (view === 'grade')      return <GradeView />;
-    if (view === 'subject')    return <SubjectView />;
-    if (view === 'library')    return <LibraryView />;
-    if (view === 'upload')     return (
-      <UploadView
-        onSuccess={(result) => {
-          const fname = result?.filename || '';
-          if (result?.doc_id) {
-            const id = String(result.doc_id);
-            contextService.autoSelectDoc(result.doc_id, fname);
-            setSelectedDocIds(prev => prev.includes(id) ? prev : (() => { const n = [...prev, id]; persistSelectedDocs(n); return n; })());
-            setHighlightedDocId(id);
-          }
-          loadDocs();
-          setSearchParams({ view: 'library' });
-        }}
-      />
-    );
-    if (view === 'ask')        return <AskView />;
+    if (view === 'landing')                   return <LandingView />;
+    if (view === 'curriculum')                return <CurriculumView />;
+    if (view === 'grade')                     return <GradeView />;
+    if (view === 'subject')                   return <SubjectView />;
+    if (view === 'library' || view === 'upload') return <LibraryView />;
+    if (view === 'ask')                       return <AskView />;
     return <LandingView />;
   };
 
@@ -1688,6 +1847,12 @@ export default function ContextHub() {
       <div className="ch-layout">
         <Sidebar />
         <main className="ch-main">
+          <div className="ch-main-bg" aria-hidden="true">
+            <div className="ch-main-orb ch-main-orb-1" />
+            <div className="ch-main-orb ch-main-orb-2" />
+            <div className="ch-main-dots" />
+            <div className="ch-main-vignette" />
+          </div>
           <button className="ch-sidebar-toggle" onClick={() => setSidebarOpen(o => !o)}>
             {sidebarOpen ? <X size={16} /> : <Library size={16} />}
           </button>

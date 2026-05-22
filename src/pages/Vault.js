@@ -19,9 +19,17 @@ const FILE_INSIGHTS_KEY = 'ctx_file_action_stats';
 
 const TABS = [
   { id: 'deck',       label: 'CONTEXT DECK', icon: Package },
-  { id: 'recent',     label: 'RECENT',        icon: Clock },
-  { id: 'mydocs',     label: 'YOUR DOCS',     icon: Lock },
-  { id: 'curriculum', label: 'CURRICULUM',    icon: GraduationCap },
+  { id: 'mydocs',     label: 'YOUR DOCS',    icon: Lock },
+  { id: 'upload',     label: 'UPLOAD',       icon: Upload },
+  { id: 'curriculum', label: 'CURRICULUM',   icon: GraduationCap },
+];
+
+const FEAT = [
+  { id: 'chat',       color: '#c084fc', label: 'Chat',  icon: MessageCircle },
+  { id: 'flashcards', color: '#34d399', label: 'Cards', icon: Layers },
+  { id: 'notes',      color: '#60a5fa', label: 'Notes', icon: FileText },
+  { id: 'quiz',       color: '#fb923c', label: 'Quiz',  icon: Brain },
+  { id: 'roadmap',    color: '#22d3ee', label: 'Map',   icon: Target },
 ];
 
 const UK_SUBJECTS = [
@@ -168,6 +176,94 @@ const flattenFolderTree = (nodes, depth = 0) => {
   return flat;
 };
 
+// ─── Doc card component (playlist-style with cover) ──────────────────────────
+
+function VaultDocCard({ doc, acts, inDeck, deckFull, onDeckToggle, onAction, onDelete, onNavigate }) {
+  const id         = doc.doc_id || doc.id;
+  const name       = doc.filename || doc.title || 'Untitled';
+  const total      = FEAT.reduce((a, f) => a + (Number(acts[f.id] || 0)), 0);
+  const coverColor = CAT_COLORS[doc.subject] || 'var(--accent)';
+
+  return (
+    <article
+      className={`vlt-doccard ${inDeck ? 'vlt-doccard--deck' : ''}`}
+      onClick={() => onNavigate(id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onNavigate(id)}
+    >
+      {/* Coloured cover block */}
+      <div
+        className="vlt-doccard-cover"
+        style={{ background: `linear-gradient(135deg, ${coverColor}20 0%, ${coverColor}50 100%)` }}
+      >
+        <div className="vlt-doccard-cover-icon" style={{ color: coverColor }}>
+          <FileText size={32} strokeWidth={1.5} />
+        </div>
+        {inDeck && (
+          <div className="vlt-doccard-deck-badge"><Zap size={10} /> In Deck</div>
+        )}
+        {doc.scope === 'public' && (
+          <div className="vlt-doccard-pub-badge">Community</div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="vlt-doccard-body">
+        <h3 className="vlt-doccard-title" title={name}>{name}</h3>
+
+        <div className="vlt-doccard-meta">
+          {doc.subject
+            ? <span style={{ color: coverColor }}>{subjectLabel(doc.subject)}</span>
+            : <span>General</span>}
+          {doc.chunk_count > 0 && <span>{doc.chunk_count} chunks</span>}
+          {doc.created_at && <span>{fmtDate(doc.created_at)}</span>}
+        </div>
+
+        <div className="vlt-doccard-usage">
+          {FEAT.map(f => {
+            const count = Number(acts[f.id] || 0);
+            const FIcon = f.icon;
+            return (
+              <div key={f.id} className="vlt-doccard-usage-item"
+                style={{ '--uc': f.color, opacity: count > 0 ? 1 : 0.22 }}
+                title={`${f.label}: ${count}×`}>
+                <FIcon size={10} /><span>{count}</span>
+              </div>
+            );
+          })}
+          {total > 0 && <span className="vlt-doccard-total">{total}×</span>}
+        </div>
+
+        <div className="vlt-doccard-actions" onClick={e => e.stopPropagation()}>
+          <div className="vlt-doccard-actions-left">
+            <button className="vlt-doccard-action-btn" onClick={() => onAction('chat', id, doc)}>
+              <MessageCircle size={13} /><span>AI Chat</span>
+            </button>
+            <button className="vlt-doccard-action-btn" onClick={() => onAction('flashcards', id, doc)}>
+              <Layers size={13} /><span>Flashcards</span>
+            </button>
+          </div>
+          <div className="vlt-doccard-actions-right">
+            <button
+              className={`vlt-doccard-icon-btn ${inDeck ? 'vlt-doccard-icon-btn--deck' : ''}`}
+              onClick={() => onDeckToggle(id)}
+              disabled={!inDeck && deckFull}
+              title={inDeck ? 'Remove from deck' : deckFull ? 'Deck full' : 'Add to deck'}
+            >
+              {inDeck ? <X size={14} /> : <Plus size={14} />}
+            </button>
+            <button className="vlt-doccard-icon-btn vlt-doccard-icon-btn--del"
+              onClick={() => onDelete(id, name)} title="Delete">
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const Vault = () => {
@@ -225,7 +321,7 @@ const Vault = () => {
   const [docSearch, setDocSearch] = useState('');
   const [currMode, setCurrMode]   = useState('uk');  // 'uk' | 'us'
   const [currSubject, setCurrSubject] = useState(null);
-  const [, setFileActionStats] = useState(loadFileActionStats);
+  const [fileActionStats, setFileActionStats] = useState(loadFileActionStats);
 
   // ── Load docs ──
   const loadDocs = useCallback(async () => {
@@ -1260,6 +1356,68 @@ const Vault = () => {
     </div>
   );
 
+  // ── UPLOAD TAB ────────────────────────────────────────────────────────────
+  const UploadTab = () => (
+    <div className="vlt-upload-tab">
+      <div className="vlt-upload-tab-inner">
+        <div className="vlt-upload-hero">
+          <div className="vlt-upload-icon-wrap">
+            {uploading ? <Loader2 size={44} className="vlt-spin" /> : <Upload size={44} />}
+          </div>
+          <h2 className="vlt-upload-hero-title">Upload a Document</h2>
+          <p className="vlt-upload-hero-sub">PDF · DOCX · TXT · Markdown · max 50 MB</p>
+        </div>
+
+        <div className="vlt-upload-form-card">
+          <div className="vlt-upload-fields">
+            <input
+              className="vlt-dz-input"
+              placeholder="Subject (optional)"
+              value={uploadSubject}
+              onChange={e => setUploadSubject(e.target.value)}
+            />
+            <select
+              className="vlt-dz-input"
+              value={uploadFolderId}
+              onChange={e => setUploadFolderId(e.target.value)}
+            >
+              <option value="">No folder</option>
+              {flatFolders.map(folder => (
+                <option key={`up-${folder.id}`} value={folder.id}>
+                  {' '.repeat(folder.depth * 2)}{folder.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <label className={`vlt-upload-file-btn ${uploading ? 'vlt-upload-file-btn--busy' : ''}`}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf,.txt,.docx,.md"
+              style={{ display: 'none' }}
+              onChange={e => handleUpload(e.target.files[0])}
+              disabled={uploading}
+            />
+            <Upload size={16} />
+            {uploading ? 'Uploading…' : 'Choose File'}
+          </label>
+
+          {uploadError && (
+            <div className="vlt-upload-msg vlt-upload-msg--error"><AlertCircle size={13} />{uploadError}</div>
+          )}
+          {uploadOk && (
+            <div className="vlt-upload-msg vlt-upload-msg--ok"><Check size={13} />{uploadOk}</div>
+          )}
+        </div>
+
+        <p className="vlt-upload-note">
+          After uploading, your file will appear in <strong>Your Docs</strong> tab automatically.
+        </p>
+      </div>
+    </div>
+  );
+
   // ── MY DOCS TAB ───────────────────────────────────────────────────────────
   const MyDocsTab = () => (
     <div className="vlt-docs-layout">
@@ -1350,164 +1508,82 @@ const Vault = () => {
       {/* ── MAIN CONTENT ── */}
       <div className="vlt-docs-main">
 
-        {/* Drop zone upload */}
-        <div className="vlt-dropzone">
-          <div className="vlt-dropzone-body">
-            <div className="vlt-dropzone-icon">
-              {uploading ? <Loader2 size={28} className="vlt-spin" /> : <Upload size={28} />}
-            </div>
-            <p className="vlt-dropzone-title">{uploading ? 'Uploading…' : 'Drop a file or click Choose File'}</p>
-            <p className="vlt-dropzone-hint">PDF · DOCX · TXT · Markdown · max 50 MB</p>
-          </div>
-          <div className="vlt-dropzone-form">
-            <input className="vlt-dz-input" placeholder="Subject (optional)" value={uploadSubject} onChange={e => setUploadSubject(e.target.value)} />
-            <select className="vlt-dz-input" value={uploadFolderId} onChange={(e) => setUploadFolderId(e.target.value)}>
-              <option value="">No folder</option>
-              {flatFolders.map((folder) => (
-                <option key={`upload-folder-${folder.id}`} value={folder.id}>{' '.repeat(folder.depth * 2)}{folder.name}</option>
-              ))}
-            </select>
-            <label className={`vlt-dz-btn ${uploading ? 'vlt-dz-btn--busy' : ''}`}>
-              <input ref={fileRef} type="file" accept=".pdf,.txt,.docx,.md" style={{ display: 'none' }} onChange={e => handleUpload(e.target.files[0])} disabled={uploading} />
-              <Upload size={14} /> Choose File
-            </label>
-          </div>
-          {uploadError && <div className="vlt-upload-msg vlt-upload-msg--error"><AlertCircle size={13} />{uploadError}</div>}
-          {uploadOk    && <div className="vlt-upload-msg vlt-upload-msg--ok"><Check size={13} />{uploadOk}</div>}
-        </div>
-
-        {/* Action bar */}
-        <div className={`vlt-action-bar ${selectedFileIds.length > 0 ? 'vlt-action-bar--active' : ''}`}>
-          <div className="vlt-action-bar-left">
-            <span className="vlt-action-selection">
-              {selectedFileIds.length > 0 ? `${selectedFileIds.length} file${selectedFileIds.length !== 1 ? 's' : ''} selected` : 'Select files below'}
+        {/* Toolbar */}
+        <div className="vlt-docs-toolbar">
+          <div className="vlt-docs-toolbar-left">
+            <span className="vlt-docs-count">
+              {filteredUserDocs.length} doc{filteredUserDocs.length !== 1 ? 's' : ''}
+              {selectedFileIds.length > 0 && (
+                <span className="vlt-docs-selected"> · {selectedFileIds.length} selected</span>
+              )}
             </span>
-            <button className="vlt-action-link" onClick={selectVisibleFiles}>Select visible</button>
-            <button className="vlt-action-link" onClick={clearFileSelection} disabled={selectedFileIds.length === 0}>Clear</button>
+            <button className="vlt-action-link" onClick={selectVisibleFiles}>Select all</button>
+            {selectedFileIds.length > 0 && (
+              <button className="vlt-action-link" onClick={clearFileSelection}>Clear</button>
+            )}
           </div>
-          <div className="vlt-action-bar-right">
-            <button className="vlt-action-btn vlt-action-btn--chat" onClick={() => openSelectedDocsAction('chat')}><MessageCircle size={13} /> AI Chat</button>
-            <button className="vlt-action-btn vlt-action-btn--flash" onClick={() => openSelectedDocsAction('flashcards')}><Layers size={13} /> Flashcards</button>
+          <div className="vlt-docs-toolbar-right">
+            <div className="vlt-doc-search">
+              <Search size={13} />
+              <input placeholder="Search…" value={docSearch} onChange={e => setDocSearch(e.target.value)} />
+              {docSearch && <button className="vlt-doc-search-clear" onClick={() => setDocSearch('')}><X size={12}/></button>}
+            </div>
+            <button className="vlt-icon-btn" onClick={() => { loadDocs(); loadProgress(); }} title="Refresh"><RefreshCw size={13} /></button>
+          </div>
+        </div>
+
+        {/* Bulk context actions */}
+        {selectedFileIds.length > 0 && (
+          <div className="vlt-bulk-bar">
+            <span className="vlt-bulk-label">{selectedFileIds.length} file{selectedFileIds.length !== 1 ? 's' : ''} — use as context:</span>
+            <button className="vlt-action-btn vlt-action-btn--chat" onClick={() => openSelectedDocsAction('chat')}><MessageCircle size={12} /> Chat</button>
+            <button className="vlt-action-btn vlt-action-btn--flash" onClick={() => openSelectedDocsAction('flashcards')}><Layers size={12} /> Flashcards</button>
             <button className="vlt-action-btn vlt-action-btn--notes" onClick={() => openSelectedDocsAction('notes')} disabled={bulkActionLoading === 'notes'}>
-              {bulkActionLoading === 'notes' ? <Loader2 size={13} className="vlt-spin" /> : <FileText size={13} />} Notes
+              {bulkActionLoading === 'notes' ? <Loader2 size={12} className="vlt-spin" /> : <FileText size={12} />} Notes
             </button>
-            <button className="vlt-action-btn vlt-action-btn--quiz" onClick={() => openSelectedDocsAction('quiz')}><Brain size={13} /> Quiz</button>
-            <button className="vlt-action-btn vlt-action-btn--roadmap" onClick={() => openSelectedDocsAction('roadmap')}><Target size={13} /> Roadmap</button>
+            <button className="vlt-action-btn vlt-action-btn--quiz" onClick={() => openSelectedDocsAction('quiz')}><Brain size={12} /> Quiz</button>
+            <button className="vlt-action-btn vlt-action-btn--roadmap" onClick={() => openSelectedDocsAction('roadmap')}><Target size={12} /> Roadmap</button>
+            <button className="vlt-bulk-clear" onClick={clearFileSelection}><X size={12} /></button>
           </div>
-        </div>
+        )}
 
-        {/* Progress + search */}
-        <div className="vlt-docs-meta">
-          <span className="vlt-progress-strip">
-            {overallProgress
-              ? `Mastered: ${overallProgress.mastered_docs}/${overallProgress.docs_with_topics || overallProgress.total_docs} · ${overallProgress.mastered_topics_pct}% topics`
-              : 'No progress data'}
-            {progressLoading && <> <Loader2 size={11} className="vlt-spin" /> updating</>}
-          </span>
-          <div className="vlt-doc-search">
-            <Search size={14} />
-            <input placeholder="Search documents…" value={docSearch} onChange={e => setDocSearch(e.target.value)} />
-            {docSearch && <button className="vlt-doc-search-clear" onClick={() => setDocSearch('')}><X size={13}/></button>}
-          </div>
-        </div>
-
-        {/* File table / empty */}
+        {/* Doc card grid */}
         {loading ? (
           <div className="vlt-state-center"><Loader2 size={24} className="vlt-spin" /><p>Loading…</p></div>
         ) : filteredUserDocs.length === 0 ? (
           <div className="vlt-state-center">
             <Library size={36} />
             <h3>{userDocs.length === 0 ? 'No documents yet' : 'No results'}</h3>
-            <p>{userDocs.length === 0 ? 'Upload your first PDF, DOCX, or text file above.' : 'Try a different search or folder.'}</p>
+            <p>
+              {userDocs.length === 0
+                ? 'Go to the Upload tab to add your first document.'
+                : 'Try a different search or folder.'}
+            </p>
+            {userDocs.length === 0 && (
+              <button className="vlt-empty-upload-btn" onClick={() => setActiveTab('upload')}>
+                <Upload size={14} /> Upload a Document
+              </button>
+            )}
           </div>
         ) : (
-          <div className="vlt-files-table-wrap">
-            <div className="vlt-files-table-head">
-              <span></span><span>Name</span><span>Subject</span><span>Folder</span><span>Progress</span><span>Chunks</span><span>Actions</span>
-            </div>
-            <div className="vlt-files-table-body">
-              {filteredUserDocs.map(doc => {
-                const id   = doc.doc_id || doc.id;
-                const name = doc.filename || doc.title || 'Untitled';
-                const sel  = deckSet.has(id);
-                const selected = selectedFileIds.includes(id);
-                const progress = docProgressMap[id];
-                return (
-                  <div
-                    key={id}
-                    className={`vlt-file-row ${sel ? 'vlt-file-row--decked' : ''} ${selected ? 'vlt-file-row--selected' : ''}`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/contexthub/file/${encodeURIComponent(String(id))}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        navigate(`/contexthub/file/${encodeURIComponent(String(id))}`);
-                      }
-                    }}
-                  >
-                    <div className="vlt-file-select-cell">
-                      <button
-                        className={`vlt-select-btn ${selected ? 'active' : ''}`}
-                        onClick={(e) => { e.stopPropagation(); toggleFileSelection(id); }}
-                      >
-                        {selected ? <CheckSquare size={13} /> : <Square size={13} />}
-                      </button>
-                    </div>
-                    <div className="vlt-file-name-cell" title={name}>
-                      <FileText size={15} /><span>{name}</span>
-                      {sel && <span className="vlt-file-deck-chip"><Zap size={9} /> Deck</span>}
-                    </div>
-                    <div className="vlt-file-subject-cell">
-                      {doc.subject ? <span style={{ color: CAT_COLORS[doc.subject] || 'var(--accent)' }}>{subjectLabel(doc.subject)}</span>
-                        : <span className="vlt-file-muted">General</span>}
-                    </div>
-                    <div className="vlt-file-folder-cell">
-                      <select
-                        value={doc.folder_id || ''}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => handleMoveDocument(id, e.target.value)}
-                        disabled={movingDocId === id}
-                      >
-                        <option value="">Uncategorized</option>
-                        {flatFolders.map((folder) => (
-                          <option key={`doc-folder-${id}-${folder.id}`} value={folder.id}>{' '.repeat(folder.depth * 2)}{folder.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="vlt-file-progress-cell">
-                      {progress ? (
-                        <>
-                          <div className="vlt-file-progress-line"><span>{progress.mastery_pct}%</span><span>{progress.mastered_topics_count}/{progress.topics_total}</span></div>
-                          <div className="vlt-file-progress-meta">
-                            <span className="ok">Done {progress.mastered_topics_count}</span>
-                            <span className="warn">Left {progress.remaining_topics_count}</span>
-                            <span className="bad">Weak {progress.weak_topics_count}</span>
-                          </div>
-                        </>
-                      ) : <span className="vlt-file-muted">No data</span>}
-                    </div>
-                    <div className="vlt-file-chunks-cell">{doc.chunk_count || 0}</div>
-                    <div className="vlt-file-actions-cell">
-                      <button
-                        className={`vlt-doc-deck-btn ${sel ? 'vlt-doc-deck-btn--remove' : ''}`}
-                        onClick={(e) => { e.stopPropagation(); sel ? removeFromDeck(id) : addToDeck(id); }}
-                        disabled={!sel && deckIds.length >= DECK_SIZE}
-                      >
-                        {sel ? <X size={11} /> : <Plus size={11} />}{sel ? 'Remove' : 'Add'}
-                      </button>
-                      <button
-                        className="vlt-doc-del-btn"
-                        onClick={(e) => { e.stopPropagation(); handleDelete(id, name); }}
-                        disabled={deleting === id}
-                      >
-                        {deleting === id ? <Loader2 size={12} className="vlt-spin" /> : <Trash2 size={12} />}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="vlt-doccard-grid">
+            {filteredUserDocs.map(doc => {
+              const id   = String(doc.doc_id || doc.id);
+              const acts = fileActionStats[id]?.actions || {};
+              return (
+                <VaultDocCard
+                  key={id}
+                  doc={doc}
+                  acts={acts}
+                  inDeck={deckSet.has(doc.doc_id || doc.id)}
+                  deckFull={deckIds.length >= DECK_SIZE}
+                  onDeckToggle={(docId) => deckSet.has(docId) ? removeFromDeck(docId) : addToDeck(docId)}
+                  onAction={(target, docId, d) => runContextAction(target, [docId], [d])}
+                  onDelete={handleDelete}
+                  onNavigate={(docId) => navigate(`/contexthub/file/${encodeURIComponent(String(docId))}`)}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -1741,8 +1817,8 @@ const Vault = () => {
         {/* Tab content */}
         <div className="vlt-tab-content">
           {activeTab === 'deck'       && DeckTab()}
-          {activeTab === 'recent'     && RecentTab()}
           {activeTab === 'mydocs'     && MyDocsTab()}
+          {activeTab === 'upload'     && UploadTab()}
           {activeTab === 'curriculum' && CurriculumTab()}
         </div>
       </main>

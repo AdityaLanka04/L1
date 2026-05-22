@@ -1,16 +1,77 @@
+/* ── Root ──────────────────────────────────────────────── */
 .cfp-root {
   min-height: 100vh;
-  background:
-    radial-gradient(1200px 600px at -10% -15%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 65%),
-    radial-gradient(800px 500px at 110% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 65%),
-    #060606;
+  background: #050504;
   color: var(--text-primary, #f4f4f5);
-  padding: 24px 28px 40px;
+  font-family: 'Inter', system-ui, sans-serif;
+  position: relative;
 }
 
+/* ── Geometric background ──────────────────────────────── */
+.cfp-bg-fx {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.cfp-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(180px);
+}
+
+.cfp-bg-orb-1 {
+  width: 900px;
+  height: 900px;
+  top: -350px;
+  left: -280px;
+  opacity: 0.35;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 35%, transparent) 0%, transparent 70%);
+}
+
+.cfp-bg-orb-2 {
+  width: 700px;
+  height: 700px;
+  bottom: -280px;
+  right: -220px;
+  opacity: 0.22;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 28%, transparent) 0%, transparent 70%);
+}
+
+.cfp-bg-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(color-mix(in srgb, var(--accent) 22%, transparent) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+  opacity: 0.18;
+  mask-image: radial-gradient(ellipse at 45% 25%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 45%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at 45% 25%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 45%, transparent 75%);
+}
+
+.cfp-bg-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 18%, transparent 80%, rgba(0,0,0,0.45) 100%),
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 55%);
+}
+
+/* ── Inner wrapper (above bg) ──────────────────────────── */
+.cfp-inner {
+  position: relative;
+  z-index: 1;
+  padding: 0 0 72px;
+}
+
+/* ── Top bar — back button pinned top-right ────────────── */
 .cfp-topbar {
-  max-width: 1280px;
-  margin: 0 auto 18px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 20px 28px 0;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .cfp-back-btn {
@@ -18,296 +79,264 @@
   padding: 0 14px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: transparent;
+  gap: 6px;
+  background: color-mix(in srgb, var(--accent) 8%, rgba(12,12,14,0.85));
   border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
   border-radius: 8px;
   color: color-mix(in srgb, var(--text-primary, #fff) 78%, var(--accent));
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: color 0.18s, border-color 0.18s, background 0.18s;
 }
 .cfp-back-btn:hover {
   color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 44%, transparent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, rgba(12,12,14,0.9));
 }
 
+/* ── Main content ──────────────────────────────────────── */
 .cfp-main {
-  max-width: 1280px;
+  max-width: 1100px;
   margin: 0 auto;
+  padding: 20px 28px 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 22px;
 }
 
+/* ── Hero ──────────────────────────────────────────────── */
 .cfp-hero {
   border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-  border-radius: 16px;
-  padding: 20px;
-  background: color-mix(in srgb, var(--accent) 4%, #0f0f10);
+  border-radius: 18px;
+  padding: 28px 28px 22px;
+  background: color-mix(in srgb, var(--accent) 4%, rgba(12,12,14,0.88));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
+
 .cfp-eyebrow {
-  margin: 0;
+  margin: 0 0 10px;
   font-size: 10px;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--accent);
   font-weight: 700;
 }
+
 .cfp-hero h1 {
-  margin: 6px 0 8px;
-  font-size: clamp(24px, 3vw, 38px);
+  margin: 0 0 16px;
+  font-size: clamp(22px, 3vw, 38px);
   letter-spacing: -0.03em;
-  line-height: 1.08;
-}
-.cfp-sub {
-  margin: 0;
-  font-size: 13px;
-  color: color-mix(in srgb, var(--text-primary, #fff) 70%, transparent);
-  line-height: 1.6;
+  line-height: 1.1;
+  word-break: break-word;
 }
 
 .cfp-badges {
-  margin-top: 14px;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
+
 .cfp-badges span {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 9px;
+  padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
   font-size: 11px;
-  color: color-mix(in srgb, var(--text-primary, #fff) 80%, transparent);
+  color: color-mix(in srgb, var(--text-primary, #fff) 72%, transparent);
 }
-.cfp-badges span.accent {
+
+.cfp-badges .cfp-badge-used {
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  font-weight: 700;
 }
 
-.cfp-actions {
+/* ── Deck toggle ───────────────────────────────────────── */
+.cfp-deck-row {
   display: flex;
+  align-items: center;
+  gap: 14px;
   flex-wrap: wrap;
-  gap: 8px;
 }
-.cfp-action {
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 9px;
-  border: 1px solid;
-  font-size: 11px;
-  font-weight: 700;
+
+.cfp-deck-btn {
+  height: 40px;
+  padding: 0 20px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 9px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: color-mix(in srgb, var(--text-primary, #fff) 85%, var(--accent));
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, color 0.18s;
 }
-.cfp-action-chat { color: #c084fc; background: rgba(192, 132, 252, 0.09); border-color: rgba(192, 132, 252, 0.35); }
-.cfp-action-flash { color: #34d399; background: rgba(52, 211, 153, 0.1); border-color: rgba(52, 211, 153, 0.35); }
-.cfp-action-notes { color: #60a5fa; background: rgba(96, 165, 250, 0.1); border-color: rgba(96, 165, 250, 0.35); }
-.cfp-action-quiz { color: #fb923c; background: rgba(251, 146, 60, 0.1); border-color: rgba(251, 146, 60, 0.35); }
-.cfp-action-roadmap { color: #22d3ee; background: rgba(34, 211, 238, 0.1); border-color: rgba(34, 211, 238, 0.35); }
-.cfp-action-deck { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
-.cfp-action:disabled { opacity: 0.55; cursor: not-allowed; }
+.cfp-deck-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 54%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+.cfp-deck-btn--active {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
 
-.cfp-grid {
+.cfp-deck-hint {
+  margin: 0;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--text-primary, #fff) 48%, transparent);
+}
+
+/* ── Section ───────────────────────────────────────────── */
+.cfp-section { display: flex; flex-direction: column; gap: 14px; }
+
+.cfp-section-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-primary, #fff) 58%, transparent);
+}
+
+/* ── Feature cards grid ────────────────────────────────── */
+.cfp-features-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 12px;
 }
 
-.cfp-card {
-  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
-  border-radius: 14px;
-  padding: 14px;
-  background: #0f1011;
+.cfp-feature-card {
+  --fc: var(--accent);
+  --fb: color-mix(in srgb, var(--accent) 8%, transparent);
+  --fbd: color-mix(in srgb, var(--accent) 24%, transparent);
+
+  border: 1px solid var(--fbd);
+  border-radius: 16px;
+  padding: 18px 16px 14px;
+  background: var(--fb);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 12px;
+  transition: border-color 0.2s, transform 0.18s;
 }
-.cfp-card h3 {
-  margin: 0;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: color-mix(in srgb, var(--text-primary, #fff) 75%, var(--accent));
+.cfp-feature-card:hover {
+  border-color: color-mix(in srgb, var(--fc) 55%, transparent);
+  transform: translateY(-2px);
 }
-.cfp-card-wide { grid-column: span 2; }
 
-.cfp-metrics {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+.cfp-feature-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
 }
-.cfp-metrics div {
-  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
+
+.cfp-feature-icon {
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
-  padding: 8px;
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.cfp-metrics span {
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-primary, #fff) 50%, transparent);
-}
-.cfp-metrics strong {
-  font-size: 15px;
-  letter-spacing: -0.02em;
-}
-
-.cfp-chip-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.cfp-chip-row span {
-  border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 10px;
-  border: 1px solid transparent;
-}
-.cfp-chip-row .ok { color: #86efac; border-color: rgba(134, 239, 172, 0.33); background: rgba(34, 197, 94, 0.08); }
-.cfp-chip-row .warn { color: #fde68a; border-color: rgba(253, 230, 138, 0.33); background: rgba(253, 230, 138, 0.08); }
-.cfp-chip-row .bad { color: #fca5a5; border-color: rgba(252, 165, 165, 0.33); background: rgba(239, 68, 68, 0.09); }
-
-.cfp-tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.cfp-tags span {
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-}
-
-.cfp-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.cfp-list span {
-  font-size: 12px;
-  color: color-mix(in srgb, var(--text-primary, #fff) 85%, transparent);
-}
-
-.cfp-topic-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cfp-topic-btn {
-  width: 100%;
-  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
-  color: color-mix(in srgb, var(--text-primary, #fff) 90%, transparent);
-  padding: 8px 10px;
+  border: 1px solid var(--fbd);
+  background: color-mix(in srgb, var(--fc) 12%, transparent);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  cursor: pointer;
-  text-align: left;
-  font-size: 12px;
+  justify-content: center;
+  color: var(--fc);
+  flex-shrink: 0;
 }
 
-.cfp-topic-btn:hover {
-  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-.cfp-topic-btn.active {
-  border-color: color-mix(in srgb, var(--accent) 48%, transparent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-}
-
-.cfp-topic-btn em {
-  font-style: normal;
-  font-size: 11px;
-  color: #86efac;
-  border: 1px solid rgba(134, 239, 172, 0.35);
-  border-radius: 999px;
-  padding: 2px 7px;
-}
-
-.cfp-topic-actions {
-  margin-top: 8px;
-  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
-  border-radius: 10px;
-  padding: 10px;
-  background: color-mix(in srgb, var(--accent) 4%, #0f1011);
-}
-
-.cfp-topic-action-row {
+.cfp-feature-count {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
 }
 
-.cfp-checks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.cfp-checks span {
-  font-size: 10px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--text-primary, #fff) 15%, transparent);
-  color: color-mix(in srgb, var(--text-primary, #fff) 58%, transparent);
-}
-.cfp-checks span.done {
-  color: #86efac;
-  border-color: rgba(134, 239, 172, 0.33);
-  background: rgba(34, 197, 94, 0.08);
+.cfp-count-num {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--fc);
 }
 
-.cfp-reco-title {
-  margin: 0;
-  font-size: 16px;
+.cfp-count-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: color-mix(in srgb, var(--text-primary, #fff) 42%, transparent);
+}
+
+.cfp-feature-body { flex: 1; }
+
+.cfp-feature-name {
+  margin: 0 0 4px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.01em;
+  color: var(--text-primary, #f4f4f5);
 }
-.cfp-reco-btn {
-  margin-top: auto;
+
+.cfp-feature-desc {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text-primary, #fff) 52%, transparent);
+}
+
+.cfp-feature-btn {
+  width: 100%;
   height: 34px;
   border-radius: 9px;
-  border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent);
+  border: 1px solid var(--fbd);
+  background: transparent;
+  color: var(--fc);
   font-size: 11px;
   font-weight: 700;
-  display: inline-flex;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
 }
+.cfp-feature-btn:hover {
+  background: color-mix(in srgb, var(--fc) 14%, transparent);
+  border-color: color-mix(in srgb, var(--fc) 50%, transparent);
+}
+.cfp-feature-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.cfp-muted {
+/* ── Last used ─────────────────────────────────────────── */
+.cfp-last-used {
   margin: 0;
-  font-size: 12px;
-  color: color-mix(in srgb, var(--text-primary, #fff) 62%, transparent);
-  line-height: 1.6;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: color-mix(in srgb, var(--text-primary, #fff) 36%, transparent);
 }
 
+/* ── State (loading / error) ───────────────────────────── */
 .cfp-state {
-  min-height: 56vh;
+  position: relative;
+  z-index: 1;
+  min-height: 60vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -315,12 +344,24 @@
   gap: 10px;
   color: color-mix(in srgb, var(--text-primary, #fff) 70%, transparent);
 }
+.cfp-state p { margin: 0; font-size: 14px; }
 .cfp-state-error { color: #fca5a5; }
+
 .cfp-spin { animation: cfp-spin 0.9s linear infinite; }
 @keyframes cfp-spin { to { transform: rotate(360deg); } }
 
-@media (max-width: 920px) {
-  .cfp-root { padding: 18px 16px 28px; }
-  .cfp-grid { grid-template-columns: 1fr; }
-  .cfp-card-wide { grid-column: span 1; }
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .cfp-main { padding: 16px 18px 0; }
+  .cfp-topbar { padding: 16px 18px 0; }
+  .cfp-features-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  .cfp-features-grid { grid-template-columns: 1fr 1fr; }
+  .cfp-hero { padding: 20px 18px 16px; }
+}
+
+@media (max-width: 360px) {
+  .cfp-features-grid { grid-template-columns: 1fr; }
 }
