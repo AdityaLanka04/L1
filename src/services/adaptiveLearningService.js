@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { API_URL } from '../config/api';
 
-const ADAPTIVE_API_URL = `${ADAPTIVE_API_URL}/adaptive`;
+const ADAPTIVE_API_URL = `${API_URL}/adaptive`;
 
 class AdaptiveLearningService {
   constructor() {

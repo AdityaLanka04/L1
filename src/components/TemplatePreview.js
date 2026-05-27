@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Check } from 'lucide-react';
 import './TemplatePreview.css';
+import { sanitizeHtml } from '../utils/sanitize';
 
 const TemplatePreview = ({ template, onClose, onSelect }) => {
   if (!template) return null;
@@ -24,7 +25,7 @@ const TemplatePreview = ({ template, onClose, onSelect }) => {
             <div className="preview-label">Preview:</div>
             <div 
               className="template-preview-render"
-              dangerouslySetInnerHTML={{ __html: template.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(template.content) }}
             />
           </div>
         </div>

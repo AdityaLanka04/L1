@@ -21,7 +21,9 @@
       "Bash(sed 's/@router\\\\.//')",
       "Bash(New-Item -ItemType Directory -Force -Path \"D:\\\\Brainwave\\\\L1\\\\backend\\\\middleware\")",
       "Bash(Out-Null)",
-      "Bash(Write-Host \"done\")"
+      "Bash(Write-Host \"done\")",
+      "Bash(Get-Item \"C:\\\\Users\\\\Parthav\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Brainwave-L1\\\\05b13121-33bd-415e-b64d-e74d986999cc\\\\tasks\\\\add6a013fff746fa8.output\")",
+      "Bash(Select-Object Length,LastWriteTime)"
     ]
   }
 }

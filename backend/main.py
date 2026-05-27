@@ -79,6 +79,7 @@ if "sqlite" in DATABASE_URL:
     with engine.connect() as _conn:
         _profile_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(comprehensive_user_profiles)"))}
         _profile_additions = {
+            "show_study_insights": "BOOLEAN DEFAULT 1",
             "notifications_enabled": "BOOLEAN DEFAULT 1",
             "subscription_tier": "VARCHAR(30) DEFAULT 'starter'",
             "billing_cycle": "VARCHAR(20) DEFAULT 'monthly'",
@@ -157,6 +158,27 @@ if "sqlite" in DATABASE_URL:
         if "image_metadata" not in _chat_msg_cols:
             _conn.execute(text("ALTER TABLE chat_messages ADD COLUMN image_metadata TEXT"))
             logger.info("Added column chat_messages.image_metadata")
+        _conn.commit()
+
+    with engine.connect() as _conn:
+        _note_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(notes)"))}
+        _note_additions = {
+            "is_public": "BOOLEAN DEFAULT 0",
+            "is_deleted": "BOOLEAN DEFAULT 0",
+            "deleted_at": "DATETIME",
+            "is_favorite": "BOOLEAN DEFAULT 0",
+            "custom_font": "VARCHAR(50) DEFAULT 'Inter'",
+            "transcript": "TEXT",
+            "analysis": "TEXT",
+            "flashcards": "TEXT",
+            "quiz_questions": "TEXT",
+            "key_moments": "TEXT",
+            "media_file_id": "INTEGER",
+        }
+        for _col, _typ in _note_additions.items():
+            if _col not in _note_cols:
+                _conn.execute(text(f"ALTER TABLE notes ADD COLUMN {_col} {_typ}"))
+                logger.info("Added column notes.%s", _col)
         _conn.commit()
 
     with engine.connect() as _conn:
@@ -508,11 +530,6 @@ try:
 except ImportError:
     pass
 
-try:
-    from learning_progress_api import router as learning_progress_router
-    app.include_router(learning_progress_router, prefix="/api/learning-progress", tags=["learning-progress"])
-except ImportError:
-    pass
 
 
 @app.get("/api/health")

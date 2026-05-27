@@ -8,7 +8,7 @@ import sqlite3
 import csv
 import io
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 from typing import Optional
 from jose import JWTError, jwt
@@ -100,7 +100,7 @@ async def get_analytics_overview(days: int = 30):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        start_date = datetime.now() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         cursor.execute("SELECT COUNT(*) as count FROM users")
         total_users = cursor.fetchone()['count']
@@ -147,7 +147,7 @@ async def get_analytics_overview(days: int = 30):
         user_rollups = {}
         request_event_seen = False
 
-        today = datetime.now().date()
+        today = datetime.now(timezone.utc).date()
         daily_usage = {}
         for i in range(days - 1, -1, -1):
             day = today - timedelta(days=i)
@@ -553,7 +553,7 @@ async def get_user_analytics(days: int = 30):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        start_date = datetime.now() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         cursor.execute("""
             SELECT id, username, email, created_at
@@ -809,7 +809,7 @@ async def export_analytics_csv(days: int = 30):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        start_date = datetime.now() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         cursor.execute("""
             SELECT 
@@ -867,7 +867,7 @@ async def export_analytics_csv(days: int = 30):
             io.BytesIO(output.getvalue().encode('utf-8')),
             media_type='text/csv',
             headers={
-                'Content-Disposition': f'attachment; filename=analytics_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+                'Content-Disposition': f'attachment; filename=analytics_export_{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")}.csv'
             }
         )
     except Exception as e:
@@ -932,7 +932,7 @@ async def export_user_csv(target_user_id: int):
             io.BytesIO(output.getvalue().encode('utf-8')),
             media_type='text/csv',
             headers={
-                'Content-Disposition': f'attachment; filename=user_{user["username"]}_analytics_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+                'Content-Disposition': f'attachment; filename=user_{user["username"]}_analytics_{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")}.csv'
             }
         )
     except Exception as e:

@@ -287,7 +287,7 @@ const SharedItemViewer = () => {
             ) : (
               <div 
                 className="note-display"
-                dangerouslySetInnerHTML={{ __html: content.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.content) }}
               />
             )}
           </div>

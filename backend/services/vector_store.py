@@ -271,11 +271,21 @@ def _ensure_schema() -> None:
             CREATE INDEX IF NOT EXISTS idx_emb_metadata
                 ON embeddings USING GIN (metadata)
         """))
-        conn.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_emb_hnsw
-                ON embeddings USING hnsw (embedding vector_cosine_ops)
-                WITH (m=16, ef_construction=64)
-        """))
+
+    # HNSW index requires pgvector >= 0.5.0.  Run in a separate transaction so
+    # that a failure on old installs does not roll back the table/index creation above.
+    try:
+        with _engine.begin() as conn:
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_emb_hnsw
+                    ON embeddings USING hnsw (embedding vector_cosine_ops)
+                    WITH (m=16, ef_construction=64)
+            """))
+    except Exception as _hnsw_err:
+        logger.warning(
+            "HNSW index creation skipped (pgvector < 0.5.0 or index already exists "
+            "with different params): %s", _hnsw_err
+        )
 
 
 def embed(text_: str) -> list[float]:

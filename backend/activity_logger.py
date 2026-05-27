@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 from typing import Optional
 from activity_context import get_activity_context
@@ -57,7 +57,7 @@ def log_activity(user_id, tool_name, action, tokens_used=0, metadata=None):
             INSERT INTO user_activity_log 
             (user_id, tool_name, action, tokens_used, metadata, timestamp)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (resolved_user_id, tool_name, action, tokens_used, metadata_json, datetime.now().isoformat()))
+        """, (resolved_user_id, tool_name, action, tokens_used, metadata_json, datetime.now(timezone.utc).isoformat()))
         
         conn.commit()
         conn.close()
@@ -113,7 +113,7 @@ def get_user_token_usage(user_id, days=30):
         cursor = conn.cursor()
         
         from datetime import timedelta
-        start_date = datetime.now() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         cursor.execute("""
             SELECT SUM(tokens_used) as total

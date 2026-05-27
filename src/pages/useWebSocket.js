@@ -17,7 +17,7 @@ const useWebSocket = (token, onMessage) => {
   }, []);
 
   const buildEndpoint = useCallback(() => {
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
     let wsUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://');
 
     if (apiUrl.includes('localhost')) {

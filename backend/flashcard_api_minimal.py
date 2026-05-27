@@ -83,7 +83,7 @@ async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session =
     try:
         user = get_user(db, payload.user_id)
         
-        from main import unified_ai
+        from deps import unified_ai
         
         if payload.topic:
             flashcards = generate_flashcards_minimal(
@@ -105,7 +105,7 @@ async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session =
             raise HTTPException(status_code=400, detail="Provide topic or chat_data")
         
         if payload.save_to_set and flashcards:
-            set_title = payload.set_title or f"Generated - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            set_title = payload.set_title or f"Generated - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
             
             share_code = get_unique_share_code(db)
             

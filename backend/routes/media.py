@@ -283,7 +283,7 @@ async def process_media(
             safe_name = "".join(c for c in (file.filename or "upload") if c.isalnum() or c in (".", "_", "-"))
             file_path = os.path.join(
                 upload_dir,
-                f"{user.id}_{int(datetime.now().timestamp())}_{safe_name}",
+                f"{user.id}_{int(datetime.now(timezone.utc).timestamp())}_{safe_name}",
             )
 
             with open(file_path, "wb") as f:

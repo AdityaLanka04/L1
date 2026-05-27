@@ -254,6 +254,11 @@ from services.suggestion_engine import (
     build_chroma_prompts as _build_chroma_prompts,
 )
 
+def _clean_prompt_topic(text: str) -> str:
+    import re as _re
+    cleaned = _re.sub(r"^(ai generated:|cerbyl:|flashcards?:|notes?:|chats?:|new chat)\s*", "", (text or ""), flags=_re.IGNORECASE)
+    return cleaned.strip()
+
 
 @router.post("/search_content")
 async def search_content(
@@ -1527,7 +1532,7 @@ Return ONLY the description text, no labels or extra formatting."""
             "success": True,
             "description": description,
             "topic": topic,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
     except Exception as e:
@@ -1540,7 +1545,7 @@ Return ONLY the description text, no labels or extra formatting."""
             "description": f"Let's explore {topic} together! This is a fascinating subject with many interesting aspects to discover. I can help you create flashcards, notes, or start a learning session to dive deeper into this topic.",
             "topic": topic,
             "fallback": True,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
 @router.post("/get_personalized_prompts")
@@ -1994,22 +1999,19 @@ async def get_trending_topics(
     db: Session = Depends(get_db)
 ):
     try:
-        popular_decks = db.query(
-            models.FlashcardDeck.name,
-            func.count(models.FlashcardDeck.id).label('count')
+        popular_sets = db.query(
+            models.FlashcardSet.title,
+            func.count(models.FlashcardSet.id).label('count')
         ).filter(
-            and_(
-                models.FlashcardDeck.is_public == True,
-                models.FlashcardDeck.is_deleted == False
-            )
-        ).group_by(models.FlashcardDeck.name).order_by(
-            func.count(models.FlashcardDeck.id).desc()
+            models.FlashcardSet.is_public == True
+        ).group_by(models.FlashcardSet.title).order_by(
+            func.count(models.FlashcardSet.id).desc()
         ).limit(5).all()
 
         trending = []
-        for deck_name, count in popular_decks:
+        for set_title, count in popular_sets:
             trending.append({
-                "topic": deck_name,
+                "topic": set_title,
                 "count": count
             })
 

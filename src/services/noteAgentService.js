@@ -4,7 +4,6 @@ import { API_URL, getAuthToken } from '../config/api';
 
 class NoteAgentService {
   constructor() {
-    
     this.baseUrl = `${API_URL}/agents/notes`;
   }
 

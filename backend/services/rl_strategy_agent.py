@@ -26,9 +26,19 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Tuple
 from uuid import uuid4
 
-import numpy as np
+try:
+    import numpy as np
+    _np_available = True
+except ImportError:
+    _np_available = False
+    np = None
 
 logger = logging.getLogger(__name__)
+
+
+def _clip(value: float, lo: float, hi: float) -> float:
+    """Pure-Python fallback for np.clip when numpy is unavailable."""
+    return max(lo, min(hi, value))
 
 STRATEGY_IDS: List[str] = [
     "GUIDED_DISCOVERY",
@@ -200,7 +210,11 @@ class StrategyBandit:
 
         samples: Dict[str, float] = {}
         for sid, p in params.items():
-            samples[sid] = float(np.random.beta(p["alpha"], p["beta"]))
+            if _np_available:
+                samples[sid] = float(np.random.beta(p["alpha"], p["beta"]))
+            else:
+                import random as _rnd
+                samples[sid] = _rnd.betavariate(p["alpha"], p["beta"])
 
         best = max(samples, key=lambda k: samples[k])
         return best, samples
@@ -408,7 +422,7 @@ class StrategyBandit:
             # No follow-up — only continuation signal available
             total = 0.20 * cont_component
             return {
-                "total_reward": float(np.clip(total, -1.0, 1.0)),
+                "total_reward": _clip(total, -1.0, 1.0),
                 "components": components,
             }
 
@@ -419,19 +433,19 @@ class StrategyBandit:
             p_mastery_after = sum(vals) / len(vals) if vals else 0.0
         p_before = item.p_mastery_before or 0.1
         mastery_delta = p_mastery_after - p_before
-        mastery_component = float(np.clip(mastery_delta * 5, -1.0, 1.0))
+        mastery_component = _clip(mastery_delta * 5, -1.0, 1.0)
         components["p_mastery_delta"] = mastery_component
 
         # engagement_delta (weight 0.25)
         eng_before = item.engagement_before or 0.5
         eng_after = next_msg.engagement_score or 0.5
-        eng_component = float(np.clip((eng_after - eng_before) * 2, -1.0, 1.0))
+        eng_component = _clip((eng_after - eng_before) * 2, -1.0, 1.0)
         components["engagement_delta"] = eng_component
 
         # frustration_delta (weight 0.15) — increase in frustration = bad
         frust_before = item.frustration_before or 0.0
         frust_after = next_msg.frustration_score or 0.0
-        frust_component = float(np.clip(-(frust_after - frust_before) * 2, -1.0, 1.0))
+        frust_component = _clip(-(frust_after - frust_before) * 2, -1.0, 1.0)
         components["frustration_delta"] = frust_component
 
         total = (
@@ -441,7 +455,7 @@ class StrategyBandit:
             + 0.15 * frust_component
         )
         return {
-            "total_reward": float(np.clip(total, -1.0, 1.0)),
+            "total_reward": _clip(total, -1.0, 1.0),
             "components": components,
         }
 

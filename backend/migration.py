@@ -232,6 +232,7 @@ def _run_postgres_migration():
             "lapses": "INTEGER DEFAULT 0",
             "sr_state": "VARCHAR(20) DEFAULT 'new'",
             "learning_step": "INTEGER DEFAULT 0",
+            "fsrs_stability": "DOUBLE PRECISION DEFAULT 0.0",
         },
     )
 
@@ -255,12 +256,57 @@ def _run_postgres_migration():
     )
 
     add_missing_columns(
+        "notes",
+        {
+            "is_public": "BOOLEAN DEFAULT FALSE",
+            "is_deleted": "BOOLEAN DEFAULT FALSE",
+            "deleted_at": "TIMESTAMP",
+            "is_favorite": "BOOLEAN DEFAULT FALSE",
+            "custom_font": "VARCHAR(50) DEFAULT 'Inter'",
+            "transcript": "TEXT",
+            "analysis": "TEXT",
+            "flashcards": "TEXT",
+            "quiz_questions": "TEXT",
+            "key_moments": "TEXT",
+            "media_file_id": "INTEGER",
+        },
+    )
+
+    add_missing_columns(
+        "chat_messages",
+        {
+            "image_metadata": "TEXT",
+        },
+    )
+
+    add_missing_columns(
         "context_documents",
         {
             "source_name": "VARCHAR(200)",
             "license": "VARCHAR(80)",
             "curriculum": "VARCHAR(20)",
             "source_type": "VARCHAR(40)",
+            "folder_id": "INTEGER",
+            "ai_summary": "TEXT",
+            "key_concepts": "TEXT",
+            "topic_tags": "TEXT",
+        },
+    )
+
+    add_missing_columns(
+        "podcast_sessions",
+        {
+            "voice_persona": "VARCHAR(50) DEFAULT 'mentor'",
+            "difficulty": "VARCHAR(20) DEFAULT 'intermediate'",
+            "answer_language": "VARCHAR(20) DEFAULT 'en'",
+            "session_options": "TEXT DEFAULT '{}'",
+        },
+    )
+
+    add_missing_columns(
+        "student_style_models",
+        {
+            "student_classifier_state": "TEXT",
         },
     )
 

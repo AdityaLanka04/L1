@@ -552,7 +552,7 @@ Generate exactly {question_count} questions:"""
 
         question_set = models.QuestionSet(
             user_id=user.id,
-            title=f"Questions - {datetime.now().strftime('%Y-%m-%d')}",
+            title=f"Questions - {datetime.now(timezone.utc).strftime('%Y-%m-%d')}",
             description="Auto-generated questions",
             source_type=(
                 "mixed"

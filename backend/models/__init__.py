@@ -236,6 +236,7 @@ class Note(Base):
     folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
     is_favorite = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
+    is_public = Column(Boolean, default=False)
     deleted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -386,6 +387,7 @@ class Flashcard(Base):
     lapses = Column(Integer, default=0)
     sr_state = Column(String(20), default="new")
     learning_step = Column(Integer, default=0)
+    fsrs_stability = Column(Float, default=0.0)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -999,11 +1001,8 @@ class QuestionAttempt(Base):
     time_spent_seconds = Column(Integer, nullable=True)
     feedback = Column(Text, nullable=True)
     submitted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    
-    
+
     user = relationship("User")
-    question_set_id = Column(Integer, ForeignKey("question_sets.id"))
-    
     question_set = relationship("QuestionSet", back_populates="attempt_records")
     
 

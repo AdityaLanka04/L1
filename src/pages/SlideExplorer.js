@@ -4,6 +4,7 @@ import { Upload, Loader, FileText, Trash2, ChevronLeft, ChevronRight, BookOpen, 
 import './SlideExplorer.css';
 import { API_URL } from '../config';
 import slideExplorerAgentService from '../services/slideExplorerAgentService';
+import { sanitizeHtml } from '../utils/sanitize';
 
 const CARD_COLORS = [
   '#e8a598', '#7ecdc8', '#f0c274', '#a8d8a8', '#c3a8d8',
@@ -344,7 +345,7 @@ const SlideExplorer = () => {
                     <div className="se-explanation-body">
                       <div
                         className="se-markdown-content"
-                        dangerouslySetInnerHTML={{ __html: renderMarkdown(currentSlide.detailed_explanation) }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(currentSlide.detailed_explanation)) }}
                       />
 
                       <div className="se-slide-actions">

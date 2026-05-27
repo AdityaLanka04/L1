@@ -1810,7 +1810,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                           onInput: (e) => handleInput(childBlock.id, e.target.innerHTML),
                           onKeyDown: (e) => handleKeyDown(e, childBlock.id, childIndex),
                           className: `block-content block-${childBlock.type}`,
-                          dangerouslySetInnerHTML: { __html: childBlock.content || '' }
+                          dangerouslySetInnerHTML: { __html: sanitizeHtml(childBlock.content || '') }
                         })}
                       </div>
                     </div>

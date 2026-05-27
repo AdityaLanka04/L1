@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import './ActivityTimeline.css';
 import { API_URL } from '../config';
+import { sanitizeUrl } from '../utils/sanitize';
 
 const ActivityTimeline = () => {
   const navigate = useNavigate();
@@ -2382,7 +2383,7 @@ const ActivityTimeline = () => {
                             <Link size={18} />
                             <div>
                               <span className="label">URL</span>
-                              <a href={reminder.url} target="_blank" rel="noopener noreferrer" className="value link">{reminder.url}</a>
+                              <a href={sanitizeUrl(reminder.url)} target="_blank" rel="noopener noreferrer" className="value link">{reminder.url}</a>
                             </div>
                           </div>
                         )}

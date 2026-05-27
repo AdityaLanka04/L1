@@ -7,7 +7,7 @@ import json
 import logging
 import html
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from groq import Groq
@@ -1135,7 +1135,7 @@ Return ONLY a JSON array:
             return {
                 "success": True,
                 "content": csv_content,
-                "filename": f"flashcards_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                "filename": f"flashcards_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
             }
             
         except Exception as e:
@@ -1211,7 +1211,7 @@ Return ONLY a JSON array:
             return {
                 "success": True,
                 "content": html_content,
-                "filename": f"questions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+                "filename": f"questions_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.html"
             }
             
         except Exception as e:
@@ -1248,7 +1248,7 @@ Return ONLY a JSON array:
             return {
                 "success": True,
                 "content": markdown_content,
-                "filename": f"notes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+                "filename": f"notes_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.md"
             }
             
         except Exception as e:

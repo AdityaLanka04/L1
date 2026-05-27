@@ -103,7 +103,7 @@ async def get_notifications(
                         models.Notification.user_id == user.id,
                         models.Notification.notification_type == notif_type,
                         models.Notification.title.contains(reminder.title),
-                        models.Notification.created_at >= datetime.now() - timedelta(hours=1)
+                        models.Notification.created_at >= datetime.now(timezone.utc) - timedelta(hours=1)
                     ).first()
 
                     if not existing:
@@ -450,7 +450,7 @@ async def check_reminder_notifications(
                     models.Notification.user_id == user.id,
                     models.Notification.notification_type == notif_type,
                     models.Notification.title.contains(reminder.title),
-                    models.Notification.created_at >= datetime.now() - timedelta(hours=1)
+                    models.Notification.created_at >= datetime.now(timezone.utc) - timedelta(hours=1)
                 ).first()
 
                 if existing_notification:
@@ -503,7 +503,7 @@ async def check_reminder_notifications(
             "status": "success",
             "notifications_created": len(notifications_created),
             "details": notifications_created,
-            "server_time": datetime.now().isoformat(),
+            "server_time": datetime.now(timezone.utc).isoformat(),
             "client_time_received": current_time
         }
     except Exception as e:

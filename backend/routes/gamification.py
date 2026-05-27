@@ -391,7 +391,7 @@ async def get_daily_challenge(
             {"id": 7, "title": "Perfect Score", "description": "Get 100% on any quiz", "target": 1, "type": "perfect_quizzes", "reward": 250, "icon": "star"}
         ]
 
-        day_of_year = datetime.now().timetuple().tm_yday
+        day_of_year = datetime.now(timezone.utc).timetuple().tm_yday
         challenge_index = day_of_year % len(challenges)
         daily_challenge = challenges[challenge_index]
 

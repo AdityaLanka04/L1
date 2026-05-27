@@ -32,7 +32,7 @@ import confetti from 'canvas-confetti';
 import * as PIXI from 'pixi.js';
 import './XPRoadmap.css';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '');
 
 const LEVEL_THRESHOLDS = [0, 100, 282, 500, 800, 1200, 1700, 2300, 3000];
 

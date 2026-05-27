@@ -197,7 +197,7 @@ async def get_reminder_lists(
                 }
             )
 
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         tomorrow = today + timedelta(days=1)
 
         today_count = (
@@ -457,7 +457,7 @@ async def get_reminders(
             models.Reminder.parent_id == None,
         )
 
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         tomorrow = today + timedelta(days=1)
 
         if smart_list == "today":
@@ -717,7 +717,7 @@ async def get_upcoming_reminders(
         _assert_user_matches_request(user_id, current_user)
         user = current_user
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         future = now + timedelta(hours=hours)
 
         reminders = (

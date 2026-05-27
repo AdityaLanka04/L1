@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import './PlaylistDetailPage.css';
 import { API_URL } from '../config';
+import { sanitizeHtml } from '../utils/sanitize';
 import PlaylistShareModal from '../components/PlaylistShareModal';
 
 const PlaylistDetailPage = () => {
@@ -769,7 +770,7 @@ const ViewItemModal = ({ item, content, onClose }) => {
           {content.type === 'note' && (
             <div 
               className="note-viewer" 
-              dangerouslySetInnerHTML={{ __html: content.content || '<p>No content</p>' }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.content || '<p>No content</p>') }}
             />
           )}
 

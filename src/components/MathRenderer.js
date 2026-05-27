@@ -2,6 +2,7 @@ import { useEffect, useRef, memo } from 'react';
 import renderMathInElement from 'katex/contrib/auto-render/auto-render';
 import 'katex/dist/katex.min.css';
 import './MathRenderer.css';
+import { sanitizeHtml } from '../utils/sanitize';
 
 // Only use $$ and $ delimiters — \( conflicts with normal text parentheses
 const KATEX_OPTS = {
@@ -28,12 +29,7 @@ const MathRenderer = memo(({ content, className = '' }) => {
   useEffect(() => {
     if (!containerRef.current || !content) return;
 
-    // Sanitize: strip script tags and inline event handlers
-    const sanitized = content
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
-
-    containerRef.current.innerHTML = sanitized;
+    containerRef.current.innerHTML = sanitizeHtml(content);
 
     try {
       renderMathInElement(containerRef.current, KATEX_OPTS);

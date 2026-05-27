@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader, ArrowLeft , Menu} from 'lucide-react';
 import './AudioVideoNotes.css';
 import { API_URL } from '../config';
+import { sanitizeHtml } from '../utils/sanitize';
 
 const AudioVideoNotes = () => {
   const navigate = useNavigate();
@@ -233,7 +234,7 @@ const AudioVideoNotes = () => {
                 </button>
               </div>
             </div>
-            <div className="notes-output" dangerouslySetInnerHTML={{ __html: generatedNotes }} />
+            <div className="notes-output" dangerouslySetInnerHTML={{ __html: sanitizeHtml(generatedNotes) }} />
           </div>
         )}
       </div>

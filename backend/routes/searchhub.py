@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/agents/searchhub", tags=["searchhub"])
 
 SESSION_CONTEXT: Dict[str, List[dict]] = {}
+_SESSION_CONTEXT_MAX = 500
 
 class SearchHubRequest(BaseModel):
     user_id: str
@@ -354,6 +355,9 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
     user = _resolve_user(db, request.user_id)
 
     if request.session_id:
+        if len(SESSION_CONTEXT) >= _SESSION_CONTEXT_MAX and request.session_id not in SESSION_CONTEXT:
+            oldest = next(iter(SESSION_CONTEXT))
+            SESSION_CONTEXT.pop(oldest, None)
         history = SESSION_CONTEXT.setdefault(request.session_id, [])
         history.append({"query": query})
         if len(history) > 20:

@@ -2568,19 +2568,13 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not file.filename.lower().endswith('.pdf'):
                 raise HTTPException(status_code=400, detail="File must be a PDF")
             
-            all_users = db.query(models.User).all()
-            logger.info(f"Total users in DB: {len(all_users)}")
-            for u in all_users:
-                logger.info(f"  User: id={u.id}, username={u.username}, email={u.email}")
-            
             user = db.query(models.User).filter(
                 (models.User.username == user_id) | (models.User.email == user_id)
             ).first()
-            
+
             if not user:
-                logger.error(f"User not found: {user_id}")
-                logger.error(f"Tried to find user with username OR email matching: '{user_id}'")
-                raise HTTPException(status_code=404, detail=f"User not found: {user_id}")
+                logger.warning(f"User not found for identifier: {user_id[:20]}")
+                raise HTTPException(status_code=404, detail="User not found")
             
             logger.info(f"Reading PDF file: {file.filename}")
             pdf_content = await file.read()

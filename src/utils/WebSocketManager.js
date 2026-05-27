@@ -30,7 +30,7 @@ class WebSocketManager {
 
     
     let wsUrl;
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
     
     if (API_URL.includes('localhost')) {
       wsUrl = API_URL.replace('http://', 'ws://').replace('https://', 'ws://');
