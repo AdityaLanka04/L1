@@ -21,7 +21,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Browsers do NOT inherit font-family into form elements — force Inter everywhere */
 button,
 input,
 select,
@@ -75,10 +74,6 @@ pre {
   background: color-mix(in srgb, var(--accent, #6366f1) 120%, white);
 }
 
-/* ══════════════════════════════════════════════════════
-   GLOBAL CINEMATIC HEADING UTILITY
-   Use: <div class="view-heading"> <span class="view-kicker"> <h2 class="view-title"> <p class="view-sub">
-   ══════════════════════════════════════════════════════ */
 .view-heading {
   display: flex;
   flex-direction: column;
@@ -125,10 +120,6 @@ pre {
   font-family: 'Inter', sans-serif;
 }
 
-/* ══════════════════════════════════════════════════════
-   GLOBAL GEOMETRIC CIRCLE BACKGROUND
-   Usage: drop <svg className="geo-bg"> as first child of any page wrapper
-   ══════════════════════════════════════════════════════ */
 .geo-bg {
   position: fixed;
   inset: 0;

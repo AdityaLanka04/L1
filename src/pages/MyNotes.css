@@ -1383,7 +1383,6 @@
   }
 }
 
-
 [data-theme-mode="light"] .my-notes-page-full {
   background:
     radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
@@ -1501,7 +1500,6 @@
   box-shadow: inset 3px 0 0 var(--nt-accent);
 }
 
-
 .my-notes-page-full::before {
   content: '';
   position: fixed;
@@ -1525,7 +1523,6 @@
   background: linear-gradient(180deg, var(--nt-accent), var(--nt-accent-dark));
   box-shadow: 0 0 10px var(--nt-accent);
 }
-
 
 .nt-header-title {
   background: linear-gradient(135deg, var(--nt-accent), var(--nt-accent-dark));

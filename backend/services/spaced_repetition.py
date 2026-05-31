@@ -1,13 +1,3 @@
-"""
-Spaced Repetition Algorithm (SM-2 variant)
-
-Based on the SuperMemo 2 algorithm with Anki-style enhancements:
-- 4-grade system: Again (0), Hard (1), Good (2), Easy (3)
-- Card states: new → learning → review (graduated). On lapse: review → relearning → review
-- Per-card ease factor that adapts over time
-- Learning steps for new/relearning cards
-- Fuzz factor to prevent review clustering
-"""
 
 from __future__ import annotations
 
@@ -40,7 +30,6 @@ LAPSE_MIN_INTERVAL_DAYS = 1
 MAX_INTERVAL_DAYS = 365 * 2
 
 def _apply_fuzz(interval_days: float) -> float:
-    """Add ±5% random fuzz to intervals > 2 days to prevent clustering."""
     if interval_days <= 2:
         return interval_days
     fuzz = interval_days * 0.05
@@ -61,22 +50,6 @@ def calculate_next_review(
     grade: int,
     learning_step: int = 0,
 ) -> dict:
-    """
-    Calculate the next review schedule based on the SM-2 algorithm.
-
-    Args:
-        sr_state: Current card state (new/learning/review/relearning)
-        ease_factor: Current ease factor (default 2.5)
-        interval: Current interval in days
-        repetitions: Consecutive correct answers in review state
-        lapses: Number of times card lapsed from review
-        grade: Review grade (0=again, 1=hard, 2=good, 3=easy)
-        learning_step: Current position in learning/relearning steps
-
-    Returns:
-        dict with: new_state, new_ease, new_interval, new_repetitions,
-                   new_lapses, new_learning_step, next_review_date
-    """
     now = datetime.now(timezone.utc)
     new_ease = ease_factor
     new_interval = interval
@@ -125,7 +98,6 @@ def calculate_next_review(
 def _handle_learning(
     ease: float, grade: int, step: int, steps: list[int]
 ) -> tuple[str, float, float, int, int]:
-    """Handle learning/new card review."""
     if grade == GRADE_AGAIN:
         return STATE_LEARNING, ease, _minutes_to_days(steps[0]), 0, 0
 
@@ -150,7 +122,6 @@ def _handle_learning(
 def _handle_review(
     ease: float, interval: float, reps: int, lapses: int, grade: int
 ) -> tuple[str, float, float, int, int, int]:
-    """Handle review card grading."""
     if grade == GRADE_AGAIN:
         new_ease = ease - 0.20
         new_interval = max(LAPSE_MIN_INTERVAL_DAYS, interval * LAPSE_INTERVAL_PERCENT)
@@ -175,7 +146,6 @@ def _handle_review(
 def _handle_relearning(
     ease: float, interval: float, grade: int, step: int
 ) -> tuple[str, float, float, int, int]:
-    """Handle relearning card review."""
     steps = RELEARNING_STEPS_MINUTES
 
     if grade == GRADE_AGAIN:
@@ -208,10 +178,6 @@ def preview_intervals(
     lapses: int,
     learning_step: int = 0,
 ) -> dict[str, str]:
-    """
-    Calculate what interval each grade would produce, returning human-readable strings.
-    Used to show "1m / 10m / 1d / 4d" on the grade buttons.
-    """
     previews = {}
     for grade_name, grade_val in GRADE_MAP.items():
         result = calculate_next_review(
@@ -221,7 +187,6 @@ def preview_intervals(
     return previews
 
 def _format_interval(interval_days: float, state: str) -> str:
-    """Convert interval in days to human-readable string."""
     if interval_days <= 0:
         return "<1m"
 

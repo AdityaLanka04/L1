@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Upload, Youtube, FileText, Save, Copy, Mic, Loader,
@@ -335,7 +335,7 @@ const AIMediaNotes = () => {
         setHistory(data.history || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 

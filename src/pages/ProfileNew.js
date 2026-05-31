@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck } from 'lucide-react';
 import { API_URL } from '../config';
@@ -84,38 +84,38 @@ const GeoBackground = () => (
     <div className="pn-orb pn-orb-3" />
     <div className="pn-dots" />
     <svg className="pn-geo" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
-      {/* Large arc rings */}
+      {}
       <circle cx="-40" cy="420" r="380" fill="none" strokeWidth="0.6" opacity="0.18" />
       <circle cx="-40" cy="420" r="520" fill="none" strokeWidth="0.3" opacity="0.1" />
       <circle cx="1480" cy="460" r="340" fill="none" strokeWidth="0.5" opacity="0.16" />
       <circle cx="1480" cy="460" r="480" fill="none" strokeWidth="0.25" opacity="0.09" />
 
-      {/* Mid decorative circles */}
+      {}
       <circle cx="720" cy="-30" r="110" fill="none" strokeWidth="0.5" opacity="0.22" />
       <circle cx="720" cy="-30" r="180" fill="none" strokeWidth="0.25" opacity="0.12" />
       <circle cx="1100" cy="820" r="90" fill="none" strokeWidth="0.4" opacity="0.2" />
 
-      {/* Diamond */}
+      {}
       <rect x="960" y="160" width="90" height="90" fill="none" strokeWidth="0.5" opacity="0.22"
         transform="rotate(45 1005 205)" />
       <rect x="960" y="160" width="130" height="130" fill="none" strokeWidth="0.25" opacity="0.12"
         transform="rotate(45 1005 205) translate(-20 -20)" />
 
-      {/* Grid lines — horizontal */}
+      {}
       <line x1="0" y1="220" x2="1440" y2="220" strokeWidth="0.3" opacity="0.1" strokeDasharray="3 14" />
       <line x1="0" y1="450" x2="1440" y2="450" strokeWidth="0.3" opacity="0.1" strokeDasharray="3 14" />
       <line x1="0" y1="680" x2="1440" y2="680" strokeWidth="0.3" opacity="0.1" strokeDasharray="3 14" />
 
-      {/* Grid lines — vertical */}
+      {}
       <line x1="360" y1="0" x2="360" y2="900" strokeWidth="0.3" opacity="0.1" strokeDasharray="3 14" />
       <line x1="720" y1="0" x2="720" y2="900" strokeWidth="0.3" opacity="0.1" strokeDasharray="3 14" />
       <line x1="1080" y1="0" x2="1080" y2="900" strokeWidth="0.3" opacity="0.1" strokeDasharray="3 14" />
 
-      {/* Diagonal accent lines */}
+      {}
       <line x1="200" y1="0" x2="600" y2="450" strokeWidth="0.4" opacity="0.12" />
       <line x1="1240" y1="900" x2="900" y2="450" strokeWidth="0.4" opacity="0.1" />
 
-      {/* Cross markers at grid intersections */}
+      {}
       {[[360,220],[720,220],[1080,220],[360,450],[720,450],[1080,450],[360,680],[720,680],[1080,680]].map(([x,y],i) => (
         <g key={i} opacity="0.28">
           <line x1={x-5} y1={y} x2={x+5} y2={y} strokeWidth="0.6" />
@@ -123,7 +123,7 @@ const GeoBackground = () => (
         </g>
       ))}
 
-      {/* Corner bracket marks */}
+      {}
       <g opacity="0.2">
         <polyline points="40,40 40,20 60,20" fill="none" strokeWidth="0.8" />
         <polyline points="1400,40 1400,20 1380,20" fill="none" strokeWidth="0.8" />
@@ -131,21 +131,21 @@ const GeoBackground = () => (
         <polyline points="1400,860 1400,880 1380,880" fill="none" strokeWidth="0.8" />
       </g>
 
-      {/* Axis tick labels along bottom edge */}
+      {}
       <g className="pn-geo-nums" opacity="0.22" fontSize="9" fontFamily="'Inter', monospace" letterSpacing="0.05em">
         <text x="354" y="895">0.25</text>
         <text x="714" y="895">0.50</text>
         <text x="1074" y="895">0.75</text>
       </g>
 
-      {/* Axis tick labels along right edge */}
+      {}
       <g className="pn-geo-nums" opacity="0.22" fontSize="9" fontFamily="'Inter', monospace" letterSpacing="0.05em">
         <text x="1398" y="224">0.24</text>
         <text x="1398" y="454">0.50</text>
         <text x="1398" y="684">0.75</text>
       </g>
 
-      {/* Floating coordinate labels */}
+      {}
       <g className="pn-geo-nums" opacity="0.18" fontSize="10" fontFamily="'Inter', monospace" letterSpacing="0.04em">
         <text x="80" y="135">0.482</text>
         <text x="560" y="320">−1.337</text>
@@ -159,17 +159,17 @@ const GeoBackground = () => (
         <text x="1280" y="720">0.333</text>
       </g>
 
-      {/* Small dot nodes at key points */}
+      {}
       {[[360,220],[720,450],[1080,220],[360,680],[1080,680]].map(([x,y],i) => (
         <circle key={i} cx={x} cy={y} r="2" opacity="0.3" />
       ))}
 
-      {/* Connected node lines */}
+      {}
       <line x1="360" y1="220" x2="720" y2="450" strokeWidth="0.4" opacity="0.12" strokeDasharray="2 8" />
       <line x1="720" y1="450" x2="1080" y2="220" strokeWidth="0.4" opacity="0.12" strokeDasharray="2 8" />
       <line x1="360" y1="680" x2="1080" y2="680" strokeWidth="0.4" opacity="0.1" strokeDasharray="2 8" />
 
-      {/* Index labels */}
+      {}
       <g className="pn-geo-nums" opacity="0.14" fontSize="60" fontFamily="'Inter', sans-serif" fontWeight="800" letterSpacing="-0.03em">
         <text x="30" y="200" transform="rotate(-90 80 180)">01</text>
         <text x="1370" y="580">02</text>
@@ -492,7 +492,7 @@ const ProfileNew = () => {
 
       <div className="pn-wrap">
 
-        {/* Hero */}
+        {}
         <section className="pn-hero">
           <div className="pn-hero-text">
             <div className="pn-eyebrow">YOUR PROFILE</div>
@@ -533,7 +533,7 @@ const ProfileNew = () => {
           </div>
         </section>
 
-        {/* Archetype */}
+        {}
         {profileData.primaryArchetype ? (
           <section className="pn-section">
             <div className="pn-section-label">LEARNING ARCHETYPE</div>
@@ -638,7 +638,7 @@ const ProfileNew = () => {
 
         <div className="pn-divider" />
 
-        {/* Personal Info + Goals row */}
+        {}
         <div className="pn-two-col">
           <section className="pn-section">
             <div className="pn-section-label">PERSONAL INFO</div>
@@ -679,7 +679,7 @@ const ProfileNew = () => {
 
         <div className="pn-divider" />
 
-        {/* Interests */}
+        {}
         <section className="pn-section">
           <div className="pn-section-label">INTERESTED SUBJECTS</div>
           <div className="pn-subjects-grid">
@@ -697,7 +697,7 @@ const ProfileNew = () => {
 
         <div className="pn-divider" />
 
-        {/* Settings */}
+        {}
         <section className="pn-section">
           <div className="pn-section-label">SETTINGS</div>
           <div className="pn-settings-grid">
@@ -730,7 +730,7 @@ const ProfileNew = () => {
           </div>
         </section>
 
-        {/* Quiz Responses */}
+        {}
         {Object.keys(quizAnswers).length > 0 && (
           <>
             <div className="pn-divider" />
@@ -751,7 +751,7 @@ const ProfileNew = () => {
         <div className="pn-bottom-gap" />
       </div>
 
-      {/* PFP Modal */}
+      {}
       {pfpModalOpen && (
         <div className="pn-modal-overlay" onClick={() => setPfpModalOpen(false)}>
           <div className="pn-modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">

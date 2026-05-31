@@ -12,7 +12,6 @@
   z-index: 9999;
 }
 
-/* Header */
 .ch-header {
   height: 70px;
   padding: 0 40px;
@@ -110,7 +109,6 @@
   height: 14px;
 }
 
-/* Body */
 .ch-body {
   flex: 1;
   padding: 40px;
@@ -169,7 +167,6 @@
   transform: translateY(-1px);
 }
 
-/* Empty state */
 .ch-empty {
   display: flex;
   flex-direction: column;
@@ -200,7 +197,6 @@
   line-height: 1.6;
 }
 
-/* Grid */
 .ch-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -345,7 +341,6 @@
   min-width: 0;
 }
 
-/* Modal */
 .ch-modal-overlay {
   position: fixed;
   inset: 0;

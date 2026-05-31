@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Settings, Plus, X, Calendar, User, Tag, Link2,
   Hash, CheckSquare, FileText

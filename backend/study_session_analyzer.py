@@ -9,13 +9,7 @@ import models
 
 logger = logging.getLogger(__name__)
 
-
 class StudySessionAnalyzer:
-    """
-    Lightweight session analyzer used by analytics endpoints.
-    This module is intentionally dependency-light so endpoints keep working
-    even when optional ML analyzer packages are not present.
-    """
 
     def __init__(self, db: Session, user_id: int, ai_client: Any = None):
         self.db = db
@@ -190,7 +184,6 @@ class StudySessionAnalyzer:
         if weakness:
             message += f" Prioritize extra practice on {weakness} next."
         return message
-
 
 def get_study_session_analyzer(db: Session, user_id: int, ai_client: Any = None) -> StudySessionAnalyzer:
     return StudySessionAnalyzer(db=db, user_id=user_id, ai_client=ai_client)

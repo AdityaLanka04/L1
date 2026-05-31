@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './ToastNotification.css';
 import { Bell, CheckCircle, AlertCircle, Award, TrendingUp, Zap } from 'lucide-react';
 

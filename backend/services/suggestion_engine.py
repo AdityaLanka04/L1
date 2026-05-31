@@ -5,12 +5,10 @@ from typing import List, Optional
 
 from services.topic_utils import is_valid_topic
 
-
 def _clean_topic(text: str) -> str:
     cleaned = re.sub(r"^(ai generated:|cerbyl:|flashcards?:|notes?:|practice:\s*)\s*", "", text, flags=re.IGNORECASE)
     cleaned = re.sub(r"\*+", "", cleaned)
     return cleaned.strip()
-
 
 def _dedupe_preserve(items: List[str]) -> List[str]:
     seen = set()
@@ -24,7 +22,6 @@ def _dedupe_preserve(items: List[str]) -> List[str]:
         seen.add(key)
         output.append(item)
     return output
-
 
 def extract_topic_from_episode(entry: dict) -> Optional[str]:
     meta = entry.get("metadata") or {}
@@ -46,7 +43,6 @@ def extract_topic_from_episode(entry: dict) -> Optional[str]:
         if is_valid_topic(topic):
             return topic
     return None
-
 
 def build_chroma_prompts(user_id: str) -> list:
     try:
@@ -125,7 +121,6 @@ def build_chroma_prompts(user_id: str) -> list:
         pass
 
     return prompts
-
 
 def get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) -> List[str]:
     try:

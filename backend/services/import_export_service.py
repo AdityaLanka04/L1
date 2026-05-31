@@ -1,7 +1,3 @@
-"""
-Comprehensive Import/Export Service
-Handles all conversions between different content types
-"""
 
 import json
 import logging
@@ -20,7 +16,6 @@ logger = logging.getLogger(__name__)
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 class ImportExportService:
-    """Service for handling all import/export operations"""
     
     def __init__(self, db: Session):
         self.db = db
@@ -73,7 +68,6 @@ class ImportExportService:
             pass
 
     def _strip_html_to_text(self, content: str) -> str:
-        """Convert note HTML into podcast-friendly plain text."""
         if not content:
             return ""
 
@@ -123,7 +117,6 @@ class ImportExportService:
         card_count: int = 10,
         difficulty: str = "medium"
     ) -> Dict[str, Any]:
-        """Convert notes to flashcards"""
         from models import Note, FlashcardSet, Flashcard
         
         try:
@@ -206,7 +199,6 @@ Return ONLY a JSON array of flashcards with this exact format:
         question_count: int = 10,
         difficulty: str = "medium"
     ) -> Dict[str, Any]:
-        """Convert notes to practice questions"""
         from models import Note, QuestionSet, Question
         
         try:
@@ -302,7 +294,6 @@ Return ONLY a JSON array with this exact format:
         answer_language: str = "en",
         session_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Prepare one or more notes for podcast mode."""
         from models import Note
 
         try:
@@ -382,7 +373,6 @@ Return ONLY a JSON array with this exact format:
         user_id: int,
         format_style: str = "structured"
     ) -> Dict[str, Any]:
-        """Convert flashcard sets to notes"""
         from models import FlashcardSet, Flashcard, Note
         
         try:
@@ -430,7 +420,6 @@ Return ONLY a JSON array with this exact format:
             return {"success": False, "error": str(e)}
     
     def _format_flashcards_structured(self, cards: List) -> str:
-        """Format flashcards as structured notes"""
         content = "<h1>Study Guide from Flashcards</h1>\n\n"
         
         current_set = None
@@ -445,7 +434,6 @@ Return ONLY a JSON array with this exact format:
         return content
     
     def _format_flashcards_qa(self, cards: List) -> str:
-        """Format flashcards as Q&A"""
         content = "<h1>Q&A Study Guide</h1>\n\n"
         
         for idx, (set_title, card) in enumerate(cards, 1):
@@ -455,7 +443,6 @@ Return ONLY a JSON array with this exact format:
         return content
     
     def _format_flashcards_summary(self, cards: List) -> str:
-        """Format flashcards as summary"""
         content = "<h1>Study Summary</h1>\n\n<ul>\n"
         
         for set_title, card in cards:
@@ -470,7 +457,6 @@ Return ONLY a JSON array with this exact format:
         set_ids: List[int],
         user_id: int
     ) -> Dict[str, Any]:
-        """Convert flashcards to quiz questions"""
         from models import FlashcardSet, Flashcard, QuestionSet, Question
         
         try:
@@ -566,7 +552,6 @@ Return ONLY a JSON array:
         set_ids: List[int],
         user_id: int
     ) -> Dict[str, Any]:
-        """Convert question sets to flashcards"""
         from models import QuestionSet, Question, FlashcardSet, Flashcard
         
         try:
@@ -638,7 +623,6 @@ Return ONLY a JSON array:
         set_ids: List[int],
         user_id: int
     ) -> Dict[str, Any]:
-        """Convert question sets to study guide notes"""
         from models import QuestionSet, Question, Note
         
         try:
@@ -709,7 +693,6 @@ Return ONLY a JSON array:
         user_id: int,
         question_count: int = 10
     ) -> Dict[str, Any]:
-        """Generate questions from media transcripts"""
         from models import MediaFile, QuestionSet, Question
         
         try:
@@ -800,7 +783,6 @@ Return ONLY a JSON array:
         playlist_id: int,
         user_id: int
     ) -> Dict[str, Any]:
-        """Generate comprehensive study notes from playlist content using AI"""
         from models import LearningPlaylist, PlaylistItem, Note
         
         try:
@@ -947,7 +929,6 @@ Write at least 500 words of educational content."""
         user_id: int,
         card_count: int = 15
     ) -> Dict[str, Any]:
-        """Generate flashcards from playlist content"""
         from models import LearningPlaylist, PlaylistItem, FlashcardSet, Flashcard
         
         try:
@@ -1060,7 +1041,6 @@ Return ONLY a JSON array:
         user_id: int,
         new_title: str = None
     ) -> Dict[str, Any]:
-        """Merge multiple notes into one"""
         from models import Note
         
         try:
@@ -1103,7 +1083,6 @@ Return ONLY a JSON array:
         set_ids: List[int],
         user_id: int
     ) -> Dict[str, Any]:
-        """Export flashcards to CSV format"""
         from models import FlashcardSet, Flashcard
         import csv
         import io
@@ -1148,7 +1127,6 @@ Return ONLY a JSON array:
         set_ids: List[int],
         user_id: int
     ) -> Dict[str, Any]:
-        """Export questions to PDF-ready HTML"""
         from models import QuestionSet, Question
         
         try:
@@ -1223,7 +1201,6 @@ Return ONLY a JSON array:
         note_ids: List[int],
         user_id: int
     ) -> Dict[str, Any]:
-        """Export notes to Markdown format"""
         from models import Note
         import html2text
         

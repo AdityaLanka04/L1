@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, Clock, Users, TrendingUp, Zap, Trophy, Plus, X , Menu} from 'lucide-react';
 import './Challenges.css';
@@ -37,7 +37,7 @@ const Challenges = () => {
         setChallenges(data.challenges);
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ const Challenges = () => {
         fetchChallenges();
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -93,7 +93,7 @@ const Challenges = () => {
         fetchChallenges();
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 

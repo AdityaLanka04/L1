@@ -1,9 +1,3 @@
-"""
-verify.py — Spot-check verification for ingested curriculum documents.
-
-After ingesting a document, samples N chunks from the pgvector collection
-and verifies each appears in top search results when queried by its own text.
-"""
 
 from __future__ import annotations
 
@@ -14,7 +8,6 @@ from dataclasses import dataclass, field
 logger = logging.getLogger(__name__)
 
 MAX_QUERY_LEN = 300
-
 
 @dataclass
 class SpotCheckResult:
@@ -27,7 +20,6 @@ class SpotCheckResult:
     skipped: bool = False
     skip_reason: str = ""
 
-
 def _truncate_for_query(text: str) -> str:
     if not text:
         return ""
@@ -37,7 +29,6 @@ def _truncate_for_query(text: str) -> str:
     cutoff = text.rfind(" ", 0, MAX_QUERY_LEN)
     return text[:cutoff].strip() if cutoff > 50 else text[:MAX_QUERY_LEN]
 
-
 def spot_check_doc(
     doc_id: str,
     title: str,
@@ -46,16 +37,6 @@ def spot_check_doc(
     n_samples: int = 3,
     max_distance: float = 0.5,
 ) -> SpotCheckResult:
-    """
-    Verify a recently ingested doc by searching for its own chunks.
-
-    For each sampled chunk:
-      1. Use the chunk text as a search query against hs_curriculum
-      2. Verify the original chunk's doc_id appears in the top results
-      3. Pass threshold: result found within top (n_samples * 5) results
-
-    Returns SpotCheckResult with pass/fail details.
-    """
     try:
         import context_store
         import vector_store as vs
@@ -159,18 +140,12 @@ def spot_check_doc(
         failures=failures,
     )
 
-
 def spot_check_batch(
     results: list[dict],
     sample_rate: float = 0.15,
     min_checks: int = 1,
     n_samples_per_doc: int = 3,
 ) -> list[SpotCheckResult]:
-    """
-    Randomly spot-check ~sample_rate fraction of a batch of ingested docs.
-
-    results: list of dicts with keys: doc_id, title, subject, curriculum
-    """
     if not results:
         return []
 

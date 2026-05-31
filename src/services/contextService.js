@@ -32,7 +32,7 @@ class ContextService {
     try {
       localStorage.setItem(this._localFoldersKey(), JSON.stringify(normalized));
     } catch {
-      // Keep memory store as fallback when localStorage is unavailable.
+      
     }
   }
 
@@ -51,7 +51,7 @@ class ContextService {
     try {
       localStorage.setItem(this._localDocFolderMapKey(), JSON.stringify(normalized));
     } catch {
-      // Keep memory store fallback.
+      
     }
   }
 

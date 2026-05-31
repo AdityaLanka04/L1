@@ -15,10 +15,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["notifications"])
 
 def _assert_user_matches_request(user_id: Optional[str], current_user: models.User) -> None:
-    """
-    Backward-compatible guard for endpoints that still receive user_id from clients.
-    Ensures callers can only act on their own account.
-    """
     if user_id is None:
         return
     requested = str(user_id).strip().lower()
@@ -78,7 +74,6 @@ async def get_notifications(
     try:
         _assert_user_matches_request(user_id, current_user)
         user = current_user
-
 
         now = _normalize_dt(datetime.now(timezone.utc))
         try:

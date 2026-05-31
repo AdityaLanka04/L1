@@ -64,8 +64,6 @@
   flex-direction: column;
 }
 
-
-
 .qb-page::before {
   content: '';
   position: fixed;

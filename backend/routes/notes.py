@@ -16,7 +16,6 @@ from deps import (
     get_db,
     get_user_by_email,
     get_user_by_username,
-    unified_ai,
 )
 
 logger = logging.getLogger(__name__)
@@ -201,7 +200,6 @@ def _fetch_topic_chunks_for_docs(
 
 def _clean_chunk_text(text: str) -> str:
     clean = (text or "").replace("\u0000", " ").strip()
-    # Common OCR/PDF artifacts.
     clean = re.sub(r"\(cid:\d+\)", " ", clean)
     clean = re.sub(r"[ \t]+", " ", clean)
     clean = re.sub(r"\n{3,}", "\n\n", clean)
@@ -212,7 +210,6 @@ def _build_chunk_batches(
     max_chunks_per_batch: int = 18,
     max_chars_per_batch: int = 18000,
 ) -> list[list[tuple[int, str]]]:
-    """Create labeled chunk batches preserving order: [(chunk_no, chunk_text), ...]."""
     cleaned = [(idx + 1, _clean_chunk_text(ch)) for idx, ch in enumerate(chunks)]
     cleaned = [(i, t) for i, t in cleaned if t]
     if not cleaned:
@@ -286,7 +283,6 @@ def _generate_doc_level_notes(doc: models.ContextDocument, chunks: list[str], de
     if not chunk_batches:
         return ""
 
-    # Pass 1: Chunk -> clear intermediate notes.
     intermediate_notes: list[str] = []
     for idx, batch in enumerate(chunk_batches, start=1):
         chunk_block = "\n\n".join([f"[Chunk {chunk_no}]\n{text}" for chunk_no, text in batch])
@@ -321,7 +317,6 @@ def _generate_doc_level_notes(doc: models.ContextDocument, chunks: list[str], de
     if not intermediate_notes:
         return ""
 
-    # Pass 2: Merge intermediate notes into complete document note.
     merge_prompt = (
         f"Merge these batch notes into a single comprehensive, clear note for `{doc.filename or doc.doc_id}`.\n"
         "Preserve all important information. Remove only redundancy.\n"
@@ -364,7 +359,6 @@ def _generate_notes_from_context(docs: list[models.ContextDocument], doc_chunks:
             per_doc_notes.append(doc_note)
 
     if not per_doc_notes:
-        # Last-resort fallback to summaries if full chunk retrieval failed.
         fallback = "\n\n".join(
             [
                 f"## {d.filename or d.doc_id}\n\n{(d.ai_summary or '').strip()}"
@@ -506,7 +500,6 @@ async def create_note_from_context_docs(
     if not docs:
         raise HTTPException(status_code=404, detail="No matching documents found")
 
-    # Preserve request order so generated notes follow user's selected sequence.
     doc_index = {doc_id: idx for idx, doc_id in enumerate(doc_ids)}
     docs.sort(key=lambda d: doc_index.get(d.doc_id, 10**6))
 

@@ -16,7 +16,6 @@ from deps import (
     get_current_user,
     get_user_by_email,
     get_user_by_username,
-    unified_ai,
 )
 from services.ai_json_parser import parse_json_array_response
 from services.math_processor import process_math_in_response
@@ -56,12 +55,6 @@ def _collect_context_doc_content(
     max_chars: int = 24000,
     focus_topic: str = "",
 ) -> tuple[str, str]:
-    """
-    Returns:
-      (content_text, inferred_topic)
-    content_text is merged chunk content from selected docs in-order.
-    inferred_topic comes from dominant subject or first filename stem.
-    """
     docs = (
         db.query(models.ContextDocument)
         .filter(
@@ -246,12 +239,6 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
 async def generate_practice_questions(
     payload: dict = Body(...), db: Session = Depends(get_db)
 ):
-    """Generate practice questions using the QuizGraph (LangGraph pipeline).
-
-    The graph fetches the student's weaknesses, strengths, and recent quiz
-    history from the DB + Neo4j before building a personalised prompt and
-    calling the AI — the same pattern as the FlashcardGraph.
-    """
     try:
         user_id = payload.get("user_id")
         topic = payload.get("topic") or payload.get("content", "")

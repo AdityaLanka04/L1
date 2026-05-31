@@ -64,7 +64,7 @@ const FormattingToolbar = ({ onFormat, onAIAssist, showAI = true, onInsertBlock 
         strikeThrough: document.queryCommandState('strikeThrough')
       });
     } catch (err) {
-    // silenced
+    
   }
   };
 
@@ -83,7 +83,7 @@ const FormattingToolbar = ({ onFormat, onAIAssist, showAI = true, onInsertBlock 
       
       saveSelection();
     } catch (err) {
-    // silenced
+    
   }
   };
 

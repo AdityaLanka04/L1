@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, BookOpen, Target, Brain, Award, TrendingUp, ChevronRight, Menu, Bell } from 'lucide-react';
 import './profile.css';
@@ -148,7 +148,7 @@ const Profile = () => {
         
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setAutoSaving(false);
     }
@@ -238,7 +238,7 @@ const Profile = () => {
               : data.archetypeScores;
           }
         } catch (e) {
-    // silenced
+    
   }
 
         setProfileData(newProfileData);
@@ -251,7 +251,7 @@ const Profile = () => {
               : data.quizResponses;
             setQuizAnswers(parsedQuiz);
           } catch (e) {
-    // silenced
+    
   }
         }
 
@@ -283,14 +283,14 @@ const Profile = () => {
             parsed[field] = value;
             localStorage.setItem('userProfile', JSON.stringify(parsed));
                       } catch (e) {
-    // silenced
+    
   }
         }
 
         try {
           window.dispatchEvent(new Event('notification-settings-changed'));
         } catch (e) {
-    // silenced
+    
   }
         
         

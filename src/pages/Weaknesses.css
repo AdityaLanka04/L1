@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════
-   WEAKNESSES — Cinematic Intelligence Dashboard
-   ══════════════════════════════════════════════════════ */
+
 
 .wk-container {
   position: fixed !important;
@@ -38,7 +36,6 @@
   opacity: 0.3;
 }
 
-/* ══════════════ LOADING ══════════════ */
 .wk-loading {
   display: flex;
   flex-direction: column;
@@ -80,7 +77,6 @@
   margin: 0;
 }
 
-/* ══════════════ HEADER ══════════════ */
 .wk-header {
   position: relative;
   z-index: 100;
@@ -215,7 +211,6 @@
   color: var(--accent);
 }
 
-/* ══════════════ LAYOUT ══════════════ */
 .wk-layout {
   display: flex;
   flex: 1;
@@ -224,7 +219,6 @@
   z-index: 1;
 }
 
-/* ══════════════ SIDEBAR ══════════════ */
 .wk-sidebar {
   width: 220px;
   height: 100%;
@@ -373,7 +367,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* ══════════════ MAIN ══════════════ */
 .wk-main {
   flex: 1;
   overflow-y: auto;
@@ -385,7 +378,6 @@
   scrollbar-color: color-mix(in srgb, var(--accent) 20%, transparent) transparent;
 }
 
-/* ══════════════ VIEW HEADER ══════════════ */
 .wk-view-header {
   display: flex;
   flex-direction: column;
@@ -434,7 +426,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* ══════════════ FILTER PILLS ══════════════ */
 .wk-filter-row {
   display: flex;
   gap: 8px;
@@ -496,14 +487,12 @@
   opacity: 0.9;
 }
 
-/* ══════════════ BENTO GRID ══════════════ */
 .wk-bento-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
 
-/* ══════════════ WEAKNESS CARD ══════════════ */
 .wk-card {
   background: color-mix(in srgb, var(--bg-secondary) 80%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
@@ -689,7 +678,6 @@
   color: #000;
 }
 
-/* ══════════════ EMPTY STATE ══════════════ */
 .wk-empty {
   display: flex;
   flex-direction: column;
@@ -747,7 +735,6 @@
   transform: translateY(-1px);
 }
 
-/* ══════════════ COMPONENT WRAPPER ══════════════ */
 .wk-component-wrapper {
   flex: 1;
   min-height: 0;

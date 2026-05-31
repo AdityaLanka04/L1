@@ -21,7 +21,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["imports"])
 
-_MAX_IMPORT_SIZE = 20 * 1024 * 1024  # 20 MB
+_MAX_IMPORT_SIZE = 20 * 1024 * 1024
 _ALLOWED_IMPORT_EXTENSIONS = {'pdf', 'docx', 'doc'}
 _ALLOWED_IMPORT_MIMES = {
     'application/pdf',

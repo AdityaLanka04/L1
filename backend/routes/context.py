@@ -1,17 +1,3 @@
-"""
-routes/context.py — Cerbyl HS Mode document management API.
-
-Endpoints:
-  POST   /api/context/upload                    — upload a document (PDF/TXT/MD)
-  POST   /api/context/import_url                — import a document by URL
-  GET    /api/context/documents                 — list user's docs + HS summary
-  DELETE /api/context/documents/{doc_id}        — delete (own only; admin can delete HS)
-  GET    /api/context/search                    — test RAG retrieval
-  GET    /api/context/hs/subjects               — list subjects in shared HS DB
-
-All routes require Bearer token via get_current_user.
-File upload uses multipart/form-data (FastAPI UploadFile + Form).
-"""
 
 from __future__ import annotations
 
@@ -124,7 +110,6 @@ _BLOCKED_HOSTS = {
 import socket as _socket
 
 def _resolve_and_check_ip(host: str) -> bool:
-    """Resolve hostname to IP and reject private/loopback addresses (blocks DNS rebinding)."""
     try:
         infos = _socket.getaddrinfo(host, None)
         for info in infos:
@@ -246,26 +231,21 @@ class AskRequest(BaseModel):
     top_k: int = 6
     doc_ids: Optional[list[str]] = None
 
-
 class ContextFolderCreateRequest(BaseModel):
     name: str
     color: Optional[str] = "#D7B38C"
     parent_id: Optional[int] = None
-
 
 class ContextFolderUpdateRequest(BaseModel):
     name: Optional[str] = None
     color: Optional[str] = None
     parent_id: Optional[int] = None
 
-
 class ContextDocumentFolderUpdateRequest(BaseModel):
     folder_id: Optional[int] = None
 
-
 def _normalize_topic_key(value: str) -> str:
     return re.sub(r"\s+", " ", (value or "").strip().lower())
-
 
 def _parse_json_list(raw_value) -> list[str]:
     if raw_value is None:
@@ -285,7 +265,6 @@ def _parse_json_list(raw_value) -> list[str]:
         return [value]
     return []
 
-
 def _lookup_topic_mastery_score(
     topic: str,
     exact_map: dict[str, float],
@@ -304,7 +283,6 @@ def _lookup_topic_mastery_score(
         if state_key in key or key in state_key:
             best = max(best, score)
     return best
-
 
 def _build_doc_progress_payload(db: Session, user_id: int) -> dict:
     docs = (
@@ -449,7 +427,6 @@ def _build_doc_progress_payload(db: Session, user_id: int) -> dict:
         "doc_progress": doc_progress,
     }
 
-
 def _normalize_scope(raw_scope: str) -> str:
     scope = (raw_scope or "private").strip().lower()
     if scope == "private":
@@ -457,7 +434,6 @@ def _normalize_scope(raw_scope: str) -> str:
     if scope in ("public", "community", "hs_shared"):
         return "hs_shared"
     raise HTTPException(status_code=400, detail="scope must be 'private' or 'hs_shared'")
-
 
 def _get_context_folder_or_404(db: Session, user_id: int, folder_id: Optional[int]):
     if folder_id is None:
@@ -473,7 +449,6 @@ def _get_context_folder_or_404(db: Session, user_id: int, folder_id: Optional[in
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
     return folder
-
 
 def _would_create_folder_cycle(db: Session, user_id: int, folder_id: int, candidate_parent_id: Optional[int]) -> bool:
     current = candidate_parent_id
@@ -496,7 +471,6 @@ def _would_create_folder_cycle(db: Session, user_id: int, folder_id: int, candid
             return False
         current = parent.parent_id
     return False
-
 
 def _ensure_context_schema(db: Session) -> None:
     global _context_schema_checked
@@ -530,11 +504,6 @@ def _ensure_context_schema(db: Session) -> None:
     _context_schema_checked = True
 
 def _generate_doc_summary(doc_id: str, chunks: list[str], filename: str, subject: str, db_session_factory):
-    """
-    Background task: call AI to generate a structured summary for a document
-    and persist it to the ContextDocument row.
-    Uses the first ~4000 chars of the document for the prompt.
-    """
     try:
         sample = "\n\n".join(chunks[:8])[:4000]
         prompt = (
@@ -582,7 +551,6 @@ def _generate_doc_summary(doc_id: str, chunks: list[str], filename: str, subject
                     continue
 
         if not isinstance(data, dict):
-            # Non-fatal fallback: still persist a usable summary instead of failing the background task.
             data = {
                 "title": "",
                 "description": cleaned[:600],
@@ -628,21 +596,6 @@ async def upload_document(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Upload and process a PDF or text document for HS Mode context.
-
-    Form fields:
-      file        — the document file (.pdf, .txt, or .md)
-      subject     — e.g. "Biology", "Algebra II" (optional)
-      grade_level — e.g. "Grade 10", "AP" (optional)
-      scope       — "private" (default) or "hs_shared" (contributes to global HS curriculum)
-      source_url  — original URL if this is admin-seeded content (optional)
-      source_name — provenance label (optional)
-      license     — license string (optional)
-
-    Returns:
-      { success, doc_id, filename, chunk_count, scope, message }
-    """
     _ensure_context_schema(db)
     scope = _normalize_scope(scope)
     folder = _get_context_folder_or_404(db, current_user.id, folder_id)
@@ -1042,7 +995,6 @@ def list_documents(
         "hs_mode_available": context_store.available(),
     }
 
-
 @router.get("/folders")
 def list_context_folders(
     db: Session = Depends(get_db),
@@ -1076,7 +1028,6 @@ def list_context_folders(
         ]
     }
 
-
 @router.post("/folders")
 def create_context_folder(
     payload: ContextFolderCreateRequest,
@@ -1107,7 +1058,6 @@ def create_context_folder(
         "parent_id": folder.parent_id,
         "status": "success",
     }
-
 
 @router.put("/folders/{folder_id}")
 def update_context_folder(
@@ -1150,7 +1100,6 @@ def update_context_folder(
         "status": "success",
     }
 
-
 @router.delete("/folders/{folder_id}")
 def delete_context_folder(
     folder_id: int,
@@ -1182,7 +1131,6 @@ def delete_context_folder(
     db.commit()
     return {"status": "success", "deleted_folder_id": folder_id, "moved_to_folder_id": target_id}
 
-
 @router.put("/documents/{doc_id}/folder")
 def move_document_to_folder(
     doc_id: str,
@@ -1207,7 +1155,6 @@ def move_document_to_folder(
     db.commit()
     return {"status": "success", "doc_id": doc_id, "folder_id": doc.folder_id}
 
-
 @router.get("/progress")
 def get_context_progress(
     db: Session = Depends(get_db),
@@ -1222,14 +1169,6 @@ def delete_document(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Delete a document by doc_id.
-
-    Regular users can delete their own documents.
-    Admins (is_admin=True or role="admin") can also remove the doc from hs_curriculum.
-
-    Returns: { success: True, doc_id: str }
-    """
     doc = (
         db.query(models.ContextDocument)
         .filter(models.ContextDocument.doc_id == doc_id)
@@ -1271,16 +1210,6 @@ def search_context_endpoint(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Test RAG retrieval for a query. Useful for verifying documents were indexed correctly.
-
-    Returns:
-    {
-        "query": str,
-        "results": [{"text": str, "metadata": dict, "source": "private"|"hs"}],
-        "chunk_count": int
-    }
-    """
     try:
         parsed_doc_ids = doc_ids.split(",") if doc_ids else None
         results = context_store.search_context(
@@ -1417,15 +1346,6 @@ def get_hs_subjects(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Return all subject areas available in the shared hs_curriculum ChromaDB collection.
-
-    Returns:
-    {
-        "subjects": [{"subject": str, "grade_level": str, "curriculum": str, "doc_count": int}],
-        "total": int
-    }
-    """
     try:
         subjects = context_store.list_hs_subjects()
         return {"subjects": subjects, "total": len(subjects)}
@@ -1433,23 +1353,10 @@ def get_hs_subjects(
         logger.warning(f"get_hs_subjects failed: {e}")
         return {"subjects": [], "total": 0}
 
-
 @router.get("/hs/stats")
 def get_hs_stats(
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Admin-facing aggregate stats for the shared hs_curriculum collection.
-
-    Returns:
-    {
-        "total_chunks": int,
-        "total_docs": int,
-        "by_curriculum": {"us": int, "uk": int},
-        "by_subject": {"Biology": int, ...},
-        "by_source_type": {"openstax": int, "gcse_aqa": int, ...}
-    }
-    """
     try:
         stats = context_store.get_hs_stats()
         return stats
@@ -1457,35 +1364,12 @@ def get_hs_stats(
         logger.warning(f"get_hs_stats failed: {e}")
         return {}
 
-
 @router.post("/ask")
 def ask_knowledge_base(
     payload: AskRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Ask a question against the student's knowledge base (personal docs + optional HS curriculum).
-
-    Retrieves the most relevant chunks via hybrid BM25+vector search, then asks the AI
-    to synthesise a cited answer.
-
-    Returns:
-    {
-        "answer": str,
-        "sources": [
-            {
-                "filename": str,
-                "page": str,
-                "subject": str,
-                "source": "private"|"hs",
-                "doc_id": str,
-                "snippet": str
-            }
-        ],
-        "chunk_count": int
-    }
-    """
     question = (payload.question or "").strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question must not be empty")
@@ -1498,7 +1382,6 @@ def ask_knowledge_base(
     top_k = max(1, min(payload.top_k or 6, 12))
     selected_doc_ids = [d.strip() for d in (payload.doc_ids or []) if isinstance(d, str) and d.strip()]
     if selected_doc_ids:
-        # Keep request bounded and deterministic.
         selected_doc_ids = selected_doc_ids[:200]
 
     try:
@@ -1520,7 +1403,6 @@ def ask_knowledge_base(
             "chunk_count": 0,
         }
 
-    # Build prompt with numbered excerpts
     excerpts_text = ""
     sources = []
     for i, r in enumerate(results, start=1):

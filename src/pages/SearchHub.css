@@ -30,7 +30,6 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* ===== Background ===== */
 .sh-bg-fx {
   position: fixed;
   inset: 0;
@@ -93,7 +92,6 @@
     radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 60%);
 }
 
-/* ===== Topbar ===== */
 .sh-topbar {
   position: sticky;
   top: 0;
@@ -199,7 +197,6 @@
   font-weight: 700;
 }
 
-/* ===== Login message ===== */
 .sh-login-msg {
   position: fixed;
   top: 20px;
@@ -223,7 +220,6 @@
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* ===== Main ===== */
 .sh-shell {
   position: relative;
   z-index: 2;
@@ -457,7 +453,6 @@
   min-width: 0;
 }
 
-/* ===== Loading init ===== */
 .sh-loading-init {
   flex: 1;
   display: flex;
@@ -465,7 +460,6 @@
   justify-content: center;
 }
 
-/* ===== Pulse dots ===== */
 .sh-pulse {
   display: inline-flex;
   gap: 6px;
@@ -491,7 +485,6 @@
   40% { opacity: 1; }
 }
 
-/* ===== Hero ===== */
 .sh-hero {
   flex: 1;
   display: flex;
@@ -525,7 +518,6 @@
   color: var(--accent);
 }
 
-/* ===== Search ===== */
 .sh-search-wrap {
   position: relative;
   width: 100%;
@@ -649,7 +641,6 @@
   background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
-/* ===== Autocomplete ===== */
 .sh-autocomplete {
   position: absolute;
   top: 100%;
@@ -751,7 +742,6 @@
   color: var(--sh-mute);
 }
 
-/* ===== Helper text ===== */
 .sh-helper {
   font-size: 11.5px;
   font-weight: 400;
@@ -780,7 +770,6 @@
   color: var(--sh-mute);
 }
 
-/* ===== Command toggle ===== */
 .sh-cmd-toggle {
   display: inline-flex;
   align-items: center;
@@ -815,7 +804,6 @@
   color: var(--sh-mute);
 }
 
-/* ===== Command console ===== */
 .sh-cmd-console {
   width: 100%;
   max-width: 600px;
@@ -878,7 +866,6 @@
   color: var(--sh-mute);
 }
 
-/* ===== Chips (bento recommendations) ===== */
 .sh-chips-wrap {
   width: 100%;
   max-width: 860px;
@@ -1017,7 +1004,6 @@
   opacity: 0;
 }
 
-/* ===== Creating / Searching states ===== */
 .sh-creating,
 .sh-searching {
   flex: 1;
@@ -1050,7 +1036,6 @@
   text-align: center;
 }
 
-/* ===== Results ===== */
 .sh-results {
   flex: 1;
   padding: 28px 32px 48px;
@@ -1147,7 +1132,6 @@
   font-weight: 800;
 }
 
-/* ===== Filters panel ===== */
 .sh-filters {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -1210,7 +1194,6 @@
 
 .sh-apply-filters:hover { filter: brightness(1.1); }
 
-/* ===== AI panel ===== */
 .sh-ai-panel {
   background:
     radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--accent) 7%, transparent) 0%, transparent 55%),
@@ -1265,7 +1248,6 @@
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
-/* ===== Results section head ===== */
 .sh-results-section-head {
   display: flex;
   align-items: baseline;
@@ -1287,7 +1269,6 @@
   color: var(--sh-mute);
 }
 
-/* ===== Result cards ===== */
 .sh-results-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -1465,7 +1446,6 @@
   transform: translateX(4px);
 }
 
-/* ===== Related searches ===== */
 .sh-related {
   padding: 16px 0;
   border-top: 1px solid var(--sh-line-soft);
@@ -1507,7 +1487,6 @@
   background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
-/* ===== Create options ===== */
 .sh-create-options {
   display: flex;
   flex-direction: column;
@@ -1576,7 +1555,6 @@
   letter-spacing: 0.02em;
 }
 
-/* ===== AI response section ===== */
 .sh-ai-response {
   display: flex;
   flex-direction: column;
@@ -1594,7 +1572,6 @@
   text-transform: uppercase;
 }
 
-/* ===== No results ===== */
 .sh-no-results {
   display: flex;
   flex-direction: column;
@@ -1644,7 +1621,6 @@
 
 .sh-dym-btn:hover { color: var(--sh-text); }
 
-/* ===== Login modal ===== */
 .sh-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1739,7 +1715,6 @@
   color: var(--accent);
 }
 
-/* ===== Autocomplete badge type colors ===== */
 .sh-ac-badge.create_flashcards,
 .sh-ac-badge.create_note,
 .sh-ac-badge.create_quiz,
@@ -1771,7 +1746,6 @@
   border-color: color-mix(in srgb, #6b7280 30%, transparent);
 }
 
-/* ===== Responsive ===== */
 @media (max-width: 1024px) {
   .sh-topbar-right-desktop { display: none; }
   .sh-shell {
@@ -1802,5 +1776,4 @@
   .sh-chip { max-width: 100%; }
 }
 
-/* ===== HS banner hidden ===== */
 .hs-mode-banner { display: none !important; }

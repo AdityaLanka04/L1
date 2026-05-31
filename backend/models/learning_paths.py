@@ -1,7 +1,3 @@
-"""
-Learning Paths Models - Duolingo-style Learning Path System
-Defines database models for structured learning journeys
-"""
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float, JSON, Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -9,7 +5,6 @@ import enum
 import uuid
 
 def create_learning_paths_models(Base):
-    """Create Learning Paths models with the provided Base"""
     
     class DifficultyLevel(str, enum.Enum):
         BEGINNER = "beginner"
@@ -28,7 +23,6 @@ def create_learning_paths_models(Base):
         COMPLETED = "completed"
     
     class LearningPath(Base):
-        """Main learning path entity - represents a complete learning journey"""
         __tablename__ = "learning_paths"
         
         id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -52,7 +46,6 @@ def create_learning_paths_models(Base):
         progress = relationship("LearningPathProgress", back_populates="path", uselist=False, cascade="all, delete-orphan")
     
     class LearningPathNode(Base):
-        """Individual node/section in a learning path"""
         __tablename__ = "learning_path_nodes"
         
         id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -113,7 +106,6 @@ def create_learning_paths_models(Base):
         progress_records = relationship("LearningNodeProgress", back_populates="node", cascade="all, delete-orphan")
     
     class LearningPathProgress(Base):
-        """Overall progress for a learning path"""
         __tablename__ = "learning_path_progress"
         
         id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -130,7 +122,6 @@ def create_learning_paths_models(Base):
         path = relationship("LearningPath", back_populates="progress")
     
     class LearningNodeProgress(Base):
-        """Progress for individual nodes"""
         __tablename__ = "learning_node_progress"
         
         id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -164,7 +155,6 @@ def create_learning_paths_models(Base):
         node = relationship("LearningPathNode", back_populates="progress_records")
     
     class LearningNodeNote(Base):
-        """User notes for individual nodes"""
         __tablename__ = "learning_node_notes"
         
         id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))

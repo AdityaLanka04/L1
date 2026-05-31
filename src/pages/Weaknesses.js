@@ -38,7 +38,7 @@ const Weaknesses = () => {
         setWeakAreasData(data);
       }
     } catch (error) {
-      console.error('Error loading weak areas:', error); // silenced
+      console.error('Error loading weak areas:', error); 
     } finally {
       setLoading(false);
     }

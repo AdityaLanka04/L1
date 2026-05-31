@@ -1,12 +1,4 @@
-/**
- * Global fetch interceptor for rate-limit handling.
- *
- * Patches window.fetch so every 429 response dispatches a custom
- * 'brainwave:rate-limited' event on window.  Components listen for
- * this event and show a toast — no changes needed per service file.
- *
- * Call installFetchInterceptor() once at app boot (see index.js).
- */
+
 
 let _installed = false;
 

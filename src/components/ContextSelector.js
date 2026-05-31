@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BookOpen, FileText } from 'lucide-react';
 import './ContextSelector.css';
 

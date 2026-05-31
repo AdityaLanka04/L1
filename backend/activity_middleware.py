@@ -11,12 +11,10 @@ from deps import SECRET_KEY, ALGORITHM
 logger = logging.getLogger(__name__)
 
 ENDPOINT_TOOL_RULES = [
-    # Chat
     ('/api/save_chat_message', 'ai_chat'),
     ('/api/send_message', 'ai_chat'),
     ('/api/rename_chat', 'ai_chat'),
     ('/api/chat', 'ai_chat'),
-    # Flashcards / notes / quiz / questions
     ('/api/generate_flashcards', 'flashcards_ai'),
     ('/api/convert_to_flashcards', 'flashcards_ai'),
     ('/api/flashcards', 'flashcards'),
@@ -29,7 +27,6 @@ ENDPOINT_TOOL_RULES = [
     ('/api/quiz', 'quiz'),
     ('/api/generate_questions', 'question_bank_ai'),
     ('/api/question_bank', 'question_bank'),
-    # Slide explorer and media notes
     ('/api/analyze_slide/', 'slide_explorer_ai'),
     ('/api/analyze_slides', 'slide_explorer_ai'),
     ('/api/slide_explorer', 'slide_explorer'),
@@ -38,7 +35,6 @@ ENDPOINT_TOOL_RULES = [
     ('/api/media/generate-title', 'media_notes_ai'),
     ('/api/process_media', 'media_notes_ai'),
     ('/api/transcribe_audio/', 'media_notes_ai'),
-    # Podcast flows
     ('/api/media/podcast/mcq/start', 'podcast_ai'),
     ('/api/media/podcast/start', 'podcast_ai'),
     ('/api/media/podcast/ask', 'podcast_ai'),
@@ -46,19 +42,16 @@ ENDPOINT_TOOL_RULES = [
     ('/api/media/', 'media_notes'),
     ('/api/media_notes', 'media_notes'),
     ('/api/upload_media', 'media_notes'),
-    # Learning paths
     ('/api/learning-paths/generate', 'learning_path_ai'),
     ('/api/learning-paths/', 'learning_paths'),
     ('/api/learning_paths', 'learning_paths'),
     ('/api/generate_learning_path', 'learning_path_ai'),
-    # Remaining legacy mappings
     ('/api/weakness', 'weakness_analysis'),
     ('/api/analyze_weakness', 'weakness_ai'),
     ('/api/study_insights', 'study_insights'),
     ('/api/get_comprehensive_profile', 'profile'),
     ('/api/update_profile', 'profile'),
 ]
-
 
 def get_tool_name(path: str) -> str:
     for endpoint, tool in ENDPOINT_TOOL_RULES:
@@ -75,7 +68,6 @@ def get_tool_name(path: str) -> str:
         return f"{segment}_ai"
     return segment
 
-
 def get_action(method: str, path: str) -> str:
     if method == 'POST':
         return 'create'
@@ -87,12 +79,10 @@ def get_action(method: str, path: str) -> str:
         return 'view'
     return 'action'
 
-
 def is_ai_tool(tool_name: str) -> bool:
     if not tool_name:
         return False
     return tool_name.startswith('ai_') or tool_name.endswith('_ai') or 'ai' in tool_name
-
 
 async def log_request_activity(request: Request, call_next):
     start_time = time.time()

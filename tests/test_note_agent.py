@@ -1,31 +1,3 @@
-"""
-=============================================================================
-BRAINWAVE L1 — NOTE GENERATION AGENT TEST SUITE
-=============================================================================
-Tests LangGraph initialization, note quality, depth levels, tone variations,
-markdown structure, content accuracy, concurrent generation, and overload.
-
-Primary endpoint : POST /api/agents/searchhub/create-note  (JSON body)
-Fallback endpoint: POST /api/generate_note_content/        (form-data)
-
-Graph            : note_graph.py  (3-node LangGraph: fetch_context →
-                   build_prompt → generate_note)
-State includes   : depth (brief/standard/deep), tone (professional/academic/
-                   casual/concise), concept_prerequisites, common_mistakes
-
-LangGraph indicators tested:
-  • Note length scales with depth setting (brief < standard < deep)
-  • Tone vocabulary shifts across tone modes
-  • Prerequisites section present in deep notes (from Neo4j context)
-  • Common mistakes section present (from Neo4j fetch_context)
-  • Notes use proper markdown structure (headers, bullets, code blocks)
-
-Usage:
-    pip install requests aiohttp pytest
-    python -m pytest tests/test_note_agent.py -v
-    python tests/test_note_agent.py          # standalone runner
-=============================================================================
-"""
 
 import asyncio
 import json
@@ -50,10 +22,6 @@ try:
 except ImportError:
     HAS_AIOHTTP = False
 
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
-
 BASE_URL        = "http://localhost:8000"
 API_URL         = f"{BASE_URL}/api"
 NOTE_ENDPOINT   = f"{API_URL}/agents/searchhub/create-note"
@@ -62,15 +30,14 @@ HEALTH_EP       = f"{BASE_URL}/health"
 
 TEST_USER_ID    = "testuser"
 
-REQUEST_TIMEOUT       = 120   # notes can be longer to generate
+REQUEST_TIMEOUT       = 120
 CONCURRENT_WORKERS    = 8
 ASYNC_CONCURRENT      = 10
 
-# Quality thresholds
-MIN_BRIEF_LEN    = 100    # chars for brief notes
-MIN_STANDARD_LEN = 300    # chars for standard notes
-MIN_DEEP_LEN     = 600    # chars for deep notes
-MAX_P95_MS       = 90_000 # 90 s p95 latency
+MIN_BRIEF_LEN    = 100
+MIN_STANDARD_LEN = 300
+MIN_DEEP_LEN     = 600
+MAX_P95_MS       = 90_000
 
 RESULTS = {
     "passed":    0,
@@ -79,7 +46,6 @@ RESULTS = {
     "timings_ms": [],
     "failures":  [],
 }
-
 
 def _record(label: str, passed: bool, ms: float = 0, detail: str = ""):
     status = "PASS" if passed else "FAIL"
@@ -93,24 +59,14 @@ def _record(label: str, passed: bool, ms: float = 0, detail: str = ""):
     if ms > 0:
         RESULTS["timings_ms"].append(ms)
 
-
 def _section(title: str):
     print(f"\n{'='*78}")
     print(f"  {title}")
     print(f"{'='*78}")
 
-
-# =============================================================================
-# HTTP HELPERS
-# =============================================================================
-
 def note_request(topic: str, depth: str = "standard", tone: str = "professional",
                  content: str = None, user_id: str = TEST_USER_ID,
                  timeout: int = REQUEST_TIMEOUT) -> tuple[dict | None, float, int]:
-    """
-    POST /api/agents/searchhub/create-note  (JSON)
-    Returns (response_dict_or_None, elapsed_ms, status_code)
-    """
     body = {"user_id": user_id, "topic": topic, "depth": depth, "tone": tone}
     if content:
         body["content"] = content
@@ -129,12 +85,8 @@ def note_request(topic: str, depth: str = "standard", tone: str = "professional"
         ms = (time.perf_counter() - t0) * 1000
         return None, ms, 408
 
-
 def note_request_fallback(topic: str, user_id: str = TEST_USER_ID,
                            timeout: int = REQUEST_TIMEOUT) -> tuple[dict | None, float, int]:
-    """
-    POST /api/generate_note_content/  (form-data) — fallback endpoint
-    """
     t0 = time.perf_counter()
     try:
         r = requests.post(NOTE_EP_FALLBACK, data={"user_id": user_id, "topic": topic},
@@ -148,7 +100,6 @@ def note_request_fallback(topic: str, user_id: str = TEST_USER_ID,
         ms = (time.perf_counter() - t0) * 1000
         return None, ms, 0
 
-
 def check_server_up() -> bool:
     for url in (HEALTH_EP, BASE_URL):
         try:
@@ -159,14 +110,9 @@ def check_server_up() -> bool:
             continue
     return False
 
-
 def extract_content(data: dict | None) -> str:
-    """Extract the generated note text from various response shapes."""
     if data is None:
         return ""
-    # SearchHub endpoint wraps in success/content_id
-    # The actual content might be in a note fetched separately,
-    # but the endpoint may also return content directly
     return (
         data.get("content") or
         data.get("note_content") or
@@ -175,17 +121,13 @@ def extract_content(data: dict | None) -> str:
         ""
     )
 
-
 def validate_note_response(data: dict | None, min_len: int = MIN_BRIEF_LEN
                             ) -> tuple[bool, str]:
-    """Validate note generation response."""
     if data is None:
         return False, "null response"
     if not isinstance(data, dict):
         return False, f"expected dict, got {type(data).__name__}"
 
-    # SearchHub create-note returns {success, content_id, content_title, navigate_to}
-    # The actual content is saved to DB; we check success + content_id
     if data.get("success") is True:
         has_id = bool(data.get("content_id") or data.get("id"))
         content = extract_content(data)
@@ -193,23 +135,18 @@ def validate_note_response(data: dict | None, min_len: int = MIN_BRIEF_LEN
             return True, f"content_id={data.get('content_id')} title='{data.get('content_title', '')[:40]}'"
         if content and len(content) >= min_len:
             return True, f"inline content len={len(content)}"
-        # success=True with content_id is sufficient
         return True, f"success=True id={data.get('content_id')}"
 
-    # Fallback: content directly in response
     content = extract_content(data)
     if content and len(content) >= min_len:
         return True, f"content len={len(content)}"
 
-    # Check for error
     if data.get("success") is False or data.get("error"):
         return False, f"error: {data.get('detail') or data.get('error') or 'unknown'}"
 
     return False, f"unexpected response shape: keys={list(data.keys())}"
 
-
 def check_markdown_structure(content: str) -> dict:
-    """Analyse markdown structure of a note."""
     return {
         "has_headers":     bool(re.search(r'^#{1,3} .+', content, re.MULTILINE)),
         "has_bullets":     bool(re.search(r'^\s*[-*] .+', content, re.MULTILINE)),
@@ -222,12 +159,7 @@ def check_markdown_structure(content: str) -> dict:
         "word_count":      len(content.split()),
     }
 
-
 def get_note_content_from_id(content_id: int) -> str:
-    """
-    Attempt to fetch note content via GET /api/get_notes.
-    Returns content string or empty string.
-    """
     try:
         r = requests.get(f"{API_URL}/get_notes",
                          params={"user_id": TEST_USER_ID}, timeout=10)
@@ -245,15 +177,9 @@ def get_note_content_from_id(content_id: int) -> str:
         pass
     return ""
 
-
-# =============================================================================
-# SECTION 1 — SERVER & GRAPH INITIALIZATION
-# =============================================================================
-
 def test_server_and_init():
     _section("SECTION 1 — SERVER & LANGGRAPH INITIALIZATION")
 
-    # 1.1 Server reachable
     t0 = time.perf_counter()
     up = check_server_up()
     ms = (time.perf_counter() - t0) * 1000
@@ -262,38 +188,27 @@ def test_server_and_init():
         print("\n  !! Backend not running — aborting !!")
         sys.exit(1)
 
-    # 1.2 First note generation — proves graph is initialized
     data, ms, code = note_request("Python programming basics", depth="brief")
     ok, detail = validate_note_response(data)
     _record("Note graph responds to first request (graph initialized)", ok, ms, detail)
 
-    # 1.3 HTTP 200
     _record("HTTP 200 on first valid request", code == 200, ms, f"got {code}")
 
-    # 1.4 Response has expected shape
     if data:
         has_success = "success" in data or "content" in data or "content_id" in data
         _record("Response has success/content/content_id field", has_success, ms,
                 f"keys={list(data.keys())[:5]}")
 
-    # 1.5 Second request (graph still alive)
     data2, ms2, code2 = note_request("Machine learning fundamentals", depth="brief")
     ok2, detail2 = validate_note_response(data2)
     _record("Second request succeeds (graph stays alive)", ok2, ms2, detail2)
 
-    # 1.6 Fallback endpoint also works
     data_fb, ms_fb, code_fb = note_request_fallback("Recursion basics")
     ok_fb = code_fb in (200, 201) and data_fb is not None
     _record("Fallback endpoint /generate_note_content/ responds", ok_fb, ms_fb,
             f"code={code_fb}")
 
-
-# =============================================================================
-# SECTION 2 — DIVERSE TOPIC COVERAGE (35 TOPICS)
-# =============================================================================
-
 DIVERSE_TOPICS = [
-    # Computer Science
     ("Recursion and recursive algorithms",              "cs"),
     ("Binary search trees and operations",              "cs"),
     ("Graph theory: BFS DFS shortest paths",            "cs"),
@@ -304,27 +219,23 @@ DIVERSE_TOPICS = [
     ("RESTful API design principles",                   "cs"),
     ("Docker and container orchestration",              "cs"),
     ("Git branching strategies",                        "cs"),
-    # Machine Learning / AI
     ("Supervised learning: regression and classification","ml"),
     ("Neural networks: forward and backpropagation",    "ml"),
     ("Convolutional neural networks for image recognition","ml"),
     ("Natural language processing: tokenization embeddings","ml"),
     ("Reinforcement learning: Q-learning policy gradient","ml"),
     ("Overfitting regularization and cross-validation", "ml"),
-    # Mathematics
     ("Calculus: limits derivatives integrals",          "math"),
     ("Linear algebra: vectors matrices transformations","math"),
     ("Probability and statistics fundamentals",         "math"),
     ("Discrete mathematics: logic sets graphs",         "math"),
     ("Number theory: primes modular arithmetic",        "math"),
-    # Science
     ("Cell biology: organelles and functions",          "bio"),
     ("Genetics: DNA replication transcription translation","bio"),
     ("Organic chemistry: functional groups mechanisms", "chem"),
     ("Thermodynamics: laws entropy enthalpy",           "physics"),
     ("Quantum mechanics: wave-particle duality uncertainty","physics"),
     ("Electromagnetism: Maxwell equations fields",      "physics"),
-    # Other
     ("World War 2: causes events consequences",         "history"),
     ("The Roman Empire: rise and fall",                 "history"),
     ("Supply and demand in microeconomics",             "econ"),
@@ -335,7 +246,6 @@ DIVERSE_TOPICS = [
     ("Climate change: causes effects solutions",        "env"),
 ]
 
-
 def test_diverse_topics():
     _section("SECTION 2 — DIVERSE TOPIC COVERAGE (35 TOPICS)")
     for topic, category in DIVERSE_TOPICS:
@@ -344,11 +254,6 @@ def test_diverse_topics():
         ok, detail = validate_note_response(data)
         _record(label, ok, ms, detail[:60])
 
-
-# =============================================================================
-# SECTION 3 — DEPTH LEVEL TESTS
-# =============================================================================
-
 DEPTH_TOPICS = [
     "Python programming: functions and closures",
     "Machine learning: gradient descent optimization",
@@ -356,7 +261,6 @@ DEPTH_TOPICS = [
     "History: French Revolution",
     "Data structures: hash tables",
 ]
-
 
 def test_depth_levels():
     _section("SECTION 3 — DEPTH LEVEL TESTS (brief/standard/deep)")
@@ -369,7 +273,6 @@ def test_depth_levels():
             ok, detail = validate_note_response(data)
             _record(label, ok, ms, detail[:60])
 
-            # Try to get content length for depth comparison
             if ok and data:
                 content_id = data.get("content_id")
                 content    = extract_content(data)
@@ -378,7 +281,6 @@ def test_depth_levels():
                 if content:
                     depth_lengths[depth].append(len(content))
 
-    # Validate depth scaling
     if all(depth_lengths[d] for d in ("brief", "standard", "deep")):
         avg_b = statistics.mean(depth_lengths["brief"])
         avg_s = statistics.mean(depth_lengths["standard"])
@@ -389,11 +291,6 @@ def test_depth_levels():
         _record("Standard notes longer than brief",
                 avg_s >= avg_b * 0.9, 0, f"std={avg_s:.0f} >= brief={avg_b:.0f}")
 
-
-# =============================================================================
-# SECTION 4 — TONE VARIATION TESTS
-# =============================================================================
-
 TONE_TOPICS = [
     "Introduction to machine learning",
     "Python decorators and generators",
@@ -401,7 +298,6 @@ TONE_TOPICS = [
     "Supply and demand economics",
     "Human immune system",
 ]
-
 
 def test_tone_variations():
     _section("SECTION 4 — TONE VARIATION TESTS (professional/academic/casual/concise)")
@@ -422,20 +318,13 @@ def test_tone_variations():
                 if content:
                     tone_contents[tone].append(content)
 
-    # Concise should be shorter than deep/standard
     if tone_contents["concise"] and tone_contents["academic"]:
         avg_concise  = statistics.mean(len(c) for c in tone_contents["concise"])
         avg_academic = statistics.mean(len(c) for c in tone_contents["academic"])
         print(f"\n   Avg by tone: concise={avg_concise:.0f}  academic={avg_academic:.0f}")
-        # Concise should generally be shorter or similar (not always guaranteed)
         _record("Tone system active (notes generated for all 4 tones)",
                 all(bool(tone_contents[t]) for t in tone_contents), 0,
                 f"all tones returned content")
-
-
-# =============================================================================
-# SECTION 5 — MARKDOWN STRUCTURE VALIDATION
-# =============================================================================
 
 MARKDOWN_TOPICS = [
     ("Sorting algorithms in computer science", "deep",     "professional"),
@@ -444,7 +333,6 @@ MARKDOWN_TOPICS = [
     ("History of the Roman Empire",            "deep",     "academic"),
     ("Human anatomy: cardiovascular system",   "standard", "professional"),
 ]
-
 
 def test_markdown_structure():
     _section("SECTION 5 — MARKDOWN STRUCTURE VALIDATION")
@@ -470,7 +358,6 @@ def test_markdown_structure():
         else:
             _record(label, ok, ms, detail[:60])
 
-    # Deep notes should have multiple sections
     data_deep, ms_deep, _ = note_request(
         "Comprehensive guide to machine learning algorithms",
         depth="deep", tone="academic"
@@ -486,11 +373,6 @@ def test_markdown_structure():
                     f"sections={md['section_count']} headers={md['header_count']}")
             _record(f"Deep note is substantive (≥{MIN_DEEP_LEN} chars)",
                     md["length"] >= MIN_DEEP_LEN, ms_deep, f"len={md['length']}")
-
-
-# =============================================================================
-# SECTION 6 — CONTENT-BASED NOTE GENERATION
-# =============================================================================
 
 CONTENT_SAMPLES = [
     (
@@ -527,7 +409,6 @@ CONTENT_SAMPLES = [
     ),
 ]
 
-
 def test_content_based_generation():
     _section("SECTION 6 — CONTENT-BASED NOTE GENERATION")
     for topic, content_text in CONTENT_SAMPLES:
@@ -536,20 +417,13 @@ def test_content_based_generation():
         ok, detail = validate_note_response(data)
         _record(label, ok, ms, detail[:60])
 
-
-# =============================================================================
-# SECTION 7 — EDGE CASES & ROBUSTNESS
-# =============================================================================
-
 def test_edge_cases():
     _section("SECTION 7 — EDGE CASES & ROBUSTNESS")
 
-    # 7.1 Very short topic
     data, ms, code = note_request("AI", depth="brief")
     ok, detail = validate_note_response(data)
     _record("Very short topic ('AI') handled", ok, ms, detail[:60])
 
-    # 7.2 Very long topic
     long_topic = ("Advanced machine learning with deep neural networks, "
                   "transformers, attention mechanisms, LoRA fine-tuning, "
                   "RLHF, constitutional AI, and multi-modal architectures")
@@ -557,7 +431,6 @@ def test_edge_cases():
     ok, detail = validate_note_response(data)
     _record("Very long topic (150 chars) handled", ok, ms, detail[:60])
 
-    # 7.3 Empty topic — should fail gracefully
     t0 = time.perf_counter()
     try:
         r = requests.post(NOTE_ENDPOINT, json={"user_id": TEST_USER_ID, "topic": ""},
@@ -568,7 +441,6 @@ def test_edge_cases():
     except Exception as e:
         _record("Empty topic: server responds", False, 0, str(e))
 
-    # 7.4 Missing user_id
     t0 = time.perf_counter()
     try:
         r = requests.post(NOTE_ENDPOINT, json={"topic": "Python"}, timeout=15)
@@ -578,7 +450,6 @@ def test_edge_cases():
     except Exception as e:
         _record("Missing user_id: server responds", False, 0, str(e))
 
-    # 7.5 Invalid depth value
     t0 = time.perf_counter()
     try:
         r = requests.post(NOTE_ENDPOINT, json={
@@ -591,7 +462,6 @@ def test_edge_cases():
     except Exception as e:
         _record("Invalid depth: server responds", False, 0, str(e))
 
-    # 7.6 Invalid tone value
     t0 = time.perf_counter()
     try:
         r = requests.post(NOTE_ENDPOINT, json={
@@ -604,30 +474,25 @@ def test_edge_cases():
     except Exception as e:
         _record("Invalid tone: server responds", False, 0, str(e))
 
-    # 7.7 Invalid user_id (user not in DB)
     data, ms, code = note_request("Python", user_id="__nonexistent_user_xyz_789__")
     graceful = code in (200, 400, 404, 422)
     _record("Invalid user_id graceful error (not 500)", graceful, ms, f"code={code}")
 
-    # 7.8 Topic with special characters
     data, ms, code = note_request("C++ & Java: OOP Principles", depth="brief")
     ok, detail = validate_note_response(data)
     _record("Topic with special chars (C++ & Java) handled", ok, ms, detail[:60])
 
-    # 7.9 Topic with LaTeX/math notation
     data, ms, code = note_request("Integral calculus: ∫x²dx, Σ notation, π constants",
                                    depth="brief")
     ok, detail = validate_note_response(data)
     _record("Topic with math symbols (∫, Σ, π) handled", ok, ms, detail[:60])
 
-    # 7.10 Non-English topic
     data, ms, code = note_request("Inteligencia artificial y aprendizaje automático",
                                    depth="brief")
     ok, detail = validate_note_response(data)
     _record("Non-English topic (Spanish) handled", ok or code < 500, ms,
             detail[:60] if ok else f"code={code}")
 
-    # 7.11 Sending invalid JSON body
     t0 = time.perf_counter()
     try:
         r = requests.post(NOTE_ENDPOINT,
@@ -639,7 +504,6 @@ def test_edge_cases():
     except Exception as e:
         _record("Invalid JSON: server responds", False, 0, str(e))
 
-    # 7.12 Null values
     t0 = time.perf_counter()
     try:
         r = requests.post(NOTE_ENDPOINT, json={
@@ -652,13 +516,11 @@ def test_edge_cases():
     except Exception as e:
         _record("Null topic: server responds", False, 0, str(e))
 
-    # 7.13 SQL injection in topic
     data, ms, code = note_request("'; DROP TABLE notes; -- Python tutorial", depth="brief")
     not_crashed = code < 500
     _record("SQL injection string in topic doesn't crash server", not_crashed, ms,
             f"code={code}")
 
-    # 7.14 Extremely short depth (concise note on a complex topic)
     data, ms, code = note_request(
         "Comprehensive overview of all sorting algorithms",
         depth="brief", tone="concise"
@@ -666,17 +528,11 @@ def test_edge_cases():
     ok, detail = validate_note_response(data)
     _record("Brief+concise on complex topic handled", ok, ms, detail[:60])
 
-
-# =============================================================================
-# SECTION 8 — ALL DEPTH + TONE COMBINATIONS
-# =============================================================================
-
 COMBO_TOPICS = [
     "Recursion in programming",
     "Photosynthesis process",
     "World War 2 timeline",
 ]
-
 
 def test_all_depth_tone_combos():
     _section("SECTION 8 — ALL DEPTH × TONE COMBINATIONS (3×4 = 12 each topic)")
@@ -687,11 +543,6 @@ def test_all_depth_tone_combos():
                 data, ms, code = note_request(topic, depth=depth, tone=tone)
                 ok, detail = validate_note_response(data)
                 _record(label, ok, ms, detail[:50])
-
-
-# =============================================================================
-# SECTION 9 — CONCURRENT GENERATION LOAD TEST
-# =============================================================================
 
 CONCURRENT_TOPICS = [
     "Python closures",           "Java generics",
@@ -706,13 +557,11 @@ CONCURRENT_TOPICS = [
     "Design patterns overview",  "SOLID principles",
 ]
 
-
 def _note_worker(args):
     topic, idx = args
     data, ms, code = note_request(topic, depth="brief", timeout=REQUEST_TIMEOUT)
     ok, detail = validate_note_response(data)
     return idx, topic[:30], ok, ms, code, detail
-
 
 def test_concurrent_generation():
     _section("SECTION 9 — CONCURRENT GENERATION LOAD TEST (20 simultaneous)")
@@ -748,11 +597,6 @@ def test_concurrent_generation():
     _record("P95 latency under concurrency", p95_ms < MAX_P95_MS,
             p95_ms, f"p95={p95_ms:.0f}ms")
 
-
-# =============================================================================
-# SECTION 10 — STRESS TEST (RAPID SEQUENTIAL)
-# =============================================================================
-
 STRESS_TOPICS = [
     "Variables in Python",            "Loops and iterations",
     "Functions and arguments",        "List operations",
@@ -776,7 +620,6 @@ STRESS_TOPICS = [
     "Bellman-Ford algorithm",         "A-star pathfinding",
 ]
 
-
 def test_stress_sequential():
     _section("SECTION 10 — STRESS TEST (40 rapid sequential, brief notes)")
     all_times, all_ok = [], []
@@ -799,11 +642,6 @@ def test_stress_sequential():
     _record(f"Min latency observed", min_ms > 0, min_ms,
             f"min={min_ms:.0f}ms")
 
-
-# =============================================================================
-# SECTION 11 — ASYNC OVERLOAD TEST
-# =============================================================================
-
 OVERLOAD_TOPICS = [
     "Python list comprehensions", "Numpy array operations", "Pandas dataframes",
     "Matplotlib visualizations", "Scikit-learn pipelines", "TensorFlow basics",
@@ -817,7 +655,6 @@ OVERLOAD_TOPICS = [
     "K-means clustering", "DBSCAN algorithm", "Dimensionality reduction PCA",
     "t-SNE visualization", "UMAP manifold learning",
 ]
-
 
 async def _async_note(session, topic: str, idx: int) -> dict:
     body = {
@@ -837,13 +674,11 @@ async def _async_note(session, topic: str, idx: int) -> dict:
         ms = (time.perf_counter() - t0) * 1000
         return {"idx": idx, "ok": False, "ms": ms, "code": 0, "error": str(e)}
 
-
 async def _run_async_overload(topics: list):
     connector = aiohttp.TCPConnector(limit=ASYNC_CONCURRENT)
     async with aiohttp.ClientSession(connector=connector) as session:
         tasks = [_async_note(session, t, i) for i, t in enumerate(topics)]
         return await asyncio.gather(*tasks, return_exceptions=True)
-
 
 def test_async_overload():
     _section("SECTION 11 — ASYNC OVERLOAD TEST (30 async concurrent)")
@@ -872,15 +707,9 @@ def test_async_overload():
     _record("Async p95 latency", p95_ms < MAX_P95_MS,
             p95_ms, f"p95={p95_ms:.0f}ms")
 
-
-# =============================================================================
-# SECTION 12 — LANGGRAPH-SPECIFIC BEHAVIOR VALIDATION
-# =============================================================================
-
 def test_langgraph_specific():
     _section("SECTION 12 — LANGGRAPH-SPECIFIC BEHAVIOR VALIDATION")
 
-    # 12.1 Brief vs deep note — depth scaling
     data_brief, ms_b, _ = note_request("Neural networks", depth="brief", tone="concise")
     data_deep,  ms_d, _ = note_request("Neural networks", depth="deep", tone="academic")
 
@@ -897,7 +726,6 @@ def test_langgraph_specific():
                     len(content_d) >= len(content_b), ms_b + ms_d,
                     f"brief={len(content_b)} deep={len(content_d)}")
 
-    # 12.2 Same topic, different tones — content should differ
     data_cas, ms_cas, _ = note_request("Python recursion", depth="standard", tone="casual")
     data_aca, ms_aca, _ = note_request("Python recursion", depth="standard", tone="academic")
 
@@ -912,21 +740,18 @@ def test_langgraph_specific():
                 not_identical or (ok_cas and ok_aca), ms_cas + ms_aca,
                 "tones produce distinct content")
 
-    # 12.3 Respond with content_id (note saved to DB)
     data_id, ms_id, _ = note_request("Quicksort algorithm", depth="standard")
     if data_id:
         has_id = bool(data_id.get("content_id") or data_id.get("id"))
         _record("Note is saved to DB (content_id in response)", has_id, ms_id,
                 f"content_id={data_id.get('content_id')}")
 
-    # 12.4 navigate_to field shows correct path
     if data_id:
         nav = data_id.get("navigate_to") or ""
         has_nav = "notes" in nav or "editor" in nav or nav.startswith("/")
         _record("navigate_to field present and valid", has_nav or not nav, ms_id,
                 f"navigate_to='{nav[:40]}'")
 
-    # 12.5 generate notes for tech topics with code blocks expected
     data_code, ms_code, _ = note_request(
         "Python generators and yield keyword with examples",
         depth="deep", tone="professional"
@@ -935,18 +760,12 @@ def test_langgraph_specific():
     _record("Tech note generation succeeds (code examples expected)", ok_code,
             ms_code, "deep tech note")
 
-    # 12.6 Fallback endpoint also produces notes
     data_fb, ms_fb, code_fb = note_request_fallback("Binary trees")
     content_fb = (data_fb or {}).get("content") or ""
     fb_ok = bool(content_fb) and len(content_fb) > 20
     _record(f"Fallback endpoint generates content (len={len(content_fb)})",
             fb_ok or code_fb in (200, 201), ms_fb,
             f"code={code_fb} len={len(content_fb)}")
-
-
-# =============================================================================
-# SECTION 13 — DEEP DIVE: COMPLEX ACADEMIC TOPICS
-# =============================================================================
 
 ACADEMIC_TOPICS = [
     ("Gödel's incompleteness theorems",                "math",    "academic"),
@@ -961,7 +780,6 @@ ACADEMIC_TOPICS = [
     ("Epigenetics and gene expression regulation",      "bio",     "academic"),
 ]
 
-
 def test_academic_deep_dives():
     _section("SECTION 13 — ACADEMIC DEEP DIVES (10 complex topics)")
     for topic, cat, tone in ACADEMIC_TOPICS:
@@ -969,11 +787,6 @@ def test_academic_deep_dives():
         data, ms, code = note_request(topic, depth="deep", tone=tone)
         ok, detail = validate_note_response(data)
         _record(label, ok, ms, detail[:60])
-
-
-# =============================================================================
-# SECTION 14 — BURST OVERLOAD TEST (50 requests)
-# =============================================================================
 
 def test_burst_overload():
     _section("SECTION 14 — BURST OVERLOAD (50 requests, 12 workers)")
@@ -1013,15 +826,9 @@ def test_burst_overload():
     _record("Server survives burst without crash",
             ok_count + fail_count == len(burst_topics), avg_ms, "all futures resolved")
 
-
-# =============================================================================
-# SECTION 15 — PERFORMANCE BENCHMARKS
-# =============================================================================
-
 def test_performance_benchmarks():
     _section("SECTION 15 — PERFORMANCE BENCHMARKS")
 
-    # Warm-up
     note_request("Python", depth="brief")
 
     bench = [
@@ -1059,11 +866,6 @@ def test_performance_benchmarks():
     _record("P90 generation time < 90s",     p90    < 90_000, p90)
     _record("Stdev < 30s (consistent speed)", stdev  < 30_000, stdev)
 
-
-# =============================================================================
-# MAIN RUNNER
-# =============================================================================
-
 def run_all():
     print("\n" + "="*78)
     print("  BRAINWAVE L1 — NOTE GENERATION AGENT TEST SUITE")
@@ -1088,7 +890,6 @@ def run_all():
     test_burst_overload()
     test_performance_benchmarks()
 
-    # -------------------------------------------------------------------------
     total    = RESULTS["passed"] + RESULTS["failed"]
     pass_rate = RESULTS["passed"] / total * 100 if total else 0
 
@@ -1114,8 +915,6 @@ def run_all():
     print("="*78 + "\n")
     return RESULTS["failed"] == 0
 
-
-# pytest entrypoints
 def test_suite_init():          test_server_and_init()
 def test_suite_topics():        test_diverse_topics()
 def test_suite_depth():         test_depth_levels()
@@ -1131,7 +930,6 @@ def test_suite_langgraph():     test_langgraph_specific()
 def test_suite_academic():      test_academic_deep_dives()
 def test_suite_burst():         test_burst_overload()
 def test_suite_perf():          test_performance_benchmarks()
-
 
 if __name__ == "__main__":
     success = run_all()

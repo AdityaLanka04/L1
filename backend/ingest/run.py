@@ -1,15 +1,3 @@
-"""
-run.py — CLI entry point for overnight curriculum ingestion.
-
-Usage:
-    cd backend/
-    python -m ingest.run --source all
-    python -m ingest.run --source openstax --resume
-    python -m ingest.run --source gcse --dry-run
-    python -m ingest.run --source all --no-resume
-
-Sources: openstax | gcse | alevel | uk | us | all
-"""
 
 from __future__ import annotations
 
@@ -41,7 +29,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 def _print_banner(source: str, dry_run: bool, resume: bool, catalog_count: int) -> None:
     mode = "DRY RUN" if dry_run else "LIVE"
     resume_str = "resume=yes" if resume else "resume=no (fresh run)"
@@ -52,7 +39,6 @@ def _print_banner(source: str, dry_run: bool, resume: bool, catalog_count: int) 
     logger.info(f"  Mode:    {resume_str}")
     logger.info(f"  Log:     {_log_file}")
     logger.info("=" * 60)
-
 
 def _print_report(stats, elapsed: float) -> None:
     logger.info("")
@@ -80,7 +66,6 @@ def _print_report(stats, elapsed: float) -> None:
             f"\nWARNING: {stats.spot_checks_failed} spot check(s) failed. "
             "Some documents may not be searchable. Check the log for details."
         )
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -149,7 +134,6 @@ def main() -> int:
     _print_report(stats, elapsed)
 
     return 0 if stats.failed == 0 else 1
-
 
 if __name__ == "__main__":
     sys.exit(main())

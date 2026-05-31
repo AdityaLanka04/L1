@@ -1,13 +1,3 @@
-"""
-context_store.py — pgvector interface for Cerbyl HS Mode.
-
-Two logical collections:
-  hs_curriculum  — global, shared, seeded from public domain content (no user_id)
-  user_docs      — per-user private document chunks (user_id = str(user_id))
-
-All BM25 + overlap + subject re-ranking logic is preserved as pure Python.
-Public API is identical to the original ChromaDB version.
-"""
 
 from __future__ import annotations
 
@@ -61,10 +51,8 @@ _STOPWORDS = {
     "help", "explain", "again", "please",
 }
 
-
 def _normalize_subject_text(text: str) -> str:
     return re.sub(r"[_\-\/]+", " ", (text or "").lower()).strip()
-
 
 def _matches_alias(text: str, alias: str) -> bool:
     if not text or not alias:
@@ -72,7 +60,6 @@ def _matches_alias(text: str, alias: str) -> bool:
     if " " in alias:
         return alias in text
     return re.search(rf"\b{re.escape(alias)}\b", text) is not None
-
 
 def canonicalize_subject(subject: str) -> str:
     if not subject:
@@ -86,7 +73,6 @@ def canonicalize_subject(subject: str) -> str:
                 return canonical
     return subject.strip()
 
-
 def infer_subject(text: str, default: str = "") -> str:
     if not text:
         return default
@@ -97,16 +83,13 @@ def infer_subject(text: str, default: str = "") -> str:
                 return canonical
     return default
 
-
 def _keyword_tokens(text: str) -> set[str]:
     tokens = re.findall(r"[a-zA-Z0-9]+", (text or "").lower())
     return {t for t in tokens if len(t) > 2 and t not in _STOPWORDS}
 
-
 def _tokenize_list(text: str) -> list[str]:
     tokens = re.findall(r"[a-zA-Z0-9]+", (text or "").lower())
     return [t for t in tokens if len(t) > 2 and t not in _STOPWORDS]
-
 
 def _overlap_ratio(query_tokens: set[str], doc_text: str) -> float:
     if not query_tokens:
@@ -115,7 +98,6 @@ def _overlap_ratio(query_tokens: set[str], doc_text: str) -> float:
     if not doc_tokens:
         return 0.0
     return len(query_tokens & doc_tokens) / max(1, len(query_tokens))
-
 
 def _bm25_scores(query_tokens: list[str], corpus: list[str], k1: float = 1.5, b: float = 0.75) -> list[float]:
     if not query_tokens or not corpus:
@@ -140,15 +122,11 @@ def _bm25_scores(query_tokens: list[str], corpus: list[str], k1: float = 1.5, b:
         scores.append(score)
     return scores
 
-
 def initialize(*args, **kwargs):
-    """No-op: initialization handled by vector_store.initialize() in main.py."""
     pass
-
 
 def available() -> bool:
     return vs.available()
-
 
 def add_document_chunks(
     user_id: str,
@@ -256,7 +234,6 @@ def add_document_chunks(
 
     return stored
 
-
 def search_context(
     query: str,
     user_id: str,
@@ -348,8 +325,6 @@ def search_context(
             logger.warning(f"context_store search failed for {col_name}: {e}")
 
     if normalized_doc_ids:
-        # Strict selected-doc retrieval: search each selected doc directly so
-        # results are guaranteed to come from requested documents.
         per_doc_k = max(4, min(12, top_k * 2))
         for doc_id in normalized_doc_ids:
             _fetch_from(
@@ -411,7 +386,6 @@ def search_context(
 
     return cleaned
 
-
 def list_user_docs(user_id: str) -> list[dict]:
     if not available():
         return []
@@ -435,7 +409,6 @@ def list_user_docs(user_id: str) -> list[dict]:
         logger.warning(f"list_user_docs failed: {e}")
         return []
 
-
 def list_hs_subjects() -> list[dict]:
     if not available():
         return []
@@ -455,7 +428,6 @@ def list_hs_subjects() -> list[dict]:
     except Exception as e:
         logger.warning(f"list_hs_subjects failed: {e}")
         return []
-
 
 def get_hs_stats() -> dict:
     if not available():
@@ -488,7 +460,6 @@ def get_hs_stats() -> dict:
     except Exception as e:
         logger.warning(f"get_hs_stats failed: {e}")
         return {}
-
 
 def delete_document(user_id: str, doc_id: str, is_admin: bool = False):
     if not available():

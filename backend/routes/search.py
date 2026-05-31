@@ -11,7 +11,7 @@ from sqlalchemy import func, and_, or_
 
 import models
 from database import get_db
-from deps import call_ai, get_current_user, get_user_by_username, get_user_by_email, get_comprehensive_profile_safe
+from deps import call_ai, get_current_user, get_user_by_username, get_user_by_email
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["search"])
@@ -258,7 +258,6 @@ def _clean_prompt_topic(text: str) -> str:
     import re as _re
     cleaned = _re.sub(r"^(ai generated:|cerbyl:|flashcards?:|notes?:|chats?:|new chat)\s*", "", (text or ""), flags=_re.IGNORECASE)
     return cleaned.strip()
-
 
 @router.post("/search_content")
 async def search_content(

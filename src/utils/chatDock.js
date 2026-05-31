@@ -8,7 +8,7 @@ function getStorage() {
       return window.sessionStorage;
     }
   } catch {
-    // ignore
+    
   }
   return null;
 }
@@ -19,7 +19,7 @@ function cleanupLegacyLocalStorage() {
       window.localStorage.removeItem(LEGACY_CHAT_DOCK_KEY);
     }
   } catch {
-    // ignore
+    
   }
 }
 

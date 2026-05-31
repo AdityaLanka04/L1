@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CustomPopup from './CustomPopup';
 import './Flashcards.css';
@@ -197,7 +197,7 @@ const Flashcards = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   }, [userName]);
 
@@ -251,7 +251,7 @@ const Flashcards = () => {
         setFlashcardStats(data);
       }
     } catch (error) {
-    // silenced
+    
   }
   }, [userName]);
 
@@ -533,7 +533,7 @@ const Flashcards = () => {
         return result;
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -577,7 +577,7 @@ const Flashcards = () => {
         return data;
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -669,7 +669,7 @@ const Flashcards = () => {
         return result.analysis || result;
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -689,7 +689,7 @@ const Flashcards = () => {
         return result.recommendations;
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -716,7 +716,7 @@ const Flashcards = () => {
         return result.explanation;
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -1042,7 +1042,7 @@ const Flashcards = () => {
       try {
         setUserProfile(JSON.parse(profile));
       } catch (error) {
-    // silenced
+    
   }
     }
   }, [navigate]);
@@ -1148,7 +1148,7 @@ const Flashcards = () => {
       try {
         localStorage.setItem(CONTEXT_SELECTION_KEY, JSON.stringify(contextDocIds));
       } catch {
-        // no-op
+        
       }
     }
 
@@ -1708,7 +1708,7 @@ const Flashcards = () => {
         showPopup('Renamed Successfully', 'The flashcard set has been renamed.');
       }
     } catch (error) {
-    // silenced
+    
   }
     setEditingSetId(null);
     setEditingTitle('');
@@ -1928,7 +1928,7 @@ const Flashcards = () => {
         loadFlashcardHistory(true); 
         loadFlashcardStats();
       } catch (error) {
-    // silenced
+    
   }
     };
     

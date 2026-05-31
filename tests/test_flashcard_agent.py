@@ -1,26 +1,3 @@
-"""
-=============================================================================
-BRAINWAVE L1 — FLASHCARD GENERATION AGENT TEST SUITE
-=============================================================================
-Tests LangGraph initialization, card quality, difficulty levels, depth levels,
-card count accuracy, concurrent generation, overload, and edge cases.
-
-Endpoint : POST /api/generate_flashcards   (form-data)
-Graph    : flashcard_graph.py  (3-node LangGraph: fetch_context →
-           build_prompt → generate_cards)
-
-LangGraph indicators tested:
-  • wrong_options present on cards (AI-generated distractors from graph)
-  • Context-aware card content (uses Neo4j prerequisites, weak areas)
-  • Difficulty distribution consistency
-  • Depth-level differentiation (surface vs standard vs deep)
-
-Usage:
-    pip install requests aiohttp pytest
-    python -m pytest tests/test_flashcard_agent.py -v
-    python tests/test_flashcard_agent.py          # standalone runner
-=============================================================================
-"""
 
 import asyncio
 import json
@@ -46,10 +23,6 @@ try:
 except ImportError:
     HAS_AIOHTTP = False
 
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
-
 BASE_URL       = "http://localhost:8000"
 API_URL        = f"{BASE_URL}/api"
 FC_ENDPOINT    = f"{API_URL}/generate_flashcards"
@@ -57,15 +30,14 @@ HEALTH_EP      = f"{BASE_URL}/health"
 
 TEST_USER_ID   = "testuser"
 
-REQUEST_TIMEOUT       = 90    # seconds — AI generation is slower
+REQUEST_TIMEOUT       = 90
 CONCURRENT_WORKERS    = 8
 STRESS_TOTAL_REQUESTS = 30
 ASYNC_CONCURRENT      = 10
 
-# Quality thresholds
-MIN_QUESTION_LEN      = 10    # chars
-MIN_ANSWER_LEN        = 5     # chars
-MIN_WRONG_OPTIONS     = 2     # LangGraph should generate at least 2 wrong options
+MIN_QUESTION_LEN      = 10
+MIN_ANSWER_LEN        = 5
+MIN_WRONG_OPTIONS     = 2
 MAX_ACCEPTABLE_P95_MS = 60_000
 
 RESULTS = {
@@ -75,7 +47,6 @@ RESULTS = {
     "timings_ms": [],
     "failures": [],
 }
-
 
 def _record(label: str, passed: bool, ms: float = 0, detail: str = ""):
     status = "PASS" if passed else "FAIL"
@@ -89,26 +60,16 @@ def _record(label: str, passed: bool, ms: float = 0, detail: str = ""):
     if ms > 0:
         RESULTS["timings_ms"].append(ms)
 
-
 def _section(title: str):
     print(f"\n{'='*78}")
     print(f"  {title}")
     print(f"{'='*78}")
-
-
-# =============================================================================
-# HTTP HELPERS
-# =============================================================================
 
 def fc_request(topic: str, card_count: int = 5, difficulty: str = "medium",
                depth_level: str = "standard", generation_type: str = "topic",
                additional_specs: str = "", set_title: str = None,
                user_id: str = TEST_USER_ID, timeout: int = REQUEST_TIMEOUT
                ) -> tuple[dict | None, float, int]:
-    """
-    POST /api/generate_flashcards  (form-data)
-    Returns (response_dict_or_None, elapsed_ms, status_code)
-    """
     data = {
         "user_id":         user_id,
         "topic":           topic,
@@ -135,7 +96,6 @@ def fc_request(topic: str, card_count: int = 5, difficulty: str = "medium",
         ms = (time.perf_counter() - t0) * 1000
         return None, ms, 408
 
-
 def check_server_up() -> bool:
     try:
         r = requests.get(HEALTH_EP, timeout=5)
@@ -148,13 +108,8 @@ def check_server_up() -> bool:
     except Exception:
         return False
 
-
 def validate_fc_response(data: dict | None, expected_count: int = None
                           ) -> tuple[bool, str, list]:
-    """
-    Validate flashcard generation response.
-    Returns (ok, detail_str, cards_list)
-    """
     if data is None:
         return False, "null response", []
     if not isinstance(data, dict):
@@ -166,15 +121,12 @@ def validate_fc_response(data: dict | None, expected_count: int = None
 
     if expected_count and len(cards) != expected_count:
         detail = f"expected {expected_count} cards, got {len(cards)}"
-        # Allow ±2 tolerance
         if abs(len(cards) - expected_count) > 2:
             return False, detail, cards
 
     return True, f"{len(cards)} cards returned", cards
 
-
 def validate_card_structure(card: dict) -> tuple[bool, list[str]]:
-    """Validate individual flashcard structure."""
     issues = []
     q = card.get("question") or card.get("front") or ""
     a = card.get("answer") or card.get("back") or ""
@@ -184,7 +136,6 @@ def validate_card_structure(card: dict) -> tuple[bool, list[str]]:
     if not isinstance(a, str) or len(a.strip()) < MIN_ANSWER_LEN:
         issues.append(f"answer too short: '{a[:30]}'")
 
-    # wrong_options = LangGraph indicator
     wrong_opts = card.get("wrong_options") or []
     if not isinstance(wrong_opts, list):
         issues.append("wrong_options not a list")
@@ -195,21 +146,14 @@ def validate_card_structure(card: dict) -> tuple[bool, list[str]]:
 
     return len(issues) == 0, issues
 
-
 def count_with_wrong_options(cards: list) -> int:
     return sum(1 for c in cards
                if isinstance(c.get("wrong_options"), list)
                and len(c.get("wrong_options", [])) >= MIN_WRONG_OPTIONS)
 
-
-# =============================================================================
-# SECTION 1 — SERVER & GRAPH INITIALIZATION
-# =============================================================================
-
 def test_server_and_init():
     _section("SECTION 1 — SERVER & LANGGRAPH INITIALIZATION")
 
-    # 1.1 Server reachable
     t0 = time.perf_counter()
     up = check_server_up()
     ms = (time.perf_counter() - t0) * 1000
@@ -218,21 +162,17 @@ def test_server_and_init():
         print("\n  !! Backend not running — aborting !!")
         sys.exit(1)
 
-    # 1.2 First flashcard generation — proves graph is initialized
     data, ms, code = fc_request("Python programming basics", card_count=3)
     ok, detail, cards = validate_fc_response(data)
     _record("Flashcard graph responds (graph initialized)", ok, ms, detail)
 
-    # 1.3 HTTP 200
     _record("HTTP 200 on first valid request", code == 200, ms, f"got {code}")
 
-    # 1.4 LangGraph indicator: wrong_options present
     if ok and cards:
         wc = count_with_wrong_options(cards)
         _record(f"LangGraph indicator: wrong_options on {wc}/{len(cards)} cards",
                 wc > 0, ms, f"{wc} cards have wrong_options")
 
-    # 1.5 Card structure validity
     if ok and cards:
         all_ok = True
         for card in cards:
@@ -242,24 +182,16 @@ def test_server_and_init():
         _record("All returned cards have valid structure", all_ok, ms,
                 f"checked {len(cards)} cards")
 
-    # 1.6 set_id present (card saved to DB)
     if data:
         has_id = bool(data.get("set_id") or data.get("id"))
         _record("Response contains set_id (saved to DB)", has_id, ms,
                 f"set_id={data.get('set_id')}")
 
-    # 1.7 Second request still works (graph stays alive)
     data2, ms2, code2 = fc_request("Data structures", card_count=3)
     ok2, detail2, _ = validate_fc_response(data2)
     _record("Second request succeeds (graph stays alive)", ok2, ms2, detail2)
 
-
-# =============================================================================
-# SECTION 2 — DIVERSE TOPIC COVERAGE (30 TOPICS)
-# =============================================================================
-
 DIVERSE_TOPICS = [
-    # Computer Science
     ("Binary trees and BST operations",                    "cs"),
     ("Big O notation and algorithm complexity",             "cs"),
     ("Sorting algorithms: quicksort mergesort heapsort",   "cs"),
@@ -270,24 +202,20 @@ DIVERSE_TOPICS = [
     ("Database design and SQL fundamentals",               "cs"),
     ("Object-oriented programming principles",             "cs"),
     ("Design patterns: creational structural behavioral",  "cs"),
-    # Mathematics
     ("Calculus: derivatives and integrals",                "math"),
     ("Linear algebra: matrices vectors eigenvalues",       "math"),
     ("Probability theory and statistics",                  "math"),
     ("Number theory fundamentals",                         "math"),
     ("Discrete mathematics: sets logic proofs",            "math"),
-    # Science
     ("Cell biology and cellular processes",                "bio"),
     ("Genetics and DNA structure",                         "bio"),
     ("Organic chemistry: functional groups reactions",     "chem"),
     ("Thermodynamics and heat transfer",                   "physics"),
     ("Quantum mechanics fundamentals",                     "physics"),
-    # Machine Learning / AI
     ("Neural networks and deep learning basics",           "ml"),
     ("Supervised learning algorithms",                     "ml"),
     ("Natural language processing fundamentals",           "ml"),
     ("Reinforcement learning concepts",                    "ml"),
-    # Other
     ("Economics: microeconomics supply and demand",        "econ"),
     ("World War 2 causes and consequences",                "history"),
     ("Literary devices and techniques",                    "english"),
@@ -295,7 +223,6 @@ DIVERSE_TOPICS = [
     ("Human anatomy: cardiovascular system",               "med"),
     ("Environmental science: climate change",              "sci"),
 ]
-
 
 def test_diverse_topics():
     _section("SECTION 2 — DIVERSE TOPIC COVERAGE (30 TOPICS, 5 cards each)")
@@ -305,11 +232,6 @@ def test_diverse_topics():
         ok, detail, cards = validate_fc_response(data)
         _record(label, ok, ms, detail)
 
-
-# =============================================================================
-# SECTION 3 — DIFFICULTY LEVEL TESTS
-# =============================================================================
-
 DIFFICULTY_TEST_TOPICS = [
     "Python programming fundamentals",
     "Machine learning algorithms",
@@ -317,7 +239,6 @@ DIFFICULTY_TEST_TOPICS = [
     "Chemistry: organic compounds",
     "Linear algebra concepts",
 ]
-
 
 def test_difficulty_levels():
     _section("SECTION 3 — DIFFICULTY LEVEL TESTS (easy/medium/hard)")
@@ -327,30 +248,22 @@ def test_difficulty_levels():
             data, ms, code = fc_request(topic, card_count=4, difficulty=difficulty)
             ok, detail, cards = validate_fc_response(data)
 
-            # Check that card difficulty tags match requested level (when present)
             diff_match = True
             if ok and cards:
                 for c in cards:
                     card_diff = c.get("difficulty")
                     if card_diff and card_diff != difficulty:
-                        # Some variance is acceptable (graph may adjust)
-                        pass  # don't fail — graph can vary difficulty
+                        pass
                 wc = count_with_wrong_options(cards)
                 detail = f"{detail} | wrong_opts on {wc}/{len(cards)}"
 
             _record(label, ok, ms, detail)
-
-
-# =============================================================================
-# SECTION 4 — DEPTH LEVEL TESTS
-# =============================================================================
 
 DEPTH_TOPICS = [
     "Machine learning: neural networks",
     "Computer Science: sorting algorithms",
     "Biology: cell division",
 ]
-
 
 def test_depth_levels():
     _section("SECTION 4 — DEPTH LEVEL TESTS (surface/standard/deep)")
@@ -371,7 +284,6 @@ def test_depth_levels():
 
             _record(label, ok, ms, detail)
 
-    # Verify deep > standard > surface answer length (LangGraph depth awareness)
     if all(answer_lengths[d] for d in ("surface", "standard", "deep")):
         avg_surface  = statistics.mean(answer_lengths["surface"])
         avg_standard = statistics.mean(answer_lengths["standard"])
@@ -382,13 +294,7 @@ def test_depth_levels():
                 avg_deep > avg_surface, 0,
                 f"deep={avg_deep:.0f} > surface={avg_surface:.0f}")
 
-
-# =============================================================================
-# SECTION 5 — CARD COUNT ACCURACY
-# =============================================================================
-
 COUNT_TESTS = [3, 5, 7, 10, 12, 15, 20]
-
 
 def test_card_count_accuracy():
     _section("SECTION 5 — CARD COUNT ACCURACY")
@@ -401,11 +307,6 @@ def test_card_count_accuracy():
         _record(f"Requested {count} cards → got {actual} (±2 tolerance)",
                 ok and within_tolerance, ms, detail)
 
-
-# =============================================================================
-# SECTION 6 — CARD STRUCTURE & QUALITY VALIDATION
-# =============================================================================
-
 def test_card_structure_quality():
     _section("SECTION 6 — CARD STRUCTURE & QUALITY VALIDATION")
 
@@ -416,7 +317,6 @@ def test_card_structure_quality():
     if not ok or not cards:
         return
 
-    # 6.1 All cards have non-empty question and answer
     all_have_qa = all(
         bool(c.get("question") or c.get("front")) and
         bool(c.get("answer") or c.get("back"))
@@ -424,18 +324,15 @@ def test_card_structure_quality():
     )
     _record("All cards have question and answer", all_have_qa, ms)
 
-    # 6.2 Questions are not duplicated
     questions = [c.get("question") or c.get("front") or "" for c in cards]
     unique_q = len(set(q.strip().lower() for q in questions))
     _record(f"All questions are unique ({unique_q}/{len(cards)})",
             unique_q == len(cards), ms, f"{unique_q} unique of {len(cards)}")
 
-    # 6.3 wrong_options field (LangGraph graph indicator)
     wc = count_with_wrong_options(cards)
     _record(f"LangGraph: wrong_options on {wc}/{len(cards)} cards (indicator of graph use)",
             wc >= len(cards) // 2, ms, f"{wc}/{len(cards)} have wrong_options")
 
-    # 6.4 Each wrong_option is different from the correct answer
     distractor_ok = True
     for c in cards:
         answer = (c.get("answer") or "").strip().lower()
@@ -445,25 +342,17 @@ def test_card_structure_quality():
                 distractor_ok = False
     _record("Wrong options differ from correct answers", distractor_ok, ms)
 
-    # 6.5 Difficulty field is valid
     valid_diffs = {"easy", "medium", "hard", ""}
     all_valid_diff = all(
         (c.get("difficulty") or "") in valid_diffs for c in cards
     )
     _record("All cards have valid difficulty field", all_valid_diff, ms)
 
-    # 6.6 Minimum question length
     min_q_ok = all(len(c.get("question") or "") >= MIN_QUESTION_LEN for c in cards)
     _record(f"All questions ≥ {MIN_QUESTION_LEN} chars", min_q_ok, ms)
 
-    # 6.7 Minimum answer length
     min_a_ok = all(len(c.get("answer") or "") >= MIN_ANSWER_LEN for c in cards)
     _record(f"All answers ≥ {MIN_ANSWER_LEN} chars", min_a_ok, ms)
-
-
-# =============================================================================
-# SECTION 7 — ADDITIONAL SPECS / CUSTOM PROMPTS
-# =============================================================================
 
 SPEC_TESTS = [
     ("Machine learning",    "Focus on practical examples only",               5),
@@ -478,7 +367,6 @@ SPEC_TESTS = [
     ("Physics",             "Emphasize units and formulas in answers",        4),
 ]
 
-
 def test_additional_specs():
     _section("SECTION 7 — ADDITIONAL SPECS (custom prompt overrides)")
     for topic, specs, count in SPEC_TESTS:
@@ -487,20 +375,13 @@ def test_additional_specs():
         ok, detail, cards = validate_fc_response(data)
         _record(label, ok, ms, detail)
 
-
-# =============================================================================
-# SECTION 8 — EDGE CASES & ROBUSTNESS
-# =============================================================================
-
 def test_edge_cases():
     _section("SECTION 8 — EDGE CASES & ROBUSTNESS")
 
-    # 8.1 Very short topic
     data, ms, code = fc_request("AI", card_count=3)
     ok, detail, cards = validate_fc_response(data)
     _record("Very short topic ('AI') handled", ok, ms, detail)
 
-    # 8.2 Very long topic name
     long_topic = "Advanced machine learning with focus on deep neural networks, " \
                  "convolutional networks, recurrent networks, transformers, " \
                  "reinforcement learning from human feedback, and generative AI"
@@ -508,27 +389,22 @@ def test_edge_cases():
     ok, detail, cards = validate_fc_response(data)
     _record("Long topic name (150 chars) handled", ok, ms, detail)
 
-    # 8.3 Topic with special chars
     data, ms, code = fc_request("C++ & Java: OOP concepts", card_count=3)
     ok, detail, cards = validate_fc_response(data)
     _record("Topic with special chars (C++ & Java) handled", ok, ms, detail)
 
-    # 8.4 card_count = 1
     data, ms, code = fc_request("Recursion", card_count=1)
     ok, detail, cards = validate_fc_response(data)
     _record("card_count=1 (minimum) handled", ok, ms, detail)
 
-    # 8.5 card_count = 25 (large)
     data, ms, code = fc_request("Python fundamentals", card_count=25)
     ok, detail, cards = validate_fc_response(data)
     _record("card_count=25 (large) handled", ok, ms, detail)
 
-    # 8.6 Empty topic — should fail gracefully
     data, ms, code = fc_request("", card_count=5)
     graceful = code in (200, 400, 422) or (data is not None and "error" in str(data).lower())
     _record("Empty topic returns graceful error (not 500)", graceful, ms, f"code={code}")
 
-    # 8.7 Invalid difficulty
     t0 = time.perf_counter()
     r = requests.post(FC_ENDPOINT, data={
         "user_id": TEST_USER_ID, "topic": "Python", "card_count": "3",
@@ -538,7 +414,6 @@ def test_edge_cases():
     graceful = r.status_code < 500
     _record("Invalid difficulty value graceful error", graceful, ms, f"code={r.status_code}")
 
-    # 8.8 card_count as string
     t0 = time.perf_counter()
     r = requests.post(FC_ENDPOINT, data={
         "user_id": TEST_USER_ID, "topic": "Python", "card_count": "five",
@@ -548,7 +423,6 @@ def test_edge_cases():
     graceful = r.status_code < 500
     _record("Non-numeric card_count graceful error", graceful, ms, f"code={r.status_code}")
 
-    # 8.9 Missing user_id
     t0 = time.perf_counter()
     r = requests.post(FC_ENDPOINT, data={"topic": "Python", "card_count": "5",
                                           "difficulty": "medium"}, timeout=10)
@@ -556,27 +430,19 @@ def test_edge_cases():
     graceful = r.status_code in (200, 400, 404, 422)
     _record("Missing user_id graceful error", graceful, ms, f"code={r.status_code}")
 
-    # 8.10 Topic with numbers/equations
     data, ms, code = fc_request("Calculus: f(x) = x^2 + 3x - 5", card_count=3)
     ok, detail, cards = validate_fc_response(data)
     _record("Topic with math equation handled", ok, ms, detail)
 
-    # 8.11 Non-English topic
     data, ms, code = fc_request("Programación en Python", card_count=3)
     ok, detail, cards = validate_fc_response(data)
     _record("Non-English topic (Spanish) handled", ok or code < 500, ms,
             detail if ok else f"code={code}")
 
-    # 8.12 Invalid user
     data, ms, code = fc_request("Python", card_count=3,
                                  user_id="__totally_invalid_user_999__")
     graceful = code in (200, 400, 404, 422)
     _record("Invalid user_id graceful error", graceful, ms, f"code={code}")
-
-
-# =============================================================================
-# SECTION 9 — CONCURRENT GENERATION LOAD TEST
-# =============================================================================
 
 CONCURRENT_TOPICS = [
     "Python basics",           "JavaScript fundamentals", "Machine learning intro",
@@ -588,13 +454,11 @@ CONCURRENT_TOPICS = [
     "Discrete mathematics",    "Software engineering",
 ]
 
-
 def _fc_worker(args):
     topic, idx = args
     data, ms, code = fc_request(topic, card_count=4, timeout=REQUEST_TIMEOUT)
     ok, detail, cards = validate_fc_response(data)
     return idx, topic[:30], ok, ms, code, len(cards) if cards else 0
-
 
 def test_concurrent_generation():
     _section("SECTION 9 — CONCURRENT GENERATION LOAD TEST (20 simultaneous)")
@@ -630,11 +494,6 @@ def test_concurrent_generation():
     _record("P95 latency under concurrency", p95_ms < MAX_ACCEPTABLE_P95_MS,
             p95_ms, f"p95={p95_ms:.0f}ms")
 
-
-# =============================================================================
-# SECTION 10 — STRESS TEST (RAPID SEQUENTIAL)
-# =============================================================================
-
 STRESS_TOPICS = [
     "Arrays and lists", "Stack data structure", "Queue data structure",
     "Linked lists", "Binary trees", "Graph algorithms", "Hash tables",
@@ -647,7 +506,6 @@ STRESS_TOPICS = [
     "Neural networks", "NLP fundamentals", "Computer vision intro",
     "Statistics basics", "Probability theory",
 ]
-
 
 def test_stress_sequential():
     _section("SECTION 10 — STRESS TEST (30 rapid sequential, 3 cards each)")
@@ -668,11 +526,6 @@ def test_stress_sequential():
     _record(f"Max latency in stress test", max_ms < 120_000, max_ms,
             f"max={max_ms:.0f}ms threshold=120s")
 
-
-# =============================================================================
-# SECTION 11 — ASYNC OVERLOAD TEST
-# =============================================================================
-
 OVERLOAD_TOPICS = [
     "Python basics", "Java OOP", "JavaScript async", "SQL joins",
     "NoSQL databases", "REST APIs", "GraphQL", "Docker containers",
@@ -684,7 +537,6 @@ OVERLOAD_TOPICS = [
     "Data warehouse", "ETL pipelines", "Apache Spark", "Kafka basics",
     "Redis caching", "Elasticsearch",
 ]
-
 
 async def _async_fc(session, topic: str, idx: int) -> dict:
     data = {
@@ -705,13 +557,11 @@ async def _async_fc(session, topic: str, idx: int) -> dict:
         ms = (time.perf_counter() - t0) * 1000
         return {"idx": idx, "ok": False, "ms": ms, "code": 0, "error": str(e)}
 
-
 async def _run_async_overload(topics):
     connector = aiohttp.TCPConnector(limit=ASYNC_CONCURRENT)
     async with aiohttp.ClientSession(connector=connector) as session:
         tasks = [_async_fc(session, t, i) for i, t in enumerate(topics)]
         return await asyncio.gather(*tasks, return_exceptions=True)
-
 
 def test_async_overload():
     _section("SECTION 11 — ASYNC OVERLOAD TEST (30 async concurrent)")
@@ -739,19 +589,9 @@ def test_async_overload():
     _record("Async p95 latency", p95_ms < MAX_ACCEPTABLE_P95_MS,
             p95_ms, f"p95={p95_ms:.0f}ms")
 
-
-# =============================================================================
-# SECTION 12 — LANGGRAPH SPECIFIC BEHAVIOR TESTS
-# =============================================================================
-
 def test_langgraph_specific():
     _section("SECTION 12 — LANGGRAPH-SPECIFIC BEHAVIOR VALIDATION")
 
-    # 12.1 Cards should reflect weak areas (context-aware)
-    # We can't verify Neo4j data in a black-box test, but we CAN verify
-    # that responses are more detailed than a simple template.
-
-    # Generate same topic at different difficulties — content should differ
     data_easy, ms_e, _ = fc_request("Python recursion", card_count=3,
                                      difficulty="easy", depth_level="surface")
     data_hard, ms_h, _ = fc_request("Python recursion", card_count=3,
@@ -767,7 +607,6 @@ def test_langgraph_specific():
                 avg_ans_h >= avg_ans_e * 0.8, ms_e + ms_h,
                 f"easy={avg_ans_e:.0f} hard={avg_ans_h:.0f} chars")
 
-    # 12.2 wrong_options are unique per card (not reused across all cards)
     data, ms, _ = fc_request("Machine learning algorithms", card_count=8)
     ok, _, cards = validate_fc_response(data)
     if ok and cards:
@@ -780,7 +619,6 @@ def test_langgraph_specific():
         _record(f"Wrong options are diverse across cards ({unique_opts}/{total_opts} unique)",
                 diversity > 0.5, ms, f"{diversity:.0%} unique")
 
-    # 12.3 Content type generation — from raw content
     sample_content = """
     Python lists are ordered, mutable sequences. Lists support indexing, slicing,
     and common operations like append, extend, remove, pop, sort, and reverse.
@@ -797,7 +635,6 @@ def test_langgraph_specific():
     _record("Content-based generation (generation_type=content) works",
             ok_c or code_c < 500, ms_c, detail_c if ok_c else f"code={code_c}")
 
-    # 12.4 Custom set_title is preserved in response
     data_t, ms_t, _ = fc_request("Python",  card_count=3, set_title="My Custom Set")
     if data_t:
         title_in_response = (
@@ -808,18 +645,12 @@ def test_langgraph_specific():
                 title_in_response or bool(data_t.get("set_id")), ms_t,
                 f"title='{data_t.get('set_title') or data_t.get('title')}'")
 
-    # 12.5 Graph generates contextual MCQ questions (not trivial)
     data_q, ms_q, _ = fc_request("Sorting algorithms", card_count=5, difficulty="hard")
     ok_q, _, cards_q = validate_fc_response(data_q)
     if ok_q and cards_q:
         avg_q_len = statistics.mean(len(c.get("question", "")) for c in cards_q)
         _record(f"Hard questions are substantive (avg q_len={avg_q_len:.0f} chars)",
                 avg_q_len > 30, ms_q, f"avg={avg_q_len:.0f} chars")
-
-
-# =============================================================================
-# SECTION 13 — MIXED DIFFICULTY GENERATION
-# =============================================================================
 
 def test_mixed_requests():
     _section("SECTION 13 — MIXED PARAMETER COMBINATIONS")
@@ -842,11 +673,6 @@ def test_mixed_requests():
                                      difficulty=diff, depth_level=depth)
         ok, detail, cards = validate_fc_response(data)
         _record(label, ok, ms, detail)
-
-
-# =============================================================================
-# SECTION 14 — BURST OVERLOAD TEST
-# =============================================================================
 
 def test_burst_overload():
     _section("SECTION 14 — BURST OVERLOAD (50 requests, 12 workers)")
@@ -887,15 +713,9 @@ def test_burst_overload():
     _record("Server survives burst without crash",
             ok_count + fail_count == len(burst_topics), avg_ms, "all futures resolved")
 
-
-# =============================================================================
-# SECTION 15 — PERFORMANCE BENCHMARKS
-# =============================================================================
-
 def test_performance_benchmarks():
     _section("SECTION 15 — PERFORMANCE BENCHMARKS")
 
-    # Warm-up
     fc_request("Python", card_count=2)
 
     bench_topics = [
@@ -933,11 +753,6 @@ def test_performance_benchmarks():
     _record("P90 generation time < 60s",    p90    < 60_000, p90)
     _record("Stdev < 20s (consistent speed)", stdev < 20_000, stdev)
 
-
-# =============================================================================
-# MAIN RUNNER
-# =============================================================================
-
 def run_all():
     print("\n" + "="*78)
     print("  BRAINWAVE L1 — FLASHCARD GENERATION AGENT TEST SUITE")
@@ -962,7 +777,6 @@ def run_all():
     test_burst_overload()
     test_performance_benchmarks()
 
-    # -------------------------------------------------------------------------
     total    = RESULTS["passed"] + RESULTS["failed"]
     pass_rate = RESULTS["passed"] / total * 100 if total else 0
 
@@ -988,8 +802,6 @@ def run_all():
     print("="*78 + "\n")
     return RESULTS["failed"] == 0
 
-
-# pytest entrypoints
 def test_suite_init():          test_server_and_init()
 def test_suite_topics():        test_diverse_topics()
 def test_suite_difficulty():    test_difficulty_levels()
@@ -1005,7 +817,6 @@ def test_suite_langgraph():     test_langgraph_specific()
 def test_suite_mixed():         test_mixed_requests()
 def test_suite_burst():         test_burst_overload()
 def test_suite_perf():          test_performance_benchmarks()
-
 
 if __name__ == "__main__":
     success = run_all()

@@ -1,6 +1,4 @@
-/**
- * Helpers for parsing and displaying rate-limit (429) responses.
- */
+
 
 const TIER_LABELS = {
   auth_login:    'Login',
@@ -14,10 +12,6 @@ const TIER_LABELS = {
   unknown:       'Requests',
 };
 
-/**
- * Returns a human-readable message for a rate-limit event detail object.
- * detail: { retryAfter, tier, limit, window }
- */
 export function getRateLimitMessage({ retryAfter, tier, limit, window: windowSecs }) {
   const label = TIER_LABELS[tier] || 'Requests';
   const windowLabel =
@@ -35,10 +29,6 @@ export function getRateLimitMessage({ retryAfter, tier, limit, window: windowSec
   return `${label} limit reached (${limit} per ${windowLabel}). Try again in ~${mins} minute${mins !== 1 ? 's' : ''}.`;
 }
 
-/**
- * Parses a raw fetch Response that returned 429.
- * Returns { isRateLimit: true, retryAfter, tier, limit, window, message }
- */
 export async function parseRateLimitResponse(response) {
   const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10);
   const tier = response.headers.get('X-RateLimit-Tier') || 'unknown';

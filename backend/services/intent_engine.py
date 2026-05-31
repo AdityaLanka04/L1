@@ -1,41 +1,3 @@
-"""
-CerbylIntent — online Naive Bayes intent classifier with instruction memory
-and calibrated confidence estimation.
-
-Architecture
-------------
-1. NaiveBayesClassifier
-   Multinomial NB with Laplace smoothing, unigram+bigram features, online
-   partial_fit().  Class log-priors updated every new labeled example.
-
-2. InstructionMemory
-   Pattern-based extraction of behavioral rules ("don't ask questions",
-   "keep it short").  Each rule carries a strength that decays with a
-   7-day half-life so stale rules don't dominate forever.
-
-3. ConfidenceEstimator
-   Combines four signals into a Platt-scaled probability ∈ [0.05, 0.95]:
-     a. Intent certainty  = 1 − H(posterior) / H_max   (Shannon entropy)
-     b. Emotional state   = 1 − frustration_score
-     c. Engagement level  = engagement_score
-     d. Response hedging  = inverse density of hedge words in AI reply
-     e. ZPD match         = BKT p_mastery near 0.4 → optimal challenge zone
-
-4. CerbylIntentEngine  (singleton)
-   Loads seed data on first access, persists online updates every 10
-   examples.  Exposes classify(), estimate_response_confidence(),
-   record_signal(), to_prompt_addendum().
-
-Intent classes
---------------
-  LEARN_CONCEPT  — user wants to understand / learn something new
-  INSTRUCTION    — user giving a behavioral directive to the AI
-  META           — asking about conversation history / memory
-  CASUAL         — greeting, filler, off-topic chit-chat
-  EMOTIONAL      — frustration / anxiety / overwhelm
-  ASSESS         — wants quiz / practice / test questions
-  REVIEW         — wants summary / recap of prior material
-"""
 from __future__ import annotations
 
 import json
@@ -61,9 +23,6 @@ HEDGING_WORDS = frozenset([
     "uncertain", "unclear", "debatable", "arguably", "tends to", "may be",
     "it depends", "in some cases", "it's possible", "likely", "probably",
 ])
-
-
-# ── Instruction extraction ─────────────────────────────────────────────────
 
 _IP: List[Tuple[re.Pattern, bool, str]] = [
     (re.compile(r"don'?t\s+ask",                    re.I), True,  "questions"),
@@ -103,7 +62,6 @@ META_SIGNALS = re.compile(
     re.I,
 )
 
-
 @dataclass
 class BehavioralRule:
     rule_id:        str
@@ -123,9 +81,7 @@ class BehavioralRule:
     def is_active(self) -> bool:
         return self.current_strength > 0.05
 
-
 class InstructionMemory:
-    """Extracts behavioral rules from user instructions and stores them with decay."""
 
     def __init__(self):
         self._rules: Dict[str, BehavioralRule] = {}
@@ -177,21 +133,7 @@ class InstructionMemory:
             r = BehavioralRule(**d)
             self._rules[r.rule_id] = r
 
-
-# ── Naive Bayes Classifier ─────────────────────────────────────────────────
-
 class NaiveBayesClassifier:
-    """
-    Multinomial Naive Bayes:
-    - Laplace smoothing (alpha configurable, default 1.0)
-    - Unigram + bigram token features
-    - Online partial_fit with per-example weight
-    - Full serialization / deserialization
-    - Shannon entropy for confidence estimation
-
-    Posterior: P(c|x) ∝ P(c) * ∏ P(w|c)^count(w,x)
-    Log-space for numerical stability; softmax to get probabilities.
-    """
 
     def __init__(self, classes: List[str], alpha: float = 1.0):
         self.classes = classes
@@ -201,15 +143,11 @@ class NaiveBayesClassifier:
         self.class_doc_counts:  Dict[str, float]            = {c: 0.0  for c in classes}
         self.vocab: set = set()
 
-    # ---- tokenisation -------------------------------------------------------
-
     @staticmethod
     def _tokenize(text: str) -> List[str]:
         tokens  = re.findall(r"\b[a-z']{2,}\b", text.lower())
         bigrams = [f"{a}_{b}" for a, b in zip(tokens, tokens[1:])]
         return tokens + bigrams
-
-    # ---- training -----------------------------------------------------------
 
     def partial_fit(self, text: str, label: str, weight: float = 1.0) -> None:
         tokens = self._tokenize(text)
@@ -220,8 +158,6 @@ class NaiveBayesClassifier:
             )
             self.class_total_words[label] += weight
         self.class_doc_counts[label] += weight
-
-    # ---- inference ----------------------------------------------------------
 
     def predict_proba(self, text: str) -> Dict[str, float]:
         tokens     = self._tokenize(text)
@@ -243,7 +179,6 @@ class NaiveBayesClassifier:
             ) if tokens else 0.0
             log_scores[cls] = log_prior + log_lik
 
-        # Numerically-stable softmax
         max_s   = max(log_scores.values())
         exp_s   = {c: math.exp(s - max_s) for c, s in log_scores.items()}
         tot_exp = sum(exp_s.values()) or 1.0
@@ -257,8 +192,6 @@ class NaiveBayesClassifier:
     def entropy(self, text: str) -> float:
         proba = self.predict_proba(text)
         return -sum(p * math.log(p + 1e-12) for p in proba.values())
-
-    # ---- serialisation ------------------------------------------------------
 
     def serialize(self) -> dict:
         return {
@@ -280,32 +213,11 @@ class NaiveBayesClassifier:
         }
         self.vocab = set(data.get("vocab", []))
 
-
-# ── Confidence Estimator ───────────────────────────────────────────────────
-
 class ConfidenceEstimator:
-    """
-    Calibrated confidence: P(response useful | context) ∈ [0.05, 0.95]
-
-    Feature vector f:
-      f0 = intent certainty  = 1 − H(posterior) / log(|C|)
-      f1 = emotional state   = 1 − frustration_score
-      f2 = engagement        = engagement_score
-      f3 = ZPD match         = 1 − |p_mastery − 0.4| × 1.5   (peaks at 0.4)
-      f4 = hedging penalty   = −density of hedge words in response (0 → 1)
-
-    Platt scaling:
-      logit  = w · f + b                (hand-calibrated on seed intuitions)
-      P      = sigmoid(logit)
-      clamped to [0.05, 0.95]
-
-    Weights were initialised from prior intuitions and can be updated via
-    online gradient descent when explicit feedback arrives.
-    """
 
     W = [0.35, 0.20, 0.20, 0.15, -0.10]
     B = -0.20
-    PLATT_A = 2.5   # positive: higher logit (better features) → higher confidence
+    PLATT_A = 2.5
     PLATT_B = 0.0
 
     @staticmethod
@@ -342,9 +254,6 @@ class ConfidenceEstimator:
         raw      = self._sigmoid(self.PLATT_A * logit + self.PLATT_B)
         return round(min(max(raw, 0.05), 0.95), 3)
 
-
-# ── Main Engine ────────────────────────────────────────────────────────────
-
 @dataclass
 class IntentResult:
     label:        str
@@ -373,21 +282,7 @@ class IntentResult:
             "active_rule_domains": [r.domain for r in self.active_rules if r.is_active],
         }
 
-
 class CerbylIntentEngine:
-    """
-    Singleton intent engine.  Thread-safe for read operations; write ops
-    (record_signal, _save) should be fire-and-forget in async contexts.
-
-    Usage
-    -----
-        engine = CerbylIntentEngine.get()
-        result = engine.classify(user_message)
-        conf   = engine.estimate_response_confidence(result, response_text,
-                     engagement_score=..., frustration_score=..., p_mastery=...)
-        engine.record_signal(user_message, "INSTRUCTION")
-        addendum = engine.to_prompt_addendum()
-    """
 
     _instance: Optional["CerbylIntentEngine"] = None
 
@@ -404,8 +299,6 @@ class CerbylIntentEngine:
             cls._instance = CerbylIntentEngine()
             cls._instance._load()
         return cls._instance
-
-    # ── Persistence ───────────────────────────────────────────────────────
 
     def _load(self) -> None:
         try:
@@ -454,19 +347,11 @@ class CerbylIntentEngine:
         except Exception as e:
             logger.warning("[IntentEngine] State save failed: %s", e)
 
-    # ── Classification ────────────────────────────────────────────────────
-
     def classify(self, text: str) -> IntentResult:
-        """
-        Classify user message.  Also checks hard-coded signals for
-        INSTRUCTION and META to catch cases the NB might miss.
-        """
         proba = self.classifier.predict_proba(text)
         label = max(proba, key=proba.__getitem__)
         H     = -sum(p * math.log(p + 1e-12) for p in proba.values())
 
-        # Hard-coded signal boosts (lexical patterns more reliable than NB
-        # for short imperative phrases)
         if INSTRUCTION_SIGNALS.search(text):
             proba["INSTRUCTION"] = max(proba["INSTRUCTION"], 0.40)
             if label not in ("INSTRUCTION",):
@@ -498,8 +383,6 @@ class CerbylIntentEngine:
             active_rules=self.instruction_memory.active_rules(),
         )
 
-    # ── Confidence estimation ─────────────────────────────────────────────
-
     def estimate_response_confidence(
         self,
         result:           IntentResult,
@@ -516,19 +399,7 @@ class CerbylIntentEngine:
             p_mastery=p_mastery,
         )
 
-    # ── Online learning ───────────────────────────────────────────────────
-
     def record_signal(self, text: str, label: str, weight: float = 1.0) -> None:
-        """
-        Update the classifier with a new labeled example.
-
-        Called implicitly when:
-          - User gives an instruction  (label=INSTRUCTION, weight=1.5)
-          - User clicks a smart action (label=LEARN_CONCEPT, weight=0.8)
-          - User message is pure greeting (label=CASUAL, weight=0.6)
-
-        Call externally when you have explicit feedback.
-        """
         if label not in CLASSES:
             return
         self.classifier.partial_fit(text, label, weight=weight)
@@ -540,12 +411,8 @@ class CerbylIntentEngine:
             self._train_count, text[:40], label, weight,
         )
 
-    # ── Prompt addendum ───────────────────────────────────────────────────
-
     def to_prompt_addendum(self) -> str:
         return self.instruction_memory.to_prompt_addendum()
-
-    # ── Diagnostics ───────────────────────────────────────────────────────
 
     def status(self) -> dict:
         return {

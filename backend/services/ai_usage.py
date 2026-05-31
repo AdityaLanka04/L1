@@ -1,6 +1,3 @@
-"""
-Helpers to extract token usage from AI responses.
-"""
 from typing import Any, Dict, Optional
 
 def _get_attr(obj: Any, *names) -> Optional[Any]:

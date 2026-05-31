@@ -13,7 +13,7 @@ from tutor.evaluator import evaluate
 logger = logging.getLogger(__name__)
 
 _dkt_vocab: dict | None = None
-_lang_embedding_cache: dict = {}   # user_id → last message embedding (cleared after use)
+_lang_embedding_cache: dict = {}
 
 def _get_vocab() -> dict | None:
     global _dkt_vocab
@@ -40,23 +40,16 @@ GREETING_PATTERNS = [
     r"^(hi+|hello+|hey+|hiya|howdy|good\s*(morning|afternoon|evening|day))\b",
     r"^(what'?s\s*up|sup|yo+|hola+|hoi+|hai+|heya|ello|helo+)\b",
     r"^(greetings|salut|bonjour|namaste|ciao|hallo+)\b",
-    r"^\W*(hi+|hello+|hey+|hola+)\W*$",   # catches "hoiii!", "hola!!", etc.
+    r"^\W*(hi+|hello+|hey+|hola+)\W*$",
 ]
 
-
 def _detect_greeting_energy(text: str) -> str:
-    """
-    Classify the student's greeting energy so Cerbyl can mirror it.
-    Returns 'high', 'medium', or 'calm'.
-    """
     t = text.strip()
-    # High energy: yo repeated, extended vowels, caps run, multi-exclamation
     if re.search(
         r'(yo[\s!]*){2,}|y[o]{3,}|h[e]{3,}y+|h[i]{3,}|s[u]{2,}p|!{2,}|[A-Z]{4,}|heyyyy|suuup',
         t, re.IGNORECASE
     ):
         return "high"
-    # Medium: casual slang with mild energy
     if re.search(r'\byo\b|sup\b|heya|hiya|heyy+|hiii+|wazzup|wassup', t, re.IGNORECASE):
         return "medium"
     return "calm"
@@ -118,7 +111,6 @@ def _is_repetitive(text: str, chat_history: list[dict]) -> bool:
     return repeat_count >= 2
 
 def _detect_query_domain(text: str) -> list[str]:
-    """Detect what domains/sources the user is asking about."""
     text_lower = text.lower()
     domains = []
     if any(re.search(p, text_lower) for p in FLASHCARD_PATTERNS):
@@ -155,14 +147,7 @@ def detect_intent(state: TutorState) -> dict:
 
     return {"intent": "question"}
 
-
 def analyze_message(state: TutorState) -> dict:
-    """
-    Run language analysis on the student's raw message.
-    Detects which concept they're asking about and what confidence signal
-    they're sending (confusion, doubt, mastery, etc.).
-    Stored in state["language_analysis"] — used by prompt builder and persist_updates.
-    """
     intent = state.get("intent", "")
     if intent in ("greeting", "returning_greeting", "off_topic", "recall"):
         return {"language_analysis": {}}
@@ -188,7 +173,6 @@ def analyze_message(state: TutorState) -> dict:
             f"score={analysis['knowledge_signal']:+.2f} "
             f"concept={analysis['primary_concept']!r}"
         )
-        # Store embedding on state so persist_updates can reuse it (avoid re-embedding)
         _lang_embedding_cache[user_id] = result.embedding
         return {"language_analysis": analysis}
     except Exception as e:
@@ -298,7 +282,6 @@ async def reason_from_graph(state: TutorState) -> dict:
     return {"neo4j_insights": insights}
 
 def _fetch_flashcard_context(db_factory, user_id: str, top_k: int = 10) -> list[str]:
-    """Query the actual database for recent flashcard activity."""
     if not db_factory:
         return []
     try:
@@ -380,7 +363,6 @@ def _fetch_flashcard_context(db_factory, user_id: str, top_k: int = 10) -> list[
         return []
 
 def _fetch_notes_context(db_factory, user_id: str, top_k: int = 10) -> list[str]:
-    """Query the actual database for recent notes activity."""
     if not db_factory:
         return []
     try:
@@ -418,7 +400,6 @@ def _fetch_notes_context(db_factory, user_id: str, top_k: int = 10) -> list[str]
         return []
 
 def _fetch_activity_summary(db_factory, user_id: str) -> list[str]:
-    """Get a summary of recent learning activity across all features."""
     if not db_factory:
         return []
     try:
@@ -465,8 +446,6 @@ def _fetch_activity_summary(db_factory, user_id: str) -> list[str]:
         logger.warning(f"Failed to fetch activity summary: {e}")
         return []
 
-# ── Time-range classification for recall queries ──────────────────────────────
-
 _TIME_RANGE_PATTERNS = [
     (r'\b(just now|right now|this (moment|second)|past hour|last hour)\b',              "last_hour",   1),
     (r'\b(today|this (morning|afternoon|evening|day)|past (few hours|2|3|4|5) hours)\b', "today",      24),
@@ -478,27 +457,16 @@ _TIME_RANGE_PATTERNS = [
     (r'\b(ever|all time|always|everything|from the start|since I (started|joined))\b',  "all_time",  8760),
 ]
 
-
 def _classify_recall_time_range(text: str) -> tuple[str, int]:
-    """
-    Return (label, hours) from the student's recall phrasing.
-    hours=0 means 'last session only' (no time bound).
-    """
     t = text.lower()
     for pattern, label, hours in _TIME_RANGE_PATTERNS:
         if re.search(pattern, t):
             return label, hours
     return "last_session", 0
 
-
 def _store_recall_signal(db_factory, user_id: str, user_input: str,
                           time_label: str, time_hours: int,
                           is_correction: bool = False) -> None:
-    """
-    Persist each recall query as a labeled training example in StudentMemory.
-    Corrections (student refining after an initial recall) are flagged so they
-    can be weighted higher during future fine-tuning.
-    """
     if not db_factory:
         return
     try:
@@ -525,13 +493,7 @@ def _store_recall_signal(db_factory, user_id: str, user_input: str,
     except Exception as e:
         logger.warning(f"Recall signal store failed: {e}")
 
-
 def _fetch_activity_in_range(db_factory, user_id: str, hours: int) -> list[str]:
-    """
-    Fetch all recorded activity within the past `hours` hours.
-    Queries: ChatSession/ChatMessage, Note, FlashcardSet, Activity log.
-    Returns formatted lines ready for structured_context.
-    """
     if not db_factory:
         return [f"No activity data available."]
     try:
@@ -547,7 +509,6 @@ def _fetch_activity_in_range(db_factory, user_id: str, hours: int) -> list[str]:
             lines = [f"Your activity — {label}:"]
             found = False
 
-            # Chat sessions active in window
             sessions = (
                 db.query(ChatSession)
                 .filter(ChatSession.user_id == uid, ChatSession.updated_at >= cutoff)
@@ -571,7 +532,6 @@ def _fetch_activity_in_range(db_factory, user_id: str, hours: int) -> list[str]:
                 lines.append(f"  [Chat '{title}' {ts}]: {topic_str}")
                 found = True
 
-            # Notes created/updated in window
             notes = (
                 db.query(Note)
                 .filter(Note.user_id == uid, Note.updated_at >= cutoff,
@@ -584,7 +544,6 @@ def _fetch_activity_in_range(db_factory, user_id: str, hours: int) -> list[str]:
                 lines.append(f"  [Note '{note.title}' {ts}]")
                 found = True
 
-            # Flashcard sets created in window
             fc_sets = (
                 db.query(FlashcardSet)
                 .filter(FlashcardSet.user_id == uid, FlashcardSet.created_at >= cutoff)
@@ -596,7 +555,6 @@ def _fetch_activity_in_range(db_factory, user_id: str, hours: int) -> list[str]:
                 lines.append(f"  [Flashcards '{fc.title}' created {ts}]")
                 found = True
 
-            # Activity log entries in window
             activities = (
                 db.query(Activity)
                 .filter(Activity.user_id == uid, Activity.timestamp >= cutoff)
@@ -618,12 +576,7 @@ def _fetch_activity_in_range(db_factory, user_id: str, hours: int) -> list[str]:
         logger.warning(f"_fetch_activity_in_range failed: {e}")
         return []
 
-
 def _extract_message_topics(messages: list, max_msgs: int = 8) -> list[str]:
-    """
-    Pull short topic-hints from raw user messages when no concept signals exist.
-    Delegates junk detection to topic_utils.is_valid_topic.
-    """
     from services.topic_utils import is_valid_topic
     topics = []
     seen_lower = set()
@@ -637,23 +590,14 @@ def _extract_message_topics(messages: list, max_msgs: int = 8) -> list[str]:
         topics.append(snippet)
     return topics
 
-
 def _days_ago(dt: Optional[datetime]) -> Optional[int]:
-    """Return how many full days ago a datetime was, or None."""
     if not dt:
         return None
     now = datetime.now(timezone.utc)
     aware = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
     return max(0, (now - aware).days)
 
-
 def _fetch_last_session_summary(db_factory, user_id: str, current_chat_id=None) -> Optional[dict]:
-    """
-    Return a concise dict summarising the most recent past chat session that had
-    real topics (concept signals or substantive messages).
-    Scans up to 5 recent sessions; skips greeting-only sessions.
-    Returns: {title, date_str, days_ago, topics, message_count} or None.
-    """
     if not db_factory:
         return None
     try:
@@ -669,7 +613,6 @@ def _fetch_last_session_summary(db_factory, user_id: str, current_chat_id=None) 
                 return None
 
             for sess in candidates:
-                # Prefer ChatConceptSignal (ML-detected topics) — deduplicated
                 signals = (
                     db.query(ChatConceptSignal)
                     .filter(
@@ -695,7 +638,6 @@ def _fetch_last_session_summary(db_factory, user_id: str, current_chat_id=None) 
                     .count()
                 )
 
-                # Only surface sessions where ML explicitly detected user-driven concepts
                 if not topics:
                     continue
 
@@ -718,12 +660,7 @@ def _fetch_last_session_summary(db_factory, user_id: str, current_chat_id=None) 
         logger.warning(f"_fetch_last_session_summary failed: {e}")
         return None
 
-
 def _fetch_last_session_topics(db_factory, user_id: str, current_chat_id=None) -> list[str]:
-    """
-    Return structured context lines for the recall intent.
-    Pulls from ChatConceptSignal first; falls back to raw ChatMessage content.
-    """
     if not db_factory:
         return []
     try:
@@ -745,7 +682,6 @@ def _fetch_last_session_topics(db_factory, user_id: str, current_chat_id=None) -
                 date_str = sess.created_at.strftime("%b %d") if sess.created_at else "recently"
                 title = (sess.title or "Untitled")[:40]
 
-                # Try concept signals
                 signals = (
                     db.query(ChatConceptSignal)
                     .filter(
@@ -764,7 +700,6 @@ def _fetch_last_session_topics(db_factory, user_id: str, current_chat_id=None) -
                         seen.add(c.lower())
                         concepts.append(c)
 
-                # Fallback: use raw user messages
                 if not concepts:
                     msgs = (
                         db.query(ChatMessage)
@@ -790,7 +725,6 @@ def _fetch_last_session_topics(db_factory, user_id: str, current_chat_id=None) -
         logger.warning(f"_fetch_last_session_topics failed: {e}")
         return []
 
-
 def gate_and_retrieve(state: TutorState) -> dict:
     intent = state.get("intent", "")
     user_input = state.get("user_input", "")
@@ -812,8 +746,6 @@ def gate_and_retrieve(state: TutorState) -> dict:
     memories = []
     structured_context = []
 
-    # Always retrieve student preferences from the important_ collection.
-    # This runs regardless of intent — preferences must survive greetings too.
     if chroma_store.available():
         try:
             prefs = chroma_store.retrieve_important(user_id, query="student preferences instructions", top_k=5)
@@ -826,8 +758,6 @@ def gate_and_retrieve(state: TutorState) -> dict:
     domains = _detect_query_domain(user_input)
 
     if should_retrieve and not context_only:
-        # For recall: use DB only (ground truth). ChromaDB episode summaries are noisy.
-        # For specific domain questions (flashcard/note): use DB + filtered ChromaDB.
         if intent != "recall":
             if "flashcard" in domains:
                 fc_context = _fetch_flashcard_context(db_factory, user_id)
@@ -869,9 +799,6 @@ def gate_and_retrieve(state: TutorState) -> dict:
                 if activity_context:
                     structured_context.extend(activity_context)
 
-        # General ChromaDB retrieval — only for non-recall question/confusion intents.
-        # Recall uses DB-structured data only (reliable). ChromaDB general summaries are
-        # truncated and cause hallucination ("we discussed organic chemistry") for recall.
         if chroma_store.available() and intent not in ("recall",):
             try:
                 general_memories = chroma_store.retrieve_episodes(
@@ -886,7 +813,6 @@ def gate_and_retrieve(state: TutorState) -> dict:
         if intent == "recall":
             time_label, time_hours = _classify_recall_time_range(user_input)
 
-            # Detect correction: previous AI turn was also a recall → student is refining
             chat_history = state.get("chat_history", [])
             is_correction = False
             if chat_history and len(chat_history) >= 2:
@@ -894,16 +820,13 @@ def gate_and_retrieve(state: TutorState) -> dict:
                 _, prev_hours = _classify_recall_time_range(prev_user)
                 is_correction = (prev_hours != time_hours) and bool(prev_user)
 
-            # Store as labeled training example (async-safe: fire-and-forget pattern)
             _store_recall_signal(db_factory, user_id, user_input, time_label, time_hours, is_correction)
             logger.info(f"[RECALL] user={user_id} range={time_label}({time_hours}h) correction={is_correction}")
 
             if time_hours > 0:
-                # Time-ranged: query all activity tables within the window
                 ranged = _fetch_activity_in_range(db_factory, user_id, time_hours)
                 structured_context.extend(ranged)
             else:
-                # Last-session: use session topics + full flashcard/note/activity context
                 chat_id = state.get("chat_id")
                 session_topics = _fetch_last_session_topics(db_factory, user_id, current_chat_id=chat_id)
                 structured_context.extend(session_topics)
@@ -964,15 +887,6 @@ def gate_and_retrieve(state: TutorState) -> dict:
     }
 
 def select_teaching_style(state: TutorState) -> dict:
-    """
-    NeuralUCB contextual bandit node.
-
-    Reads the per-user NeuralArm state from DB, builds the d=12 context
-    vector (including full mastery dict from AKT), and selects the optimal
-    teaching style via MC Dropout UCB.
-    Explicit student style requests override the bandit selection — the
-    bandit still receives the reward next turn.
-    """
     intent     = state.get("intent", "")
     db_factory = state.get("_db_factory")
     user_id    = state.get("user_id", "")
@@ -1045,7 +959,6 @@ def select_teaching_style(state: TutorState) -> dict:
         logger.warning(f"[BANDIT] style selection failed: {e}")
         return {"selected_style": "example_first", "style_context": [], "style_scores": {}}
 
-
 def _build_instructional_task(state: TutorState) -> str:
     intent   = state.get("intent", "")
     student  = state.get("student_state")
@@ -1070,7 +983,6 @@ def _build_instructional_task(state: TutorState) -> str:
 
         name_part = f"Address them as {student_name}. " if student_name else ""
 
-        # Build a session recap block from real DB data — no hallucination possible.
         recap = ""
         if last_summary and last_summary.get("topics"):
             topics_str = "; ".join(last_summary["topics"][:3])
@@ -1089,12 +1001,10 @@ def _build_instructional_task(state: TutorState) -> str:
                 f"Naturally mention this — e.g. 'Last time we covered [topic] — {time_hint}. Want to continue or start something new?' "
                 f"Keep it 1-2 sentences, conversational. "
             )
-        # If last_summary exists but has no topics, it was a brief check-in — don't reference it
 
         no_invent = "Do NOT invent or guess topics not listed above."
 
         if gap is None or gap < 1:
-            # Same session day — just greet, recap if we have data
             if recap:
                 return f"{energy_tone} {name_part}{recap}{no_invent}"
             return f"{energy_tone} {name_part}Ask what they'd like to work on. Keep it short."
@@ -1268,9 +1178,6 @@ def build_prompt_and_respond(state: TutorState) -> dict:
     if student_name:
         system += f"\n\nThe student's name is {student_name}. Address them by name naturally (not every sentence)."
 
-    # Only inject ML intelligence context for non-greeting intents.
-    # Injecting it during greetings causes the LLM to hallucinate topic suggestions,
-    # equations, and worked examples even though GREETING MODE rules come after.
     intelligence_ctx = state.get("intelligence_context", "")
     if intelligence_ctx and intent not in ("greeting", "returning_greeting") and not context_only:
         system = intelligence_ctx + "\n\n" + system
@@ -1450,8 +1357,6 @@ async def persist_updates(state: TutorState) -> dict:
         except Exception as e:
             logger.warning(f"[BANDIT] reward update failed: {e}")
 
-    # Detect and persist student preferences (e.g. "don't suggest topics")
-    # These go to the important_ collection so they survive across sessions.
     if chroma_store.available() and user_input:
         try:
             _PREF_PATTERNS = [

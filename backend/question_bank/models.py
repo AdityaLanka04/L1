@@ -1,0 +1,75 @@
+from typing import Dict, List, Optional
+from pydantic import BaseModel
+
+
+class PDFUploadRequest(BaseModel):
+    user_id: str
+
+
+class QuestionGenerationRequest(BaseModel):
+    user_id: str
+    source_type: str
+    source_id: Optional[int] = None
+    content: Optional[str] = None
+    question_count: int = 10
+    difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
+    question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
+    topics: Optional[List[str]] = None
+    title: Optional[str] = None
+    custom_prompt: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+class AnswerSubmission(BaseModel):
+    user_id: str
+    question_set_id: int
+    answers: Dict[str, str]
+    time_taken_seconds: Optional[int] = None
+
+
+class SimilarQuestionRequest(BaseModel):
+    user_id: str
+    question_id: int
+    difficulty: Optional[str] = None
+
+
+class MultiPDFGenerationRequest(BaseModel):
+    user_id: str
+    source_ids: List[int]
+    question_count: int = 10
+    difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
+    question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
+    topics: Optional[List[str]] = None
+    title: Optional[str] = None
+    custom_prompt: Optional[str] = None
+    reference_document_id: Optional[int] = None
+    content_document_ids: Optional[List[int]] = None
+    session_id: Optional[str] = None
+
+
+class SourceSelection(BaseModel):
+    type: str
+    id: int
+    title: Optional[str] = None
+
+
+class MultiSourceGenerationRequest(BaseModel):
+    user_id: str
+    sources: List[SourceSelection]
+    question_count: int = 10
+    difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
+    question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
+    topics: Optional[List[str]] = None
+    title: Optional[str] = None
+    custom_prompt: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+class RelatedPDFGenerationRequest(BaseModel):
+    user_id: str
+    source_ids: List[int]
+    question_count: int = 10
+    difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
+    question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
+    title: Optional[str] = None
+    session_id: Optional[str] = None

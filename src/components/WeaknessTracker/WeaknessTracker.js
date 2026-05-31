@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './WeaknessTracker.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -14,10 +14,9 @@ const MASTERY_COLORS = {
 const SOURCE_ICONS = { flashcard: '🃏', chat: '💬', quiz: '📝', roadmap: '🗺️' };
 const TREND_ICONS = { improving: '↑', declining: '↓', stable: '→' };
 
-// ── Pure-SVG mini bar chart ───────────────────────────────────────────────────
 function SvgBarChart({ data = [], dataKey = 'interactions', labelKey = 'date', height = 150 }) {
   if (!data.length) return <p className="wt-empty">No activity data.</p>;
-  const W = 100; // viewBox units wide per bar
+  const W = 100; 
   const total = data.length;
   const maxVal = Math.max(...data.map(d => d[dataKey] || 0), 1);
   const vbWidth = total * W;
@@ -32,7 +31,7 @@ function SvgBarChart({ data = [], dataKey = 'interactions', labelKey = 'date', h
         const barH = (val / maxVal) * (vbHeight - 30);
         const x = i * W + barOff;
         const y = vbHeight - 20 - barH;
-        const label = String(d[labelKey] || '').slice(5); // "MM-DD"
+        const label = String(d[labelKey] || '').slice(5); 
         return (
           <g key={i}>
             <rect x={x} y={y} width={barW} height={barH}
@@ -50,7 +49,6 @@ function SvgBarChart({ data = [], dataKey = 'interactions', labelKey = 'date', h
   );
 }
 
-// ── Pure-SVG line chart ───────────────────────────────────────────────────────
 function SvgLineChart({ data = [], dataKey = 'avg_p_mastery', labelKey = 'date', height = 220 }) {
   if (!data.length) return <p className="wt-empty">No trend data yet.</p>;
   const VW = 500;
@@ -98,7 +96,6 @@ function SvgLineChart({ data = [], dataKey = 'avg_p_mastery', labelKey = 'date',
   );
 }
 
-// ── Pure-SVG donut/pie chart ──────────────────────────────────────────────────
 function SvgPieChart({ data = [], height = 220 }) {
   if (!data.length) return <p className="wt-empty">No data.</p>;
   const total = data.reduce((s, d) => s + (d.value || 0), 0) || 1;
@@ -127,7 +124,7 @@ function SvgPieChart({ data = [], height = 220 }) {
             fill={s.color} opacity={0.9} />
         )
       ))}
-      {/* legend */}
+      {}
       {data.map((d, i) => (
         <g key={i} transform={`translate(195,${30 + i * 24})`}>
           <rect width={12} height={12} fill={d.color} rx={2} />
@@ -140,7 +137,6 @@ function SvgPieChart({ data = [], height = 220 }) {
   );
 }
 
-// ── AnimatedNumber ────────────────────────────────────────────────────────────
 function AnimatedNumber({ value, suffix = '' }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
@@ -157,7 +153,6 @@ function AnimatedNumber({ value, suffix = '' }) {
   return <span>{display.toLocaleString()}{suffix}</span>;
 }
 
-// ── MasteryBar ────────────────────────────────────────────────────────────────
 function MasteryBar({ value }) {
   const pct = Math.round((value || 0) * 100);
   const color =
@@ -176,7 +171,6 @@ function MasteryBar({ value }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
 export default function WeaknessTracker({ userId, token, onNavigate }) {
   const [profile, setProfile] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
@@ -282,7 +276,7 @@ export default function WeaknessTracker({ userId, token, onNavigate }) {
         ))}
       </div>
 
-      {/* ── OVERVIEW ── */}
+      {}
       {activeTab === 'overview' && (
         <div className="wt-panel">
           <div className="wt-two-col">

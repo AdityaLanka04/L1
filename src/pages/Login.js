@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { signInWithPopup } from 'firebase/auth';
@@ -14,7 +14,6 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
-
 
   const checkAndRedirect = async (username) => {
     try {
@@ -33,7 +32,7 @@ function Login() {
             try {
               mergedProfile = JSON.parse(existingProfile);
             } catch (e) {
-    // silenced
+    
   }
           }
           
@@ -56,7 +55,7 @@ function Login() {
           localStorage.setItem('userProfile', JSON.stringify(mergedProfile));
         }
       } catch (_) {
-    // silenced
+    
   }
       
       const response = await axios.get(`${API_URL}/check_profile_quiz?user_id=${username}`, {

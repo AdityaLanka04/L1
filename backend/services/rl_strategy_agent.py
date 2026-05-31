@@ -1,21 +1,3 @@
-"""
-Cerbyl RL Strategy Agent — Thompson Sampling Contextual Bandit
-
-Selects WHICH teaching strategy works best per student over time.
-Replaces the hardcoded STRATEGY_MAP in ml_pipeline.py Layer 4.
-
-Cold start  (<20 interactions):  pure rule-based fallback
-Blend phase (20-100):             linear interpolation bandit ↔ rules
-Hot phase   (>100):               pure bandit with 10% forced exploration
-
-State space: ~8,640 unique states (archetype×cognitive×intent×mastery×frustration×depth).
-Each state tracks 9 independent Beta distributions (one per teaching strategy arm).
-Thompson Sampling: sample from Beta(α,β) per arm, pick highest sample.
-
-Reward is measured 2 minutes after response, decomposed into 4 signals:
-  p_mastery_delta (0.40), engagement_delta (0.25),
-  session_continuation (0.20), frustration_delta (0.15)
-"""
 from __future__ import annotations
 
 import hashlib
@@ -35,9 +17,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-
 def _clip(value: float, lo: float, hi: float) -> float:
-    """Pure-Python fallback for np.clip when numpy is unavailable."""
     return max(lo, min(hi, value))
 
 STRATEGY_IDS: List[str] = [
@@ -51,9 +31,6 @@ STRATEGY_IDS: List[str] = [
     "REANCHOR",
     "METACOGNITIVE",
 ]
-
-
-# ── State encoding ─────────────────────────────────────────────────────────────
 
 @dataclass
 class StateFeatures:
@@ -91,7 +68,6 @@ class StateFeatures:
             "session_depth": self.session_depth,
         }
 
-
 @dataclass
 class StrategySelection:
     strategy_id: str
@@ -101,30 +77,19 @@ class StrategySelection:
     thompson_samples: Dict[str, float] = field(default_factory=dict)
     episode_id: Optional[str] = None
 
-
 def encode_state(state: StateFeatures) -> str:
-    """SHA-256 hash of the 6-tuple state, truncated to 32 chars."""
     state_str = (
         f"{state.archetype}|{state.cognitive_state}|{state.intent}|"
         f"{state.p_mastery_bucket}|{state.frustration_bucket}|{state.session_depth}"
     )
     return hashlib.sha256(state_str.encode()).hexdigest()[:32]
 
-
 def session_depth_from_count(message_count: int) -> str:
     if message_count <= 5:   return "early"
     if message_count <= 15:  return "mid"
     return "deep"
 
-
-# ── Bandit ─────────────────────────────────────────────────────────────────────
-
 class StrategyBandit:
-    """
-    Per-student Thompson Sampling contextual bandit.
-    State is a 6-tuple hashed to 32 chars. Each (student, state_hash, strategy)
-    triple has an independent Beta(α, β) distribution.
-    """
 
     def select_strategy(
         self,
@@ -220,7 +185,6 @@ class StrategyBandit:
         return best, samples
 
     def _rule_based_fallback(self, state: StateFeatures) -> str:
-        """Mirror of the original STRATEGY_MAP matrix — used during cold start."""
         if state.intent == "off_topic":
             return "REANCHOR"
         if state.cognitive_state == "stuck" and state.frustration_bucket in ("stressed", "crisis"):
@@ -320,13 +284,7 @@ class StrategyBandit:
             except Exception:
                 pass
 
-    # ── Background reward measurement ─────────────────────────────────────────
-
     def measure_pending_rewards(self, db_factory) -> None:
-        """
-        Called by APScheduler every 60 seconds.
-        Processes all reward queue entries where measure_after <= now().
-        """
         import models
 
         db = db_factory()
@@ -358,7 +316,6 @@ class StrategyBandit:
                         item.reward_value = reward_data["total_reward"]
                         item.reward_components = reward_data["components"]
 
-                        # Back-fill reward into episode log
                         episode = (
                             db.query(models.BanditEpisodeLog)
                             .filter(
@@ -392,16 +349,11 @@ class StrategyBandit:
             db.close()
 
     def _compute_reward(self, db, item) -> Optional[dict]:
-        """
-        Compute reward from ML log signals observed after the response.
-        Weights: p_mastery_delta=0.40, engagement=0.25, continuation=0.20, frustration=0.15
-        """
         import models
 
         student_id_int = int(item.student_id)
         components: Dict[str, float] = {}
 
-        # Find next message from this student after response was sent
         next_msg = (
             db.query(models.MessageMLLog)
             .filter(
@@ -412,21 +364,18 @@ class StrategyBandit:
             .first()
         )
 
-        # session_continuation (weight 0.20) — did they send within 2 minutes?
         continuation_window = item.response_sent_at + timedelta(minutes=2)
         continued = next_msg is not None and next_msg.timestamp <= continuation_window
         cont_component = 1.0 if continued else -0.5
         components["session_continuation"] = cont_component
 
         if next_msg is None:
-            # No follow-up — only continuation signal available
             total = 0.20 * cont_component
             return {
                 "total_reward": _clip(total, -1.0, 1.0),
                 "components": components,
             }
 
-        # p_mastery_delta (weight 0.40)
         p_mastery_after = 0.0
         if next_msg.kt_delta and isinstance(next_msg.kt_delta, dict):
             vals = [v for v in next_msg.kt_delta.values() if isinstance(v, (int, float))]
@@ -436,13 +385,11 @@ class StrategyBandit:
         mastery_component = _clip(mastery_delta * 5, -1.0, 1.0)
         components["p_mastery_delta"] = mastery_component
 
-        # engagement_delta (weight 0.25)
         eng_before = item.engagement_before or 0.5
         eng_after = next_msg.engagement_score or 0.5
         eng_component = _clip((eng_after - eng_before) * 2, -1.0, 1.0)
         components["engagement_delta"] = eng_component
 
-        # frustration_delta (weight 0.15) — increase in frustration = bad
         frust_before = item.frustration_before or 0.0
         frust_after = next_msg.frustration_score or 0.0
         frust_component = _clip(-(frust_after - frust_before) * 2, -1.0, 1.0)
@@ -469,7 +416,6 @@ class StrategyBandit:
     ) -> None:
         import models
 
-        # Map reward [-1,1] → [0,1] for Beta distribution update
         normalized = (reward + 1.0) / 2.0
         alpha_inc = normalized
         beta_inc = 1.0 - normalized
@@ -505,11 +451,7 @@ class StrategyBandit:
             )
             db.add(new_row)
 
-
-# ── Singleton ──────────────────────────────────────────────────────────────────
-
 _bandit: Optional[StrategyBandit] = None
-
 
 def get_bandit() -> StrategyBandit:
     global _bandit

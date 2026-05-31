@@ -7,7 +7,6 @@ from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
-import requests
 from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
@@ -16,25 +15,18 @@ from sqlalchemy.orm import Session
 
 import models
 from deps import (
-    ALGORITHM,
     GOOGLE_CLIENT_ID,
-    SECRET_KEY,
     authenticate_user,
     call_ai,
     create_access_token,
     enforce_request_user_scope,
-    get_comprehensive_profile_safe,
     get_current_user,
     get_db,
     get_password_hash,
     get_user_by_email,
     get_user_by_username,
-    ph,
-    security,
     unified_ai,
     verify_google_token,
-    verify_password,
-    verify_token,
 )
 from services.subscription_catalog import (
     DEFAULT_PLAN_ID,
@@ -52,13 +44,9 @@ router = APIRouter(
     dependencies=[Depends(enforce_request_user_scope)],
 )
 
-# ── In-memory brute-force protection (secondary layer, per-IP) ─────────────────
-# Primary rate limiting is handled by RateLimitMiddleware.
-# This secondary guard uses a stricter per-endpoint check and caps the dict
-# to prevent unbounded memory growth.
 _auth_attempts: dict = defaultdict(list)
 _auth_lock = threading.Lock()
-_AUTH_DICT_MAX = 5000   # evict oldest keys if dict exceeds this size
+_AUTH_DICT_MAX = 5000
 
 def _check_auth_rate_limit(request: Request, max_attempts: int = 5, window_seconds: int = 60) -> None:
     ip = (request.client.host if request.client else None) or "unknown"
@@ -74,7 +62,6 @@ def _check_auth_rate_limit(request: Request, max_attempts: int = 5, window_secon
                 headers={"Retry-After": str(max(1, retry_after))},
             )
         _auth_attempts[ip].append(now)
-        # Evict excess keys to prevent memory leak
         if len(_auth_attempts) > _AUTH_DICT_MAX:
             oldest_keys = sorted(
                 _auth_attempts.keys(),
@@ -136,20 +123,16 @@ class UserProfileUpdate(BaseModel):
     preferredSessionLength: Optional[int] = None
     bestStudyTimes: Optional[List[str]] = []
 
-
 _VALID_BILLING_CYCLES = {"monthly", "yearly"}
 _VALID_SUBSCRIPTION_STATUSES = {"active", "trial", "grace", "paused", "cancelled"}
-
 
 def _normalize_billing_cycle(raw: Optional[str]) -> str:
     candidate = (raw or "monthly").strip().lower()
     return candidate if candidate in _VALID_BILLING_CYCLES else "monthly"
 
-
 def _normalize_subscription_status(raw: Optional[str]) -> str:
     candidate = (raw or "active").strip().lower()
     return candidate if candidate in _VALID_SUBSCRIPTION_STATUSES else "active"
-
 
 def _subscription_usage_snapshot(db: Session, user_pk: int, days: int = 30) -> dict:
     snapshot = {
@@ -201,7 +184,6 @@ def _subscription_usage_snapshot(db: Session, user_pk: int, days: int = 30) -> d
             for row in top_rows
         ]
     except Exception:
-        # user_activity_log may not exist in fresh environments
         pass
     return snapshot
 
@@ -832,7 +814,6 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
         logger.error(f"Error getting profile: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to load profile. Please try again.")
 
-
 @router.get("/subscription/overview")
 async def get_subscription_overview(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
@@ -882,7 +863,6 @@ async def get_subscription_overview(user_id: str = Query(...), db: Session = Dep
     except Exception as e:
         logger.error(f"Error getting subscription overview: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to load subscription overview")
-
 
 @router.post("/subscription/select")
 async def select_subscription_plan(payload: dict = Body(...), db: Session = Depends(get_db)):

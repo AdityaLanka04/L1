@@ -13,10 +13,6 @@ if not os.getenv("SECRET_KEY"):
     raise RuntimeError("SECRET_KEY environment variable is not set")
 
 def _configure_langsmith_tracing() -> None:
-    """
-    Disable LangSmith/LangChain tracing by default in runtime to avoid noisy 403s.
-    Opt-in only when ENABLE_LANGSMITH_TRACING=true.
-    """
     enabled = os.getenv("ENABLE_LANGSMITH_TRACING", "false").strip().lower() in {"1", "true", "yes", "on"}
     if enabled:
         return
@@ -25,10 +21,10 @@ def _configure_langsmith_tracing() -> None:
 
 _configure_langsmith_tracing()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import text
 
 from database import SessionLocal, engine
@@ -193,7 +189,6 @@ if "sqlite" in DATABASE_URL:
                 logger.info(f"Table {_new_table} will be created by SQLAlchemy metadata")
         _conn.commit()
 
-
 def _sync_sequences():
     if "postgres" not in DATABASE_URL.lower():
         return
@@ -219,9 +214,7 @@ def _sync_sequences():
     except Exception as e:
         logger.error(f"Sequence sync error: {e}")
 
-
 _sync_sequences()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -427,7 +420,6 @@ async def lifespan(app: FastAPI):
         except Exception:
             pass
 
-
 app = FastAPI(title="Brainwave Backend API", version="4.0.0", lifespan=lifespan)
 
 _env = os.getenv("ENVIRONMENT", "").strip().lower()
@@ -475,6 +467,9 @@ from routes import (
     media,
     roadmaps,
     social,
+    friends,
+    battles,
+    sharing,
     gamification,
     analytics,
     notifications,
@@ -501,6 +496,9 @@ app.include_router(media.router)
 app.include_router(roadmaps.router)
 app.include_router(social.router)
 app.include_router(social.ws_router)
+app.include_router(friends.router)
+app.include_router(battles.router)
+app.include_router(sharing.router)
 app.include_router(gamification.router)
 app.include_router(analytics.router)
 app.include_router(notifications.router)
@@ -523,21 +521,18 @@ except ImportError:
     pass
 
 try:
-    from question_bank_enhanced import register_question_bank_api
+    from question_bank import register_question_bank_api
     from deps import unified_ai
     from database import get_db
     register_question_bank_api(app, unified_ai, get_db)
 except ImportError:
     pass
 
-
-
 @app.get("/api/health")
 def health_check():
     checks: dict[str, str] = {}
     overall = "healthy"
 
-    # Database
     try:
         db = SessionLocal()
         db.execute(text("SELECT 1"))
@@ -548,7 +543,6 @@ def health_check():
         overall = "degraded"
         logger.error("Health check: DB error: %s", _db_err)
 
-    # Redis
     try:
         from services import redis_cache as _rc
         if _rc._redis_client is not None:
@@ -559,7 +553,6 @@ def health_check():
     except Exception:
         checks["redis"] = "error"
 
-    # AI keys
     _has_groq   = bool(os.getenv("GROQ_API_KEY"))
     _has_gemini = bool(os.getenv("GOOGLE_GENERATIVE_AI_KEY") or os.getenv("GEMINI_API_KEY"))
     checks["ai_groq"]   = "ok" if _has_groq   else "missing"
@@ -568,8 +561,7 @@ def health_check():
         overall = "degraded"
 
     status_code = 200 if overall == "healthy" else 207
-    from fastapi.responses import JSONResponse as _JR
-    return _JR(
+    return JSONResponse(
         status_code=status_code,
         content={
             "status": overall,
@@ -579,7 +571,6 @@ def health_check():
         },
     )
 
-
 build_dir = Path(__file__).parent.parent / "build"
 
 if build_dir.exists() and os.getenv("SERVE_REACT", "false").lower() == "true":
@@ -587,7 +578,6 @@ if build_dir.exists() and os.getenv("SERVE_REACT", "false").lower() == "true":
 
     @app.get("/{full_path:path}")
     async def serve_react(full_path: str):
-        from fastapi import HTTPException
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="API endpoint not found")
         file_path = build_dir / full_path
@@ -598,7 +588,6 @@ else:
     @app.get("/")
     async def root():
         return {"message": "Brainwave Backend API v4.0.0", "status": "running"}
-
 
 if __name__ == "__main__":
     import uvicorn

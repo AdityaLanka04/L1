@@ -1,14 +1,3 @@
-"""
-downloader.py — HTTP download + URL resolution for each source type.
-
-Handles:
-  openstax   — scrapes openstax.org book page for PDF download link
-  gcse_aqa   — scrapes AQA specification page for PDF link
-  direct     — downloads from a direct URL
-
-All functions return (pdf_bytes: bytes, resolved_url: str).
-Raises DownloadError on failure.
-"""
 
 from __future__ import annotations
 
@@ -27,12 +16,10 @@ _HEADERS = {
 }
 _DEFAULT_TIMEOUT = 300
 _MAX_PDF_BYTES = 80 * 1024 * 1024
-_PIPELINE_MAX_PDF_BYTES = 10 * 1024 * 1024 * 1024  # 10 GB — no effective limit
-
+_PIPELINE_MAX_PDF_BYTES = 10 * 1024 * 1024 * 1024
 
 class DownloadError(Exception):
     pass
-
 
 def _get_httpx():
     try:
@@ -41,17 +28,12 @@ def _get_httpx():
     except ImportError as e:
         raise DownloadError("httpx not installed — run: pip install httpx") from e
 
-
 def download_bytes(
     url: str,
     timeout: int = _DEFAULT_TIMEOUT,
     retries: int = 2,
     max_bytes: int = _PIPELINE_MAX_PDF_BYTES,
 ) -> bytes:
-    """
-    Download raw bytes from any URL. Retries up to `retries` times on transient errors.
-    Raises DownloadError on failure.
-    """
     httpx = _get_httpx()
     last_error: Optional[Exception] = None
     for attempt in range(retries + 1):
@@ -76,12 +58,7 @@ def download_bytes(
                 time.sleep(wait)
     raise DownloadError(f"Download failed after {retries + 1} attempts for {url}: {last_error}")
 
-
 def _find_pdf_link_in_html(html: str, base_url: str = "") -> Optional[str]:
-    """
-    Scan HTML for the most likely PDF download link.
-    Priority: explicit .pdf href > links with 'download' in text > links with 'specification' in text.
-    """
     patterns = [
         r'href=["\']([^"\']+\.pdf)["\']',
         r'href=["\']([^"\']+/download[^"\']*)["\']',
@@ -104,16 +81,7 @@ def _find_pdf_link_in_html(html: str, base_url: str = "") -> Optional[str]:
                 return url
     return None
 
-
 def resolve_openstax(entry: dict) -> tuple[bytes, str]:
-    """
-    Resolve + download an OpenStax textbook PDF.
-
-    Strategy:
-    1. If entry has a direct_url, use that.
-    2. Otherwise fetch the book page and scan for the PDF link.
-    3. Look for hrefs matching cloudfront.net PDF or openstax.org PDF patterns.
-    """
     if entry.get("direct_url"):
         url = entry["direct_url"]
         return download_bytes(url), url
@@ -142,16 +110,7 @@ def resolve_openstax(entry: dict) -> tuple[bytes, str]:
     logger.info(f"Resolved OpenStax PDF: {pdf_url}")
     return download_bytes(pdf_url), pdf_url
 
-
 def resolve_aqa(entry: dict) -> tuple[bytes, str]:
-    """
-    Resolve + download an AQA specification PDF.
-
-    Strategy:
-    1. If entry has a direct_url, use that.
-    2. Otherwise fetch the AQA specification page and find the spec PDF link.
-       AQA spec pages have download links with '.pdf' in the href.
-    """
     if entry.get("direct_url"):
         url = entry["direct_url"]
         return download_bytes(url), url
@@ -180,13 +139,7 @@ def resolve_aqa(entry: dict) -> tuple[bytes, str]:
     logger.info(f"Resolved AQA spec PDF: {pdf_url}")
     return download_bytes(pdf_url), pdf_url
 
-
 def resolve_entry(entry: dict) -> tuple[bytes, str]:
-    """
-    Main entry point: route to the correct resolver based on source_type.
-    Returns (pdf_bytes, resolved_url).
-    Raises DownloadError on any failure.
-    """
     source_type = entry.get("source_type", "direct")
 
     if source_type == "openstax":

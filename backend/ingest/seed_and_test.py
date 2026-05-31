@@ -1,10 +1,3 @@
-"""
-seed_and_test.py — Ingest 5 books then prove page-number retrieval works.
-
-Usage:
-    cd backend/
-    DATABASE_URL=... python -m ingest.seed_and_test
-"""
 from __future__ import annotations
 import os, sys, time, textwrap
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -83,9 +76,7 @@ QUERIES = [
     (None,         "Explain entropy and the second law of thermodynamics"),
 ]
 
-
 def hr(char="-", n=72): print(char * n)
-
 
 def setup():
     print("Initializing embedding model (all-MiniLM-L6-v2)...")
@@ -100,15 +91,13 @@ def setup():
     print("Vector store ready.\n")
     return context_store
 
-
 def ingest_books(context_store):
     from ingest.pipeline import IngestPipeline
     from database import SessionLocal
 
     pipeline = IngestPipeline(dry_run=False, resume=True)
-    pipeline._state = {}  # fresh — check DB state instead
+    pipeline._state = {}
 
-    # check what's already there
     import vector_store as vs
     already = set()
     try:
@@ -150,7 +139,6 @@ def ingest_books(context_store):
             print(f"  [OK] {result.title} — {result.chunk_count} chunks, {elapsed:.0f}s")
         else:
             print(f"  [FAIL] {result.title}: {result.error}")
-
 
 def run_queries(context_store):
     hr("=")
@@ -220,7 +208,6 @@ def run_queries(context_store):
     print(f"\n  SUMMARY: {passed} passed, {failed} failed out of {len(QUERIES)} queries")
     hr("=")
 
-
 def main():
     print()
     hr("=")
@@ -231,7 +218,6 @@ def main():
     cs = setup()
     ingest_books(cs)
     run_queries(cs)
-
 
 if __name__ == "__main__":
     main()

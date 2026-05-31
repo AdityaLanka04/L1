@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════════
-   Landing — slideshow, 8 slides, no scroll
-   ══════════════════════════════════════════════════════════ */
+
 
 .lnd-root {
   width: 100vw;
@@ -21,8 +19,6 @@
   z-index: 0;
 }
 
-/* ── Header ─────────────────────────────────────────────── */
-
 .lnd-header {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -37,7 +33,6 @@
   box-sizing: border-box;
 }
 
-/* Inter 900 tight — matches the hero wordmark */
 .lnd-brand {
   font-family: 'Inter', sans-serif;
   font-size: 1.3rem;
@@ -49,7 +44,6 @@
   line-height: 1;
 }
 
-/* Nav absolutely centered so brand left & login right */
 .lnd-nav {
   position: absolute;
   left: 50%;
@@ -114,8 +108,6 @@
 
 .lnd-login-btn:hover { background: rgba(215,179,140,0.09); }
 
-/* ── Track ───────────────────────────────────────────────── */
-
 .lnd-track {
   display: flex;
   width: 800vw;
@@ -133,8 +125,6 @@
   display: flex;
   align-items: stretch;
 }
-
-/* ── Base slide ──────────────────────────────────────────── */
 
 .lnd-slide {
   width: 100%;
@@ -189,8 +179,6 @@
   font-weight: 600;
 }
 
-/* ── Shared buttons ──────────────────────────────────────── */
-
 .lnd-btn-primary {
   display: flex;
   align-items: center;
@@ -225,8 +213,6 @@
 }
 
 .lnd-btn-ghost:hover { background: rgba(215,179,140,0.08); }
-
-/* ── Navigation ──────────────────────────────────────────── */
 
 .lnd-arrow {
   position: fixed;
@@ -278,17 +264,12 @@
   border-radius: 3px;
 }
 
-/* ══════════════════════════════════════════════════
-   SLIDE 0 — HOME (full-screen watermark hero)
-   ══════════════════════════════════════════════════ */
-
 .lnd-slide--home {
   justify-content: center;
   align-items: center;
   padding: 0;
 }
 
-/* Faded logo fills the full slide behind text */
 .lnd-home-watermark {
   position: absolute !important;
   inset: 0 !important;
@@ -309,7 +290,6 @@
   filter: brightness(4) sepia(0.6) !important;
 }
 
-/* Content sits above the watermark */
 .lnd-home-content {
   position: relative;
   z-index: 1;
@@ -370,10 +350,6 @@
   background: rgba(215,179,140,0.08);
   border-color: rgba(215,179,140,0.55);
 }
-
-/* ══════════════════════════════════════════════════
-   SLIDE 1 — TEAM (founders, shared work, quote)
-   ══════════════════════════════════════════════════ */
 
 .lnd-slide--team {
   justify-content: center;
@@ -509,10 +485,6 @@
   padding-top: 6px;
 }
 
-/* ══════════════════════════════════════════════════
-   SLIDE 2 — PROBLEM
-   ══════════════════════════════════════════════════ */
-
 .lnd-curve {
   display: flex;
   align-items: flex-end;
@@ -558,10 +530,6 @@
   color: var(--text-secondary, #B8C0CC);
   flex-shrink: 0;
 }
-
-/* ══════════════════════════════════════════════════
-   SLIDE 3 — ARCHITECTURE (timeline style, no boxes)
-   ══════════════════════════════════════════════════ */
 
 .lnd-arch-grid {
   display: grid;
@@ -658,10 +626,6 @@
   max-width: 900px;
 }
 
-/* ══════════════════════════════════════════════════
-   SLIDE 4 — FEATURES (grid, borderless hover)
-   ══════════════════════════════════════════════════ */
-
 .lnd-feat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -705,10 +669,6 @@
   line-height: 1.55;
   margin: 0;
 }
-
-/* ══════════════════════════════════════════════════
-   SLIDE 5 — MARKET
-   ══════════════════════════════════════════════════ */
 
 .lnd-market-headline {
   font-size: clamp(50px, 7vw, 82px) !important;
@@ -761,10 +721,6 @@
   text-align: center;
   text-transform: uppercase;
 }
-
-/* ══════════════════════════════════════════════════
-   SLIDE 6 — COMPETITION
-   ══════════════════════════════════════════════════ */
 
 .lnd-comp-tabs {
   display: flex;
@@ -849,10 +805,6 @@
   font-size: 0.74rem;
   flex-shrink: 0;
 }
-
-/* ══════════════════════════════════════════════════
-   SLIDE 7 — BUSINESS (two-tier pricing)
-   ══════════════════════════════════════════════════ */
 
 .lnd-biz-layout {
   display: grid;

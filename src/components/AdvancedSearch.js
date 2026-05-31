@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Search, Clock, Calendar, Folder, Info } from 'lucide-react';
 import './AdvancedSearch.css';
 

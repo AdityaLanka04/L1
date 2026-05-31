@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, ChevronRight, FileText, X, Menu, Edit2, Check } from 'lucide-react';
 import CanvasMode from '../components/CanvasMode';

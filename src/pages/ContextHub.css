@@ -1,8 +1,5 @@
-/* ============================================================
-   CONTEXT HUB — Comprehensive Styles
-   ============================================================ */
 
-/* ── Root variables ─────────────────────────────────────────── */
+
 .ch-page {
   --ch-sidebar-width: 260px;
   --ch-sidebar-bg-dark: linear-gradient(180deg,
@@ -45,7 +42,6 @@
   overflow: hidden;
 }
 
-/* ── Sidebar ─────────────────────────────────────────────────── */
 .ch-sidebar {
   width: var(--ch-sidebar-width);
   height: 100%;
@@ -113,10 +109,8 @@
   background: var(--ch-scrollbar-thumb-hover);
 }
 
-/* Sidebar top padding (logo removed) */
 .ch-sidebar-inner { padding-top: 8px; }
 
-/* Active context indicator */
 .ch-sidebar-active-ctx {
   margin: 12px 12px 4px;
   padding: 12px;
@@ -243,7 +237,6 @@
   opacity: 0.6;
 }
 
-/* Sidebar sections */
 .ch-sidebar-section {
   padding: 14px 12px 4px;
 }
@@ -259,7 +252,6 @@
   margin: 0 0 6px 4px;
 }
 
-/* Sidebar nav */
 .ch-sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -340,7 +332,6 @@
   flex-shrink: 0;
 }
 
-/* Stats */
 .ch-sidebar-stats {
   border-top: 1px solid var(--ch-border);
   margin-top: auto;
@@ -369,7 +360,6 @@
   font-size: 12px;
 }
 
-/* Sidebar footer */
 .ch-sidebar-footer {
   padding: 12px 12px 0;
   border-top: 1px solid var(--ch-border);
@@ -403,7 +393,6 @@
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* ── Main area ───────────────────────────────────────────────── */
 .ch-main {
   flex: 1;
   display: flex;
@@ -412,7 +401,6 @@
   overflow: hidden;
   position: relative;
 }
-
 
 .ch-sidebar-toggle {
   display: none;
@@ -458,7 +446,6 @@
   background: var(--ch-scrollbar-thumb-hover);
 }
 
-/* ── Breadcrumb ─────────────────────────────────────────────── */
 .ch-breadcrumb {
   display: flex;
   align-items: center;
@@ -502,7 +489,6 @@
   flex-shrink: 0;
 }
 
-/* ── Common view header ──────────────────────────────────────── */
 .ch-view-header {
   display: flex;
   align-items: center;
@@ -587,7 +573,6 @@
   flex-wrap: wrap;
 }
 
-/* ── Buttons ─────────────────────────────────────────────────── */
 .ch-btn {
   display: inline-flex;
   align-items: center;
@@ -680,7 +665,6 @@
   font-weight: 600;
 }
 
-/* ── Search bar ──────────────────────────────────────────────── */
 .ch-search-bar {
   display: flex;
   align-items: center;
@@ -731,7 +715,6 @@
 
 .ch-search-clear:hover { color: var(--text-primary); }
 
-/* ── LANDING ─────────────────────────────────────────────────── */
 .ch-main-content {
   background:
     radial-gradient(circle at 2px 2px, color-mix(in srgb, var(--accent) 7%, transparent) 1.5px, transparent 0),
@@ -749,7 +732,6 @@
   margin-bottom: 24px;
 }
 
-/* How it works steps */
 .ch-how-it-works {
   display: flex;
   align-items: center;
@@ -835,7 +817,6 @@
   letter-spacing: 0.1px;
 }
 
-/* Bento grid */
 .ch-bento {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -871,7 +852,6 @@
   transform: translateY(-2px);
 }
 
-/* UK card – row 1 col 1 */
 .ch-bento-card--uk {
   grid-column: 1;
   grid-row: 1;
@@ -884,7 +864,6 @@
   border-top-color: #3b82f6;
 }
 
-/* US card – row 1 col 2 */
 .ch-bento-card--us {
   grid-column: 2;
   grid-row: 1;
@@ -897,7 +876,6 @@
   border-top-color: #ef4444;
 }
 
-/* Custom card – row 2 col 1 */
 .ch-bento-card--custom {
   grid-column: 1 / 2;
   grid-row: 2;
@@ -909,7 +887,6 @@
   border-top-color: var(--accent);
 }
 
-/* Stats card – row 2 col 2 */
 .ch-bento-card--stats {
   grid-column: 2;
   grid-row: 2;
@@ -919,7 +896,6 @@
   cursor: default;
 }
 
-/* Animated background overlay */
 .ch-bento-card-bg {
   position: absolute;
   inset: 0;
@@ -1044,7 +1020,6 @@
   gap: 10px;
 }
 
-/* Custom card */
 .ch-bento-card--custom .ch-bento-card-inner {
   padding: 28px 32px;
 }
@@ -1067,7 +1042,6 @@
   border-style: solid;
 }
 
-/* Stats card */
 .ch-bento-card--stats .ch-bento-card-inner {
   padding: 28px 32px;
   gap: 18px;
@@ -1127,7 +1101,6 @@
   margin: 0;
 }
 
-/* ── CURRICULUM VIEW (grade cards) ───────────────────────────── */
 .ch-curriculum-view {
   padding: 0 32px 40px;
 }
@@ -1222,7 +1195,6 @@
   transform: translateX(4px);
 }
 
-/* Feature row */
 .ch-curriculum-feature-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1276,12 +1248,10 @@
   line-height: 1.55;
 }
 
-/* ── GRADE VIEW (subject cards) ──────────────────────────────── */
 .ch-grade-view {
   padding: 0 32px 40px;
 }
 
-/* Category pills */
 .ch-category-pills {
   display: flex;
   flex-wrap: wrap;
@@ -1326,7 +1296,6 @@
   opacity: 0.7;
 }
 
-/* Subject cards grid */
 .ch-subject-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1433,7 +1402,6 @@
   transform: translateY(-50%) translateX(0);
 }
 
-/* Subject icon in grade view — accent colored */
 .ch-subject-icon-wrap {
   width: 38px;
   height: 38px;
@@ -1454,7 +1422,6 @@
   border-color: color-mix(in srgb, var(--cat-color, var(--accent)) 35%, transparent);
 }
 
-/* Recently used sidebar items */
 .ch-sidebar-nav-item--recent {
   flex-direction: column;
   align-items: flex-start;
@@ -1489,7 +1456,6 @@
   opacity: 0.7;
 }
 
-/* ── SUBJECT VIEW (documents) ────────────────────────────────── */
 .ch-subject-view {
   padding: 0 32px 40px;
 }
@@ -1501,7 +1467,6 @@
   line-height: 1.6;
 }
 
-/* Doc controls */
 .ch-docs-controls {
   display: flex;
   align-items: center;
@@ -1587,7 +1552,6 @@
   color: #000;
 }
 
-/* Document grids & lists */
 .ch-docs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1606,7 +1570,6 @@
   color: var(--text-secondary);
 }
 
-/* Document card (grid) */
 .ch-doc-card {
   border-radius: var(--ch-radius);
   background: var(--ch-card-bg);
@@ -1710,7 +1673,6 @@
   border-top: 1px solid var(--ch-border);
 }
 
-/* Document row (list) */
 .ch-doc-row {
   display: flex;
   align-items: center;
@@ -1773,7 +1735,6 @@
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
-/* Doc action buttons */
 .ch-doc-action {
   display: inline-flex;
   align-items: center;
@@ -1866,7 +1827,6 @@
   color: var(--text-secondary);
 }
 
-/* States */
 .ch-docs-loading,
 .ch-docs-error,
 .ch-docs-empty {
@@ -1922,7 +1882,6 @@
 .ch-empty-state svg { opacity: 0.25; }
 .ch-empty-state p { font-size: 13px; margin: 0; }
 
-/* ── SIDEBAR: divider + upload button ────────────────────────── */
 .ch-sidebar-divider {
   height: 1px;
   background: var(--ch-border);
@@ -1946,7 +1905,6 @@
   background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
 }
 
-/* ── UPLOAD PAGE ─────────────────────────────────────────────── */
 .ch-upload-page {
   display: flex;
   flex-direction: column;
@@ -2110,7 +2068,6 @@
 .ch-upload-page-btn:hover:not(:disabled) { opacity: 0.88; }
 .ch-upload-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ── DOC LIST ROWS (Library + Subject) ───────────────────────── */
 .ch-doc-list-rows {
   display: flex;
   flex-direction: column;
@@ -2231,7 +2188,6 @@
 }
 .doc-action-chip--delete:hover { border-color: #ff3b30; color: #ff3b30; background: rgba(255,59,48,0.08); }
 
-/* Library controls */
 .ch-library-view { padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 16px; }
 
 .ch-library-header {
@@ -2284,14 +2240,12 @@
 .ch-library-empty h3 { font-size: 17px; font-weight: 700; color: var(--text-primary); margin: 0; }
 .ch-library-empty p { font-size: 13px; color: var(--text-secondary); margin: 0; }
 
-/* Sidebar helpers */
 .ch-sidebar-count {
   margin-left: auto; font-size: 10px; font-weight: 700;
   background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent); padding: 1px 6px; border-radius: 10px;
 }
 
-/* secondary button */
 .ch-btn--secondary {
   display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
   border-radius: 8px; background: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -2300,7 +2254,6 @@
 }
 .ch-btn--secondary:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 
-/* ── UPLOAD VIEW (OLD — kept for UploadModal) ─────────────────── */
 .ch-upload-view {
   padding: 40px;
   max-width: 640px;
@@ -2540,7 +2493,6 @@
 .ch-upload-submit-btn:hover:not(:disabled) { opacity: 0.88; }
 .ch-upload-submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Upload success card */
 .ch-upload-success-card {
   display: flex;
   flex-direction: column;
@@ -2572,9 +2524,6 @@
   margin-top: 6px;
 }
 
-/* ── LIBRARY VIEW (duplicate removed — defined above) ─────────── */
-
-/* ── UPLOAD MODAL ────────────────────────────────────────────── */
 .ch-modal-overlay {
   position: fixed;
   inset: 0;
@@ -2659,7 +2608,6 @@
   gap: 18px;
 }
 
-/* Drop zone */
 .ch-drop-zone {
   border: 2px dashed var(--ch-border-strong);
   border-radius: var(--ch-radius);
@@ -2757,7 +2705,6 @@
 
 .ch-drop-file-remove:hover { background: #ef4444; color: #fff; }
 
-/* Scope */
 .ch-modal-scope-label {
   font-size: 11px;
   font-weight: 700;
@@ -2818,7 +2765,6 @@
   line-height: 1.4;
 }
 
-/* Modal states */
 .ch-modal-error {
   display: flex;
   align-items: center;
@@ -2871,7 +2817,6 @@
   justify-content: flex-end;
 }
 
-/* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .ch-curriculum-feature-row {
     grid-template-columns: repeat(2, 1fr);
@@ -2958,11 +2903,6 @@
   .ch-category-pills { gap: 5px; }
   .ch-category-pill { padding: 5px 10px; font-size: 10px; }
 }
-
-
-/* ============================================================
-   ASK YOUR NOTES - Knowledge Base Q&A Interface
-   ============================================================ */
 
 .ch-ask-view {
   display: flex;
@@ -3381,10 +3321,6 @@
   .ch-ask-suggestions { flex-direction: column; }
 }
 
-/* ══════════════════════════════════════════════════════════
-   GEOMETRIC BACKGROUND — ch-main content area
-   ══════════════════════════════════════════════════════════ */
-
 .ch-main-bg {
   position: absolute;
   inset: 0;
@@ -3434,10 +3370,6 @@
     radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent) 7%, transparent) 0%, transparent 60%);
 }
 
-/* ══════════════════════════════════════════════════════════
-   MY DOCS | UPLOAD INNER TAB BAR
-   ══════════════════════════════════════════════════════════ */
-
 .ch-inner-tabs {
   display: flex;
   gap: 4px;
@@ -3486,14 +3418,12 @@
   font-weight: 700;
 }
 
-/* ── Upload tab wrapper ─────────────────────────────────── */
 .ch-lib-upload-wrap {
   padding: 28px 28px 40px;
   position: relative;
   z-index: 1;
 }
 
-/* ── My Docs tab wrapper ────────────────────────────────── */
 .ch-lib-docs-wrap {
   display: flex;
   flex-direction: column;
@@ -3581,10 +3511,6 @@
   color: var(--accent);
 }
 
-/* ══════════════════════════════════════════════════════════
-   MY DOC FILE CARD GRID
-   ══════════════════════════════════════════════════════════ */
-
 .ch-myfile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
@@ -3592,7 +3518,6 @@
   padding: 4px 28px 40px;
 }
 
-/* ── Individual card ────────────────────────────────────── */
 .ch-myfile-card {
   border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
   border-radius: 16px;
@@ -3647,7 +3572,6 @@
   border-color: rgba(34, 211, 238, 0.40);
 }
 
-/* ── Card top row (icon + pills) ───────────────────────── */
 .ch-myfile-top {
   display: flex;
   align-items: flex-start;
@@ -3705,7 +3629,6 @@
   background: color-mix(in srgb, var(--accent) 13%, transparent);
 }
 
-/* ── Card name + meta ──────────────────────────────────── */
 .ch-myfile-name {
   font-size: 14px;
   font-weight: 600;
@@ -3729,7 +3652,6 @@
 
 .ch-myfile-dot { opacity: 0.5; }
 
-/* ── Usage stats row ────────────────────────────────────── */
 .ch-myfile-usage {
   display: flex;
   align-items: center;
@@ -3760,7 +3682,6 @@
   color: color-mix(in srgb, var(--text-primary, #fff) 38%, transparent);
 }
 
-/* ── Card action buttons ────────────────────────────────── */
 .ch-myfile-actions {
   display: flex;
   gap: 5px;
@@ -3830,7 +3751,6 @@
   border-color: rgba(252, 165, 165, 0.44);
 }
 
-/* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 860px) {
   .ch-myfile-grid { padding: 4px 18px 32px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
   .ch-inner-tabs { padding: 16px 18px 0; }

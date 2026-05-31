@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import ReactFlow, {
   Background,
@@ -190,7 +190,7 @@ const fetchChatSessions = async () => {
       setChatSessions(data.sessions || []);
     }
   } catch (error) {
-    // silenced
+    
   }
 };
 
@@ -262,7 +262,7 @@ const createRoadmapFromChat = async () => {
         const state = JSON.parse(savedState);
                 return state;
       } catch (error) {
-    // silenced
+    
   }
     }
     return null;
@@ -363,7 +363,7 @@ const createRoadmapFromChat = async () => {
       } else {
               }
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoading(false);
     }

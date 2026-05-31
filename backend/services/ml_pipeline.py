@@ -1,13 +1,3 @@
-"""
-Cerbyl ML Pipeline — per-message real-time intelligence.
-
-Layers 1-3 run concurrently via asyncio.gather.
-Layer 4 runs after (depends on 1-3 outputs).
-Layer 5 assembles the final LLM prompt.
-
-ModelRegistry singleton loads models once at startup.
-Target: < 30ms total pre-LLM latency.
-"""
 from __future__ import annotations
 
 import asyncio
@@ -73,9 +63,7 @@ STRATEGY_INSTRUCTIONS = {
     "METACOGNITIVE":      "Invite the student to reflect on their learning process. Ask what helped or confused them and how they might approach it differently next time.",
 }
 
-
 class ModelRegistry:
-    """Singleton that loads models once at startup."""
 
     _instance: Optional["ModelRegistry"] = None
 
@@ -91,7 +79,6 @@ class ModelRegistry:
         return cls._instance
 
     def load(self):
-        """Load both ML models. Call at FastAPI startup."""
         if self._ready:
             return
         try:
@@ -121,7 +108,6 @@ class ModelRegistry:
             return None
 
     def embed_fn(self):
-        """Return a callable suitable for memory_service."""
         def _fn(text: str):
             if not self._embed_model:
                 return [0.0] * 384
@@ -130,7 +116,6 @@ class ModelRegistry:
             except Exception:
                 return [0.0] * 384
         return _fn
-
 
 @dataclass
 class SessionContext:
@@ -142,7 +127,6 @@ class SessionContext:
     engagement_trend: List[float] = field(default_factory=list)
     last_message_at: Optional[datetime] = None
     response_latency_s: float = 0.0
-
 
 @dataclass
 class MLOutput:
@@ -164,12 +148,7 @@ class MLOutput:
     rl_episode_id: str = ""
     rl_exploration_flag: bool = False
 
-
 class MessageMLPipeline:
-    """
-    Runs all 5 ML layers per incoming chat message.
-    Layers 1-3 run concurrently; layer 4 depends on their outputs.
-    """
 
     def __init__(self, db_factory, memory_svc=None):
         self._db_factory = db_factory
@@ -178,7 +157,6 @@ class MessageMLPipeline:
         self._concept_cache: Dict[str, List[float]] = {}
 
     def _load_concept_cache(self, db) -> None:
-        """Pre-embed concept names from StudentKnowledgeState for quick lookup."""
         if self._concept_cache:
             return
         try:
@@ -208,7 +186,6 @@ class MessageMLPipeline:
     async def _layer1_intent_concept(
         self, message: str, db, user_id: int, session: SessionContext
     ) -> Tuple[str, List[str]]:
-        """Intent classification + concept detection."""
         msg_lower = message.lower()
 
         intent = "question"
@@ -255,7 +232,6 @@ class MessageMLPipeline:
     async def _layer2_bkt_update(
         self, db, user_id: int, concept_ids: List[str], intent: str
     ) -> Tuple[float, float, Dict, Dict]:
-        """Bayesian Knowledge Tracing update."""
         import models
 
         CONFIDENCE = {
@@ -342,7 +318,6 @@ class MessageMLPipeline:
     async def _layer3_affect(
         self, message: str, session: SessionContext
     ) -> Tuple[float, float, str]:
-        """Frustration + engagement scoring."""
         msg_lower = message.lower()
 
         lexical = sum(1 for kw in FRUSTRATION_KEYWORDS if kw in msg_lower)
@@ -415,7 +390,6 @@ class MessageMLPipeline:
         return "DIRECT_EXPLANATION"
 
     def _get_interaction_count(self, db, user_id: int) -> int:
-        """Fast count of total ML-logged messages for this student — used for RL cold-start gate."""
         try:
             import models
             return db.query(models.MessageMLLog).filter_by(user_id=user_id).count()
@@ -429,7 +403,6 @@ class MessageMLPipeline:
         session: SessionContext,
         db,
     ) -> MLOutput:
-        """Run the full ML pipeline. Returns MLOutput."""
         out = MLOutput()
         user_id = int(student_id)
 
@@ -456,8 +429,6 @@ class MessageMLPipeline:
             out.kt_before = kt_before
             out.kt_after = kt_after
 
-            # Layer 4: RL Thompson Sampling strategy selection
-            # Falls back to rule-based during cold start (<20 interactions)
             try:
                 from services.rl_strategy_agent import (
                     StateFeatures, get_bandit, session_depth_from_count
@@ -488,12 +459,11 @@ class MessageMLPipeline:
                 out.rl_episode_id = selection.episode_id or ""
                 out.rl_exploration_flag = selection.exploration_flag
 
-                # Queue deferred reward measurement (non-blocking)
                 bandit.queue_reward_measurement(
                     db=db,
                     student_id=student_id,
                     session_id=session.session_id,
-                    message_id=None,  # filled in by chat route after ML log commit
+                    message_id=None,
                     state_hash=selection.state_hash,
                     strategy_id=selection.strategy_id,
                     p_mastery_before=p_mastery,
@@ -542,10 +512,6 @@ class MessageMLPipeline:
         profile: Optional[Dict] = None,
         session_brief: str = "",
     ) -> str:
-        """
-        Build the intelligence addendum injected into the LLM system prompt.
-        This comes BEFORE the tutor's own system prompt.
-        """
         lines: List[str] = []
 
         lines.append("[STUDENT INTELLIGENCE STATE]")

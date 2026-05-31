@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
@@ -13,7 +12,6 @@ import {
   MOCK_WEEKLY_PROGRESS,
 } from '../helpers/testUtils';
 
-// ─── Module mocks ─────────────────────────────────────────────────────────────
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -55,7 +53,6 @@ jest.mock('../../components/LoadingSpinner', () => () => <div data-testid="loadi
 jest.mock('../../components/ImportExportModal', () => () => null);
 jest.mock('../../components/ThemeSwitcher', () => () => null);
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 const FETCH_ROUTES = {
   get_gamification_stats: MOCK_GAMIFICATION,
   get_dashboard_data: MOCK_DASHBOARD_DATA,
@@ -90,7 +87,6 @@ const renderDashboard = async () => {
   return utils;
 };
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
 describe('Dashboard', () => {
   beforeEach(() => {
     clearLocalStorage();
@@ -102,7 +98,7 @@ describe('Dashboard', () => {
     clearLocalStorage();
   });
 
-  // ── Authentication ──────────────────────────────────────────────────────────
+  
   describe('Authentication', () => {
     it('redirects to /login when no token is present', async () => {
       await act(async () => {
@@ -122,7 +118,7 @@ describe('Dashboard', () => {
     });
   });
 
-  // ── Rendering ───────────────────────────────────────────────────────────────
+  
   describe('Rendering', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -141,7 +137,7 @@ describe('Dashboard', () => {
     });
   });
 
-  // ── API Calls ───────────────────────────────────────────────────────────────
+  
   describe('API Calls', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -189,7 +185,7 @@ describe('Dashboard', () => {
     });
   });
 
-  // ── Error Handling ──────────────────────────────────────────────────────────
+  
   describe('Error Handling', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -210,7 +206,7 @@ describe('Dashboard', () => {
     });
   });
 
-  // ── Latency ─────────────────────────────────────────────────────────────────
+  
   describe('Latency', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -218,7 +214,7 @@ describe('Dashboard', () => {
       const start = performance.now();
       await renderDashboard();
       const elapsed = performance.now() - start;
-      // Dashboard is a complex page — enforce a generous but meaningful ceiling
+      
       expect(elapsed).toBeLessThan(2000);
     });
 
@@ -249,7 +245,7 @@ describe('Dashboard', () => {
     });
   });
 
-  // ── LocalStorage Layout ─────────────────────────────────────────────────────
+  
   describe('Layout Persistence', () => {
     beforeEach(() => setupLocalStorage());
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
 import './GraphRenderer.css';
 
@@ -129,21 +129,21 @@ const repairMermaidSyntax = (source = '') => {
   let fixed = String(source || '').trim();
   if (!fixed) return fixed;
 
-  // Common AI slip: "|label|> Node" -> "|label| Node"
+  
   fixed = fixed.replace(/\|([^|\n]+)\|\s*>\s*/g, '|$1| ');
 
-  // Common AI slip: "->|label|" should be "-->|label|"
+  
   fixed = fixed.replace(/->\s*\|/g, '-->|');
 
-  // Normalize overly long arrows like "--->" / "---->"
+  
   fixed = fixed.replace(/-{3,}>\s*/g, '--> ');
   fixed = fixed.replace(/={3,}>\s*/g, '==> ');
 
-  // Decode escaped arrows if model returned HTML entities
+  
   fixed = fixed.replace(/-&gt;/g, '->').replace(/--&gt;/g, '-->');
 
-  // Recover lines that end with a labeled edge but no destination.
-  // Example: "A -->|increases|" (missing target node)
+  
+  
   const lines = fixed.split('\n');
   let fallbackCounter = 1;
   for (let i = 0; i < lines.length; i += 1) {

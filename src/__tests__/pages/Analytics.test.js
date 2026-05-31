@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
@@ -17,7 +16,6 @@ import {
   MOCK_USERNAME,
 } from '../helpers/testUtils';
 
-// ─── Module mocks ─────────────────────────────────────────────────────────────
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -32,7 +30,6 @@ jest.mock('../../contexts/ThemeContext', () => ({
 
 jest.mock('../../components/GeoBackground', () => () => <div data-testid="geo-bg" />);
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 const FETCH_ROUTES = {
   get_weekly_progress: MOCK_WEEKLY_PROGRESS,
   get_gamification_stats: MOCK_GAMIFICATION,
@@ -45,7 +42,6 @@ const FETCH_ROUTES = {
 
 import Analytics from '../../pages/Analytics';
 
-// Renders the page and waits for the loading state to resolve
 const renderAnalytics = async () => {
   let utils;
   await act(async () => {
@@ -55,7 +51,7 @@ const renderAnalytics = async () => {
       </MemoryRouter>
     );
   });
-  // Wait for loading spinner to disappear (loading state resolved)
+  
   await waitFor(
     () => expect(screen.queryByText(/loading analytics/i)).not.toBeInTheDocument(),
     { timeout: 3000 }
@@ -63,7 +59,6 @@ const renderAnalytics = async () => {
   return utils;
 };
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
 describe('Analytics', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -73,10 +68,10 @@ describe('Analytics', () => {
 
   afterEach(() => clearLocalStorage());
 
-  // ── Authentication ──────────────────────────────────────────────────────────
+  
   describe('Authentication', () => {
     it('redirects to /login when no token is present', async () => {
-      // Don't use renderAnalytics() here — with no token, loading never resolves
+      
       await act(async () => {
         render(<MemoryRouter><Analytics /></MemoryRouter>);
       });
@@ -90,7 +85,7 @@ describe('Analytics', () => {
     });
   });
 
-  // ── Rendering ───────────────────────────────────────────────────────────────
+  
   describe('Rendering', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -100,13 +95,13 @@ describe('Analytics', () => {
 
     it('renders geo background', async () => {
       await renderAnalytics();
-      // GeoBackground renders after loading completes
+      
       expect(screen.getByTestId('geo-bg')).toBeInTheDocument();
     });
 
     it('renders Overview tab button', async () => {
       await renderAnalytics();
-      // Tab text is "OVERVIEW" (all caps)
+      
       expect(screen.getByText('OVERVIEW')).toBeInTheDocument();
     });
 
@@ -121,7 +116,7 @@ describe('Analytics', () => {
     });
   });
 
-  // ── API Calls on Mount ──────────────────────────────────────────────────────
+  
   describe('API Calls on Mount', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -164,7 +159,7 @@ describe('Analytics', () => {
         },
         { timeout: 500 }
       );
-      // If parallel, total time ≈ one delay, not three
+      
       expect(performance.now() - start).toBeLessThan(300);
     });
 
@@ -188,13 +183,13 @@ describe('Analytics', () => {
     });
   });
 
-  // ── Tab Switching ────────────────────────────────────────────────────────────
+  
   describe('Tab Switching', () => {
     beforeEach(() => setupLocalStorage());
 
     it('switches to Detailed Stats tab and triggers stat load', async () => {
       await renderAnalytics();
-      // Tab text is "DETAILED STATS"
+      
       const detailedTab = screen.getByText('DETAILED STATS');
       await act(async () => { fireEvent.click(detailedTab); });
       await waitFor(() => {
@@ -207,7 +202,7 @@ describe('Analytics', () => {
 
     it('switches to ML Insights tab and triggers ML load', async () => {
       await renderAnalytics();
-      // Tab text is "ML INSIGHTS"
+      
       const mlTab = screen.getByText('ML INSIGHTS');
       await act(async () => { fireEvent.click(mlTab); });
       await waitFor(() => {
@@ -226,12 +221,12 @@ describe('Analytics', () => {
         fireEvent.click(mlTab);
         fireEvent.click(overviewTab);
       });
-      // Page should still render overview content
+      
       expect(screen.getByText('OVERVIEW')).toBeInTheDocument();
     });
   });
 
-  // ── Time Range ───────────────────────────────────────────────────────────────
+  
   describe('Time Range', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -274,7 +269,7 @@ describe('Analytics', () => {
     });
   });
 
-  // ── Metric Toggle ────────────────────────────────────────────────────────────
+  
   describe('Metric Toggle', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -308,7 +303,7 @@ describe('Analytics', () => {
     });
   });
 
-  // ── Chart Type ───────────────────────────────────────────────────────────────
+  
   describe('Chart Type', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -321,7 +316,7 @@ describe('Analytics', () => {
             btn.textContent.toLowerCase().includes('bar') ||
             btn.textContent.toLowerCase().includes('line')
         );
-      // Chart toggle exists if chartType controls are rendered
+      
       if (chartToggle) {
         await act(async () => {
           fireEvent.click(chartToggle);
@@ -331,7 +326,7 @@ describe('Analytics', () => {
     });
   });
 
-  // ── Error Handling ──────────────────────────────────────────────────────────
+  
   describe('Error Handling', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -347,7 +342,7 @@ describe('Analytics', () => {
 
     it('renders without crash when all APIs fail simultaneously', async () => {
       global.fetch = jest.fn(() => Promise.reject(new Error('All down')));
-      // When all APIs fail, loading resolves via finally() — use raw render to avoid waiting
+      
       await expect(
         act(async () => {
           render(<MemoryRouter><Analytics /></MemoryRouter>);
@@ -360,12 +355,12 @@ describe('Analytics', () => {
       await act(async () => {
         render(<MemoryRouter><Analytics /></MemoryRouter>);
       });
-      // 500 on a data API should never cause a redirect to /login
+      
       expect(mockNavigate).not.toHaveBeenCalledWith('/login');
     });
   });
 
-  // ── Loading State ────────────────────────────────────────────────────────────
+  
   describe('Loading State', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -381,12 +376,12 @@ describe('Analytics', () => {
     });
   });
 
-  // ── Latency ─────────────────────────────────────────────────────────────────
+  
   describe('Latency', () => {
     beforeEach(() => setupLocalStorage());
 
     it('first render (before data loads) takes under 100ms', async () => {
-      // Measure just the raw render, before the loading wait
+      
       let utils;
       const start = performance.now();
       await act(async () => {
@@ -447,7 +442,7 @@ describe('Analytics', () => {
     });
   });
 
-  // ── CSV Export ───────────────────────────────────────────────────────────────
+  
   describe('CSV Export', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -461,7 +456,7 @@ describe('Analytics', () => {
             btn.textContent.toLowerCase().includes('download') ||
             btn.getAttribute('aria-label')?.toLowerCase().includes('export')
         );
-      // Export button may exist; not crashing is the primary assertion
+      
       expect(true).toBe(true);
     });
   });

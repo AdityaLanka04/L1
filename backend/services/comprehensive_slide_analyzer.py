@@ -1,7 +1,3 @@
-"""
-Comprehensive Slide Analysis System
-Batches multiple slides per AI call to avoid rate limits.
-"""
 
 import os
 import json
@@ -22,7 +18,6 @@ groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 BATCH_SIZE = 4
 BATCH_DELAY = 3.0
-
 
 class ComprehensiveSlideAnalyzer:
     def __init__(self, db: Session):
@@ -140,7 +135,6 @@ class ComprehensiveSlideAnalyzer:
         }
 
     def analyze_batch(self, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Analyze a batch of slides in a single AI call."""
         slides_block = ""
         for s in batch:
             content = s["content"][:800] if s["content"] else "(no text content)"
@@ -192,7 +186,6 @@ Return ONLY a valid JSON array of {len(batch)} objects. No extra text."""
         return results
 
     def _analyze_single_slide(self, slide_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Single-slide fallback used only when batch parse fails."""
         slide_number = slide_data["slide_number"]
         title = slide_data["title"]
         content = slide_data["content"]
@@ -322,7 +315,6 @@ Return:
         except Exception as e:
             logger.error(f"Error storing analysis: {e}")
             self.db.rollback()
-
 
 def get_or_create_analysis(
     slide_id: int,

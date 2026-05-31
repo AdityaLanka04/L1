@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Square, Circle, Type, Minus, Trash2, Move, ZoomIn, ZoomOut, 
   Download, Undo, Redo, Palette, X, ArrowLeft, StickyNote,
@@ -446,7 +446,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           parsedElements = parsed.canvasElements;
         }
       } catch (e) {
-    // silenced
+    
   }
     }
     setElements(parsedElements);
@@ -1317,7 +1317,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           setLastSaved(new Date());
         }
       } catch (error) {
-    // silenced
+    
   } finally {
         setAutoSaving(false);
       }

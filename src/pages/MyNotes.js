@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus,
@@ -113,7 +113,7 @@ const MyNotes = () => {
         setNotes(data.filter(n => !n.is_deleted));
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoading(false);
     }
@@ -130,7 +130,7 @@ const MyNotes = () => {
         setFolders(data.folders || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -145,7 +145,7 @@ const MyNotes = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -160,7 +160,7 @@ const MyNotes = () => {
         setFlashcardSets(data.flashcard_history || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -175,7 +175,7 @@ const MyNotes = () => {
         setQuizHistory(data.quiz_history || data.quizzes || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -190,7 +190,7 @@ const MyNotes = () => {
         setTrashedNotes(data.trash || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -216,7 +216,7 @@ const MyNotes = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -244,7 +244,7 @@ const MyNotes = () => {
         setShowFolderModal(false);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -301,7 +301,7 @@ const MyNotes = () => {
         if (result.note_id) navigate(`/notes/editor/${result.note_id}`);
       }
     } catch (error) {
-    // silenced
+    
     } finally {
       setImporting(false);
     }
@@ -325,7 +325,7 @@ const MyNotes = () => {
         if (result.note_id) navigate(`/notes/editor/${result.note_id}`);
       }
     } catch (error) {
-    // silenced
+    
     } finally {
       setImporting(false);
     }
@@ -354,7 +354,7 @@ const MyNotes = () => {
         setNoteToMove(null);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -372,7 +372,7 @@ const MyNotes = () => {
         await loadNotes();
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -420,7 +420,7 @@ const MyNotes = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 

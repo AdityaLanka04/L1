@@ -75,7 +75,7 @@ class TrialManager {
         return { expired: true, timeUsed: this.TRIAL_DURATION, reason: 'server_blocked' };
       }
     } catch (error) {
-      // best effort only
+      
     }
 
     const trialData = {
@@ -91,7 +91,7 @@ class TrialManager {
     try {
       await this.notifyServerTrialStart(fingerprint);
     } catch (error) {
-      // best effort only
+      
     }
 
     return {
@@ -222,7 +222,7 @@ class TrialManager {
         }),
       });
     } catch (error) {
-      // best effort only
+      
     }
   }
 

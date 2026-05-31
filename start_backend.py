@@ -1,14 +1,8 @@
-#!/usr/bin/env python3
-"""
-Proper backend startup script
-"""
 import os
 import sys
 
-# Change to backend directory
 os.chdir('backend')
 
-# Start uvicorn
 import uvicorn
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, FileText, Clock, Star, Folder, X } from 'lucide-react';
 import './QuickSwitcher.css';
 

@@ -1,18 +1,17 @@
-/* ── Token palette ───────────────────────────────────────────────────────── */
+
 :root {
-  --g-main:    #D7B38C;   /* warm gold          */
-  --g-light:   #EDD5B0;   /* pale gold          */
-  --g-pale:    #F5EAD5;   /* near-white gold    */
-  --g-dim:     #B89068;   /* mid gold           */
-  --g-deep:    #7A5435;   /* dark gold          */
-  --g-ink:     #3D2410;   /* near-black warm    */
-  --g-bg:      #0A0806;   /* background         */
-  --g-bg2:     #110C07;   /* panel background   */
+  --g-main:    #D7B38C;   
+  --g-light:   #EDD5B0;   
+  --g-pale:    #F5EAD5;   
+  --g-dim:     #B89068;   
+  --g-deep:    #7A5435;   
+  --g-ink:     #3D2410;   
+  --g-bg:      #0A0806;   
+  --g-bg2:     #110C07;   
   --g-border:  rgba(215,179,140,0.14);
   --g-border2: rgba(215,179,140,0.22);
 }
 
-/* ── Root ────────────────────────────────────────────────────────────────── */
 .atl-root {
   position: fixed;
   inset: 0;
@@ -32,7 +31,6 @@
 }
 .atl-canvas canvas { display: block; width: 100% !important; height: 100% !important; }
 
-/* ── Header ─────────────────────────────────────────────────────────────── */
 .atl-header {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -101,7 +99,6 @@
   box-shadow: 0 0 14px rgba(215,179,140,0.18);
 }
 
-/* ── Buttons ────────────────────────────────────────────────────────────── */
 .atl-btn {
   display: inline-flex;
   align-items: center;
@@ -146,7 +143,6 @@
 .atl-icon-btn:hover { background: rgba(215,179,140,0.14); color: var(--g-light); border-color: var(--g-border2); }
 .atl-icon-btn--del:hover { background: rgba(180,60,60,0.15); color: #e07070; border-color: rgba(180,60,60,0.28); }
 
-/* ── Sphere labels ──────────────────────────────────────────────────────── */
 .atl-sphere-label {
   position: fixed;
   z-index: 25;
@@ -173,14 +169,13 @@
   box-shadow: 0 12px 48px rgba(0,0,0,0.65), 0 0 26px rgba(215,179,140,0.12);
 }
 
-/* ── Left callout (Oracle) ── */
 .atl-sphere-label--left {
   transform: translate(calc(-100% - 68px), -50%);
 }
 .atl-sphere-label--left:hover {
   transform: translate(calc(-100% - 68px), -50%) scale(1.03);
 }
-/* Line pointing right toward sphere */
+
 .atl-sphere-label--left::after {
   content: '';
   position: absolute;
@@ -195,7 +190,7 @@
   transform: translateY(-50%);
   pointer-events: none;
 }
-/* Dot at sphere end */
+
 .atl-sphere-label--left::before {
   content: '';
   position: absolute;
@@ -210,14 +205,13 @@
   pointer-events: none;
 }
 
-/* ── Right callout (Vault) ── */
 .atl-sphere-label--right {
   transform: translate(68px, -50%);
 }
 .atl-sphere-label--right:hover {
   transform: translate(68px, -50%) scale(1.03);
 }
-/* Line pointing left toward sphere */
+
 .atl-sphere-label--right::after {
   content: '';
   position: absolute;
@@ -246,7 +240,6 @@
   pointer-events: none;
 }
 
-/* ── Bottom callout (Archive) ── */
 .atl-sphere-label--bottom {
   transform: translate(-50%, 56px);
   align-items: center;
@@ -255,7 +248,7 @@
 .atl-sphere-label--bottom:hover {
   transform: translate(-50%, 56px) scale(1.03);
 }
-/* Vertical line going up toward sphere */
+
 .atl-sphere-label--bottom::after {
   content: '';
   position: absolute;
@@ -284,7 +277,6 @@
   pointer-events: none;
 }
 
-/* ── Label text styles ── */
 .atl-sphere-label-name {
   font-size: 14px;
   font-weight: 900;
@@ -316,9 +308,6 @@
   margin-top: 2px;
 }
 
-/* (open arrow removed) */
-
-/* ── Home overlay — full-height landing ─────────────────────────────────── */
 .atl-home-overlay {
   position: fixed;
   top: 52px;
@@ -329,7 +318,7 @@
   align-items: center;
   justify-content: space-between;
   pointer-events: none;
-  /* top padding keeps brand clearly in the empty sky above the worlds */
+  
   padding: 6vh 24px 44px;
   animation: atl-fade-down 0.70s cubic-bezier(0.22,1,0.36,1);
 }
@@ -416,7 +405,6 @@
   box-shadow: 0 6px 28px rgba(0,0,0,0.50), 0 0 20px rgba(215,179,140,0.12);
 }
 
-/* ── Content panel ──────────────────────────────────────────────────────── */
 .atl-panel {
   position: fixed;
   top: 52px; right: 0; bottom: 0;
@@ -499,7 +487,6 @@
 
 .atl-panel-hd-actions { display: flex; align-items: center; gap: 8px; }
 
-/* ── HS toggle ──────────────────────────────────────────────────────────── */
 .atl-hs-toggle {
   display: flex;
   align-items: center;
@@ -513,7 +500,6 @@
 }
 .atl-hs-toggle input { accent-color: var(--g-main); cursor: pointer; }
 
-/* ── Oracle ─────────────────────────────────────────────────────────────── */
 .atl-oracle-history {
   flex: 1;
   overflow-y: auto;
@@ -696,7 +682,6 @@
 }
 .atl-send-btn:disabled { opacity: 0.28; cursor: not-allowed; }
 
-/* ── Archive ─────────────────────────────────────────────────────────────── */
 .atl-search-row {
   display: flex;
   align-items: center;
@@ -775,7 +760,6 @@
 .atl-subject-grade { font-size: 8px; font-weight: 700; letter-spacing: 0.10em; color: rgba(215,179,140,0.28); }
 .atl-subject-count { font-size: 8px; font-weight: 700; letter-spacing: 0.10em; color: rgba(215,179,140,0.42); }
 
-/* ── Vault ──────────────────────────────────────────────────────────────── */
 .atl-vault-empty {
   display: flex;
   flex-direction: column;
@@ -850,7 +834,6 @@
 
 .atl-vault-item-actions { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
 
-/* ── Loading ────────────────────────────────────────────────────────────── */
 .atl-loading {
   display: flex;
   justify-content: center;
@@ -859,11 +842,9 @@
   color: rgba(215,179,140,0.35);
 }
 
-/* ── Spinner ─────────────────────────────────────────────────────────────── */
 @keyframes atl-spin { to { transform: rotate(360deg); } }
 .atl-spin { animation: atl-spin 0.75s linear infinite; }
 
-/* ── Upload modal ───────────────────────────────────────────────────────── */
 .atl-modal-overlay {
   position: fixed;
   inset: 0;
@@ -971,7 +952,6 @@
 .atl-modal-err { display: flex; align-items: center; gap: 7px; color: #c07070; font-size: 9px; font-weight: 800; letter-spacing: 0.10em; }
 .atl-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
-/* ── Panel override: full-page ──────────────────────────────────────────── */
 .atl-panel {
   width: 100vw !important;
   border-left: none !important;
@@ -986,13 +966,12 @@
   width: 100%;
   box-sizing: border-box;
 }
-/* Archive + Vault get full-width content area */
+
 .atl-panel-body--wide {
   max-width: 100% !important;
   padding: 32px 56px 100px !important;
 }
 
-/* ── Context indicator in header ────────────────────────────────────────── */
 .atl-ctx-indicator {
   display: flex;
   align-items: center;
@@ -1014,7 +993,6 @@
 }
 .atl-ctx-indicator button:hover { color: var(--g-light); }
 
-/* ── Oracle context bar ─────────────────────────────────────────────────── */
 .atl-oracle-ctx-bar {
   display: flex;
   align-items: flex-start;
@@ -1048,7 +1026,6 @@
 }
 .atl-oracle-ctx-pill button:hover { color: var(--g-light); }
 
-/* ── Vault context bar ──────────────────────────────────────────────────── */
 .atl-vault-ctx-bar {
   display: flex;
   align-items: center;
@@ -1088,7 +1065,6 @@
 }
 .atl-vault-ctx-ask:hover { background: color-mix(in srgb, var(--g-main) 30%, transparent); }
 
-/* ── Vault upload strip ─────────────────────────────────────────────────── */
 .atl-vault-upload-strip {
   display: flex;
   align-items: center;
@@ -1149,7 +1125,6 @@
   color: rgba(215,179,140,0.20);
 }
 
-/* ── Vault active context bar ───────────────────────────────────────────── */
 .atl-vault-active-bar {
   display: flex;
   align-items: center;
@@ -1212,7 +1187,6 @@
   flex-shrink: 0;
 }
 
-/* Vault empty state improvements */
 .atl-vault-empty-icon {
   width: 64px;
   height: 64px;
@@ -1243,7 +1217,6 @@
   text-align: center;
 }
 
-/* ── Vault filters ──────────────────────────────────────────────────────── */
 .atl-vault-filters {
   display: flex;
   flex-direction: column;
@@ -1272,7 +1245,6 @@
   color: var(--g-pale);
 }
 
-/* ── Vault error ────────────────────────────────────────────────────────── */
 .atl-vault-error {
   display: flex;
   align-items: center;
@@ -1290,14 +1262,12 @@
 .atl-vault-error > svg { flex-shrink: 0; }
 .atl-vault-error > span { flex: 1; }
 
-/* ── Document grid ──────────────────────────────────────────────────────── */
 .atl-doc-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
 }
 
-/* ── Document card ──────────────────────────────────────────────────────── */
 .atl-doc-card {
   background: rgba(17,12,7,0.70);
   border: 1px solid rgba(215,179,140,0.10);
@@ -1367,7 +1337,6 @@
   color: rgba(215,179,140,0.55);
 }
 
-/* Context toggle pill */
 .atl-ctx-pill {
   flex-shrink: 0;
   display: flex; align-items: center; gap: 5px;
@@ -1389,7 +1358,6 @@
   box-shadow: 0 0 12px color-mix(in srgb, var(--g-main) 20%, transparent);
 }
 
-/* Context toggle icon (top-right of card) */
 .atl-doc-ctx-toggle {
   flex-shrink: 0;
   width: 30px;
@@ -1415,7 +1383,6 @@
   box-shadow: 0 0 14px color-mix(in srgb, var(--g-main) 24%, transparent);
 }
 
-/* Oracle-active label badge inside card */
 .atl-doc-oracle-label {
   display: inline-flex;
   align-items: center;
@@ -1435,7 +1402,6 @@
   to   { opacity: 1; transform: scaleX(1); }
 }
 
-/* Summary */
 .atl-doc-summary {
   font-size: 10px; font-weight: 400;
   letter-spacing: 0.02em;
@@ -1452,7 +1418,6 @@
   overflow: hidden;
 }
 
-/* Meta row */
 .atl-doc-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1461,7 +1426,6 @@
   color: rgba(215,179,140,0.32);
 }
 
-/* Tags */
 .atl-doc-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1477,7 +1441,6 @@
   color: rgba(215,179,140,0.36);
 }
 
-/* Card action buttons */
 .atl-doc-actions {
   display: flex;
   gap: 8px;
@@ -1499,7 +1462,6 @@
 .atl-doc-action-btn:hover { border-color: rgba(215,179,140,0.30); color: var(--g-light); }
 .atl-doc-action-btn--del:hover { border-color: rgba(180,60,60,0.35); color: #e07070; }
 
-/* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .atl-panel-body { padding: 24px 20px 80px; }
   .atl-header-nav { display: none; }
@@ -1519,11 +1481,6 @@
   .atl-doc-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   ORACLE — HERO STATE
-═══════════════════════════════════════════════════════════════════════════ */
-
-/* Body: hero mode centers content vertically */
 .atl-oracle-body-hero {
   justify-content: center !important;
   align-items: center !important;
@@ -1531,7 +1488,6 @@
   gap: 0 !important;
 }
 
-/* Hero wrapper */
 .atl-oracle-hero {
   display: flex;
   flex-direction: column;
@@ -1546,7 +1502,6 @@
   to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
-/* ── Glow halo ── */
 .atl-oracle-glow-halo {
   position: relative;
   width: 130px;
@@ -1595,7 +1550,6 @@
   50%       { opacity: 1; filter: drop-shadow(0 0 7px rgba(237,213,176,0.65)); }
 }
 
-/* ── Hero wordmark ── */
 .atl-oracle-hero-wordmark {
   font-size: clamp(56px, 10vw, 100px);
   font-weight: 900;
@@ -1622,7 +1576,6 @@
   margin-bottom: 32px;
 }
 
-/* ── Knowledge stats ── */
 .atl-oracle-knowledge-stats {
   display: flex;
   align-items: center;
@@ -1661,7 +1614,6 @@
   background: rgba(215,179,140,0.11);
 }
 
-/* ── Hero input form ── */
 .atl-oracle-hero-form {
   width: 100%;
   margin-bottom: 22px;
@@ -1736,7 +1688,6 @@
 }
 .atl-oracle-hero-send:disabled { opacity: 0.32; cursor: not-allowed; }
 
-/* ── Oracle curriculum source pill toggle ── */
 .atl-oracle-src-pill {
   display: flex;
   align-items: center;
@@ -1766,7 +1717,6 @@
   box-shadow: 0 0 16px color-mix(in srgb, var(--g-main) 16%, transparent);
 }
 
-/* ── Suggestion pills ── */
 .atl-oracle-suggestions {
   display: flex;
   flex-wrap: wrap;
@@ -1796,11 +1746,6 @@
   transform: translateY(-1px);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   ORACLE — CONVERSATION STATE
-═══════════════════════════════════════════════════════════════════════════ */
-
-/* Compact header strip */
 .atl-oracle-compact-hd {
   display: flex;
   align-items: center;
@@ -1833,7 +1778,6 @@
   background: rgba(215,179,140,0.08);
 }
 
-/* Thinking animation (replaces old spinner) */
 .atl-oracle-thinking {
   display: flex;
   align-items: center;
@@ -1872,7 +1816,6 @@
   color: rgba(215,179,140,0.28);
 }
 
-/* ── Answer card ── */
 .atl-answer-card {
   max-width: 96%;
   background: linear-gradient(160deg, rgba(17,12,7,0.88) 0%, rgba(10,8,6,0.82) 100%);
@@ -1891,7 +1834,6 @@
   to   { opacity: 1; transform: translateY(0);    }
 }
 
-/* Top shimmer line */
 .atl-answer-card::before {
   content: '';
   position: absolute;
@@ -1935,7 +1877,6 @@
   white-space: pre-wrap;
 }
 
-/* Sources section */
 .atl-answer-sources {
   display: flex;
   flex-direction: column;
@@ -2006,7 +1947,6 @@
   white-space: nowrap;
 }
 
-/* Quick action row */
 .atl-answer-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2038,11 +1978,6 @@
   transform: translateY(-1px);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   ARCHIVE — HS DOCUMENT LIBRARY
-═══════════════════════════════════════════════════════════════════════════ */
-
-/* Toolbar (search + filter rows) */
 .atl-archive-toolbar {
   display: flex;
   flex-direction: column;
@@ -2076,7 +2011,6 @@
   align-items: center;
 }
 
-/* HS doc card */
 .atl-hs-doc-card {
   background: rgba(17,12,7,0.68);
   border: 1px solid rgba(215,179,140,0.09);
@@ -2138,7 +2072,6 @@
   font-size: 7px;
 }
 
-/* ── Responsive additions ────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .atl-oracle-hero { max-width: 100%; padding: 0 4px; }
   .atl-oracle-hero-wordmark { font-size: clamp(44px, 16vw, 70px); letter-spacing: 0.16em; }

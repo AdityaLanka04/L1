@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { API_URL } from '../config';
 
 const NotificationContext = createContext(null);
@@ -22,7 +22,7 @@ const getAuthFromStorage = () => {
         const parsed = JSON.parse(rawProfile);
         userName = parsed.username || parsed.email || '';
       } catch (e) {
-    // silenced
+    
   }
     }
   }
@@ -106,7 +106,7 @@ export const NotificationProvider = ({ children }) => {
         newNotifs.forEach(n => lastNotificationIdsRef.current.add(n.id));
       }
     } catch (error) {
-    // silenced
+    
   }
   }, []);
 
@@ -165,7 +165,7 @@ export const NotificationProvider = ({ children }) => {
         setSlideQueue(prev => prev.filter(n => n.id !== notifId));
       }
     } catch (error) {
-    // silenced
+    
   }
   }, []);
 
@@ -194,7 +194,7 @@ export const NotificationProvider = ({ children }) => {
         setSlideQueue(prev => prev.filter(n => n.id !== notifId));
       }
     } catch (error) {
-    // silenced
+    
   }
   }, []);
 

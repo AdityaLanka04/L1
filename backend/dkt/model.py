@@ -1,29 +1,8 @@
-"""
-Attentive Knowledge Tracing (AKT) — replaces vanilla LSTM DKT.
-
-Improvements over LSTM DKT (Piech et al., 2015):
-  - Causal self-attention: captures long-range dependencies LSTM forgets
-  - Continuous knowledge_signal input (−1…+1) instead of binary correct/wrong
-  - Elapsed-time embedding: knows when the student last touched a concept
-  - Pre-norm transformer layers: stable training with small data
-  - get_hidden(): exports the last-token representation for bandit context
-
-Architecture per timestep:
-  concept_id   → Embedding(n_concepts+1, d_model)
-  ks_signal    → Linear(1 → d_model) + Tanh   (continuous signal, not one-hot)
-  elapsed_days → log1p-scaled, Linear(1 → d_model)
-  combined     → Linear(3*d_model → d_model) + positional encoding
-  transformer  → L causal Pre-LN encoder layers
-  mastery head → Linear(d_model → n_concepts) + Sigmoid
-
-Reference: "Attentive Knowledge Tracing", Ghosh et al. 2020 (NeurIPS)
-"""
 
 from __future__ import annotations
 
 import torch
 import torch.nn as nn
-
 
 class AKT(nn.Module):
     def __init__(
@@ -77,14 +56,6 @@ class AKT(nn.Module):
         elapsed_days: torch.Tensor,
         padding_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """
-        concept_ids:  (B, T) long  — 0 = padding
-        signals:      (B, T) float — knowledge signal in [−1, +1]
-        elapsed_days: (B, T) float — days since previous interaction (0 for first)
-        padding_mask: (B, T) bool  — True = padded (ignored)
-
-        Returns: (B, T, n_concepts) mastery probabilities
-        """
         x = self._encode(concept_ids, signals, elapsed_days)
         T = concept_ids.shape[1]
         causal = nn.Transformer.generate_square_subsequent_mask(T, device=concept_ids.device)
@@ -98,10 +69,6 @@ class AKT(nn.Module):
         elapsed_days: torch.Tensor,
         padding_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """
-        Return the last valid token's hidden state — (B, d_model).
-        Used to feed a richer learned representation into the bandit.
-        """
         x = self._encode(concept_ids, signals, elapsed_days)
         T = concept_ids.shape[1]
         causal = nn.Transformer.generate_square_subsequent_mask(T, device=concept_ids.device)

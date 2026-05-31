@@ -1,18 +1,3 @@
-"""
-AI-Powered Media Processing System
-
-IMPORTANT: This system uses FREE APIs with the following limits:
-- YouTube transcripts: yt-dlp (unlimited, no API key needed)
-- AI Analysis: Groq API (free tier: 14,400 requests/day, 30 req/min)
-- Fallback: Gemini API (free tier: 1,500 requests/day, 15 req/min)
-
-If you see "quota exceeded" or "out of credits" errors:
-1. Wait for quota reset (resets daily)
-2. Get a new Gemini API key from https://makersuite.google.com/app/apikey
-3. Increase Groq usage (higher limits) by setting GROQ_API_KEY in .env
-
-The system automatically falls back to Groq when Gemini hits limits.
-"""
 import os
 import json
 import tempfile
@@ -21,7 +6,6 @@ import shutil
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import asyncio
-import re
 import logging
 from activity_logger import log_ai_tokens
 from services.ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
@@ -58,7 +42,7 @@ except ImportError:
     AudioSegment = None
     PYDUB_AVAILABLE = False
 
-from services.youtube_api_service import youtube_service, YouTubeAPIService
+from services.youtube_api_service import youtube_service
 from services.rate_limiter import rate_limiter
 from services.ytdlp_utils import (
     classify_ytdlp_error,
@@ -78,10 +62,6 @@ if GEMINI_AVAILABLE and GEMINI_API_KEY:
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_AVAILABLE and GROQ_API_KEY else None
 
 class AIMediaProcessor:
-    """
-    AI-powered media processing with official YouTube API
-    Works reliably on AWS and other cloud environments
-    """
     
     def __init__(self):
         self.groq_client = groq_client
@@ -143,11 +123,6 @@ class AIMediaProcessor:
             pass
     
     async def process_youtube_video(self, url: str, options: Dict = None) -> Dict:
-        """
-        Process YouTube video with audio-first strategy:
-        1) Download audio with yt-dlp and transcribe via Groq Whisper (primary)
-        2) Caption extraction fallback via YouTube transcript service (secondary)
-        """
         try:
             logger.info(f"Processing YouTube URL with audio-first flow: {url}")
             
@@ -252,7 +227,6 @@ class AIMediaProcessor:
             }
 
     async def _download_youtube_audio(self, url: str) -> Dict:
-        """Download YouTube audio with yt-dlp for ASR transcription."""
         temp_dir = tempfile.mkdtemp(prefix="yt_audio_")
         output_template = os.path.join(temp_dir, "%(id)s.%(ext)s")
         format_attempts = [
@@ -373,7 +347,6 @@ class AIMediaProcessor:
             return {"success": False, "error": str(e), "error_code": "exception"}
     
     async def transcribe_audio_groq(self, audio_path: str) -> Dict:
-        """Transcribe audio using Groq Whisper (FREE)"""
         try:
             if not self.groq_client:
                 raise ValueError("Groq client not available - check GROQ_API_KEY")
@@ -419,7 +392,6 @@ class AIMediaProcessor:
             }
     
     async def analyze_transcript_ai(self, transcript: str, options: Dict = None, user_id: Optional[int] = None) -> Dict:
-        """AI analysis of transcript using Groq (FREE with high limits), falls back to Gemini"""
         try:
             if self.groq_client:
                 try:
@@ -555,18 +527,6 @@ Provide a JSON response with:
             }
     
     async def generate_notes_ai(self, transcript: str, analysis: Dict, style: str = "detailed", options: Dict = None, user_id: Optional[int] = None) -> Dict:
-        """
-        Generate formatted notes using Groq with style-specific prompts
-        
-        Supported styles:
-        - detailed: Comprehensive detailed notes (default)
-        - bullet_points: Organized bullet point format
-        - mind_map: Hierarchical mind map structure
-        - cornell: Cornell note-taking method
-        - outline: Structured outline format
-        - qa: Question and answer format
-        - summary: Brief summary format
-        """
         try:
             if not self.groq_client:
                 raise ValueError("Groq client not available")
@@ -619,7 +579,6 @@ Provide a JSON response with:
             }
     
     def _get_system_prompt(self, style: str) -> str:
-        """Get system prompt based on note style"""
         prompts = {
             "detailed": "You are an expert educational content writer who creates thorough, comprehensive study notes. You never summarize - you always expand and explain concepts in detail.",
             "bullet_points": "You are an expert at creating clear, organized bullet point notes that capture key information in a scannable, easy-to-review format.",
@@ -632,7 +591,6 @@ Provide a JSON response with:
         return prompts.get(style, prompts["detailed"])
     
     def _get_style_prompt(self, style: str, transcript: str, analysis: Dict, difficulty: str, subject: str, custom_instructions: str, word_count: int) -> str:
-        """Get style-specific prompt for note generation"""
         
         key_concepts = json.dumps(analysis.get('key_concepts', []))
         
@@ -999,7 +957,6 @@ CRITICAL: Make these notes COMPREHENSIVE and DETAILED. Students should be able t
 Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
     
     async def _generate_notes_chunked_groq(self, transcript: str, analysis: Dict, difficulty: str, subject: str, custom_instructions: str, user_id: Optional[int] = None) -> Dict:
-        """Generate notes in chunks for very long transcripts using Groq, then combine"""
         try:
             words = transcript.split()
             chunk_size = 10000
@@ -1112,7 +1069,6 @@ Return ONLY HTML content (no markdown)."""
             }
     
     async def generate_flashcards_ai(self, transcript: str, analysis: Dict, count: int = 10, user_id: Optional[int] = None) -> Dict:
-        """Generate flashcards from content using Groq"""
         try:
             if not self.groq_client:
                 raise ValueError("Groq client not available")
@@ -1165,7 +1121,6 @@ Return ONLY valid JSON array."""
             }
     
     async def generate_quiz_ai(self, transcript: str, analysis: Dict, count: int = 10, user_id: Optional[int] = None) -> Dict:
-        """Generate quiz questions from content using Groq"""
         try:
             if not self.groq_client:
                 raise ValueError("Groq client not available")
@@ -1226,7 +1181,6 @@ Return ONLY valid JSON array."""
             }
     
     async def extract_key_moments(self, segments: List[Dict], analysis: Dict) -> List[Dict]:
-        """Identify key moments in the content"""
         try:
             key_concepts = analysis.get('key_concepts', [])
             key_moments = []
@@ -1259,14 +1213,12 @@ Return ONLY valid JSON array."""
             return []
     
     def _extract_concepts(self, text: str, max_concepts: int = 10) -> List[str]:
-        """Simple concept extraction fallback"""
         words = text.split()
         concepts = [w for w in words if len(w) > 3 and w[0].isupper()]
         concepts = list(set(concepts))[:max_concepts]
         return concepts
     
     async def convert_audio_format(self, input_path: str, output_format: str = "mp3") -> str:
-        """Convert audio to compatible format"""
         try:
             if not PYDUB_AVAILABLE:
                 logger.warning("pydub not available for audio conversion")
@@ -1281,7 +1233,6 @@ Return ONLY valid JSON array."""
             return input_path
     
     def estimate_processing_cost(self, duration_seconds: int, file_size_mb: float) -> Dict:
-        """Estimate processing cost (all free APIs)"""
         return {
             "transcription_cost": 0.0,
             "ai_analysis_cost": 0.0,
@@ -1290,7 +1241,6 @@ Return ONLY valid JSON array."""
         }
     
     def get_language_name(self, language_code: str) -> str:
-        """Get full language name from code"""
         try:
             if pycountry:
                 lang = pycountry.languages.get(alpha_2=language_code)

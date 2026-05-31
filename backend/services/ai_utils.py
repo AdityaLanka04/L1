@@ -11,10 +11,8 @@ from services.ai_usage import extract_usage_from_openai_like, extract_usage_from
 
 logger = logging.getLogger(__name__)
 
-
 class NoVisionProviderError(Exception):
-    """Raised when no vision-capable provider is configured."""
-
+    pass
 
 class UnifiedAIClient:
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ProfileQuiz.css';
 import { API_URL } from '../config';
@@ -198,7 +198,7 @@ const ProfileQuiz = () => {
         }
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -489,7 +489,7 @@ const ProfileQuiz = () => {
         await fetch(`${API_URL}/api/set_weekly_goals?user_id=${encodeURIComponent(userName)}&chat_goal=${preset.chat}&note_goal=${preset.note}&flashcard_goal=${preset.flashcard}&quiz_goal=${preset.quiz}`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
-        }); // silenced
+        }); 
 
         setCurrentStep('complete');
         sessionStorage.setItem('justCompletedOnboarding', 'true');

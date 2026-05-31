@@ -3,9 +3,8 @@ import json
 import logging
 import traceback
 from datetime import datetime, timezone, timedelta
-from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, Form, Header, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query
 
 try:
     from services.redis_cache import get_analytics as _cache_get, set_analytics as _cache_set
@@ -22,8 +21,6 @@ from deps import (
     call_ai,
     calculate_day_streak,
     enforce_request_user_scope,
-    get_comprehensive_profile_safe,
-    get_current_user,
     get_user_by_email,
     get_user_by_username,
     unified_ai,
@@ -640,7 +637,6 @@ def get_quiz_performance(user_id: str = Query(...), limit: int = Query(30), db: 
         logger.error(f"Error getting quiz performance: {str(e)}")
         return {"quiz_history": [], "total_quizzes": 0, "avg_score": 0}
 
-
 @router.get("/get_activity_breakdown")
 def get_activity_breakdown(user_id: str = Query(...), period: str = Query("all"), db: Session = Depends(get_db)):
     cache_key = f"breakdown:{user_id}:{period}"
@@ -707,7 +703,6 @@ def get_activity_breakdown(user_id: str = Query(...), period: str = Query("all")
     except Exception as e:
         logger.error(f"Error getting activity breakdown: {str(e)}")
         return {"breakdown": {}, "total_activities": 0, "total_points": 0}
-
 
 @router.post("/analytics/start_session")
 def start_session(
@@ -1514,16 +1509,13 @@ async def get_welcome_notification(
             }
         }
 
-
 @router.get("/get_ml_analytics")
 def get_ml_analytics(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get comprehensive ML model analytics and transparency data."""
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # BKT Stats
         bkt_states = db.query(models.StudentKnowledgeState).filter_by(user_id=user.id).all()
         bkt_concepts_tracked = len(bkt_states)
         bkt_total_updates = sum(state.interaction_count for state in bkt_states)
@@ -1543,21 +1535,18 @@ def get_ml_analytics(user_id: str = Query(...), db: Session = Depends(get_db)):
             reverse=True
         )[:10]
 
-        # Get archetype-specific parameters
         profile = db.query(models.ComprehensiveUserProfile).filter_by(user_id=user.id).first()
         archetype = profile.primary_archetype if profile else "default"
         
         archetype_p_learn = {"Logicor": 0.12, "Kinetiq": 0.08, "Flowist": 0.10}
         bkt_p_learn = archetype_p_learn.get(archetype, 0.09)
 
-        # RL Stats
         rl_episodes = db.query(models.BanditEpisodeLog).filter_by(student_id=str(user.id)).all()
         rl_total_episodes = len(rl_episodes)
         
         exploration_count = sum(1 for ep in rl_episodes if ep.exploration_flag)
         rl_exploration_rate = f"{(exploration_count / rl_total_episodes * 100):.1f}%" if rl_total_episodes > 0 else "0%"
         
-        # Strategy performance
         strategy_stats = {}
         for episode in rl_episodes:
             strategy_id = episode.strategy_selected
@@ -1590,7 +1579,6 @@ def get_ml_analytics(user_id: str = Query(...), db: Session = Depends(get_db)):
         strategy_performance.sort(key=lambda x: x["avg_reward"], reverse=True)
         rl_best_strategy = strategy_performance[0]["name"] if strategy_performance else "N/A"
 
-        # ML Logs for affect detection
         ml_logs = db.query(models.MessageMLLog).filter_by(user_id=user.id).order_by(
             models.MessageMLLog.timestamp.desc()
         ).limit(100).all()
@@ -1599,13 +1587,11 @@ def get_ml_analytics(user_id: str = Query(...), db: Session = Depends(get_db)):
         frustration_trend = [log.frustration_score for log in ml_logs[:10]]
         engagement_trend = [log.engagement_score for log in ml_logs[:10]]
         
-        # Cognitive state distribution
         cognitive_state_distribution = {}
         for log in ml_logs:
             state = log.cognitive_state or "unknown"
             cognitive_state_distribution[state] = cognitive_state_distribution.get(state, 0) + 1
 
-        # Recent model updates
         recent_updates = []
         for log in ml_logs[:20]:
             if log.kt_delta:
@@ -1650,19 +1636,15 @@ def get_ml_analytics(user_id: str = Query(...), db: Session = Depends(get_db)):
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @router.get("/get_chat_details")
 def get_chat_details(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get detailed chat analytics."""
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Total chats
         total_chats = db.query(func.count(models.ChatSession.id)).filter_by(user_id=user.id).scalar() or 0
         
-        # Average session length (in messages)
         sessions = db.query(models.ChatSession).filter_by(user_id=user.id).all()
         total_messages = 0
         for session in sessions:
@@ -1673,7 +1655,6 @@ def get_chat_details(user_id: str = Query(...), db: Session = Depends(get_db)):
         
         avg_messages_per_chat = round(total_messages / total_chats, 1) if total_chats > 0 else 0
         
-        # Most active day
         chat_days = {}
         for session in sessions:
             if session.created_at:
@@ -1682,14 +1663,12 @@ def get_chat_details(user_id: str = Query(...), db: Session = Depends(get_db)):
         
         most_active_day = max(chat_days.items(), key=lambda x: x[1])[0] if chat_days else "N/A"
         
-        # Intent breakdown from ML logs
         ml_logs = db.query(models.MessageMLLog).filter_by(user_id=user.id).all()
         intent_breakdown = {}
         for log in ml_logs:
             intent = log.intent_class or "unknown"
             intent_breakdown[intent] = intent_breakdown.get(intent, 0) + 1
         
-        # Top concepts
         concept_counts = {}
         for log in ml_logs:
             if log.concept_ids:
@@ -1701,7 +1680,6 @@ def get_chat_details(user_id: str = Query(...), db: Session = Depends(get_db)):
             for concept_id, count in sorted(concept_counts.items(), key=lambda x: x[1], reverse=True)[:10]
         ]
         
-        # Average session length in time
         session_durations = []
         for session in sessions:
             messages = db.query(models.ChatMessage).filter_by(
@@ -1728,10 +1706,8 @@ def get_chat_details(user_id: str = Query(...), db: Session = Depends(get_db)):
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @router.get("/get_flashcard_details")
 def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get detailed flashcard analytics."""
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -1757,7 +1733,6 @@ def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_d
             if card.last_reviewed:
                 study_days.add(card.last_reviewed.date())
         
-        # Calculate streak
         study_streak = 0
         current_date = datetime.now(timezone.utc).date()
         while current_date in study_days:
@@ -1773,7 +1748,6 @@ def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_d
             if accuracy >= 0.8:
                 mastered_cards += 1
 
-        # Retention estimate from reviewed-card accuracy
         reviewed_cards = [card for card in flashcards if (card.times_reviewed or 0) > 0]
         avg_retention = (
             sum(
@@ -1783,7 +1757,6 @@ def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_d
         ) if reviewed_cards else 0
         avg_retention = f"{avg_retention * 100:.1f}%"
         
-        # Cards due today
         today = datetime.now(timezone.utc)
         cards_due_today = sum(
             1 for card in flashcards
@@ -1799,7 +1772,6 @@ def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_d
         optimal_hour = max(review_hours.items(), key=lambda x: x[1])[0] if review_hours else None
         optimal_review_time = f"{optimal_hour}:00" if optimal_hour is not None else "N/A"
         
-        # Difficulty distribution
         difficulty_distribution = {
             "easy": 0,
             "medium": 0,
@@ -1813,7 +1785,6 @@ def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_d
             elif difficulty_raw in {"hard", "advanced"}:
                 difficulty_distribution["hard"] += 1
             elif difficulty_raw:
-                # Legacy values may contain numeric strings.
                 try:
                     numeric = float(difficulty_raw)
                     if numeric < 5:
@@ -1843,10 +1814,8 @@ def get_flashcard_details(user_id: str = Query(...), db: Session = Depends(get_d
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @router.get("/get_context_sessions")
 def get_context_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get AI context sessions for the user."""
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:

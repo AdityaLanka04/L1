@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, BookOpen, FileText, Trash2, ExternalLink, Sparkles, Lock, Users, CheckSquare, Square, Filter } from 'lucide-react';
 import contextService from '../services/contextService';
@@ -35,7 +35,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
       const userDocs = Array.isArray(data) ? data : (data.user_docs || data.documents || []);
       setDocs(userDocs);
       setHsDocs(Array.isArray(data.hs_docs) ? data.hs_docs : []);
-    } catch { /* silenced */ }
+    } catch {  }
     finally { setLoading(false); }
   }, []);
 
@@ -102,7 +102,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
 
       <div className={`context-panel ${isOpen ? 'open' : ''}`}>
 
-        {/* Header */}
+        {}
         <div className="cp-header">
           <div className="cp-header-left">
             <BookOpen size={16} />
@@ -115,7 +115,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
 
         <div className="cp-body">
 
-          {/* HS Mode toggle */}
+          {}
           <div className="cp-section">
             <div className="cp-hs-toggle-row">
               <div className="cp-hs-toggle-label">
@@ -137,7 +137,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             </div>
           </div>
 
-          {/* Context filter status banner */}
+          {}
           {selCount > 0 && (
             <div className="cp-filter-banner">
               <Filter size={13} />
@@ -146,7 +146,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             </div>
           )}
 
-          {/* Active context */}
+          {}
           <div className="cp-section">
             <div className="cp-section-title">Active Context</div>
             {contextLabel ? (
@@ -159,7 +159,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             )}
           </div>
 
-          {/* HS Curriculum documents */}
+          {}
           {hsDocs.length > 0 && (
             <div className="cp-section">
               <div className="cp-section-title">
@@ -199,7 +199,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             </div>
           )}
 
-          {/* User's private documents */}
+          {}
           <div className="cp-section">
             <div className="cp-section-title">
               Your Documents
@@ -249,7 +249,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
             )}
           </div>
 
-          {/* Selection instructions */}
+          {}
           <div className="cp-section cp-sel-instructions">
             <p>
               <strong>Select specific books/docs</strong> above to restrict AI context to only those sources.
@@ -259,7 +259,7 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
 
         </div>
 
-        {/* Footer */}
+        {}
         <div className="cp-footer">
           <button className="cp-hub-btn" onClick={goToHub}>
             <ExternalLink size={14} />

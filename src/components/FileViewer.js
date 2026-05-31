@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Download, ExternalLink } from 'lucide-react';
 import './FileViewer.css';
 

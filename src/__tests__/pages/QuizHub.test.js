@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
@@ -6,7 +5,6 @@ import { clearLocalStorage } from '../helpers/testUtils';
 import QuizHub from '../../pages/QuizHub';
 import contextService from '../../services/contextService';
 
-// ─── Module mocks ─────────────────────────────────────────────────────────────
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -39,7 +37,6 @@ jest.mock('../../components/ContextPanel', () => ({ isOpen, onClose }) => (
   </div>
 ));
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 const TWO_DOCS = { user_docs: [{ id: 'd1' }, { id: 'd2' }] };
 
 const renderQuizHub = async () => {
@@ -54,19 +51,18 @@ const renderQuizHub = async () => {
   return utils;
 };
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
 describe('QuizHub', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     clearLocalStorage();
-    // Re-apply implementations after clearAllMocks
+    
     contextService.listDocuments.mockResolvedValue(TWO_DOCS);
     contextService.isHsModeEnabled.mockReturnValue(false);
   });
 
   afterEach(() => clearLocalStorage());
 
-  // ── Rendering ───────────────────────────────────────────────────────────────
+  
   describe('Rendering', () => {
     it('renders without crashing', async () => {
       await expect(renderQuizHub()).resolves.not.toThrow();
@@ -98,7 +94,7 @@ describe('QuizHub', () => {
     });
   });
 
-  // ── Navigation ───────────────────────────────────────────────────────────────
+  
   describe('Navigation', () => {
     it('navigates to /solo-quiz when Solo Practice section is clicked', async () => {
       await renderQuizHub();
@@ -124,7 +120,7 @@ describe('QuizHub', () => {
     });
   });
 
-  // ── Context Panel ────────────────────────────────────────────────────────────
+  
   describe('Context Panel', () => {
     it('context panel is closed by default', async () => {
       await renderQuizHub();
@@ -154,7 +150,7 @@ describe('QuizHub', () => {
     });
   });
 
-  // ── HS Mode ──────────────────────────────────────────────────────────────────
+  
   describe('HS Mode', () => {
     it('reads hs_mode_enabled from localStorage on init', async () => {
       localStorage.setItem('hs_mode_enabled', 'true');
@@ -167,7 +163,7 @@ describe('QuizHub', () => {
     });
   });
 
-  // ── Document Count ───────────────────────────────────────────────────────────
+  
   describe('Document Count', () => {
     it('loads user doc count from contextService on mount', async () => {
       await renderQuizHub();
@@ -197,7 +193,7 @@ describe('QuizHub', () => {
     });
   });
 
-  // ── Body Overflow ─────────────────────────────────────────────────────────────
+  
   describe('Body Overflow', () => {
     it('sets body overflow hidden on mount', async () => {
       await renderQuizHub();
@@ -211,7 +207,7 @@ describe('QuizHub', () => {
     });
   });
 
-  // ── Latency ──────────────────────────────────────────────────────────────────
+  
   describe('Latency', () => {
     it('renders in under 100ms', async () => {
       const start = performance.now();

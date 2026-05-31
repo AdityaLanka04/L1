@@ -1,28 +1,3 @@
-"""
-Comprehensive request rate-limiting middleware for Brainwave API.
-
-Algorithm: Sliding-window log via Redis sorted sets (ZADD/ZREMRANGEBYSCORE/ZCARD).
-           Atomic via Lua script.  Falls back to thread-safe in-memory deques when
-           Redis is unavailable.
-
-Tiers (requests / window per identity key):
-  auth_login    5  / 60 s    per IP   — /api/token, /api/token_form
-  auth_register 3  / 1 h     per IP   — /api/register
-  auth_social   10 / 60 s    per IP   — /api/google-auth, /api/firebase-auth
-  ai_heavy      20 / 1 h     per user — expensive AI generation endpoints
-  ai_light      100 / 1 h    per user — lighter AI / search calls
-  file_upload   20 / 1 h     per user — file uploads and media processing
-  write         300 / 1 h    per user — POST/PUT/PATCH/DELETE (catch-all)
-  read          1000 / 1 h   per user — GET (catch-all)
-
-Response headers set on every request:
-  X-RateLimit-Limit      limit for this tier
-  X-RateLimit-Remaining  requests remaining in current window
-  X-RateLimit-Reset      UTC unix timestamp when the window resets
-  X-RateLimit-Window     window size in seconds
-  X-RateLimit-Tier       tier name (debugging)
-  Retry-After            only on 429 responses
-"""
 from __future__ import annotations
 
 import logging
@@ -46,7 +21,6 @@ from services.subscription_catalog import DEFAULT_PLAN_ID, get_effective_rate_li
 
 logger = logging.getLogger(__name__)
 
-# ─── Tier definitions: (max_requests, window_seconds) ─────────────────────────
 TIERS: dict[str, tuple[int, int]] = {
     "auth_login":    (5,    60),
     "auth_register": (3,    3600),
@@ -58,21 +32,11 @@ TIERS: dict[str, tuple[int, int]] = {
     "read":          (1000, 3600),
 }
 
-# Auth tiers always use IP as identity (no JWT required).
 _AUTH_TIERS = {"auth_login", "auth_register", "auth_social"}
 
-# ─── Route classification rules ────────────────────────────────────────────────
-# Each entry: (methods: frozenset|None, path_prefix: str|None, tier: str|None)
-#   methods=None → matches any HTTP method
-#   path=None    → catch-all (must be last in its logical group)
-#   tier=None    → unlimited (skip rate limiting entirely)
-#
-# Rules are checked in order; the first match wins.
 _RULES: list[tuple[Optional[frozenset], Optional[str], Optional[str]]] = [
-    # ── Unlimited ────────────────────────────────────────────────────────────
     (None,                          "/api/health",                      None),
 
-    # ── Auth — IP-based ──────────────────────────────────────────────────────
     (frozenset(["POST"]),           "/api/token",                       "auth_login"),
     (frozenset(["POST"]),           "/api/token_form",                  "auth_login"),
     (frozenset(["POST"]),           "/api/register",                    "auth_register"),
@@ -81,7 +45,6 @@ _RULES: list[tuple[Optional[frozenset], Optional[str], Optional[str]]] = [
     (frozenset(["POST"]),           "/api/forgot-password",             "auth_login"),
     (frozenset(["POST"]),           "/api/reset-password",              "auth_login"),
 
-    # ── AI Heavy (20 / hour / user) ───────────────────────────────────────────
     (frozenset(["POST"]),           "/api/chat",                        "ai_heavy"),
     (frozenset(["POST"]),           "/api/send_message",                "ai_heavy"),
     (frozenset(["POST"]),           "/api/save_chat_message",           "ai_heavy"),
@@ -106,7 +69,6 @@ _RULES: list[tuple[Optional[frozenset], Optional[str], Optional[str]]] = [
     (None,                          "/api/intelligence/",               "ai_heavy"),
     (None,                          "/api/kt/predict",                  "ai_heavy"),
 
-    # ── AI Light (100 / hour / user) ──────────────────────────────────────────
     (frozenset(["POST"]),           "/api/search_content",              "ai_light"),
     (frozenset(["POST"]),           "/api/natural_language_search",     "ai_light"),
     (frozenset(["POST"]),           "/api/detect_search_intent",        "ai_light"),
@@ -116,7 +78,6 @@ _RULES: list[tuple[Optional[frozenset], Optional[str], Optional[str]]] = [
     (frozenset(["POST"]),           "/api/get_personalized_prompts",    "ai_light"),
     (frozenset(["POST"]),           "/api/get_search_suggestion",       "ai_light"),
 
-    # ── File Upload / Processing (20 / hour / user) ───────────────────────────
     (frozenset(["POST"]),           "/api/context",                     "file_upload"),
     (frozenset(["POST"]),           "/api/import",                      "file_upload"),
     (frozenset(["POST"]),           "/api/upload",                      "file_upload"),
@@ -124,14 +85,11 @@ _RULES: list[tuple[Optional[frozenset], Optional[str], Optional[str]]] = [
     (frozenset(["POST"]),           "/api/upload_slide",                "file_upload"),
     (frozenset(["POST"]),           "/api/transcribe_audio",            "file_upload"),
 
-    # ── Write catch-all (300 / hour / user) ───────────────────────────────────
     (frozenset(["POST", "PUT", "PATCH", "DELETE"]), None, "write"),
 
-    # ── Read catch-all (1000 / hour / user) ───────────────────────────────────
     (frozenset(["GET"]),            None,                               "read"),
 ]
 
-# ─── Lua script for atomic Redis sliding-window check ─────────────────────────
 _LUA_SCRIPT = """
 local key    = KEYS[1]
 local now    = tonumber(ARGV[1])
@@ -157,7 +115,6 @@ else
 end
 """
 
-# ─── Module-level state ────────────────────────────────────────────────────────
 _redis_client = None
 _lua_sha: Optional[str] = None
 _mem_lock = threading.Lock()
@@ -168,10 +125,8 @@ _ALGORITHM = "HS256"
 _JWT_AUDIENCE = "brainwave-client"
 _JWT_ISSUER = "brainwave-backend"
 
-# Trust X-Forwarded-For only when the direct peer is a trusted proxy.
 _TRUSTED_PROXY_CIDRS_RAW = os.getenv("RATE_LIMIT_TRUSTED_PROXY_CIDRS", "127.0.0.1/32,::1/128")
 
-# Bound in-memory fallback state to avoid unbounded growth.
 _MEM_MAX_KEYS = max(1000, int(os.getenv("RATE_LIMIT_MEMORY_MAX_KEYS", "20000")))
 _MEM_EVICT_BATCH = max(100, _MEM_MAX_KEYS // 4)
 _SUBSCRIPTION_CACHE_TTL = max(30, int(os.getenv("RATE_LIMIT_SUBSCRIPTION_CACHE_TTL", "120")))
@@ -179,9 +134,7 @@ _SUBSCRIPTION_CACHE_TTL = max(30, int(os.getenv("RATE_LIMIT_SUBSCRIPTION_CACHE_T
 _subscription_lock = threading.Lock()
 _subscription_cache: dict[str, tuple[str, float]] = {}
 
-# Routes that must match exact path (not prefix).
 _EXACT_MATCH_PATHS = {"/api/health"}
-
 
 def _parse_cidrs(raw: str) -> list[ipaddress._BaseNetwork]:
     networks: list[ipaddress._BaseNetwork] = []
@@ -195,15 +148,9 @@ def _parse_cidrs(raw: str) -> list[ipaddress._BaseNetwork]:
             logger.warning("Rate limiter: ignoring invalid proxy CIDR '%s'", token)
     return networks
 
-
 _TRUSTED_PROXY_NETWORKS = _parse_cidrs(_TRUSTED_PROXY_CIDRS_RAW)
 
-
 def init_redis_for_rate_limiter(redis_client) -> None:
-    """
-    Called from main.py startup to share the already-connected Redis client.
-    If not called, the middleware falls back to in-memory tracking.
-    """
     global _redis_client, _lua_sha
     _redis_client = redis_client
     if _redis_client is not None:
@@ -213,9 +160,6 @@ def init_redis_for_rate_limiter(redis_client) -> None:
         except Exception as e:
             logger.warning(f"Rate limiter: Redis Lua load failed ({e}), using in-memory fallback")
             _redis_client = None
-
-
-# ─── Identity extraction ───────────────────────────────────────────────────────
 
 def _is_from_trusted_proxy(request: Request) -> bool:
     if not _TRUSTED_PROXY_NETWORKS:
@@ -227,7 +171,6 @@ def _is_from_trusted_proxy(request: Request) -> bool:
     except ValueError:
         return False
     return any(peer_ip in net for net in _TRUSTED_PROXY_NETWORKS)
-
 
 def _extract_leftmost_ip(xff: str) -> Optional[str]:
     if not xff:
@@ -241,7 +184,6 @@ def _extract_leftmost_ip(xff: str) -> Optional[str]:
     except ValueError:
         return None
 
-
 def _get_client_ip(request: Request) -> str:
     xff = request.headers.get("x-forwarded-for", "")
     if _is_from_trusted_proxy(request):
@@ -251,7 +193,6 @@ def _get_client_ip(request: Request) -> str:
     if request.client:
         return request.client.host or "unknown"
     return "unknown"
-
 
 def _get_jwt_sub(request: Request) -> Optional[str]:
     auth = request.headers.get("authorization", "")
@@ -272,7 +213,6 @@ def _get_jwt_sub(request: Request) -> Optional[str]:
     except JWTError:
         return None
 
-
 def _get_identity(request: Request, use_ip: bool) -> str:
     if use_ip:
         return _get_client_ip(request)
@@ -280,7 +220,6 @@ def _get_identity(request: Request, use_ip: bool) -> str:
     if sub:
         return sub
     return _get_client_ip(request)
-
 
 def _prune_subscription_cache_locked(now: float) -> None:
     if len(_subscription_cache) < 2000:
@@ -294,13 +233,11 @@ def _prune_subscription_cache_locked(now: float) -> None:
     for key in oldest:
         _subscription_cache.pop(key, None)
 
-
 def invalidate_subscription_cache(*subjects: str) -> None:
     with _subscription_lock:
         for subject in subjects:
             if subject:
                 _subscription_cache.pop(subject, None)
-
 
 def get_subscription_tier(subject: Optional[str]) -> str:
     normalized_subject = (subject or "").strip()
@@ -338,14 +275,7 @@ def get_subscription_tier(subject: Optional[str]) -> str:
         _prune_subscription_cache_locked(now)
     return tier
 
-
-# ─── Route classification ──────────────────────────────────────────────────────
-
 def _classify(method: str, path: str) -> Optional[str]:
-    """Return tier name, or None for unlimited.
-    Prefix rules only fire when the rule path is longer than 1 character,
-    preventing "/" from accidentally matching every path.
-    """
     for rule_methods, rule_path, tier in _RULES:
         if rule_methods is not None and method not in rule_methods:
             continue
@@ -362,14 +292,7 @@ def _classify(method: str, path: str) -> Optional[str]:
         return tier
     return None
 
-
-# ─── Rate limit checks ─────────────────────────────────────────────────────────
-
 def _check_redis(key: str, limit: int, window: int) -> Tuple[bool, int, float]:
-    """
-    Returns (allowed, current_count, oldest_timestamp_in_window).
-    Raises on unexpected Redis errors (caller should fall back to memory).
-    """
     now = time.time()
     uid = str(uuid.uuid4())
     result = _redis_client.evalsha(_lua_sha, 1, key, now, window, limit, uid)
@@ -378,9 +301,7 @@ def _check_redis(key: str, limit: int, window: int) -> Tuple[bool, int, float]:
     oldest = float(result[2])
     return allowed, current, oldest
 
-
 def _check_memory(key: str, limit: int, window: int) -> Tuple[bool, int, float]:
-    """Thread-safe in-memory sliding window."""
     now = time.time()
     cutoff = now - window
     with _mem_lock:
@@ -408,13 +329,10 @@ def _check_memory(key: str, limit: int, window: int) -> Tuple[bool, int, float]:
         oldest = dq[0] if dq else now
         return False, count, oldest
 
-
 def _evict_memory_if_needed_locked() -> None:
-    """Requires _mem_lock. Evicts stale/old entries when key count grows too large."""
     if len(_mem_store) <= _MEM_MAX_KEYS:
         return
 
-    # Drop empty deques first (they can appear after window trimming).
     empty_keys = [k for k, v in _mem_store.items() if not v]
     for k in empty_keys:
         _mem_store.pop(k, None)
@@ -424,14 +342,12 @@ def _evict_memory_if_needed_locked() -> None:
     overage = len(_mem_store) - _MEM_MAX_KEYS
     to_remove = min(len(_mem_store), max(_MEM_EVICT_BATCH, overage))
 
-    # Evict least-recently-seen keys (oldest right edge timestamp).
     oldest_keys = sorted(
         _mem_store.keys(),
         key=lambda k: _mem_store[k][-1] if _mem_store[k] else 0.0,
     )[:to_remove]
     for k in oldest_keys:
         _mem_store.pop(k, None)
-
 
 def _check(key: str, limit: int, window: int) -> Tuple[bool, int, float]:
     if _redis_client is not None and _lua_sha is not None:
@@ -441,17 +357,9 @@ def _check(key: str, limit: int, window: int) -> Tuple[bool, int, float]:
             logger.warning(f"Rate limiter Redis error ({e}); falling back to in-memory")
     return _check_memory(key, limit, window)
 
-
-# ─── Middleware ────────────────────────────────────────────────────────────────
-
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """
-    Applies per-tier rate limits to all incoming requests.
-    CORS preflight OPTIONS requests are always passed through.
-    """
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        # Always allow CORS preflights
         if request.method == "OPTIONS":
             return await call_next(request)
 
@@ -459,7 +367,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         method = request.method
         tier_name = _classify(method, path)
 
-        # Unlimited path
         if tier_name is None:
             return await call_next(request)
 

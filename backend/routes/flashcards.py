@@ -589,7 +589,6 @@ def get_due_flashcards(
     limit: int = Query(50),
     db: Session = Depends(get_db),
 ):
-    """Get all flashcards due for spaced repetition review."""
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -670,7 +669,6 @@ def get_due_flashcards(
 
 @router.post("/flashcards/sr_review")
 async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
-    """Submit a spaced repetition review — powered by FSRS-6."""
     from services.fsrs_scheduler import GRADE_TO_RATING, apply_fsrs_review, preview_intervals as fsrs_preview
 
     user = get_user_by_username(db, request.user_id) or get_user_by_email(db, request.user_id)
@@ -795,7 +793,6 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
 
 @router.get("/flashcards/sr_stats")
 def get_sr_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get detailed spaced repetition statistics."""
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -906,7 +903,6 @@ def get_sr_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
 
 @router.get("/flashcards/ai_suggestions")
 async def get_ai_suggestions(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get AI-powered study suggestions based on SR data."""
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

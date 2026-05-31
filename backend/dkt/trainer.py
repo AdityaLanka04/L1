@@ -1,10 +1,3 @@
-"""
-AKT training loop.
-
-Loss: BCE on next-step predictions, masked to the queried concept at each step.
-Saves:  dkt/dkt_model.pt  (weights + hyperparams)
-        dkt/concept_vocab.json
-"""
 
 from __future__ import annotations
 
@@ -41,7 +34,6 @@ DEFAULTS = dict(
     max_seq    = 512,
     val_split  = 0.1,
 )
-
 
 def train(db_session_factory, **kwargs) -> dict:
     cfg    = {**DEFAULTS, **kwargs}
@@ -125,7 +117,6 @@ def train(db_session_factory, **kwargs) -> dict:
         "history":        history[-5:],
     }
 
-
 def _run_epoch(model, loader, criterion, device, optimizer):
     total_loss  = 0.0
     total_steps = 0
@@ -137,7 +128,7 @@ def _run_epoch(model, loader, criterion, device, optimizer):
         targets      = targets.to(device)
         padding_mask = padding_mask.to(device)
 
-        preds = model(concept_ids, signals, elapsed_days, padding_mask)  # (B, T, C)
+        preds = model(concept_ids, signals, elapsed_days, padding_mask)
 
         valid = ~padding_mask
         loss  = criterion(preds[valid], targets[valid])
@@ -153,9 +144,7 @@ def _run_epoch(model, loader, criterion, device, optimizer):
 
     return total_loss / total_steps if total_steps > 0 else 0.0
 
-
 def load_model(device: Optional[torch.device] = None) -> Optional[tuple[AKT, dict]]:
-    """Load saved AKT model + vocab. Returns (model, vocab) or None."""
     if not os.path.exists(MODEL_PATH):
         return None
     from dkt.dataset import load_vocab

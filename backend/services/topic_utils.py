@@ -15,8 +15,6 @@ _JUNK_EXACT = frozenset({
     "thanks", "thank", "haha", "cool",
 })
 
-# Common English function/filler words that carry no educational content.
-# A message made entirely of these is not a real topic.
 _STOP_WORDS = frozenset({
     "i", "me", "my", "we", "our", "you", "your", "he", "she", "it", "they",
     "a", "an", "the", "and", "or", "but", "so", "yet", "for", "nor",
@@ -39,16 +37,7 @@ _STOP_WORDS = frozenset({
     "need", "dare", "ok", "okay",
 })
 
-
 def is_valid_topic(text: str) -> bool:
-    """
-    Return True only if text looks like a real educational topic.
-
-    Strategy: linguistic rather than enumerated — rejects text that contains
-    no content words (non-stop-words with ≥ 4 chars).  This catches greetings,
-    casual openers ("lets work yum"), and filler without needing an exhaustive
-    phrase list.
-    """
     if not text:
         return False
     t = text.strip()
@@ -66,13 +55,10 @@ def is_valid_topic(text: str) -> bool:
     if len(words) <= 2 and words[0] in _JUNK_EXACT:
         return False
 
-    # At least one word must be a content word: not a stop word, ≥ 4 chars
     content_words = [w for w in words if w not in _STOP_WORDS and len(w) >= 4]
     return bool(content_words)
 
-
 def clean_topic(text: str) -> Optional[str]:
-    """Strip surrounding punctuation/whitespace from a topic string."""
     if not text:
         return None
     cleaned = re.sub(r'^[\s\-–—:,;|•]+|[\s\-–—:,;|•]+$', '', text.strip())

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Loader, Lock, CheckCircle, Circle, Play, Pause, Award,
   Clock, Target, BookOpen, MessageCircle, FileText, Brain,

@@ -1,10 +1,3 @@
-"""
-reset_db.py — Wipe all tables and recreate them fresh.
-
-Usage:
-  python reset_db.py              # uses DATABASE_URL from .env (SQLite or Postgres)
-  python reset_db.py --confirm    # skip the confirmation prompt
-"""
 
 import os
 import sys
@@ -15,7 +8,6 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
 
-
 def confirm():
     print("\n⚠️  WARNING: This will DELETE ALL DATA in the database.")
     print(f"   Target: {DATABASE_URL[:60]}{'...' if len(DATABASE_URL) > 60 else ''}")
@@ -23,7 +15,6 @@ def confirm():
     if ans != "YES":
         print("Aborted.")
         sys.exit(0)
-
 
 def reset():
     from sqlalchemy import create_engine, text
@@ -43,7 +34,6 @@ def reset():
         _apply_sqlite_migrations(engine)
 
     print("[3/3] Reset complete. Database is clean.\n")
-
 
 def _apply_sqlite_migrations(engine):
     from sqlalchemy import text
@@ -101,7 +91,6 @@ def _apply_sqlite_migrations(engine):
         conn.commit()
 
     print("[SQLite] Column migrations done.")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

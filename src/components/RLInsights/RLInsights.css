@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════
-   RLInsights — How I Learn card
-   ══════════════════════════════════════════ */
+
 
 .rli-wrap {
   display: flex;
@@ -8,7 +6,6 @@
   gap: 20px;
 }
 
-/* ── Card shell ── */
 .rli-card {
   background: var(--bg-secondary);
   border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
@@ -31,7 +28,6 @@
   box-shadow: 0 4px 24px rgba(0,0,0,0.07);
 }
 
-/* subtle dot grid background */
 .rli-card::before {
   content: '';
   position: absolute;
@@ -44,7 +40,6 @@
 
 .rli-card > * { position: relative; z-index: 1; }
 
-/* ── Header ── */
 .rli-header {
   display: flex;
   align-items: center;
@@ -125,7 +120,6 @@
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
-/* ── Warmup banner ── */
 .rli-warmup {
   display: flex;
   align-items: center;
@@ -138,7 +132,6 @@
   color: #f59e0b;
 }
 
-/* ── Tabs ── */
 .rli-tabs {
   display: flex;
   padding: 0 28px;
@@ -169,7 +162,6 @@
   border-bottom-color: var(--accent);
 }
 
-/* ══ OVERVIEW TAB ══ */
 .rli-overview {
   padding: 28px;
   display: flex;
@@ -177,7 +169,6 @@
   gap: 28px;
 }
 
-/* ── Stat grid ── */
 .rli-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -238,7 +229,6 @@
   line-height: 1.4;
 }
 
-/* ── Insights list ── */
 .rli-section-title {
   font-size: 0.7rem;
   font-weight: 700;
@@ -285,7 +275,6 @@
 .rli-insight-arrow    { color: color-mix(in srgb, var(--accent) 50%, transparent); font-weight: 700; }
 .rli-insight-strategy { font-weight: 700; color: var(--accent); }
 
-/* ── Bars ── */
 .rli-bar {
   display: flex;
   align-items: center;
@@ -315,7 +304,6 @@
   color: var(--text-secondary);
 }
 
-/* ══ STRATEGIES TAB ══ */
 .rli-strategies {
   padding: 24px 28px;
   display: flex;
@@ -436,7 +424,6 @@
 .rli-chip--good { background: color-mix(in srgb, #10b981 12%, transparent); border: 1px solid color-mix(in srgb, #10b981 22%, transparent); color: #10b981; }
 .rli-chip--bad  { background: color-mix(in srgb, #ef4444 12%, transparent); border: 1px solid color-mix(in srgb, #ef4444 22%, transparent); color: #ef4444; }
 
-/* ══ POLICY TAB ══ */
 .rli-policy {
   padding: 24px 28px;
 }
@@ -488,7 +475,6 @@
 .rli-policy-strat { display: flex; gap: 7px; align-items: center; font-weight: 600; color: var(--text-primary); }
 .rli-policy-pulls { font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); }
 
-/* ══ CURVE TAB ══ */
 .rli-curve {
   padding: 28px;
 }
@@ -548,7 +534,6 @@
 
 .rli-curve-hint { opacity: 0.5; font-size: 0.68rem; }
 
-/* ══ LOADING / EMPTY ══ */
 .rli-loading-card,
 .rli-empty-card {
   display: flex;

@@ -7,18 +7,15 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-
 def _normalize_topic(topic: Optional[str]) -> str:
     if not topic:
         return ""
     return topic.strip().lower()
 
-
 def _calc_accuracy(correct: int, total: int) -> Optional[float]:
     if total <= 0:
         return None
     return round((correct / total) * 100, 1)
-
 
 def _classify_area(
     accuracy: Optional[float],
@@ -41,7 +38,6 @@ def _classify_area(
     if acc < 70 or score >= 45 or trend < -0.05:
         return "needs_practice"
     return "improving"
-
 
 def _build_area_payload(
     *,
@@ -72,9 +68,7 @@ def _build_area_payload(
         "flashcard_performance": {"is_weak": False, "struggling_cards": [], "total_cards": 0},
     }
 
-
 def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Dict[str, Any]:
-    """Aggregate strengths/weaknesses using TopicMastery + UserWeakArea + flashcards + chat signals."""
     areas_by_topic: Dict[str, Dict[str, Any]] = {}
 
     weak_areas = db.query(models.UserWeakArea).filter(
@@ -158,7 +152,6 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
         )
         areas_by_topic[topic] = payload
 
-    # Flashcard signals
     try:
         flashcards = db.query(models.Flashcard).join(
             models.FlashcardSet,
@@ -201,7 +194,6 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
         if "flashcard" not in area["sources"]:
             area["sources"].append("flashcard")
 
-    # Chat mentions
     try:
         messages = db.query(models.ChatMessage).filter(
             models.ChatMessage.user_id == user_id
@@ -273,7 +265,6 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
         "summary": summary,
     }
 
-
 def _get_topic_performance(db: Session, user_id: int, topic: str, models) -> Dict[str, Any]:
     topic_normalized = _normalize_topic(topic)
     if not topic_normalized:
@@ -327,7 +318,6 @@ def _get_topic_performance(db: Session, user_id: int, topic: str, models) -> Dic
 
     return {"attempts": 0, "correct": 0, "wrong": 0, "accuracy": 0.0, "weakness_score": 0.0, "improvement_rate": 0.0}
 
-
 def generate_topic_suggestions(
     db: Session,
     user_id: int,
@@ -335,7 +325,6 @@ def generate_topic_suggestions(
     models,
     unified_ai=None,
 ) -> Dict[str, Any]:
-    """Generate practical study suggestions and tips for a topic."""
     topic = topic.strip()
     perf = _get_topic_performance(db, user_id, topic, models)
 
@@ -408,7 +397,6 @@ def generate_topic_suggestions(
             "wrong": wrong,
         },
     }
-
 
 def find_similar_questions(db: Session, user_id: int, topic: str, models, limit: int = 15) -> Dict[str, Any]:
     topic = topic.strip()

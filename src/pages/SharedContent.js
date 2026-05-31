@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, FileText, Users, Clock, Eye, Edit3, Trash2, Search, Filter, Calendar , Menu} from 'lucide-react';
 import './SharedContent.css';
@@ -29,7 +29,7 @@ const SharedContent = () => {
         setSharedItems(data.shared_items);
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ const SharedContent = () => {
         setSharedItems(prev => prev.filter(item => item.id !== shareId));
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 

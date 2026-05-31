@@ -1,8 +1,6 @@
-import React from 'react';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
 export const MOCK_TOKEN = 'mock-jwt-token-xyz789';
 export const MOCK_USERNAME = 'testuser';
 
@@ -24,7 +22,6 @@ export const setupLocalStorage = (overrides = {}) => {
 
 export const clearLocalStorage = () => localStorage.clear();
 
-// ─── Mock fetch factory ───────────────────────────────────────────────────────
 export const buildFetchMock = (routes = {}, { delay = 0 } = {}) => {
   return jest.fn((url) => {
     const respond = (data, ok = true, status = 200) =>
@@ -54,7 +51,6 @@ export const buildErrorFetchMock = (pattern, status = 500) =>
     return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
   });
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
 export const MOCK_GAMIFICATION = {
   level: 5,
   xp: 1250,
@@ -180,6 +176,5 @@ export const MOCK_GENERATED_QUIZ = {
   difficulty: 'medium',
 };
 
-// ─── Render helper ────────────────────────────────────────────────────────────
 export const renderInRouter = (ui, { route = '/' } = {}) =>
   render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);

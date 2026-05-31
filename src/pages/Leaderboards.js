@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award, Menu, Users } from 'lucide-react';
 import './Leaderboards.css';
@@ -32,7 +32,7 @@ const Leaderboards = () => {
         setCurrentUserRank(data.current_user_rank);
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   BookOpen, Globe, Plus, ChevronRight, ChevronLeft, FileText, Upload,
@@ -14,8 +14,6 @@ import {
 } from 'lucide-react';
 import contextService from '../services/contextService';
 import './ContextHub.css';
-
-// ─── FLAG SVG COMPONENTS ──────────────────────────────────────────────────────
 
 const FlagUK = ({ size = 28 }) => (
   <svg
@@ -56,8 +54,6 @@ const FlagUS = ({ size = 28 }) => {
     </svg>
   );
 };
-
-// ─── DATA ────────────────────────────────────────────────────────────────────
 
 const UK_GCSE_SUBJECTS = [
   { id: 'maths',           name: 'Mathematics',       Icon: Calculator,  category: 'STEM',          desc: 'Number, algebra, geometry, statistics & probability' },
@@ -231,8 +227,6 @@ const CATEGORY_COLOR = {
   'Electives':      '#84736e',
 };
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-
 function fmtDate(iso) {
   if (!iso) return '';
   try {
@@ -269,9 +263,6 @@ function loadSelectedDocIds() {
     return [];
   }
 }
-
-
-// ─── SUB-COMPONENTS ──────────────────────────────────────────────────────────
 
 function Breadcrumb({ curriculum, grade, subject, onLanding, onCurriculum, onGrade }) {
   const curr = curriculum ? CURRICULA[curriculum] : null;
@@ -310,7 +301,6 @@ function Breadcrumb({ curriculum, grade, subject, onLanding, onCurriculum, onGra
   );
 }
 
-// Unified doc row with action buttons — used in Library and Subject views
 function DocRow({ doc, isNew, isSelected, onSelect, onDelete, onAction, isOwn = true }) {
   const docId = doc.doc_id || doc.id;
   const name  = doc.title || doc.filename || 'Untitled';
@@ -367,7 +357,6 @@ function DocRow({ doc, isNew, isSelected, onSelect, onDelete, onAction, isOwn = 
   );
 }
 
-// Keep DocCard for backward compat with SubjectView grid mode
 function DocCard({ doc, viewMode, onDelete, isOwn, isSelected, onToggleSelect, onAction, isNew = false }) {
   return (
     <DocRow
@@ -381,8 +370,6 @@ function DocCard({ doc, viewMode, onDelete, isOwn, isSelected, onToggleSelect, o
     />
   );
 }
-
-// ─── MY DOC FILE CARD (aesthetic card for library grid) ──────────────────────
 
 const CARD_FEATURE_STATS = [
   { id: 'chat',       icon: MessageCircle, color: '#c084fc', label: 'Chat'  },
@@ -648,8 +635,6 @@ function UploadModal({ isOpen, onClose, curriculum, grade, subject, onUploaded }
     </div>
   );
 }
-
-// ─── UPLOAD VIEW — minimal: pick file → upload → go to library ───────────────
 
 function UploadView({ onSuccess }) {
   const [file, setFile]       = useState(null);
@@ -1259,7 +1244,7 @@ export default function ContextHub() {
     </div>
   );
 
-  // ─── CURRICULUM VIEW ──────────────────────────────────────────────────────
+  
   const CurriculumView = () => {
     if (!curr) return null;
     const CurrFlag = curr.Flag;
@@ -1327,7 +1312,7 @@ export default function ContextHub() {
     );
   };
 
-  // ─── GRADE VIEW ───────────────────────────────────────────────────────────
+  
   const GradeView = () => {
     if (!curr || !gradeInfo) return null;
     const cats = ['all', ...new Set(gradeInfo.subjects.filter(s => !EXCLUDED_CATEGORIES.has(s.category)).map(s => s.category))];
@@ -1416,7 +1401,7 @@ export default function ContextHub() {
     );
   };
 
-  // ─── SUBJECT VIEW ─────────────────────────────────────────────────────────
+  
   const SubjectView = () => {
     if (!selectedSubject || !curr || !gradeInfo) return null;
     return (
@@ -1510,7 +1495,7 @@ export default function ContextHub() {
     );
   };
 
-  // ─── LIBRARY VIEW ─────────────────────────────────────────────────────────
+  
   const now = Date.now();
   const isNewDoc = (doc) => doc.created_at && (now - new Date(doc.created_at).getTime()) < 24 * 60 * 60 * 1000;
 
@@ -1536,7 +1521,7 @@ export default function ContextHub() {
 
     return (
       <div className="ch-library-view">
-        {/* My Docs | Upload tab bar */}
+        {}
         <div className="ch-inner-tabs">
           <button
             className={`ch-inner-tab ${!isUploadTab ? 'ch-inner-tab--active' : ''}`}
@@ -1556,7 +1541,7 @@ export default function ContextHub() {
         </div>
 
         {isUploadTab ? (
-          /* ── Upload tab ─────────────────────────────────────────────── */
+          
           <div className="ch-lib-upload-wrap">
             <UploadView
               onSuccess={(result) => {
@@ -1578,7 +1563,7 @@ export default function ContextHub() {
             />
           </div>
         ) : (
-          /* ── My Docs tab ────────────────────────────────────────────── */
+          
           <div className="ch-lib-docs-wrap">
             <div className="ch-lib-docs-header">
               <div className="ch-lib-docs-header-left">
@@ -1678,7 +1663,7 @@ export default function ContextHub() {
     );
   };
 
-  // ─── ASK YOUR NOTES ───────────────────────────────────────────────────────
+  
   const AskView = () => (
     <div className="ch-ask-view">
       <div className="ch-ask-header">
@@ -1817,7 +1802,7 @@ export default function ContextHub() {
     </div>
   );
 
-  // ─── RENDER ───────────────────────────────────────────────────────────────
+  
   const renderView = () => {
     if (view === 'landing')                   return <LandingView />;
     if (view === 'curriculum')                return <CurriculumView />;

@@ -666,7 +666,6 @@
   padding: 4px 0;
 }
 
-/* Active context indicator */
 .cp-active-ctx {
   display: flex;
   align-items: center;
@@ -699,7 +698,6 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Footer */
 .cp-footer {
   padding: 14px 20px;
   border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
@@ -743,8 +741,6 @@
   gap: 8px;
   font-family: 'Inter', sans-serif;
 }
-
-/* ===== Selection styles ===== */
 
 .cp-filter-banner {
   display: flex;

@@ -1,13 +1,3 @@
-"""
-Episodic memory store — backed by pgvector via vector_store.
-
-Collections (all scoped by user_id):
-  episodic     — main episodic memory (notes, flashcards, chats, quizzes)
-  important    — explicitly pinned / high-importance content
-  quiz_history — granular quiz performance records for adaptive logic
-
-Public API is identical to the original ChromaDB version.
-"""
 
 from __future__ import annotations
 
@@ -19,15 +9,11 @@ from services import vector_store as vs
 
 logger = logging.getLogger(__name__)
 
-
 def initialize(*args, **kwargs):
-    """No-op: initialization handled by vector_store.initialize() in main.py."""
     pass
-
 
 def available() -> bool:
     return vs.available()
-
 
 def write_episode(user_id: str, summary: str, metadata: Optional[dict] = None):
     if not available():
@@ -40,7 +26,6 @@ def write_episode(user_id: str, summary: str, metadata: Optional[dict] = None):
     meta.setdefault("source", "chat")
     vs.upsert("episodic", str(uuid.uuid4()), summary, embedding, meta, user_id=str(user_id))
 
-
 def retrieve_episodes(user_id: str, query: str, top_k: int = 3) -> list[str]:
     if not available():
         return []
@@ -48,7 +33,6 @@ def retrieve_episodes(user_id: str, query: str, top_k: int = 3) -> list[str]:
         return []
     rows = vs.search("episodic", vs.embed(query), top_k, user_id=str(user_id))
     return [r["content"] for r in rows]
-
 
 def retrieve_episodes_filtered(
     user_id: str,
@@ -66,7 +50,6 @@ def retrieve_episodes_filtered(
     combined.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""), reverse=True)
     return combined
 
-
 def retrieve_recent_by_source(user_id: str, source: str, top_k: int = 10) -> list[dict]:
     if not available():
         return []
@@ -83,7 +66,6 @@ def retrieve_recent_by_source(user_id: str, source: str, top_k: int = 10) -> lis
     combined.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""), reverse=True)
     return combined
 
-
 def write_important(user_id: str, summary: str, metadata: Optional[dict] = None):
     if not available():
         return
@@ -94,7 +76,6 @@ def write_important(user_id: str, summary: str, metadata: Optional[dict] = None)
     meta.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
     meta.setdefault("source", "important")
     vs.upsert("important", str(uuid.uuid4()), summary, embedding, meta, user_id=str(user_id))
-
 
 def retrieve_important(user_id: str, query: str = "", top_k: int = 10) -> list[dict]:
     if not available():
@@ -110,7 +91,6 @@ def retrieve_important(user_id: str, query: str = "", top_k: int = 10) -> list[d
     combined = [{"document": r["content"], "metadata": r["metadata"]} for r in rows]
     combined.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""), reverse=True)
     return combined
-
 
 def write_quiz_result(
     user_id: str,
@@ -139,7 +119,6 @@ def write_quiz_result(
     })
     vs.upsert("quiz_history", str(uuid.uuid4()), summary, embedding, meta, user_id=str(user_id))
 
-
 def retrieve_quiz_history(user_id: str, query: str = "", top_k: int = 10) -> list[dict]:
     if not available():
         return []
@@ -154,7 +133,6 @@ def retrieve_quiz_history(user_id: str, query: str = "", top_k: int = 10) -> lis
     combined = [{"document": r["content"], "metadata": r["metadata"]} for r in rows]
     combined.sort(key=lambda x: x.get("metadata", {}).get("timestamp", ""), reverse=True)
     return combined
-
 
 def get_weak_quiz_topics(user_id: str, score_threshold: float = 65.0, top_k: int = 5) -> list[str]:
     if not available():

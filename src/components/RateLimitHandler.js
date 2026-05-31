@@ -2,11 +2,6 @@ import { useEffect } from 'react';
 import { useToast } from '../contexts/ToastContext';
 import { getRateLimitMessage } from '../utils/rateLimitHandler';
 
-/**
- * Invisible component that lives inside ToastProvider.
- * Listens for the global 'brainwave:rate-limited' event dispatched by
- * fetchInterceptor.js and shows a user-friendly toast notification.
- */
 export default function RateLimitHandler() {
   const { showToast } = useToast();
 

@@ -1,23 +1,14 @@
-"""
-Simple rate limiter to track API usage and prevent hitting limits
-"""
 import time
 from collections import deque
 from typing import Dict
 
 class RateLimiter:
-    """Track API calls to avoid hitting rate limits"""
     
     def __init__(self):
         self.groq_calls = deque(maxlen=100)
         self.gemini_calls = deque(maxlen=100)
     
     def can_call_groq(self) -> tuple[bool, float]:
-        """
-        Check if we can make a Groq API call
-        Returns: (can_call, wait_seconds)
-        Groq free tier: 30 requests per minute
-        """
         now = time.time()
         minute_ago = now - 60
         
@@ -32,11 +23,6 @@ class RateLimiter:
         return False, max(0, wait_seconds)
     
     def can_call_gemini(self) -> tuple[bool, float]:
-        """
-        Check if we can make a Gemini API call
-        Returns: (can_call, wait_seconds)
-        Gemini free tier: 15 requests per minute
-        """
         now = time.time()
         minute_ago = now - 60
         
@@ -51,15 +37,12 @@ class RateLimiter:
         return False, max(0, wait_seconds)
     
     def record_groq_call(self):
-        """Record a Groq API call"""
         self.groq_calls.append(time.time())
     
     def record_gemini_call(self):
-        """Record a Gemini API call"""
         self.gemini_calls.append(time.time())
     
     def get_stats(self) -> Dict:
-        """Get current rate limit stats"""
         now = time.time()
         minute_ago = now - 60
         

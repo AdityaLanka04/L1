@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { THEMES } from '../utils/ThemeManager';
 import { Palette, X, Sun, Moon, Check, Sparkles, Copy } from 'lucide-react';

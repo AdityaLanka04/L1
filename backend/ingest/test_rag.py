@@ -1,19 +1,3 @@
-"""
-test_rag.py — RAG retrieval quality test suite for Cerbyl HS Mode.
-
-Tests that ingested OpenStax books are searchable with correct:
-  - Subject routing
-  - Page number citation in metadata
-  - Book title attribution
-  - Cross-subject disambiguation
-
-Usage:
-    cd backend/
-    python -m ingest.test_rag
-    python -m ingest.test_rag --subject Biology
-    python -m ingest.test_rag --verbose
-    python -m ingest.test_rag --top-k 10
-"""
 
 from __future__ import annotations
 
@@ -31,7 +15,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class TestCase:
     name: str
@@ -45,7 +28,6 @@ class TestCase:
     min_results: int = 1
     top_k: int = 5
 
-
 @dataclass
 class TestResult:
     case: TestCase
@@ -57,9 +39,7 @@ class TestResult:
     first_result_subject: str = ""
     first_result_text_snippet: str = ""
 
-
 STANDARD_TEST_CASES: list[TestCase] = [
-    # ── Biology ──────────────────────────────────────────────────────────────
     TestCase(
         name="Biology: photosynthesis",
         query="What is photosynthesis and how does it produce ATP?",
@@ -97,7 +77,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 
-    # ── Chemistry ────────────────────────────────────────────────────────────
     TestCase(
         name="Chemistry: periodic table",
         query="How are elements arranged in the periodic table and what determines their properties?",
@@ -127,7 +106,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 
-    # ── Physics ───────────────────────────────────────────────────────────────
     TestCase(
         name="Physics: Newton's laws",
         query="Explain Newton's three laws of motion with examples",
@@ -157,7 +135,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 
-    # ── Calculus ──────────────────────────────────────────────────────────────
     TestCase(
         name="Calculus: derivatives",
         query="What is a derivative and how do you find the derivative of a polynomial function?",
@@ -180,7 +157,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 
-    # ── Algebra ───────────────────────────────────────────────────────────────
     TestCase(
         name="Algebra: quadratic equations",
         query="How do you solve quadratic equations using the quadratic formula?",
@@ -196,7 +172,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 
-    # ── Statistics ────────────────────────────────────────────────────────────
     TestCase(
         name="Statistics: central tendency",
         query="What is the difference between mean, median, and mode in statistics?",
@@ -219,7 +194,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 
-    # ── Economics ─────────────────────────────────────────────────────────────
     TestCase(
         name="Economics: supply and demand",
         query="How do supply and demand determine equilibrium price in a market?",
@@ -242,7 +216,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 
-    # ── US History ────────────────────────────────────────────────────────────
     TestCase(
         name="US History: Civil War",
         query="What were the main causes of the American Civil War?",
@@ -257,7 +230,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 
-    # ── Psychology ────────────────────────────────────────────────────────────
     TestCase(
         name="Psychology: classical conditioning",
         query="Explain classical conditioning using Pavlov's experiment",
@@ -273,7 +245,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 
-    # ── Anatomy ───────────────────────────────────────────────────────────────
     TestCase(
         name="Anatomy: cardiovascular system",
         query="How does the human heart pump blood through the cardiovascular system?",
@@ -289,7 +260,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 
-    # ── No-filter cross-subject ───────────────────────────────────────────────
     TestCase(
         name="Cross-subject: osmosis",
         query="What is osmosis and how does it work in biological cells?",
@@ -305,7 +275,6 @@ STANDARD_TEST_CASES: list[TestCase] = [
         expect_page_number=True,
     ),
 ]
-
 
 def run_test(case: TestCase, verbose: bool = False) -> TestResult:
     try:
@@ -390,7 +359,6 @@ def run_test(case: TestCase, verbose: bool = False) -> TestResult:
     result.passed = len(failures) == 0 and len(results) >= case.min_results
     return result
 
-
 def _setup_context_store() -> bool:
     try:
         from sentence_transformers import SentenceTransformer
@@ -409,7 +377,6 @@ def _setup_context_store() -> bool:
     except Exception as e:
         print(f"Setup failed: {e}")
         return False
-
 
 def print_result(result: TestResult, verbose: bool = False) -> None:
     status = "PASS" if result.passed else "FAIL"
@@ -431,7 +398,6 @@ def print_result(result: TestResult, verbose: bool = False) -> None:
             print(f"         Snippet: {result.first_result_text_snippet[:80]}...")
         for f in result.failures:
             print(f"         FAIL: {f}")
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="RAG retrieval quality tests")
@@ -514,7 +480,6 @@ def main() -> int:
 
     print()
     return 0 if failed == 0 else 1
-
 
 if __name__ == "__main__":
     sys.exit(main())

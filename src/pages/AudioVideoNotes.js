@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader, ArrowLeft , Menu} from 'lucide-react';
 import './AudioVideoNotes.css';

@@ -1,16 +1,3 @@
-"""
-Request body size limit middleware.
-
-Rejects any request with Content-Length exceeding MAX_BODY_BYTES before it
-reaches route handlers, preventing disk-exhaustion and memory-pressure DoS.
-
-Limits:
-  Default API routes : 10 MB
-  File upload routes : 100 MB  (media, context upload, imports)
-
-Set REQUEST_MAX_BODY_MB to override the default limit.
-Set REQUEST_MAX_UPLOAD_MB to override the upload limit.
-"""
 import logging
 import os
 
@@ -24,14 +11,12 @@ _MB = 1024 * 1024
 _DEFAULT_MAX = int(os.getenv("REQUEST_MAX_BODY_MB", "10")) * _MB
 _UPLOAD_MAX  = int(os.getenv("REQUEST_MAX_UPLOAD_MB", "100")) * _MB
 
-# Paths that are allowed a larger body (multipart file uploads)
 _UPLOAD_PREFIXES = (
     "/api/context",
     "/api/import",
     "/api/upload",
     "/api/media",
 )
-
 
 class BodySizeLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:

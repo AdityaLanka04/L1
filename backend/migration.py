@@ -1,7 +1,3 @@
-"""
-Comprehensive migration to sync database schema with models
-Creates all tables if they don't exist and adds missing columns
-"""
 import sqlite3
 import os
 from sqlalchemy import inspect, text
@@ -15,7 +11,6 @@ from models import engine, Base, User, ChatSession, ChatMessage, \
 from database import DATABASE_URL
 
 def get_model_columns(model):
-    """Get all columns defined in a SQLAlchemy model"""
     columns = {}
     for column in model.__table__.columns:
         col_type = str(column.type)
@@ -50,7 +45,6 @@ def get_model_columns(model):
     return columns
 
 def get_db_columns(cursor, table_name):
-    """Get existing columns in database table"""
     try:
         cursor.execute(f"PRAGMA table_info({table_name})")
         return {row[1]: row for row in cursor.fetchall()}
@@ -58,7 +52,6 @@ def get_db_columns(cursor, table_name):
         return {}
 
 def sync_table(cursor, model):
-    """Sync a single table with its model - add missing columns"""
     table_name = model.__tablename__
     print(f"\n📋 Checking table: {table_name}")
     
@@ -198,7 +191,6 @@ def run_migration():
     finally:
         conn.close()
 
-
 def _run_postgres_migration():
     print(" Syncing PostgreSQL schema")
     try:
@@ -334,9 +326,6 @@ def _run_postgres_migration():
             except Exception as e:
                 print(f" share_code index: {e}")
 
-    # ── user_id performance indexes ──────────────────────────────────────────
-    # These were missing from the original schema and cause full-table scans
-    # on every per-user query.  CREATE INDEX IF NOT EXISTS is idempotent.
     _user_id_indexes = [
         ("ix_activities_user_id",              "activities",             "user_id"),
         ("ix_chat_sessions_user_id",           "chat_sessions",          "user_id"),
@@ -376,7 +365,6 @@ def _run_postgres_migration():
             print(" user_id performance indexes created/verified")
         except Exception as e:
             print(f" user_id index commit error: {e}")
-
 
 if __name__ == '__main__':
     run_migration()

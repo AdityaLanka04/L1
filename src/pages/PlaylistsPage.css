@@ -99,7 +99,6 @@
   opacity: 0.3;
 }
 
-
 .playlists-container .hub-header {
   position: sticky;
   top: 0;
@@ -320,7 +319,6 @@
 .playlists-container .hub-nav-btn-ghost:hover {
   border-color: var(--lp-accent);
 }
-
 
 .playlists-sidebar {
   width: 260px;

@@ -1,15 +1,3 @@
-"""
-vector_store.py — pgvector abstraction replacing ChromaDB.
-
-Single 'embeddings' table with collection + user_id partitioning.
-Collections:
-  episodic       + user_id  — episodic memory (chroma_store)
-  important      + user_id  — pinned content (chroma_store)
-  quiz_history   + user_id  — quiz performance (chroma_store)
-  hs_curriculum  (no uid)   — global shared curriculum (context_store)
-  user_docs      + user_id  — private uploaded docs (context_store)
-  memories       + user_id  — long-term student memories (memory_service)
-"""
 
 from __future__ import annotations
 
@@ -48,17 +36,14 @@ _UPSERT_SQL_SQLITE = text("""
             created_at = CURRENT_TIMESTAMP
 """)
 
-
 def _is_sqlite() -> bool:
     return _engine is not None and _engine.dialect.name == "sqlite"
-
 
 def _sanitize_text(value: Optional[str]) -> str:
     if value is None:
         return ""
     text_value = str(value).replace("\x00", "")
     return text_value.encode("utf-8", errors="ignore").decode("utf-8", errors="ignore")
-
 
 def _sanitize_embedding(values: list[float]) -> list[float]:
     cleaned: list[float] = []
@@ -76,7 +61,6 @@ def _sanitize_embedding(values: list[float]) -> list[float]:
         cleaned = cleaned[:384]
     return cleaned
 
-
 def _row_params(row: dict) -> dict:
     metadata = row.get("metadata")
     if not isinstance(metadata, dict):
@@ -89,7 +73,6 @@ def _row_params(row: dict) -> dict:
         "emb": json.dumps(_sanitize_embedding(row.get("embedding") or [])),
         "meta": json.dumps(metadata),
     }
-
 
 def _parse_metadata(value) -> dict:
     if isinstance(value, dict):
@@ -105,7 +88,6 @@ def _parse_metadata(value) -> dict:
         return {}
     return {}
 
-
 def _parse_embedding(value) -> list[float]:
     if isinstance(value, list):
         return _sanitize_embedding(value)
@@ -120,7 +102,6 @@ def _parse_embedding(value) -> list[float]:
         return [0.0] * 384
     return [0.0] * 384
 
-
 def _cosine_distance(a: list[float], b: list[float]) -> float:
     va = _sanitize_embedding(a)
     vb = _sanitize_embedding(b)
@@ -133,7 +114,6 @@ def _cosine_distance(a: list[float], b: list[float]) -> float:
     cos_sim = max(-1.0, min(1.0, cos_sim))
     return 1.0 - cos_sim
 
-
 def _where_matches(where: Optional[dict], metadata: dict) -> bool:
     if not where:
         return True
@@ -144,14 +124,11 @@ def _where_matches(where: Optional[dict], metadata: dict) -> bool:
             return False
     return True
 
-
 def _execute_upsert(conn, params: dict) -> None:
     upsert_sql = _UPSERT_SQL_SQLITE if _is_sqlite() else _UPSERT_SQL_PG
     try:
         conn.execute(upsert_sql, params)
     except Exception as e:
-        # Backward compatibility: old schemas may miss the (collection, id) unique
-        # target needed by ON CONFLICT. Fall back to delete+insert semantics.
         msg = str(e).lower()
         if "no unique or exclusion constraint matching the on conflict specification" in msg:
             conn.execute(
@@ -176,7 +153,6 @@ def _execute_upsert(conn, params: dict) -> None:
                 )
             return
         raise
-
 
 def initialize(embed_model, db_url: str | None = None) -> None:
     global _engine, _embed_model
@@ -208,10 +184,8 @@ def initialize(embed_model, db_url: str | None = None) -> None:
     else:
         logger.info("vector_store initialized (pgvector)")
 
-
 def available() -> bool:
     return _engine is not None and _embed_model is not None
-
 
 def _ensure_schema() -> None:
     with _engine.begin() as conn:
@@ -255,8 +229,6 @@ def _ensure_schema() -> None:
                 PRIMARY KEY (collection, id)
             )
         """))
-        # Backward-compatible drift fix for older deployments:
-        # ensure all columns/upsert conflict target used by current code exist.
         conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS user_id TEXT"))
         conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS content TEXT"))
         conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS embedding vector(384)"))
@@ -272,8 +244,6 @@ def _ensure_schema() -> None:
                 ON embeddings USING GIN (metadata)
         """))
 
-    # HNSW index requires pgvector >= 0.5.0.  Run in a separate transaction so
-    # that a failure on old installs does not roll back the table/index creation above.
     try:
         with _engine.begin() as conn:
             conn.execute(text("""
@@ -287,7 +257,6 @@ def _ensure_schema() -> None:
             "with different params): %s", _hnsw_err
         )
 
-
 def embed(text_: str) -> list[float]:
     if _embed_model is None:
         return [0.0] * 384
@@ -297,7 +266,6 @@ def embed(text_: str) -> list[float]:
     except Exception as e:
         logger.warning(f"embed failed: {e}")
         return [0.0] * 384
-
 
 def upsert(
     collection: str,
@@ -322,12 +290,7 @@ def upsert(
             ),
         )
 
-
 def bulk_upsert(rows: list[dict]) -> int:
-    """
-    rows: list of {id, collection, user_id?, content, embedding, metadata}
-    Inserts in batches of 200.
-    """
     if not rows:
         return 0
     batch_size = 200
@@ -360,7 +323,6 @@ def bulk_upsert(rows: list[dict]) -> int:
                         )
     return inserted
 
-
 def search(
     collection: str,
     query_embedding: list[float],
@@ -368,11 +330,6 @@ def search(
     user_id: Optional[str] = None,
     where: Optional[dict] = None,
 ) -> list[dict]:
-    """
-    ANN cosine search. Returns [{id, content, metadata, distance}, ...].
-    distance: 0 = identical, 2 = opposite (pgvector cosine distance).
-    where: {key: value} or {"$and": [{k: v}, ...]} — JSONB containment filter.
-    """
     if _is_sqlite():
         params: dict = {"col": collection}
         sql = "SELECT id, content, embedding, metadata FROM embeddings WHERE collection = :col"
@@ -423,13 +380,11 @@ def search(
         for r in rows
     ]
 
-
 def get_by_metadata(
     collection: str,
     filters: Optional[dict] = None,
     user_id: Optional[str] = None,
 ) -> list[dict]:
-    """Retrieve rows by metadata filter without vector similarity."""
     if _is_sqlite():
         params: dict = {"col": collection}
         sql = "SELECT id, content, metadata FROM embeddings WHERE collection = :col"
@@ -458,13 +413,11 @@ def get_by_metadata(
         for r in rows
     ]
 
-
 def count(collection: str, user_id: Optional[str] = None) -> int:
     where_clause, params = _build_where(collection, user_id)
     sql = f"SELECT COUNT(*) FROM embeddings {where_clause}"
     with _engine.connect() as conn:
         return conn.execute(text(sql), params).scalar() or 0
-
 
 def delete(
     collection: str,
@@ -472,7 +425,6 @@ def delete(
     user_id: Optional[str] = None,
     doc_id: Optional[str] = None,
 ) -> None:
-    """Delete by explicit ID list, metadata doc_id, or both. user_id scopes the delete."""
     if _is_sqlite():
         conditions = ["collection = :col"]
         params: dict = {"col": collection}
@@ -534,7 +486,6 @@ def delete(
     with _engine.begin() as conn:
         conn.execute(text(sql), params)
 
-
 def _build_where(
     collection: str,
     user_id: Optional[str] = None,
@@ -552,12 +503,7 @@ def _build_where(
 
     return f"WHERE {' AND '.join(conditions)}", params
 
-
 def _apply_where(where: dict, conditions: list, params: dict, prefix: str = "w") -> None:
-    """
-    Translate ChromaDB-style filter dict to JSONB conditions.
-    Handles: {key: value} and {"$and": [{k: v}, ...]}
-    """
     if "$and" in where:
         for i, clause in enumerate(where["$and"]):
             _apply_where(clause, conditions, params, prefix=f"{prefix}a{i}")

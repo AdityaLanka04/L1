@@ -1,7 +1,3 @@
-"""
-Centralized Gamification System
-Handles all point calculations, level progression, and activity tracking
-"""
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -73,20 +69,6 @@ QUESTION_COUNT_MULTIPLIERS = {
 }
 
 def calculate_solo_quiz_points(difficulty: str, question_count: int, score_percentage: float) -> dict:
-    """
-    Calculate points for solo quiz completion.
-    
-    Formula: base_points * difficulty_mult * question_mult * score_mult
-    Max possible: 40 points (hard, 20 questions, 100% score)
-    
-    Args:
-        difficulty: easy, intermediate, hard
-        question_count: 5, 10, 15, or 20
-        score_percentage: 0-100
-    
-    Returns:
-        dict with points_earned, breakdown, bonus info
-    """
     base_points = 40
     
     diff_mult = DIFFICULTY_MULTIPLIERS.get(difficulty.lower(), 0.75)
@@ -135,26 +117,22 @@ def calculate_solo_quiz_points(difficulty: str, question_count: int, score_perce
 LEVEL_THRESHOLDS = [0, 100, 282, 500, 800, 1200, 1700, 2300, 3000]
 
 def get_week_start():
-    """Get the start of the current week (Monday)"""
     today = datetime.now(timezone.utc).date()
     return today - timedelta(days=today.weekday())
 
 def calculate_level_from_xp(xp: int) -> int:
-    """Calculate level based on XP"""
     for level, threshold in enumerate(LEVEL_THRESHOLDS):
         if xp < threshold:
             return max(1, level)
     return len(LEVEL_THRESHOLDS) + int((xp - LEVEL_THRESHOLDS[-1]) / 1000)
 
 def get_xp_for_level(level: int) -> int:
-    """Get XP required to reach a specific level"""
     if level < len(LEVEL_THRESHOLDS):
         return LEVEL_THRESHOLDS[level]
     else:
         return LEVEL_THRESHOLDS[-1] + ((level - len(LEVEL_THRESHOLDS) + 1) * 1000)
 
 def get_or_create_stats(db: Session, user_id: int):
-    """Get or create gamification stats for a user"""
     stats = db.query(models.UserGamificationStats).filter(
         models.UserGamificationStats.user_id == user_id
     ).first()
@@ -170,7 +148,6 @@ def get_or_create_stats(db: Session, user_id: int):
     return stats
 
 def check_and_reset_weekly_stats(stats):
-    """Check if weekly stats need to be reset"""
     week_start = get_week_start()
     if stats.week_start_date is None:
         needs_reset = True
@@ -204,18 +181,6 @@ def check_and_reset_weekly_stats(stats):
         logger.info(f" Weekly stats current for user {stats.user_id} (week_start: {stats.week_start_date}, current_week: {week_start})")
 
 def award_points(db: Session, user_id: int, activity_type: str, metadata: dict = None):
-    """
-    Award points for an activity
-    
-    Args:
-        db: Database session
-        user_id: User ID
-        activity_type: Type of activity (ai_chat, note_created, etc.)
-        metadata: Additional data (e.g., minutes for study_time)
-    
-    Returns:
-        dict with points_earned, total_points, level
-    """
     if metadata is None:
         metadata = {}
     
@@ -557,7 +522,6 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     }
 
 def get_user_stats(db: Session, user_id: int):
-    """Get user's gamification stats"""
     stats = get_or_create_stats(db, user_id)
     check_and_reset_weekly_stats(stats)
     
@@ -633,7 +597,6 @@ def get_user_stats(db: Session, user_id: int):
     }
 
 def recalculate_all_stats(db: Session):
-    """Recalculate stats for all users from scratch"""
     users = db.query(models.User).all()
     week_start_datetime = datetime.combine(get_week_start(), datetime.min.time()).replace(tzinfo=timezone.utc)
     

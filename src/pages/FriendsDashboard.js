@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Search, UserPlus, Check, X, UserMinus, ChevronRight, Menu } from 'lucide-react';
 import './FriendsDashboard.css';
@@ -33,7 +33,7 @@ const FriendsDashboard = () => {
       });
       if (res.ok) setSelfStats(await res.json());
     } catch {
-      // silenced
+      
     }
   };
 
@@ -74,7 +74,7 @@ const FriendsDashboard = () => {
         setFriends(list);
       }
     } catch {
-      // silenced
+      
     } finally { setLoading(false); }
   };
 
@@ -83,7 +83,7 @@ const FriendsDashboard = () => {
       const res = await fetch(`${API_URL}/friend_requests`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) { const data = await res.json(); setFriendRequests(data); }
     } catch {
-      // silenced
+      
     }
   };
 
@@ -102,7 +102,7 @@ const FriendsDashboard = () => {
         setAllUsers(list);
       }
     } catch {
-      // silenced
+      
     } finally { setLoading(false); }
   };
 
@@ -122,7 +122,7 @@ const FriendsDashboard = () => {
         setSearchResults(list);
       }
     } catch {
-      // silenced
+      
     } finally { setIsSearching(false); }
   };
 
@@ -139,7 +139,7 @@ const FriendsDashboard = () => {
         fetchFriendRequests();
       }
     } catch {
-      // silenced
+      
     }
   };
 
@@ -152,7 +152,7 @@ const FriendsDashboard = () => {
       });
       if (res.ok) { fetchFriendRequests(); fetchFriends(); }
     } catch {
-      // silenced
+      
     }
   };
 
@@ -166,7 +166,7 @@ const FriendsDashboard = () => {
       });
       if (res.ok) fetchFriends();
     } catch {
-      // silenced
+      
     }
   };
 
@@ -179,7 +179,7 @@ const FriendsDashboard = () => {
       });
       if (res.ok) fetchFriendRequests();
     } catch {
-      // silenced
+      
     }
   };
 

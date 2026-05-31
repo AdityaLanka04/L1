@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   Type, Heading1, Heading2, Heading3, List, ListOrdered, 
   CheckSquare, Code, Quote, AlertCircle, ChevronRight,

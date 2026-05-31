@@ -1083,7 +1083,6 @@
   color: var(--bg-primary);
 }
 
-
 .qbd-main {
   flex: 1;
   display: flex;
@@ -4862,7 +4861,6 @@
   stroke-width: 2;
 }
 
-/* ===== SearchHub-Inspired Sidebar + Background ===== */
 .qbd-rb-root {
   --qbd-rb-line: color-mix(in srgb, var(--accent) 22%, transparent);
   --qbd-rb-line-soft: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -4993,7 +4991,6 @@
   border-top: 1px solid var(--qbd-rb-line-soft);
 }
 
-/* Sidebar scrolling fix */
 .qbd-rb-root .qbd-rb-sidebar {
   overflow-y: auto !important;
   overflow-x: hidden !important;
@@ -5021,7 +5018,6 @@
   background-clip: content-box;
 }
 
-/* ===== SearchHub-Inspired Quiz/Set Cards ===== */
 .qbd-rb-root .qbd-sets-grid {
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 20px;

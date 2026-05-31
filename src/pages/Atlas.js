@@ -10,9 +10,6 @@ import contextService from '../services/contextService';
 import { useNavigate } from 'react-router-dom';
 import './Atlas.css';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GLSL — Planet surface
-// ─────────────────────────────────────────────────────────────────────────────
 const PLANET_VERT = `
   varying vec2 vUv; varying vec3 vNormal; varying vec3 vViewDir;
   void main(){
@@ -41,9 +38,6 @@ const PLANET_FRAG = `
   }
 `;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GLSL — Atmosphere glow
-// ─────────────────────────────────────────────────────────────────────────────
 const ATMO_VERT = `
   varying vec3 vNormal,vViewDir;
   void main(){vNormal=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vViewDir=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}
@@ -54,9 +48,6 @@ const ATMO_FRAG = `
   void main(){float r=pow(1.0-max(dot(vNormal,vViewDir),0.0),uPower);gl_FragColor=vec4(uColor,r*uIntensity);}
 `;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GLSL — Connection flow lines (points march along A→B)
-// ─────────────────────────────────────────────────────────────────────────────
 const FLOW_VERT = `
   uniform vec3 uA,uB; uniform float uPhase,uN;
   attribute float aIdx; varying float vLife;
@@ -78,9 +69,6 @@ const FLOW_FRAG = `
   }
 `;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Palette
-// ─────────────────────────────────────────────────────────────────────────────
 const G_MAIN  = [0.843,0.702,0.549];
 const G_LIGHT = [0.929,0.835,0.690];
 const G_DEEP  = [0.478,0.329,0.208];
@@ -93,9 +81,6 @@ const HEX_DEEP  = 0x7A5435;
 const HEX_DIM   = 0xB89068;
 const HEX_BG    = 0x08060A;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// World configs — fixed positions, gentle drift
-// ─────────────────────────────────────────────────────────────────────────────
 const WORLDS = [
   {
     key:'oracle',  label:'ORACLE',  sub:'KNOW-IT-ALL',  side:'left', type:'icosa',
@@ -117,13 +102,9 @@ const WORLDS = [
   },
 ];
 
-// Camera elevated and angled down — worlds sit in the lower 60% of viewport
 const HOME_CAM  = new THREE.Vector3(0, 6, 22);
 const HOME_LOOK = new THREE.Vector3(0, -5, -6);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
 function fmtDate(iso){
   if(!iso) return '';
   try{ return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}); }
@@ -136,9 +117,6 @@ function fmtBytes(n){
   return `${(n/1048576).toFixed(1)}MB`;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Upload modal
-// ─────────────────────────────────────────────────────────────────────────────
 function UploadModal({ open, onClose, onDone }){
   const [file,setFile]       = useState(null);
   const [subject,setSubject] = useState('');
@@ -192,9 +170,6 @@ function UploadModal({ open, onClose, onDone }){
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Document card
-// ─────────────────────────────────────────────────────────────────────────────
 function DocCard({ doc, active, onToggle, onAsk, onDelete }){
   const [expanded,setExpanded] = useState(false);
   return (
@@ -250,9 +225,6 @@ function DocCard({ doc, active, onToggle, onAsk, onDelete }){
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HS curriculum document card (read-only, Archive view)
-// ─────────────────────────────────────────────────────────────────────────────
 function HsDocCard({ doc }){
   const [expanded,setExpanded]=useState(false);
   return (
@@ -289,9 +261,6 @@ function HsDocCard({ doc }){
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────────────────────────────────────
 export default function Atlas(){
   const canvasRef      = useRef(null);
   const threeRef       = useRef({});
@@ -321,7 +290,7 @@ export default function Atlas(){
   const oracleEndRef = useRef(null);
   const navigate = useNavigate();
 
-  // ── Three.js ───────────────────────────────────────────────────────────────
+  
   useEffect(()=>{
     const container = canvasRef.current;
     if(!container) return;
@@ -342,12 +311,12 @@ export default function Atlas(){
 
     const clock = new THREE.Clock();
 
-    // ── Lights ──────────────────────────────────────────────────────────────
+    
     scene.add(new THREE.AmbientLight(HEX_LIGHT,0.08));
     const keyL=new THREE.DirectionalLight(0xffffff,1.5); keyL.position.set(10,18,14); scene.add(keyL);
     const fillL=new THREE.DirectionalLight(HEX_MAIN,0.32); fillL.position.set(-10,-6,-6); scene.add(fillL);
 
-    // ── Stars ────────────────────────────────────────────────────────────────
+    
     const mkStars=(n,sz,op,spread)=>{
       const a=new Float32Array(n*3);
       for(let i=0;i<n;i++){a[i*3]=(Math.random()-0.5)*spread;a[i*3+1]=(Math.random()-0.5)*spread;a[i*3+2]=(Math.random()-0.5)*spread;}
@@ -357,21 +326,21 @@ export default function Atlas(){
     scene.add(mkStars(9000,0.14,0.38,750));
     scene.add(mkStars(1400,0.32,0.65,550));
 
-    // ── Background geodesic cage ─────────────────────────────────────────────
+    
     const bgMesh=new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(120,3)),
       new THREE.LineBasicMaterial({color:HEX_MAIN,transparent:true,opacity:0.022})
     );
     scene.add(bgMesh);
 
-    // ── Background node network ──────────────────────────────────────────────
+    
     const nNodes=Array.from({length:70},()=>new THREE.Vector3((Math.random()-0.5)*140,(Math.random()-0.5)*80,-45-Math.random()*55));
     const nVerts=[];
     for(let i=0;i<nNodes.length;i++) for(let j=i+1;j<nNodes.length;j++) if(nNodes[i].distanceTo(nNodes[j])<20) nVerts.push(nNodes[i].x,nNodes[i].y,nNodes[i].z,nNodes[j].x,nNodes[j].y,nNodes[j].z);
     const nGeo=new THREE.BufferGeometry(); nGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(nVerts),3));
     scene.add(new THREE.LineSegments(nGeo,new THREE.LineBasicMaterial({color:HEX_MAIN,transparent:true,opacity:0.07})));
 
-    // ── Tron grid floor ──────────────────────────────────────────────────────
+    
     {
       const C=54,S=3.4,pts=new Float32Array(C*C*3); let gi=0;
       for(let r=0;r<C;r++) for(let c=0;c<C;c++){pts[gi++]=(c-(C-1)*0.5)*S;pts[gi++]=-26;pts[gi++]=(r-(C-1)*0.5)*S-28;}
@@ -379,7 +348,7 @@ export default function Atlas(){
       scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:HEX_DEEP,size:0.058,sizeAttenuation:true,transparent:true,opacity:0.48})));
     }
 
-    // ── Nebula clusters ──────────────────────────────────────────────────────
+    
     [[-32,12,-65],[22,-16,-85],[0,28,-72]].forEach(([cx,cy,cz])=>{
       const n=650,p=new Float32Array(n*3);
       for(let i=0;i<n;i++){const r=20+Math.random()*15,t=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p[i*3]=cx+r*Math.sin(ph)*Math.cos(t);p[i*3+1]=cy+r*Math.sin(ph)*Math.sin(t);p[i*3+2]=cz+r*Math.cos(ph);}
@@ -387,7 +356,7 @@ export default function Atlas(){
       scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:HEX_DIM,size:0.19,sizeAttenuation:true,transparent:true,opacity:0.13})));
     });
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    
     const mkAtmoMat=(color,power,intensity)=>new THREE.ShaderMaterial({
       vertexShader:ATMO_VERT,fragmentShader:ATMO_FRAG,
       uniforms:{uColor:{value:new THREE.Vector3(...color)},uPower:{value:power},uIntensity:{value:intensity}},
@@ -414,7 +383,7 @@ export default function Atlas(){
       return {mesh,mat,t:0};
     };
 
-    // ── ORACLE — nested icosahedra ───────────────────────────────────────────
+    
     const oracleGroup=new THREE.Group();
     scene.add(oracleGroup);
     {
@@ -437,7 +406,7 @@ export default function Atlas(){
       const ico3=mkWf(new THREE.IcosahedronGeometry(4.8,1),HEX_DEEP, 0.10);
       oracleGroup.add(ico1); oracleGroup.add(ico2); oracleGroup.add(ico3);
 
-      // Vertex accent dots on ico1
+      
       const ivp=(new THREE.IcosahedronGeometry(2.6,1)).attributes.position;
       const uniq=[]; const seen=new Set();
       for(let i=0;i<ivp.count;i++){const k=`${ivp.getX(i).toFixed(2)},${ivp.getY(i).toFixed(2)},${ivp.getZ(i).toFixed(2)}`;if(!seen.has(k)){seen.add(k);uniq.push(ivp.getX(i),ivp.getY(i),ivp.getZ(i));}}
@@ -456,7 +425,7 @@ export default function Atlas(){
       oracleGroup.position.set(...WORLDS[0].pos);
     }
 
-    // ── ARCHIVE — multi-ring world ───────────────────────────────────────────
+    
     const archiveGroup=new THREE.Group();
     scene.add(archiveGroup);
     {
@@ -472,7 +441,7 @@ export default function Atlas(){
       const {mesh:hm,mat:haloMat}=mkAtmoMesh(G_DIM,w.coreRadius*3.2,1.0,0.20);
       archiveGroup.add(hm);
 
-      // Solid Saturn ring
+      
       const satMat=new THREE.MeshBasicMaterial({color:HEX_LIGHT,transparent:true,opacity:0.14,side:THREE.DoubleSide,depthWrite:false});
       const satRing=new THREE.Mesh(new THREE.RingGeometry(w.coreRadius*1.8,w.coreRadius*3.2,140,2),satMat);
       satRing.rotation.x=Math.PI*0.5+0.20; satRing.rotation.z=0.14;
@@ -480,7 +449,7 @@ export default function Atlas(){
       const satWf=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.RingGeometry(w.coreRadius*1.8,w.coreRadius*3.2,64,1)),new THREE.LineBasicMaterial({color:HEX_MAIN,transparent:true,opacity:0.28,depthWrite:false}));
       satWf.rotation.copy(satRing.rotation); archiveGroup.add(satWf);
 
-      // 4 ring systems in different planes
+      
       const ring1=mkRingDots(4.5,320,HEX_LIGHT,0.55,0.075);
       archiveGroup.add(ring1);
 
@@ -506,7 +475,7 @@ export default function Atlas(){
       archiveGroup.position.set(...WORLDS[1].pos);
     }
 
-    // ── VAULT — nested cubes ─────────────────────────────────────────────────
+    
     const vaultGroup=new THREE.Group();
     scene.add(vaultGroup);
     {
@@ -527,13 +496,13 @@ export default function Atlas(){
       const cube3=mkWf(new THREE.BoxGeometry(5.8,5.8,5.8),HEX_DEEP, 0.12);
       vaultGroup.add(cube1); vaultGroup.add(cube2); vaultGroup.add(cube3);
 
-      // Corner accent dots
+      
       const cvArr=[-1.4,-1.4,-1.4,1.4,-1.4,-1.4,-1.4,1.4,-1.4,1.4,1.4,-1.4,-1.4,-1.4,1.4,1.4,-1.4,1.4,-1.4,1.4,1.4,1.4,1.4,1.4];
       const cvg=new THREE.BufferGeometry(); cvg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(cvArr),3));
       const cvDots=new THREE.Points(cvg,new THREE.PointsMaterial({color:HEX_LIGHT,size:0.24,sizeAttenuation:true,transparent:true,opacity:0.96,blending:THREE.AdditiveBlending}));
       vaultGroup.add(cvDots);
 
-      // Particle shell
+      
       const SHELL=800,sp=new Float32Array(SHELL*3);
       for(let i=0;i<SHELL;i++){const r=3.2+Math.random()*1.0,t=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);sp[i*3]=r*Math.sin(ph)*Math.cos(t);sp[i*3+1]=r*Math.sin(ph)*Math.sin(t);sp[i*3+2]=r*Math.cos(ph);}
       const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
@@ -551,7 +520,7 @@ export default function Atlas(){
       vaultGroup.position.set(...WORLDS[2].pos);
     }
 
-    // ── Connection flow lines ────────────────────────────────────────────────
+    
     const FN=90;
     const pA=new THREE.Vector3(...WORLDS[0].pos);
     const pB=new THREE.Vector3(...WORLDS[1].pos);
@@ -584,7 +553,7 @@ export default function Atlas(){
       buildFlow(pA,pC,0.44,0.11), buildFlow(pC,pA,0.94,0.11),
     ];
 
-    // ── Raycaster ────────────────────────────────────────────────────────────
+    
     const raycaster=new THREE.Raycaster(), mouse=new THREE.Vector2();
     const meshes=WORLDS.map(w=>w._three.mesh);
 
@@ -609,7 +578,7 @@ export default function Atlas(){
 
     threeRef.current={renderer,scene,camera,camTarget,camCurrent,flowLines,bgMesh};
 
-    // ── Animation loop ───────────────────────────────────────────────────────
+    
     const animate=()=>{
       rafRef.current=requestAnimationFrame(animate);
       const delta=Math.min(clock.getDelta(),0.07);
@@ -624,7 +593,7 @@ export default function Atlas(){
         const td=w._three;
         const [bx,by,bz]=w.pos;
 
-        // Gentle ambient drift
+        
         if(td.bounceT<0){
           td.group.position.set(
             bx+Math.sin(elapsed*0.18+wi*2.1)*0.22,
@@ -633,7 +602,7 @@ export default function Atlas(){
           );
         }
 
-        // Bounce toward camera on click
+        
         if(td.bounceT>=0){
           td.bounceT+=delta;
           const bt=Math.min(td.bounceT/td.bounceDur,1.0);
@@ -650,14 +619,14 @@ export default function Atlas(){
         const dist=camera.position.distanceTo(wp);
         const close=Math.max(0,Math.min(1,1.0-(dist-2.5)/10.0));
 
-        // Core rotation + shader
+        
         td.mesh.rotation.y=elapsed*(0.50+wi*0.15);
         td.mesh.rotation.x=Math.sin(elapsed*0.20+wi*1.0)*0.06;
         td.sMat.uniforms.uTime.value=elapsed;
         td.sMat.uniforms.uZoom.value=close;
         td.atmoMat.uniforms.uIntensity.value=w.atmoIntensity*(1.0+close*1.8)+Math.sin(elapsed*1.2+wi*2.0)*0.09;
 
-        // Pulse
+        
         {const p=td.pulse;p.t+=delta*0.55;const dur=5.0,pct=(p.t%dur)/dur;p.mesh.scale.setScalar(1.0+pct*5.0);p.mat.opacity=Math.max(0,0.28*(1.0-pct));}
 
         if(w.type==='icosa'){
@@ -693,12 +662,12 @@ export default function Atlas(){
         }
       });
 
-      // Advance flow line phases (endpoints are static, set once at build time)
+      
       flowLines.forEach(fl=>{
         fl.mat.uniforms.uPhase.value=(fl.mat.uniforms.uPhase.value+delta*fl.speed)%1.0;
       });
 
-      // Camera
+      
       if(activeKey===null){
         camTarget.pos.copy(HOME_CAM); camTarget.look.copy(HOME_LOOK);
       } else {
@@ -716,7 +685,7 @@ export default function Atlas(){
       camera.lookAt(camCurrent.look);
       if(activeKey===null){ camera.position.x+=Math.sin(elapsed*0.09)*0.40; camera.position.y+=Math.sin(elapsed*0.07)*0.20; }
 
-      // Label positions
+      
       const cW=container.clientWidth,cH=container.clientHeight;
       const isHome=activeKey===null;
       labelRefs.current.forEach((el,i)=>{
@@ -740,15 +709,15 @@ export default function Atlas(){
       WORLDS.forEach(w=>{w._three=null;});
       if(container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };
-  },[]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[]); 
 
   useEffect(()=>{ activeWorldRef.current=activeWorld; },[activeWorld]);
 
-  // ── Data ───────────────────────────────────────────────────────────────────
+  
   const loadAll=useCallback(async()=>{
     setDataLoading(true);
     setDocsError(null);
-    // Load documents separately so its error is visible
+    
     try{
       const d=await contextService.listDocuments();
       const list=Array.isArray(d)?d:Array.isArray(d?.user_docs)?d.user_docs:Array.isArray(d?.documents)?d.documents:Array.isArray(d?.docs)?d.docs:[];
@@ -758,7 +727,7 @@ export default function Atlas(){
       console.error('Documents load failed:',e);
       setDocsError(e.message||'Failed to load documents');
     }
-    // Load subjects + stats in parallel, silently
+    
     try{
       const [subs,stats]=await Promise.allSettled([
         contextService.getHsSubjects(),
@@ -766,14 +735,13 @@ export default function Atlas(){
       ]);
       if(subs.status==='fulfilled') setHsSubjects(subs.value.subjects||[]);
       if(stats.status==='fulfilled') setHsStats(stats.value);
-    } catch{ /* silenced */ }
+    } catch{  }
     finally{ setDataLoading(false); }
   },[]);
 
   useEffect(()=>{ loadAll(); },[loadAll]);
-  // Reload docs each time vault opens
-  useEffect(()=>{ if(activeWorld==='vault') loadAll(); },[activeWorld]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  
+  useEffect(()=>{ if(activeWorld==='vault') loadAll(); },[activeWorld]); 
 
   useEffect(()=>{ if(oracleEndRef.current) oracleEndRef.current.scrollIntoView({behavior:'smooth'}); },[askHistory]);
 
@@ -799,7 +767,7 @@ export default function Atlas(){
       await contextService.deleteDocument(docId);
       setUserDocs(prev=>prev.filter(d=>d.doc_id!==docId));
       setActiveDocIds(prev=>{const n=new Set(prev);n.delete(docId);return n;});
-    } catch{ /* silenced */ }
+    } catch{  }
   },[]);
 
   const toggleDoc=useCallback((docId)=>{
@@ -814,7 +782,7 @@ export default function Atlas(){
 
   const totalChunks=hsStats.total_chunks||0;
 
-  // Vault filters
+  
   const vaultSubjects=[...new Set(userDocs.map(d=>d.subject).filter(Boolean))];
   const filteredDocs=userDocs.filter(d=>{
     const matchSearch=!vaultSearch||(d.filename||'').toLowerCase().includes(vaultSearch.toLowerCase())||(d.ai_summary||'').toLowerCase().includes(vaultSearch.toLowerCase());
@@ -834,12 +802,12 @@ export default function Atlas(){
     return matchSearch&&matchGrade&&matchSubject;
   });
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  
   return (
     <div className="atl-root">
       <div ref={canvasRef} className="atl-canvas"/>
 
-      {/* Planet labels */}
+      {}
       {WORLDS.map((w,i)=>(
         <div key={w.key} ref={el=>{labelRefs.current[i]=el;}} className={`atl-sphere-label atl-sphere-label--${w.side}`} onClick={()=>setActiveWorld(w.key)}>
           <span className="atl-sphere-label-name">{w.label}</span>
@@ -848,7 +816,7 @@ export default function Atlas(){
         </div>
       ))}
 
-      {/* Header */}
+      {}
       <header className="atl-header">
         <button className="atl-menu-btn" onClick={()=>window.openGlobalNav&&window.openGlobalNav()}><Menu size={18}/></button>
         <div className="atl-brand" onClick={()=>setActiveWorld(null)}>cerbyl</div>
@@ -868,16 +836,16 @@ export default function Atlas(){
         <button className="atl-btn atl-btn--accent" onClick={()=>setUploadOpen(true)}><Plus size={13}/>ADD</button>
       </header>
 
-      {/* Home overlay */}
+      {}
       {activeWorld===null&&(
         <div className="atl-home-overlay">
-          {/* Brand — pinned to top, clearly above the world scene */}
+          {}
           <div className="atl-home-brand">
             <h1 className="atl-home-title">cerbyl</h1>
             <p className="atl-home-sub">YOUR LIVING KNOWLEDGE UNIVERSE</p>
           </div>
 
-          {/* Bottom strip */}
+          {}
           <div className="atl-home-bottom">
             <p className="atl-home-hint">CLICK A WORLD TO EXPLORE</p>
             <button className="atl-home-dash-btn" onClick={()=>navigate('/dashboard-cerbyl')}>
@@ -887,16 +855,16 @@ export default function Atlas(){
         </div>
       )}
 
-      {/* Full-page panel */}
+      {}
       {activeWorld!==null&&(
         <div className="atl-panel">
           <button className="atl-panel-back" onClick={()=>setActiveWorld(null)}><ChevronLeft size={15}/>BACK TO UNIVERSE</button>
 
-          {/* ── ORACLE ── */}
+          {}
           {activeWorld==='oracle'&&(
             <div className={`atl-panel-body${askHistory.length===0?' atl-oracle-body-hero':''}`}>
 
-              {/* Active doc context bar */}
+              {}
               {activeDocIds.size>0&&(
                 <div className="atl-oracle-ctx-bar">
                   <Layers size={12}/>
@@ -913,7 +881,7 @@ export default function Atlas(){
               )}
 
               {askHistory.length===0?(
-                /* ── HERO EMPTY STATE ── */
+                
                 <div className="atl-oracle-hero">
                   <div className="atl-oracle-glow-halo">
                     <div className="atl-oracle-glow-ring atl-oracle-glow-ring--1"/>
@@ -989,7 +957,7 @@ export default function Atlas(){
                 </div>
 
               ):(
-                /* ── CONVERSATION STATE ── */
+                
                 <>
                   <div className="atl-oracle-compact-hd">
                     <Brain size={13} className="atl-oracle-compact-icon"/>
@@ -1063,7 +1031,7 @@ export default function Atlas(){
             </div>
           )}
 
-          {/* ── ARCHIVE ── */}
+          {}
           {activeWorld==='archive'&&(
             <div className="atl-panel-body atl-panel-body--wide">
               <div className="atl-panel-hd">
@@ -1075,7 +1043,7 @@ export default function Atlas(){
                 </div>
               </div>
 
-              {/* Toolbar: search + subject + grade filter */}
+              {}
               <div className="atl-archive-toolbar">
                 <div className="atl-search-row atl-archive-search">
                   <Search size={13}/>
@@ -1127,10 +1095,10 @@ export default function Atlas(){
             </div>
           )}
 
-          {/* ── VAULT ── */}
+          {}
           {activeWorld==='vault'&&(
             <div className="atl-panel-body atl-panel-body--wide">
-              {/* Vault header */}
+              {}
               <div className="atl-panel-hd">
                 <div>
                   <h2 className="atl-panel-title">VAULT</h2>

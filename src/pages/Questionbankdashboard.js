@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, MessageSquare, Sparkles, FileText, BarChart3, 
@@ -234,7 +234,7 @@ const QuestionBankDashboard = () => {
       try {
         localStorage.setItem(CONTEXT_SELECTION_KEY, JSON.stringify(contextDocIds));
       } catch {
-        // no-op
+        
       }
     }
     if (openView && QUESTION_VIEWS.some((v) => v.key === openView)) {
@@ -401,7 +401,7 @@ const QuestionBankDashboard = () => {
         setUploadedDocuments(data.documents || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -415,7 +415,7 @@ const QuestionBankDashboard = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -429,7 +429,7 @@ const QuestionBankDashboard = () => {
         setUploadedSlides(data.slides || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -444,7 +444,7 @@ const QuestionBankDashboard = () => {
         setAnalytics(data);
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoading(false);
     }

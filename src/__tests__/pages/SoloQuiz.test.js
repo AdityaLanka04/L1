@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
@@ -9,7 +8,6 @@ import {
   MOCK_USERNAME,
 } from '../helpers/testUtils';
 
-// ─── Module mocks ─────────────────────────────────────────────────────────────
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -17,7 +15,6 @@ jest.mock('react-router-dom', () => ({
   useLocation: () => ({ state: null, pathname: '/solo-quiz' }),
 }));
 
-// Use bare jest.fn() — no variable references inside factory (hoisting limitation)
 jest.mock('../../services/quizAgentService', () => ({
   __esModule: true,
   default: {
@@ -53,7 +50,6 @@ import SoloQuiz from '../../pages/SoloQuiz';
 import quizAgentService from '../../services/quizAgentService';
 import contextService from '../../services/contextService';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 const renderSoloQuiz = async () => {
   let utils;
   await act(async () => {
@@ -66,13 +62,12 @@ const renderSoloQuiz = async () => {
   return utils;
 };
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
 describe('SoloQuiz', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     clearLocalStorage();
     setupLocalStorage();
-    // Re-apply after clearAllMocks
+    
     quizAgentService.generateQuiz.mockResolvedValue(MOCK_GENERATED_QUIZ);
     quizAgentService.getCompletedQuizzes.mockResolvedValue([]);
     quizAgentService.getStatistics.mockResolvedValue(null);
@@ -82,7 +77,7 @@ describe('SoloQuiz', () => {
 
   afterEach(() => clearLocalStorage());
 
-  // ── Rendering ───────────────────────────────────────────────────────────────
+  
   describe('Rendering', () => {
     it('renders without crashing', async () => {
       await expect(renderSoloQuiz()).resolves.not.toThrow();
@@ -103,7 +98,7 @@ describe('SoloQuiz', () => {
           el.placeholder?.toLowerCase().includes('topic') ||
           el.name === 'subject'
       );
-      // Input exists (or page renders correctly without one visible yet)
+      
       expect(inputs.length >= 0).toBe(true);
     });
 
@@ -132,7 +127,7 @@ describe('SoloQuiz', () => {
     });
   });
 
-  // ── Form Validation ─────────────────────────────────────────────────────────
+  
   describe('Form Validation', () => {
     it('shows error when subject is empty and Start is clicked', async () => {
       await renderSoloQuiz();
@@ -154,7 +149,7 @@ describe('SoloQuiz', () => {
             screen.queryByText(/please enter/i) ||
             screen.queryByText(/subject/i) ||
             screen.queryByRole('alert');
-          // Error shown or quiz not generated with empty topic
+          
           expect(quizAgentService.generateQuiz).not.toHaveBeenCalled();
         });
       }
@@ -172,7 +167,7 @@ describe('SoloQuiz', () => {
     });
   });
 
-  // ── Quiz Start ──────────────────────────────────────────────────────────────
+  
   describe('Quiz Start', () => {
     it('calls quizAgentService.generateQuiz with subject and difficulty', async () => {
       await renderSoloQuiz();
@@ -271,7 +266,7 @@ describe('SoloQuiz', () => {
     });
   });
 
-  // ── Difficulty Selection ─────────────────────────────────────────────────────
+  
   describe('Difficulty Selection', () => {
     it('renders easy difficulty option', async () => {
       await renderSoloQuiz();
@@ -298,7 +293,7 @@ describe('SoloQuiz', () => {
     });
   });
 
-  // ── Error Handling ──────────────────────────────────────────────────────────
+  
   describe('Error Handling', () => {
     it('shows error message when generateQuiz throws', async () => {
       quizAgentService.generateQuiz.mockRejectedValueOnce(new Error('Quiz generation failed'));
@@ -321,10 +316,10 @@ describe('SoloQuiz', () => {
         if (startBtn) {
           await act(async () => { fireEvent.click(startBtn); });
           await waitFor(() => {
-            // Either an error element appears, or the page doesn't crash
+            
             expect(true).toBe(true);
           });
-          // Crucially: page should still be mounted
+          
           expect(screen.getByTestId('context-selector')).toBeInTheDocument();
         }
       }
@@ -351,7 +346,7 @@ describe('SoloQuiz', () => {
         if (startBtn) {
           await act(async () => { fireEvent.click(startBtn); });
           await waitFor(() => {
-            // After failure, start button should be re-enabled (not in loading state)
+            
             const currentBtns = screen.queryAllByRole('button');
             expect(currentBtns.length).toBeGreaterThan(0);
           }, { timeout: 2000 });
@@ -366,7 +361,7 @@ describe('SoloQuiz', () => {
     });
   });
 
-  // ── Context Panel ────────────────────────────────────────────────────────────
+  
   describe('Context Panel', () => {
     it('panel is closed by default', async () => {
       await renderSoloQuiz();
@@ -384,14 +379,14 @@ describe('SoloQuiz', () => {
     });
   });
 
-  // ── Auto-Start from Location State ──────────────────────────────────────────
+  
   describe('Auto-Start', () => {
     it('does not crash when location state is null', async () => {
       await expect(renderSoloQuiz()).resolves.not.toThrow();
     });
   });
 
-  // ── Latency ─────────────────────────────────────────────────────────────────
+  
   describe('Latency', () => {
     it('renders initial UI in under 100ms', async () => {
       const start = performance.now();

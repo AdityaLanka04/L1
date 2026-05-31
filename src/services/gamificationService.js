@@ -24,7 +24,7 @@ class GamificationService {
                 return data;
       }
     } catch (error) {
-    // silenced
+    
   }
   }
 

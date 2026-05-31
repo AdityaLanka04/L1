@@ -1,9 +1,3 @@
-"""
-Subscription catalog and economics definitions.
-
-This module centralizes plan pricing, features, and per-plan rate limit overrides
-used by backend APIs and middleware.
-"""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -82,11 +76,9 @@ SUBSCRIPTION_PLANS: dict[str, dict[str, Any]] = {
     },
 }
 
-
 def normalize_plan_id(plan_id: str | None) -> str:
     candidate = (plan_id or "").strip().lower()
     return candidate if candidate in SUBSCRIPTION_PLANS else DEFAULT_PLAN_ID
-
 
 def get_plan(plan_id: str | None) -> dict[str, Any]:
     plan = SUBSCRIPTION_PLANS[normalize_plan_id(plan_id)]
@@ -98,21 +90,17 @@ def get_plan(plan_id: str | None) -> dict[str, Any]:
     payload["estimated_margin_pct"] = round((margin / monthly_price) * 100, 1) if monthly_price > 0 else None
     return payload
 
-
 def list_plans() -> list[dict[str, Any]]:
     return [get_plan(plan_id) for plan_id in ("starter", "pro", "power")]
 
-
 def get_plan_ids() -> list[str]:
     return list(SUBSCRIPTION_PLANS.keys())
-
 
 def get_effective_rate_limit(plan_id: str | None, limiter_tier: str, base_limit: int) -> int:
     plan = SUBSCRIPTION_PLANS.get(normalize_plan_id(plan_id))
     if not plan:
         return base_limit
     return int(plan.get("rate_limits", {}).get(limiter_tier, base_limit))
-
 
 def estimate_usage_cost_usd(plan_id: str | None, token_count: int | float) -> float:
     plan = SUBSCRIPTION_PLANS.get(normalize_plan_id(plan_id))

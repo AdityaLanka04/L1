@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link2, FileText, ArrowRight } from 'lucide-react';
 import './BacklinksPanel.css';
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, Check } from 'lucide-react';
 import './TemplatePreview.css';
 import { sanitizeHtml } from '../utils/sanitize';

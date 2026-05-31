@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
@@ -12,7 +11,6 @@ import {
   MOCK_TOKEN,
 } from '../helpers/testUtils';
 
-// ─── Module mocks ─────────────────────────────────────────────────────────────
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -51,7 +49,6 @@ jest.mock('../../components/AbstractFx', () => () => <div data-testid="abstract-
 jest.mock('../../components/GeoBackground', () => () => <div data-testid="geo-bg" />);
 jest.mock('../../pages/CustomPopup', () => () => null);
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 const FETCH_ROUTES = {
   get_flashcard_history: MOCK_FLASHCARD_HISTORY,
   get_flashcard_statistics: MOCK_FLASHCARD_STATS,
@@ -89,13 +86,12 @@ const renderFlashcards = async () => {
   return utils;
 };
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
 describe('Flashcards', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     clearLocalStorage();
     global.fetch = buildFetchMock(FETCH_ROUTES);
-    // Re-apply after clearAllMocks
+    
     gamificationService.trackActivity.mockResolvedValue({});
     gamificationService.getStats.mockResolvedValue({});
     gamificationService.awardPoints.mockResolvedValue({});
@@ -105,7 +101,7 @@ describe('Flashcards', () => {
 
   afterEach(() => clearLocalStorage());
 
-  // ── Authentication ──────────────────────────────────────────────────────────
+  
   describe('Authentication', () => {
     it('reads token from localStorage to authorize requests', async () => {
       setupLocalStorage();
@@ -124,7 +120,7 @@ describe('Flashcards', () => {
     });
   });
 
-  // ── Rendering ───────────────────────────────────────────────────────────────
+  
   describe('Rendering', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -143,7 +139,7 @@ describe('Flashcards', () => {
     });
   });
 
-  // ── API Calls on Mount ──────────────────────────────────────────────────────
+  
   describe('API Calls on Mount', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -175,7 +171,7 @@ describe('Flashcards', () => {
     });
   });
 
-  // ── Flash Card Generation ───────────────────────────────────────────────────
+  
   describe('Flash Card Generation', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -219,7 +215,7 @@ describe('Flashcards', () => {
     });
   });
 
-  // ── Error Handling ──────────────────────────────────────────────────────────
+  
   describe('Error Handling', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -239,7 +235,7 @@ describe('Flashcards', () => {
     });
   });
 
-  // ── Pagination ──────────────────────────────────────────────────────────────
+  
   describe('Pagination', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -270,7 +266,7 @@ describe('Flashcards', () => {
     });
   });
 
-  // ── Spaced Repetition ───────────────────────────────────────────────────────
+  
   describe('Spaced Repetition', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -283,7 +279,7 @@ describe('Flashcards', () => {
     });
   });
 
-  // ── Latency ─────────────────────────────────────────────────────────────────
+  
   describe('Latency', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -319,7 +315,7 @@ describe('Flashcards', () => {
     });
   });
 
-  // ── HS Mode ─────────────────────────────────────────────────────────────────
+  
   describe('HS Mode', () => {
     beforeEach(() => setupLocalStorage());
 

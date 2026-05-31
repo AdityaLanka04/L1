@@ -296,7 +296,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     formData.append('file', file);
     
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/upload-attachment`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http:
         method: 'POST',
         body: formData,
         credentials: 'include'
@@ -905,7 +905,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           newSelection.removeAllRanges();
           newSelection.addRange(newRange);
         } catch (err) {
-    // silenced
+    
   }
       });
     };

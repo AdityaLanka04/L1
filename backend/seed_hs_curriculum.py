@@ -1,18 +1,3 @@
-"""
-Production seeder for shared HS curriculum context.
-
-Usage examples:
-  python seed_hs_curriculum.py
-  python seed_hs_curriculum.py --recursive --owner-user-id 1
-  python seed_hs_curriculum.py --skip-existing
-  python seed_hs_curriculum.py --dry-run
-  python seed_hs_curriculum.py --list
-
-Supported files: .pdf, .txt, .md
-Optional sidecars:
-  - <name>.url       (first non-comment line used as source URL)
-  - <name>.meta.json (subject/grade_level/source_url/source_name/license)
-"""
 
 from __future__ import annotations
 
@@ -34,7 +19,6 @@ MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
 SUPPORTED_SUFFIXES = {".pdf", ".txt", ".md"}
 SEED_DOC_NAMESPACE = uuid.UUID("2f787f7a-6f9b-4c2d-8b35-b5f26c46b58a")
 
-
 @dataclass
 class SeedConfig:
     grade_level: str
@@ -48,12 +32,7 @@ class SeedConfig:
     owner_user_id: int | None
     owner_email: str
 
-
 def _load_chroma_and_embed():
-    """
-    Initialise ChromaDB + SentenceTransformer the same way main.py does,
-    then initialise context_store.
-    """
     import chromadb
     from sentence_transformers import SentenceTransformer
 
@@ -69,11 +48,9 @@ def _load_chroma_and_embed():
     print("  [context_store] ready")
     return client, model
 
-
 def _infer_subject(filename: str) -> str:
     import context_store
     return context_store.infer_subject(filename, default="General")
-
 
 def _read_url_sidecar(file_path: Path) -> str:
     url_file = file_path.with_suffix(".url")
@@ -89,7 +66,6 @@ def _read_url_sidecar(file_path: Path) -> str:
             return line
     return ""
 
-
 def _read_meta_sidecar(file_path: Path) -> dict[str, Any]:
     meta_path = file_path.with_suffix(".meta.json")
     if not meta_path.exists():
@@ -104,12 +80,10 @@ def _read_meta_sidecar(file_path: Path) -> dict[str, Any]:
         return {}
     return raw
 
-
 def _build_doc_id(file_path: Path, file_bytes: bytes) -> str:
     digest = hashlib.sha256(file_bytes).hexdigest()
     seed = f"{file_path.name}:{len(file_bytes)}:{digest}"
     return str(uuid.uuid5(SEED_DOC_NAMESPACE, seed))
-
 
 def _resolve_seed_owner(db, owner_user_id: int | None, owner_email: str) -> int:
     import models
@@ -131,7 +105,6 @@ def _resolve_seed_owner(db, owner_user_id: int | None, owner_email: str) -> int:
         raise RuntimeError("No users found in database. Create a user or pass --skip-db.")
     print(f"  [db] no owner specified; using earliest user id={user.id} ({user.email})")
     return int(user.id)
-
 
 def _upsert_context_document(
     db,
@@ -173,7 +146,6 @@ def _upsert_context_document(
     row.license = license_name[:80] if license_name else ""
     row.chunk_count = int(chunk_count)
     row.status = status[:20]
-
 
 def seed_file(
     file_path: Path,
@@ -334,7 +306,6 @@ def seed_file(
                 db.rollback()
         return {"filename": filename, "status": "error", "chunks": 0, "error": f"index write failed: {e}"}
 
-
 def cmd_list(db):
     import context_store
     import models
@@ -352,7 +323,6 @@ def cmd_list(db):
         total = db.query(models.ContextDocument).filter(models.ContextDocument.scope == "hs_shared").count()
         print(f"\n  context_documents(scope='hs_shared') rows: {total}")
 
-
 def _discover_files(seeds_dir: Path, recursive: bool) -> list[Path]:
     if recursive:
         iterator = seeds_dir.rglob("*")
@@ -360,7 +330,6 @@ def _discover_files(seeds_dir: Path, recursive: bool) -> list[Path]:
         iterator = seeds_dir.iterdir()
     files = [p for p in iterator if p.is_file() and p.suffix.lower() in SUPPORTED_SUFFIXES]
     return sorted(files)
-
 
 def main():
     parser = argparse.ArgumentParser(description="Seed hs_curriculum context collection")
@@ -414,7 +383,7 @@ def main():
     if not cfg.skip_db:
         try:
             from database import SessionLocal
-            import models  # noqa: F401
+            import models
             db = SessionLocal()
             owner_user_id = _resolve_seed_owner(db, cfg.owner_user_id, cfg.owner_email)
             print(f"  [db] owner user_id={owner_user_id}")
@@ -500,7 +469,6 @@ def main():
     finally:
         if db is not None:
             db.close()
-
 
 if __name__ == "__main__":
     main()

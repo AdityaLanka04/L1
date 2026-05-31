@@ -1,4 +1,3 @@
-import React from 'react';
 import { Swords, Clock, Target, Users, X } from 'lucide-react';
 import './BattleNotification.css';
 

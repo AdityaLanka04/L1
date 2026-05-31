@@ -1,6 +1,4 @@
-/* ═══════════════════════════════════════════════════════════════
-   VAULT — Premium Document Management Dashboard
-═══════════════════════════════════════════════════════════════ */
+
 
 .vlt-root {
   --vlt-bg:        #050504;
@@ -39,7 +37,6 @@
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* ── BACKGROUND ──────────────────────────────────────────────── */
 .vlt-bg-fx { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 .vlt-bg-orb { position: absolute; border-radius: 50%; filter: blur(180px); }
 .vlt-bg-orb-1 {
@@ -64,9 +61,6 @@
     radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 55%);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   TOPBAR — solid, no bleed-through
-════════════════════════════════════════════════════════════════ */
 .vlt-topbar {
   position: sticky; top: 0; z-index: 100;
   height: 58px;
@@ -117,9 +111,6 @@
   background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   MAIN LAYOUT
-════════════════════════════════════════════════════════════════ */
 .vlt-main {
   position: relative; z-index: 2;
   padding: 0 40px 80px;
@@ -127,9 +118,6 @@
   display: flex; flex-direction: column; gap: 0;
 }
 
-/* ════════════════════════════════════════════════════════════════
-   HERO
-════════════════════════════════════════════════════════════════ */
 .vlt-hero {
   display: flex; align-items: flex-end; justify-content: space-between;
   flex-wrap: wrap; gap: 24px;
@@ -148,7 +136,6 @@
 }
 .vlt-subtitle { font-size: 13px; color: var(--vlt-mute); margin: 6px 0 0; line-height: 1.6; }
 
-/* Stat row */
 .vlt-stat-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
 .vlt-stat {
   padding: 14px 20px 12px;
@@ -185,9 +172,6 @@
 }
 .vlt-stat-sub { font-size: 10px; color: var(--vlt-faint); }
 
-/* ════════════════════════════════════════════════════════════════
-   TABS
-════════════════════════════════════════════════════════════════ */
 .vlt-tabs {
   display: flex; gap: 0;
   border-bottom: 1px solid var(--vlt-line-soft);
@@ -218,9 +202,6 @@
 }
 .vlt-tab-content { min-height: 420px; }
 
-/* ════════════════════════════════════════════════════════════════
-   SHARED
-════════════════════════════════════════════════════════════════ */
 .vlt-state-center {
   display: flex; flex-direction: column; align-items: center;
   gap: 14px; padding: 80px 32px;
@@ -243,9 +224,6 @@
   font-size: 10px; font-weight: 500; color: var(--vlt-mute); letter-spacing: 0.04em;
 }
 
-/* ════════════════════════════════════════════════════════════════
-   DECK TAB
-════════════════════════════════════════════════════════════════ */
 .vlt-deck-layout {
   display: grid; grid-template-columns: 1fr 360px;
   gap: 24px; align-items: start;
@@ -289,7 +267,6 @@
 }
 .vlt-deck-hint strong { color: var(--accent); font-weight: 600; }
 
-/* 4×2 slot grid */
 .vlt-deck-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 
 .vlt-slot {
@@ -341,7 +318,6 @@
   font-size: 12px; font-weight: 600; color: var(--accent);
 }
 
-/* Browser */
 .vlt-deck-browser {
   background: var(--vlt-panel);
   border: 1px solid var(--vlt-line);
@@ -397,9 +373,6 @@
 .vlt-browser-empty svg { opacity: 0.3; }
 .vlt-browser-empty p { font-size: 12px; margin: 0; max-width: 240px; }
 
-/* ════════════════════════════════════════════════════════════════
-   RECENT TAB
-════════════════════════════════════════════════════════════════ */
 .vlt-recent { display: flex; flex-direction: column; gap: 20px; }
 .vlt-recent-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -429,15 +402,11 @@
 .vlt-recent-arrow { flex-shrink: 0; color: var(--vlt-faint); transition: color 150ms, transform 200ms var(--vlt-ease); }
 .vlt-recent-item:hover .vlt-recent-arrow { color: var(--accent); transform: translateX(4px); }
 
-/* ════════════════════════════════════════════════════════════════
-   MY DOCS TAB
-════════════════════════════════════════════════════════════════ */
 .vlt-mydocs { display: flex; flex-direction: column; gap: 18px; }
 .vlt-mydocs-layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 18px; align-items: start; }
 .vlt-mydocs-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .vlt-mydocs-layout--workspace { grid-template-columns: 320px minmax(0, 1fr); align-items: start; }
 
-/* ─── SIDEBAR: ONE UNIFIED CARD ─────────────────────────────── */
 .vlt-workspace-sidebar {
   position: sticky; top: 70px;
   max-height: calc(100vh - 88px);
@@ -447,12 +416,11 @@
   border: 1px solid var(--vlt-line);
   box-shadow: var(--vlt-shadow-md);
   display: flex; flex-direction: column;
-  gap: 0; /* no gap — sections use dividers */
+  gap: 0; 
   scrollbar-width: thin;
   scrollbar-color: var(--vlt-line-soft) transparent;
 }
 
-/* Sections inside the sidebar */
 .vlt-ws-panel {
   background: transparent;
   border: none;
@@ -478,7 +446,6 @@
 }
 .vlt-ws-count { font-size: 10px; color: var(--vlt-faint); }
 
-/* Create folder form */
 .vlt-ws-create { display: flex; flex-direction: column; gap: 8px; }
 .vlt-ws-create-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; align-items: center; }
 .vlt-ws-create-input-wrap { position: relative; }
@@ -504,7 +471,6 @@
 .vlt-ws-create-hint { margin: 0; font-size: 10px; color: var(--vlt-faint); }
 .vlt-ws-create-hint strong { color: var(--vlt-text); font-weight: 600; }
 
-/* Folder tree */
 .vlt-ws-folder-list { max-height: 340px; overflow: auto; margin: 0 -2px; padding-right: 2px; }
 .vlt-ws-tree-root { display: flex; flex-direction: column; gap: 1px; }
 .vlt-ws-tree-node { margin-left: calc(var(--folder-depth, 0) * 14px); }
@@ -561,7 +527,6 @@
 .vlt-ws-help { margin: 0; font-size: 12px; color: var(--vlt-faint); line-height: 1.5; }
 .vlt-ws-move { display: flex; flex-direction: column; gap: 8px; }
 
-/* ─── Shared form controls ───────────────────────────────────── */
 .vlt-folder-input,
 .vlt-folder-parent-select {
   width: 100%; height: 34px; padding: 0 10px;
@@ -606,7 +571,6 @@
 }
 .vlt-folder-mini-select:hover { color: var(--accent); border-color: var(--vlt-line-str); }
 
-/* ─── UPLOAD PANEL ───────────────────────────────────────────── */
 .vlt-upload-panel {
   background: radial-gradient(160% 100% at 100% 0%,
     color-mix(in srgb, var(--accent) 7%, transparent) 0%, transparent 55%),
@@ -661,7 +625,6 @@
   background: var(--vlt-line-soft); flex-shrink: 0;
 }
 
-/* ─── BULK TOOLBAR ───────────────────────────────────────────── */
 .vlt-bulk-toolbar {
   border: 1px solid var(--vlt-line-soft);
   border-radius: 14px; padding: 12px 16px;
@@ -684,7 +647,6 @@
 .vlt-bulk-link:hover:not(:disabled) { color: var(--accent); border-color: var(--vlt-line-str); }
 .vlt-bulk-link:disabled { opacity: 0.38; cursor: not-allowed; }
 
-/* Action buttons — distinct per feature */
 .vlt-bulk-action {
   height: 30px; padding: 0 13px;
   border-radius: 8px; border: 1px solid;
@@ -695,37 +657,31 @@
 }
 .vlt-bulk-action:hover { transform: translateY(-2px); }
 
-/* AI Chat — purple */
 .vlt-bulk-toolbar-right .vlt-bulk-action:nth-child(1) {
   color: #a855f7; background: rgba(168,85,247,0.1); border-color: rgba(168,85,247,0.35);
 }
 .vlt-bulk-toolbar-right .vlt-bulk-action:nth-child(1):hover { background: rgba(168,85,247,0.2); }
 
-/* Flashcards — green */
 .vlt-bulk-toolbar-right .vlt-bulk-action:nth-child(2) {
   color: #22c55e; background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.35);
 }
 .vlt-bulk-toolbar-right .vlt-bulk-action:nth-child(2):hover { background: rgba(34,197,94,0.2); }
 
-/* Notes — blue */
 .vlt-bulk-toolbar-right .vlt-bulk-action:nth-child(3) {
   color: #3b82f6; background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.35);
 }
 .vlt-bulk-toolbar-right .vlt-bulk-action:nth-child(3):hover { background: rgba(59,130,246,0.2); }
 
-/* Quiz — orange */
 .vlt-bulk-toolbar-right .vlt-bulk-action:nth-child(4) {
   color: #f97316; background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.35);
 }
 .vlt-bulk-toolbar-right .vlt-bulk-action:nth-child(4):hover { background: rgba(249,115,22,0.2); }
 
-/* Roadmap — cyan */
 .vlt-bulk-toolbar-right .vlt-bulk-action:nth-child(5) {
   color: #06b6d4; background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.35);
 }
 .vlt-bulk-toolbar-right .vlt-bulk-action:nth-child(5):hover { background: rgba(6,182,212,0.2); }
 
-/* ─── Progress strip ─────────────────────────────────────────── */
 .vlt-progress-strip {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   font-size: 11px; color: var(--vlt-faint);
@@ -737,7 +693,6 @@
 .vlt-progress-loading { display: inline-flex; align-items: center; gap: 5px; color: var(--vlt-mute); }
 .vlt-progress-error { color: #fca5a5; }
 
-/* ─── Doc search ─────────────────────────────────────────────── */
 .vlt-doc-search {
   display: flex; align-items: center; gap: 10px;
   padding: 0 16px; height: 44px;
@@ -756,7 +711,6 @@
 .vlt-doc-search-clear { background: none; border: none; color: var(--vlt-faint); cursor: pointer; display: grid; place-items: center; padding: 2px; transition: color 110ms; }
 .vlt-doc-search-clear:hover { color: var(--vlt-text); }
 
-/* ─── Files table ────────────────────────────────────────────── */
 .vlt-files-table-wrap {
   border: 1px solid var(--vlt-line);
   border-radius: 16px; background: var(--vlt-panel); overflow: hidden;
@@ -839,7 +793,6 @@
 .vlt-doc-del-btn:hover:not(:disabled) { background: rgba(239,68,68,0.1); color: #ef4444; }
 .vlt-doc-del-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* ─── Doc card grid ──────────────────────────────────────────── */
 .vlt-doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
 .vlt-doc-card {
   background: radial-gradient(120% 80% at 100% 0%,
@@ -868,9 +821,6 @@
 .vlt-doc-card--hs .vlt-doc-card-icon { color: var(--vlt-green); }
 .vlt-hs-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--vlt-green); }
 
-/* ════════════════════════════════════════════════════════════════
-   CURRICULUM TAB
-════════════════════════════════════════════════════════════════ */
 .vlt-curriculum { display: flex; flex-direction: column; gap: 24px; }
 .vlt-curr-selector { display: flex; gap: 10px; }
 .vlt-curr-btn {
@@ -902,9 +852,6 @@
 .vlt-curr-subject-count { font-size: 10px; color: var(--vlt-faint); margin-top: 2px; }
 .vlt-curr-books { margin-top: 4px; }
 
-/* ════════════════════════════════════════════════════════════════
-   LEFTOVER STUBS (unused but referenced by structure)
-════════════════════════════════════════════════════════════════ */
 .vlt-explorer-sidebar { position: sticky; top: 70px; max-height: calc(100vh - 88px); min-height: 400px; }
 .vlt-organizer-panel { background: var(--vlt-panel); border: 1px solid var(--vlt-line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
 .vlt-organizer-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -942,11 +889,6 @@
 .vlt-tree-file-main span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vlt-tree-file-main svg, .vlt-folder-item-main svg { width: 13px; height: 13px; opacity: 0.9; }
 
-/* ════════════════════════════════════════════════════════════════
-   MY DOCS — NEW LAYOUT
-════════════════════════════════════════════════════════════════ */
-
-/* Overall flex row: sidebar + main */
 .vlt-docs-layout {
   display: flex;
   height: calc(100vh - 200px);
@@ -958,7 +900,6 @@
   box-shadow: var(--vlt-shadow-md);
 }
 
-/* ── SIDEBAR (AIChat style) ────────────────────────────────── */
 .vlt-docs-sidebar {
   width: 280px;
   flex-shrink: 0;
@@ -969,7 +910,6 @@
   overflow: hidden;
 }
 
-/* Section: new folder form */
 .vlt-docs-sidebar-section {
   padding: 16px;
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
@@ -979,7 +919,6 @@
   flex-shrink: 0;
 }
 
-/* Section: folder navigation — grows to fill */
 .vlt-docs-sidebar-nav {
   flex: 1;
   display: flex;
@@ -996,7 +935,6 @@
   flex-shrink: 0;
 }
 
-/* Section: move files footer */
 .vlt-docs-sidebar-footer {
   padding: 14px 16px;
   flex-shrink: 0;
@@ -1005,7 +943,6 @@
   gap: 8px;
 }
 
-/* Section label — AIChat ac-nav-section-title style */
 .vlt-sidebar-label {
   font-size: 10px;
   font-weight: 700;
@@ -1027,7 +964,6 @@
 }
 .vlt-sidebar-hint strong { color: var(--vlt-mute); font-weight: 600; }
 
-/* Create form */
 .vlt-sidebar-create {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1081,7 +1017,6 @@
 .vlt-sidebar-create-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 26%, transparent); }
 .vlt-sidebar-create-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Nav actions (select all / expand / collapse) */
 .vlt-sidebar-nav-actions { display: flex; gap: 4px; }
 .vlt-sidebar-nav-action {
   height: 22px;
@@ -1097,10 +1032,8 @@
 }
 .vlt-sidebar-nav-action:hover { color: var(--accent); border-color: var(--vlt-line-str); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
-/* Move form */
 .vlt-sidebar-move { display: flex; flex-direction: column; gap: 7px; }
 
-/* Folder navigation list — scrollable */
 .vlt-folder-nav {
   flex: 1;
   overflow-y: auto;
@@ -1112,7 +1045,6 @@
   scrollbar-color: var(--vlt-line-soft) transparent;
 }
 
-/* Folder nav item — AIChat ac-nav-item style */
 .vlt-folder-nav-item {
   width: 100%;
   display: flex;
@@ -1161,7 +1093,6 @@
   color: var(--accent);
 }
 
-/* Tree nodes inside folder nav */
 .vlt-folder-nav .vlt-ws-tree-root { padding: 0; }
 .vlt-folder-nav .vlt-ws-tree-row { height: 34px; }
 .vlt-folder-nav .vlt-ws-folder-row {
@@ -1177,7 +1108,6 @@
   color: var(--accent);
 }
 
-/* ── MAIN CONTENT ──────────────────────────────────────────── */
 .vlt-docs-main {
   flex: 1;
   min-width: 0;
@@ -1190,7 +1120,6 @@
   scrollbar-color: var(--vlt-line-soft) transparent;
 }
 
-/* ── DROPZONE ──────────────────────────────────────────────── */
 .vlt-dropzone {
   flex-shrink: 0;
   display: flex;
@@ -1253,7 +1182,6 @@
   letter-spacing: 0.04em;
 }
 
-/* Form row inside dropzone */
 .vlt-dropzone-form {
   display: flex;
   align-items: center;
@@ -1301,7 +1229,6 @@
 .vlt-dz-btn:hover { filter: brightness(1.12); transform: translateY(-2px); }
 .vlt-dz-btn--busy { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
 
-/* ── ACTION BAR ────────────────────────────────────────────── */
 .vlt-action-bar {
   flex-shrink: 0;
   display: flex;
@@ -1346,7 +1273,6 @@
 .vlt-action-link:hover:not(:disabled) { color: var(--accent); border-color: var(--vlt-line-str); }
 .vlt-action-link:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* Feature action buttons — color coded */
 .vlt-action-btn {
   height: 30px;
   padding: 0 13px;
@@ -1376,7 +1302,6 @@
 .vlt-action-btn--quiz:hover:not(:disabled)    { background: rgba(249,115,22,0.2);  }
 .vlt-action-btn--roadmap:hover:not(:disabled) { background: rgba(6,182,212,0.2);   }
 
-/* ── DOCS META (progress + search) ─────────────────────────── */
 .vlt-docs-meta {
   flex-shrink: 0;
   display: flex;
@@ -1388,7 +1313,6 @@
   flex-wrap: wrap;
 }
 
-/* Progress strip is now a span inside vlt-docs-meta */
 .vlt-docs-meta > .vlt-progress-strip {
   font-size: 11px;
   color: var(--vlt-faint);
@@ -1401,13 +1325,11 @@
   border-radius: 0;
 }
 
-/* Doc search inside meta */
 .vlt-docs-meta .vlt-doc-search {
   max-width: 320px;
   height: 36px;
 }
 
-/* File table fills remaining space */
 .vlt-docs-main .vlt-files-table-wrap {
   flex: 1;
   border-radius: 0;
@@ -1423,11 +1345,6 @@
   margin: 0;
 }
 
-/* ════════════════════════════════════════════════════════════════
-   CURRICULUM — sidebar + main layout
-════════════════════════════════════════════════════════════════ */
-
-/* UK/US toggle inside sidebar top section */
 .vlt-curr-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1451,7 +1368,6 @@
   color: var(--accent);
 }
 
-/* Category group header in subject nav */
 .vlt-curr-cat-group { margin-top: 8px; }
 .vlt-curr-cat-label {
   font-size: 9px;
@@ -1463,7 +1379,6 @@
   margin: 0;
 }
 
-/* Subject nav items with per-subject color */
 .vlt-folder-nav-item[style*="--nav-active-color"] {
   background: color-mix(in srgb, var(--nav-active-color, var(--accent)) 12%, transparent);
   border-color: color-mix(in srgb, var(--nav-active-color, var(--accent)) 28%, transparent);
@@ -1477,7 +1392,6 @@
   color: var(--nav-active-color, var(--accent));
 }
 
-/* Main area header */
 .vlt-curr-main-header {
   flex-shrink: 0;
   display: flex;
@@ -1511,7 +1425,6 @@
   font-weight: 500;
 }
 
-/* Books grid */
 .vlt-curr-books-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1519,7 +1432,6 @@
   padding: 20px;
 }
 
-/* Book card */
 .vlt-curr-book-card {
   background: radial-gradient(120% 80% at 100% 0%,
     color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 55%),
@@ -1585,7 +1497,6 @@
 }
 .vlt-curr-book-tags { display: flex; flex-wrap: wrap; gap: 5px; }
 
-/* Selected row highlight */
 .vlt-file-row--selected {
   background: color-mix(in srgb, var(--accent) 5%, transparent);
 }
@@ -1593,9 +1504,6 @@
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   RESPONSIVE
-════════════════════════════════════════════════════════════════ */
 @media (max-width: 1200px) {
   .vlt-deck-layout { grid-template-columns: 1fr; }
   .vlt-deck-browser { max-height: 400px; }
@@ -1625,9 +1533,6 @@
   .vlt-docs-meta .vlt-doc-search { max-width: none; width: 100%; }
 }
 
-/* ══════════════════════════════════════════════════════════
-   UPLOAD TAB
-   ══════════════════════════════════════════════════════════ */
 .vlt-upload-tab { display: flex; align-items: center; justify-content: center; min-height: 480px; padding: 32px 24px; }
 .vlt-upload-tab-inner { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 28px; align-items: center; }
 .vlt-upload-hero { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -1642,9 +1547,6 @@
 .vlt-upload-file-btn--busy { opacity: 0.6; cursor: not-allowed; }
 .vlt-upload-note { margin: 0; font-size: 11px; text-align: center; color: color-mix(in srgb, var(--text-primary, #fff) 38%, transparent); }
 
-/* ══════════════════════════════════════════════════════════
-   MY DOCS — TOOLBAR + BULK BAR
-   ══════════════════════════════════════════════════════════ */
 .vlt-docs-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0 8px; flex-wrap: wrap; }
 .vlt-docs-toolbar-left { display: flex; align-items: center; gap: 10px; }
 .vlt-docs-toolbar-right { display: flex; align-items: center; gap: 8px; }
@@ -1658,9 +1560,6 @@
 .vlt-bulk-clear:hover { color: #fca5a5; }
 .vlt-empty-upload-btn { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: 9px; border: 1px solid color-mix(in srgb, var(--accent) 36%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 8px; }
 
-/* ══════════════════════════════════════════════════════════
-   DOC CARD GRID — playlist-style cover cards
-   ══════════════════════════════════════════════════════════ */
 .vlt-doccard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1705,7 +1604,6 @@
   border-color: color-mix(in srgb, var(--accent) 36%, transparent);
 }
 
-/* Cover block */
 .vlt-doccard-cover {
   position: relative;
   width: 100%;
@@ -1759,7 +1657,6 @@
   color: #22d3ee;
 }
 
-/* Body */
 .vlt-doccard-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 
 .vlt-doccard-title {
@@ -1798,7 +1695,6 @@
   opacity: 0.4;
 }
 
-/* Usage stats */
 .vlt-doccard-usage {
   display: flex;
   align-items: center;
@@ -1813,7 +1709,6 @@
 .vlt-doccard-usage-item svg { flex-shrink: 0; }
 .vlt-doccard-total { margin-left: auto; font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--vlt-faint); }
 
-/* Actions row */
 .vlt-doccard-actions {
   display: flex;
   align-items: center;

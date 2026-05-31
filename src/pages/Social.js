@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen, ChevronRight , Menu} from 'lucide-react';
 import ShareModal from './SharedModal';
@@ -58,7 +58,7 @@ const Social = () => {
         setUserId(data.email || data.username);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -72,7 +72,7 @@ const Social = () => {
         setFriendRequests(data);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -86,7 +86,7 @@ const Social = () => {
         setFriends(data.friends);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -104,7 +104,7 @@ const Social = () => {
         setSharedItems(data.shared_items || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -126,7 +126,7 @@ const Social = () => {
         setMyChats(chatsData.sessions || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -147,7 +147,7 @@ const Social = () => {
         setSearchResults(data.users);
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setIsSearching(false);
     }
@@ -171,7 +171,7 @@ const Social = () => {
         fetchFriendRequests();
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -191,7 +191,7 @@ const Social = () => {
         fetchFriends();
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -212,7 +212,7 @@ const Social = () => {
         fetchFriends();
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -239,7 +239,7 @@ const Social = () => {
         setSharedItems(prev => prev.filter(item => item.id !== shareId));
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 

@@ -1,6 +1,3 @@
-"""
-Agent API module for knowledge graph interactions
-"""
 import logging
 from typing import Optional
 
@@ -9,7 +6,6 @@ logger = logging.getLogger(__name__)
 _user_kg_instance = None
 
 class UserKnowledgeGraph:
-    """User knowledge graph for tracking concept interactions"""
     
     def __init__(self):
         self.enabled = False
@@ -29,7 +25,6 @@ class UserKnowledgeGraph:
         source: str = "quiz",
         difficulty: float = 0.5
     ):
-        """Record a concept interaction in the knowledge graph"""
         if not self.enabled:
             return
         
@@ -46,7 +41,6 @@ class UserKnowledgeGraph:
             logger.warning(f"Failed to record concept interaction: {e}")
 
 def get_user_kg() -> Optional[UserKnowledgeGraph]:
-    """Get or create the user knowledge graph instance"""
     global _user_kg_instance
     if _user_kg_instance is None:
         _user_kg_instance = UserKnowledgeGraph()

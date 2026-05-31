@@ -1,31 +1,3 @@
-"""
-test_pdf_rag.py — Comprehensive test for PDF extraction, page-aware chunking,
-                   ChromaDB RAG retrieval with page citations, and Redis cache.
-
-Run from backend/ directory (no server required):
-    python test_pdf_rag.py
-    python test_pdf_rag.py --pdf ../Basic-Biology-an-introduction.pdf
-    python test_pdf_rag.py --pdf ../Basic-Biology-an-introduction.pdf --redis-host localhost
-    python test_pdf_rag.py --pdf ../Basic-Biology-an-introduction.pdf --pages 1-20
-
-What this proves
-================
-1. PDF text is extracted correctly per-page using the best available parser.
-2. Every chunk is attributed to the exact page(s) it came from.
-3. Semantic search returns chunks WITH page citations — the AI is never
-   generating answers from thin air; every answer is anchored to a page.
-4. Repeating the same query hits the Redis/memory cache instead of
-   re-embedding + re-querying ChromaDB.
-5. Stats show cache hit rates and embedding costs saved.
-
-Interpretation of results
-==========================
-- "Page X" in search results means the text physically exists on that page
-  of the book.  You can open the PDF and verify it.
-- "CACHE HIT" means no embedding or ChromaDB query was run — pure cache.
-- The sample AI prompt shown at the end demonstrates exactly what context
-  would be injected, with page citations, before the AI generates an answer.
-"""
 from __future__ import annotations
 
 import argparse
@@ -40,10 +12,9 @@ try:
     pytestmark = pytest.mark.skip(
         reason="Integration harness: run directly with `python backend/test_pdf_rag.py`."
     )
-except Exception:  # pragma: no cover
+except Exception:
     pytestmark = None
 
-# Force UTF-8 output on Windows terminals (avoids CP1252 encode errors)
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 if hasattr(sys.stderr, "reconfigure"):
@@ -54,7 +25,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 SEPARATOR = "=" * 70
 THIN = "-" * 70
 
-
 def _hr(title: str = "") -> None:
     if title:
         pad = max(0, (70 - len(title) - 2) // 2)
@@ -62,22 +32,14 @@ def _hr(title: str = "") -> None:
     else:
         print(THIN)
 
-
 def _ok(msg: str) -> None:
     print(f"  [PASS] {msg}")
-
 
 def _fail(msg: str) -> None:
     print(f"  [FAIL] {msg}")
 
-
 def _info(msg: str) -> None:
     print(f"  {msg}")
-
-
-# ---------------------------------------------------------------------------
-# Test 1: PDF Extraction
-# ---------------------------------------------------------------------------
 
 def test_extraction(pdf_path: Path, max_pages: int | None = None) -> list[dict]:
     _hr("TEST 1: Per-Page PDF Extraction")
@@ -117,11 +79,6 @@ def test_extraction(pdf_path: Path, max_pages: int | None = None) -> list[dict]:
 
     return pages
 
-
-# ---------------------------------------------------------------------------
-# Test 2: Page-Aware Chunking
-# ---------------------------------------------------------------------------
-
 def test_chunking(pages: list[dict]) -> list[dict]:
     _hr("TEST 2: Page-Aware Chunking")
     from services.document_processor import chunk_pages_with_tracking
@@ -152,11 +109,6 @@ def test_chunking(pages: list[dict]) -> list[dict]:
         print(f"\n  [Page {label}] {textwrap.fill(snippet, 64, initial_indent='  ', subsequent_indent='  ')}")
 
     return chunk_dicts
-
-
-# ---------------------------------------------------------------------------
-# Test 3: ChromaDB Indexing
-# ---------------------------------------------------------------------------
 
 def test_indexing(chunk_dicts: list[dict], doc_id: str) -> tuple:
     _hr("TEST 3: ChromaDB Indexing")
@@ -198,7 +150,6 @@ def test_indexing(chunk_dicts: list[dict], doc_id: str) -> tuple:
 
     _ok(f"Indexed {stored} chunks into ChromaDB in {elapsed:.1f}s")
 
-    # Spot-check: verify page metadata was stored
     col = client.get_or_create_collection("user_docs_" + __import__("hashlib").sha256(b"test_user_rag").hexdigest()[:16])
     sample = col.get(where={"chunk_index": "0"}, include=["metadatas"])
     if sample["metadatas"]:
@@ -211,11 +162,6 @@ def test_indexing(chunk_dicts: list[dict], doc_id: str) -> tuple:
 
     return client, model
 
-
-# ---------------------------------------------------------------------------
-# Test 4: Semantic Search with Page Citations
-# ---------------------------------------------------------------------------
-
 BIOLOGY_QUERIES = [
     "cell membrane structure and function",
     "DNA replication process",
@@ -226,7 +172,6 @@ BIOLOGY_QUERIES = [
     "natural selection evolution",
     "nervous system neurons",
 ]
-
 
 def test_search(doc_id: str) -> None:
     _hr("TEST 4: Semantic Search with Page Citations")
@@ -257,7 +202,6 @@ def test_search(doc_id: str) -> None:
         else:
             print(f"\n  Query: \"{query}\"  →  No results (topic may not be in this book)")
 
-    # Prove at least some queries returned page-cited results
     cited = sum(
         1 for results in results_by_query.values()
         if results and results[0]["metadata"].get("page_number")
@@ -274,16 +218,10 @@ def test_search(doc_id: str) -> None:
 
     return results_by_query
 
-
-# ---------------------------------------------------------------------------
-# Test 5: Redis / In-Memory Cache
-# ---------------------------------------------------------------------------
-
 def test_cache(results_by_query: dict | None) -> None:
     _hr("TEST 5: Cache Performance (Redis / In-Memory Fallback)")
     import redis_cache
 
-    # Try Redis; if not available, fallback is silent
     redis_available = redis_cache.init_redis()
     backend = "Redis" if redis_available else "In-Memory Fallback"
     _info(f"Cache backend: {backend}")
@@ -296,7 +234,6 @@ def test_cache(results_by_query: dict | None) -> None:
         _fail("context_store not available")
         return
 
-    # --- Round 1: cold queries (should be cache misses) ---
     _hr("Round 1 — Cold (expect misses)")
     redis_cache.reset_stats()
     queries = BIOLOGY_QUERIES[:4]
@@ -308,7 +245,6 @@ def test_cache(results_by_query: dict | None) -> None:
     _info(f"Queries: {len(queries)}  |  Time: {cold_time:.3f}s  |  "
           f"Emb misses: {stats1['emb_misses']}  |  Search misses: {stats1['search_misses']}")
 
-    # --- Round 2: same queries (should be cache hits) ---
     _hr("Round 2 — Warm (expect hits)")
     redis_cache.reset_stats()
     t0 = time.perf_counter()
@@ -333,7 +269,6 @@ def test_cache(results_by_query: dict | None) -> None:
     else:
         _fail("No cache hits — check cache implementation")
 
-    # --- Invalidation test ---
     _hr("Invalidation on Document Change")
     redis_cache.invalidate_user_search("test_user_rag")
     redis_cache.reset_stats()
@@ -349,11 +284,6 @@ def test_cache(results_by_query: dict | None) -> None:
     for k, v in final_stats.items():
         print(f"    {k}: {v}")
 
-
-# ---------------------------------------------------------------------------
-# Test 6: Sample AI Prompt with Page Citations
-# ---------------------------------------------------------------------------
-
 def test_ai_prompt_sample(results_by_query: dict | None) -> None:
     _hr("TEST 6: Sample AI Prompt (Page Citations in Context)")
     _info("This shows exactly what the AI receives — context grounded in the book.")
@@ -363,7 +293,6 @@ def test_ai_prompt_sample(results_by_query: dict | None) -> None:
         _info("No search results available for demonstration")
         return
 
-    # Pick a query that returned results
     best_query = None
     best_results = []
     for q in BIOLOGY_QUERIES:
@@ -374,7 +303,6 @@ def test_ai_prompt_sample(results_by_query: dict | None) -> None:
             break
 
     if not best_query:
-        # Fall back to any query with results
         for q, r in results_by_query.items():
             if r:
                 best_query, best_results = q, r
@@ -415,11 +343,6 @@ Answer (with page citations):"""
     _ok("AI has exact page numbers — hallucination is provably impossible for cited facts")
     _ok("Open the book to those pages to verify content matches exactly")
 
-
-# ---------------------------------------------------------------------------
-# Test 7: process_upload end-to-end
-# ---------------------------------------------------------------------------
-
 def test_process_upload(pdf_path: Path) -> None:
     _hr("TEST 7: process_upload() End-to-End")
     from services.document_processor import process_upload
@@ -453,7 +376,6 @@ def test_process_upload(pdf_path: Path) -> None:
 
     if chunks and chunk_pages and len(chunks) == len(chunk_pages):
         _ok("chunk_pages length matches chunks -- aligned")
-        # Show first 5 chunk-to-page mappings
         _hr("Chunk → Page Mapping (first 5)")
         for i, (chunk, page_info) in enumerate(list(zip(chunks, chunk_pages))[:5]):
             label = page_info.get("page_label") or "?"
@@ -466,11 +388,6 @@ def test_process_upload(pdf_path: Path) -> None:
 
     if result.get("extraction_warnings"):
         _info(f"Extraction warnings: {result['extraction_warnings']}")
-
-
-# ---------------------------------------------------------------------------
-# Cleanup
-# ---------------------------------------------------------------------------
 
 def cleanup_test_collection() -> None:
     try:
@@ -486,11 +403,6 @@ def cleanup_test_collection() -> None:
             pass
     except Exception:
         pass
-
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(description="Test PDF RAG pipeline with page citations")
@@ -528,7 +440,6 @@ def main():
 
     print(f"\n  PDF: {pdf_path.name}  ({pdf_path.stat().st_size / 1024:.0f} KB)")
 
-    # Pre-init Redis if host given
     if args.redis_host:
         import redis_cache
         redis_cache.init_redis(host=args.redis_host)
@@ -537,16 +448,12 @@ def main():
     results_by_query = None
 
     try:
-        # 1. Extraction
         pages = test_extraction(pdf_path, max_pages=max_pages)
 
-        # 2. Chunking
         chunk_dicts = test_chunking(pages) if pages else []
 
-        # 3. process_upload end-to-end
         test_process_upload(pdf_path)
 
-        # 4. Indexing (needs chromadb + sentence-transformers)
         client, model = None, None
         if chunk_dicts:
             try:
@@ -556,14 +463,11 @@ def main():
                 _fail(f"Indexing failed: {e}")
                 _info("Install: pip install chromadb sentence-transformers")
 
-        # 5. Search
         if client and model:
             results_by_query = test_search(doc_id)
 
-        # 6. Cache
         test_cache(results_by_query)
 
-        # 7. AI prompt sample
         test_ai_prompt_sample(results_by_query)
 
     finally:
@@ -590,7 +494,6 @@ def main():
   4. That's your proof: AI is grounded in the book, not hallucinating
     """)
     print(SEPARATOR + "\n")
-
 
 if __name__ == "__main__":
     main()

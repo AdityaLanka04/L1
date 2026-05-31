@@ -1,6 +1,3 @@
-"""
-Admin Analytics API - Track user activity, tool usage, and token consumption
-"""
 from fastapi import Depends, HTTPException, Header, Query
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -61,7 +58,6 @@ def _get_secret_key():
     return key
 
 def check_admin(credentials: HTTPAuthorizationCredentials = Depends(_admin_bearer)):
-    """Verify JWT and confirm the user's email is in the ADMIN_EMAILS env var."""
     try:
         payload = jwt.decode(
             credentials.credentials,
@@ -95,7 +91,6 @@ def get_db_connection():
     return conn
 
 async def get_analytics_overview(days: int = 30):
-    """Get overall analytics overview"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -548,7 +543,6 @@ async def get_analytics_overview(days: int = 30):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 async def get_user_analytics(days: int = 30):
-    """Get per-user analytics"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -659,7 +653,6 @@ async def get_user_analytics(days: int = 30):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 async def get_user_detail(target_user_id: int):
-    """Get detailed analytics for specific user"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -804,7 +797,6 @@ async def get_user_detail(target_user_id: int):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 async def export_analytics_csv(days: int = 30):
-    """Export all analytics to CSV file"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -874,7 +866,6 @@ async def export_analytics_csv(days: int = 30):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 async def export_user_csv(target_user_id: int):
-    """Export specific user's analytics to CSV"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -939,7 +930,6 @@ async def export_user_csv(target_user_id: int):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 def init_activity_log_table():
-    """Create activity log table if it doesn't exist"""
     conn = get_db_connection()
     cursor = conn.cursor()
     

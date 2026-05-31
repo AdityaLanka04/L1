@@ -1,23 +1,6 @@
-"""
-Curriculum resource catalog for overnight ingestion.
 
-Each entry describes one document to download and ingest into hs_curriculum.
-Fields:
-  slug/title   — identifier used to construct download URL or log progress
-  subject      — canonical subject name (must match context_store._SUBJECT_ALIASES)
-  grade_level  — "GCSE", "A-Level", "AP", "Grade 9-12", "College", etc.
-  curriculum   — "us" | "uk"
-  source_type  — "openstax" | "gcse_aqa" | "direct"
-  source_name  — human-readable source label
-  license      — license string
-  page_url     — the human-readable page (used as reference)
-  direct_url   — direct PDF download URL (leave "" to scrape page_url)
-"""
-
-# ── US OpenStax ──────────────────────────────────────────────────────────────
 
 OPENSTAX_BOOKS: list[dict] = [
-    # ── Already ingested / verified URLs ─────────────────────────────────────
     {
         "slug": "biology-2e",
         "title": "Biology 2e",
@@ -103,7 +86,6 @@ OPENSTAX_BOOKS: list[dict] = [
         "direct_url": "https://opentextbc.ca/introductiontopsychology/open/download?type=pdf",
     },
 
-    # ── Fixed: were failing with bad/missing URLs ─────────────────────────────
     {
         "slug": "algebra-and-trigonometry-2e",
         "title": "Algebra and Trigonometry 2e",
@@ -213,7 +195,6 @@ OPENSTAX_BOOKS: list[dict] = [
         "direct_url": "https://assets.openstax.org/oscms-prodcms/media/documents/College_Physics_2e-WEB.pdf",
     },
 
-    # ── New: College Freshman ─────────────────────────────────────────────────
     {
         "slug": "university-physics-volume-1",
         "title": "University Physics Volume 1",
@@ -539,7 +520,6 @@ OPENSTAX_BOOKS: list[dict] = [
         "direct_url": "https://greenteapress.com/thinkstats2/thinkstats2.pdf",
     },
 
-    # ── HS Math (pre-algebra to pre-calculus) ─────────────────────────────────
     {
         "slug": "elementary-algebra-2e",
         "title": "Elementary Algebra 2e",
@@ -577,7 +557,6 @@ OPENSTAX_BOOKS: list[dict] = [
         "direct_url": "",
     },
 
-    # ── College Science ────────────────────────────────────────────────────────
     {
         "slug": "anatomy-and-physiology-2e",
         "title": "Anatomy and Physiology 2e",
@@ -639,7 +618,6 @@ OPENSTAX_BOOKS: list[dict] = [
         "direct_url": "",
     },
 
-    # ── College Statistics ─────────────────────────────────────────────────────
     {
         "slug": "introductory-statistics-2e",
         "title": "Introductory Statistics 2e",
@@ -653,7 +631,6 @@ OPENSTAX_BOOKS: list[dict] = [
         "direct_url": "",
     },
 
-    # ── Social Sciences ────────────────────────────────────────────────────────
     {
         "slug": "psychology-2e-openstax",
         "title": "Psychology 2e",
@@ -715,7 +692,6 @@ OPENSTAX_BOOKS: list[dict] = [
         "direct_url": "",
     },
 
-    # ── Business & Accounting ─────────────────────────────────────────────────
     {
         "slug": "principles-financial-accounting",
         "title": "Principles of Accounting Vol 1: Financial Accounting",
@@ -801,7 +777,6 @@ OPENSTAX_BOOKS: list[dict] = [
         "direct_url": "",
     },
 
-    # ── College Success / Skills ──────────────────────────────────────────────
     {
         "slug": "college-success",
         "title": "College Success",
@@ -827,7 +802,6 @@ OPENSTAX_BOOKS: list[dict] = [
         "direct_url": "",
     },
 
-    # ── Nursing / Health ──────────────────────────────────────────────────────
     {
         "slug": "nursing-fundamentals",
         "title": "Nursing Fundamentals",
@@ -866,8 +840,6 @@ OPENSTAX_BOOKS: list[dict] = [
     },
 
 ]
-
-# ── UK AQA GCSE ──────────────────────────────────────────────────────────────
 
 AQA_GCSE_RESOURCES: list[dict] = [
     {
@@ -1052,8 +1024,6 @@ AQA_GCSE_RESOURCES: list[dict] = [
     },
 ]
 
-# ── UK AQA A-Level ───────────────────────────────────────────────────────────
-
 AQA_ALEVEL_RESOURCES: list[dict] = [
     {
         "slug": "aqa-alevel-biology-7402",
@@ -1212,10 +1182,6 @@ AQA_ALEVEL_RESOURCES: list[dict] = [
         "direct_url": "",
     },
 ]
-
-# ── BCcampus OpenEd ──────────────────────────────────────────────────────────
-# Download URL pattern: https://opentextbc.ca/{slug}/open/download?type=pdf
-# All CC-BY 4.0 unless noted. Peer-reviewed Canadian OER collection.
 
 BCCAMPUS_BOOKS: list[dict] = [
     {
@@ -1412,11 +1378,8 @@ BCCAMPUS_BOOKS: list[dict] = [
     },
 ]
 
-# ── Other Verified OER Sources ────────────────────────────────────────────────
-
 OTHER_OER_BOOKS: list[dict] = [
 
-    # ── Green Tea Press (Allen Downey) — CC-BY-NC ─────────────────────────────
     {
         "slug": "think-complexity-2e",
         "title": "Think Complexity 2e",
@@ -1466,8 +1429,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://www.greenteapress.com/thinkos/thinkos.pdf",
     },
 
-    # ── UBC CLP Calculus Series — CC-BY-NC-SA 4.0 ────────────────────────────
-    # University of British Columbia, Department of Mathematics
     {
         "slug": "clp-1-differential-calculus",
         "title": "CLP-1 Differential Calculus",
@@ -1517,8 +1478,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://personal.math.ubc.ca/~CLP/CLP4/combined_clp_4.pdf",
     },
 
-    # ── APEX Calculus — CC-BY-NC 4.0 ─────────────────────────────────────────
-    # Gregory Hartman, Virginia Military Institute — canonical HS/college calc
     {
         "slug": "apex-calculus",
         "title": "APEX Calculus (Volumes 1-3)",
@@ -1532,7 +1491,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://opentext.uleth.ca/PDF/APEX-1565-colour.pdf",
     },
 
-    # ── OpenIntro — CC-BY-SA 4.0 ──────────────────────────────────────────────
     {
         "slug": "openintro-statistics",
         "title": "OpenIntro Statistics 4e",
@@ -1558,7 +1516,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://www.openintro.org/book/isrs/openintro_stat_simulations.pdf",
     },
 
-    # ── MIT OpenCourseWare — CC-BY-NC-SA 4.0 ─────────────────────────────────
     {
         "slug": "mit-math-for-cs",
         "title": "Mathematics for Computer Science (MIT 6.042J)",
@@ -1572,7 +1529,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://ocw.mit.edu/courses/6-042j-mathematics-for-computer-science-spring-2015/mit6_042js15_textbook.pdf",
     },
 
-    # ── Abstract Algebra (Judson) — GFDL ─────────────────────────────────────
     {
         "slug": "abstract-algebra-judson",
         "title": "Abstract Algebra: Theory and Applications",
@@ -1586,7 +1542,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "http://abstract.ups.edu/download/aata-20230201.pdf",
     },
 
-    # ── Real Analysis (Trench) — CC-BY-NC-SA ─────────────────────────────────
     {
         "slug": "real-analysis-trench",
         "title": "Introduction to Real Analysis",
@@ -1600,8 +1555,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://ramanujan.math.trinity.edu/wtrench/texts/TRENCH_REAL_ANALYSIS.PDF",
     },
 
-    # ── LibreTexts batch PDFs ─────────────────────────────────────────────────
-    # IDs verified via LibreTexts batch print system (batch.libretexts.org)
     {
         "slug": "libretexts-physics-general",
         "title": "General Physics (UC Davis, LibreTexts)",
@@ -1627,7 +1580,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://batch.libretexts.org/print/Letter/Finished/chem-402216/Full.pdf",
     },
 
-    # ── Active Calculus (Matt Boelkins, GVSU) — CC-BY-SA 4.0 ─────────────────
     {
         "slug": "active-calculus-single",
         "title": "Active Calculus: Single Variable",
@@ -1641,7 +1593,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://scholarworks.gvsu.edu/cgi/viewcontent.cgi?article=1034&context=books",
     },
 
-    # ── Combinatorics (Bogart, Dartmouth) — CC-BY-SA ─────────────────────────
     {
         "slug": "combinatorics-bogart",
         "title": "Combinatorics Through Guided Discovery",
@@ -1655,7 +1606,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://math.dartmouth.edu/news-resources/electronic/kpbogart/combinatorics2017_2_28.pdf",
     },
 
-    # ── SICP (MIT) — CC-BY-SA 4.0 ────────────────────────────────────────────
     {
         "slug": "sicp",
         "title": "Structure and Interpretation of Computer Programs 2e",
@@ -1669,7 +1619,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://web.mit.edu/alexmv/6.037/sicp.pdf",
     },
 
-    # ── Eloquent JavaScript (Haverbeke) — CC-BY-NC ───────────────────────────
     {
         "slug": "eloquent-javascript",
         "title": "Eloquent JavaScript 3e",
@@ -1683,8 +1632,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://eloquentjavascript.net/Eloquent_JavaScript.pdf",
     },
 
-    # ── AP-level US curriculum extras ─────────────────────────────────────────
-    # Stitz-Zeager Precalculus (supplement to OpenStax Precalc)
     {
         "slug": "stitz-zeager-precalculus",
         "title": "Precalculus (Stitz-Zeager)",
@@ -1698,7 +1645,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "http://www.stitz-zeager.com/szprecalculus07042013.pdf",
     },
 
-    # ── AP Statistics / Probability ───────────────────────────────────────────
     {
         "slug": "introduction-probability-blitzstein",
         "title": "Introduction to Probability (Blitzstein & Hwang)",
@@ -1712,7 +1658,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://drive.google.com/uc?export=download&id=1VmkAAGOYCTORq1wxSQqy255qLJjTNvBI",
     },
 
-    # ── Internet Archive mirrors — public domain / CC ─────────────────────────
     {
         "slug": "ck12-biology-hs",
         "title": "CK-12 Biology for High School",
@@ -1762,7 +1707,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://archive.org/download/ck12-physics/ck12-physics.pdf",
     },
 
-    # ── Environmental Science ─────────────────────────────────────────────────
     {
         "slug": "environmental-science-openintro",
         "title": "Environmental Science: A Study of Interrelationships",
@@ -1776,7 +1720,6 @@ OTHER_OER_BOOKS: list[dict] = [
         "direct_url": "https://archive.org/download/environmentalscience/EnvironmentalScience.pdf",
     },
 
-    # ── Number Theory ─────────────────────────────────────────────────────────
     {
         "slug": "elementary-number-theory-stein",
         "title": "Elementary Number Theory (Stein)",

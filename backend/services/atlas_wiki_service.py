@@ -39,10 +39,8 @@ Atlas follows a 3-layer model:
 - `analyses/<timestamp>-<slug>.md`
 """
 
-
 def _now() -> datetime:
     return datetime.now(timezone.utc)
-
 
 def _slugify(text: str) -> str:
     s = (text or "").strip().lower()
@@ -51,13 +49,11 @@ def _slugify(text: str) -> str:
     s = re.sub(r"-+", "-", s).strip("-")
     return s or "page"
 
-
 def _normalize_path(path: str) -> str:
     p = (path or "").strip().replace("\\", "/")
     p = re.sub(r"/+", "/", p)
     p = p.lstrip("/")
     return p or "overview.md"
-
 
 def _loads_list(value: Any) -> list[str]:
     if value is None:
@@ -77,13 +73,11 @@ def _loads_list(value: Any) -> list[str]:
         return [x.strip() for x in s.split(",") if x.strip()]
     return []
 
-
 def _dumps(value: Any) -> str:
     try:
         return json.dumps(value, ensure_ascii=True)
     except Exception:
         return "[]"
-
 
 def _strip_md(text: str) -> str:
     t = text or ""
@@ -94,11 +88,9 @@ def _strip_md(text: str) -> str:
     t = re.sub(r"\s+", " ", t).strip()
     return t
 
-
 def _summary_from_content(content: str, limit: int = 280) -> str:
     raw = _strip_md(content)
     return raw[:limit]
-
 
 def _extract_links(content: str) -> list[str]:
     links: list[str] = []
@@ -127,7 +119,6 @@ def _extract_links(content: str) -> list[str]:
             dedup.append(l)
     return dedup
 
-
 def _to_page_dict(page: models.AtlasWikiPage) -> dict[str, Any]:
     return {
         "id": page.id,
@@ -146,7 +137,6 @@ def _to_page_dict(page: models.AtlasWikiPage) -> dict[str, Any]:
         "created_at": page.created_at.isoformat() + "Z" if page.created_at else "",
     }
 
-
 def append_event(db: Session, user_id: int, event_type: str, title: str, details: Optional[dict[str, Any]] = None) -> None:
     ev = models.AtlasWikiEvent(
         user_id=user_id,
@@ -156,7 +146,6 @@ def append_event(db: Session, user_id: int, event_type: str, title: str, details
     )
     db.add(ev)
     db.commit()
-
 
 def _ensure_page(db: Session, user_id: int, path: str, title: str, page_type: str, content: str) -> models.AtlasWikiPage:
     p = _normalize_path(path)
@@ -184,7 +173,6 @@ def _ensure_page(db: Session, user_id: int, path: str, title: str, page_type: st
     db.add(page)
     db.commit()
     return page
-
 
 def ensure_user_wiki(db: Session, user_id: int) -> None:
     schema = db.query(models.AtlasWikiSchema).filter(models.AtlasWikiSchema.user_id == user_id).first()
@@ -227,7 +215,6 @@ def ensure_user_wiki(db: Session, user_id: int) -> None:
     )
     refresh_link_counts(db, user_id)
 
-
 def refresh_link_counts(db: Session, user_id: int) -> None:
     pages = db.query(models.AtlasWikiPage).filter(models.AtlasWikiPage.user_id == user_id).all()
     path_to_page = {p.path: p for p in pages}
@@ -243,7 +230,6 @@ def refresh_link_counts(db: Session, user_id: int) -> None:
         p.inbound_links_count = inbound.get(p.path, 0)
 
     db.commit()
-
 
 def upsert_page(
     db: Session,
@@ -287,7 +273,6 @@ def upsert_page(
     refresh_link_counts(db, user_id)
     return _to_page_dict(row)
 
-
 def get_page(db: Session, user_id: int, path: str) -> Optional[dict[str, Any]]:
     p = _normalize_path(path)
     row = (
@@ -311,7 +296,6 @@ def get_page(db: Session, user_id: int, path: str) -> Optional[dict[str, Any]]:
     ]
     return data
 
-
 def list_pages(
     db: Session,
     user_id: int,
@@ -334,7 +318,6 @@ def list_pages(
         rows = filtered
 
     return [_to_page_dict(r) for r in rows]
-
 
 def search_pages(db: Session, user_id: int, query: str, limit: int = 6) -> list[dict[str, Any]]:
     tokens = [t for t in re.findall(r"[a-zA-Z0-9]{2,}", (query or "").lower()) if t]
@@ -365,7 +348,6 @@ def search_pages(db: Session, user_id: int, query: str, limit: int = 6) -> list[
         out.append(_to_page_dict(r))
     return out
 
-
 def _doc_topic_tags(doc: models.ContextDocument) -> list[str]:
     tags = _loads_list(doc.topic_tags)
     if doc.subject:
@@ -380,7 +362,6 @@ def _doc_topic_tags(doc: models.ContextDocument) -> list[str]:
         dedup.append(t.strip())
     return dedup[:15]
 
-
 def _doc_key_concepts(doc: models.ContextDocument) -> list[str]:
     concepts = _loads_list(doc.key_concepts)
     dedup: list[str] = []
@@ -393,32 +374,23 @@ def _doc_key_concepts(doc: models.ContextDocument) -> list[str]:
         dedup.append(t.strip())
     return dedup[:20]
 
-
 def _clean_text(value: str, limit: int = 5000) -> str:
     txt = re.sub(r"\s+", " ", (value or "")).strip()
     return txt[:limit]
 
-
 def _topic_candidates_from_text(text: str, limit: int = 12) -> list[str]:
-    """
-    Lightweight topic extraction:
-    - title-cased / all-caps multiword tokens
-    - fallback keyword phrases from lowercase text
-    """
     src = _clean_text(text, 3000)
     if not src:
         return []
 
     candidates: list[str] = []
 
-    # Captures title case concepts like "Natural Selection", "World War"
     for m in re.finditer(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\b", src):
         phrase = m.group(1).strip()
         if len(phrase) < 3:
             continue
         candidates.append(phrase)
 
-    # Captures known domain-y lowercase phrases as fallback
     low = src.lower()
     fallback_patterns = [
         r"\b([a-z]{4,}(?:\s+[a-z]{4,}){0,2})\b",
@@ -446,7 +418,6 @@ def _topic_candidates_from_text(text: str, limit: int = 12) -> list[str]:
             break
     return dedup
 
-
 def _extend_topic_maps(
     topic_to_sources: dict[str, list[dict[str, str]]],
     entity_to_sources: dict[str, list[dict[str, str]]],
@@ -469,7 +440,6 @@ def _extend_topic_maps(
         entity_to_sources.setdefault(e, []).append(
             {"path": path, "name": name, "summary": summary}
         )
-
 
 def _detect_contradictions(
     db: Session,
@@ -536,7 +506,6 @@ def _detect_contradictions(
         db.commit()
     return created
 
-
 def build_index_page(db: Session, user_id: int) -> dict[str, Any]:
     pages = db.query(models.AtlasWikiPage).filter(models.AtlasWikiPage.user_id == user_id).all()
     groups: dict[str, list[models.AtlasWikiPage]] = {
@@ -570,7 +539,6 @@ def build_index_page(db: Session, user_id: int) -> dict[str, Any]:
         content="\n".join(lines).strip() + "\n",
         compiled=True,
     )
-
 
 def compile_from_documents(
     db: Session,
@@ -664,7 +632,7 @@ def compile_from_documents(
     if include_platform:
         note_rows = (
             db.query(models.Note)
-            .filter(models.Note.user_id == user_id, models.Note.is_deleted == False)  # noqa: E712
+            .filter(models.Note.user_id == user_id, models.Note.is_deleted == False)
             .order_by(models.Note.updated_at.desc())
             .limit(200)
             .all()
@@ -994,7 +962,7 @@ def compile_from_documents(
         models.ContextDocument.user_id == user_id,
         models.ContextDocument.status == "ready",
     ).count()
-    note_count = db.query(models.Note).filter(models.Note.user_id == user_id, models.Note.is_deleted == False).count()  # noqa: E712
+    note_count = db.query(models.Note).filter(models.Note.user_id == user_id, models.Note.is_deleted == False).count()
     flashcard_set_count = db.query(models.FlashcardSet).filter(models.FlashcardSet.user_id == user_id).count()
     question_set_count = db.query(models.QuestionSet).filter(models.QuestionSet.user_id == user_id).count()
     quiz_activity_count = db.query(models.Activity).filter(models.Activity.user_id == user_id).count()
@@ -1060,7 +1028,6 @@ def compile_from_documents(
         "platform_counts": platform_counts,
     }
 
-
 def list_events(db: Session, user_id: int, limit: int = 100) -> list[dict[str, Any]]:
     rows = (
         db.query(models.AtlasWikiEvent)
@@ -1086,7 +1053,6 @@ def list_events(db: Session, user_id: int, limit: int = 100) -> list[dict[str, A
         )
     return out
 
-
 def list_contradictions(db: Session, user_id: int, status: str = "") -> list[dict[str, Any]]:
     q = db.query(models.AtlasWikiContradiction).filter(models.AtlasWikiContradiction.user_id == user_id)
     if status:
@@ -1107,7 +1073,6 @@ def list_contradictions(db: Session, user_id: int, status: str = "") -> list[dic
         }
         for r in rows
     ]
-
 
 def resolve_contradiction(db: Session, user_id: int, contradiction_id: int) -> bool:
     row = (
@@ -1132,7 +1097,6 @@ def resolve_contradiction(db: Session, user_id: int, contradiction_id: int) -> b
     )
     return True
 
-
 def _stable_pos(seed: str, radius_min: float = 14.0, radius_max: float = 64.0) -> tuple[float, float, float]:
     h = hashlib.sha1((seed or "seed").encode("utf-8")).hexdigest()
     a = int(h[0:8], 16) / 0xFFFFFFFF
@@ -1146,16 +1110,11 @@ def _stable_pos(seed: str, radius_min: float = 14.0, radius_max: float = 64.0) -
     z = r * math.cos(phi)
     return (x, y, z)
 
-
 def build_knowledge_universe_graph(
     db: Session,
     user_id: int,
     max_nodes: int = 480,
 ) -> dict[str, Any]:
-    """
-    Build a connected graph across the platform:
-    documents, notes, flashcards, question sets, quiz history, wiki pages, concepts.
-    """
     ensure_user_wiki(db, user_id)
 
     nodes: list[dict[str, Any]] = []
@@ -1190,7 +1149,6 @@ def build_knowledge_universe_graph(
         edge_seen.add(key)
         edges.append({"source": a, "target": b, "type": edge_type, "weight": weight})
 
-    # Core hubs
     add_node("hub:atlas", "Atlas", "hub", 2.2)
     add_node("hub:vault", "Vault", "hub", 1.8)
     add_node("hub:oracle", "Oracle", "hub", 1.8)
@@ -1212,7 +1170,6 @@ def build_knowledge_universe_graph(
         add_node(cid, lbl, "category", 1.4)
         add_edge(parent, cid, "contains", 1.3)
 
-    # Documents
     docs = (
         db.query(models.ContextDocument)
         .filter(models.ContextDocument.user_id == user_id, models.ContextDocument.status == "ready")
@@ -1234,10 +1191,9 @@ def build_knowledge_universe_graph(
             add_node(cid, t, "concept", 0.9)
             add_edge(did, cid, "tagged", 0.9)
 
-    # Notes
     notes = (
         db.query(models.Note)
-        .filter(models.Note.user_id == user_id, models.Note.is_deleted == False)  # noqa: E712
+        .filter(models.Note.user_id == user_id, models.Note.is_deleted == False)
         .order_by(models.Note.updated_at.desc())
         .limit(140)
         .all()
@@ -1253,7 +1209,6 @@ def build_knowledge_universe_graph(
             add_node(cid, t, "concept", 0.9)
             add_edge(nid, cid, "mentions", 0.9)
 
-    # Flashcards
     sets = (
         db.query(models.FlashcardSet)
         .filter(models.FlashcardSet.user_id == user_id)
@@ -1276,7 +1231,6 @@ def build_knowledge_universe_graph(
                 add_node(cid, qt, "concept", 0.88)
                 add_edge(sid, cid, "mentions", 0.8)
 
-    # Question sets + question sessions
     qsets = (
         db.query(models.QuestionSet)
         .filter(models.QuestionSet.user_id == user_id)
@@ -1326,7 +1280,6 @@ def build_knowledge_universe_graph(
             add_node(cid, a.topic, "concept", 0.9)
             add_edge(aid, cid, "about", 0.85)
 
-    # Wiki pages and concept links
     pages = (
         db.query(models.AtlasWikiPage)
         .filter(models.AtlasWikiPage.user_id == user_id)
@@ -1356,7 +1309,6 @@ def build_knowledge_universe_graph(
             add_node(cid, t, "concept", 0.9)
             add_edge(pid, cid, "mentions", 0.7)
 
-    # Connect concepts lightly by prefix overlap to make universe coherent.
     concept_nodes = [n for n in nodes if n["type"] == "concept"]
     concept_labels = [(n["id"], n["label"].lower().split()) for n in concept_nodes]
     for i in range(len(concept_labels)):
@@ -1384,7 +1336,6 @@ def build_knowledge_universe_graph(
             "wiki_pages": len(pages),
         },
     }
-
 
 def lint_wiki(db: Session, user_id: int) -> dict[str, Any]:
     ensure_user_wiki(db, user_id)

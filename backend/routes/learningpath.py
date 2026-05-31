@@ -370,7 +370,6 @@ async def generate_learning_path(
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Generate a new learning path from a topic prompt"""
     if not request.topicPrompt:
         raise HTTPException(status_code=400, detail="Topic prompt is required")
 

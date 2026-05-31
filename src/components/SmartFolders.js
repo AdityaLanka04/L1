@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Folder, Loader, RefreshCw, X } from 'lucide-react';
 import './SmartFolders.css';
 import { API_URL } from '../config';

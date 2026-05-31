@@ -1,33 +1,3 @@
-"""
-Language Analyzer — semantic signal detection with per-student fine-tuning.
-
-Architecture
-------------
-Base layer (shared):
-  sentence-transformers all-MiniLM-L6-v2 → 384-dim embedding
-  Prototype similarity → base classification (zero-shot)
-
-Per-student adaptation layer (online trained):
-  StudentSignalHead: Linear(384 → n_classes), trained via online SGD on
-  cross-entropy loss using labeled ChatConceptSignal rows.
-  Blending weight grows from 0% (fresh) → 70% (100+ interactions).
-
-Classification priority:
-  1. High-confidence regex (short unambiguous phrases, conf=0.95)
-  2. Per-student head prediction (if n_updates ≥ 10 and conf > base)
-  3. Prototype similarity (base model)
-  4. Neutral fallback
-
-Signal taxonomy
----------------
-CONFUSION          -0.75
-RE_ASK             -0.70
-DOUBT              -0.45
-HESITATION         -0.20
-NEUTRAL_QUESTION    0.00
-EXTENSION          +0.45
-MASTERY            +0.65
-"""
 
 from __future__ import annotations
 
@@ -42,8 +12,6 @@ from typing import Optional
 import numpy as np
 
 logger = logging.getLogger(__name__)
-
-# ── Signal prototypes ─────────────────────────────────────────────────────────
 
 SIGNAL_PROTOTYPES: dict[str, list[str]] = {
     "confusion": [
@@ -166,8 +134,6 @@ INSTRUCTIONAL_HINTS: dict[str, str] = {
     ),
 }
 
-# ── Regex overrides (high-confidence, unambiguous) ────────────────────────────
-
 _OVERRIDES: list[tuple[re.Pattern, str]] = [
     (re.compile(r"^\s*(got\s*it|makes?\s+sense|i\s+get\s+it|now\s+i\s+(get|understand)|that\s+clicked)[!\.]?\s*$", re.I), "mastery"),
     (re.compile(r"\b(explain|go\s+over)\s+(again|once\s+more|one\s+more\s+time)\b", re.I), "re_ask"),
@@ -177,8 +143,6 @@ _OVERRIDES: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\bso\s+basically\b.{0,60}\?", re.I), "doubt"),
     (re.compile(r"\b(is\s+that|am\s+i)\s+(right|correct)\s*\?", re.I), "doubt"),
 ]
-
-# ── Style preference prototypes ───────────────────────────────────────────────
 
 STYLE_PROTOTYPES: dict[str, list[str]] = {
     "example_first": [
@@ -233,8 +197,6 @@ STYLE_PROTOTYPES: dict[str, list[str]] = {
     ],
 }
 
-# ── Sentence-transformer (shared, loaded once) ────────────────────────────────
-
 _lock             = threading.Lock()
 _model            = None
 _proto_embeddings: dict[str, np.ndarray] = {}
@@ -245,7 +207,6 @@ _STYLE_THRESHOLD  = 0.42
 _GLOBAL_HEAD_PATH = os.path.join(os.path.dirname(__file__), "global_signal_head.npz")
 _global_W: Optional[np.ndarray] = None
 _global_b: Optional[np.ndarray] = None
-
 
 def _load_global_head() -> None:
     global _global_W, _global_b
@@ -262,7 +223,6 @@ def _load_global_head() -> None:
         except Exception as e:
             logger.warning(f"[LANG] Could not load global head: {e}")
 
-
 def _get_model():
     global _model
     if _model is None:
@@ -276,7 +236,6 @@ def _get_model():
                 except Exception as e:
                     logger.warning(f"[LANG] Could not load sentence-transformer: {e}")
     return _model
-
 
 def _get_proto_embeddings() -> dict[str, np.ndarray]:
     global _proto_embeddings
@@ -296,7 +255,6 @@ def _get_proto_embeddings() -> dict[str, np.ndarray]:
         logger.info(f"[LANG] Signal prototypes built for {len(result)} types.")
     return _proto_embeddings
 
-
 def _get_style_embeddings() -> dict[str, np.ndarray]:
     global _style_embeddings
     if _style_embeddings:
@@ -314,11 +272,9 @@ def _get_style_embeddings() -> dict[str, np.ndarray]:
         _style_embeddings = result
     return _style_embeddings
 
-
 def _cosine(a: np.ndarray, b: np.ndarray) -> float:
     d = np.linalg.norm(a) * np.linalg.norm(b)
     return float(np.dot(a, b) / d) if d > 0 else 0.0
-
 
 def _embed(text: str) -> Optional[np.ndarray]:
     m = _get_model()
@@ -326,30 +282,14 @@ def _embed(text: str) -> Optional[np.ndarray]:
         return None
     return m.encode([text], convert_to_numpy=True, normalize_embeddings=True)[0]
 
-
-# ── Per-student classification head ──────────────────────────────────────────
-
 _SIGNAL_CLASSES = ["confusion", "re_ask", "doubt", "hesitation", "neutral", "extension", "mastery"]
-_D_EMBED        = 384   # all-MiniLM-L6-v2 output dim
-
+_D_EMBED        = 384
 
 class StudentSignalHead:
-    """
-    Per-student online-trained linear classifier on top of the frozen
-    sentence-transformer.
-
-    Gradient: cross-entropy via softmax, SGD.
-    Blending: weight grows from 0 → 0.7 as n_updates increases.
-    Falls back to base model (prototype similarity) when not trained enough.
-    """
 
     def __init__(self):
         _load_global_head()
         if _global_W is not None:
-            # Start from the globally trained checkpoint so new students
-            # get a working classifier immediately instead of zero-init cold start.
-            # n_updates=10 puts us just above the predict() threshold so the
-            # head contributes at low weight (10/100 = 10%) from the first message.
             self.W         = _global_W.copy()
             self.b         = _global_b.copy()
             self.n_updates = 10
@@ -364,7 +304,6 @@ class StudentSignalHead:
         return e / (e.sum() + 1e-9)
 
     def predict(self, embedding: np.ndarray) -> tuple[str, float]:
-        """Returns (class_name, confidence). Returns neutral if not trained."""
         if self.n_updates < 10:
             return "neutral", 0.0
         logits = self.W @ embedding + self.b
@@ -373,18 +312,16 @@ class StudentSignalHead:
         return _SIGNAL_CLASSES[idx], float(probs[idx])
 
     def blend_weight(self) -> float:
-        """How much to trust the student head vs the base model (0 → 0.7)."""
         return min(0.7, self.n_updates / 100.0)
 
     def update(self, embedding: np.ndarray, true_class: str):
-        """Online cross-entropy gradient descent step."""
         if true_class not in _SIGNAL_CLASSES:
             return
         y      = _SIGNAL_CLASSES.index(true_class)
         logits = self.W @ embedding + self.b
         probs  = self._softmax(logits)
         grad   = probs.copy()
-        grad[y] -= 1.0   # ∂CE/∂logit
+        grad[y] -= 1.0
         self.W -= self.lr * np.outer(grad, embedding)
         self.b -= self.lr * grad
         self.n_updates += 1
@@ -403,9 +340,6 @@ class StudentSignalHead:
         h.n_updates = int(d.get("n", 0))
         return h
 
-
-# ── DB helpers for per-student head ──────────────────────────────────────────
-
 def load_student_head(user_id: int, db) -> StudentSignalHead:
     try:
         from models import StudentStyleModel
@@ -415,7 +349,6 @@ def load_student_head(user_id: int, db) -> StudentSignalHead:
     except Exception as e:
         logger.warning(f"[LANG] load_student_head failed for user={user_id}: {e}")
     return StudentSignalHead()
-
 
 def save_student_head(user_id: int, head: StudentSignalHead, db):
     try:
@@ -437,7 +370,6 @@ def save_student_head(user_id: int, head: StudentSignalHead, db):
     except Exception as e:
         logger.warning(f"[LANG] save_student_head failed for user={user_id}: {e}")
 
-
 def update_student_head(
     user_id:    int,
     text:       str,
@@ -445,10 +377,6 @@ def update_student_head(
     db,
     embedding:  Optional[np.ndarray] = None,
 ):
-    """
-    Called from persist_updates after a ChatConceptSignal is written.
-    Runs one gradient step on the student's classification head.
-    """
     try:
         emb = embedding if embedding is not None else _embed(text)
         if emb is None:
@@ -460,24 +388,16 @@ def update_student_head(
     except Exception as e:
         logger.warning(f"[LANG] update_student_head failed: {e}")
 
-
-# ── Semantic classifier (base + per-student blend) ────────────────────────────
-
 def _semantic_classify(
     text: str,
     embedding: Optional[np.ndarray] = None,
     user_head: Optional[StudentSignalHead] = None,
 ) -> tuple[str, float]:
-    """
-    Classify via prototype similarity, blended with the per-student head.
-    Returns (signal_type, confidence).
-    """
     protos = _get_proto_embeddings()
     emb    = embedding if embedding is not None else _embed(text)
     if emb is None or not protos:
         return "neutral", 0.0
 
-    # Base prototype similarity
     best_base_signal = "neutral"
     best_base_sim    = _SIGNAL_THRESHOLD
     for sig, proto_emb in protos.items():
@@ -486,23 +406,17 @@ def _semantic_classify(
             best_base_sim    = sim
             best_base_signal = sig
 
-    # Per-student head blend
     if user_head and user_head.n_updates >= 10:
         student_signal, student_conf = user_head.predict(emb)
         w = user_head.blend_weight()
         if student_conf > 0 and student_signal != "neutral":
             if student_signal == best_base_signal:
-                # Agreement → boost confidence
                 return student_signal, min(1.0, best_base_sim * (1 + w))
-            # Disagreement → weighted vote
             base_w = 1.0 - w
             if student_conf * w > best_base_sim * base_w and student_conf > _SIGNAL_THRESHOLD:
                 return student_signal, student_conf * w
 
     return best_base_signal, best_base_sim
-
-
-# ── Concept matching ──────────────────────────────────────────────────────────
 
 _STOPWORDS = {
     "a","an","the","is","are","was","were","be","been","being","have","has",
@@ -515,7 +429,6 @@ _STOPWORDS = {
     "right","correct","wrong","good","bad","new","old","now","then","here",
 }
 
-
 def _match_concepts(text: str, vocab: dict[str, int]) -> list[str]:
     text_lower = text.lower()
     matches: list[str] = []
@@ -525,7 +438,6 @@ def _match_concepts(text: str, vocab: dict[str, int]) -> list[str]:
             if len(matches) >= 5:
                 break
     return matches
-
 
 def _extract_phrases(text: str, top_k: int = 3) -> list[str]:
     cleaned = re.sub(r"[^\w\s-]", " ", text.lower())
@@ -541,9 +453,7 @@ def _extract_phrases(text: str, top_k: int = 3) -> list[str]:
                 return result
     return result
 
-
 def detect_explicit_style(text: str) -> Optional[str]:
-    """Detect if the student explicitly requests a teaching format (semantic)."""
     protos = _get_style_embeddings()
     emb    = _embed(text)
     if emb is None or not protos:
@@ -555,9 +465,6 @@ def detect_explicit_style(text: str) -> Optional[str]:
             best_sim  = sim
             best_style = style
     return best_style
-
-
-# ── Public API ────────────────────────────────────────────────────────────────
 
 @dataclass
 class MessageAnalysis:
@@ -588,25 +495,12 @@ class MessageAnalysis:
             "explicit_style":        self.explicit_style,
         }
 
-
 def analyze(
     text:    str,
     vocab:   Optional[dict[str, int]] = None,
     user_id: Optional[int]            = None,
     db                                = None,
 ) -> MessageAnalysis:
-    """
-    Analyze a student message with per-student head blending.
-
-    Args:
-        text:    raw message string
-        vocab:   DKT concept vocabulary {topic: id}
-        user_id: if provided (and db too), loads per-student classifier head
-        db:      DB session for loading student head
-
-    Returns:
-        MessageAnalysis with signal, concept, hint, style preference.
-    """
     if not text or not text.strip():
         return MessageAnalysis(text="")
 
@@ -614,7 +508,6 @@ def analyze(
     concepts = _match_concepts(text, vocab) if vocab else _extract_phrases(text)
     primary  = concepts[0] if concepts else None
 
-    # Load student head once — used for both classification and auto-train below.
     user_head = None
     if user_id is not None and db is not None:
         try:
@@ -627,7 +520,6 @@ def analyze(
     method      = "fallback"
     embedding   = None
 
-    # 1. High-confidence regex override
     for pattern, sig in _OVERRIDES:
         if pattern.search(text):
             signal_type = sig
@@ -635,7 +527,6 @@ def analyze(
             method      = "regex_override"
             break
 
-    # 2. Semantic + per-student blend
     if method == "fallback":
         embedding = _embed(text)
         sem_signal, sem_conf = _semantic_classify(text, embedding, user_head)
@@ -648,9 +539,6 @@ def analyze(
             signal_type = "neutral_question"
             method      = "fallback"
 
-    # Auto-train: when confidence is high enough, pseudo-label this message and
-    # run one online SGD step on the student's head so it adapts without waiting
-    # for an explicit ChatConceptSignal to be written externally.
     _AUTO_CONF = 0.65
     if (user_head is not None
             and confidence >= _AUTO_CONF
@@ -681,7 +569,6 @@ def analyze(
         explicit_style        = explicit_style,
         embedding             = embedding,
     )
-
 
 def load_vocab_if_available() -> Optional[dict[str, int]]:
     try:

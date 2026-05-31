@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
@@ -121,7 +121,7 @@ function stripInternalGraphGuidance(text = '') {
   });
   if (cutAt === -1) return raw.trim();
 
-  // Trim trailing newlines before marker
+  
   return raw.slice(0, cutAt).replace(/\n{2,}$/g, '').trim();
 }
 
@@ -1987,9 +1987,9 @@ const AIChat = ({ sharedMode = false }) => {
 
   const stripThinking = (text) => {
     if (!text) return text;
-    // Strip <think>...</think> blocks (extended thinking models)
+    
     text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-    // Strip [thinking]...[/thinking] variants
+    
     text = text.replace(/\[thinking\][\s\S]*?\[\/thinking\]/gi, '').trim();
     return text;
   };

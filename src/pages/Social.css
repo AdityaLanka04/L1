@@ -1,4 +1,4 @@
-/* ===== Root vars ===== */
+
 .hub-page {
   --sh-bg: #050504;
   --sh-bg-2: #0e0d0b;
@@ -29,7 +29,6 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* ===== Header ===== */
 .gm-header {
   position: sticky;
   top: 0;
@@ -120,7 +119,6 @@
 
 .gm-nav-btn-ghost { border: 1px solid var(--sh-line-soft); }
 
-/* nav-menu-btn inherited from global */
 .nav-menu-btn {
   background: transparent;
   border: none;
@@ -139,7 +137,6 @@
   background: color-mix(in srgb, var(--sh-accent) 8%, transparent);
 }
 
-/* ===== Bento container ===== */
 .bento-container {
   flex: 1;
   display: grid;
@@ -152,7 +149,6 @@
   z-index: 2;
 }
 
-/* ===== Bento base card ===== */
 .bento-card {
   position: relative;
   display: flex;
@@ -242,7 +238,6 @@
   margin: 0;
 }
 
-/* ===== Bento card sizes ===== */
 .welcome-card {
   grid-column: 1 / 3;
   grid-row: 1 / 3;
@@ -327,7 +322,6 @@
 
 .leaderboards-card { display: none; }
 
-/* ===== Bottom tab bar ===== */
 .hub-tabs-bottom {
   height: 56px;
   min-height: 56px;
@@ -378,7 +372,6 @@
   background: color-mix(in srgb, var(--sh-accent) 12%, transparent);
 }
 
-/* ===== Friend / search sections ===== */
 .friend-section {
   flex: 1;
   overflow-y: auto;
@@ -497,7 +490,6 @@
   padding: 20px 0;
 }
 
-/* ===== User cards ===== */
 .users-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -644,7 +636,6 @@
   color: var(--sh-faint);
 }
 
-/* ===== Action buttons ===== */
 .request-actions {
   display: flex;
   gap: 6px;
@@ -714,7 +705,6 @@
   flex-shrink: 0;
 }
 
-/* ===== Empty state ===== */
 .empty-state {
   text-align: center;
   padding: 48px 20px;
@@ -723,7 +713,6 @@
   font-weight: 400;
 }
 
-/* ===== Shared items ===== */
 .shared-section {
   display: flex;
   flex-direction: column;
@@ -849,7 +838,6 @@
   gap: 6px;
 }
 
-/* ===== Share button / add content ===== */
 .share-new-btn {
   display: inline-flex;
   align-items: center;
@@ -872,7 +860,6 @@
   transform: translateY(-1px);
 }
 
-/* ===== My content modal ===== */
 .modal-overlay {
   position: fixed;
   inset: 0;

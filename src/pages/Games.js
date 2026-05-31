@@ -81,7 +81,7 @@ const Games = () => {
         loadDailyChallenge(username)
       ]);
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ const Games = () => {
         }
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -131,7 +131,7 @@ const Games = () => {
       } else {
               }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -147,7 +147,7 @@ const Games = () => {
                 setWeeklyProgress(data);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -163,7 +163,7 @@ const Games = () => {
         setRecentActivities(data.activities || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 

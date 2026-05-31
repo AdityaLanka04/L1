@@ -1,17 +1,3 @@
-"""
-test_hs_comparison.py — Compare AI output WITH and WITHOUT HS Mode (curriculum RAG).
-
-Usage (server must be running on http://localhost:8000):
-    python test_hs_comparison.py
-    python test_hs_comparison.py --topic "mitosis" --user your@email.com
-    python test_hs_comparison.py --mode notes     # test notes instead of quiz
-    python test_hs_comparison.py --mode flashcards
-    python test_hs_comparison.py --mode quiz      # default
-
-The script runs the same request twice — once with use_hs_context=False (baseline)
-and once with use_hs_context=True (HS Mode). It then prints both outputs side by side
-so you can see exactly what the curriculum context added.
-"""
 
 import argparse
 import json
@@ -70,7 +56,6 @@ def _section(label: str):
     print(HALF_DIV)
 
 def check_rag(topic: str, user_id: str, token: str):
-    """Hit /api/context/search directly so we can see raw RAG results."""
     _section("RAG SEARCH CHECK — raw curriculum chunks for this topic")
     try:
         r = requests.get(
@@ -96,7 +81,6 @@ def check_rag(topic: str, user_id: str, token: str):
         print(f"  RAG search failed: {e}")
 
 def login(user: str, password: str) -> str:
-    """Returns JWT token."""
     print(f"\n  Logging in as {user}...")
     r = requests.post(
         f"{BASE_URL}/token",
@@ -252,7 +236,6 @@ def compare_notes(topic: str, user_id: str, token: str):
     print(_wrap(content_hs[:800], width=76, indent=4))
 
 def quick_rag_test(topic: str):
-    """Test context_store directly without hitting the API — just embedding search."""
     _banner("DIRECT RAG TEST (no server needed)", "[RAG]")
     print(f"  Topic: '{topic}'")
     print(f"  Loading ChromaDB from backend/.chroma_data ...\n")

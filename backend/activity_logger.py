@@ -1,6 +1,3 @@
-"""
-Activity Logger - Middleware to log user activities and token usage
-"""
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,7 +11,6 @@ from activity_context import get_activity_context
 DB_PATH = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
 
 def resolve_user_id(user_id) -> Optional[int]:
-    """Resolve user_id from int/str/email/username to integer id."""
     if user_id is None:
         return None
     try:
@@ -33,16 +29,6 @@ def resolve_user_id(user_id) -> Optional[int]:
         return None
 
 def log_activity(user_id, tool_name, action, tokens_used=0, metadata=None):
-    """
-    Log user activity to database
-    
-    Args:
-        user_id: User ID (integer)
-        tool_name: Name of tool/feature used (e.g., 'flashcards', 'notes', 'ai_chat')
-        action: Action performed (e.g., 'create', 'convert', 'generate')
-        tokens_used: Number of tokens consumed
-        metadata: Additional data as dict
-    """
     try:
         resolved_user_id = resolve_user_id(user_id)
         if resolved_user_id is None:
@@ -75,17 +61,6 @@ def log_ai_tokens(
     model=None,
     metadata: Optional[dict] = None,
 ):
-    """
-    Log AI token usage with detailed breakdown
-    
-    Args:
-        user_id: User ID (integer)
-        tool_name: Name of tool (e.g., 'ai_chat', 'flashcards_ai')
-        prompt_tokens: Input tokens
-        completion_tokens: Output tokens
-        total_tokens: Total tokens used
-        model: AI model name (optional)
-    """
     ctx = get_activity_context() or {}
 
     base_metadata = {
@@ -107,7 +82,6 @@ def log_ai_tokens(
     return log_activity(user_id, effective_tool_name, 'ai_generate', total_tokens, base_metadata)
 
 def get_user_token_usage(user_id, days=30):
-    """Get total tokens used by user in last N days"""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()

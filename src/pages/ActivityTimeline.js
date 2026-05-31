@@ -389,7 +389,7 @@ const ActivityTimeline = () => {
           });
         }
       } catch (e) {
-        console.error('Error loading quiz history:', e); // silenced
+        console.error('Error loading quiz history:', e); 
       }
 
       allActivities.sort((a, b) => b.timestamp - a.timestamp);
@@ -1677,7 +1677,6 @@ const ActivityTimeline = () => {
       </>
     );
   };
-
 
   const renderReminders = () => {
     

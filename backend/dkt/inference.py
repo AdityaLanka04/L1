@@ -1,12 +1,3 @@
-"""
-AKT Inference — per-user mastery prediction with temporal decay.
-
-Runs the full user interaction sequence through the AKT transformer and
-returns per-concept mastery probabilities.  Temporal decay (FSRS-style
-R(t) = 0.9^(t/S)) is applied on top of the raw model output.
-
-Cold-start (no interactions): returns 0.5 for all concepts.
-"""
 
 from __future__ import annotations
 
@@ -21,8 +12,7 @@ from dkt.dataset import get_user_sequences, _compute_elapsed
 
 logger = logging.getLogger(__name__)
 
-_cached: Optional[tuple] = None   # (model, vocab, device)
-
+_cached: Optional[tuple] = None
 
 def _get_model():
     global _cached
@@ -37,17 +27,14 @@ def _get_model():
         _cached = (model, vocab, device)
     return _cached
 
-
 def invalidate_cache():
     global _cached
     _cached = None
-
 
 def _seq_to_tensors(
     user_seq: list[tuple[int, float, float]],
     device: torch.device,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Convert [(concept_id, ks_float, unix_ts), ...] to AKT input tensors."""
     cids    = [s[0] for s in user_seq]
     sigs    = [s[1] for s in user_seq]
     tss     = [s[2] for s in user_seq]
@@ -58,17 +45,7 @@ def _seq_to_tensors(
     elapsed_days = torch.tensor([elapsed], dtype=torch.float32, device=device)
     return concept_ids, signals, elapsed_days
 
-
 def get_mastery(user_id: int, db_session_factory, apply_decay: bool = True) -> dict:
-    """
-    Return per-concept mastery for a user, with optional temporal decay.
-
-    Returns:
-        model_available, n_interactions,
-        mastery           (raw AKT output),
-        effective_mastery (decay-adjusted),
-        top_weak, top_strong
-    """
     model, vocab, device = _get_model()
 
     if model is None or vocab is None:
@@ -102,7 +79,7 @@ def get_mastery(user_id: int, db_session_factory, apply_decay: bool = True) -> d
     concept_ids, signals, elapsed_days = _seq_to_tensors(user_seq, device)
 
     with torch.no_grad():
-        preds = model(concept_ids, signals, elapsed_days)   # (1, T, C)
+        preds = model(concept_ids, signals, elapsed_days)
 
     final_probs = preds[0, -1, :].cpu().tolist()
 
@@ -164,9 +141,7 @@ def get_mastery(user_id: int, db_session_factory, apply_decay: bool = True) -> d
         "top_strong":        top_strong,
     }
 
-
 def predict_next(user_id: int, concept: str, db_session_factory) -> dict:
-    """P(correct | concept, user's current knowledge state)."""
     model, vocab, device = _get_model()
     if model is None:
         return {"model_available": False, "probability": 0.5}
@@ -184,7 +159,7 @@ def predict_next(user_id: int, concept: str, db_session_factory) -> dict:
     concept_ids, signals, elapsed_days = _seq_to_tensors(user_seq, device)
 
     with torch.no_grad():
-        preds = model(concept_ids, signals, elapsed_days)   # (1, T, C)
+        preds = model(concept_ids, signals, elapsed_days)
 
     prob = float(preds[0, -1, concept_id - 1].cpu())
     return {
@@ -194,17 +169,11 @@ def predict_next(user_id: int, concept: str, db_session_factory) -> dict:
         "n_interactions":  len(user_seq),
     }
 
-
 def get_akt_context_vector(
     user_id: int,
     db_session_factory,
     target_dim: int = 8,
 ) -> Optional[np.ndarray]:
-    """
-    Return a compressed AKT hidden-state vector for the bandit context.
-    Projects the d_model hidden state down to target_dim via PCA-like mean pooling.
-    Returns None if model not available.
-    """
     model, vocab, device = _get_model()
     if model is None or vocab is None:
         return None
@@ -217,10 +186,9 @@ def get_akt_context_vector(
     concept_ids, signals, elapsed_days = _seq_to_tensors(user_seq, device)
 
     with torch.no_grad():
-        hidden = model.get_hidden(concept_ids, signals, elapsed_days)  # (1, d_model)
+        hidden = model.get_hidden(concept_ids, signals, elapsed_days)
 
     h = hidden[0].cpu().numpy()
-    # Pool d_model → target_dim by averaging consecutive blocks
     block = max(1, len(h) // target_dim)
     pooled = np.array([h[i * block:(i + 1) * block].mean() for i in range(target_dim)])
     return pooled.astype(np.float32)

@@ -31,7 +31,7 @@ const StudyInsights = () => {
           return;
         }
       } catch (e) {
-    // silenced
+    
   }
     }
     
@@ -69,7 +69,7 @@ const StudyInsights = () => {
         if (parsed.firstName) return parsed.firstName;
         if (parsed.first_name) return parsed.first_name;
       } catch (e) {
-    // silenced
+    
   }
     }
     if (userName && userName.includes('@')) {

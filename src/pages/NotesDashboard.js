@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, Filter, FileText, Layout, Settings,
@@ -62,7 +62,7 @@ const NotesDashboard = () => {
         setNotes(data.filter(n => !n.is_deleted));
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -77,7 +77,7 @@ const NotesDashboard = () => {
         setFolders(data.folders || []);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -106,7 +106,7 @@ const NotesDashboard = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -138,7 +138,7 @@ const NotesDashboard = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 

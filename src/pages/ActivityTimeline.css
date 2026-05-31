@@ -108,7 +108,6 @@
   opacity: 0.3;
 }
 
-
 .at-profile-header {
   position: sticky;
   top: 0;
@@ -3574,7 +3573,6 @@
   stroke-width: 2;
 }
 
-/* Activity Timeline: Cerbyl dashboard shell */
 .at-activity-timeline-page {
   background: #050504;
   color: var(--text-primary, #eaecef);

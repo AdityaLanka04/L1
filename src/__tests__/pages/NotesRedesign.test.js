@@ -13,7 +13,6 @@ import {
   MOCK_TOKEN,
 } from '../helpers/testUtils';
 
-// ─── Module mocks ─────────────────────────────────────────────────────────────
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -48,7 +47,6 @@ jest.mock('../../utils/sanitize', () => ({
   escapeHtml: (h) => h,
 }));
 
-// Heavy editor mocks — use require() inside factory to avoid out-of-scope reference errors
 jest.mock('react-quill', () => {
   const { forwardRef } = require('react');
   const FakeQuill = forwardRef(({ value, onChange }, ref) => {
@@ -90,7 +88,6 @@ jest.mock('../../components/ContextSelector', () => () => <div data-testid="cont
 jest.mock('../../components/ContextPanel', () => () => <div data-testid="context-panel" />);
 jest.mock('../../pages/CustomPopup', () => () => null);
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 const FETCH_ROUTES = {
   get_notes: MOCK_NOTES,
   get_folders: MOCK_FOLDERS,
@@ -119,13 +116,12 @@ const renderNotes = async () => {
   return utils;
 };
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
 describe('NotesRedesign', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     clearLocalStorage();
     global.fetch = buildFetchMock(FETCH_ROUTES);
-    // Re-apply after clearAllMocks
+    
     gamificationService.trackActivity.mockResolvedValue({});
     gamificationService.awardPoints.mockResolvedValue({});
     noteAgentService.getSuggestions.mockResolvedValue([]);
@@ -136,7 +132,7 @@ describe('NotesRedesign', () => {
 
   afterEach(() => clearLocalStorage());
 
-  // ── Authentication ──────────────────────────────────────────────────────────
+  
   describe('Authentication', () => {
     it('redirects to /login when no token', async () => {
       await renderNotes();
@@ -150,7 +146,7 @@ describe('NotesRedesign', () => {
     });
   });
 
-  // ── Rendering ───────────────────────────────────────────────────────────────
+  
   describe('Rendering', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -164,7 +160,7 @@ describe('NotesRedesign', () => {
     });
   });
 
-  // ── API Calls on Mount ──────────────────────────────────────────────────────
+  
   describe('API Calls on Mount', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -203,7 +199,7 @@ describe('NotesRedesign', () => {
     });
   });
 
-  // ── Note Data ───────────────────────────────────────────────────────────────
+  
   describe('Note Data Response Handling', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -230,7 +226,7 @@ describe('NotesRedesign', () => {
     });
   });
 
-  // ── Note Creation ───────────────────────────────────────────────────────────
+  
   describe('Note Creation', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -263,7 +259,7 @@ describe('NotesRedesign', () => {
     });
   });
 
-  // ── Error Handling ──────────────────────────────────────────────────────────
+  
   describe('Error Handling', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -288,7 +284,7 @@ describe('NotesRedesign', () => {
     });
   });
 
-  // ── HS Mode ─────────────────────────────────────────────────────────────────
+  
   describe('HS Mode Integration', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -303,7 +299,7 @@ describe('NotesRedesign', () => {
     });
   });
 
-  // ── Latency ─────────────────────────────────────────────────────────────────
+  
   describe('Latency', () => {
     beforeEach(() => setupLocalStorage());
 
@@ -349,7 +345,7 @@ describe('NotesRedesign', () => {
         },
         { timeout: 1000 }
       );
-      // Both should complete well within 2× the individual delay because they run in parallel
+      
       expect(performance.now() - start).toBeLessThan(600);
     });
   });

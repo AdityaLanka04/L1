@@ -1,4 +1,3 @@
-import React from 'react';
 import './AbstractFx.css';
 
 const CirclesBg = () => (
@@ -74,15 +73,15 @@ const AbstractFx = ({ variant = 'default' }) => {
           </mask>
         </defs>
 
-        {/* Soft accent halos */}
+        {}
         <circle cx="220" cy="180" r="280" fill="url(#afx-r1)"/>
         <circle cx="1380" cy="720" r="320" fill="url(#afx-r1)"/>
         <circle cx="900" cy="450" r="260" fill="url(#afx-r2)"/>
 
-        {/* Dot field with radial fade */}
+        {}
         <rect width="1600" height="900" fill="url(#afx-dots)" mask="url(#afx-dot-mask)"/>
 
-        {/* Thin sweeping S curves */}
+        {}
         <g fill="none" strokeLinecap="round">
           <path
             d="M -80 220 C 320 80, 720 480, 1100 280 S 1700 360, 1800 220"
@@ -98,14 +97,14 @@ const AbstractFx = ({ variant = 'default' }) => {
             stroke="url(#afx-l1)" strokeWidth="0.8" strokeOpacity="0.5"/>
         </g>
 
-        {/* Diagonal accent slashes */}
+        {}
         <g fill="none" stroke="url(#afx-l2)" strokeLinecap="round">
           <path d="M 1200 -40 L 1600 380" strokeWidth="1.1" strokeOpacity="0.55"/>
           <path d="M 1280 -40 L 1680 380" strokeWidth="0.9" strokeOpacity="0.4"/>
           <path d="M 100 940 L 520 540" strokeWidth="1" strokeOpacity="0.5"/>
         </g>
 
-        {/* Floating tiny circles */}
+        {}
         <g fill="var(--accent)">
           <circle cx="320" cy="140" r="2.2" fillOpacity="0.65"/>
           <circle cx="780" cy="220" r="1.6" fillOpacity="0.5"/>

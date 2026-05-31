@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowUpRight, Download, Zap, BookOpen, MessageSquare,
@@ -10,7 +10,7 @@ import './Analytics.css';
 import { API_URL } from '../config';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 5 * 60 * 1000; 
 
 const readCache = (key) => {
   try {
@@ -163,7 +163,7 @@ const Analytics = () => {
 
   return (
     <div className="an-root">
-      {/* Abstract bg */}
+      {}
       <div className="an-bg" aria-hidden>
         <div className="an-orb an-orb-1" />
         <div className="an-orb an-orb-2" />
@@ -171,7 +171,7 @@ const Analytics = () => {
         <div className="an-grid-texture" />
       </div>
 
-      {/* Topbar */}
+      {}
       <header className="an-topbar">
         <div className="an-topbar-brand" onClick={() => navigate('/search-hub')}>cerbyl</div>
         <div className="an-topbar-tabs">
@@ -190,18 +190,18 @@ const Analytics = () => {
       </header>
 
       <main className="an-main">
-        {/* mobile tabs */}
+        {}
         <div className="an-mobile-tabs">
           {[['overview','OVERVIEW'],['deep','DEEP STATS'],['ml','ML']].map(([v,l]) => (
             <button key={v} className={`an-topbar-tab ${activeTab===v?'active':''}`} onClick={() => setActiveTab(v)}>{l}</button>
           ))}
         </div>
 
-        {/* ─── OVERVIEW TAB ─── */}
+        {}
         {activeTab === 'overview' && (
           <div className="an-overview">
 
-            {/* MEGA HERO NUMBERS */}
+            {}
             <div className="an-mega">
               <div className="an-mega-stat">
                 <div className="an-mega-num">{streak}<span className="an-mega-unit">d</span></div>
@@ -227,11 +227,11 @@ const Analytics = () => {
                 <div className="an-mega-num">{level}</div>
                 <div className="an-mega-lbl"><Sparkles size={11}/> LEVEL</div>
               </div>
-              {/* abstract decoration */}
+              {}
               <div className="an-mega-deco">ANALYTICS</div>
             </div>
 
-            {/* XP bar */}
+            {}
             <div className="an-xp-bar">
               <div className="an-xp-meta">
                 <span>LVL {level}</span>
@@ -240,7 +240,7 @@ const Analytics = () => {
               </div>
             </div>
 
-            {/* Time range + period meta */}
+            {}
             <div className="an-controls">
               <div className="an-range-pills">
                 {[['week','WEEK'],['month','MONTH'],['year','YEAR'],['all','ALL']].map(([v,l]) => (
@@ -252,7 +252,7 @@ const Analytics = () => {
               </span>
             </div>
 
-            {/* ── SECTION 01: TREND + BREAKDOWN ── */}
+            {}
             <div className="an-section-label">
               <span className="an-sec-num">01</span>
               <span className="an-sec-title">ACTIVITY TREND</span>
@@ -260,7 +260,7 @@ const Analytics = () => {
             </div>
 
             <div className="an-trend-row">
-              {/* Line chart */}
+              {}
               <div className="an-chart-card" ref={chartRef} onMouseLeave={() => setChartHover(null)}>
                 <div className="an-chart-header">
                   <div>
@@ -297,7 +297,7 @@ const Analytics = () => {
                         <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
                       </filter>
                     </defs>
-                    {/* Y-axis grid lines */}
+                    {}
                     {[0.25, 0.5, 0.75, 1].map((f, i) => (
                       <line key={i}
                         x1={0} y1={lineSvg.pT + lineSvg.iH * (1-f)}
@@ -308,7 +308,7 @@ const Analytics = () => {
                     <path d={lineSvg.area} fill="url(#an-area-grad)"/>
                     <path d={lineSvg.path} fill="none" stroke="var(--accent)" strokeWidth="2.5"
                       strokeLinecap="round" strokeLinejoin="round" filter="url(#an-glow)"/>
-                    {/* dots */}
+                    {}
                     {lineSvg.pts.map((p, i) => {
                       const isHov = chartHover && chartHover.x === p.x;
                       const show = isHov || lineSvg.pts.length <= 10 || i === 0 || i === lineSvg.pts.length-1;
@@ -323,7 +323,7 @@ const Analytics = () => {
                       <line x1={chartHover.x} y1={lineSvg.pT} x2={chartHover.x} y2={lineSvg.pT+lineSvg.iH}
                         stroke="var(--accent)" strokeWidth="1" strokeDasharray="4 3" opacity="0.4"/>
                     )}
-                    {/* x labels */}
+                    {}
                     {lineSvg.pts.filter((_, i) => lineSvg.pts.length <= 7 || i === 0 || i === lineSvg.pts.length-1 || (i % Math.ceil(lineSvg.pts.length/6) === 0)).map((p, i) => (
                       <text key={i} x={p.x} y={lineSvg.H-6} textAnchor="middle" className="an-axis-label">
                         {(p.label || '').slice(0,3).toUpperCase()}
@@ -335,7 +335,7 @@ const Analytics = () => {
                 )}
               </div>
 
-              {/* Activity breakdown */}
+              {}
               <div className="an-breakdown-card">
                 <div className="an-chart-title">Activity Split</div>
                 <div className="an-chart-sub">{totalBkdn} total actions</div>
@@ -365,7 +365,7 @@ const Analytics = () => {
               </div>
             </div>
 
-            {/* ── SECTION 02: PROGRESS ── */}
+            {}
             <div className="an-section-label">
               <span className="an-sec-num">02</span>
               <span className="an-sec-title">PROGRESS RINGS</span>
@@ -408,7 +408,7 @@ const Analytics = () => {
               })}
             </div>
 
-            {/* ── SECTION 03: WEEKLY + QUIZ ── */}
+            {}
             <div className="an-section-label">
               <span className="an-sec-num">03</span>
               <span className="an-sec-title">THIS WEEK</span>
@@ -417,7 +417,7 @@ const Analytics = () => {
             </div>
 
             <div className="an-weekly-row">
-              {/* Stacked bar chart */}
+              {}
               <div className="an-weekly-card">
                 <div className="an-weekly-bars">
                   {(weeklyData.daily_breakdown || []).map((d, i) => {
@@ -449,7 +449,7 @@ const Analytics = () => {
                 </div>
               </div>
 
-              {/* Quiz performance */}
+              {}
               <div className="an-quiz-card">
                 <div className="an-quiz-header">
                   <span className="an-chart-title">Quiz History</span>
@@ -476,7 +476,7 @@ const Analytics = () => {
                 </div>
               </div>
 
-              {/* Stats grid */}
+              {}
               <div className="an-weekstats">
                 {[
                   { l:'Chats', v: weeklyData.weekly_stats?.ai_chats||0, all: gamStats.total_chat_sessions||gamStats.total_ai_chats||0, col:'#3b82f6', icon:<MessageSquare size={13}/> },
@@ -496,7 +496,7 @@ const Analytics = () => {
               </div>
             </div>
 
-            {/* ── SECTION 04: POINT SYSTEM ── */}
+            {}
             <div className="an-section-label">
               <span className="an-sec-num">04</span>
               <span className="an-sec-title">POINT SYSTEM</span>
@@ -520,10 +520,10 @@ const Analytics = () => {
           </div>
         )}
 
-        {/* ─── DEEP STATS TAB ─── */}
+        {}
         {activeTab === 'deep' && (
           <div className="an-deep">
-            {/* Chat */}
+            {}
             <div className="an-section-label an-section-label--top">
               <span className="an-sec-num">01</span>
               <span className="an-sec-title">AI CHAT ANALYTICS</span>
@@ -574,7 +574,7 @@ const Analytics = () => {
               ) : <div className="an-spinner"><div className="an-spin"/><span>Loading...</span></div>}
             </div>
 
-            {/* Flashcards */}
+            {}
             <div className="an-section-label">
               <span className="an-sec-num">02</span>
               <span className="an-sec-title">FLASHCARD ANALYTICS</span>
@@ -628,7 +628,7 @@ const Analytics = () => {
           </div>
         )}
 
-        {/* ─── ML INSIGHTS TAB ─── */}
+        {}
         {activeTab === 'ml' && (
           <div className="an-ml">
             <div className="an-ml-hero">
@@ -641,7 +641,7 @@ const Analytics = () => {
 
             {mlStats ? (
               <>
-                {/* BKT */}
+                {}
                 <div className="an-section-label an-section-label--top">
                   <span className="an-sec-num">01</span>
                   <span className="an-sec-title">BAYESIAN KNOWLEDGE TRACING</span>
@@ -676,7 +676,7 @@ const Analytics = () => {
                   </div>
                 </div>
 
-                {/* RL */}
+                {}
                 <div className="an-section-label">
                   <span className="an-sec-num">02</span>
                   <span className="an-sec-title">RL STRATEGY AGENT</span>
@@ -704,7 +704,7 @@ const Analytics = () => {
                   <div className="an-info-note"><Info size={14}/><p>Thompson Sampling balances exploration of new strategies vs. exploitation of proven ones.</p></div>
                 </div>
 
-                {/* Affect */}
+                {}
                 <div className="an-section-label">
                   <span className="an-sec-num">03</span>
                   <span className="an-sec-title">AFFECT DETECTION</span>

@@ -113,7 +113,6 @@ DIFFICULTY_LEVELS: Dict[str, Dict[str, str]] = {
     },
 }
 
-
 def _safe_json_loads(value: Optional[str], fallback: Any):
     if not value:
         return fallback
@@ -121,7 +120,6 @@ def _safe_json_loads(value: Optional[str], fallback: Any):
         return json.loads(value)
     except Exception:
         return fallback
-
 
 @dataclass
 class PodcastSession:
@@ -144,7 +142,6 @@ class PodcastSession:
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     ended: bool = False
-
 
 class PodcastAgentService:
     def __init__(self):
@@ -1334,6 +1331,5 @@ Return strict JSON:
         text = text.replace("\r", " ").replace("\n", " ")
         text = re.sub(r"\s+", " ", text).strip()
         return text
-
 
 podcast_agent_service = PodcastAgentService()

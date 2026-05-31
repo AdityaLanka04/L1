@@ -28,7 +28,6 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* ===== Background effects ===== */
 .cb-bg-fx {
   position: fixed;
   inset: 0;
@@ -68,7 +67,6 @@
     radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 60%);
 }
 
-/* ===== Topbar ===== */
 .cb-topbar {
   position: sticky;
   top: 0;
@@ -166,7 +164,6 @@
   line-height: 1;
 }
 
-/* ===== Shell ===== */
 .cb-shell {
   position: relative;
   z-index: 2;
@@ -184,7 +181,6 @@
   grid-template-columns: 1fr;
 }
 
-/* ===== Sidebar ===== */
 .cb-side-slot {
   position: relative;
   width: 248px;
@@ -598,7 +594,6 @@
   letter-spacing: 0.02em;
 }
 
-/* ===== Main ===== */
 .cb-main {
   display: flex;
   flex-direction: column;
@@ -611,7 +606,6 @@
   z-index: 2;
 }
 
-/* Hero */
 .cb-hero {
   display: flex;
   flex-direction: column;
@@ -758,7 +752,6 @@
   transition: width .6s ease;
 }
 
-/* ===== Feature cards ===== */
 .cb-features {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -998,7 +991,6 @@
 .cb-feat-lines span:nth-child(3) { width: 75%; }
 .cb-feat-lines span:nth-child(4) { width: 60%; }
 
-/* Recent items inside feature cards */
 .cb-recent-list {
   margin-top: auto;
   display: flex;
@@ -1306,7 +1298,6 @@
   cursor: pointer;
 }
 
-/* ===== Modules marquee ===== */
 .cb-strip {
   display: flex;
   flex-direction: column;
@@ -1324,7 +1315,7 @@
 .cb-marquee {
   position: relative;
   overflow: hidden;
-  /* Keep horizontal clipping while giving hover-lifted cards room on top */
+  
   padding-top: 6px;
   margin-top: -6px;
   mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
@@ -1413,7 +1404,6 @@
   transform: translateX(2px);
 }
 
-/* ===== Bottom row ===== */
 .cb-bottom {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr;
@@ -1443,7 +1433,6 @@
   outline-offset: 2px;
 }
 
-/* Full-width heatmap row */
 .cb-heat-full {
   width: 100%;
   min-height: 0;
@@ -1487,7 +1476,6 @@
 
 .cb-panel-link:hover { text-decoration: underline; }
 
-/* Weekly line graph */
 .cb-line {
   width: 100%;
   height: 130px;
@@ -1502,9 +1490,6 @@
   text-transform: uppercase;
 }
 
-/* ── HEATMAP — GitHub-style ───────────────────────────────── */
-
-/* Outer wrapper: column, centered */
 .cb-heat-wrapper {
   display: flex;
   flex-direction: column;
@@ -1514,7 +1499,6 @@
   padding-bottom: 4px;
 }
 
-/* Month labels row */
 .cb-heat-top {
   display: flex;
   align-items: flex-end;
@@ -1550,14 +1534,12 @@
   text-transform: uppercase;
 }
 
-/* Body: day labels + grid side by side */
 .cb-heat-body {
   display: flex;
   gap: 6px;
   align-items: flex-start;
 }
 
-/* Day-of-week labels */
 .cb-heat-days {
   display: flex;
   flex-direction: column;
@@ -1579,7 +1561,6 @@
   justify-content: flex-end;
 }
 
-/* Week columns grid */
 .cb-heat-grid {
   display: flex;
   gap: 3px;
@@ -1593,7 +1574,6 @@
   flex-shrink: 0;
 }
 
-/* Individual cells — 14×14 squares */
 .cb-heat-cell {
   width: 14px;
   height: 14px;
@@ -1604,7 +1584,6 @@
 }
 .cb-heat-cell:hover { opacity: 0.75; }
 
-/* Activity levels */
 .cb-heat-cell.cb-l0 { background: rgba(255, 255, 255, 0.06); }
 .cb-heat-cell.cb-l1 { background: color-mix(in srgb, var(--accent) 28%, transparent); }
 .cb-heat-cell.cb-l2 { background: color-mix(in srgb, var(--accent) 50%, transparent); }
@@ -1620,7 +1599,6 @@
   margin-top: 12px;
 }
 
-/* Legend */
 .cb-heat-legend {
   display: flex;
   align-items: center;
@@ -1638,7 +1616,6 @@
   border-radius: 3px;
 }
 
-/* Rings */
 .cb-rings {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1690,7 +1667,6 @@
   margin-top: 2px;
 }
 
-/* Rank panel */
 .cb-rank-num {
   font-size: 28px;
   font-weight: 800;
@@ -1786,12 +1762,10 @@
   color: var(--accent);
 }
 
-/* Theme switcher trigger position fix inside topbar */
 .cb-topbar-right .ts-trigger-btn {
   position: relative;
 }
 
-/* Responsive */
 @media (max-width: 1280px) {
   .cb-bottom { grid-template-columns: 1fr 1fr; }
   .cb-panel--rank { grid-column: 1 / -1; }

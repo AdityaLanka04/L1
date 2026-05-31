@@ -4,7 +4,6 @@ import 'katex/dist/katex.min.css';
 import './MathRenderer.css';
 import { sanitizeHtml } from '../utils/sanitize';
 
-// Only use $$ and $ delimiters — \( conflicts with normal text parentheses
 const KATEX_OPTS = {
   delimiters: [
     { left: '$$', right: '$$', display: true },
@@ -34,7 +33,7 @@ const MathRenderer = memo(({ content, className = '' }) => {
     try {
       renderMathInElement(containerRef.current, KATEX_OPTS);
     } catch {
-      // silenced — KaTeX errors are non-fatal
+      
     }
   }, [content]);
 

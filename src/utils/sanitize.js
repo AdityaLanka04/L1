@@ -1,6 +1,5 @@
 import DOMPurify from 'dompurify';
 
-// Sanitize AI-generated or user-generated HTML before rendering via dangerouslySetInnerHTML
 export const sanitizeHtml = (html) => {
   if (!html) return '';
   return DOMPurify.sanitize(String(html), {
@@ -11,7 +10,6 @@ export const sanitizeHtml = (html) => {
   });
 };
 
-// Escape plain text for insertion into HTML templates (document.write / string concatenation)
 export const escapeHtml = (str) => {
   if (str === null || str === undefined) return '';
   return String(str)

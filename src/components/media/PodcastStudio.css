@@ -1242,7 +1242,6 @@ body.podcast-fullscreen-open {
   to { transform: rotate(360deg); }
 }
 
-/* ── PRE-LAUNCH SCREEN ── */
 .podcast-prelaunch {
   flex: 1;
   display: flex;
@@ -1490,7 +1489,6 @@ body.podcast-fullscreen-open {
   z-index: 10;
 }
 
-/* ── SETTINGS DRAWER ── */
 .podcast-settings-overlay {
   position: fixed;
   inset: 0;

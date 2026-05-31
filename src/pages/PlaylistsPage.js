@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Search, BookOpen, Users, Clock,
@@ -81,7 +81,7 @@ const PlaylistsPage = () => {
         setPlaylists(data.playlists || []);
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ const PlaylistsPage = () => {
         fetchPlaylists();
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -130,7 +130,7 @@ const PlaylistsPage = () => {
         }));
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 

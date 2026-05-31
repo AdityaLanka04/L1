@@ -1,30 +1,3 @@
-"""
-document_processor.py — document ingestion + chunking for Cerbyl HS Mode.
-
-Supported file types: .pdf, .txt, .md
-Max file size: enforced by the calling route (50 MB)
-
-Chunking strategy:
-  - Chunk size: ~700 characters
-  - Overlap:    80 characters (sliding window, step = 620)
-  - Minimum chunk length: 80 characters
-  - Optional TOC-aware chunking uses detected headings to split sections
-  - Page-aware chunking: chunks stay within page boundaries, each chunk
-    carries page_start/page_end/page_label metadata
-
-PDF extraction strategy:
-  1. pymupdf4llm (layout-aware, best quality for RAG)
-  2. PyMuPDF blocks/text fallback
-  3. pdfplumber fallback
-  4. PyPDF2 final fallback
-
-All parsers are attempted, scored, and the best candidate is selected.
-
-Per-page extraction (for page citation):
-  Extracts text page-by-page so every chunk knows its source page number.
-  Use extract_pages_from_pdf() + chunk_pages_with_tracking() for this flow.
-  process_upload() uses this automatically and returns chunk_pages alongside chunks.
-"""
 
 from __future__ import annotations
 
@@ -49,7 +22,6 @@ class PDFExtractionCandidate:
     non_empty_pages: int
     warnings: list[str]
 
-
 def _clean_pdf_page_text(text: str) -> str:
     if not text:
         return ""
@@ -58,12 +30,7 @@ def _clean_pdf_page_text(text: str) -> str:
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
-
 def _strip_repeating_page_artifacts(page_texts: list[str]) -> list[str]:
-    """
-    Remove common header/footer lines repeated on most pages.
-    This reduces navigation noise before chunking.
-    """
     if len(page_texts) < 4:
         return page_texts
 
@@ -103,7 +70,6 @@ def _strip_repeating_page_artifacts(page_texts: list[str]) -> list[str]:
         cleaned_pages.append("\n".join(kept).strip())
     return cleaned_pages
 
-
 def _score_pdf_candidate(candidate: PDFExtractionCandidate) -> float:
     text = candidate.text or ""
     if not text.strip():
@@ -120,7 +86,6 @@ def _score_pdf_candidate(candidate: PDFExtractionCandidate) -> float:
         + unique_ratio * 1_500
         + coverage * 8_000
     )
-
 
 def _extract_with_pymupdf4llm(file_bytes: bytes) -> PDFExtractionCandidate | None:
     try:
@@ -152,7 +117,6 @@ def _extract_with_pymupdf4llm(file_bytes: bytes) -> PDFExtractionCandidate | Non
     finally:
         if doc is not None:
             doc.close()
-
 
 def _extract_with_pymupdf(file_bytes: bytes) -> PDFExtractionCandidate | None:
     try:
@@ -188,7 +152,6 @@ def _extract_with_pymupdf(file_bytes: bytes) -> PDFExtractionCandidate | None:
         if doc is not None:
             doc.close()
 
-
 def _extract_with_pdfplumber(file_bytes: bytes) -> PDFExtractionCandidate | None:
     try:
         import pdfplumber
@@ -218,7 +181,6 @@ def _extract_with_pdfplumber(file_bytes: bytes) -> PDFExtractionCandidate | None
         logger.warning(f"pdfplumber extraction failed: {e}")
         return None
 
-
 def _extract_with_pypdf2(file_bytes: bytes) -> PDFExtractionCandidate | None:
     try:
         import PyPDF2
@@ -240,12 +202,7 @@ def _extract_with_pypdf2(file_bytes: bytes) -> PDFExtractionCandidate | None:
         logger.warning(f"PyPDF2 extraction failed: {e}")
         return None
 
-
 def extract_text_from_pdf_detailed(file_bytes: bytes) -> dict:
-    """
-    Extract text from PDF using multiple parsers and pick the best result.
-    Never raises. Returns text + parser metadata.
-    """
     candidates: list[PDFExtractionCandidate] = []
     warnings: list[str] = []
 
@@ -307,20 +264,10 @@ def extract_text_from_pdf_detailed(file_bytes: bytes) -> dict:
         "warnings": sorted(set(warnings)),
     }
 
-
 def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """
-    Backward-compatible convenience wrapper.
-    """
     return extract_text_from_pdf_detailed(file_bytes).get("text", "")
 
-
-# ---------------------------------------------------------------------------
-# Per-page extraction (for page citation support)
-# ---------------------------------------------------------------------------
-
 def _extract_pages_with_pymupdf(file_bytes: bytes) -> list[dict] | None:
-    """Per-page extraction using PyMuPDF (blocks layout, best fidelity)."""
     try:
         import fitz
     except Exception:
@@ -346,9 +293,7 @@ def _extract_pages_with_pymupdf(file_bytes: bytes) -> list[dict] | None:
         if doc is not None:
             doc.close()
 
-
 def _extract_pages_with_pdfplumber(file_bytes: bytes) -> list[dict] | None:
-    """Per-page extraction using pdfplumber."""
     try:
         import pdfplumber
     except Exception:
@@ -365,9 +310,7 @@ def _extract_pages_with_pdfplumber(file_bytes: bytes) -> list[dict] | None:
         logger.warning(f"pdfplumber per-page extraction failed: {e}")
         return None
 
-
 def _extract_pages_with_pypdf2(file_bytes: bytes) -> list[dict] | None:
-    """Per-page extraction using PyPDF2 (last-resort fallback)."""
     try:
         import PyPDF2
     except Exception:
@@ -383,9 +326,7 @@ def _extract_pages_with_pypdf2(file_bytes: bytes) -> list[dict] | None:
         logger.warning(f"PyPDF2 per-page extraction failed: {e}")
         return None
 
-
 def _score_pages(pages: list[dict]) -> float:
-    """Score a per-page extraction result for quality selection."""
     if not pages:
         return -1.0
     total_chars = sum(p["char_count"] for p in pages)
@@ -395,16 +336,7 @@ def _score_pages(pages: list[dict]) -> float:
     alpha_ratio = (sum(c.isalpha() for c in all_text) / max(1, len(all_text))) if all_text else 0.0
     return min(total_chars, 400_000) * 0.55 + alpha_ratio * 4_000 + coverage * 8_000
 
-
 def extract_pages_from_pdf(file_bytes: bytes) -> list[dict]:
-    """
-    Extract text page-by-page from a PDF, selecting the best parser.
-
-    Returns a list of dicts, one per page:
-        [{"page_num": int (1-based), "text": str, "char_count": int, "parser": str}, ...]
-
-    Common headers/footers are removed. Returns [] on total failure.
-    """
     candidates: list[tuple[str, list[dict]]] = []
     for name, extractor in [
         ("pymupdf", _extract_pages_with_pymupdf),
@@ -439,30 +371,12 @@ def extract_pages_from_pdf(file_bytes: bytes) -> list[dict]:
         })
     return result
 
-
 def chunk_pages_with_tracking(
     pages: list[dict],
     chunk_size: int = CHUNK_SIZE,
     overlap: int = CHUNK_OVERLAP,
     min_length: int = MIN_CHUNK_LEN,
 ) -> list[dict]:
-    """
-    Chunk per-page texts while preserving accurate page attribution.
-
-    Each output dict:
-        {
-            "text":       str,   — chunk content
-            "page_start": int,   — first page number this chunk covers
-            "page_end":   int,   — last page number this chunk covers
-            "page_label": str,   — "3" for single page, "3-4" for spanning
-        }
-
-    Strategy:
-      - Chunk within page boundaries (no cross-page chunks by default)
-      - Pages whose text is shorter than min_length are accumulated with the
-        next page and given a range label (e.g. "5-6")
-      - Any accumulated carry at EOF is flushed as a final chunk set
-    """
     result: list[dict] = []
     pending_text = ""
     pending_page_start: int | None = None
@@ -527,10 +441,6 @@ def chunk_pages_with_tracking(
     return result
 
 def extract_text_from_txt(file_bytes: bytes) -> str:
-    """
-    Decode plain text from uploaded .txt or .md files.
-    Tries UTF-8 first, then latin-1 as fallback.
-    """
     try:
         return file_bytes.decode("utf-8").strip()
     except UnicodeDecodeError:
@@ -544,14 +454,6 @@ _HEADING_RE = re.compile(
 _ALLCAPS_RE = re.compile(r"^[A-Z0-9][A-Z0-9\s\-:]{6,}$")
 
 def _normalize_text(text: str) -> str:
-    """
-    Normalize extracted text for more coherent chunking.
-
-    - Fix hyphenated line breaks
-    - Merge wrapped lines into paragraphs
-    - Preserve bullet-like lines as standalone paragraphs
-    - Collapse excessive whitespace
-    """
     if not text:
         return ""
 
@@ -599,9 +501,6 @@ def _is_heading(line: str) -> bool:
     return False
 
 def extract_chapter_headings(text: str, limit: int = 16) -> list[str]:
-    """
-    Extract likely chapter/section headings for preview and TOC-aware chunking.
-    """
     if not text:
         return []
     headings: list[str] = []
@@ -747,22 +646,6 @@ def chunk_text(
     min_length: int = MIN_CHUNK_LEN,
     toc_aware: bool = False,
 ) -> list[str]:
-    """
-    Paragraph-aware chunker with optional TOC-aware sectioning.
-
-    Algorithm:
-      - Normalize text into paragraphs
-      - Build chunks by aggregating paragraphs until chunk_size
-      - Add small overlap between chunks for continuity
-      - Split any single paragraph that exceeds chunk_size via sliding window
-      - Discard chunks shorter than min_length
-
-    Example for defaults (chunk_size=700, overlap=80, step=620):
-      chunk 0: text[0:700]
-      chunk 1: text[620:1320]
-      chunk 2: text[1240:1940]
-      ...
-    """
     if not text or len(text) < min_length:
         return []
 
@@ -813,31 +696,6 @@ def process_upload(
     chunk_overlap: int = CHUNK_OVERLAP,
     toc_aware: bool = True,
 ) -> dict:
-    """
-    Full pipeline: extract text → chunk → return structured result.
-
-    Args:
-        file_bytes:  raw uploaded file bytes
-        filename:    original filename (used to determine type)
-        subject:     e.g. "Biology", "Algebra II"
-        grade_level: e.g. "Grade 10", "AP"
-        scope:       "private" or "hs_shared"
-        source_url:  optional URL (for admin-seeded curriculum entries)
-
-    Returns:
-        {
-            "chunks":      list[str],
-            "chunk_count": int,
-            "char_count":  int,
-            "filename":    str,
-            "subject":     str,
-            "grade_level": str,
-            "scope":       str,
-            "error":       str | None,
-        }
-
-    Never raises — sets "error" key on failure.
-    """
     lower_name = (filename or "").lower()
     text = ""
     error = None
@@ -848,11 +706,10 @@ def process_upload(
     pdf_page_count = 0
     pdf_non_empty_pages = 0
     extraction_warnings: list[str] = []
-    _pdf_pages: list[dict] = []  # per-page [{page_num, text, ...}]
+    _pdf_pages: list[dict] = []
 
     try:
         if lower_name.endswith(".pdf"):
-            # --- Per-page extraction (preferred: gives page attribution) ---
             _pdf_pages = extract_pages_from_pdf(file_bytes)
             if _pdf_pages:
                 pdf_parser = _pdf_pages[0].get("parser", "pymupdf")
@@ -860,7 +717,6 @@ def process_upload(
                 pdf_non_empty_pages = sum(1 for p in _pdf_pages if p["char_count"] > 10)
                 text = "\n\n".join(p["text"] for p in _pdf_pages if p["text"])
             else:
-                # Fall back to full-doc extraction (legacy path)
                 extracted = extract_text_from_pdf_detailed(file_bytes)
                 text = extracted.get("text", "")
                 pdf_parser = extracted.get("parser", "")
@@ -905,8 +761,6 @@ def process_upload(
             detected_grade = infer_grade_level(f"{filename}\n{text[:4000]}")
             grade_level = detected_grade or grade_level
 
-    # --- Chunking ---
-    # Use page-aware chunking when we have per-page data (PDFs with good extraction)
     chunk_dicts: list[dict] = []
     if _pdf_pages and text:
         chunk_dicts = chunk_pages_with_tracking(
@@ -916,7 +770,6 @@ def process_upload(
             min_length=MIN_CHUNK_LEN,
         )
     elif text:
-        # txt / md and PDF fallback: standard chunking without page tracking
         plain_chunks = chunk_text(
             text,
             chunk_size=chunk_size,
@@ -933,8 +786,8 @@ def process_upload(
     ]
 
     return {
-        "chunks":      chunks,        # list[str]  — backward compat
-        "chunk_pages": chunk_pages,   # list[dict] — page attribution per chunk
+        "chunks":      chunks,
+        "chunk_pages": chunk_pages,
         "chunk_count": len(chunks),
         "char_count":  len(text),
         "filename":    filename,

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useLayoutEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useLayoutEffect, useCallback } from 'react';
 import { 
   THEME_PROFILES, 
   applyThemeToRoot, 

@@ -1,18 +1,3 @@
-"""
-Train the global signal classifier on the GoEmotions dataset.
-
-Downloads GoEmotions from HuggingFace (~58K Reddit comments with 28 emotion
-labels), maps those labels to our 7-class signal taxonomy, embeds with
-all-MiniLM-L6-v2, and trains a global linear head via mini-batch SGD.
-
-The saved weights (global_signal_head.npz) are loaded by language_analyzer.py
-as the starting point for every new student's classifier — replacing the
-zero-init cold start with a pre-trained baseline.
-
-Usage (from backend/):
-    pip install datasets          # one-time
-    python -m dkt.train_signal_classifier [--epochs 10] [--lr 0.01] [--batch 64]
-"""
 from __future__ import annotations
 
 import argparse
@@ -24,7 +9,6 @@ import numpy as np
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger(__name__)
 
-# GoEmotions 28 emotion labels in dataset index order
 _GOEMOTIONS = [
     "admiration", "amusement", "anger", "annoyance", "approval", "caring",
     "confusion", "curiosity", "desire", "disappointment", "disapproval",
@@ -33,37 +17,34 @@ _GOEMOTIONS = [
     "relief", "remorse", "sadness", "surprise", "neutral",
 ]
 
-# Map each GoEmotions emotion → our educational signal taxonomy.
-# GoEmotions is Reddit data so the mapping is approximate; the per-student
-# online adaptation layer corrects any domain mismatch over time.
 _EMOTION_TO_SIGNAL: dict[str, str] = {
-    "admiration":     "mastery",      # "that's a great explanation!"
+    "admiration":     "mastery",
     "amusement":      "neutral",
-    "anger":          "confusion",    # frustrated at not understanding
-    "annoyance":      "re_ask",       # annoyed at a confusing explanation
+    "anger":          "confusion",
+    "annoyance":      "re_ask",
     "approval":       "mastery",
     "caring":         "neutral",
-    "confusion":      "confusion",    # direct match
-    "curiosity":      "extension",    # wants to dig deeper
+    "confusion":      "confusion",
+    "curiosity":      "extension",
     "desire":         "extension",
-    "disappointment": "re_ask",       # disappointed at the explanation quality
+    "disappointment": "re_ask",
     "disapproval":    "re_ask",
     "disgust":        "confusion",
     "embarrassment":  "hesitation",
     "excitement":     "mastery",
     "fear":           "hesitation",
-    "gratitude":      "mastery",      # "thank you, now I get it"
+    "gratitude":      "mastery",
     "grief":          "confusion",
     "joy":            "mastery",
     "love":           "neutral",
     "nervousness":    "hesitation",
     "optimism":       "extension",
     "pride":          "mastery",
-    "realization":    "mastery",      # aha moment
-    "relief":         "mastery",      # finally understood
-    "remorse":        "doubt",        # second-guessing themselves
+    "realization":    "mastery",
+    "relief":         "mastery",
+    "remorse":        "doubt",
     "sadness":        "confusion",
-    "surprise":       "doubt",        # uncertain / surprised by information
+    "surprise":       "doubt",
     "neutral":        "neutral",
 }
 
@@ -71,14 +52,11 @@ _SIGNAL_CLASSES = ["confusion", "re_ask", "doubt", "hesitation", "neutral", "ext
 _D_EMBED = 384
 _OUT_PATH = os.path.join(os.path.dirname(__file__), "global_signal_head.npz")
 
-
 def _softmax(z: np.ndarray) -> np.ndarray:
     e = np.exp(z - z.max())
     return e / (e.sum() + 1e-9)
 
-
 def _collect_examples() -> tuple[list[str], list[int]]:
-    """Return (texts, label_indices) from GoEmotions + seeded prototypes."""
     from datasets import load_dataset
 
     log.info("Downloading GoEmotions (train + validation splits)…")
@@ -90,7 +68,7 @@ def _collect_examples() -> tuple[list[str], list[int]]:
     for row in ds:
         lbls = row["labels"]
         if len(lbls) != 1:
-            continue  # skip multi-label / ambiguous examples
+            continue
         emotion = _GOEMOTIONS[lbls[0]]
         sig = _EMOTION_TO_SIGNAL.get(emotion)
         if sig is None:
@@ -100,8 +78,6 @@ def _collect_examples() -> tuple[list[str], list[int]]:
 
     log.info(f"  GoEmotions single-label: {len(texts):,} examples")
 
-    # Seed with the hand-crafted prototypes from language_analyzer — these are
-    # high-quality, domain-correct examples so we repeat them to give weight.
     from dkt.language_analyzer import SIGNAL_PROTOTYPES
 
     seed = 0
@@ -110,7 +86,7 @@ def _collect_examples() -> tuple[list[str], list[int]]:
             continue
         idx = _SIGNAL_CLASSES.index(sig)
         for phrase in phrases:
-            for _ in range(8):   # repeat 8× to up-weight domain examples
+            for _ in range(8):
                 texts.append(phrase)
                 label_ids.append(idx)
                 seed += 1
@@ -125,7 +101,6 @@ def _collect_examples() -> tuple[list[str], list[int]]:
         log.info(f"    {cls:<20} {cnt:>6,}")
 
     return texts, label_ids
-
 
 def train(epochs: int = 10, lr: float = 0.01, batch_size: int = 64) -> None:
     from sentence_transformers import SentenceTransformer
@@ -147,7 +122,6 @@ def train(epochs: int = 10, lr: float = 0.01, batch_size: int = 64) -> None:
         show_progress_bar=True,
     )
 
-    # Xavier initialisation
     W = np.random.randn(n_cls, _D_EMBED) * np.sqrt(2.0 / (_D_EMBED + n_cls))
     b = np.zeros(n_cls, dtype=np.float64)
 
@@ -163,7 +137,7 @@ def train(epochs: int = 10, lr: float = 0.01, batch_size: int = 64) -> None:
             yb = ys[i : i + batch_size]
             bs = len(xb)
 
-            logits = xb @ W.T + b                        # (bs, n_cls)
+            logits = xb @ W.T + b
             probs  = np.array([_softmax(l) for l in logits])
 
             total_loss += -np.log(probs[np.arange(bs), yb] + 1e-9).sum()
@@ -185,7 +159,6 @@ def train(epochs: int = 10, lr: float = 0.01, batch_size: int = 64) -> None:
     np.savez(_OUT_PATH, W=W, b=b)
     log.info(f"\nSaved → {_OUT_PATH}")
     log.info("New students will now start from this trained baseline.")
-
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description="Train global signal classifier on GoEmotions.")

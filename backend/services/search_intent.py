@@ -200,10 +200,8 @@ ACTION_REQUIRES_TOPIC = {
     "explain",
 }
 
-
 def get_command_catalog() -> List[Dict[str, Any]]:
     return [dict(cmd) for cmd in _COMMAND_CATALOG]
-
 
 def get_action_command_examples(action: str, limit: int = 3) -> List[str]:
     for cmd in _COMMAND_CATALOG:
@@ -213,7 +211,6 @@ def get_action_command_examples(action: str, limit: int = 3) -> List[str]:
                 examples = [cmd["syntax"]]
             return examples[:limit]
     return build_default_command_suggestions()[:limit]
-
 
 def build_topic_suggestions(topic: str) -> List[str]:
     return [
@@ -226,7 +223,6 @@ def build_topic_suggestions(topic: str) -> List[str]:
         f"/chat {topic}",
     ]
 
-
 def build_default_command_suggestions() -> List[str]:
     return [
         "/help",
@@ -237,7 +233,6 @@ def build_default_command_suggestions() -> List[str]:
         "/chat",
     ]
 
-
 def _extract_topic(query: str, patterns: List[str]) -> Optional[str]:
     for pattern in patterns:
         match = re.search(pattern, query, flags=re.IGNORECASE)
@@ -247,10 +242,8 @@ def _extract_topic(query: str, patterns: List[str]) -> Optional[str]:
                 return topic
     return None
 
-
 def _normalize_command_token(token: str) -> str:
     return re.sub(r"[^a-z0-9_-]", "", token.lower())
-
 
 def _parse_command_flags(tokens: List[str]) -> Tuple[Dict[str, str], List[str]]:
     flags: Dict[str, str] = {}
@@ -280,7 +273,6 @@ def _parse_command_flags(tokens: List[str]) -> Tuple[Dict[str, str], List[str]]:
             remaining.append(token)
         i += 1
     return flags, remaining
-
 
 def _parse_command(query: str) -> Optional[Dict[str, Any]]:
     raw = (query or "").strip()
@@ -363,7 +355,6 @@ def _parse_command(query: str) -> Optional[Dict[str, Any]]:
         "command": cmd_def["command"],
         "confidence": 0.93 if explicit else 0.82,
     }
-
 
 def infer_action(query: str) -> Dict[str, Any]:
     query_clean = (query or "").strip()

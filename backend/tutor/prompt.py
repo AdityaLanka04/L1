@@ -26,13 +26,11 @@ def build_tutor_prompt(state: TutorState) -> str:
     sections = []
     sections.append(_student_section(student, intent=intent, context_only=context_only))
 
-    # Preferences always shown — survive greetings
     pref_memories = [m for m in memories if m.startswith("[STUDENT PREFERENCE]")]
     other_memories = [m for m in memories if not m.startswith("[STUDENT PREFERENCE]")]
     if pref_memories:
         sections.insert(1, _preferences_section(pref_memories))
 
-    # Everything below is suppressed for greetings — prevents topic seeding
     if not is_greeting:
         if context_only:
             sections.append(_context_only_section())
@@ -73,7 +71,6 @@ def _student_section(s: StudentState | None, intent: str = "", context_only: boo
     lines = ["[STUDENT STATE]"]
     if s.first_name:
         lines.append(f"- Name: {s.first_name}")
-    # Don't expose topic lists for greetings — LLM uses them to hallucinate suggestions
     if intent not in ("greeting", "returning_greeting") and not context_only:
         if s.strengths:
             lines.append(f"- Strengths: {', '.join(s.strengths)}")
@@ -118,7 +115,6 @@ def _concept_section(insights: Neo4jInsights | None) -> str:
     return "\n".join(lines)
 
 def _structured_context_section(context_lines: list[str]) -> str:
-    """Section containing real data from the database (flashcards, notes, activity)."""
     lines = ["[STRUCTURED LEARNING DATA (from database - use this for accurate answers)]"]
     lines.extend(context_lines)
     return "\n".join(lines)
@@ -130,14 +126,12 @@ def _memory_section(memories: list[str]) -> str:
     return "\n".join(lines)
 
 def _rag_section(chunks: list[str]) -> str:
-    """Section containing HS curriculum / personal document RAG context."""
     lines = ["[CURRICULUM CONTEXT (from student's uploaded documents and HS curriculum)]"]
     lines.append("Prioritise this material when relevant. Use it to give accurate, curriculum-aligned answers.")
     for i, chunk in enumerate(chunks[:5], 1):
         lines.append(f"\n--- Source {i} ---")
         lines.append(chunk)
     return "\n".join(lines)
-
 
 def _context_only_section() -> str:
     return (
@@ -196,7 +190,6 @@ def _confidence_section(analysis: dict) -> str:
 
     return "\n".join(lines)
 
-
 def _preferences_section(pref_memories: list[str]) -> str:
     lines = ["[STUDENT PREFERENCES — MUST FOLLOW]"]
     lines.append("The student has explicitly stated these preferences. You MUST respect them in every response:")
@@ -206,13 +199,11 @@ def _preferences_section(pref_memories: list[str]) -> str:
     lines.append("Ignoring these preferences is a critical failure.")
     return "\n".join(lines)
 
-
 def _style_section(style: str) -> str:
     instructions = STYLE_INSTRUCTIONS.get(style)
     if not instructions:
         return ""
     return f"[TEACHING FORMAT]\n{instructions}"
-
 
 def _task_section(task: str, user_input: str) -> str:
     lines = ["[TASK]"]

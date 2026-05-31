@@ -1,0 +1,101 @@
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float, JSON, Date
+from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
+from database import Base
+
+
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String(255), default="New Chat")
+    folder_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="chat_sessions")
+    messages = relationship("ChatMessage", back_populates="chat_session", cascade="all, delete-orphan")
+    folder = relationship("ChatFolder", back_populates="chat_sessions")
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user_message = Column(Text, nullable=False)
+    ai_response = Column(Text, nullable=False)
+    is_user = Column(Boolean, default=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    image_metadata = Column(Text, nullable=True)
+
+    chat_session = relationship("ChatSession", back_populates="messages")
+
+
+class ChatFolder(Base):
+    __tablename__ = "chat_folders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    color = Column(String(50), default="#D7B38C")
+    parent_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="chat_folders")
+    chat_sessions = relationship("ChatSession", back_populates="folder")
+
+
+class ConversationMemory(Base):
+    __tablename__ = "conversation_memories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    session_id = Column(Integer, nullable=True)
+
+    question = Column(Text, nullable=False)
+    answer = Column(Text, nullable=False)
+    context_summary = Column(Text, nullable=True)
+
+    topic_tags = Column(JSON, nullable=True)
+    question_type = Column(String(50), nullable=True)
+    emotional_context = Column(String(50), nullable=True)
+
+    question_embedding = Column(Text, nullable=True)
+    answer_embedding = Column(Text, nullable=True)
+    combined_embedding = Column(Text, nullable=True)
+
+    usage_count = Column(Integer, default=0)
+    last_used = Column(DateTime, nullable=True)
+    user_feedback_score = Column(Float, nullable=True)
+
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+
+
+class AILearningMetrics(Base):
+    __tablename__ = "ai_learning_metrics"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    date = Column(Date, default=datetime.now(timezone.utc).date)
+
+    average_response_rating = Column(Float, default=0.0)
+    total_interactions = Column(Integer, default=0)
+    successful_interactions = Column(Integer, default=0)
+
+    new_knowledge_entries = Column(Integer, default=0)
+    improvements_implemented = Column(Integer, default=0)
+    misconceptions_corrected = Column(Integer, default=0)
+
+    user_satisfaction_trend = Column(Float, default=0.0)
+    repeat_user_percentage = Column(Float, default=0.0)
+
+    topic_performance_data = Column(JSON, nullable=True)
+
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

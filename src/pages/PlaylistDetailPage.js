@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Plus, Trash2, Check, Users, Clock, BookOpen, X,
@@ -57,7 +57,7 @@ const PlaylistDetailPage = () => {
         setIsFollowing(data.is_following || false);
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ const PlaylistDetailPage = () => {
         }));
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setFollowLoading(false);
     }
@@ -101,7 +101,7 @@ const PlaylistDetailPage = () => {
         navigate(`/playlists/${data.id}`);
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setForkLoading(false);
     }
@@ -217,7 +217,7 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
         }));
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setUpdatingItem(null);
     }
@@ -239,7 +239,7 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
         fetchPlaylistDetails();
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -256,7 +256,7 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
         fetchPlaylistDetails();
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -283,7 +283,7 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
             setShowViewModal(true);
           }
         } catch (error) {
-    // silenced
+    
   }
       }
     } else if (item.url) {
@@ -865,7 +865,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
         }
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoadingResources(false);
     }
@@ -904,7 +904,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
       await onAdd(newItem);
       onClose();
     } catch (error) {
-    // silenced
+    
   } finally {
       setIsSubmitting(false);
     }
@@ -925,7 +925,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
       }
       onClose();
     } catch (error) {
-    // silenced
+    
   } finally {
       setIsSubmitting(false);
     }

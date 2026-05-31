@@ -1,7 +1,3 @@
-"""
-Streamlined Flashcard API Integration
-Replaces complex multi-file system with simple, efficient endpoints
-"""
 
 import logging
 import random
@@ -24,12 +20,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/flashcards", tags=["Flashcards"])
 
 def generate_share_code(length: int = 6) -> str:
-    """Generate a random 6-character alphanumeric code"""
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choices(chars, k=length))
 
 def get_unique_share_code(db: Session, length: int = 6) -> str:
-    """Generate a unique share code that doesn't exist in the database"""
     for _ in range(10):
         code = generate_share_code(length)
         existing = db.query(models.FlashcardSet).filter(
@@ -58,7 +52,6 @@ class CardReview(BaseModel):
     mode: Optional[str] = "preview"
 
 def get_db():
-    """Dependency to get database session"""
     from database import SessionLocal
     db = SessionLocal()
     try:
@@ -67,7 +60,6 @@ def get_db():
         db.close()
 
 def get_user(db: Session, user_identifier: str):
-    """Get user by username or email"""
     user = db.query(models.User).filter(
         (models.User.username == user_identifier) | 
         (models.User.email == user_identifier)
@@ -78,7 +70,6 @@ def get_user(db: Session, user_identifier: str):
 
 @router.post("/generate")
 async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session = Depends(get_db)):
-    """Generate flashcards with minimal prompting"""
     
     try:
         user = get_user(db, payload.user_id)
@@ -154,12 +145,6 @@ async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session =
 
 @router.post("/review")
 async def review_card(payload: CardReview, db: Session = Depends(get_db)):
-    """Track card review and update mastery in database
-    
-    Mastery calculation:
-    - Preview mode: "I know this" = 5% per card (max 50% total)
-    - Study mode: Correct answer = 10% per card (max 100% total)
-    """
     
     try:
         user = get_user(db, payload.user_id)
@@ -235,7 +220,6 @@ class StudySessionComplete(BaseModel):
 
 @router.post("/complete-session")
 async def complete_study_session(payload: StudySessionComplete, db: Session = Depends(get_db)):
-    """Save completed study session for analytics"""
     
     try:
         user = get_user(db, payload.user_id)
@@ -264,7 +248,6 @@ async def complete_study_session(payload: StudySessionComplete, db: Session = De
 
 @router.get("/statistics")
 async def get_statistics(user_id: str = Query(...)):
-    """Get user flashcard statistics"""
     
     try:
         agent = get_agent(user_id)
@@ -281,7 +264,6 @@ async def get_statistics(user_id: str = Query(...)):
 
 @router.get("/weak-cards")
 async def get_weak_cards(user_id: str = Query(...)):
-    """Get cards that need review (< 70% retention)"""
     
     try:
         agent = get_agent(user_id)
@@ -301,7 +283,6 @@ async def get_weak_cards(user_id: str = Query(...)):
 
 @router.post("/sets/create")
 async def create_set(payload: FlashcardSetCreate, db: Session = Depends(get_db)):
-    """Create new flashcard set"""
     
     user = get_user(db, payload.user_id)
     
@@ -328,7 +309,6 @@ async def create_set(payload: FlashcardSetCreate, db: Session = Depends(get_db))
 
 @router.post("/cards/create")
 async def create_card(payload: FlashcardCreate, db: Session = Depends(get_db)):
-    """Create individual flashcard"""
     
     flashcard = models.Flashcard(
         set_id=payload.set_id,
@@ -348,7 +328,6 @@ async def create_card(payload: FlashcardCreate, db: Session = Depends(get_db)):
 
 @router.get("/sets/user")
 async def get_user_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get all flashcard sets for user with accuracy"""
     
     user = get_user(db, user_id)
     
@@ -387,7 +366,6 @@ async def get_user_sets(user_id: str = Query(...), db: Session = Depends(get_db)
 
 @router.get("/sets/{set_id}/cards")
 async def get_set_cards(set_id: int, db: Session = Depends(get_db)):
-    """Get all cards in a set"""
     
     flashcard_set = db.query(models.FlashcardSet).filter(
         models.FlashcardSet.id == set_id
@@ -414,7 +392,6 @@ async def get_set_cards(set_id: int, db: Session = Depends(get_db)):
 
 @router.get("/by-code/{share_code}")
 async def get_set_by_code(share_code: str, db: Session = Depends(get_db)):
-    """Get flashcard set by share code for preview/study URLs"""
     
     flashcard_set = db.query(models.FlashcardSet).filter(
         models.FlashcardSet.share_code == share_code.upper()
@@ -472,7 +449,6 @@ async def get_set_by_code(share_code: str, db: Session = Depends(get_db)):
 
 @router.post("/reset-mastery")
 async def reset_all_mastery(db: Session = Depends(get_db)):
-    """Reset mastery data for all flashcards"""
     try:
         db.query(models.Flashcard).update({
             "times_reviewed": 0,
@@ -492,7 +468,6 @@ async def reset_all_mastery(db: Session = Depends(get_db)):
 
 @router.delete("/sets/{set_id}")
 async def delete_set(set_id: int, db: Session = Depends(get_db)):
-    """Delete flashcard set"""
     
     flashcard_set = db.query(models.FlashcardSet).filter(
         models.FlashcardSet.id == set_id
@@ -519,9 +494,6 @@ async def toggle_flashcard_set_visibility(
     is_public: bool = Query(...),
     db: Session = Depends(models.get_db)
 ):
-    """
-    Toggle flashcard set visibility (public/private)
-    """
     flashcard_set = db.query(models.FlashcardSet).filter(
         models.FlashcardSet.id == set_id
     ).first()
@@ -546,7 +518,6 @@ async def get_public_flashcards(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db)
 ):
-    """Get all public flashcard sets"""
     
     try:
         sets = db.query(models.FlashcardSet).filter(
@@ -596,7 +567,6 @@ async def search_public_flashcards(
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db)
 ):
-    """Search public flashcard sets by title or description"""
     
     try:
         from sqlalchemy import or_, func
@@ -657,7 +627,6 @@ async def copy_public_flashcard_set(
     payload: CopySetRequest,
     db: Session = Depends(get_db)
 ):
-    """Copy a public flashcard set to user's own collection"""
     
     try:
         user = get_user(db, payload.user_id)
@@ -720,7 +689,6 @@ class CardUpdate(BaseModel):
 
 @router.put("/cards/{card_id}")
 async def update_card(card_id: int, payload: CardUpdate, db: Session = Depends(get_db)):
-    """Update an existing flashcard"""
     
     card = db.query(models.Flashcard).filter(
         models.Flashcard.id == card_id
@@ -747,7 +715,6 @@ async def update_card(card_id: int, payload: CardUpdate, db: Session = Depends(g
 
 @router.delete("/cards/{card_id}")
 async def delete_card(card_id: int, db: Session = Depends(get_db)):
-    """Delete a flashcard"""
     
     card = db.query(models.Flashcard).filter(
         models.Flashcard.id == card_id
@@ -765,6 +732,5 @@ async def delete_card(card_id: int, db: Session = Depends(get_db)):
     }
 
 def register_flashcard_api_minimal(app):
-    """Register streamlined flashcard routes"""
     app.include_router(router)
     logger.info(" Minimal Flashcard API registered")

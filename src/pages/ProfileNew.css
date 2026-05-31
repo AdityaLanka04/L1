@@ -1,4 +1,4 @@
-/* ===== Root ===== */
+
 .pn-root {
   --pn-bg: #050504;
   --pn-bg-2: #0e0d0b;
@@ -28,7 +28,6 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* ===== Geometric background ===== */
 .pn-bg {
   position: fixed;
   inset: 0;
@@ -116,7 +115,6 @@
     radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent, #D7B38C) 6%, transparent) 0%, transparent 55%);
 }
 
-/* ===== Loading ===== */
 .pn-loading {
   position: fixed;
   inset: 0;
@@ -145,7 +143,6 @@
   40% { opacity: 1; transform: scale(1); }
 }
 
-/* ===== Topbar ===== */
 .pn-topbar {
   position: sticky;
   top: 0;
@@ -224,7 +221,6 @@
 .pn-saving-dots i:nth-child(2) { animation-delay: 0.2s; }
 .pn-saving-dots i:nth-child(3) { animation-delay: 0.4s; }
 
-/* ===== Wrap ===== */
 .pn-wrap {
   position: relative;
   z-index: 2;
@@ -233,7 +229,6 @@
   padding: 0 28px 0;
 }
 
-/* ===== Hero ===== */
 .pn-hero {
   display: flex;
   align-items: flex-start;
@@ -377,7 +372,6 @@
   white-space: nowrap;
 }
 
-/* PFP */
 .pn-pfp-wrap {
   flex-shrink: 0;
 }
@@ -445,7 +439,6 @@
   border-color: color-mix(in srgb, var(--pn-accent) 65%, transparent);
 }
 
-/* ===== Sections ===== */
 .pn-section {
   padding: 32px 0;
 }
@@ -464,14 +457,12 @@
   background: var(--pn-line-soft);
 }
 
-/* ===== Two-column row ===== */
 .pn-two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 64px;
 }
 
-/* ===== Archetype ===== */
 .pn-archetype-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -625,7 +616,6 @@
   text-align: right;
 }
 
-/* Discover archetype */
 .pn-discover-btn {
   display: flex;
   flex-direction: column;
@@ -660,7 +650,6 @@
   color: var(--pn-mute);
 }
 
-/* ===== Form fields ===== */
 .pn-field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -741,7 +730,6 @@
   color: var(--text-primary, #EAECEF);
 }
 
-/* ===== Subjects ===== */
 .pn-subjects-grid {
   display: flex;
   flex-wrap: wrap;
@@ -773,7 +761,6 @@
   color: var(--pn-accent);
 }
 
-/* ===== Subscription ===== */
 .pn-subscription-header {
   display: flex;
   align-items: center;
@@ -946,7 +933,6 @@
   opacity: 0.75;
 }
 
-/* ===== Settings ===== */
 .pn-settings-grid {
   display: flex;
   flex-direction: column;
@@ -1022,7 +1008,6 @@
   transform: translateX(18px);
 }
 
-/* ===== Quiz responses ===== */
 .pn-quiz-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1053,7 +1038,6 @@
   color: var(--pn-text);
 }
 
-/* ===== PFP Modal ===== */
 .pn-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1194,12 +1178,10 @@
   border: 1px solid color-mix(in srgb, var(--accent, #D7B38C) 50%, transparent);
 }
 
-/* ===== Bottom gap ===== */
 .pn-bottom-gap {
   height: 64px;
 }
 
-/* ===== Responsive ===== */
 @media (max-width: 900px) {
   .pn-archetype-grid { grid-template-columns: 1fr; }
   .pn-two-col { grid-template-columns: 1fr; gap: 0; }

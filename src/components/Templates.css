@@ -52,7 +52,6 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
-/* dot grid overlay on the entire modal */
 .tpl-modal::before {
   content: '';
   position: absolute;
@@ -215,7 +214,6 @@
   gap: 16px;
 }
 
-/* ── Template Card ── */
 .tpl-card {
   background: var(--tpl-bg-card) !important;
   border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent) !important;
@@ -230,7 +228,6 @@
   overflow: hidden !important;
 }
 
-/* dot grid on each card */
 .tpl-card::after {
   content: '' !important;
   position: absolute !important;
@@ -247,7 +244,6 @@
   opacity: 1 !important;
 }
 
-/* gradient sweep on hover */
 .tpl-card::before {
   content: '' !important;
   position: absolute !important;
@@ -343,7 +339,6 @@
   z-index: 2;
 }
 
-/* ── Form ── */
 .tpl-form {
   background: color-mix(in srgb, var(--accent) 5%, var(--tpl-bg-primary));
   border: 1px dashed color-mix(in srgb, var(--accent) 25%, transparent);
@@ -476,7 +471,6 @@
   box-shadow: none;
 }
 
-/* ── Saved Templates List ── */
 .tpl-saved-list {
   display: flex;
   flex-direction: column;

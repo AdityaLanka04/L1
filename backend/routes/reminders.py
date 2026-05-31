@@ -15,12 +15,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["reminders"])
 
-
 def _assert_user_matches_request(user_id: Optional[str], current_user: models.User) -> None:
-    """
-    Backward-compatible guard for endpoints that still receive user_id from clients.
-    Ensures callers can only act on their own account.
-    """
     if user_id is None:
         return
     requested = str(user_id).strip().lower()

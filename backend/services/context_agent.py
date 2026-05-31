@@ -1,9 +1,3 @@
-"""
-Cerbyl Central Context Agent
-Single source of truth called by ALL features after every interaction.
-
-Evaluates cross-feature trigger rules and returns StudentProfile + triggered actions.
-"""
 from __future__ import annotations
 
 import logging
@@ -15,17 +9,14 @@ logger = logging.getLogger(__name__)
 
 _agent: Optional["CentralContextAgent"] = None
 
-
 def get_context_agent() -> Optional["CentralContextAgent"]:
     return _agent
-
 
 def initialize_context_agent(db_factory, memory_svc=None) -> "CentralContextAgent":
     global _agent
     _agent = CentralContextAgent(db_factory, memory_svc)
     logger.info("CentralContextAgent initialized")
     return _agent
-
 
 @dataclass
 class LearningEvent:
@@ -45,7 +36,6 @@ class LearningEvent:
     p_mastery: float = 0.0
     raw_data: Dict[str, Any] = field(default_factory=dict)
 
-
 @dataclass
 class AgentDecision:
     triggers_fired: List[str] = field(default_factory=list)
@@ -57,7 +47,6 @@ class AgentDecision:
     milestone_notification: Optional[str] = None
     session_brief: Optional[str] = None
     weak_concepts: List[str] = field(default_factory=list)
-
 
 @dataclass
 class WeakConcept:
@@ -71,7 +60,6 @@ class WeakConcept:
     last_seen: Optional[datetime]
     recommended_action: str
     importance_score: float
-
 
 @dataclass
 class StudentProfile:
@@ -91,18 +79,13 @@ class StudentProfile:
     concepts_not_started: int
     weekly_stats: Dict[str, Any]
 
-
 class CentralContextAgent:
-    """
-    Receives events from every feature and fires cross-feature trigger rules.
-    """
 
     def __init__(self, db_factory, memory_svc=None):
         self._db_factory = db_factory
         self._memory_svc = memory_svc
 
     def record_event(self, db, event: LearningEvent) -> AgentDecision:
-        """Main entry point. Call after every student interaction."""
         decision = AgentDecision()
 
         try:
@@ -147,7 +130,6 @@ class CentralContextAgent:
         return decision
 
     def _update_bkt(self, db, event: LearningEvent):
-        """Update BKT state based on event."""
         if not event.concept_id:
             return
         import models
@@ -182,7 +164,6 @@ class CentralContextAgent:
             state.p_mastery = min(max(p_next, 0.01), 0.99)
 
             if event.source == "quiz":
-                # Blend in score signal so strong quiz scores can promote mastery quickly.
                 score = max(0.0, min(float(event.score or 0.0), 1.0))
                 score_target = 0.05 + (0.9 * score)
                 blended = (state.p_mastery * 0.45) + (score_target * 0.55)
@@ -204,7 +185,6 @@ class CentralContextAgent:
         db.commit()
 
     def _evaluate_triggers(self, db, event: LearningEvent, decision: AgentDecision):
-        """Evaluate all cross-feature rules."""
         import models
 
         user_id = int(event.student_id)
@@ -288,7 +268,6 @@ class CentralContextAgent:
         db.commit()
 
     def get_student_profile(self, db, user_id: int) -> StudentProfile:
-        """Build complete student profile read by all features."""
         import models
 
         archetype = "default"
@@ -415,7 +394,6 @@ class CentralContextAgent:
         )
 
     def apply_forgetting_curve(self, db, user_id: int):
-        """Apply exponential forgetting decay to all concept masteries at session start."""
         import models
 
         try:
@@ -431,14 +409,11 @@ class CentralContextAgent:
             logger.warning(f"[Agent] forgetting curve failed: {e}")
             db.rollback()
 
-
 def _today_start() -> datetime:
     today = date.today()
     return datetime(today.year, today.month, today.day, tzinfo=timezone.utc)
 
-
 def _get_struggle_sources(db, user_id: int, concept_id: str) -> List[str]:
-    """Find which features the student struggled with on this concept."""
     import models
 
     sources: List[str] = []
@@ -459,7 +434,6 @@ def _get_struggle_sources(db, user_id: int, concept_id: str) -> List[str]:
         pass
     return sources
 
-
 def _recommend_action(p_mastery: float, sources: List[str]) -> str:
     if p_mastery < 0.3:
         return "ask_tutor"
@@ -470,7 +444,6 @@ def _recommend_action(p_mastery: float, sources: List[str]) -> str:
     if "chat" in sources:
         return "review_flashcards"
     return "try_a_quiz"
-
 
 def _generate_session_brief(weak_concepts: List[WeakConcept], struggling_today: List[str]) -> str:
     parts: List[str] = []

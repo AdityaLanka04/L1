@@ -1,7 +1,3 @@
-"""
-Cloud Storage Service
-Supports multiple storage backends: Supabase, Cloudflare R2, Local
-"""
 import os
 import uuid
 import logging
@@ -11,11 +7,9 @@ import shutil
 logger = logging.getLogger(__name__)
 
 class StorageService:
-    """Factory for storage services"""
     
     @staticmethod
     def get_storage():
-        """Get configured storage service - defaults to R2 for production"""
         storage_type = os.getenv("STORAGE_TYPE", "r2").lower()
         
         if storage_type == "r2":
@@ -33,7 +27,6 @@ class StorageService:
             return LocalStorage()
 
 class LocalStorage:
-    """Local file storage"""
     
     def __init__(self):
         self.base_path = Path(os.getenv("UPLOAD_DIR", "uploads"))
@@ -41,7 +34,6 @@ class LocalStorage:
         logger.info(f"Using local storage at: {self.base_path}")
     
     def upload_file(self, file_obj, user_id, file_type):
-        """Upload file to local storage"""
         user_dir = self.base_path / str(user_id) / file_type
         user_dir.mkdir(parents=True, exist_ok=True)
         
@@ -62,22 +54,18 @@ class LocalStorage:
         }
     
     def get_file_url(self, storage_path):
-        """Get file URL"""
         return f"/uploads/{storage_path}"
     
     def delete_file(self, storage_path):
-        """Delete file"""
         file_path = self.base_path / storage_path
         if file_path.exists():
             file_path.unlink()
             logger.info(f"Deleted file: {storage_path}")
     
     def file_exists(self, storage_path):
-        """Check if file exists"""
         return (self.base_path / storage_path).exists()
 
 class SupabaseStorage:
-    """Supabase cloud storage"""
     
     def __init__(self):
         try:
@@ -97,7 +85,6 @@ class SupabaseStorage:
             raise ValueError("supabase package not installed. Run: pip install supabase")
     
     def upload_file(self, file_obj, user_id, file_type):
-        """Upload file to Supabase Storage"""
         file_ext = file_obj.filename.split('.')[-1]
         file_path = f"{user_id}/{file_type}/{uuid.uuid4()}.{file_ext}"
         
@@ -117,16 +104,13 @@ class SupabaseStorage:
         }
     
     def get_file_url(self, storage_path):
-        """Get file URL"""
         return self.supabase.storage.from_(self.bucket_name).get_public_url(storage_path)
     
     def delete_file(self, storage_path):
-        """Delete file"""
         self.supabase.storage.from_(self.bucket_name).remove([storage_path])
         logger.info(f"Deleted file from Supabase: {storage_path}")
     
     def file_exists(self, storage_path):
-        """Check if file exists"""
         try:
             self.supabase.storage.from_(self.bucket_name).get_public_url(storage_path)
             return True
@@ -134,7 +118,6 @@ class SupabaseStorage:
             return False
 
 class R2Storage:
-    """Cloudflare R2 storage"""
     
     def __init__(self):
         try:
@@ -163,7 +146,6 @@ class R2Storage:
             raise ValueError("boto3 package not installed. Run: pip install boto3")
     
     def upload_file(self, file_obj, user_id, file_type):
-        """Upload file to R2"""
         file_ext = file_obj.filename.split('.')[-1]
         file_key = f"media/{user_id}/{file_type}/{uuid.uuid4()}.{file_ext}"
         
@@ -187,18 +169,15 @@ class R2Storage:
         }
     
     def get_file_url(self, storage_path):
-        """Get file URL"""
         if self.public_url:
             return f"{self.public_url}/{storage_path}"
         return f"https://{self.bucket}.r2.cloudflarestorage.com/{storage_path}"
     
     def delete_file(self, storage_path):
-        """Delete file"""
         self.s3.delete_object(Bucket=self.bucket, Key=storage_path)
         logger.info(f"Deleted file from R2: {storage_path}")
     
     def file_exists(self, storage_path):
-        """Check if file exists"""
         try:
             self.s3.head_object(Bucket=self.bucket, Key=storage_path)
             return True

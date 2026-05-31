@@ -1,16 +1,10 @@
-"""
-XP Roadmap System with Topic-Based Personalized Milestones
-Tracks user's study topics and generates relevant milestones
-"""
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 import models
 from typing import List, Dict, Any
 
-
 def _collect_quiz_topic_signals(db: Session, user_id: int) -> List[str]:
-    """Collect quiz-related topic names across legacy and current quiz models."""
     topics: List[str] = []
 
     if hasattr(models, "QuizSession"):
@@ -46,9 +40,7 @@ def _collect_quiz_topic_signals(db: Session, user_id: int) -> List[str]:
 
     return topics
 
-
 def _count_quiz_matches_for_topic(db: Session, user_id: int, topic: str) -> int:
-    """Count quiz attempts that match a topic across available quiz models."""
     quiz_count = 0
 
     if hasattr(models, "QuizSession"):
@@ -74,12 +66,7 @@ def _count_quiz_matches_for_topic(db: Session, user_id: int, topic: str) -> int:
 
     return quiz_count
 
-
 def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dict[str, Any]]:
-    """
-    Analyze user's activity to determine their main study topics
-    Returns top topics based on AI chats, notes, flashcards, and quizzes
-    """
     topics = {}
     
     chat_sessions = db.query(models.ChatSession).filter(
@@ -125,7 +112,6 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
     ]
 
 def categorize_topic(topic: str) -> str:
-    """Categorize topic into broad categories"""
     topic_lower = topic.lower()
     
     if any(word in topic_lower for word in ['physics', 'chemistry', 'biology', 'science', 'quantum', 'molecular']):
@@ -152,9 +138,6 @@ def categorize_topic(topic: str) -> str:
     return 'general'
 
 def get_topic_specific_milestones(db: Session, user_id: int, topic: str) -> List[Dict[str, Any]]:
-    """
-    Generate topic-specific milestones based on user's activity in that topic
-    """
     chat_count = db.query(func.count(models.ChatMessage.id)).join(
         models.ChatSession
     ).filter(
@@ -262,9 +245,6 @@ def get_topic_specific_milestones(db: Session, user_id: int, topic: str) -> List
     return milestones
 
 def get_personalized_roadmap(db: Session, user_id: int) -> Dict[str, Any]:
-    """
-    Get complete personalized roadmap with topics and milestones
-    """
     topics = get_user_study_topics(db, user_id, limit=5)
     
     topic_milestones = {}

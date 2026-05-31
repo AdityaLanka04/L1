@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional
 
-
 DEFAULT_YTDLP_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -15,12 +14,10 @@ DEFAULT_YTDLP_USER_AGENT = (
 
 _TRUTHY = {"1", "true", "yes", "on"}
 
-
 def _is_truthy(value: Optional[str], default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in _TRUTHY
-
 
 def _env_int(name: str, default: int) -> int:
     raw = os.getenv(name)
@@ -31,9 +28,7 @@ def _env_int(name: str, default: int) -> int:
     except ValueError:
         return default
 
-
 def get_ytdlp_common_args() -> List[str]:
-    """Shared yt-dlp args tuned for cloud environments."""
     args: List[str] = []
 
     extractor_args = os.getenv("YTDLP_EXTRACTOR_ARGS", "youtube:player_client=android,web,ios").strip()
@@ -80,10 +75,8 @@ def get_ytdlp_common_args() -> List[str]:
 
     return args
 
-
 @contextmanager
 def ytdlp_auth_args(logger: Optional[logging.Logger] = None) -> Iterator[List[str]]:
-    """Yield auth-related args and clean up temp cookie file when needed."""
     args: List[str] = []
     temp_cookie_path: Optional[str] = None
     log = logger or logging.getLogger(__name__)
@@ -127,7 +120,6 @@ def ytdlp_auth_args(logger: Optional[logging.Logger] = None) -> Iterator[List[st
             except OSError:
                 pass
 
-
 def summarize_ytdlp_error(error_text: str, max_len: int = 280) -> str:
     cleaned = " ".join((error_text or "").split())
     if not cleaned:
@@ -135,7 +127,6 @@ def summarize_ytdlp_error(error_text: str, max_len: int = 280) -> str:
     if len(cleaned) > max_len:
         return cleaned[: max_len - 3] + "..."
     return cleaned
-
 
 def classify_ytdlp_error(error_text: str) -> Dict[str, str]:
     raw = (error_text or "").strip()

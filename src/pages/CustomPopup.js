@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
   const [isVisible, setIsVisible] = useState(false);

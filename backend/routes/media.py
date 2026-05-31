@@ -42,7 +42,6 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(prefix="/api", tags=["media"])
 
-
 class PodcastStartRequest(BaseModel):
     user_id: str
     transcript: str
@@ -55,11 +54,9 @@ class PodcastStartRequest(BaseModel):
     answer_language: str = "en"
     session_options: dict = Field(default_factory=dict)
 
-
 class PodcastSessionRequest(BaseModel):
     user_id: str
     session_id: str
-
 
 class PodcastQuestionRequest(BaseModel):
     user_id: str
@@ -71,12 +68,10 @@ class PodcastQuestionRequest(BaseModel):
     question_language: Optional[str] = None
     answer_language: Optional[str] = None
 
-
 class PodcastVoiceModeRequest(BaseModel):
     user_id: str
     session_id: str
     voice_mode: str
-
 
 class PodcastSettingsRequest(BaseModel):
     user_id: str
@@ -87,7 +82,6 @@ class PodcastSettingsRequest(BaseModel):
     answer_language: Optional[str] = None
     session_options: dict = Field(default_factory=dict)
 
-
 class PodcastBookmarkRequest(BaseModel):
     user_id: str
     session_id: str
@@ -95,24 +89,20 @@ class PodcastBookmarkRequest(BaseModel):
     chapter_index: Optional[int] = None
     timestamp_seconds: Optional[int] = None
 
-
 class PodcastReplayBookmarkRequest(BaseModel):
     user_id: str
     session_id: str
     bookmark_id: int
-
 
 class PodcastJumpChapterRequest(BaseModel):
     user_id: str
     session_id: str
     chapter_index: int
 
-
 class PodcastMCQStartRequest(BaseModel):
     user_id: str
     session_id: str
     count: int = 5
-
 
 class PodcastMCQAnswerRequest(BaseModel):
     user_id: str
@@ -120,19 +110,16 @@ class PodcastMCQAnswerRequest(BaseModel):
     question_index: int
     selected_index: int
 
-
 class PodcastExportRequest(BaseModel):
     user_id: str
     session_id: str
     format_type: str = "markdown"
-
 
 def _resolve_user_or_404(db: Session, user_id: str):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
-
 
 def _verify_user_access(requested_user, current_user: models.User):
     if requested_user.id != current_user.id:
@@ -670,7 +657,7 @@ async def get_media_history(
         logger.error(f"History fetch error: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-_MAX_SLIDE_SIZE = 50 * 1024 * 1024  # 50 MB per file
+_MAX_SLIDE_SIZE = 50 * 1024 * 1024
 _ALLOWED_SLIDE_EXTENSIONS = {".pdf", ".ppt", ".pptx"}
 _SLIDE_MAGIC_BYTES = {
     b'%PDF': 'pdf',
@@ -881,7 +868,6 @@ async def analyze_slide(
             force_reanalyze=force_reanalyze,
         )
 
-        # Seed concepts to Neo4j in background
         try:
             from tutor.neo4j_store import neo4j_store
             if neo4j_store.available():
@@ -1214,13 +1200,11 @@ async def get_slide_image(
         logger.error(f"Error getting slide image: {str(e)}")
         raise HTTPException(status_code=500, detail="Error getting slide image")
 
-
 @router.get("/media/podcast/voice-modes")
 def get_podcast_voice_modes():
     if not podcast_agent_service:
         raise HTTPException(status_code=500, detail="Podcast agent is not available")
     return {"voice_modes": podcast_agent_service.list_voice_modes()}
-
 
 @router.get("/media/podcast/voice-personas")
 def get_podcast_voice_personas():
@@ -1228,20 +1212,17 @@ def get_podcast_voice_personas():
         raise HTTPException(status_code=500, detail="Podcast agent is not available")
     return {"voice_personas": podcast_agent_service.list_voice_personas()}
 
-
 @router.get("/media/podcast/languages")
 def get_podcast_languages():
     if not podcast_agent_service:
         raise HTTPException(status_code=500, detail="Podcast agent is not available")
     return {"languages": podcast_agent_service.list_supported_languages()}
 
-
 @router.get("/media/podcast/difficulties")
 def get_podcast_difficulties():
     if not podcast_agent_service:
         raise HTTPException(status_code=500, detail="Podcast agent is not available")
     return {"difficulties": podcast_agent_service.list_difficulty_levels()}
-
 
 @router.post("/media/podcast/start")
 async def start_media_podcast(
@@ -1276,7 +1257,6 @@ async def start_media_podcast(
         logger.error("Failed to start media podcast: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to start podcast session")
 
-
 @router.post("/media/podcast/next")
 async def next_media_podcast_segment(
     payload: PodcastSessionRequest,
@@ -1301,7 +1281,6 @@ async def next_media_podcast_segment(
     except Exception as e:
         logger.error("Failed to fetch next podcast segment: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch next podcast segment")
-
 
 @router.post("/media/podcast/ask")
 async def ask_media_podcast_question(
@@ -1334,7 +1313,6 @@ async def ask_media_podcast_question(
         logger.error("Podcast question handling failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to answer podcast question")
 
-
 @router.post("/media/podcast/voice-mode")
 async def set_media_podcast_voice_mode(
     payload: PodcastVoiceModeRequest,
@@ -1360,7 +1338,6 @@ async def set_media_podcast_voice_mode(
     except Exception as e:
         logger.error("Failed to update podcast voice mode: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to update podcast voice mode")
-
 
 @router.post("/media/podcast/settings")
 async def update_media_podcast_settings(
@@ -1391,7 +1368,6 @@ async def update_media_podcast_settings(
     except Exception as e:
         logger.error("Failed to update podcast settings: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to update podcast settings")
-
 
 @router.post("/media/podcast/bookmark")
 async def add_media_podcast_bookmark(
@@ -1426,7 +1402,6 @@ async def add_media_podcast_bookmark(
         logger.error("Failed to add podcast bookmark: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to add podcast bookmark")
 
-
 @router.post("/media/podcast/bookmarks")
 async def get_media_podcast_bookmarks(
     payload: PodcastSessionRequest,
@@ -1449,7 +1424,6 @@ async def get_media_podcast_bookmarks(
     except Exception as e:
         logger.error("Failed to fetch podcast bookmarks: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch podcast bookmarks")
-
 
 @router.post("/media/podcast/replay")
 async def replay_media_podcast_bookmark(
@@ -1477,7 +1451,6 @@ async def replay_media_podcast_bookmark(
         logger.error("Failed to replay bookmark: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to replay bookmark")
 
-
 @router.post("/media/podcast/jump")
 async def jump_media_podcast_chapter(
     payload: PodcastJumpChapterRequest,
@@ -1504,7 +1477,6 @@ async def jump_media_podcast_chapter(
         logger.error("Failed to jump podcast chapter: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to jump podcast chapter")
 
-
 @router.post("/media/podcast/mcq/start")
 async def start_media_podcast_mcq(
     payload: PodcastMCQStartRequest,
@@ -1530,7 +1502,6 @@ async def start_media_podcast_mcq(
     except Exception as e:
         logger.error("Failed to start podcast mcq drill: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to start podcast mcq drill")
-
 
 @router.post("/media/podcast/mcq/answer")
 async def answer_media_podcast_mcq(
@@ -1559,7 +1530,6 @@ async def answer_media_podcast_mcq(
         logger.error("Failed to answer podcast mcq: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to answer podcast mcq")
 
-
 @router.post("/media/podcast/export")
 async def export_media_podcast_session(
     payload: PodcastExportRequest,
@@ -1586,7 +1556,6 @@ async def export_media_podcast_session(
         logger.error("Failed to export podcast session: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to export podcast session")
 
-
 @router.get("/media/podcast/sessions")
 async def list_media_podcast_sessions(
     user_id: str = Query(...),
@@ -1610,7 +1579,6 @@ async def list_media_podcast_sessions(
     except Exception as e:
         logger.error("Failed to list podcast sessions: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to list podcast sessions")
-
 
 @router.post("/media/podcast/resume")
 async def resume_media_podcast_session(
@@ -1637,7 +1605,6 @@ async def resume_media_podcast_session(
         logger.error("Failed to resume podcast session: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to resume podcast session")
 
-
 @router.post("/media/podcast/stop")
 async def stop_media_podcast(
     payload: PodcastSessionRequest,
@@ -1662,7 +1629,6 @@ async def stop_media_podcast(
     except Exception as e:
         logger.error("Failed to stop podcast session: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to stop podcast session")
-
 
 @router.post("/media/podcast/state")
 async def get_media_podcast_state(

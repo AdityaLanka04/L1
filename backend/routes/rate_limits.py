@@ -1,17 +1,11 @@
-"""
-Public read-only endpoint that exposes the current rate limit tier definitions.
-Useful for frontend to display limits to users and for debugging.
-"""
 from fastapi import APIRouter, Request
 from middleware.rate_limiter import TIERS, _AUTH_TIERS, _get_client_ip, _get_jwt_sub, get_subscription_tier
 from services.subscription_catalog import DEFAULT_PLAN_ID, get_effective_rate_limit, list_plans
 
 router = APIRouter(prefix="/api", tags=["rate-limits"])
 
-
 @router.get("/rate-limits/tiers")
 def get_rate_limit_tiers():
-    """Return the rate limit tier definitions (public)."""
     plans = list_plans()
     return {
         tier: {
@@ -30,13 +24,8 @@ def get_rate_limit_tiers():
         for tier, (limit, window) in TIERS.items()
     }
 
-
 @router.get("/rate-limits/status")
 def get_rate_limit_status(request: Request):
-    """
-    Return current rate limit counters for the calling user across all tiers.
-    Reads current sliding-window counts without incrementing them.
-    """
     sub = _get_jwt_sub(request)
     plan_id = get_subscription_tier(sub) if sub else DEFAULT_PLAN_ID
     ip = _get_client_ip(request)
@@ -53,7 +42,6 @@ def get_rate_limit_status(request: Request):
         now = time.time()
         cutoff = now - window
 
-        # Read-only check: peek at current count without adding an entry.
         try:
             from middleware.rate_limiter import _redis_client, _lua_sha, _mem_store, _mem_lock
             if _redis_client is not None:

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Search, Users, Check, Copy, Link2, Mail, AlertCircle, UserPlus, Eye, Edit3, MessageSquare } from 'lucide-react';
 import './SharedModal.css';
 import { API_URL } from '../config';
@@ -32,7 +32,7 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
         setFriends(data.friends);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 

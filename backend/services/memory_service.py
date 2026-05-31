@@ -1,10 +1,3 @@
-"""
-Cerbyl Semantic Memory Service
-Writes and retrieves per-student memories backed by SQLite + ChromaDB.
-
-Hash scheme:  SHA256(student_id + concept_id + source + date_bucket)[:16]
-Same student + concept + source + day  →  same hash  →  upsert, not duplicate.
-"""
 from __future__ import annotations
 
 import logging
@@ -18,17 +11,14 @@ logger = logging.getLogger(__name__)
 
 _memory_service: Optional["CerbylMemoryService"] = None
 
-
 def get_memory_service() -> Optional["CerbylMemoryService"]:
     return _memory_service
-
 
 def initialize_memory_service(embed_fn, chroma_client=None) -> "CerbylMemoryService":
     global _memory_service
     _memory_service = CerbylMemoryService(embed_fn)
     logger.info("CerbylMemoryService initialized")
     return _memory_service
-
 
 @dataclass
 class MemoryEvent:
@@ -46,7 +36,6 @@ class MemoryEvent:
     time_seconds: int = 0
     p_mastery: float = 0.0
 
-
 @dataclass
 class Memory:
     id: int
@@ -63,12 +52,10 @@ class Memory:
     days_ago: int = 0
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-
 def _compute_hash(student_id: str, concept_id: str, source: str, no_date: bool = False) -> str:
     bucket = "" if no_date else date.today().isoformat()
     raw = f"{student_id}{concept_id}{source}{bucket}"
     return sha256(raw.encode()).hexdigest()[:16]
-
 
 def _compute_importance(
     memory_type: str,
@@ -97,7 +84,6 @@ def _compute_importance(
 
     return min(max(base, 0.0), 1.0)
 
-
 _PREFERENCE_KEYWORDS = [
     "enthusiastic", "casual", "concise", "remember", "always", "prefer",
     "more like", "don't be", "please be", "be more", "be less", "next time",
@@ -105,14 +91,11 @@ _PREFERENCE_KEYWORDS = [
     "funnier", "serious", "patient", "slow down", "speed up",
 ]
 
-
 def _is_preference(message: str) -> bool:
     msg = message.lower()
     return any(kw in msg for kw in _PREFERENCE_KEYWORDS)
 
-
 def _build_content(event: MemoryEvent) -> tuple[str, str]:
-    """Returns (content_string, memory_type)."""
     src = event.source
     if src == "flashcard":
         result = "correctly recalled" if event.correct else "struggled with"
@@ -151,18 +134,12 @@ def _build_content(event: MemoryEvent) -> tuple[str, str]:
         mtype = "exploration"
     return content, mtype
 
-
 class CerbylMemoryService:
-    """
-    Manages semantic long-term memory for every student.
-    Backed by SQLite (StudentMemory model) + ChromaDB per-student collection.
-    """
 
     def __init__(self, embed_fn, chroma_client=None):
         self._embed = embed_fn
 
     def write_memory(self, db, student_id: str, event: MemoryEvent) -> Optional[Memory]:
-        """Write (or update) a memory for today's interaction."""
         import models
 
         try:
@@ -258,7 +235,6 @@ class CerbylMemoryService:
             logger.warning(f"[Memory] vector_store upsert failed: {e}")
 
     def _fetch_preference_memories(self, db, student_id: str, now: datetime) -> List[Memory]:
-        """Always-on: fetch all stored user preferences regardless of query."""
         import models
         pref_rows = (
             db.query(models.StudentMemory)
@@ -294,7 +270,6 @@ class CerbylMemoryService:
         top_k: int = 5,
         source_filter: Optional[str] = None,
     ) -> List[Memory]:
-        """Retrieve the top_k most relevant memories for a query string."""
         import models
 
         results: List[Memory] = []
@@ -409,7 +384,6 @@ class CerbylMemoryService:
         return prefs + semantic[:max(0, top_k - len(prefs))]
 
     def format_memory_context(self, memories: List[Memory]) -> str:
-        """Format memories for LLM prompt injection."""
         if not memories:
             return ""
         prefs = [m for m in memories if m.memory_type == "user_preference"]
@@ -435,7 +409,6 @@ class CerbylMemoryService:
     def get_cross_source_memories(
         self, db, student_id: str, concept_id: str
     ) -> Dict[str, Optional[Memory]]:
-        """Fetch today's memories across all sources for a concept (O(1) hash lookup)."""
         import models
 
         result: Dict[str, Optional[Memory]] = {}

@@ -256,7 +256,7 @@ const QuizBattleSession = () => {
               } else {
               }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -359,7 +359,7 @@ const QuizBattleSession = () => {
       } else {
               }
     } catch (error) {
-    // silenced
+    
   }
   };
 

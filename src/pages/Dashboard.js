@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './Dashboard.css';
 import { useNavigate } from 'react-router-dom';
-import { formatToLocalTime, getRelativeTime } from '../utils/dateUtils';
+import { getRelativeTime } from '../utils/dateUtils';
 import { HelpTour, HelpButton } from './HelpTour';
 import {
   CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon,
@@ -11,11 +11,9 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
-import LoadingSpinner from '../components/LoadingSpinner';
 import ImportExportModal from '../components/ImportExportModal';
 import { useNotifications } from '../contexts/NotificationContext';
 import { API_URL } from '../config';
-import logo from '../assets/logo.svg';
 import GeoBackground from '../components/GeoBackground';
 
 const DEFAULT_LAYOUT_WIDGETS = [
@@ -140,7 +138,7 @@ const Dashboard = () => {
       try {
         setUserProfile(JSON.parse(profile));
       } catch (error) {
-    // silenced
+    
   }
     }
 
@@ -212,7 +210,7 @@ const Dashboard = () => {
           const parsed = JSON.parse(profile);
           showStudyInsights = parsed.showStudyInsights !== false;
         } catch (e) {
-    // silenced
+    
   }
       }
       
@@ -390,7 +388,7 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -487,7 +485,7 @@ const Dashboard = () => {
         setDailyChallenge(dcData);
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -504,7 +502,7 @@ const Dashboard = () => {
         setTotalQuestions(data.total_count || 0);
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setHeatmapLoading(false);
     }
@@ -531,7 +529,7 @@ const Dashboard = () => {
         startSessionTimeUpdater();
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -593,7 +591,7 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
@@ -1102,7 +1100,7 @@ const Dashboard = () => {
                     y: 80 - (val / maxRounded) * 60,
                   }));
 
-                  // smooth catmull-rom-ish bezier path (premium curve)
+                  
                   const smoothPath = points.reduce((acc, p, i) => {
                     if (i === 0) return `M ${p.x} ${p.y}`;
                     const prev = points[i - 1];
@@ -1437,16 +1435,16 @@ const Dashboard = () => {
                               </feMerge>
                             </filter>
                           </defs>
-                          {/* outer halo ring (soft depth) */}
+                          {}
                           <circle cx="18" cy="18" r="17.4" fill="none"
                             stroke={ringColor} strokeOpacity="0.08" strokeWidth="0.5" />
-                          {/* track */}
+                          {}
                           <circle cx="18" cy="18" r="15.9155" fill="none"
                             stroke="var(--border)" strokeWidth="1.6" strokeOpacity="0.55" />
-                          {/* inner concentric depth ring */}
+                          {}
                           <circle cx="18" cy="18" r="13.6" fill="none"
                             stroke={ringColor} strokeOpacity="0.06" strokeWidth="0.4" />
-                          {/* progress arc */}
+                          {}
                           <circle cx="18" cy="18" r="15.9155" fill="none"
                             stroke={`url(#${gradId})`} strokeWidth="2.6"
                             strokeDasharray={`${pct * 100} 100`}

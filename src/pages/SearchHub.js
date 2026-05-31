@@ -235,7 +235,7 @@ const SearchHub = () => {
       try {
         setRecentSearches(JSON.parse(saved));
       } catch (error) {
-    // silenced
+    
   }
     }
   };
@@ -250,7 +250,7 @@ const SearchHub = () => {
         return new Set(parsed.map(key => String(key)));
       }
     } catch (error) {
-    // silenced
+    
   }
     return new Set();
   };
@@ -364,7 +364,6 @@ const SearchHub = () => {
       };
     }
   }, []);
-
 
   const GENERIC_TOKENS = new Set([
     'flashcards', 'flashcard', 'notes', 'note', 'quiz', 'quizzes',

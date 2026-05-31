@@ -1,13 +1,3 @@
-"""
-YouTube Transcript Service - Production Ready (FREE)
-Uses YouTube Data API v3 + youtube-transcript-api for reliable caption extraction
-
-This approach:
-- Uses official YouTube Data API v3 (free tier: 10,000 quota/day)
-- Falls back to youtube-transcript-api library
-- Aggressive caching to minimize API usage
-- Works reliably on all platforms
-"""
 import os
 import re
 import json
@@ -56,16 +46,6 @@ CACHE_DIR = Path("backend/cache/transcripts")
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 class YouTubeAPIService:
-    """
-    Production-ready YouTube Transcript Service
-    
-    Features:
-    - Uses youtube-transcript-api (most reliable)
-    - Falls back to yt-dlp if needed
-    - Uses YouTube Data API v3 for metadata
-    - Aggressive caching (fetch once, use forever)
-    - No complex dependencies
-    """
     
     def __init__(self):
         self.cache_dir = CACHE_DIR
@@ -84,7 +64,6 @@ class YouTubeAPIService:
                 logger.warning("google-api-python-client not installed")
     
     def extract_video_id(self, url: str) -> Optional[str]:
-        """Extract video ID from various YouTube URL formats"""
         if not url:
             return None
             
@@ -106,11 +85,9 @@ class YouTubeAPIService:
         return None
     
     def _get_cache_path(self, video_id: str) -> Path:
-        """Get cache file path for a video"""
         return self.cache_dir / f"{video_id}.json"
     
     def _load_from_cache(self, video_id: str) -> Optional[Dict]:
-        """Load cached transcript if exists"""
         cache_path = self._get_cache_path(video_id)
         if cache_path.exists():
             try:
@@ -123,7 +100,6 @@ class YouTubeAPIService:
         return None
     
     def _save_to_cache(self, video_id: str, data: Dict):
-        """Save transcript to cache"""
         try:
             cache_path = self._get_cache_path(video_id)
             with open(cache_path, 'w', encoding='utf-8') as f:
@@ -133,10 +109,6 @@ class YouTubeAPIService:
             logger.warning(f"Cache write error: {e}")
     
     async def get_transcript(self, video_id: str, language: str = "en") -> Dict[str, Any]:
-        """
-        Get video transcript using multiple methods
-        Priority: 1) Cache, 2) youtube-transcript-api, 3) yt-dlp
-        """
         cached = self._load_from_cache(video_id)
         if cached:
             return cached
@@ -156,7 +128,6 @@ class YouTubeAPIService:
         return result
     
     async def _fetch_with_transcript_api(self, video_id: str, language: str = "en") -> Dict:
-        """Fetch transcript using youtube-transcript-api library"""
         try:
             logger.info(f"Fetching transcript with youtube-transcript-api for: {video_id}")
             
@@ -229,7 +200,6 @@ class YouTubeAPIService:
         return getattr(entry, key, default)
 
     def _get_transcript_list_compat(self, video_id: str):
-        """Support both old and new youtube-transcript-api interfaces."""
         if hasattr(YouTubeTranscriptApi, "list_transcripts"):
             return YouTubeTranscriptApi.list_transcripts(video_id)
 
@@ -241,7 +211,6 @@ class YouTubeAPIService:
         raise AttributeError("No transcript list method found in youtube-transcript-api")
 
     def _fetch_transcript_data_compat(self, video_id: str, language: str):
-        """Fetch transcript data across youtube-transcript-api versions."""
         lang_candidates = []
         for langs in ([language], ['en', 'en-US', 'en-GB'], ['en']):
             if langs not in lang_candidates:
@@ -324,7 +293,6 @@ class YouTubeAPIService:
         raise RuntimeError("No transcripts available")
     
     async def _get_video_metadata(self, video_id: str) -> Dict:
-        """Get video metadata using YouTube Data API v3"""
         try:
             if self.youtube_api:
                 loop = asyncio.get_event_loop()
@@ -363,7 +331,6 @@ class YouTubeAPIService:
         }
     
     def _parse_duration(self, duration_str: str) -> int:
-        """Parse ISO 8601 duration (PT1H2M10S) to seconds"""
         try:
             import re
             match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration_str)
@@ -377,7 +344,6 @@ class YouTubeAPIService:
         return 0
     
     async def _fetch_with_ytdlp(self, video_id: str, language: str = "en") -> Dict:
-        """Fetch transcript using yt-dlp with aggressive caption detection"""
         try:
             url = f"https://www.youtube.com/watch?v={video_id}"
             
@@ -573,7 +539,6 @@ class YouTubeAPIService:
             return {"success": False, "error": f"Error processing video: {str(e)}", "error_code": "exception"}
     
     def _parse_vtt(self, vtt_path: Path) -> Dict:
-        """Parse VTT subtitle file to transcript"""
         try:
             with open(vtt_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -678,14 +643,12 @@ class YouTubeAPIService:
             return {"transcript": "", "segments": []}
     
     def _clean_vtt_text(self, text: str) -> str:
-        """Clean VTT text - remove tags, timestamps, etc."""
         text = re.sub(r'<[^>]+>', '', text)
         text = re.sub(r'align:start position:\d+%', '', text)
         text = re.sub(r'\s+', ' ', text)
         return text.strip()
     
     async def get_video_info(self, video_id: str) -> Dict[str, Any]:
-        """Get video info using yt-dlp (no download)"""
         try:
             url = f"https://www.youtube.com/watch?v={video_id}"
             loop = asyncio.get_event_loop()
@@ -752,7 +715,6 @@ class YouTubeAPIService:
         }
     
     async def process_video(self, url: str) -> Dict[str, Any]:
-        """Main entry point - process YouTube video"""
         try:
             video_id = self.extract_video_id(url)
             if not video_id:
@@ -788,7 +750,6 @@ class YouTubeAPIService:
             return {"success": False, "error": str(e)}
     
     def clear_cache(self, video_id: str = None):
-        """Clear cache for a specific video or all videos"""
         if video_id:
             cache_path = self._get_cache_path(video_id)
             if cache_path.exists():

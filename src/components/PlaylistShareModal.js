@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { X, Copy, Check, Link as LinkIcon, Code, FileText, Share2 } from 'lucide-react';
 import './PlaylistShareModal.css';
 import { sanitizeUrl } from '../utils/sanitize';
@@ -105,7 +105,7 @@ const PlaylistShareModal = ({ playlist, isOpen, onClose }) => {
         url: shareUrl
       });
     } catch (error) {
-    // silenced
+    
   }
   };
 

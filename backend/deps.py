@@ -171,11 +171,6 @@ async def enforce_request_user_scope(
     request: Request,
     current_user: models.User = Depends(get_current_user_optional),
 ):
-    """
-    Enforce ownership for legacy endpoints that still pass user identifiers in requests.
-    If request carries user_id/student_id identifiers, a valid token must be present and
-    the identifier must match the authenticated user.
-    """
     keys = {"user_id", "user_id_param", "student_id"}
     candidates: list[str] = []
 

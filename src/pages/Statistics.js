@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader, TrendingUp, BookOpen, Target, Clock , Menu} from 'lucide-react';
 import './Statistics.css';
@@ -29,7 +29,7 @@ const Statistics = () => {
         setUserName(data.first_name || 'User');
       }
     } catch (error) {
-    // silenced
+    
   }
   };
 
@@ -48,7 +48,7 @@ const Statistics = () => {
         setStats(calculatedStats);
       }
     } catch (error) {
-    // silenced
+    
   } finally {
       setLoading(false);
     }

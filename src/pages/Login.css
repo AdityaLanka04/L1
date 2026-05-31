@@ -10,7 +10,6 @@
   overflow: hidden;
 }
 
-/* Subtle gold radial glows */
 .lg-page::before {
   content: '';
   position: absolute;
@@ -22,7 +21,6 @@
   z-index: 0;
 }
 
-/* Vector dot grid — same as Landing */
 .lg-dots {
   position: absolute;
   inset: 0;
@@ -33,7 +31,6 @@
   z-index: 0;
 }
 
-/* Logo watermark left-anchored */
 .lg-watermark {
   position: absolute !important;
   inset: 0 !important;

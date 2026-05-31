@@ -1,17 +1,3 @@
-"""
-Cerbyl Intelligence API Routes
-
-All user_id params are USERNAME strings (same pattern as all other routes).
-The route resolves them to integer IDs internally via get_user_by_username/email.
-
-GET  /api/intelligence/weakness/profile     ?user_id=username
-GET  /api/intelligence/weakness/recommendations ?user_id=username
-POST /api/intelligence/events/record
-GET  /api/intelligence/session/brief        ?user_id=username
-GET  /api/intelligence/memory               ?user_id=username
-POST /api/intelligence/memory/write
-GET  /api/intelligence/status
-"""
 from __future__ import annotations
 
 import logging
@@ -34,13 +20,11 @@ router = APIRouter(
     dependencies=[Depends(enforce_request_user_scope)],
 )
 
-
 def _resolve_user(db: Session, user_id: str) -> models.User:
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
-
 
 def _safe_isoformat(dt: Optional[datetime]) -> Optional[str]:
     if dt is None:
@@ -49,10 +33,8 @@ def _safe_isoformat(dt: Optional[datetime]) -> Optional[str]:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.isoformat()
 
-
 @router.get("/status")
 def intelligence_status():
-    """Check which intelligence services are online."""
     from services.memory_service import get_memory_service
     from services.context_agent import get_context_agent
     from services.ml_pipeline import ModelRegistry
@@ -65,17 +47,12 @@ def intelligence_status():
         "cross_encoder": reg._cross_encoder is not None,
     }
 
-
 @router.get("/weakness/profile")
 async def get_weakness_profile(
     user_id: str = Query(...),
     db: Session = Depends(get_db),
     token: str = Depends(verify_token),
 ):
-    """
-    Full WeaknessProfile for the dashboard.
-    user_id = username or email (same as all other routes).
-    """
     try:
         user = _resolve_user(db, user_id)
         student_id = user.id
@@ -259,14 +236,12 @@ async def get_weakness_profile(
         logger.error(f"[Intelligence] weakness profile failed: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
-
 @router.get("/weakness/recommendations")
 async def get_weakness_recommendations(
     user_id: str = Query(...),
     db: Session = Depends(get_db),
     token: str = Depends(verify_token),
 ):
-    """Top 3 prioritized study recommendations."""
     try:
         user = _resolve_user(db, user_id)
 
@@ -309,7 +284,6 @@ async def get_weakness_recommendations(
         logger.error(f"[Intelligence] recommendations failed: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
-
 class RecordEventRequest(BaseModel):
     student_id: str
     source: str
@@ -325,14 +299,12 @@ class RecordEventRequest(BaseModel):
     intent: str = ""
     message: str = ""
 
-
 @router.post("/events/record")
 async def record_event(
     request: RecordEventRequest,
     db: Session = Depends(get_db),
     token: str = Depends(verify_token),
 ):
-    """Record a learning event and get cross-feature decisions."""
     try:
         from services.context_agent import get_context_agent, LearningEvent
 
@@ -372,14 +344,12 @@ async def record_event(
         logger.error(f"[Intelligence] record event failed: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
-
 @router.get("/session/brief")
 async def get_session_brief(
     user_id: str = Query(...),
     db: Session = Depends(get_db),
     token: str = Depends(verify_token),
 ):
-    """Session start: apply forgetting curve, return session brief."""
     try:
         user = _resolve_user(db, user_id)
         from services.context_agent import get_context_agent
@@ -405,7 +375,6 @@ async def get_session_brief(
         logger.error(f"[Intelligence] session brief failed: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
-
 @router.get("/memory")
 async def get_student_memories(
     user_id: str = Query(...),
@@ -413,7 +382,6 @@ async def get_student_memories(
     db: Session = Depends(get_db),
     token: str = Depends(verify_token),
 ):
-    """Recent memories for a student (debug/demo)."""
     try:
         user = _resolve_user(db, user_id)
         rows = (
@@ -445,7 +413,6 @@ async def get_student_memories(
         logger.error(f"[Intelligence] memory list failed: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
-
 class WriteMemoryRequest(BaseModel):
     student_id: str
     source: str
@@ -459,14 +426,12 @@ class WriteMemoryRequest(BaseModel):
     time_seconds: int = 0
     p_mastery: float = 0.0
 
-
 @router.post("/memory/write")
 async def write_memory(
     request: WriteMemoryRequest,
     db: Session = Depends(get_db),
     token: str = Depends(verify_token),
 ):
-    """Manually write a memory entry."""
     try:
         from services.memory_service import get_memory_service, MemoryEvent
 
@@ -501,7 +466,6 @@ async def write_memory(
         logger.error(f"[Intelligence] memory write failed: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": "Internal server error"})
 
-
 def _mastery_color(p: float) -> str:
     if p < 0.3:
         return "deep_red"
@@ -513,19 +477,12 @@ def _mastery_color(p: float) -> str:
         return "light_green"
     return "bright_green"
 
-
-# ── RL / Bandit Analytics Endpoints ───────────────────────────────────────────
-
 @router.get("/rl/strategy-performance/{user_id_param}")
 async def get_rl_strategy_performance(
     user_id_param: str,
     db: Session = Depends(get_db),
     token: str = Depends(verify_token),
 ):
-    """
-    Per-student RL bandit insights.
-    Returns strategy stats, top learned policy, learning curve, and overall summary.
-    """
     user = _resolve_user(db, user_id_param)
     student_id = str(user.id)
 
@@ -542,7 +499,6 @@ async def get_rl_strategy_performance(
         .all()
     )
 
-    # ── strategy_stats ─────────────────────────────────────────────────────────
     from services.rl_strategy_agent import STRATEGY_IDS
 
     strategy_agg: dict = {s: {"pulls": 0, "total_reward": 0.0, "rewards": []} for s in STRATEGY_IDS}
@@ -554,7 +510,6 @@ async def get_rl_strategy_performance(
                 strategy_agg[sid]["total_reward"] += ep.reward_received
                 strategy_agg[sid]["rewards"].append(ep.reward_received)
 
-    # State descriptions for best/worst states
     state_hash_features: dict = {}
     for ep in episode_rows:
         if ep.state_hash not in state_hash_features and ep.state_features:
@@ -565,7 +520,6 @@ async def get_rl_strategy_performance(
                 f"{f.get('p_mastery_bucket','?')}"
             )
 
-    # Build bandit confidence per strategy × state
     bandit_by_strategy: dict = {}
     for row in bandit_rows:
         if row.strategy_id not in bandit_by_strategy:
@@ -605,7 +559,6 @@ async def get_rl_strategy_performance(
             "worst_states": worst_states,
         })
 
-    # ── top_policy: what the bandit learned works best per state ───────────────
     top_policy = []
     state_best: dict = {}
     for row in bandit_rows:
@@ -627,7 +580,6 @@ async def get_rl_strategy_performance(
                 "pulls": info["pulls"],
             })
 
-    # ── learning_curve: weekly avg reward ──────────────────────────────────────
     from collections import defaultdict
 
     weekly_rewards: dict = defaultdict(list)
@@ -648,7 +600,6 @@ async def get_rl_strategy_performance(
         "exploration_rate": round(explore_rate, 4),
     }
 
-    # ── overall_stats ──────────────────────────────────────────────────────────
     all_rewards = [ep.reward_received for ep in episode_rows if ep.reward_received is not None]
     rule_rewards = [ep.reward_received for ep in episode_rows
                     if ep.selection_method == "rule" and ep.reward_received is not None]
@@ -680,17 +631,11 @@ async def get_rl_strategy_performance(
         "overall_stats": overall_stats,
     }
 
-
 @router.get("/rl/platform-insights")
 async def get_rl_platform_insights(
     db: Session = Depends(get_db),
     token: str = Depends(verify_token),
 ):
-    """
-    Admin-only aggregate RL insights across all students.
-    Returns global strategy effectiveness, archetype→strategy mappings,
-    hardest states, and policy recommendations.
-    """
     from services.rl_strategy_agent import STRATEGY_IDS
     from collections import defaultdict
 
@@ -700,7 +645,6 @@ async def get_rl_platform_insights(
         .all()
     )
 
-    # Global strategy performance
     global_strategy: dict = {s: {"rewards": [], "pulls": 0} for s in STRATEGY_IDS}
     for ep in all_episodes:
         sid = ep.strategy_selected
@@ -720,7 +664,6 @@ async def get_rl_platform_insights(
             "win_rate": round(sum(1 for r in rewards if r > 0) / len(rewards), 4) if rewards else 0.0,
         })
 
-    # Archetype → strategy effectiveness heatmap
     archetype_strategy: dict = defaultdict(lambda: defaultdict(list))
     for ep in all_episodes:
         sf = ep.state_features or {}
@@ -735,7 +678,6 @@ async def get_rl_platform_insights(
             sid: round(sum(v) / len(v), 4) for sid, v in strategies.items() if v
         }
 
-    # Hardest states (lowest avg reward)
     state_rewards: dict = defaultdict(list)
     state_features_map: dict = {}
     for ep in all_episodes:
@@ -760,7 +702,6 @@ async def get_rl_platform_insights(
         key=lambda x: x["avg_reward"],
     )[:10]
 
-    # Global policy recommendations
     recommendations = []
     for sid in STRATEGY_IDS:
         rewards = global_strategy[sid]["rewards"]

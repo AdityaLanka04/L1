@@ -1,20 +1,3 @@
-"""
-test_intent_engine.py — Comprehensive test suite for CerbylIntentEngine.
-
-Covers:
-  - NaiveBayesClassifier: tokenisation, training, inference, entropy, serialisation
-  - InstructionMemory: extraction, strength decay, rule reinforcement, serialisation
-  - ConfidenceEstimator: feature computation, Platt scaling, boundary clamping
-  - CerbylIntentEngine: seed load, classify(), record_signal(), online updates
-  - IntentResult: helper predicates, is_educational / is_instruction / is_casual
-  - End-to-end classification accuracy on held-out messages
-  - Edge cases: empty input, repeated instructions, very long messages, adversarial
-
-Usage:
-    cd backend/
-    python -m pytest tests/test_intent_engine.py -v
-    python -m pytest tests/test_intent_engine.py -v --tb=short
-"""
 from __future__ import annotations
 
 import json
@@ -40,20 +23,12 @@ from services.intent_engine import (
     NaiveBayesClassifier,
 )
 
-
-# ════════════════════════════════════════════════════════════════════════════
-# Fixtures
-# ════════════════════════════════════════════════════════════════════════════
-
 @pytest.fixture()
 def fresh_nb() -> NaiveBayesClassifier:
-    """Untrained classifier."""
     return NaiveBayesClassifier(CLASSES)
-
 
 @pytest.fixture()
 def trained_nb() -> NaiveBayesClassifier:
-    """Classifier trained on a small representative set."""
     nb = NaiveBayesClassifier(CLASSES)
     examples = [
         ("explain gradient descent to me", "LEARN_CONCEPT"),
@@ -82,20 +57,16 @@ def trained_nb() -> NaiveBayesClassifier:
         nb.partial_fit(text, label)
     return nb
 
-
 @pytest.fixture()
 def mem() -> InstructionMemory:
     return InstructionMemory()
-
 
 @pytest.fixture()
 def estimator() -> ConfidenceEstimator:
     return ConfidenceEstimator()
 
-
 @pytest.fixture()
 def engine_with_seed() -> CerbylIntentEngine:
-    """Engine loaded from the real seed file (no persisted state)."""
     eng = CerbylIntentEngine()
     seed_path = Path(__file__).parent.parent / "services" / "intent_seed.json"
     seed = json.loads(seed_path.read_text(encoding="utf-8"))
@@ -103,11 +74,6 @@ def engine_with_seed() -> CerbylIntentEngine:
         eng.classifier.partial_fit(ex["text"], ex["label"], weight=ex.get("weight", 1.0))
     eng._ready = True
     return eng
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# 1. NaiveBayesClassifier
-# ════════════════════════════════════════════════════════════════════════════
 
 class TestNaiveBayesClassifier:
 
@@ -126,7 +92,6 @@ class TestNaiveBayesClassifier:
 
     def test_tokenize_strips_short_tokens(self, fresh_nb):
         tokens = fresh_nb._tokenize("a is an the")
-        # tokens <2 chars stripped by regex \b[a-z']{2,}\b
         assert "a" not in tokens
 
     def test_tokenize_handles_empty(self, fresh_nb):
@@ -142,7 +107,6 @@ class TestNaiveBayesClassifier:
         assert fresh_nb.class_word_counts["LEARN_CONCEPT"]["explain"] == pytest.approx(2.0)
 
     def test_partial_fit_weighted(self, fresh_nb):
-        # "gradient descent" → 2 unigrams + 1 bigram = 3 tokens; each × weight 3 = 9 total
         fresh_nb.partial_fit("gradient descent", "LEARN_CONCEPT", weight=3.0)
         assert fresh_nb.class_word_counts["LEARN_CONCEPT"]["gradient"] == pytest.approx(3.0)
         assert fresh_nb.class_total_words["LEARN_CONCEPT"] == pytest.approx(9.0)
@@ -190,7 +154,6 @@ class TestNaiveBayesClassifier:
         assert label == "REVIEW"
 
     def test_entropy_untrained_is_max(self, fresh_nb):
-        # Untrained = uniform prior → max entropy
         H = fresh_nb.entropy("anything")
         H_max = math.log(len(CLASSES))
         assert H == pytest.approx(H_max, abs=0.01)
@@ -201,7 +164,6 @@ class TestNaiveBayesClassifier:
         assert H_trained < H_max
 
     def test_entropy_confident_prediction_low(self, trained_nb):
-        # Training heavily on one class for a phrase should give lower entropy
         for _ in range(10):
             trained_nb.partial_fit("xyzzy frobulate quux", "ASSESS")
         H = trained_nb.entropy("xyzzy frobulate quux")
@@ -226,7 +188,6 @@ class TestNaiveBayesClassifier:
         assert "backpropagation" in nb2.vocab
 
     def test_online_update_shifts_prediction(self, trained_nb):
-        # Force REVIEW for a phrase that wouldn't naturally be REVIEW
         phrase = "zebra unicorn frobble"
         label_before, _ = trained_nb.predict(phrase)
         for _ in range(20):
@@ -236,7 +197,6 @@ class TestNaiveBayesClassifier:
         assert conf_after > 0.5
 
     def test_handles_unknown_tokens_gracefully(self, trained_nb):
-        # Tokens never seen during training → Laplace smoothing handles them
         proba = trained_nb.predict_proba("qxzwpfmrvblt zzzyqqq")
         assert abs(sum(proba.values()) - 1.0) < 1e-9
 
@@ -244,15 +204,9 @@ class TestNaiveBayesClassifier:
         proba = trained_nb.predict_proba("")
         total = sum(proba.values())
         assert abs(total - 1.0) < 1e-9
-        # With no tokens, only prior contributes → relatively uniform
         max_p = max(proba.values())
         min_p = min(proba.values())
-        assert max_p / min_p < 10  # not wildly skewed
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# 2. InstructionMemory
-# ════════════════════════════════════════════════════════════════════════════
+        assert max_p / min_p < 10
 
 class TestInstructionMemory:
 
@@ -319,21 +273,19 @@ class TestInstructionMemory:
     def test_rule_decay_with_mocked_time(self, mem):
         mem.extract_and_store("don't ask me questions")
         rule = mem.active_rules()[0]
-        # Manually age the rule by 7 days (half-life)
         rule.created_at -= 7 * 86400
         assert rule.current_strength == pytest.approx(0.5, abs=0.01)
 
     def test_rule_becomes_inactive_after_decay(self, mem):
         mem.extract_and_store("don't ask me questions")
         rule = mem.active_rules()[0]
-        # Age by 50 days → strength ≈ 0.5^(50/7) ≈ 0.006 < 0.05
         rule.created_at -= 50 * 86400
         assert not rule.is_active
 
     def test_active_rules_filters_expired(self, mem):
         mem.extract_and_store("don't ask me questions")
         rule = list(mem._rules.values())[0]
-        rule.created_at -= 50 * 86400  # expire it
+        rule.created_at -= 50 * 86400
         assert len(mem.active_rules()) == 0
 
     def test_multiple_distinct_rules(self, mem):
@@ -371,11 +323,6 @@ class TestInstructionMemory:
         mem.extract_and_store("stop using bullets")
         ids = [r.rule_id for r in mem.active_rules()]
         assert len(ids) == len(set(ids))
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# 3. ConfidenceEstimator
-# ════════════════════════════════════════════════════════════════════════════
 
 class TestConfidenceEstimator:
 
@@ -422,7 +369,6 @@ class TestConfidenceEstimator:
 
     def test_zpd_match_raises_confidence(self, estimator):
         proba = self._peaked_proba()
-        # p_mastery=0.4 is the ZPD peak
         zpd = estimator.estimate(proba, "good answer", p_mastery=0.40)
         novice = estimator.estimate(proba, "good answer", p_mastery=0.05)
         expert = estimator.estimate(proba, "good answer", p_mastery=0.95)
@@ -430,7 +376,6 @@ class TestConfidenceEstimator:
         assert zpd >= expert
 
     def test_confidence_never_below_floor(self, estimator):
-        # Worst-case inputs: uniform proba, max frustration, min engagement, all hedging
         worst_proba = self._uniform_proba()
         conf = estimator.estimate(
             worst_proba,
@@ -442,7 +387,6 @@ class TestConfidenceEstimator:
         assert conf >= 0.05
 
     def test_confidence_never_above_ceiling(self, estimator):
-        # Best-case: maximum certainty
         best_proba = self._peaked_proba(winner_mass=0.999)
         conf = estimator.estimate(
             best_proba,
@@ -456,7 +400,6 @@ class TestConfidenceEstimator:
     def test_output_is_rounded_to_3_decimals(self, estimator):
         proba = self._peaked_proba()
         conf = estimator.estimate(proba, "answer")
-        # 3 decimal places means multiplying by 1000 and rounding gives integer
         assert conf == round(conf, 3)
 
     def test_empty_response_handled(self, estimator):
@@ -465,10 +408,8 @@ class TestConfidenceEstimator:
         assert 0.05 <= conf <= 0.95
 
     def test_different_winner_classes_affect_confidence(self, estimator):
-        # LEARN_CONCEPT should score similarly to ASSESS for a peaked distribution
         lc = estimator.estimate(self._peaked_proba("LEARN_CONCEPT"), "good answer")
         ca = estimator.estimate(self._peaked_proba("ASSESS"), "good answer")
-        # Both are educational — both should be reasonably confident
         assert lc > 0.4
         assert ca > 0.4
 
@@ -481,11 +422,6 @@ class TestConfidenceEstimator:
             )
             results.add(c)
         assert len(results) > 1, "Confidence should vary with inputs"
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# 4. IntentResult helpers
-# ════════════════════════════════════════════════════════════════════════════
 
 class TestIntentResult:
 
@@ -515,7 +451,6 @@ class TestIntentResult:
         assert result.is_instruction()
 
     def test_is_instruction_via_proba_threshold(self):
-        # INSTRUCTION probability > 0.30 should trigger even if not top class
         proba = {c: 0.1 for c in CLASSES}
         proba["CASUAL"] = 0.35
         proba["INSTRUCTION"] = 0.32
@@ -543,14 +478,7 @@ class TestIntentResult:
         for v in d["proba"].values():
             assert v == round(v, 4)
 
-
-# ════════════════════════════════════════════════════════════════════════════
-# 5. CerbylIntentEngine — seed loading & classify
-# ════════════════════════════════════════════════════════════════════════════
-
 class TestCerbylIntentEngineClassify:
-
-    # ── Seed loaded correctly ────────────────────────────────────────────
 
     def test_engine_loads_seed_vocab(self, engine_with_seed):
         assert len(engine_with_seed.classifier.vocab) > 50
@@ -559,8 +487,6 @@ class TestCerbylIntentEngineClassify:
         for cls in CLASSES:
             assert engine_with_seed.classifier.class_doc_counts[cls] > 0, \
                 f"Class {cls} has 0 training examples in seed"
-
-    # ── LEARN_CONCEPT ───────────────────────────────────────────────────
 
     @pytest.mark.parametrize("msg", [
         "explain gradient descent to me",
@@ -581,8 +507,6 @@ class TestCerbylIntentEngineClassify:
         assert result.label == "LEARN_CONCEPT", \
             f"'{msg}' → got {result.label} (conf={result.confidence:.3f})"
 
-    # ── INSTRUCTION ─────────────────────────────────────────────────────
-
     @pytest.mark.parametrize("msg", [
         "don't ask me questions anymore",
         "stop adding comprehension checks",
@@ -602,8 +526,6 @@ class TestCerbylIntentEngineClassify:
             f"'{msg}' → got {result.label} (conf={result.confidence:.3f}), " \
             f"INSTRUCTION prob={result.proba.get('INSTRUCTION', 0):.3f}"
 
-    # ── META ─────────────────────────────────────────────────────────────
-
     @pytest.mark.parametrize("msg", [
         "do you remember what we talked about",
         "what did we cover last time",
@@ -616,8 +538,6 @@ class TestCerbylIntentEngineClassify:
         assert result.label == "META", \
             f"'{msg}' → got {result.label} (conf={result.confidence:.3f})"
 
-    # ── CASUAL ───────────────────────────────────────────────────────────
-
     @pytest.mark.parametrize("msg", [
         "hi", "hello there", "hey", "ok", "thanks",
         "cool got it", "sounds good", "yo", "bruh", "lol ok",
@@ -626,8 +546,6 @@ class TestCerbylIntentEngineClassify:
         result = engine_with_seed.classify(msg)
         assert result.label == "CASUAL", \
             f"'{msg}' → got {result.label} (conf={result.confidence:.3f})"
-
-    # ── EMOTIONAL ────────────────────────────────────────────────────────
 
     @pytest.mark.parametrize("msg", [
         "i don't get this at all",
@@ -642,8 +560,6 @@ class TestCerbylIntentEngineClassify:
         assert result.label == "EMOTIONAL", \
             f"'{msg}' → got {result.label} (conf={result.confidence:.3f})"
 
-    # ── ASSESS ───────────────────────────────────────────────────────────
-
     @pytest.mark.parametrize("msg", [
         "quiz me on this",
         "give me some practice questions",
@@ -657,8 +573,6 @@ class TestCerbylIntentEngineClassify:
         assert result.label == "ASSESS", \
             f"'{msg}' → got {result.label} (conf={result.confidence:.3f})"
 
-    # ── REVIEW ───────────────────────────────────────────────────────────
-
     @pytest.mark.parametrize("msg", [
         "summarize what we covered",
         "give me a quick recap",
@@ -670,8 +584,6 @@ class TestCerbylIntentEngineClassify:
         result = engine_with_seed.classify(msg)
         assert result.label == "REVIEW", \
             f"'{msg}' → got {result.label} (conf={result.confidence:.3f})"
-
-    # ── Result shape ─────────────────────────────────────────────────────
 
     def test_result_has_all_class_probabilities(self, engine_with_seed):
         result = engine_with_seed.classify("explain backprop")
@@ -695,18 +607,12 @@ class TestCerbylIntentEngineClassify:
 
     def test_non_instruction_has_empty_new_rules(self, engine_with_seed):
         result = engine_with_seed.classify("explain gradient descent to me")
-        # Educational message should not generate instruction rules
         assert result.new_rules == []
 
     def test_active_rules_populated_after_instruction(self, engine_with_seed):
         engine_with_seed.classify("don't ask me questions anymore")
         result2 = engine_with_seed.classify("explain backprop")
         assert any(r.domain == "questions" for r in result2.active_rules)
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# 6. CerbylIntentEngine — online learning
-# ════════════════════════════════════════════════════════════════════════════
 
 class TestOnlineLearning:
 
@@ -731,8 +637,6 @@ class TestOnlineLearning:
         phrase = "totally unique instruction xylophone bloop"
         engine_with_seed.record_signal(phrase, "INSTRUCTION", weight=1.5)
         proba = engine_with_seed.classifier.predict_proba(phrase)
-        # INSTRUCTION should have a higher count than before (can't compare to baseline
-        # but we can check the word appears in instruction word counts)
         assert engine_with_seed.classifier.class_word_counts["INSTRUCTION"].get("xylophone", 0) > 0
 
     def test_repeated_instructions_reinforce_memory(self, engine_with_seed):
@@ -756,11 +660,6 @@ class TestOnlineLearning:
             engine_with_seed.record_signal("test phrase", "CASUAL")
             mock_save.assert_not_called()
 
-
-# ════════════════════════════════════════════════════════════════════════════
-# 7. CerbylIntentEngine — confidence estimation integration
-# ════════════════════════════════════════════════════════════════════════════
-
 class TestConfidenceIntegration:
 
     def test_confidence_not_constant(self, engine_with_seed):
@@ -774,7 +673,6 @@ class TestConfidenceIntegration:
             result = engine_with_seed.classify(user_msg)
             conf = engine_with_seed.estimate_response_confidence(result, response)
             confidences.append(conf)
-        # Must not all be the same value
         assert len(set(confidences)) > 1, f"All confidences identical: {confidences}"
 
     def test_educational_query_gets_higher_confidence(self, engine_with_seed):
@@ -831,15 +729,9 @@ class TestConfidenceIntegration:
             assert 0.05 <= conf <= 0.95, \
                 f"Confidence {conf} out of range for '{user_msg}'"
 
-
-# ════════════════════════════════════════════════════════════════════════════
-# 8. Prompt addendum
-# ════════════════════════════════════════════════════════════════════════════
-
 class TestPromptAddendum:
 
     def test_addendum_empty_with_no_rules(self, engine_with_seed):
-        # Fresh engine from fixture has no rules yet
         engine_with_seed.instruction_memory = InstructionMemory()
         assert engine_with_seed.to_prompt_addendum() == ""
 
@@ -858,11 +750,6 @@ class TestPromptAddendum:
         addendum = engine_with_seed.to_prompt_addendum()
         if addendum:
             assert "ALWAYS" in addendum
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# 9. Seed data integrity
-# ════════════════════════════════════════════════════════════════════════════
 
 class TestSeedData:
 
@@ -904,11 +791,6 @@ class TestSeedData:
             w = ex.get("weight", 1.0)
             assert w > 0, f"Non-positive weight in example: {ex}"
 
-
-# ════════════════════════════════════════════════════════════════════════════
-# 10. Persistence (state file save/load)
-# ════════════════════════════════════════════════════════════════════════════
-
 class TestPersistence:
 
     def test_serialise_deserialise_preserves_predictions(self, engine_with_seed):
@@ -945,11 +827,6 @@ class TestPersistence:
             saved = json.loads(saved_state_path.read_text())
             assert saved["train_count"] == 42
 
-
-# ════════════════════════════════════════════════════════════════════════════
-# 11. Edge cases & adversarial inputs
-# ════════════════════════════════════════════════════════════════════════════
-
 class TestEdgeCases:
 
     def test_empty_string(self, engine_with_seed):
@@ -979,12 +856,10 @@ class TestEdgeCases:
         assert result.is_instruction()
 
     def test_unicode_message(self, engine_with_seed):
-        # Non-ASCII falls out of tokenizer, but shouldn't crash
         result = engine_with_seed.classify("αβγδ explain 神经网络 gradient descent")
         assert result.label in CLASSES
 
     def test_instruction_with_embedded_educational_content(self, engine_with_seed):
-        # "don't ask me questions about gradient descent" — instruction wins
         result = engine_with_seed.classify(
             "don't ask me any more questions about gradient descent please"
         )
@@ -1010,19 +885,9 @@ class TestEdgeCases:
         assert status["vocab_size"] > 0
         assert status["classes"] == CLASSES
 
-
-# ════════════════════════════════════════════════════════════════════════════
-# 12. Accuracy benchmark (fail fast if accuracy drops below threshold)
-# ════════════════════════════════════════════════════════════════════════════
-
 class TestAccuracyBenchmark:
-    """
-    Held-out test set — none of these phrases appear verbatim in intent_seed.json.
-    Target: ≥85% accuracy across all classes.
-    """
 
     HELD_OUT = [
-        # LEARN_CONCEPT
         ("can you walk me through how attention works in transformers", "LEARN_CONCEPT"),
         ("i need to understand the chain rule of calculus", "LEARN_CONCEPT"),
         ("what exactly is a pointer in C programming", "LEARN_CONCEPT"),
@@ -1030,30 +895,24 @@ class TestAccuracyBenchmark:
         ("what is the intuition behind support vector machines", "LEARN_CONCEPT"),
         ("explain the intuition behind L1 vs L2 regularization", "LEARN_CONCEPT"),
         ("how does dropout prevent overfitting", "LEARN_CONCEPT"),
-        # INSTRUCTION
         ("i really don't want you to quiz me at the end", "INSTRUCTION"),
         ("please stop using so many bullet points", "INSTRUCTION"),
         ("i need you to be more concise going forward", "INSTRUCTION"),
         ("no more questions at the end of your responses ok", "INSTRUCTION"),
-        # META
         ("what were we talking about before", "META"),
         ("earlier in this conversation you explained something about this", "META"),
         ("can you recall what we discussed previously", "META"),
-        # CASUAL
         ("alright", "CASUAL"),
         ("got it thanks", "CASUAL"),
         ("ok makes sense", "CASUAL"),
         ("nice one", "CASUAL"),
         ("lol ok", "CASUAL"),
-        # EMOTIONAL
         ("no matter how many times i read this it makes no sense", "EMOTIONAL"),
         ("i'm so stressed out about this topic", "EMOTIONAL"),
         ("why can't i just get this i keep messing up", "EMOTIONAL"),
-        # ASSESS
         ("can you give me a few questions to test myself on this", "ASSESS"),
         ("i'd like to do a mock exam on this material", "ASSESS"),
         ("generate 3 hard questions about regularization", "ASSESS"),
-        # REVIEW
         ("can you quickly run me through what we talked about", "REVIEW"),
         ("what are the most important things to take away from today", "REVIEW"),
         ("give me the highlights of everything we've covered", "REVIEW"),

@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════
-   FRIENDS DASHBOARD — Cinematic design
-   ══════════════════════════════════════════════════════ */
+
 
 .fd-container {
   --fd-accent: var(--accent);
@@ -11,7 +9,6 @@
   --fd-sidebar-width: 220px;
 }
 
-/* ── Shell ── */
 .fd-container {
   position: fixed !important;
   inset: 0;
@@ -23,7 +20,7 @@
   flex-direction: column;
   overflow: hidden;
   z-index: 9999;
-  /* Rich layered background like podcast page */
+  
   background:
     radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
     radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
@@ -37,7 +34,6 @@
   padding: 0;
 }
 
-/* Subtle vector dot grid */
 .fd-container::after {
   content: '';
   position: fixed;
@@ -49,7 +45,6 @@
   opacity: 0.35;
 }
 
-/* ══════════════ HEADER ══════════════ */
 .gm-header {
   position: relative;
   z-index: 100;
@@ -147,7 +142,6 @@
 
 .gm-nav-btn-ghost { background: transparent; border: none; }
 
-/* ══════════════ LAYOUT ══════════════ */
 .fd-layout {
   display: flex;
   flex: 1;
@@ -156,7 +150,6 @@
   z-index: 1;
 }
 
-/* ══════════════ SIDEBAR — Flashcards style ══════════════ */
 .fd-sidebar {
   width: var(--fd-sidebar-width);
   height: 100%;
@@ -299,7 +292,6 @@
   color: #f87171;
 }
 
-/* ══════════════ MAIN ══════════════ */
 .fd-main {
   flex: 1;
   overflow-y: auto;
@@ -311,7 +303,6 @@
   scrollbar-color: color-mix(in srgb, var(--accent) 20%, transparent) transparent;
 }
 
-/* ── View header (big cinematic title) ── */
 .fd-view-header {
   display: flex;
   flex-direction: column;
@@ -355,7 +346,6 @@
   margin-top: 4px;
 }
 
-/* ══════════════ FRIEND CARDS ══════════════ */
 .fd-friends-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -372,7 +362,6 @@
   cursor: default;
 }
 
-/* Layered card background like podcast panels */
 .fd-friend-card::before {
   content: '';
   position: absolute;
@@ -383,7 +372,6 @@
   z-index: 0;
 }
 
-/* Top shimmer line */
 .fd-friend-card::after {
   content: '';
   position: absolute;
@@ -419,7 +407,6 @@
     0 0 40px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
-/* ── Card top section ── */
 .fd-friend-card-top {
   display: flex;
   align-items: flex-start;
@@ -427,7 +414,6 @@
   padding: 24px 24px 20px;
 }
 
-/* ── Avatar ── */
 .fd-avatar {
   border-radius: 50%;
   display: flex;
@@ -470,7 +456,6 @@
   object-fit: cover;
 }
 
-/* ── Identity ── */
 .fd-friend-identity {
   flex: 1;
   min-width: 0;
@@ -534,7 +519,6 @@
   color: #f87171;
 }
 
-/* ── Stats section ── */
 .fd-friend-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -591,7 +575,6 @@
   color: color-mix(in srgb, var(--text-primary) 30%, transparent);
 }
 
-/* ── XP progress bar ── */
 .fd-xp-bar {
   height: 3px;
   background: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -605,7 +588,6 @@
   transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ══════════════ SEARCH BOX ══════════════ */
 .fd-search-box {
   display: flex;
   align-items: center;
@@ -645,7 +627,6 @@
   color: color-mix(in srgb, var(--text-primary) 25%, transparent);
 }
 
-/* ══════════════ USER ROWS ══════════════ */
 .fd-users-list {
   display: flex;
   flex-direction: column;
@@ -723,7 +704,6 @@
 
 .fd-user-row-action { flex-shrink: 0; }
 
-/* ── Action buttons ── */
 .fd-add-btn {
   display: inline-flex;
   align-items: center;
@@ -771,7 +751,6 @@
   color: var(--accent);
 }
 
-/* ── Request buttons ── */
 .fd-request-btns { display: flex; gap: 8px; }
 
 .fd-req-btn {
@@ -810,7 +789,6 @@
   transform: scale(1.1);
 }
 
-/* ══════════════ SECTION LABELS ══════════════ */
 .fd-requests-section {
   display: flex;
   flex-direction: column;
@@ -844,7 +822,6 @@
   color: var(--accent);
 }
 
-/* ══════════════ EMPTY / LOADING ══════════════ */
 .fd-empty {
   display: flex;
   flex-direction: column;
@@ -943,7 +920,6 @@
   50%       { transform: scale(1.3); opacity: 1; }
 }
 
-/* ══════════════ NAV MENU BTN ══════════════ */
 .nav-menu-btn {
   background: transparent;
   border: none;
@@ -964,7 +940,6 @@
 .nav-menu-btn:active { transform: scale(0.95); }
 .nav-menu-btn svg { stroke-width: 2; }
 
-/* ══════════════ RESPONSIVE ══════════════ */
 @media (max-width: 1100px) {
   .fd-friends-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
   .fd-main { padding: 36px 32px; }

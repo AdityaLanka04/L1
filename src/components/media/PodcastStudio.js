@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookmarkPlus,
   Copy,
@@ -123,7 +123,7 @@ const splitSentences = (text) => {
       }
       if (sentences.length > 0) return sentences;
     } catch (e) {
-      // fallback to regex splitter
+      
     }
   }
 
@@ -284,7 +284,7 @@ const testVoiceBoundarySupport = (synth, voice) => new Promise((resolve) => {
     try {
       synth.cancel();
     } catch (e) {
-      // ignore cancel errors
+      
     }
     finalize(false);
   }, 2200);
@@ -489,7 +489,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
         recognitionRef.current.onend = null;
         recognitionRef.current.stop();
       } catch (e) {
-        // ignore stop errors
+        
       }
     }
     setIsHandsFreeListening(false);
@@ -504,7 +504,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       try {
         await fullscreenRef.current.requestFullscreen();
       } catch (e) {
-        // fixed overlay remains active even if browser fullscreen is blocked
+        
       }
     }
   };
@@ -512,7 +512,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
   const closeFullscreenMode = async () => {
     setIsFullscreenMode(false);
     if (document.fullscreenElement && document.exitFullscreen) {
-      try { await document.exitFullscreen(); } catch (e) { /* noop */ }
+      try { await document.exitFullscreen(); } catch (e) {  }
     }
     if (onExit) onExit();
   };
@@ -596,7 +596,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
             try {
               recognition.start();
             } catch (e) {
-              // ignore repeated start errors
+              
             }
           }, 250);
         }
@@ -636,7 +636,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
     try {
       recognitionRef.current.start();
     } catch (e) {
-      // ignore if already started
+      
     }
   };
 
@@ -647,7 +647,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       const res = await podcastAgentService.getSavedSessions(userName, 20);
       setSavedSessions(res.sessions || []);
     } catch (e) {
-      // non-blocking
+      
     } finally {
       setIsLoadingSaved(false);
     }
@@ -701,8 +701,8 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       setVoices(ranked);
       if (!selectedVoiceUri && ranked.length > 0) {
         for (const voice of ranked) {
-          // Ensure selected voice supports boundary events for word-by-word sync.
-          // eslint-disable-next-line no-await-in-loop
+          
+          
           const supportsBoundary = await testVoiceBoundarySupport(synth, voice);
           if (cancelled) return;
           if (supportsBoundary) {
@@ -1328,7 +1328,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
         session_id: sessionId,
       });
     } catch (e) {
-      // keep UX responsive even if backend stop fails
+      
     }
 
     setSessionId('');
@@ -1460,7 +1460,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       <div className="podcast-fullscreen-backdrop" />
       <div className="podcast-fullscreen">
 
-        {/* ── TOP BAR ── */}
+        {}
         <div className="podcast-fullscreen-topbar">
           <div className="podcast-fullscreen-heading">
             <span className="podcast-fullscreen-kicker">
@@ -1489,10 +1489,10 @@ const PodcastStudio = ({ results, userName, onExit }) => {
           </div>
         </div>
 
-        {/* ── BODY ── */}
+        {}
         {!sessionId ? (
 
-          /* PRE-LAUNCH SCREEN */
+          
           <div className="podcast-prelaunch">
             {isStarting ? (
               <div className="podcast-prelaunch-starting">
@@ -1544,7 +1544,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
 
         ) : (
 
-          /* ACTIVE SESSION */
+          
           <div className="podcast-fullscreen-body">
             <aside className="podcast-fullscreen-rail">
               <div className="podcast-fullscreen-panel">
@@ -1702,7 +1702,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
         )}
       </div>
 
-      {/* ── SETTINGS DRAWER ── */}
+      {}
       {showSettingsDrawer && (
         <div className="podcast-settings-overlay" onClick={() => setShowSettingsDrawer(false)}>
           <aside className="podcast-settings-drawer" onClick={(e) => e.stopPropagation()}>

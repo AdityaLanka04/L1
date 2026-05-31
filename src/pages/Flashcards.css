@@ -90,8 +90,6 @@
   opacity: 0.3;
 }
 
-
-
 [data-theme-mode="light"] .fc-main {
   background: transparent;
 }
@@ -631,7 +629,6 @@
   opacity: 1;
   color: var(--accent);
 }
-
 
 .fc-stats-bar {
   padding: 0;
@@ -2171,7 +2168,6 @@
   flex-direction: column;
 }
 
-/* Let the abstract fx layer show through in edit & preview modes */
 .flashcards-page .fc-edit-mode,
 .flashcards-page:has(.afx) .fc-study-mode {
   background: transparent;
@@ -4900,7 +4896,6 @@
   box-shadow: 0 6px 24px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-
 [data-theme-mode="dark"] .fc-content::before {
   content: '';
   position: absolute;
@@ -6814,7 +6809,6 @@
 
 .fc-sr-panel-header { display: none; }
 
-/* Study Queue row — inline with the start button */
 .fc-sr-queue-row {
   display: flex;
   align-items: stretch;
@@ -7629,7 +7623,6 @@
 
 .fc-sr-ai-section::before { display: none; }
 
-/* Explore search landing */
 .fc-explore-search-landing {
   display: flex;
   flex-direction: column;

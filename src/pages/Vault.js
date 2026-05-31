@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, BookOpen, FileText, Search, Library, Lock, Users, Trash2,
@@ -10,8 +10,6 @@ import contextService from '../services/contextService';
 import { API_URL } from '../config/api';
 import AbstractFx from '../components/AbstractFx';
 import './Vault.css';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const DECK_SIZE = 8;
 const DECK_KEY  = 'ctx_selected_doc_ids';
@@ -96,8 +94,6 @@ const CAT_COLORS = {
   'Language Arts': '#a855f7', Languages: '#a855f7', Arts: '#ec4899',
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 const fmtDate = (iso) => {
   if (!iso) return '';
   try {
@@ -140,7 +136,7 @@ const saveFileActionStats = (payload) => {
   try {
     localStorage.setItem(FILE_INSIGHTS_KEY, JSON.stringify(payload || {}));
   } catch {
-    // no-op
+    
   }
 };
 
@@ -176,8 +172,6 @@ const flattenFolderTree = (nodes, depth = 0) => {
   return flat;
 };
 
-// ─── Doc card component (playlist-style with cover) ──────────────────────────
-
 function VaultDocCard({ doc, acts, inDeck, deckFull, onDeckToggle, onAction, onDelete, onNavigate }) {
   const id         = doc.doc_id || doc.id;
   const name       = doc.filename || doc.title || 'Untitled';
@@ -192,7 +186,7 @@ function VaultDocCard({ doc, acts, inDeck, deckFull, onDeckToggle, onAction, onD
       tabIndex={0}
       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onNavigate(id)}
     >
-      {/* Coloured cover block */}
+      {}
       <div
         className="vlt-doccard-cover"
         style={{ background: `linear-gradient(135deg, ${coverColor}20 0%, ${coverColor}50 100%)` }}
@@ -208,7 +202,7 @@ function VaultDocCard({ doc, acts, inDeck, deckFull, onDeckToggle, onAction, onD
         )}
       </div>
 
-      {/* Body */}
+      {}
       <div className="vlt-doccard-body">
         <h3 className="vlt-doccard-title" title={name}>{name}</h3>
 
@@ -264,34 +258,32 @@ function VaultDocCard({ doc, acts, inDeck, deckFull, onDeckToggle, onAction, onD
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
 const Vault = () => {
   const navigate = useNavigate();
   const fileRef = useRef(null);
 
-  // Data
+  
   const [userDocs, setUserDocs] = useState([]);
   const [hsDocs,   setHsDocs]   = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [deleting, setDeleting] = useState(null);
 
-  // Deck
+  
   const [deckIds, setDeckIds] = useState(loadDeck);
 
-  // Recent
+  
   const [recent, setRecent] = useState([]);
   const [recentLoading, setRecentLoading] = useState(false);
   const [recentKey, setRecentKey] = useState(0);
 
-  // Upload
+  
   const [uploading,    setUploading]    = useState(false);
   const [uploadError,  setUploadError]  = useState('');
   const [uploadOk,     setUploadOk]     = useState('');
   const [uploadSubject,setUploadSubject]= useState('');
   const [uploadFolderId, setUploadFolderId] = useState('');
 
-  // Folders
+  
   const [folders, setFolders] = useState([]);
   const [foldersLoading, setFoldersLoading] = useState(false);
   const [folderError, setFolderError] = useState('');
@@ -316,14 +308,14 @@ const Vault = () => {
   const [folderProgressMap, setFolderProgressMap] = useState({});
   const [overallProgress, setOverallProgress] = useState(null);
 
-  // UI
+  
   const [activeTab, setActiveTab] = useState('deck');
   const [docSearch, setDocSearch] = useState('');
-  const [currMode, setCurrMode]   = useState('uk');  // 'uk' | 'us'
+  const [currMode, setCurrMode]   = useState('uk');  
   const [currSubject, setCurrSubject] = useState(null);
   const [fileActionStats, setFileActionStats] = useState(loadFileActionStats);
 
-  // ── Load docs ──
+  
   const loadDocs = useCallback(async () => {
     setLoading(true);
     try {
@@ -383,10 +375,10 @@ const Vault = () => {
     loadProgress();
   }, [loadDocs, loadFolders, loadProgress]);
 
-  // ── Load recent ──
+  
   useEffect(() => {
     if (activeTab !== 'recent') return;
-    // recentKey dep forces re-fetch on refresh
+    
     const fetch = async () => {
       setRecentLoading(true);
       const token = localStorage.getItem('token');
@@ -405,7 +397,7 @@ const Vault = () => {
             route: `/notes/editor/${n.id}`,
           }));
         }
-      } catch { /* silenced */ }
+      } catch {  }
       try {
         const r = await fetch(`${API_URL}/get_flashcard_history?user_id=${uid}&limit=8`, { headers: h });
         if (r.ok) {
@@ -418,7 +410,7 @@ const Vault = () => {
             route: '/flashcards',
           }));
         }
-      } catch { /* silenced */ }
+      } catch {  }
       try {
         const r = await fetch(`${API_URL}/get_chat_sessions?user_id=${uid}`, { headers: h });
         if (r.ok) {
@@ -430,7 +422,7 @@ const Vault = () => {
             route: `/ai-chat${s.session_id ? `?session_id=${s.session_id}` : ''}`,
           }));
         }
-      } catch { /* silenced */ }
+      } catch {  }
       try {
         const r = await fetch(`${API_URL}/get_question_sets?user_id=${uid}`, { headers: h });
         if (r.ok) {
@@ -443,7 +435,7 @@ const Vault = () => {
             route: `/question-bank?set_id=${s.id}`,
           }));
         }
-      } catch { /* silenced */ }
+      } catch {  }
       items.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
       setRecent(items);
       setRecentLoading(false);
@@ -479,7 +471,7 @@ const Vault = () => {
     });
   }, []);
 
-  // ── Deck helpers ──
+  
   const deckSet = useMemo(() => new Set(deckIds), [deckIds]);
 
   const addToDeck = (id) => {
@@ -499,7 +491,7 @@ const Vault = () => {
 
   const clearDeck = () => { setDeckIds([]); saveDeck([]); };
 
-  // ── Doc lookup for deck display ──
+  
   const allDocs = useMemo(() => {
     const m = new Map();
     [...userDocs, ...hsDocs].forEach(d => {
@@ -509,7 +501,7 @@ const Vault = () => {
     return m;
   }, [userDocs, hsDocs]);
 
-  // ── Upload ──
+  
   const handleUpload = async (file) => {
     if (!file) return;
     setUploading(true);
@@ -657,7 +649,7 @@ const Vault = () => {
     try {
       localStorage.setItem(DECK_KEY, JSON.stringify(ids));
     } catch {
-      // no-op
+      
     }
   }, []);
 
@@ -813,7 +805,7 @@ const Vault = () => {
     runContextAction(target, selectedFileIds, selectedUserDocs);
   }, [runContextAction, selectedFileIds, selectedUserDocs]);
 
-  // ── Stats ──
+  
   const stats = useMemo(() => ({
     books:   hsDocs.length,
     myDocs:  userDocs.length,
@@ -821,7 +813,7 @@ const Vault = () => {
     chunks:  [...userDocs, ...hsDocs].reduce((a, d) => a + (d.chunk_count || 0), 0),
   }), [userDocs, hsDocs, deckIds]);
 
-  // ── Curriculum data ──
+  
   const currSubjects = currMode === 'uk' ? UK_SUBJECTS : US_SUBJECTS;
   const filteredHsDocs = useMemo(() => {
     if (!currSubject) return hsDocs;
@@ -831,7 +823,7 @@ const Vault = () => {
     );
   }, [hsDocs, currSubject]);
 
-  // ── Doc search ──
+  
   const filteredUserDocs = useMemo(() => {
     let docs = userDocs;
     if (activeFolderId === 'uncategorized') {
@@ -953,7 +945,7 @@ const Vault = () => {
     });
   }, [folders]);
 
-  // ── Icon helpers ──
+  
   const recentIcon = (type) => {
     if (type === 'note')      return <FileText size={16} />;
     if (type === 'flashcard') return <Layers size={16} />;
@@ -1122,12 +1114,12 @@ const Vault = () => {
     );
   });
 
-  // ─────────────────────── RENDER TABS ──────────────────────────────────────
+  
 
-  // ── DECK TAB ──────────────────────────────────────────────────────────────
+  
   const DeckTab = () => (
     <div className="vlt-deck-layout">
-      {/* Left: Deck slots */}
+      {}
       <div className="vlt-deck-panel">
         <div className="vlt-deck-panel-head">
           <div className="vlt-deck-panel-title">
@@ -1211,7 +1203,7 @@ const Vault = () => {
         )}
       </div>
 
-      {/* Right: All docs to browse & add */}
+      {}
       <div className="vlt-deck-browser">
         <div className="vlt-deck-browser-head">
           <span>Browse Sources</span>
@@ -1225,7 +1217,7 @@ const Vault = () => {
           </div>
         </div>
 
-        {/* Your docs */}
+        {}
         {filteredUserDocs.length > 0 && (
           <div className="vlt-browser-section">
             <div className="vlt-browser-section-label">
@@ -1259,7 +1251,7 @@ const Vault = () => {
           </div>
         )}
 
-        {/* HS docs */}
+        {}
         {hsDocs.length > 0 && (
           <div className="vlt-browser-section">
             <div className="vlt-browser-section-label">
@@ -1305,7 +1297,7 @@ const Vault = () => {
     </div>
   );
 
-  // ── RECENT TAB ────────────────────────────────────────────────────────────
+  
   const RecentTab = () => (
     <div className="vlt-recent">
       <div className="vlt-recent-head">
@@ -1356,7 +1348,7 @@ const Vault = () => {
     </div>
   );
 
-  // ── UPLOAD TAB ────────────────────────────────────────────────────────────
+  
   const UploadTab = () => (
     <div className="vlt-upload-tab">
       <div className="vlt-upload-tab-inner">
@@ -1418,11 +1410,11 @@ const Vault = () => {
     </div>
   );
 
-  // ── MY DOCS TAB ───────────────────────────────────────────────────────────
+  
   const MyDocsTab = () => (
     <div className="vlt-docs-layout">
       <aside className="vlt-docs-sidebar">
-        {/* ── NEW FOLDER ── */}
+        {}
         <div className="vlt-docs-sidebar-section">
           <p className="vlt-sidebar-label"><FolderPlus size={13} /> New Folder</p>
           <div className="vlt-sidebar-create">
@@ -1460,7 +1452,7 @@ const Vault = () => {
           {folderError && <p className="vlt-folder-note vlt-folder-note--error">{folderError}</p>}
         </div>
 
-        {/* ── FOLDER NAV ── */}
+        {}
         <div className="vlt-docs-sidebar-nav">
           <div className="vlt-docs-sidebar-nav-head">
             <p className="vlt-sidebar-label"><Folder size={13} /> Folders</p>
@@ -1486,7 +1478,7 @@ const Vault = () => {
           {foldersLoading && <p className="vlt-folder-note">Loading…</p>}
         </div>
 
-        {/* ── MOVE FILES FOOTER ── */}
+        {}
         <div className="vlt-docs-sidebar-footer">
           <p className="vlt-sidebar-label">Move Files</p>
           <p className="vlt-sidebar-hint">{selectedFileIds.length > 0 ? `${selectedFileIds.length} selected` : 'Select files to move'}</p>
@@ -1505,10 +1497,10 @@ const Vault = () => {
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT ── */}
+      {}
       <div className="vlt-docs-main">
 
-        {/* Toolbar */}
+        {}
         <div className="vlt-docs-toolbar">
           <div className="vlt-docs-toolbar-left">
             <span className="vlt-docs-count">
@@ -1532,7 +1524,7 @@ const Vault = () => {
           </div>
         </div>
 
-        {/* Bulk context actions */}
+        {}
         {selectedFileIds.length > 0 && (
           <div className="vlt-bulk-bar">
             <span className="vlt-bulk-label">{selectedFileIds.length} file{selectedFileIds.length !== 1 ? 's' : ''} — use as context:</span>
@@ -1547,7 +1539,7 @@ const Vault = () => {
           </div>
         )}
 
-        {/* Doc card grid */}
+        {}
         {loading ? (
           <div className="vlt-state-center"><Loader2 size={24} className="vlt-spin" /><p>Loading…</p></div>
         ) : filteredUserDocs.length === 0 ? (
@@ -1590,7 +1582,7 @@ const Vault = () => {
     </div>
   );
 
-  // ── CURRICULUM TAB ────────────────────────────────────────────────────────
+  
   const currSubjectCats = useMemo(() => {
     const cats = new Map();
     currSubjects.forEach(s => {
@@ -1607,9 +1599,9 @@ const Vault = () => {
 
     return (
       <div className="vlt-docs-layout">
-        {/* ── SIDEBAR ── */}
+        {}
         <aside className="vlt-docs-sidebar">
-          {/* Curriculum toggle */}
+          {}
           <div className="vlt-docs-sidebar-section">
             <p className="vlt-sidebar-label"><GraduationCap size={13} /> Curriculum</p>
             <div className="vlt-curr-toggle">
@@ -1626,13 +1618,13 @@ const Vault = () => {
             <p className="vlt-sidebar-hint">{hsDocs.length} books available</p>
           </div>
 
-          {/* Subject nav */}
+          {}
           <div className="vlt-docs-sidebar-nav">
             <div className="vlt-docs-sidebar-nav-head">
               <p className="vlt-sidebar-label"><BookOpen size={13} /> Subjects</p>
             </div>
             <nav className="vlt-folder-nav">
-              {/* All subjects */}
+              {}
               <button
                 className={`vlt-folder-nav-item ${!currSubject ? 'active' : ''}`}
                 onClick={() => setCurrSubject(null)}
@@ -1642,7 +1634,7 @@ const Vault = () => {
                 <span className="vlt-folder-nav-count">{hsDocs.length}</span>
               </button>
 
-              {/* Grouped by category */}
+              {}
               {currSubjectCats.map(([cat, subs]) => {
                 const catBooks = subs.reduce((n, s) => n + hsDocs.filter(d =>
                   (d.subject || '').toLowerCase().replace(/ /g, '_') === s.id ||
@@ -1678,9 +1670,9 @@ const Vault = () => {
           </div>
         </aside>
 
-        {/* ── MAIN ── */}
+        {}
         <div className="vlt-docs-main">
-          {/* Header bar */}
+          {}
           <div className="vlt-curr-main-header">
             <div className="vlt-curr-main-title">
               <BookOpen size={16} />
@@ -1694,7 +1686,7 @@ const Vault = () => {
             <span className="vlt-curr-main-count">{filteredHsDocs.length} book{filteredHsDocs.length !== 1 ? 's' : ''}</span>
           </div>
 
-          {/* Books */}
+          {}
           {filteredHsDocs.length === 0 ? (
             <div className="vlt-state-center">
               <BookOpen size={36} />
@@ -1745,7 +1737,7 @@ const Vault = () => {
     );
   };
 
-  // ─── MAIN RENDER ────────────────────────────────────────────────────────────
+  
 
   return (
     <div className="vlt-root">
@@ -1758,7 +1750,7 @@ const Vault = () => {
         <div className="vlt-bg-vignette" />
       </div>
 
-      {/* Topbar */}
+      {}
       <div className="vlt-topbar">
         <button className="vlt-back-btn" onClick={() => navigate('/dashboard-cerbyl')}>
           <ArrowLeft size={15} /> Dashboard
@@ -1771,7 +1763,7 @@ const Vault = () => {
       </div>
 
       <main className="vlt-main">
-        {/* Hero */}
+        {}
         <section className="vlt-hero">
           <div className="vlt-hero-left">
             <div className="vlt-eyebrow">CONTEXT HUB</div>
@@ -1794,7 +1786,7 @@ const Vault = () => {
           </div>
         </section>
 
-        {/* Tabs */}
+        {}
         <div className="vlt-tabs">
           {TABS.map(t => {
             const Icon = t.icon;
@@ -1814,7 +1806,7 @@ const Vault = () => {
           })}
         </div>
 
-        {/* Tab content */}
+        {}
         <div className="vlt-tab-content">
           {activeTab === 'deck'       && DeckTab()}
           {activeTab === 'mydocs'     && MyDocsTab()}

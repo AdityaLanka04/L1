@@ -69,7 +69,7 @@ export default function RLInsights({ userName, token }) {
       });
       if (!r.ok) throw new Error(r.status);
       setData(await r.json());
-    } catch { // silenced
+    } catch { 
       setError(true);
     } finally { setLoading(false); }
   };
@@ -110,7 +110,7 @@ export default function RLInsights({ userName, token }) {
     <div className="rli-wrap">
       <div className="rli-card">
 
-        {/* Header */}
+        {}
         <div className="rli-header">
           <div className="rli-title">
             <div className="rli-title-icon"><Brain size={18} /></div>
@@ -125,7 +125,7 @@ export default function RLInsights({ userName, token }) {
           </div>
         </div>
 
-        {/* Warmup banner */}
+        {}
         {!hasData && (
           <div className="rli-warmup">
             <Zap size={14} />
@@ -133,7 +133,7 @@ export default function RLInsights({ userName, token }) {
           </div>
         )}
 
-        {/* Tabs */}
+        {}
         <div className="rli-tabs">
           {TABS.map(t => (
             <button key={t.id} className={`rli-tab ${tab === t.id ? 'rli-tab--active' : ''}`} onClick={() => setTab(t.id)}>
@@ -142,7 +142,7 @@ export default function RLInsights({ userName, token }) {
           ))}
         </div>
 
-        {/* ── OVERVIEW ── */}
+        {}
         {tab === 'overview' && (
           <div className="rli-overview">
             <div className="rli-stats">
@@ -192,7 +192,7 @@ export default function RLInsights({ userName, token }) {
           </div>
         )}
 
-        {/* ── STRATEGIES ── */}
+        {}
         {tab === 'strategies' && (
           <div className="rli-strategies">
             {strategy_stats?.filter(s => s.total_pulls > 0).sort((a, b) => b.avg_reward - a.avg_reward).map(s => (
@@ -231,7 +231,7 @@ export default function RLInsights({ userName, token }) {
           </div>
         )}
 
-        {/* ── POLICY ── */}
+        {}
         {tab === 'policy' && (
           <div className="rli-policy">
             {!top_policy?.length ? (
@@ -256,7 +256,7 @@ export default function RLInsights({ userName, token }) {
           </div>
         )}
 
-        {/* ── CURVE ── */}
+        {}
         {tab === 'curve' && (
           <div className="rli-curve">
             {!learning_curve?.avg_reward_by_week?.length ? (

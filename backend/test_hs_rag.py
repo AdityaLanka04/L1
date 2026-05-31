@@ -1,13 +1,3 @@
-"""
-test_hs_rag.py — quick sanity check for HS curriculum retrieval.
-
-Usage:
-  python test_hs_rag.py --query "cellular respiration"
-  python test_hs_rag.py --query "photosynthesis" --subject "Biology" --top-k 5
-  python test_hs_rag.py --list-subjects
-  python test_hs_rag.py --query "photosynthesis" --hs-only
-  python test_hs_rag.py --query "photosynthesis" --private-only --user-id 123
-"""
 
 import argparse
 from pathlib import Path

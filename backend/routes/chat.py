@@ -22,17 +22,13 @@ CHAT_UPLOAD_DIR = Path("uploads/chat_images")
 CHAT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 _SUPPORTED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-_MAX_IMAGE_BYTES = 20 * 1024 * 1024  # 20 MB per image
+_MAX_IMAGE_BYTES = 20 * 1024 * 1024
 _MAX_IMAGES_PER_MESSAGE = 10
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
 
 def _assert_user_matches_request(user_id: Optional[str], current_user: models.User) -> None:
-    """
-    Backward-compatible guard for endpoints that still receive user_id from clients.
-    Ensures callers can only act on their own account.
-    """
     if user_id is None:
         return
     requested = str(user_id).strip().lower()
@@ -43,12 +39,7 @@ def _assert_user_matches_request(user_id: Optional[str], current_user: models.Us
     if requested and requested not in allowed:
         raise HTTPException(status_code=403, detail="Access denied")
 
-
 def _context_only_fallback_answer(user_id: str, question: str, context_doc_ids: list[str]) -> str:
-    """
-    Generate a strictly context-grounded response from selected documents only.
-    Used as a safe fallback when tutor graph isn't available.
-    """
     selected_ids = [str(d).strip() for d in (context_doc_ids or []) if str(d).strip()]
     if not selected_ids:
         return call_ai(question)
@@ -514,11 +505,6 @@ async def ask_with_files(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Handle chat messages that include image uploads or pastes.
-    Images are passed directly to the vision API; PDFs are text-extracted.
-    Falls back to /ask_simple/ behaviour when no valid files are present.
-    """
     try:
         selected_doc_ids = [x.strip() for x in (context_doc_ids or "").split(",") if x.strip()][:200]
         context_only_mode = bool(selected_doc_ids)
@@ -534,10 +520,9 @@ async def ask_with_files(
             if not chat_session:
                 raise HTTPException(status_code=404, detail="Chat session not found")
 
-        # ── Read & validate uploaded files ────────────────────────────────────
-        image_payloads: list[dict] = []   # for vision API
-        text_extracts: list[str] = []     # PDF text blobs
-        saved_metadata: list[dict] = []   # stored in DB
+        image_payloads: list[dict] = []
+        text_extracts: list[str] = []
+        saved_metadata: list[dict] = []
 
         for upload in files[:_MAX_IMAGES_PER_MESSAGE]:
             raw = await upload.read()
@@ -549,7 +534,7 @@ async def ask_with_files(
 
             if mime in _SUPPORTED_IMAGE_TYPES:
                 if len(raw) > _MAX_IMAGE_BYTES:
-                    continue  # silently skip oversized images
+                    continue
                 safe_name = _safe_filename(user.id, fname)
                 dest = CHAT_UPLOAD_DIR / safe_name
                 dest.write_bytes(raw)
@@ -577,7 +562,6 @@ async def ask_with_files(
                     "is_image": False,
                 })
 
-        # ── Build enriched prompt ─────────────────────────────────────────────
         enriched_question = question.strip() or "Please analyze the attached content."
         if text_extracts:
             enriched_question += "\n\n" + "\n\n".join(text_extracts)
@@ -588,7 +572,6 @@ async def ask_with_files(
                 f"[{img_count} image{'s' if img_count > 1 else ''} attached — analyse and respond]"
             )
 
-        # ── Pull recent chat history ──────────────────────────────────────────
         chat_history = []
         if chat_id_int:
             recent = (
@@ -603,7 +586,6 @@ async def ask_with_files(
                 for m in reversed(recent)
             ]
 
-        # ── Call AI (vision-aware) ────────────────────────────────────────────
         response_text = ""
         ai_provider = "AI"
         vision_unavailable = False
@@ -627,8 +609,6 @@ async def ask_with_files(
             except Exception as e:
                 logger.warning(f"Vision call failed ({e}) — answering text only")
 
-        # Text question: route through tutor graph regardless (handles PDFs, text, and
-        # the vision-unavailable case where we still want to answer the question)
         if not response_text:
             tutor_input = question.strip() or "What can you help me with?"
             if text_extracts and not context_only_mode:
@@ -653,7 +633,6 @@ async def ask_with_files(
                 logger.error(f"Tutor graph failed in ask_with_files: {e}")
                 response_text = _context_only_fallback_answer(str(user.id), tutor_input, selected_doc_ids)
 
-            # Append a single honest note if vision was requested but not available
             if vision_unavailable and image_payloads:
                 response_text += (
                     "\n\n> **Note:** Image analysis isn't available with the current AI provider "
@@ -666,7 +645,6 @@ async def ask_with_files(
         except Exception:
             pass
 
-        # ── Persist to DB ─────────────────────────────────────────────────────
         if chat_id_int:
             msg = models.ChatMessage(
                 chat_session_id=chat_id_int,
@@ -735,12 +713,10 @@ async def ask_with_files(
             "files_processed": 0,
         }
 
-
 def _safe_filename(user_id: int, original: str) -> str:
     ts = int(datetime.now(timezone.utc).timestamp() * 1000)
     clean = re.sub(r"[^\w.\-]", "_", original)
     return f"{user_id}_{ts}_{clean}"
-
 
 def _extract_pdf_text(raw: bytes) -> str:
     try:
@@ -755,13 +731,12 @@ def _extract_pdf_text(raw: bytes) -> str:
     except Exception:
         pass
     try:
-        import fitz  # PyMuPDF
+        import fitz
         doc = fitz.open(stream=raw, filetype="pdf")
         pages = [doc[i].get_text() for i in range(min(20, doc.page_count))]
         return "\n\n".join(p.strip() for p in pages if p.strip())
     except Exception:
         return ""
-
 
 @router.post("/test_ai_simple")
 async def test_ai_simple(

@@ -1,4 +1,3 @@
-import React from 'react';
 import SlideNotification from './SlideNotification';
 import { useNotifications } from '../contexts/NotificationContext';
 

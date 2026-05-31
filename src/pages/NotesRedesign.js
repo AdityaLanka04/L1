@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -30,7 +30,6 @@ import contextService from '../services/contextService';
 import SimpleBlockEditor from '../components/SimpleBlockEditor';
 import AdvancedSearch from '../components/AdvancedSearch';
 import Templates from '../components/Templates';
-import TemplatePreview from '../components/TemplatePreview';
 import RecentlyViewed from '../components/RecentlyViewed';
 import PageProperties from '../components/PageProperties';
 import CanvasMode from '../components/CanvasMode';
@@ -369,7 +368,7 @@ try {
     Quill.register('modules/tableUI', QuillTableUI.default);
   }
 } catch (error) {
-    // silenced
+    
   }
 
 let katex;
@@ -379,7 +378,7 @@ try {
     window.katex = katex;
   }
 } catch (error) {
-    // silenced
+    
   }
 
 const NotesRedesign = ({ sharedMode = false }) => {
@@ -617,7 +616,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         ];
         Quill.register(Font, true);
       } catch (error) {
-    // silenced
+    
   }
     }
   }, []);
@@ -684,7 +683,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         try {
           setUserProfile(JSON.parse(profile));
         } catch (error) {
-    // silenced
+    
   }
       }
     }
@@ -703,7 +702,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         try {
           setRecentlyViewed(JSON.parse(stored));
         } catch (e) {
-    // silenced
+    
   }
       }
     }
@@ -1092,7 +1091,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setFolders(data.folders || []);
       }
     } catch (e) {
-    // silenced
+    
   }
   };
 
@@ -1107,7 +1106,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setTrashedNotes(data.trash || []);
       }
     } catch (e) {
-    // silenced
+    
   }
   };
 
@@ -1122,7 +1121,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setChatSessions(data.sessions || []);
       }
     } catch (e) {
-    // silenced
+    
   }
   };
 
@@ -1329,7 +1328,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         showPopup("Success", newFavoriteStatus ? "Added to favorites" : "Removed from favorites");
       }
     } catch (e) {
-    // silenced
+    
   }
   };
 
@@ -1579,7 +1578,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
           setPageProperties(props);
         }
       } catch (e) {
-    // silenced
+    
   }
     }
   };

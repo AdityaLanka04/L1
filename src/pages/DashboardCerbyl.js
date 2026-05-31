@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check, User } from 'lucide-react';
 import { API_URL } from '../config/api';
@@ -908,7 +908,7 @@ const DashboardCerbyl = () => {
 
   return (
     <div className="cb-root">
-      {/* Background effects (gradient orbs + dot grid) */}
+      {}
       <div className="cb-bg-fx" aria-hidden>
         <div className="cb-bg-orb cb-bg-orb-1" />
         <div className="cb-bg-orb cb-bg-orb-2" />
@@ -917,7 +917,7 @@ const DashboardCerbyl = () => {
         <div className="cb-bg-vignette" />
       </div>
 
-      {/* Top bar */}
+      {}
       <div className="cb-topbar">
         <div className="cb-tagline">accelerate <span>your learning</span></div>
         <div className="cb-topbar-right">
@@ -944,7 +944,7 @@ const DashboardCerbyl = () => {
       </div>
 
       <div className={`cb-shell ${isSidebarOpen ? '' : 'cb-shell--collapsed'}`}>
-        {/* Sidebar */}
+        {}
         {isSidebarOpen && (
         <div className="cb-side-slot">
         <aside className="cb-side">
@@ -1019,9 +1019,9 @@ const DashboardCerbyl = () => {
         </div>
         )}
 
-        {/* Main */}
+        {}
         <main className="cb-main">
-          {/* Hero */}
+          {}
           <section className="cb-hero">
             <div className="cb-hero-text">
               <div className="cb-eyebrow">{greet}</div>
@@ -1069,7 +1069,7 @@ const DashboardCerbyl = () => {
             </div>
           </section>
 
-          {/* Three feature cards */}
+          {}
           <section className="cb-features">
             <div
               className="cb-feat cb-feat--chat"
@@ -1225,7 +1225,7 @@ const DashboardCerbyl = () => {
             </div>
           </section>
 
-          {/* Modules strip - infinite marquee in accent color */}
+          {}
           <section className="cb-strip">
             <div className="cb-strip-eyebrow">
               ALL MODULES — HOVER TO PAUSE
@@ -1248,7 +1248,7 @@ const DashboardCerbyl = () => {
             </div>
           </section>
 
-          {/* Top analytics row: 3 panels */}
+          {}
           <section className="cb-bottom">
             <div
               className="cb-panel cb-panel--act cb-panel--interactive"
@@ -1349,7 +1349,7 @@ const DashboardCerbyl = () => {
             </div>
           </section>
 
-          {/* Heatmap full-width row */}
+          {}
           <section className="cb-panel cb-panel--heat cb-heat-full">
             <div className="cb-panel-head">
               <span className="cb-panel-title">Heatmap</span>
@@ -1360,7 +1360,7 @@ const DashboardCerbyl = () => {
               <div className="cb-heat-empty">No activity yet</div>
             ) : (
               <div className="cb-heat-wrapper">
-                {/* Month labels row */}
+                {}
                 <div className="cb-heat-top">
                   <div className="cb-heat-day-pad" />
                   <div className="cb-heat-month-row">
@@ -1381,7 +1381,7 @@ const DashboardCerbyl = () => {
                   </div>
                 </div>
 
-                {/* Day labels + grid */}
+                {}
                 <div className="cb-heat-body">
                   <div className="cb-heat-days">
                     {['', 'Mon', '', 'Wed', '', 'Fri', ''].map((d, i) => (

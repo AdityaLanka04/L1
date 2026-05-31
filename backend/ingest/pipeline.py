@@ -1,17 +1,3 @@
-"""
-pipeline.py — Orchestrates overnight curriculum ingestion.
-
-Flow for each catalog entry:
-  1. Skip if already ingested (resume mode via state.json)
-  2. downloader.resolve_entry() → PDF bytes
-  3. document_processor.process_upload() → chunks + page info
-  4. context_store.add_document_chunks() → stored in hs_curriculum
-  5. DB: upsert ContextDocument record
-  6. Every VERIFY_EVERY docs: spot_check_batch() on recent batch
-
-State is persisted to ingest/state.json after each successful doc,
-enabling --resume to skip already-ingested entries.
-"""
 
 from __future__ import annotations
 
@@ -41,7 +27,6 @@ VERIFY_EVERY = 5
 SYSTEM_USER_EMAIL = "system@brainwave.internal"
 SYSTEM_USERNAME = "system"
 
-
 @dataclass
 class IngestResult:
     doc_id: str
@@ -55,7 +40,6 @@ class IngestResult:
     duration_s: float = 0.0
     error: str = ""
 
-
 @dataclass
 class RunStats:
     total: int = 0
@@ -67,7 +51,6 @@ class RunStats:
     spot_checks_failed: int = 0
     results: list[IngestResult] = field(default_factory=list)
 
-
 def _load_state() -> dict:
     if os.path.exists(STATE_FILE):
         try:
@@ -77,7 +60,6 @@ def _load_state() -> dict:
             return {}
     return {}
 
-
 def _save_state(state: dict) -> None:
     try:
         with open(STATE_FILE, "w") as f:
@@ -85,9 +67,7 @@ def _save_state(state: dict) -> None:
     except Exception as e:
         logger.warning(f"Failed to save state: {e}")
 
-
 def _get_or_create_system_user(db) -> int:
-    """Return the user_id of the system ingest user, creating it if needed."""
     from models import User
     import hashlib
 
@@ -108,7 +88,6 @@ def _get_or_create_system_user(db) -> int:
     db.refresh(user)
     logger.info(f"Created system ingest user with id={user.id}")
     return user.id
-
 
 def _upsert_context_document(
     db,
@@ -149,7 +128,6 @@ def _upsert_context_document(
     db.add(doc)
     db.commit()
 
-
 class IngestPipeline:
     def __init__(self, dry_run: bool = False, resume: bool = True):
         self.dry_run = dry_run
@@ -162,8 +140,6 @@ class IngestPipeline:
         if "sqlite" not in db_url:
             return
 
-        # Ingest runs outside FastAPI main.py, so apply the same compatibility
-        # columns needed by current ContextDocument model.
         Base.metadata.create_all(bind=engine)
         with engine.connect() as conn:
             cols = {r[1] for r in conn.execute(text("PRAGMA table_info(context_documents)"))}
@@ -184,7 +160,6 @@ class IngestPipeline:
             conn.commit()
 
     def setup(self) -> None:
-        """Initialize vector_store (pgvector) + embedding model, context_store, and DB."""
         self._ensure_sqlite_schema_compat()
         logger.info("Initializing vector_store + embedding model...")
         try:
@@ -216,7 +191,6 @@ class IngestPipeline:
         return self._system_user_id
 
     def ingest_one(self, entry: dict, db) -> IngestResult:
-        """Download, process, and store one catalog entry."""
         from ingest.downloader import resolve_entry, DownloadError
 
         slug = entry.get("slug", entry.get("title", "unknown"))
@@ -225,7 +199,6 @@ class IngestPipeline:
         curriculum = entry.get("curriculum", "")
         source_type = entry.get("source_type", "direct")
 
-        # Deterministic doc_id from slug so re-runs with replace_existing work cleanly
         doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"brainwave_ingest:{slug}"))
 
         start = time.time()
@@ -325,10 +298,6 @@ class IngestPipeline:
         return result
 
     def run(self, catalog: list[dict]) -> RunStats:
-        """
-        Run the full ingestion pipeline over a catalog.
-        Returns RunStats with all results.
-        """
         from ingest import verify
 
         stats = RunStats(total=len(catalog))
@@ -341,7 +310,6 @@ class IngestPipeline:
                 title = entry.get("title", slug)
                 total_label = f"[{i}/{stats.total}]"
 
-                # Resume: skip already-ingested
                 if self.resume and self._state.get(slug, {}).get("success"):
                     logger.info(f"{total_label} Skipping (already ingested): {title}")
                     stats.skipped += 1
@@ -383,7 +351,6 @@ class IngestPipeline:
                         }
                         _save_state(self._state)
 
-                # Spot-check every VERIFY_EVERY successful docs
                 if len(recent_batch) >= VERIFY_EVERY:
                     logger.info(f"\n--- Spot-checking batch of {len(recent_batch)} docs ---")
                     check_results = verify.spot_check_batch(recent_batch, sample_rate=0.4, min_checks=2)
@@ -398,7 +365,6 @@ class IngestPipeline:
         finally:
             db.close()
 
-        # Final spot-check on remaining batch
         if recent_batch:
             logger.info(f"\n--- Final spot-check on remaining {len(recent_batch)} docs ---")
             check_results = verify.spot_check_batch(recent_batch, sample_rate=0.5, min_checks=1)

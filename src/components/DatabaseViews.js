@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Table, Columns, Calendar as CalendarIcon, Grid, Clock, Folder } from 'lucide-react';
 import './DatabaseViews.css';
 
