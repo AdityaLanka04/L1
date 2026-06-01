@@ -1,17 +1,17 @@
 import logging
 
 logger = logging.getLogger(__name__)
-import sqlite3
 import json
 from datetime import datetime, timezone
-import os
 from typing import Optional
 from threading import Lock
+from sqlalchemy import text
 from activity_context import get_activity_context
+from database import DATABASE_URL, engine
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
 _ACTIVITY_TABLE_READY = False
 _ACTIVITY_TABLE_LOCK = Lock()
+_IS_POSTGRES = "postgresql" in DATABASE_URL or "postgres" in DATABASE_URL
 
 def ensure_activity_log_table() -> bool:
     global _ACTIVITY_TABLE_READY
@@ -22,36 +22,48 @@ def ensure_activity_log_table() -> bool:
         if _ACTIVITY_TABLE_READY:
             return True
         try:
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS user_activity_log (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    tool_name TEXT NOT NULL,
-                    action TEXT,
-                    tokens_used INTEGER DEFAULT 0,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    metadata TEXT,
-                    session_id TEXT,
-                    duration_seconds REAL,
-                    FOREIGN KEY (user_id) REFERENCES users(id)
-                )
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_activity_user
-                ON user_activity_log(user_id)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_activity_timestamp
-                ON user_activity_log(timestamp)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_activity_session
-                ON user_activity_log(session_id)
-            """)
-            conn.commit()
-            conn.close()
+            with engine.begin() as conn:
+                if _IS_POSTGRES:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS user_activity_log (
+                            id BIGSERIAL PRIMARY KEY,
+                            user_id INTEGER NOT NULL,
+                            tool_name TEXT NOT NULL,
+                            action TEXT,
+                            tokens_used INTEGER DEFAULT 0,
+                            timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                            metadata TEXT,
+                            session_id TEXT,
+                            duration_seconds DOUBLE PRECISION
+                        )
+                    """))
+                else:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS user_activity_log (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            tool_name TEXT NOT NULL,
+                            action TEXT,
+                            tokens_used INTEGER DEFAULT 0,
+                            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            metadata TEXT,
+                            session_id TEXT,
+                            duration_seconds REAL,
+                            FOREIGN KEY (user_id) REFERENCES users(id)
+                        )
+                    """))
+                conn.execute(text("""
+                    CREATE INDEX IF NOT EXISTS idx_activity_user
+                    ON user_activity_log(user_id)
+                """))
+                conn.execute(text("""
+                    CREATE INDEX IF NOT EXISTS idx_activity_timestamp
+                    ON user_activity_log(timestamp)
+                """))
+                conn.execute(text("""
+                    CREATE INDEX IF NOT EXISTS idx_activity_session
+                    ON user_activity_log(session_id)
+                """))
             _ACTIVITY_TABLE_READY = True
             return True
         except Exception as e:
@@ -67,12 +79,12 @@ def resolve_user_id(user_id) -> Optional[int]:
         pass
 
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE email = ? OR username = ?", (user_id, user_id))
-        result = cursor.fetchone()
-        conn.close()
-        return result[0] if result else None
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT id FROM users WHERE email = :subject OR username = :subject LIMIT 1"),
+                {"subject": str(user_id)},
+            ).first()
+        return int(result[0]) if result else None
     except Exception:
         return None
 
@@ -84,19 +96,24 @@ def log_activity(user_id, tool_name, action, tokens_used=0, metadata=None):
         if resolved_user_id is None:
             return False
 
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        
         metadata_json = json.dumps(metadata) if metadata else None
-        
-        cursor.execute("""
-            INSERT INTO user_activity_log 
-            (user_id, tool_name, action, tokens_used, metadata, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (resolved_user_id, tool_name, action, tokens_used, metadata_json, datetime.now(timezone.utc).isoformat()))
-        
-        conn.commit()
-        conn.close()
+
+        with engine.begin() as conn:
+            conn.execute(
+                text("""
+                    INSERT INTO user_activity_log
+                    (user_id, tool_name, action, tokens_used, metadata, timestamp)
+                    VALUES (:user_id, :tool_name, :action, :tokens_used, :metadata, :timestamp)
+                """),
+                {
+                    "user_id": resolved_user_id,
+                    "tool_name": tool_name,
+                    "action": action,
+                    "tokens_used": int(tokens_used or 0),
+                    "metadata": metadata_json,
+                    "timestamp": datetime.now(timezone.utc),
+                },
+            )
         return True
     except Exception as e:
         logger.error(f"Error logging activity: {e}")
@@ -135,22 +152,24 @@ def get_user_token_usage(user_id, days=30):
     try:
         if not ensure_activity_log_table():
             return 0
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        
+        resolved_user_id = resolve_user_id(user_id)
+        if resolved_user_id is None:
+            return 0
+
         from datetime import timedelta
         start_date = datetime.now(timezone.utc) - timedelta(days=days)
-        
-        cursor.execute("""
-            SELECT SUM(tokens_used) as total
-            FROM user_activity_log
-            WHERE user_id = ? AND timestamp >= ?
-        """, (user_id, start_date.isoformat()))
-        
-        result = cursor.fetchone()
-        conn.close()
-        
-        return result[0] if result[0] else 0
+
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("""
+                    SELECT COALESCE(SUM(tokens_used), 0) as total
+                    FROM user_activity_log
+                    WHERE user_id = :user_id AND timestamp >= :start_date
+                """),
+                {"user_id": resolved_user_id, "start_date": start_date},
+            ).mappings().first()
+
+        return int((result or {}).get("total") or 0)
     except Exception as e:
         logger.error(f"Error getting token usage: {e}")
         return 0

@@ -77,6 +77,95 @@ const formatTokens = (value) => {
   return n.toLocaleString();
 };
 
+const getPlanPrice = (plan, billingCycle) => {
+  const isYearly = billingCycle === 'yearly';
+  const raw = isYearly
+    ? (plan?.yearly_price_usd ?? ((Number(plan?.monthly_price_usd || 0)) * 12))
+    : (plan?.monthly_price_usd ?? 0);
+  const n = Number(raw || 0);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const getYearlySavingsPct = (plan) => {
+  const monthly = Number(plan?.monthly_price_usd || 0);
+  const yearly = Number(plan?.yearly_price_usd || 0);
+  if (!Number.isFinite(monthly) || !Number.isFinite(yearly) || monthly <= 0 || yearly <= 0) return 0;
+  const yearlyFromMonthly = monthly * 12;
+  if (yearly >= yearlyFromMonthly) return 0;
+  return Math.round(((yearlyFromMonthly - yearly) / yearlyFromMonthly) * 100);
+};
+
+const getYearlySavingsUsd = (plan) => {
+  const monthly = Number(plan?.monthly_price_usd || 0);
+  const yearly = Number(plan?.yearly_price_usd || 0);
+  if (!Number.isFinite(monthly) || !Number.isFinite(yearly) || monthly <= 0 || yearly <= 0) return 0;
+  const savings = (monthly * 12) - yearly;
+  return savings > 0 ? savings : 0;
+};
+
+const getYearlyEquivalentMonthly = (plan) => {
+  const yearly = Number(plan?.yearly_price_usd || 0);
+  if (!Number.isFinite(yearly) || yearly <= 0) return 0;
+  return yearly / 12;
+};
+
+const PRICE_TICKER_MS = 340;
+
+const PriceTicker = ({ amount }) => {
+  const [displayAmount, setDisplayAmount] = useState(Number(amount || 0));
+  const [nextAmount, setNextAmount] = useState(null);
+  const [direction, setDirection] = useState('up');
+  const [transitionToken, setTransitionToken] = useState(0);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const target = Number(amount || 0);
+    if (!Number.isFinite(target)) return;
+    if (nextAmount !== null) return;
+    if (target === displayAmount) return;
+
+    setDirection(target > displayAmount ? 'up' : 'down');
+    setNextAmount(target);
+    setTransitionToken((prev) => prev + 1);
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setDisplayAmount(target);
+      setNextAmount(null);
+    }, PRICE_TICKER_MS);
+  }, [amount, displayAmount, nextAmount]);
+
+  if (nextAmount === null) {
+    return (
+      <span className="pn-price-ticker pn-price-ticker--static">
+        <span className="pn-price-ticker-value pn-price-ticker-value--static">
+          {formatUsd(displayAmount)}
+        </span>
+      </span>
+    );
+  }
+
+  return (
+    <span
+      key={transitionToken}
+      className={`pn-price-ticker ${direction === 'up' ? 'pn-price-ticker--up' : 'pn-price-ticker--down'}`}
+    >
+      <span className="pn-price-ticker-value pn-price-ticker-value--old">
+        {formatUsd(displayAmount)}
+      </span>
+      <span className="pn-price-ticker-value pn-price-ticker-value--new">
+        {formatUsd(nextAmount)}
+      </span>
+    </span>
+  );
+};
+
 const GeoBackground = () => (
   <div className="pn-bg" aria-hidden="true">
     <div className="pn-orb pn-orb-1" />
@@ -210,6 +299,7 @@ const ProfileNew = () => {
   const [subscriptionData, setSubscriptionData] = useState({
     loading: true,
     saving: false,
+    saveAction: null,
     currentPlanId: 'starter',
     billingCycle: 'monthly',
     subscriptionStatus: 'active',
@@ -221,6 +311,14 @@ const ProfileNew = () => {
 
   const [typedName, setTypedName] = useState('');
   const [nameDone, setNameDone] = useState(false);
+
+  const activeBillingCycle = subscriptionData.billingCycle === 'yearly' ? 'yearly' : 'monthly';
+  const billingLabel = activeBillingCycle === 'yearly' ? '/yr' : '/mo';
+  const currentPlan = subscriptionData.plans.find(p => p.id === subscriptionData.currentPlanId) || null;
+  const currentPlanPrice = currentPlan ? getPlanPrice(currentPlan, activeBillingCycle) : 0;
+  const currentPlanYearlySavingsPct = currentPlan ? getYearlySavingsPct(currentPlan) : 0;
+  const currentPlanYearlySavingsUsd = currentPlan ? getYearlySavingsUsd(currentPlan) : 0;
+  const currentPlanYearlyEquivalentMonthly = currentPlan ? getYearlyEquivalentMonthly(currentPlan) : 0;
 
   useEffect(() => {
     if (!token) { navigate('/login'); return; }
@@ -256,9 +354,11 @@ const ProfileNew = () => {
     return () => clearInterval(t);
   }, [displayName]);
 
-  const loadSubscriptionOverview = useCallback(async () => {
+  const loadSubscriptionOverview = useCallback(async ({ silent = false } = {}) => {
     if (!userName) return;
-    setSubscriptionData(prev => ({ ...prev, loading: true, error: null }));
+    if (!silent) {
+      setSubscriptionData(prev => ({ ...prev, loading: true, error: null }));
+    }
     try {
       const resp = await fetch(`${API_URL}/subscription/overview?user_id=${encodeURIComponent(userName)}`, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -270,6 +370,7 @@ const ProfileNew = () => {
       setSubscriptionData(prev => ({
         ...prev,
         loading: false,
+        error: null,
         currentPlanId: data.currentPlanId || 'starter',
         billingCycle: data.billingCycle || 'monthly',
         subscriptionStatus: data.subscriptionStatus || 'active',
@@ -278,13 +379,25 @@ const ProfileNew = () => {
         usage: data.usage || null
       }));
     } catch (e) {
-      setSubscriptionData(prev => ({ ...prev, loading: false, error: 'Unable to load subscription data.' }));
+      setSubscriptionData(prev => ({
+        ...prev,
+        loading: false,
+        error: silent ? prev.error : 'Unable to load subscription data.'
+      }));
     }
   }, [API_URL, token, userName]);
 
   const handleSelectPlan = async (planId) => {
     if (!userName || !planId || subscriptionData.saving || planId === subscriptionData.currentPlanId) return;
-    setSubscriptionData(prev => ({ ...prev, saving: true, error: null }));
+    const previousPlanId = subscriptionData.currentPlanId;
+    const currentBillingCycle = subscriptionData.billingCycle || 'monthly';
+    setSubscriptionData(prev => ({
+      ...prev,
+      saving: true,
+      saveAction: 'plan',
+      error: null,
+      currentPlanId: planId
+    }));
     try {
       const resp = await fetch(`${API_URL}/subscription/select`, {
         method: 'POST',
@@ -292,17 +405,71 @@ const ProfileNew = () => {
         body: JSON.stringify({
           user_id: userName,
           tier: planId,
-          billingCycle: subscriptionData.billingCycle || 'monthly'
+          billingCycle: currentBillingCycle
         })
       });
       if (!resp.ok) {
         throw new Error(`Subscription update failed: ${resp.status}`);
       }
-      await loadSubscriptionOverview();
+      const data = await resp.json().catch(() => ({}));
+      setSubscriptionData(prev => ({
+        ...prev,
+        currentPlanId: data.subscriptionTier || planId,
+        billingCycle: data.billingCycle || prev.billingCycle,
+        subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
+      }));
+      void loadSubscriptionOverview({ silent: true });
     } catch (e) {
-      setSubscriptionData(prev => ({ ...prev, error: 'Unable to switch plan right now.' }));
+      setSubscriptionData(prev => ({
+        ...prev,
+        currentPlanId: previousPlanId,
+        error: 'Unable to switch plan right now.'
+      }));
     } finally {
-      setSubscriptionData(prev => ({ ...prev, saving: false }));
+      setSubscriptionData(prev => ({ ...prev, saving: false, saveAction: null }));
+    }
+  };
+
+  const handleBillingCycleChange = async (nextCycle) => {
+    if (!userName || !nextCycle || subscriptionData.saving || nextCycle === subscriptionData.billingCycle) return;
+    const previousCycle = subscriptionData.billingCycle || 'monthly';
+    const currentPlanId = subscriptionData.currentPlanId || 'starter';
+    setSubscriptionData(prev => ({
+      ...prev,
+      saving: true,
+      saveAction: 'cycle',
+      error: null,
+      billingCycle: nextCycle
+    }));
+    try {
+      const resp = await fetch(`${API_URL}/subscription/select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          user_id: userName,
+          tier: currentPlanId,
+          billingCycle: nextCycle
+        })
+      });
+      if (!resp.ok) {
+        throw new Error(`Subscription billing cycle update failed: ${resp.status}`);
+      }
+      const data = await resp.json().catch(() => ({}));
+      setSubscriptionData(prev => ({
+        ...prev,
+        currentPlanId: data.subscriptionTier || prev.currentPlanId,
+        billingCycle: data.billingCycle || nextCycle,
+        subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
+      }));
+      void loadSubscriptionOverview({ silent: true });
+    } catch (e) {
+      setSubscriptionData(prev => ({
+        ...prev,
+        billingCycle: previousCycle,
+        error: 'Unable to switch billing cycle right now.'
+      }));
+    } finally {
+      setSubscriptionData(prev => ({ ...prev, saving: false, saveAction: null }));
     }
   };
 
@@ -460,7 +627,6 @@ const ProfileNew = () => {
     constructive: 'Constructive', direct: 'Direct & Concise'
   };
 
-  const currentPlan = subscriptionData.plans.find(p => p.id === subscriptionData.currentPlanId) || null;
   if (!dataLoaded) {
     return (
       <div className="pn-root">
@@ -590,11 +756,43 @@ const ProfileNew = () => {
               <BarChart3 size={14} />
               <span>
                 {currentPlan
-                  ? `Current plan: ${currentPlan.name} · ${formatUsd(currentPlan.monthly_price_usd)}/mo`
+                  ? `Current plan: ${currentPlan.name} · ${formatUsd(currentPlanPrice)}${billingLabel}`
                   : 'Current plan: Starter'}
               </span>
             </div>
-            <span className="pn-subscription-note">Choose the plan that fits your study flow. You can switch anytime.</span>
+            <div className="pn-billing-toggle" role="group" aria-label="Billing cycle">
+              <span
+                className={`pn-billing-glider ${activeBillingCycle === 'yearly' ? 'pn-billing-glider--yearly' : ''}`}
+                aria-hidden
+              />
+              <button
+                className={`pn-billing-btn ${activeBillingCycle === 'monthly' ? 'pn-billing-btn--active' : ''}`}
+                onClick={() => handleBillingCycleChange('monthly')}
+                disabled={subscriptionData.saving}
+              >
+                Monthly
+              </button>
+              <button
+                className={`pn-billing-btn ${activeBillingCycle === 'yearly' ? 'pn-billing-btn--active' : ''}`}
+                onClick={() => handleBillingCycleChange('yearly')}
+                disabled={subscriptionData.saving}
+              >
+                Yearly
+              </button>
+            </div>
+            <span className="pn-subscription-note">
+              {activeBillingCycle === 'yearly'
+                ? (
+                  currentPlan
+                    ? `Yearly billing · ${formatUsd(currentPlanPrice)}${billingLabel}${currentPlanYearlyEquivalentMonthly > 0 ? ` · ~${formatUsd(currentPlanYearlyEquivalentMonthly)}/mo effective` : ''}${currentPlanYearlySavingsPct > 0 ? ` · Save ${currentPlanYearlySavingsPct}%` : ''}`
+                    : 'Yearly billing enabled. You can switch anytime.'
+                )
+                : (
+                  currentPlanYearlySavingsPct > 0
+                    ? `Switch to yearly and save ${currentPlanYearlySavingsPct}% (${formatUsd(currentPlanYearlySavingsUsd)}/year).`
+                    : 'Choose the plan that fits your study flow. You can switch anytime.'
+                )}
+            </span>
           </div>
 
           {subscriptionData.loading ? (
@@ -606,14 +804,28 @@ const ProfileNew = () => {
                   const meta = PLAN_META[plan.id] || PLAN_META.starter;
                   const Icon = meta.icon;
                   const isCurrent = subscriptionData.currentPlanId === plan.id;
+                  const planYearlySavingsPct = getYearlySavingsPct(plan);
+                  const planYearlyEquivalentMonthly = getYearlyEquivalentMonthly(plan);
+                  const planPrice = getPlanPrice(plan, activeBillingCycle);
                   return (
                     <article key={plan.id} className={`pn-plan-card pn-plan-card--${meta.theme} ${isCurrent ? 'pn-plan-card--active' : ''}`}>
                       <div className="pn-plan-top">
                         <span className="pn-plan-icon"><Icon size={14} /></span>
                         <span className="pn-plan-name">{plan.name}</span>
                       </div>
-                      <div className="pn-plan-price">{formatUsd(plan.monthly_price_usd)}<small>/mo</small></div>
+                      <div className="pn-plan-price-row">
+                        <div className="pn-plan-price">
+                          <PriceTicker amount={planPrice} />
+                          <small>{billingLabel}</small>
+                        </div>
+                        {planYearlySavingsPct > 0 && activeBillingCycle === 'yearly' && (
+                          <span className="pn-plan-save-badge">Save {planYearlySavingsPct}%</span>
+                        )}
+                      </div>
                       <div className="pn-plan-meta">Includes {formatTokens(plan.included_tokens_monthly)} monthly AI credits</div>
+                      {activeBillingCycle === 'yearly' && planYearlyEquivalentMonthly > 0 && (
+                        <div className="pn-plan-billing-note">~{formatUsd(planYearlyEquivalentMonthly)}/mo effective</div>
+                      )}
                       {plan.summary && <div className="pn-plan-summary">{plan.summary}</div>}
                       <ul className="pn-plan-features">
                         {(plan.features || []).map((feature) => (
@@ -625,7 +837,7 @@ const ProfileNew = () => {
                         onClick={() => handleSelectPlan(plan.id)}
                         disabled={isCurrent || subscriptionData.saving}
                       >
-                        {isCurrent ? 'Current Plan' : (subscriptionData.saving ? 'Switching...' : 'Switch Plan')}
+                        {isCurrent ? 'Current Plan' : (subscriptionData.saveAction === 'plan' ? 'Switching...' : 'Switch Plan')}
                       </button>
                     </article>
                   );

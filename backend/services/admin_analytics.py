@@ -1,7 +1,6 @@
 from fastapi import Depends, HTTPException, Header, Query
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import sqlite3
 import csv
 import io
 import json
@@ -9,8 +8,9 @@ from datetime import datetime, timedelta, timezone
 import os
 from typing import Optional
 from jose import JWTError, jwt
-
-DB_PATH = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
+from sqlalchemy import text
+from database import engine
+from activity_logger import ensure_activity_log_table
 
 def _safe_json_loads(value):
     if not value:
@@ -57,6 +57,16 @@ def _get_secret_key():
         raise HTTPException(status_code=500, detail="Server configuration error")
     return key
 
+def _db_fetch_one(query: str, params: Optional[dict] = None):
+    with engine.connect() as conn:
+        row = conn.execute(text(query), params or {}).mappings().first()
+    return dict(row) if row else None
+
+def _db_fetch_all(query: str, params: Optional[dict] = None):
+    with engine.connect() as conn:
+        rows = conn.execute(text(query), params or {}).mappings().all()
+    return [dict(row) for row in rows]
+
 def check_admin(credentials: HTTPAuthorizationCredentials = Depends(_admin_bearer)):
     try:
         payload = jwt.decode(
@@ -73,45 +83,39 @@ def check_admin(credentials: HTTPAuthorizationCredentials = Depends(_admin_beare
         raise HTTPException(status_code=403, detail="Admin access required")
 
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT email FROM users WHERE username = ? OR email = ?", (sub, sub))
-        row = cursor.fetchone()
-        conn.close()
-        if row and row["email"] in ADMIN_EMAILS:
+        row = _db_fetch_one(
+            "SELECT email FROM users WHERE username = :subject OR email = :subject LIMIT 1",
+            {"subject": sub},
+        )
+        if row and row.get("email") in ADMIN_EMAILS:
             return row["email"]
     except Exception:
         pass
 
     raise HTTPException(status_code=403, detail="Admin access required")
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 async def get_analytics_overview(days: int = 30):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        ensure_activity_log_table()
         
         start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
-        cursor.execute("SELECT COUNT(*) as count FROM users")
-        total_users = cursor.fetchone()['count']
+        total_users_row = _db_fetch_one("SELECT COUNT(*) as count FROM users")
+        total_users = int((total_users_row or {}).get("count") or 0)
 
         try:
-            cursor.execute("SELECT COUNT(*) as count FROM users WHERE created_at >= ?", (start_date.isoformat(),))
-            new_users = cursor.fetchone()['count']
+            new_users_row = _db_fetch_one(
+                "SELECT COUNT(*) as count FROM users WHERE created_at >= :start_date",
+                {"start_date": start_date},
+            )
+            new_users = int((new_users_row or {}).get("count") or 0)
         except Exception:
             new_users = 0
 
-        cursor.execute("""
+        rows = _db_fetch_all("""
             SELECT * FROM user_activity_log
-            WHERE timestamp >= ?
-        """, (start_date.isoformat(),))
-        rows = [dict(row) for row in cursor.fetchall()]
-        conn.close()
+            WHERE timestamp >= :start_date
+        """, {"start_date": start_date})
 
         total_requests = 0
         active_users = len({row['user_id'] for row in rows if row.get('user_id')})
@@ -472,16 +476,14 @@ async def get_analytics_overview(days: int = 30):
             user_ids = list(user_rollups.keys())
             user_lookup = {}
             try:
-                placeholders = ",".join(["?"] * len(user_ids))
-                conn_lookup = get_db_connection()
-                cursor = conn_lookup.cursor()
-                cursor.execute(
+                params = {f"user_id_{i}": uid for i, uid in enumerate(user_ids)}
+                placeholders = ", ".join(f":user_id_{i}" for i in range(len(user_ids)))
+                lookup_rows = _db_fetch_all(
                     f"SELECT id, username, email FROM users WHERE id IN ({placeholders})",
-                    user_ids
+                    params,
                 )
-                for row in cursor.fetchall():
-                    user_lookup[row["id"]] = {"username": row["username"], "email": row["email"]}
-                conn_lookup.close()
+                for row in lookup_rows:
+                    user_lookup[row["id"]] = {"username": row.get("username"), "email": row.get("email")}
             except Exception:
                 user_lookup = {}
 
@@ -544,24 +546,20 @@ async def get_analytics_overview(days: int = 30):
 
 async def get_user_analytics(days: int = 30):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        ensure_activity_log_table()
         
         start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-        cursor.execute("""
+        users = _db_fetch_all("""
             SELECT id, username, email, created_at
             FROM users
             ORDER BY created_at DESC
         """)
-        users = [dict(row) for row in cursor.fetchall()]
 
-        cursor.execute("""
+        rows = _db_fetch_all("""
             SELECT * FROM user_activity_log
-            WHERE timestamp >= ?
-        """, (start_date.isoformat(),))
-        rows = [dict(row) for row in cursor.fetchall()]
-        conn.close()
+            WHERE timestamp >= :start_date
+        """, {"start_date": start_date})
 
         user_stats = {}
         for row in rows:
@@ -654,25 +652,22 @@ async def get_user_analytics(days: int = 30):
 
 async def get_user_detail(target_user_id: int):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        ensure_activity_log_table()
         
-        cursor.execute("SELECT * FROM users WHERE id = ?", (target_user_id,))
-        user_row = cursor.fetchone()
+        user_row = _db_fetch_one(
+            "SELECT * FROM users WHERE id = :target_user_id",
+            {"target_user_id": target_user_id},
+        )
         if not user_row:
-            conn.close()
             raise HTTPException(status_code=404, detail='User not found')
         user = dict(user_row)
         
-        cursor.execute("""
+        raw_activities = _db_fetch_all("""
             SELECT * FROM user_activity_log 
-            WHERE user_id = ?
+            WHERE user_id = :target_user_id
             ORDER BY timestamp DESC
             LIMIT 1000
-        """, (target_user_id,))
-        raw_activities = [dict(row) for row in cursor.fetchall()]
-        
-        conn.close()
+        """, {"target_user_id": target_user_id})
 
         activities = []
         tool_stats = {}
@@ -798,12 +793,11 @@ async def get_user_detail(target_user_id: int):
 
 async def export_analytics_csv(days: int = 30):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        ensure_activity_log_table()
         
         start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
-        cursor.execute("""
+        rows = _db_fetch_all("""
             SELECT 
                 u.id as user_id,
                 u.username,
@@ -815,12 +809,9 @@ async def export_analytics_csv(days: int = 30):
                 a.metadata
             FROM user_activity_log a
             JOIN users u ON a.user_id = u.id
-            WHERE a.timestamp >= ?
+            WHERE a.timestamp >= :start_date
             ORDER BY a.timestamp DESC
-        """, (start_date.isoformat(),))
-        
-        rows = cursor.fetchall()
-        conn.close()
+        """, {"start_date": start_date})
         
         output = io.StringIO()
         writer = csv.writer(output)
@@ -867,16 +858,17 @@ async def export_analytics_csv(days: int = 30):
 
 async def export_user_csv(target_user_id: int):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        ensure_activity_log_table()
         
-        cursor.execute("SELECT * FROM users WHERE id = ?", (target_user_id,))
-        user = cursor.fetchone()
+        user = _db_fetch_one(
+            "SELECT * FROM users WHERE id = :target_user_id",
+            {"target_user_id": target_user_id},
+        )
         
         if not user:
             raise HTTPException(status_code=404, detail='User not found')
         
-        cursor.execute("""
+        rows = _db_fetch_all("""
             SELECT 
                 tool_name,
                 action,
@@ -884,12 +876,9 @@ async def export_user_csv(target_user_id: int):
                 timestamp,
                 metadata
             FROM user_activity_log
-            WHERE user_id = ?
+            WHERE user_id = :target_user_id
             ORDER BY timestamp DESC
-        """, (target_user_id,))
-        
-        rows = cursor.fetchall()
-        conn.close()
+        """, {"target_user_id": target_user_id})
         
         output = io.StringIO()
         writer = csv.writer(output)
@@ -930,38 +919,4 @@ async def export_user_csv(target_user_id: int):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 def init_activity_log_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS user_activity_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            tool_name TEXT NOT NULL,
-            action TEXT,
-            tokens_used INTEGER DEFAULT 0,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            metadata TEXT,
-            session_id TEXT,
-            duration_seconds REAL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    """)
-    
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_activity_user 
-        ON user_activity_log(user_id)
-    """)
-    
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_activity_timestamp 
-        ON user_activity_log(timestamp)
-    """)
-    
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_activity_session 
-        ON user_activity_log(session_id)
-    """)
-    
-    conn.commit()
-    conn.close()
+    ensure_activity_log_table()
