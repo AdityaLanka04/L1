@@ -1412,7 +1412,7 @@ const Vault = () => {
 
   
   const MyDocsTab = () => (
-    <div className="vlt-docs-layout">
+    <div className="vlt-docs-layout vlt-docs-layout--mydocs">
       <aside className="vlt-docs-sidebar">
         {}
         <div className="vlt-docs-sidebar-section">

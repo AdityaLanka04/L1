@@ -6,9 +6,57 @@ import json
 from datetime import datetime, timezone
 import os
 from typing import Optional
+from threading import Lock
 from activity_context import get_activity_context
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
+_ACTIVITY_TABLE_READY = False
+_ACTIVITY_TABLE_LOCK = Lock()
+
+def ensure_activity_log_table() -> bool:
+    global _ACTIVITY_TABLE_READY
+    if _ACTIVITY_TABLE_READY:
+        return True
+
+    with _ACTIVITY_TABLE_LOCK:
+        if _ACTIVITY_TABLE_READY:
+            return True
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_activity_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    tool_name TEXT NOT NULL,
+                    action TEXT,
+                    tokens_used INTEGER DEFAULT 0,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    metadata TEXT,
+                    session_id TEXT,
+                    duration_seconds REAL,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_activity_user
+                ON user_activity_log(user_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_activity_timestamp
+                ON user_activity_log(timestamp)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_activity_session
+                ON user_activity_log(session_id)
+            """)
+            conn.commit()
+            conn.close()
+            _ACTIVITY_TABLE_READY = True
+            return True
+        except Exception as e:
+            logger.error(f"Failed to ensure activity log table: {e}")
+            return False
 
 def resolve_user_id(user_id) -> Optional[int]:
     if user_id is None:
@@ -30,6 +78,8 @@ def resolve_user_id(user_id) -> Optional[int]:
 
 def log_activity(user_id, tool_name, action, tokens_used=0, metadata=None):
     try:
+        if not ensure_activity_log_table():
+            return False
         resolved_user_id = resolve_user_id(user_id)
         if resolved_user_id is None:
             return False
@@ -83,6 +133,8 @@ def log_ai_tokens(
 
 def get_user_token_usage(user_id, days=30):
     try:
+        if not ensure_activity_log_table():
+            return 0
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         

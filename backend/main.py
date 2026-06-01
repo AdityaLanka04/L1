@@ -220,6 +220,13 @@ _sync_sequences()
 async def lifespan(app: FastAPI):
     logger.info("Starting Brainwave API v4.0.0")
 
+    try:
+        from activity_logger import ensure_activity_log_table
+        if ensure_activity_log_table():
+            logger.info("Activity log table ready")
+    except Exception as e:
+        logger.warning(f"Activity log table init failed: {e}")
+
     if "postgres" in DATABASE_URL:
         try:
             from migration import run_migration
