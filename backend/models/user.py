@@ -275,6 +275,13 @@ class ComprehensiveUserProfile(Base):
     billing_cycle = Column(String(20), default="monthly")
     subscription_status = Column(String(20), default="active")
     subscription_started_at = Column(DateTime, nullable=True)
+    stripe_customer_id = Column(String(120), nullable=True)
+    stripe_subscription_id = Column(String(120), nullable=True)
+    stripe_price_id = Column(String(120), nullable=True)
+    stripe_checkout_session_id = Column(String(120), nullable=True)
+    billing_currency = Column(String(12), nullable=True)
+    current_period_end = Column(DateTime, nullable=True)
+    cancel_at_period_end = Column(Boolean, default=False)
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

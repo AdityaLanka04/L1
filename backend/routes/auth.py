@@ -878,6 +878,11 @@ async def select_subscription_plan(payload: dict = Body(...), db: Session = Depe
         requested_tier = normalize_plan_id(payload.get("tier") or payload.get("subscriptionTier"))
         requested_cycle = _normalize_billing_cycle(payload.get("billingCycle"))
         requested_status = _normalize_subscription_status(payload.get("subscriptionStatus"))
+        if requested_tier != DEFAULT_PLAN_ID:
+            raise HTTPException(
+                status_code=409,
+                detail="Paid plan updates must go through checkout and webhook confirmation.",
+            )
 
         comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
             models.ComprehensiveUserProfile.user_id == user.id
@@ -890,6 +895,10 @@ async def select_subscription_plan(payload: dict = Body(...), db: Session = Depe
         comprehensive_profile.subscription_tier = requested_tier
         comprehensive_profile.billing_cycle = requested_cycle
         comprehensive_profile.subscription_status = requested_status
+        comprehensive_profile.stripe_subscription_id = None
+        comprehensive_profile.stripe_price_id = None
+        comprehensive_profile.current_period_end = None
+        comprehensive_profile.cancel_at_period_end = False
 
         if previous_tier != requested_tier or not comprehensive_profile.subscription_started_at:
             comprehensive_profile.subscription_started_at = datetime.now(timezone.utc)
@@ -978,14 +987,33 @@ async def update_comprehensive_profile(
 
         if "subscriptionTier" in payload:
             next_tier = normalize_plan_id(payload.get("subscriptionTier"))
+            if next_tier != DEFAULT_PLAN_ID:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Paid plan updates must go through checkout and webhook confirmation.",
+                )
             comprehensive_profile.subscription_tier = next_tier
             if previous_subscription_tier != next_tier or not comprehensive_profile.subscription_started_at:
                 comprehensive_profile.subscription_started_at = datetime.now(timezone.utc)
+            comprehensive_profile.stripe_subscription_id = None
+            comprehensive_profile.stripe_price_id = None
+            comprehensive_profile.current_period_end = None
+            comprehensive_profile.cancel_at_period_end = False
 
         if "billingCycle" in payload:
+            if normalize_plan_id(comprehensive_profile.subscription_tier) != DEFAULT_PLAN_ID:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Billing cycle for paid plans is managed by provider webhooks.",
+                )
             comprehensive_profile.billing_cycle = _normalize_billing_cycle(payload.get("billingCycle"))
 
         if "subscriptionStatus" in payload:
+            if normalize_plan_id(comprehensive_profile.subscription_tier) != DEFAULT_PLAN_ID:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Subscription status for paid plans is managed by provider webhooks.",
+                )
             comprehensive_profile.subscription_status = _normalize_subscription_status(payload.get("subscriptionStatus"))
 
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
@@ -1005,6 +1033,9 @@ async def update_comprehensive_profile(
             "message": "Profile updated successfully"
         }
 
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error updating profile: {str(e)}")
         db.rollback()

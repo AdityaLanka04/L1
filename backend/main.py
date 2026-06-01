@@ -81,6 +81,13 @@ if "sqlite" in DATABASE_URL:
             "billing_cycle": "VARCHAR(20) DEFAULT 'monthly'",
             "subscription_status": "VARCHAR(20) DEFAULT 'active'",
             "subscription_started_at": "DATETIME",
+            "stripe_customer_id": "VARCHAR(120)",
+            "stripe_subscription_id": "VARCHAR(120)",
+            "stripe_price_id": "VARCHAR(120)",
+            "stripe_checkout_session_id": "VARCHAR(120)",
+            "billing_currency": "VARCHAR(12)",
+            "current_period_end": "DATETIME",
+            "cancel_at_period_end": "BOOLEAN DEFAULT 0",
         }
         for _col, _typ in _profile_additions.items():
             if _col not in _profile_cols:
@@ -466,6 +473,7 @@ except ImportError:
 
 from routes import (
     auth,
+    subscription,
     chat,
     notes,
     flashcards,
@@ -494,6 +502,7 @@ from routes import (
 )
 
 app.include_router(auth.router)
+app.include_router(subscription.router)
 app.include_router(chat.router)
 app.include_router(notes.router)
 app.include_router(flashcards.router)

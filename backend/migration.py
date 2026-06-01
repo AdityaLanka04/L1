@@ -244,6 +244,13 @@ def _run_postgres_migration():
             "billing_cycle": "VARCHAR(20) DEFAULT 'monthly'",
             "subscription_status": "VARCHAR(20) DEFAULT 'active'",
             "subscription_started_at": "TIMESTAMP",
+            "stripe_customer_id": "VARCHAR(120)",
+            "stripe_subscription_id": "VARCHAR(120)",
+            "stripe_price_id": "VARCHAR(120)",
+            "stripe_checkout_session_id": "VARCHAR(120)",
+            "billing_currency": "VARCHAR(12)",
+            "current_period_end": "TIMESTAMP",
+            "cancel_at_period_end": "BOOLEAN DEFAULT FALSE",
         },
     )
 

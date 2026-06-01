@@ -319,6 +319,7 @@ const ProfileNew = () => {
   const currentPlanYearlySavingsPct = currentPlan ? getYearlySavingsPct(currentPlan) : 0;
   const currentPlanYearlySavingsUsd = currentPlan ? getYearlySavingsUsd(currentPlan) : 0;
   const currentPlanYearlyEquivalentMonthly = currentPlan ? getYearlyEquivalentMonthly(currentPlan) : 0;
+  const isCurrentPlanStarter = (subscriptionData.currentPlanId || 'starter') === 'starter';
 
   useEffect(() => {
     if (!token) { navigate('/login'); return; }
@@ -387,43 +388,73 @@ const ProfileNew = () => {
     }
   }, [API_URL, token, userName]);
 
+  const readApiError = async (resp, fallbackMessage) => {
+    try {
+      const payload = await resp.json();
+      if (payload?.detail) return payload.detail;
+    } catch (e) {}
+    return fallbackMessage;
+  };
+
   const handleSelectPlan = async (planId) => {
     if (!userName || !planId || subscriptionData.saving || planId === subscriptionData.currentPlanId) return;
-    const previousPlanId = subscriptionData.currentPlanId;
     const currentBillingCycle = subscriptionData.billingCycle || 'monthly';
     setSubscriptionData(prev => ({
       ...prev,
       saving: true,
       saveAction: 'plan',
-      error: null,
-      currentPlanId: planId
+      error: null
     }));
     try {
-      const resp = await fetch(`${API_URL}/subscription/select`, {
+      if (planId === 'starter') {
+        const resp = await fetch(`${API_URL}/subscription/select`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            user_id: userName,
+            tier: 'starter',
+            billingCycle: currentBillingCycle,
+            subscriptionStatus: 'active'
+          })
+        });
+        if (!resp.ok) {
+          throw new Error(await readApiError(resp, 'Unable to switch plan right now.'));
+        }
+        const data = await resp.json().catch(() => ({}));
+        setSubscriptionData(prev => ({
+          ...prev,
+          currentPlanId: data.subscriptionTier || 'starter',
+          billingCycle: data.billingCycle || prev.billingCycle,
+          subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
+        }));
+        void loadSubscriptionOverview({ silent: true });
+        return;
+      }
+
+      const checkoutResp = await fetch(`${API_URL}/subscription/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           user_id: userName,
           tier: planId,
-          billingCycle: currentBillingCycle
+          billingCycle: currentBillingCycle,
+          success_url: `${window.location.origin}/profile?checkout=success`,
+          cancel_url: `${window.location.origin}/profile?checkout=cancelled`,
         })
       });
-      if (!resp.ok) {
-        throw new Error(`Subscription update failed: ${resp.status}`);
+      if (!checkoutResp.ok) {
+        throw new Error(await readApiError(checkoutResp, 'Unable to start checkout right now.'));
       }
-      const data = await resp.json().catch(() => ({}));
-      setSubscriptionData(prev => ({
-        ...prev,
-        currentPlanId: data.subscriptionTier || planId,
-        billingCycle: data.billingCycle || prev.billingCycle,
-        subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
-      }));
-      void loadSubscriptionOverview({ silent: true });
+      const checkoutData = await checkoutResp.json().catch(() => ({}));
+      const checkoutUrl = checkoutData.checkoutUrl || checkoutData.checkout_url;
+      if (!checkoutUrl) {
+        throw new Error('Checkout session did not return a redirect URL.');
+      }
+      window.location.assign(checkoutUrl);
     } catch (e) {
       setSubscriptionData(prev => ({
         ...prev,
-        currentPlanId: previousPlanId,
-        error: 'Unable to switch plan right now.'
+        error: e?.message || 'Unable to switch plan right now.'
       }));
     } finally {
       setSubscriptionData(prev => ({ ...prev, saving: false, saveAction: null }));
@@ -433,13 +464,18 @@ const ProfileNew = () => {
   const handleBillingCycleChange = async (nextCycle) => {
     if (!userName || !nextCycle || subscriptionData.saving || nextCycle === subscriptionData.billingCycle) return;
     const previousCycle = subscriptionData.billingCycle || 'monthly';
-    const currentPlanId = subscriptionData.currentPlanId || 'starter';
+    setSubscriptionData(prev => ({
+      ...prev,
+      billingCycle: nextCycle,
+      error: null
+    }));
+    if (!isCurrentPlanStarter) return;
+
     setSubscriptionData(prev => ({
       ...prev,
       saving: true,
       saveAction: 'cycle',
-      error: null,
-      billingCycle: nextCycle
+      error: null
     }));
     try {
       const resp = await fetch(`${API_URL}/subscription/select`, {
@@ -447,17 +483,16 @@ const ProfileNew = () => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           user_id: userName,
-          tier: currentPlanId,
+          tier: 'starter',
           billingCycle: nextCycle
         })
       });
       if (!resp.ok) {
-        throw new Error(`Subscription billing cycle update failed: ${resp.status}`);
+        throw new Error(await readApiError(resp, 'Unable to switch billing cycle right now.'));
       }
       const data = await resp.json().catch(() => ({}));
       setSubscriptionData(prev => ({
         ...prev,
-        currentPlanId: data.subscriptionTier || prev.currentPlanId,
         billingCycle: data.billingCycle || nextCycle,
         subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
       }));
@@ -466,7 +501,7 @@ const ProfileNew = () => {
       setSubscriptionData(prev => ({
         ...prev,
         billingCycle: previousCycle,
-        error: 'Unable to switch billing cycle right now.'
+        error: e?.message || 'Unable to switch billing cycle right now.'
       }));
     } finally {
       setSubscriptionData(prev => ({ ...prev, saving: false, saveAction: null }));
@@ -753,11 +788,16 @@ const ProfileNew = () => {
           <div className="pn-section-label">SUBSCRIPTION</div>
           <div className="pn-subscription-header">
             <div className="pn-subscription-current">
-              <BarChart3 size={14} />
-              <span>
-                {currentPlan
-                  ? `Current plan: ${currentPlan.name} · ${formatUsd(currentPlanPrice)}${billingLabel}`
-                  : 'Current plan: Starter'}
+              <span className="pn-subscription-current-icon" aria-hidden>
+                <BarChart3 size={16} />
+              </span>
+              <span className="pn-subscription-current-copy">
+                <span className="pn-subscription-current-label">Current Plan</span>
+                <span className="pn-subscription-current-value">
+                  {currentPlan
+                    ? `${currentPlan.name} · ${formatUsd(currentPlanPrice)}${billingLabel}`
+                    : `Starter · ${formatUsd(0)}/mo`}
+                </span>
               </span>
             </div>
             <div className="pn-billing-toggle" role="group" aria-label="Billing cycle">
@@ -780,19 +820,47 @@ const ProfileNew = () => {
                 Yearly
               </button>
             </div>
-            <span className="pn-subscription-note">
+            <p
+              className={`pn-subscription-note ${
+                activeBillingCycle === 'yearly'
+                  ? 'pn-subscription-note--yearly'
+                  : (currentPlanYearlySavingsPct > 0 ? 'pn-subscription-note--savings' : '')
+              }`}
+            >
               {activeBillingCycle === 'yearly'
                 ? (
                   currentPlan
-                    ? `Yearly billing · ${formatUsd(currentPlanPrice)}${billingLabel}${currentPlanYearlyEquivalentMonthly > 0 ? ` · ~${formatUsd(currentPlanYearlyEquivalentMonthly)}/mo effective` : ''}${currentPlanYearlySavingsPct > 0 ? ` · Save ${currentPlanYearlySavingsPct}%` : ''}`
+                    ? (
+                      <>
+                        <span className="pn-subscription-note-strong">Yearly billing active.</span>{' '}
+                        {formatUsd(currentPlanPrice)}{billingLabel}
+                        {currentPlanYearlyEquivalentMonthly > 0 && (
+                          <>
+                            {' '}· <span className="pn-subscription-note-strong">~{formatUsd(currentPlanYearlyEquivalentMonthly)}/mo effective</span>
+                          </>
+                        )}
+                        {currentPlanYearlySavingsPct > 0 && (
+                          <>
+                            {' '}· <span className="pn-subscription-note-strong">Save {currentPlanYearlySavingsPct}%</span>
+                          </>
+                        )}
+                      </>
+                    )
                     : 'Yearly billing enabled. You can switch anytime.'
                 )
                 : (
                   currentPlanYearlySavingsPct > 0
-                    ? `Switch to yearly and save ${currentPlanYearlySavingsPct}% (${formatUsd(currentPlanYearlySavingsUsd)}/year).`
+                    ? (
+                      <>
+                        <span className="pn-subscription-note-strong">
+                          Switch to yearly and save {currentPlanYearlySavingsPct}%.
+                        </span>{' '}
+                        That’s {formatUsd(currentPlanYearlySavingsUsd)}/year.
+                      </>
+                    )
                     : 'Choose the plan that fits your study flow. You can switch anytime.'
                 )}
-            </span>
+            </p>
           </div>
 
           {subscriptionData.loading ? (
