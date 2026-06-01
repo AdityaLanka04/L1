@@ -751,7 +751,7 @@
 .atl-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: 10050;
   background: color-mix(in srgb, #000 54%, transparent);
   display: grid;
   place-items: center;
@@ -914,6 +914,25 @@
   margin: 0;
   color: var(--atl-muted);
   font-size: 13px;
+}
+
+.atl-btn:focus-visible,
+.atl-mode-btn:focus-visible,
+.atl-filter-btn:focus-visible,
+.atl-chip:focus-visible,
+.atl-icon-btn:focus-visible,
+.atl-activity-card:focus-visible,
+.atl-day-cell:focus-visible,
+.atl-inline-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--atl-accent) 75%, #fff);
+  outline-offset: 2px;
+}
+
+.atl-search input:focus-visible,
+.atl-form-grid input:focus-visible,
+.atl-form-grid textarea:focus-visible,
+.atl-form-grid select:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--atl-accent) 28%, transparent);
 }
 
 @keyframes atl-view-in {

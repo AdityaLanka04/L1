@@ -326,6 +326,26 @@ const ActivityTimeline = () => {
     loadReminders(selectedSmartList, selectedListId);
   }, [userName, token, selectedSmartList, selectedListId, loadReminders]);
 
+  useEffect(() => {
+    if (!showDayModal && !showReminderModal) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      setShowDayModal(false);
+      setShowReminderModal(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showDayModal, showReminderModal]);
+
+  useEffect(() => {
+    if (!showDayModal && !showReminderModal) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showDayModal, showReminderModal]);
+
   const filteredActivities = useMemo(() => {
     const lowered = searchQuery.trim().toLowerCase();
     return activities.filter((activity) => {
@@ -376,7 +396,7 @@ const ActivityTimeline = () => {
 
   const remindersByDay = useMemo(() => {
     const map = new Map();
-    reminders.forEach((reminder) => {
+    filteredReminders.forEach((reminder) => {
       if (!reminder.reminder_date) return;
       const date = parseDateSafe(reminder.reminder_date);
       const key = dayKey(date);
@@ -384,7 +404,7 @@ const ActivityTimeline = () => {
       map.get(key).push(reminder);
     });
     return map;
-  }, [reminders]);
+  }, [filteredReminders]);
 
   const monthCells = useMemo(() => monthGrid(currentMonth, true), [currentMonth]);
 
@@ -400,37 +420,27 @@ const ActivityTimeline = () => {
       if (typeCounts[activity.type] !== undefined) typeCounts[activity.type] += 1;
     });
 
-    const streakKeys = [...new Set(filteredActivities.map((item) => dayKey(item.timestamp)))].sort((a, b) => new Date(b) - new Date(a));
+    const streakSet = new Set(filteredActivities.map((item) => dayKey(item.timestamp)));
     let streak = 0;
-    if (streakKeys.length) {
+    if (streakSet.size) {
       let cursor = new Date();
       cursor.setHours(0, 0, 0, 0);
-      for (let i = 0; i < streakKeys.length; i += 1) {
-        const key = dayKey(cursor);
-        if (streakKeys.includes(key)) {
-          streak += 1;
-          cursor.setDate(cursor.getDate() - 1);
-        } else if (i === 0) {
-          cursor.setDate(cursor.getDate() - 1);
-          const yesterday = dayKey(cursor);
-          if (streakKeys.includes(yesterday)) {
-            streak += 1;
-            cursor.setDate(cursor.getDate() - 1);
-          }
-          break;
-        } else {
-          break;
-        }
+      if (!streakSet.has(dayKey(cursor))) {
+        cursor.setDate(cursor.getDate() - 1);
+      }
+      while (streakSet.has(dayKey(cursor))) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
       }
     }
 
     return {
       total: filteredActivities.length,
-      reminders: reminders.length,
+      reminders: filteredReminders.length,
       streak,
       ...typeCounts,
     };
-  }, [filteredActivities, reminders.length]);
+  }, [filteredActivities, filteredReminders.length]);
 
   const calendarDayPayload = useMemo(() => {
     if (!activeDay) return null;
@@ -567,6 +577,7 @@ const ActivityTimeline = () => {
         loadReminders(selectedSmartList, selectedListId),
         loadReminderLists(),
       ]);
+      setError('');
       setShowReminderModal(false);
       setEditingReminder(null);
       setReminderForm(emptyReminderForm(selectedListId));
@@ -589,6 +600,7 @@ const ActivityTimeline = () => {
         loadReminders(selectedSmartList, selectedListId),
         loadReminderLists(),
       ]);
+      setError('');
     } catch (e) {
       setError('Could not update reminder status.');
     }
@@ -605,6 +617,7 @@ const ActivityTimeline = () => {
         loadReminders(selectedSmartList, selectedListId),
         loadReminderLists(),
       ]);
+      setError('');
     } catch (e) {
       setError('Could not toggle reminder flag.');
     }
@@ -622,17 +635,18 @@ const ActivityTimeline = () => {
         loadReminders(selectedSmartList, selectedListId),
         loadReminderLists(),
       ]);
+      setError('');
     } catch (e) {
       setError('Could not delete reminder.');
     }
   };
 
   const openActivity = (activity) => {
-    if (activity.type === 'note') {
+    if (activity.type === 'note' && activity.data?.id) {
       navigate(`/notes/editor/${activity.data.id}`);
       return;
     }
-    if (activity.type === 'chat') {
+    if (activity.type === 'chat' && activity.data?.id) {
       navigate(`/ai-chat/${activity.data.id}`);
       return;
     }
@@ -681,6 +695,7 @@ const ActivityTimeline = () => {
                     <button
                       key={activity.id}
                       className="atl-activity-card"
+                      type="button"
                       onClick={() => openActivity(activity)}
                     >
                       <span className="atl-activity-icon" style={{ backgroundColor: meta.color }}>
@@ -720,6 +735,7 @@ const ActivityTimeline = () => {
           <div className="atl-month-nav">
             <button
               className="atl-btn atl-btn--ghost"
+              type="button"
               onClick={() => {
                 const next = new Date(currentMonth);
                 next.setMonth(currentMonth.getMonth() - 1);
@@ -732,6 +748,7 @@ const ActivityTimeline = () => {
             <strong>{currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</strong>
             <button
               className="atl-btn atl-btn--ghost"
+              type="button"
               onClick={() => {
                 const next = new Date(currentMonth);
                 next.setMonth(currentMonth.getMonth() + 1);
@@ -761,6 +778,7 @@ const ActivityTimeline = () => {
               <button
                 key={`${key}-${isCurrentMonth ? 'in' : 'out'}`}
                 className={`atl-day-cell ${isCurrentMonth ? '' : 'atl-day-cell--muted'} ${isToday ? 'atl-day-cell--today' : ''}`}
+                type="button"
                 onClick={() => {
                   setActiveDay(day);
                   setShowDayModal(true);
@@ -793,7 +811,7 @@ const ActivityTimeline = () => {
           <p className="atl-eyebrow">Reminders</p>
           <h2>Task and Reminder Board</h2>
         </div>
-        <button className="atl-btn atl-btn--primary" onClick={openReminderCreate}>
+        <button className="atl-btn atl-btn--primary" type="button" onClick={openReminderCreate}>
           <Plus size={15} />
           <span>New Reminder</span>
         </button>
@@ -804,6 +822,7 @@ const ActivityTimeline = () => {
           <button
             key={smartKey}
             className={`atl-chip ${selectedSmartList === smartKey && !selectedListId ? 'active' : ''}`}
+            type="button"
             onClick={() => setSmartList(smartKey)}
           >
             {smartKey}
@@ -818,6 +837,7 @@ const ActivityTimeline = () => {
             <button
               key={list.id}
               className={`atl-chip ${selectedListId === list.id ? 'active' : ''}`}
+              type="button"
               onClick={() => setCustomList(list.id)}
             >
               {list.name}
@@ -835,43 +855,46 @@ const ActivityTimeline = () => {
             <p>Create one to get started.</p>
           </div>
         ) : (
-          filteredReminders.map((reminder) => (
-            <article key={reminder.id} className="atl-reminder-card" style={{ borderLeftColor: reminder.color || '#3b82f6' }}>
-              <button className="atl-icon-btn" onClick={() => toggleReminderComplete(reminder)}>
+          filteredReminders.map((reminder) => {
+            const safeUrl = sanitizeUrl(reminder.url || '');
+            return (
+              <article key={reminder.id} className="atl-reminder-card" style={{ borderLeftColor: reminder.color || '#3b82f6' }}>
+                <button className="atl-icon-btn" type="button" aria-label={reminder.is_completed ? 'Mark reminder incomplete' : 'Mark reminder complete'} onClick={() => toggleReminderComplete(reminder)}>
                 {reminder.is_completed ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-              </button>
+                </button>
 
-              <div className="atl-reminder-copy">
-                <div className="atl-reminder-head">
-                  <h4 className={reminder.is_completed ? 'done' : ''}>{reminder.title}</h4>
-                  <span>{PRIORITY_LABELS[reminder.priority] || 'None'} priority</span>
+                <div className="atl-reminder-copy">
+                  <div className="atl-reminder-head">
+                    <h4 className={reminder.is_completed ? 'done' : ''}>{reminder.title}</h4>
+                    <span>{PRIORITY_LABELS[reminder.priority] || 'None'} priority</span>
+                  </div>
+                  {reminder.description && <p>{reminder.description}</p>}
+                  <div className="atl-reminder-meta">
+                    {reminder.reminder_date && (
+                      <span><Clock size={12} /> {new Date(reminder.reminder_date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    )}
+                    {safeUrl && (
+                      <a href={safeUrl} target="_blank" rel="noopener noreferrer">
+                        <LinkIcon size={12} /> link
+                      </a>
+                    )}
+                  </div>
                 </div>
-                {reminder.description && <p>{reminder.description}</p>}
-                <div className="atl-reminder-meta">
-                  {reminder.reminder_date && (
-                    <span><Clock size={12} /> {new Date(reminder.reminder_date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                  )}
-                  {reminder.url && (
-                    <a href={sanitizeUrl(reminder.url)} target="_blank" rel="noopener noreferrer">
-                      <LinkIcon size={12} /> link
-                    </a>
-                  )}
-                </div>
-              </div>
 
-              <div className="atl-reminder-actions">
-                <button className="atl-icon-btn" onClick={() => toggleReminderFlag(reminder)}>
-                  <Flag size={15} fill={reminder.is_flagged ? 'currentColor' : 'none'} />
-                </button>
-                <button className="atl-icon-btn" onClick={() => openReminderEdit(reminder)}>
-                  <Edit3 size={15} />
-                </button>
-                <button className="atl-icon-btn danger" onClick={() => removeReminder(reminder.id)}>
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </article>
-          ))
+                <div className="atl-reminder-actions">
+                  <button className="atl-icon-btn" type="button" aria-label={reminder.is_flagged ? 'Unflag reminder' : 'Flag reminder'} onClick={() => toggleReminderFlag(reminder)}>
+                    <Flag size={15} fill={reminder.is_flagged ? 'currentColor' : 'none'} />
+                  </button>
+                  <button className="atl-icon-btn" type="button" aria-label="Edit reminder" onClick={() => openReminderEdit(reminder)}>
+                    <Edit3 size={15} />
+                  </button>
+                  <button className="atl-icon-btn danger" type="button" aria-label="Delete reminder" onClick={() => removeReminder(reminder.id)}>
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </article>
+            );
+          })
         )}
       </div>
     </section>
@@ -886,15 +909,15 @@ const ActivityTimeline = () => {
           <p className="atl-subtitle">Redesigned for one clean scroll and clearer signal.</p>
         </div>
         <div className="atl-header-actions">
-          <button className="atl-btn atl-btn--ghost" onClick={() => navigate('/dashboard-cerbyl')}>
+          <button className="atl-btn atl-btn--ghost" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
             <ListChecks size={15} />
             <span>Dashboard</span>
           </button>
-          <button className="atl-btn atl-btn--ghost" onClick={refreshAll}>
+          <button className="atl-btn atl-btn--ghost" type="button" onClick={refreshAll}>
             <RefreshCw size={15} />
             <span>Refresh</span>
           </button>
-          <button className="atl-btn atl-btn--ghost" onClick={exportData}>
+          <button className="atl-btn atl-btn--ghost" type="button" onClick={exportData}>
             <Download size={15} />
             <span>Export</span>
           </button>
@@ -906,17 +929,17 @@ const ActivityTimeline = () => {
           <section className="atl-sidebar-card">
             <h3>Modes</h3>
             <div className="atl-mode-stack">
-              <button className={`atl-mode-btn ${viewMode === 'timeline' ? 'active' : ''}`} onClick={() => switchViewMode('timeline')}>
+              <button className={`atl-mode-btn ${viewMode === 'timeline' ? 'active' : ''}`} type="button" onClick={() => switchViewMode('timeline')}>
                 <Sparkles size={14} />
                 <span>Timeline</span>
                 <em>{filteredActivities.length}</em>
               </button>
-              <button className={`atl-mode-btn ${viewMode === 'calendar' ? 'active' : ''}`} onClick={() => switchViewMode('calendar')}>
+              <button className={`atl-mode-btn ${viewMode === 'calendar' ? 'active' : ''}`} type="button" onClick={() => switchViewMode('calendar')}>
                 <CalendarDays size={14} />
                 <span>Calendar</span>
                 <em>{activitiesByDay.size}</em>
               </button>
-              <button className={`atl-mode-btn ${viewMode === 'reminders' ? 'active' : ''}`} onClick={() => switchViewMode('reminders')}>
+              <button className={`atl-mode-btn ${viewMode === 'reminders' ? 'active' : ''}`} type="button" onClick={() => switchViewMode('reminders')}>
                 <Bell size={14} />
                 <span>Reminders</span>
                 <em>{filteredReminders.length}</em>
@@ -933,6 +956,7 @@ const ActivityTimeline = () => {
                   <button
                     key={type}
                     className={`atl-filter-btn ${selectedFilters.includes(type) ? 'active' : ''}`}
+                    type="button"
                     onClick={() => toggleFilter(type)}
                   >
                     <span className="atl-dot" style={{ backgroundColor: meta.color }} />
@@ -973,6 +997,7 @@ const ActivityTimeline = () => {
               <Search size={15} />
               <input
                 type="text"
+                aria-label="Search activities and reminders"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search activities and reminders"
@@ -1003,7 +1028,7 @@ const ActivityTimeline = () => {
           <div className="atl-modal" onClick={(e) => e.stopPropagation()}>
             <div className="atl-modal-head">
               <h3>{calendarDayPayload.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</h3>
-              <button className="atl-icon-btn" onClick={() => setShowDayModal(false)}>
+              <button className="atl-icon-btn" type="button" aria-label="Close day details" onClick={() => setShowDayModal(false)}>
                 <X size={16} />
               </button>
             </div>
@@ -1017,7 +1042,7 @@ const ActivityTimeline = () => {
                   <ul className="atl-modal-list">
                     {calendarDayPayload.reminders.map((reminder) => (
                       <li key={`modal-r-${reminder.id}`}>
-                        <button className="atl-inline-link" onClick={() => {
+                        <button className="atl-inline-link" type="button" onClick={() => {
                           setShowDayModal(false);
                           openReminderEdit(reminder);
                         }}>
@@ -1040,7 +1065,7 @@ const ActivityTimeline = () => {
                   <ul className="atl-modal-list">
                     {calendarDayPayload.activities.map((activity) => (
                       <li key={`modal-a-${activity.id}`}>
-                        <button className="atl-inline-link" onClick={() => openActivity(activity)}>
+                        <button className="atl-inline-link" type="button" onClick={() => openActivity(activity)}>
                           {activity.title}
                         </button>
                         <span>{TYPE_META[activity.type]?.label || activity.type}</span>
@@ -1059,7 +1084,7 @@ const ActivityTimeline = () => {
           <div className="atl-modal" onClick={(e) => e.stopPropagation()}>
             <div className="atl-modal-head">
               <h3>{editingReminder ? 'Edit Reminder' : 'Create Reminder'}</h3>
-              <button className="atl-icon-btn" onClick={() => setShowReminderModal(false)}>
+              <button className="atl-icon-btn" type="button" aria-label="Close reminder editor" onClick={() => setShowReminderModal(false)}>
                 <X size={16} />
               </button>
             </div>
@@ -1159,10 +1184,10 @@ const ActivityTimeline = () => {
               </label>
 
               <div className="atl-form-actions">
-                <button className="atl-btn atl-btn--ghost" onClick={() => setShowReminderModal(false)}>
+                <button className="atl-btn atl-btn--ghost" type="button" onClick={() => setShowReminderModal(false)}>
                   Cancel
                 </button>
-                <button className="atl-btn atl-btn--primary" onClick={persistReminder}>
+                <button className="atl-btn atl-btn--primary" type="button" onClick={persistReminder}>
                   {editingReminder ? 'Save' : 'Create'}
                 </button>
               </div>
