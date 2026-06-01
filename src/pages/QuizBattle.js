@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Swords, Users, Clock, X, Check, Zap, Trophy, Shield, 
+import {
+  Swords, Users, Clock, X, Check, Zap, Trophy, Shield,
   Flame, Crown, Sparkles, ChevronRight, BookOpen, Database,
   Gauge, ArrowRight, AlertCircle
-, Menu} from 'lucide-react';
+} from 'lucide-react';
 import './QuizBattle.css';
 import { API_URL } from '../config';
 import useSharedWebSocket from '../hooks/useSharedWebSocket';
@@ -255,29 +255,6 @@ const QuizBattle = () => {
 
   return (
     <div className="qb-page">
-      <header className="qb-header">
-        <div className="qb-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="qb-logo" onClick={() => navigate('/search-hub')}>
-            <div className="qb-logo-img" />
-            cerbyl
-          </h1>
-          <div className="qb-header-divider"></div>
-          <span className="qb-subtitle">QUIZ BATTLES</span>
-        </div>
-        <div className="qb-header-right">
-          <button className="qb-nav-btn" onClick={() => navigate('/social')}>
-            <Users size={16} />
-            Social
-          </button>
-          <button className="qb-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>
-                  Dashboard
-          </button>
-        </div>
-      </header>
-
       <div className="qb-content">
         <div className="qb-container">
           <section className="qb-welcome-section">

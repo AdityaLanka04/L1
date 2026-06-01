@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Eye, Edit3, User, Clock, MessageSquare, FileText, Lock , Menu} from 'lucide-react';
+import { ArrowLeft, Eye, Edit3, User, Clock, MessageSquare, FileText, Lock } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import './SharedItemViewer.css';
@@ -133,15 +133,12 @@ const SharedItemViewer = () => {
 
   return (
     <div className="shared-viewer-page">
-      <header className="shared-viewer-header">
-        <div className="header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <button className="back-btn" onClick={() => navigate('/shared')}>
-            ◄ Back
-          </button>
-          <div className="header-info">
+      <div className="shared-viewer-container">
+        <div className="viewer-content-info">
+          <div className="viewer-content-info-left">
+            <button className="back-btn" onClick={() => navigate('/shared')}>
+              ◄ Back
+            </button>
             <div className="content-type-icon">
               {content.content_type === 'chat' ? (
                 <MessageSquare size={24} />
@@ -167,32 +164,27 @@ const SharedItemViewer = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="header-right">
-          <div className={`permission-badge ${content.permission}`}>
-            {content.permission === 'view' ? (
-              <>
-                <Eye size={14} />
-                <span>View Only</span>
-              </>
-            ) : (
-              <>
-                <Edit3 size={14} />
-                <span>Can Edit</span>
-              </>
+          <div className="viewer-content-info-right">
+            <div className={`permission-badge ${content.permission}`}>
+              {content.permission === 'view' ? (
+                <>
+                  <Eye size={14} />
+                  <span>View Only</span>
+                </>
+              ) : (
+                <>
+                  <Edit3 size={14} />
+                  <span>Can Edit</span>
+                </>
+              )}
+            </div>
+            {content.is_owner && (
+              <div className="owner-badge">
+                <span>Owner</span>
+              </div>
             )}
           </div>
-
-          {content.is_owner && (
-            <div className="owner-badge">
-              <span>Owner</span>
-            </div>
-          )}
         </div>
-      </header>
-
-      <div className="shared-viewer-container">
         {content.content_type === 'chat' ? (
           <div className="chat-messages">
             {content.messages.length === 0 ? (

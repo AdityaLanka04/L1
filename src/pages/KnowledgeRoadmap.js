@@ -10,7 +10,7 @@ import ReactFlow, {
   Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight, X, Edit3, Save, StickyNote, Menu, MessageCircle } from 'lucide-react';
+import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight, X, Edit3, Save, StickyNote, MessageCircle } from 'lucide-react';
 import './KnowledgeRoadmap.css';
 import { API_URL } from '../config';
 import MathRenderer from '../components/MathRenderer';
@@ -1844,73 +1844,55 @@ Instructions:
         <circle cx="1000" cy="600" r="2" fill="currentColor"/>
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
-      <header className="kr-header">
-        <div className="kr-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <div className="kr-brand" onClick={() => navigate('/search-hub')}>
-            <div className="kr-logo-img"></div>
-            cerbyl
-          </div>
-          <div className="kr-header-divider"></div>
-          <span className="kr-page-title">Knowledge Roadmap</span>
-          {currentRoadmap && (
-            <>
-              <div className="kr-header-divider"></div>
-              <span className="kr-roadmap-title">{currentRoadmap.title || currentRoadmap.root_topic}</span>
-            </>
-          )}
-        </div>
-        <div className="kr-header-right">
-          {currentRoadmap ? (
-            <>
-              <button className="kr-nav-btn" onClick={() => { 
-                navigate('/knowledge-roadmap');
-                setCurrentRoadmap(null); 
-                setNodes([]); 
-                setEdges([]); 
-                setNodeExplanation(null);
-              }}>
-                Back to Roadmaps
-              </button>
-              {selectedNodeId && (
-                <button 
-                  className="kr-delete-node-btn" 
-                  onClick={deleteSelectedNode}
-                  title="Delete selected node"
-                >
-                  <Trash2 size={16} />
-                  <span>Delete Node</span>
-                </button>
-              )}
-              <button 
-                className="kr-export-btn" 
-                onClick={exportRoadmapToNotes}
-                disabled={exporting}
-                title="Export explored nodes to Notes"
-              >
-                {exporting ? (
-                  <>
-                    <Loader size={16} className="kr-spinner" />
-                    <span>Exporting...</span>
-                  </>
-                ) : (
-                  <>
-                    <FileDown size={16} />
-                    <span>Export</span>
-                  </>
-                )}
-              </button>
-            </>
-          ) : (
-            <button className="kr-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>
-                  Dashboard
-              <ChevronRight size={14} />
+      {/* Floating toolbar for roadmap actions */}
+      <div style={{position:'fixed',top:'10px',right:'16px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
+        {currentRoadmap ? (
+          <>
+            <button className="kr-nav-btn" onClick={() => {
+              navigate('/knowledge-roadmap');
+              setCurrentRoadmap(null);
+              setNodes([]);
+              setEdges([]);
+              setNodeExplanation(null);
+            }}>
+              Back to Roadmaps
             </button>
-          )}
-        </div>
-      </header>
+            {selectedNodeId && (
+              <button
+                className="kr-delete-node-btn"
+                onClick={deleteSelectedNode}
+                title="Delete selected node"
+              >
+                <Trash2 size={16} />
+                <span>Delete Node</span>
+              </button>
+            )}
+            <button
+              className="kr-export-btn"
+              onClick={exportRoadmapToNotes}
+              disabled={exporting}
+              title="Export explored nodes to Notes"
+            >
+              {exporting ? (
+                <>
+                  <Loader size={16} className="kr-spinner" />
+                  <span>Exporting...</span>
+                </>
+              ) : (
+                <>
+                  <FileDown size={16} />
+                  <span>Export</span>
+                </>
+              )}
+            </button>
+          </>
+        ) : (
+          <button className="kr-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>
+            Dashboard
+            <ChevronRight size={14} />
+          </button>
+        )}
+      </div>
 
       <div className="kr-content">
         {!currentRoadmap ? (

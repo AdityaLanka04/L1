@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Mic, BookOpen, Zap, ChevronRight
-, Menu} from 'lucide-react';
+} from 'lucide-react';
 import './NotesHub.css';
 import './NotesHubConvert.css';
 import ImportExportModal from '../components/ImportExportModal';
@@ -54,37 +54,19 @@ const NotesHub = () => {
         <div className="nh-ambient-grid"></div>
       </div>
 
-      <header className="nh-header">
-        <div className="nh-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="nh-logo" onClick={() => navigate('/search-hub')}>
-            <div className="nh-logo-img" />
-            cerbyl
-          </h1>
-          <div className="nh-header-divider"></div>
-          <span className="nh-subtitle">STUDY NOTES</span>
-        </div>
-        <nav className="nh-header-right">
-          <button 
+      <main className="nh-main">
+        <div style={{display:'flex',justifyContent:'flex-end',padding:'12px 16px 0'}}>
+          <button
             onClick={(e) => {
               e.stopPropagation();
               setShowImportExport(true);
-            }} 
+            }}
             className="nh-nav-btn nh-nav-btn-accent"
           >
             <Zap size={16} />
             <span>Convert</span>
           </button>
-          <button className="nh-nav-btn nh-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-        </nav>
-      </header>
-
-      <main className="nh-main">
+        </div>
         <section 
           className={`nh-section nh-section-ai ${hoveredSection === 'ai' ? 'nh-section-hovered' : ''}`}
           onClick={() => navigate('/notes/ai-media')}

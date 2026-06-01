@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Search, UserPlus, Check, X, UserMinus, ChevronRight, Menu } from 'lucide-react';
+import { Users, Search, UserPlus, Check, X, UserMinus } from 'lucide-react';
 import './FriendsDashboard.css';
 import { API_URL } from '../config';
 
@@ -283,30 +283,6 @@ const FriendsDashboard = () => {
 
   return (
     <div className="fd-container">
-      <header className="gm-header">
-        <div className="gm-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
-            <div className="gm-logo-img" />
-            cerbyl
-          </h1>
-          <div className="gm-header-divider" />
-          <span className="gm-subtitle">FRIENDS</span>
-        </div>
-        <nav className="gm-header-right">
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
-            <Users size={16} />
-            Social
-          </button>
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-            <ChevronRight size={14} />
-          </button>
-        </nav>
-      </header>
-
       <div className="fd-layout">
         <aside className="fd-sidebar">
           <div className="fd-self-level-card">

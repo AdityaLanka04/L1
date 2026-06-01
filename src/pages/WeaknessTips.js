@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronRight, Lightbulb, BookOpen, Activity, ArrowRight, Brain, Target,
   CheckCircle, XCircle, Clock, Trophy, Zap, AlertCircle
-, Menu} from 'lucide-react';
+} from 'lucide-react';
 import './WeaknessTips.css';
 import { API_URL } from '../config';
 
@@ -132,28 +132,12 @@ const WeaknessTips = () => {
 
   return (
     <div className="weakness-tips-container">
-      <header className="tips-header">
-        <div className="tips-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="tips-logo" onClick={() => navigate('/search-hub')}>
-            <div className="tips-logo-img" />
-            cerbyl
-          </h1>
-          <div className="tips-header-divider"></div>
-          <span className="tips-subtitle">STUDY TIPS</span>
-        </div>
-        <nav className="tips-header-right">
-          <button className="tips-nav-btn tips-nav-btn-ghost" onClick={() => navigate('/weaknesses')}>
+      <div className="tips-body">
+        <div className="tips-content">
+          <button className="tips-nav-btn tips-nav-btn-ghost" onClick={() => navigate('/weaknesses')} style={{marginBottom:'12px'}}>
             <span>Back to Weaknesses</span>
             <ChevronRight size={14} />
           </button>
-        </nav>
-      </header>
-
-      <div className="tips-body">
-        <div className="tips-content">
           <div className="tips-topic-header">
             <Brain size={48} />
             <div className="view-heading">

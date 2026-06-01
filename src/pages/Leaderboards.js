@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award, Menu, Users } from 'lucide-react';
+import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award } from 'lucide-react';
 import './Leaderboards.css';
 import { API_URL } from '../config';
 const Leaderboards = () => {
@@ -77,29 +77,6 @@ const Leaderboards = () => {
 
   return (
     <div className="leaderboard-page">
-      <header className="gm-header">
-        <div className="gm-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
-            <div className="gm-logo-img" />
-            cerbyl
-          </h1>
-          <div className="gm-header-divider"></div>
-          <span className="gm-subtitle">LEADERBOARDS</span>
-        </div>
-        <nav className="gm-header-right">
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
-            <Users size={16} />
-            Social
-          </button>
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-          </button>
-        </nav>
-      </header>
-
       <div className="leaderboard-container">
         <div className="leaderboard-welcome">
           <div className="view-heading">

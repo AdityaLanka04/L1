@@ -2713,35 +2713,17 @@ const SearchHub = () => {
         <div className="sh-bg-vignette" />
       </div>
 
-      <div className="sh-topbar">
-        <div className="sh-tagline">accelerate <span>your learning</span></div>
-        <div className="sh-topbar-right-desktop">
-          {userName && (
-            <button className="sh-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
-          )}
-          <button
-            className="sh-side-toggle-btn"
-            onClick={() => setIsSidebarOpen(prev => !prev)}
-            aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-          >
-            {isSidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-            {isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
-          </button>
-        </div>
-        <div className="sh-topbar-right sh-topbar-right--mobile">
-          {!userName ? (
-            <>
-              <button className="sh-nav-btn" onClick={() => navigate('/login')}>Login</button>
-              <button className="sh-nav-btn sh-nav-btn--accent" onClick={() => navigate('/register')}>Sign Up</button>
-            </>
-          ) : (
-            <>
-              <button className="sh-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
-              <button className="sh-nav-btn" onClick={handleLogout}>Logout</button>
-            </>
-          )}
-          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-        </div>
+      {/* Floating top-right controls */}
+      <div style={{position:'fixed',top:'10px',right:'16px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
+        <button
+          className="sh-side-toggle-btn"
+          onClick={() => setIsSidebarOpen(prev => !prev)}
+          aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+        >
+          {isSidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+          {isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
+        </button>
+        <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
       </div>
 
       {showLoginMessage && (

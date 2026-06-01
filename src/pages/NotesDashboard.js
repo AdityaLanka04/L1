@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Plus, Search, Filter, FileText, Layout, Settings,
-  ArrowLeft
-, Menu} from 'lucide-react';
+  Plus, Search, Filter, FileText, Layout, Settings} from 'lucide-react';
 import './NotesDashboard.css';
 import DatabaseViews from '../components/DatabaseViews';
 import AdvancedSearch from '../components/AdvancedSearch';
@@ -192,35 +190,6 @@ const NotesDashboard = () => {
 
   return (
     <div className="notes-dashboard" style={{ fontFamily: selectedFont }}>
-      <div className="dashboard-header">
-        <div className="dashboard-title">
-          <button
-            className="dashboard-btn"
-            onClick={() => navigate('/notes')}
-            style={{ padding: '8px 12px' }}
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <h1>Notes Dashboard</h1>
-        </div>
-        <div className="dashboard-actions">
-          <button
-            className="dashboard-btn"
-            onClick={() => setShowTemplates(true)}
-          >
-            <Layout size={18} />
-            Templates
-          </button>
-          <button
-            className="dashboard-btn primary"
-            onClick={handleCreateNote}
-          >
-            <Plus size={18} />
-            New Note
-          </button>
-        </div>
-      </div>
-
       <div className="dashboard-toolbar">
         <div className="toolbar-left">
           <div className="toolbar-search">
@@ -252,6 +221,20 @@ const NotesDashboard = () => {
               </option>
             ))}
           </select>
+          <button
+            className="dashboard-btn"
+            onClick={() => setShowTemplates(true)}
+          >
+            <Layout size={18} />
+            Templates
+          </button>
+          <button
+            className="dashboard-btn primary"
+            onClick={handleCreateNote}
+          >
+            <Plus size={18} />
+            New Note
+          </button>
         </div>
       </div>
 

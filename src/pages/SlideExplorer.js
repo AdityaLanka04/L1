@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Loader, FileText, Trash2, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, UploadCloud, Menu, MessageSquare, Brain, Zap, Maximize2, Minimize2 } from 'lucide-react';
+import { Upload, Loader, FileText, Trash2, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, UploadCloud, MessageSquare, Brain, Zap, Maximize2, Minimize2 } from 'lucide-react';
 import './SlideExplorer.css';
 import { API_URL } from '../config';
 import slideExplorerAgentService from '../services/slideExplorerAgentService';
@@ -262,31 +262,16 @@ const SlideExplorer = () => {
   if (selectedSlide && analyzedSlides.length > 0) {
     return (
       <div className={`se-page se-analysis-page ${focusMode ? 'se-focus-mode' : ''}`}>
-        <header className="se-header">
-          <div className="se-header-left">
-            {!focusMode && (
-              <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-                <Menu size={20} />
-              </button>
-            )}
-            <h1 className="se-header-title" onClick={() => navigate('/search-hub')}>
-              <div className="se-logo-img" />
-              cerbyl
-            </h1>
-            <div className="se-header-divider" />
-            <p className="se-header-subtitle">SLIDE EXPLORER</p>
-          </div>
-          <div className="se-header-actions">
-            <button className="se-focus-btn" onClick={() => setFocusMode(f => !f)} title={focusMode ? 'Exit Focus' : 'Focus Mode'}>
-              {focusMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-              <span>{focusMode ? 'Exit Focus' : 'Focus'}</span>
-            </button>
-            <button className="se-back-btn" onClick={() => { setSelectedSlide(null); setAnalyzedSlides([]); setFocusMode(false); }}>
-              <ChevronLeft size={18} />
-              <span>Back</span>
-            </button>
-          </div>
-        </header>
+        <div style={{position:'fixed',top:'10px',right:'16px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
+          <button className="se-focus-btn" onClick={() => setFocusMode(f => !f)} title={focusMode ? 'Exit Focus' : 'Focus Mode'}>
+            {focusMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            <span>{focusMode ? 'Exit Focus' : 'Focus'}</span>
+          </button>
+          <button className="se-back-btn" onClick={() => { setSelectedSlide(null); setAnalyzedSlides([]); setFocusMode(false); }}>
+            <ChevronLeft size={18} />
+            <span>Back</span>
+          </button>
+        </div>
 
         <div className="se-analysis-layout">
           {!focusMode && (
@@ -446,20 +431,6 @@ const SlideExplorer = () => {
   // ─── MAIN CARD GRID ────────────────────────────────────────────────
   return (
     <div className="se-page">
-      <header className="se-header">
-        <div className="se-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="se-header-title" onClick={() => navigate('/search-hub')}>
-            <div className="se-logo-img" />
-            cerbyl
-          </h1>
-          <div className="se-header-divider" />
-          <p className="se-header-subtitle">SLIDE EXPLORER</p>
-        </div>
-      </header>
-
       <div className="se-main-layout">
         <aside className="se-sidebar">
           <nav className="se-sidebar-nav">

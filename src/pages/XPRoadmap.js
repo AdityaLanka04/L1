@@ -15,7 +15,7 @@ import {
   Layers,
   Lock,
   Map,
-  Menu,
+
   MessageCircle,
   Package,
   RefreshCw,
@@ -489,25 +489,6 @@ const XPRoadmap = () => {
       </div>
 
       {levelWave && <div className="xpv-level-wave" aria-hidden="true" />}
-
-      <header className="xpv-topbar">
-        <div className="xpv-topbar-left">
-          <button className="xpv-icon-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={19} />
-          </button>
-          <button className="xpv-wordmark" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
-            cerbyl
-          </button>
-          <span className="xpv-page-label">XP Roadmap</span>
-        </div>
-        <div className="xpv-topbar-right">
-          <button className="xpv-text-btn" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
-          <button className="xpv-text-btn is-accent" onClick={() => navigate('/analytics')}>
-            <Activity size={15} />
-            Analytics
-          </button>
-        </div>
-      </header>
 
       <main className="xpv-content">
         <section className="xpv-run-strip" aria-label="Current run">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Swords, ChevronRight, Zap, Menu } from 'lucide-react';
+import { User, Swords, ChevronRight, Zap } from 'lucide-react';
 import './QuizHub.css';
 import ImportExportModal from '../components/ImportExportModal';
 import ContextSelector from '../components/ContextSelector';
@@ -75,30 +75,6 @@ const QuizHub = () => {
         <div className="qh-ambient-orb qh-ambient-orb-2"></div>
         <div className="qh-ambient-grid"></div>
       </div>
-
-      <header className="qh-header">
-        <div className="qh-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="qh-logo" onClick={() => navigate('/search-hub')}>
-            <div className="qh-logo-img" />
-            cerbyl
-          </h1>
-          <div className="qh-header-divider"></div>
-          <span className="qh-subtitle">QUIZ HUB</span>
-        </div>
-        <nav className="qh-header-right">
-          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowImportExport(true); }}
-            className="qh-nav-btn qh-nav-btn-accent"
-          >
-            <Zap size={16} />
-            <span>Convert</span>
-          </button>
-        </nav>
-      </header>
 
       <div className="qh-layout-body">
         <main className="qh-main">
@@ -225,6 +201,17 @@ const QuizHub = () => {
         onHsModeToggle={handleHsModeToggle}
         onDocUploaded={() => setUserDocCount(p => p + 1)}
       />
+
+      <div style={{position:'fixed',top:'10px',right:'12px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
+        <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowImportExport(true); }}
+          className="qh-nav-btn qh-nav-btn-accent"
+        >
+          <Zap size={16} />
+          <span>Convert</span>
+        </button>
+      </div>
     </div>
   );
 };

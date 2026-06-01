@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight, Target, Brain, MessageSquare,
-  CheckCircle, Activity, Zap, RefreshCw, Cpu, Menu
+  CheckCircle, Activity, Zap, RefreshCw, Cpu
 } from 'lucide-react';
 import './Weaknesses.css';
 import { API_URL } from '../config';
@@ -114,32 +114,6 @@ const Weaknesses = () => {
         <circle cx="1000" cy="600" r="2" fill="currentColor"/>
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
-      <header className="wk-header">
-        <div className="wk-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="wk-logo" onClick={() => navigate('/search-hub')}>
-            <div className="wk-logo-img" />
-            cerbyl
-          </h1>
-          <div className="wk-header-divider" />
-          <span className="wk-subtitle">INTELLIGENCE</span>
-        </div>
-        <nav className="wk-header-right">
-          {activeView === 'weak-areas' && (
-            <button className="wk-nav-btn wk-nav-btn-accent" onClick={loadWeakAreas}>
-              <RefreshCw size={15} />
-              Refresh
-            </button>
-          )}
-          <button className="wk-nav-btn wk-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-            <ChevronRight size={14} />
-          </button>
-        </nav>
-      </header>
-
       <div className="wk-layout">
         <aside className="wk-sidebar">
           <nav className="wk-sidebar-nav">
@@ -166,6 +140,13 @@ const Weaknesses = () => {
               <span>How I Learn</span>
             </button>
           </nav>
+
+          {activeView === 'weak-areas' && (
+            <button className="wk-nav-btn wk-nav-btn-accent" onClick={loadWeakAreas} style={{margin:'8px 12px',width:'calc(100% - 24px)'}}>
+              <RefreshCw size={15} />
+              Refresh
+            </button>
+          )}
 
           {activeView === 'weak-areas' && totalCount > 0 && (
             <div className="wk-sidebar-stats">

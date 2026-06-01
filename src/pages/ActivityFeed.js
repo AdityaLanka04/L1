@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Trophy, Target, Flame, TrendingUp, Heart, Award, Zap, Star, 
-  Menu, Users, Filter, MessageCircle, Send, X, BookOpen, 
+  Users, Filter, MessageCircle, Send, X, BookOpen,
   Brain, CheckCircle, Clock, Calendar, Sparkles, TrendingDown,
   Activity as ActivityIcon, RefreshCw
 } from 'lucide-react';
@@ -240,29 +240,6 @@ const ActivityFeed = () => {
 
   return (
     <div className="activity-feed-page">
-      <header className="af-header">
-        <div className="af-header-left">
-          <button className="af-nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="af-logo" onClick={() => navigate('/search-hub')}>
-            <div className="af-logo-img" />
-            cerbyl
-          </h1>
-          <div className="af-header-divider"></div>
-          <span className="af-subtitle">ACTIVITY FEED</span>
-        </div>
-        <nav className="af-header-right">
-          <button className="af-nav-btn af-nav-btn-ghost" onClick={() => navigate('/social')}>
-            <Users size={16} />
-            Social
-          </button>
-          <button className="af-nav-btn af-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-          </button>
-        </nav>
-      </header>
-
       <div className="af-content-section">
         <div className="af-section-header">
           <div className="view-heading" style={{ marginBottom: 0, paddingBottom: 0, border: 'none' }}>

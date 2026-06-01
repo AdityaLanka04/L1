@@ -5,9 +5,8 @@ import { getRelativeTime } from '../utils/dateUtils';
 import { HelpTour, HelpButton } from './HelpTour';
 import {
   CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon,
-  HelpCircle, FileText, Network, ChevronRight, Search, User, Home,
-  Target, Flame, Settings, LogOut, Sparkles, Layers
-, Menu} from 'lucide-react';
+  HelpCircle, FileText, Network, ChevronRight, Home,
+  Target, Flame, Sparkles, Layers} from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
@@ -821,134 +820,71 @@ const Dashboard = () => {
         <HelpTour onClose={closeTour} onComplete={completeTour} />
       )}
 
-      <header className="ds-header">
-        <div className="ds-header-content">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
+      <div className="ds-floating-controls">
+        <div className="ds-notifications-wrapper">
+          <button ref={notifButtonRef} className="ds-notif-bell-btn" onClick={() => setShowNotifications(!showNotifications)}>
+            <Bell size={20} />
+            {unreadCount > 0 && <span className="ds-notif-badge">{unreadCount}</span>}
           </button>
-          <div className="ds-header-left">
-            <div className="ds-user-info">
-              {userProfile?.picture && (
-                <img
-                  src={userProfile.picture}
-                  alt="Profile"
-                  className="ds-profile-picture"
-                  referrerPolicy="no-referrer"
-                  crossOrigin="anonymous"
-                />
-              )}
-              <span className="ds-user-name">{displayName}</span>
-            </div>
-            
-            <div className="ds-notifications-wrapper">
-              <button ref={notifButtonRef} className="ds-notif-bell-btn" onClick={() => setShowNotifications(!showNotifications)}>
-                <Bell size={20} />
-                {unreadCount > 0 && <span className="ds-notif-badge">{unreadCount}</span>}
-              </button>
 
-              {showNotifications && (
-                <>
-                  <div
-                    className="ds-notif-backdrop"
-                    onClick={() => setShowNotifications(false)}
-                  />
+          {showNotifications && (
+            <>
+              <div
+                className="ds-notif-backdrop"
+                onClick={() => setShowNotifications(false)}
+              />
 
-                  <div ref={notifPanelRef} className="ds-notif-panel" onClick={(e) => e.stopPropagation()}>
-                    <div className="ds-notif-panel-header">
-                      <div className="ds-notif-panel-title">
-                        <Bell size={18} />
-                        <h3>Notifications</h3>
-                      </div>
-                      <button className="ds-notif-close-btn" onClick={() => setShowNotifications(false)}>×</button>
-                    </div>
-                    <div className="ds-notif-panel-content">
-                      {notifications.length === 0 ? (
-                        <div className="ds-no-notifications-placeholder">
-                          <Bell size={48} />
-                          <p>No notifications yet</p>
-                        </div>
-                      ) : (
-                        notifications.map(notification => (
-                          <div 
-                            key={notification.id} 
-                            className={`ds-notif-item ${!notification.is_read ? 'ds-notif-unread' : ''}`}
-                            onClick={() => markNotificationAsRead(notification.id)}
-                          >
-                            <div className="ds-notif-icon">
-                              <Sparkles size={20} />
-                            </div>
-                            <div className="ds-notif-body">
-                              <div className="ds-notif-header-row">
-                                <span className="ds-notif-from">{notification.title}</span>
-                                <button 
-                                  className="ds-notif-delete" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteNotification(notification.id);
-                                  }}
-                                >
-                                  ×
-                                </button>
-                              </div>
-                              <p className="ds-notif-text">{notification.message}</p>
-                              <span className="ds-notif-time">{getRelativeTime(notification.created_at)}</span>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
+              <div ref={notifPanelRef} className="ds-notif-panel" onClick={(e) => e.stopPropagation()}>
+                <div className="ds-notif-panel-header">
+                  <div className="ds-notif-panel-title">
+                    <Bell size={18} />
+                    <h3>Notifications</h3>
                   </div>
-                </>
-              )}
-            </div>
-            
-            <ThemeSwitcher />
-            
-            <button className="ds-profile-icon-btn" onClick={openProfile}>
-              <User size={20} />
-            </button>
-            
-            <button className="ds-logout-icon-btn" onClick={handleLogout}>
-              <LogOut size={20} />
-            </button>
-          </div>
-          
-          <div className="ds-header-center">
-            <div className="ds-header-title" onClick={() => navigate('/search-hub')}>
-              <div className="ds-logo-img"></div>
-              cerbyl
-            </div>
-          </div>
-          
-          <div className="ds-header-right">
-            <button
-              className="ds-search-hub-btn"
-              onClick={() => navigate('/search-hub')}
-            >
-              <Search size={14} />
-              SEARCH HUB
-            </button>
-            
-            <button
-              className="ds-customize-btn"
-              onClick={navigateToCustomize}
-            >
-              <Settings size={14} />
-              CUSTOMIZE
-            </button>
-
-            <button
-              className="ds-customize-btn"
-              onClick={() => navigate('/dashboard-cerbyl')}
-              title="Open Cerbyl dashboard"
-            >
-              <Sparkles size={14} />
-              CERBYL
-            </button>
-          </div>
+                  <button className="ds-notif-close-btn" onClick={() => setShowNotifications(false)}>×</button>
+                </div>
+                <div className="ds-notif-panel-content">
+                  {notifications.length === 0 ? (
+                    <div className="ds-no-notifications-placeholder">
+                      <Bell size={48} />
+                      <p>No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.map(notification => (
+                      <div
+                        key={notification.id}
+                        className={`ds-notif-item ${!notification.is_read ? 'ds-notif-unread' : ''}`}
+                        onClick={() => markNotificationAsRead(notification.id)}
+                      >
+                        <div className="ds-notif-icon">
+                          <Sparkles size={20} />
+                        </div>
+                        <div className="ds-notif-body">
+                          <div className="ds-notif-header-row">
+                            <span className="ds-notif-from">{notification.title}</span>
+                            <button
+                              className="ds-notif-delete"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification(notification.id);
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                          <p className="ds-notif-text">{notification.message}</p>
+                          <span className="ds-notif-time">{getRelativeTime(notification.created_at)}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      </header>
-      
+        <ThemeSwitcher />
+      </div>
+
       <GeoBackground />
       
       <div className="ds-grid-container">

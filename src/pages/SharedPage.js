@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Menu, Search, Plus, MessageSquare, FileText, Eye, Edit3,
-  Trash2, Clock, Share2, Users
+  Search, Plus, MessageSquare, FileText, Eye, Edit3,
+  Trash2, Clock, Share2
 } from 'lucide-react';
 import ShareModal from './SharedModal';
 import './SharedPage.css';
@@ -197,29 +197,6 @@ const SharedPage = () => {
 
   return (
     <div className="sp-page">
-      <header className="sp-header">
-        <div className="sp-header-left">
-          <button className="sp-nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="sp-logo" onClick={() => navigate('/search-hub')}>
-            <div className="sp-logo-img" />
-            cerbyl
-          </h1>
-          <div className="sp-header-divider"></div>
-          <span className="sp-subtitle">SHARED CONTENT</span>
-        </div>
-        <nav className="sp-header-right">
-          <button className="sp-ghost-btn" onClick={() => navigate('/social')}>
-            <Users size={16} />
-            Social
-          </button>
-          <button className="sp-ghost-btn" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-          </button>
-        </nav>
-      </header>
-
       <div className="sp-content-section">
         <div className="sp-section-header">
           <div className="sp-header-title-group">

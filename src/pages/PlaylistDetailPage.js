@@ -4,7 +4,7 @@ import {
   Plus, Trash2, Check, Users, Clock, BookOpen, X,
   FileText, MessageSquare, ExternalLink, Youtube, FileUp, Link as LinkIcon,
   ChevronDown, ChevronUp, ChevronRight, Share2, Heart, Lock, Globe, GraduationCap,
-  CheckCircle, Sparkles, Zap, GitFork, Menu
+  CheckCircle, Sparkles, Zap, GitFork
 } from 'lucide-react';
 import './PlaylistDetailPage.css';
 import { API_URL } from '../config';
@@ -350,14 +350,8 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
 
   return (
     <div className="playlist-detail-container playlist-detail-page">
-      <div className="detail-topbar">
-        <div className="topbar-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-        </div>
-
-        <div className="topbar-right">
+      <div className="detail-header">
+        <div className="detail-header-actions">
           {playlist.is_owner ? (
             <>
               <button className="action-button primary" onClick={() => setShowAddItemModal(true)}>
@@ -370,7 +364,7 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
             </>
           ) : (
             <>
-              <button 
+              <button
                 className={`action-button ${isFollowing ? 'following' : 'primary'}`}
                 onClick={handleFollowToggle}
                 disabled={followLoading}
@@ -399,11 +393,9 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
             <ChevronRight size={14} />
           </button>
         </div>
-      </div>
 
-      <div className="detail-header">
-        <div 
-          className="header-banner" 
+        <div
+          className="header-banner"
           style={{ background: `linear-gradient(135deg, ${playlist.cover_color}33 0%, ${playlist.cover_color}11 100%)` }}
         >
           <div className="banner-icon">

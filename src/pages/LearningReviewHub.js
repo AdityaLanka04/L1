@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Map, HelpCircle, BookOpen, TrendingUp, Target, ChevronRight, Play , Menu} from 'lucide-react';
+import { Map, HelpCircle, BookOpen, TrendingUp, Target, ChevronRight, Play } from 'lucide-react';
 import './LearningReviewHub.css';
 import { API_URL } from '../config';
 
@@ -75,26 +75,6 @@ const LearningReviewHub = () => {
         <div className="lrh-ambient-orb lrh-ambient-orb-2"></div>
         <div className="lrh-ambient-grid"></div>
       </div>
-
-      <header className="lrh-header">
-        <div className="lrh-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="lrh-logo" onClick={() => navigate('/search-hub')}>
-            <div className="lrh-logo-img" />
-            cerbyl
-          </h1>
-          <div className="lrh-header-divider"></div>
-          <span className="lrh-subtitle">LEARNING HUB</span>
-        </div>
-        <nav className="lrh-header-right">
-          <button className="lrh-nav-btn lrh-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-        </nav>
-      </header>
 
       <main className="lrh-main">
         <section className="lrh-hero">

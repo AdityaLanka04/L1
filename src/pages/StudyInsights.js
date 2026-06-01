@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronRight , Menu} from 'lucide-react';
 import './StudyInsights.css';
 import { API_URL } from '../config';
 import logo from '../assets/logo.svg';
@@ -116,26 +115,6 @@ const StudyInsights = () => {
 
   return (
     <div className="si-page">
-      <header className="si-header">
-        <div className="si-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="si-logo" onClick={() => navigate('/dashboard-cerbyl')}>
-            <div className="si-logo-img" />
-            cerbyl
-          </h1>
-          <div className="si-header-divider"></div>
-          <span className="si-subtitle">STUDY INSIGHTS</span>
-        </div>
-        <nav className="si-header-right">
-          <button className="si-nav-btn si-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-        </nav>
-      </header>
-
       <main className="si-main">
         <div className="si-bento-grid">
           <div className="si-bento si-summary">

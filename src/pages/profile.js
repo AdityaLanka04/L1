@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, BookOpen, Target, Brain, Award, TrendingUp, ChevronRight, Menu, Bell } from 'lucide-react';
+import { User, BookOpen, Target, Brain, Award, TrendingUp, Bell } from 'lucide-react';
 import './profile.css';
 import { API_URL } from '../config';
 const Profile = () => {
@@ -361,30 +361,6 @@ const Profile = () => {
   return (
     <div className="profile-page">
       <div className="profile-container">
-        <header className="profile-header">
-          <div className="profile-header-left">
-            <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="profile-logo" onClick={() => navigate('/search-hub')}>
-              <div className="profile-logo-img" />
-              cerbyl
-            </h1>
-            <div className="profile-header-divider"></div>
-            <span className="profile-subtitle">Profile</span>
-          </div>
-          <nav className="profile-header-right">
-            {autoSaving && <span className="profile-save-status saving">Saving...</span>}
-            {lastSaved && !autoSaving && (
-              <span className="profile-save-status saved">Saved at {lastSaved}</span>
-            )}
-            <button className="profile-nav-btn profile-nav-btn-ghost" onClick={goBack}>
-              <span>Dashboard</span>
-              <ChevronRight size={14} />
-            </button>
-          </nav>
-        </header>
-
         <div className="profile-grid">
           {profileData.primaryArchetype && (
             <section className="profile-card archetype-card full-width">

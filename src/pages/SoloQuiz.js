@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Play, Brain, Sparkles, Loader, AlertCircle, BarChart3,
   BookOpen, Gauge, Cpu, Database, ArrowRight, History, TrendingUp, Zap, ChevronRight
-, Menu} from 'lucide-react';
+} from 'lucide-react';
 import './SoloQuiz.css';
 import quizAgentService from '../services/quizAgentService';
 import ContextSelector from '../components/ContextSelector';
@@ -120,34 +120,6 @@ const SoloQuiz = () => {
 
   return (
     <div className="sq-page">
-      <header className="sq-header">
-        <div className="sq-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="sq-logo" onClick={() => navigate('/search-hub')}>
-            <div className="sq-logo-img" />
-            cerbyl
-          </h1>
-          <div className="sq-header-divider"></div>
-          <span className="sq-subtitle">AI QUIZ</span>
-        </div>
-        <div className="sq-header-right">
-          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-          <button
-            className="sq-nav-btn sq-nav-btn-accent"
-            onClick={() => navigate('/quiz-hub')}
-          >
-            <Zap size={16} />
-            <span>Quiz Hub</span>
-          </button>
-          <button className="sq-nav-btn sq-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      </header>
-
       <div className="sq-body">
         <aside className="sq-sidebar">
           <div className="sq-sidebar-section">
@@ -464,6 +436,10 @@ const SoloQuiz = () => {
         onHsModeToggle={handleHsModeToggle}
         onDocUploaded={() => setUserDocCount(p => p + 1)}
       />
+
+      <div style={{position:'fixed',top:'10px',right:'12px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
+        <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+      </div>
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Upload, Youtube, FileText, Save, Copy, Mic, Loader,
   Settings, Brain, Zap, Clock, Globe, ChevronLeft, ChevronRight,
-  BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home, LogOut, Menu, ArrowLeft
+  BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home, LogOut, ArrowLeft
 } from 'lucide-react';
 import './AIMediaNotes.css';
 import './AIMediaNotesConvert.css';
@@ -423,24 +423,6 @@ const AIMediaNotes = () => {
 
   return (
     <div className="ai-media-notes-page">
-      <header className="hub-header">
-        <div className="hub-header-left">
-          <button 
-            className="nav-menu-btn" 
-            onClick={() => window.openGlobalNav && window.openGlobalNav()}
-            aria-label="Open navigation"
-          >
-            <Menu size={18} />
-          </button>
-          <h1 className="hub-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
-            <div className="hub-logo-img" />
-            cerbyl
-          </h1>
-          <div className="hub-header-divider"></div>
-          <p className="hub-header-subtitle">MEDIA NOTES</p>
-        </div>
-      </header>
-
       <div className="mn-layout">
         <aside className={`mn-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
           <div className="mn-sidebar-header">

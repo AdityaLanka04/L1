@@ -4,7 +4,7 @@ import {
   Plus, Loader, BookOpen, Target, Clock, Award,
   CheckCircle, Play, Trash2,
   Sparkles, Route, Map, Circle, Search,
-  SlidersHorizontal, ArrowUpDown, Menu, ChevronRight
+  SlidersHorizontal, ArrowUpDown
 } from 'lucide-react';
 import learningPathService from '../services/learningPathService';
 import './LearningPaths.css';
@@ -229,26 +229,6 @@ const LearningPaths = () => {
         <circle cx="1000" cy="600" r="2" fill="currentColor"/>
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
-      <header className="lp-header">
-        <div className="lp-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <div className="lp-header-logo" onClick={() => navigate('/search-hub')}>
-            <div className="lp-header-logo-img" />
-            cerbyl
-          </div>
-          <div className="lp-header-divider"></div>
-          <p className="lp-header-subtitle">LEARNING PATHS</p>
-        </div>
-        <div className="lp-header-right">
-          <button className="lp-back-btn" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      </header>
-
       <div className="lp-layout-body">
         <aside className="lp-sidebar">
           <div className="lp-sidebar-section">

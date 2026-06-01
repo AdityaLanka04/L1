@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen, ChevronRight , Menu} from 'lucide-react';
+import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen, ChevronRight } from 'lucide-react';
 import ShareModal from './SharedModal';
 import './Social.css';
 import { API_URL } from '../config';
@@ -445,25 +445,6 @@ const Social = () => {
   return (
     <div className="hub-page">
       <GeoBackground />
-      <header className="gm-header">
-        <div className="gm-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
-            <div className="gm-logo-img" />
-            cerbyl
-          </h1>
-          <div className="gm-header-divider"></div>
-          <span className="gm-subtitle">SOCIAL HUB</span>
-        </div>
-        <nav className="gm-header-right">
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard <ChevronRight size={14} />
-          </button>
-        </nav>
-      </header>
-
       {activeTab === 'hub' && (
         <div className="bento-container">
           {bentoCards.map(card => {

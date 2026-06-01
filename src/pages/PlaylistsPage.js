@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Search, BookOpen, Users, Clock,
-  Globe, Lock, Heart, Library, Filter, X, Zap, ChevronRight,
-  Menu, FileText, Share2, Check, Sparkles
+  Globe, Lock, Heart, Library, Filter, X, Zap,
+  FileText, Share2, Check, Sparkles
 } from 'lucide-react';
 import './PlaylistsPage.css';
 import './PlaylistsConvert.css';
@@ -247,35 +247,17 @@ const PlaylistsPage = () => {
         <circle cx="1000" cy="600" r="2" fill="currentColor"/>
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
-      <header className="hub-header">
-        <div className="hub-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>
-            <div className="hub-logo-img" />
-            cerbyl
-          </h1>
-          <div className="hub-header-divider"></div>
-          <p className="hub-header-subtitle">LEARNING PLAYLISTS</p>
-        </div>
-        <div className="hub-header-right">
-          <button 
-            className="hub-nav-btn create-playlist-btn" 
+      <div className="playlists-body">
+        <div style={{display:'flex',justifyContent:'flex-end',padding:'12px 16px 0'}}>
+          <button
+            className="hub-nav-btn create-playlist-btn"
             onClick={() => setShowCreateModal(true)}
             title="Create new playlist"
           >
             <Plus size={16} />
             <span>Create Playlist</span>
           </button>
-          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
         </div>
-      </header>
-
-      <div className="playlists-body">
         <aside className="playlists-sidebar">
           <div className="sidebar-section">
             <h3 className="sidebar-heading">Browse</h3>

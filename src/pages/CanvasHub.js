@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, ChevronRight, FileText, X, Menu, Edit2, Check } from 'lucide-react';
+import { Plus, Trash2, FileText, X, Edit2, Check } from 'lucide-react';
 import CanvasMode from '../components/CanvasMode';
 import { getRelativeTime } from '../utils/dateUtils';
 import { API_URL } from '../config';
@@ -119,34 +119,6 @@ const CanvasHub = () => {
 
   return (
     <div className="ch-root">
-      <header className="ch-header">
-        <div className="ch-header-left">
-          <button className="ch-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="ch-logo" onClick={() => navigate('/dashboard-cerbyl')}>
-            <img
-              src="/logo.svg"
-              alt=""
-              style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }}
-            />
-            cerbyl
-          </h1>
-          <div className="ch-header-divider" />
-          <span className="ch-header-subtitle">CANVAS</span>
-        </div>
-        <nav className="ch-nav">
-          <button className="ch-nav-btn" onClick={() => navigate('/notes/my-notes')}>
-            <span>My Notes</span>
-            <ChevronRight size={14} />
-          </button>
-          <button className="ch-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-        </nav>
-      </header>
-
       <div className="ch-body">
         <div className="ch-page-header">
           <div className="ch-page-header-left">

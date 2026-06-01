@@ -2780,35 +2780,6 @@ const Flashcards = () => {
     <div className="flashcards-page">
       <GeoBackground />
       <div className="fc-layout">
-        <header className="hub-header">
-          {sidebarCollapsed && (
-            <button 
-              className="fc-show-sidebar-btn" 
-              onClick={() => setSidebarCollapsed(false)}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
-            </button>
-          )}
-          <div className="hub-header-left">
-            <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-              {Icons.menu}
-            </button>
-            <h1 className="hub-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
-              <div className="hub-logo-img" />
-              cerbyl
-            </h1>
-            <div className="hub-header-divider"></div>
-            <p className="hub-header-subtitle">FLASHCARDS</p>
-          </div>
-          <div className="hub-header-right">
-            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-          </div>
-        </header>
-
         <div className="fc-layout-body">
           <aside className={`fc-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
             <div className="fc-sidebar-header">
@@ -4083,6 +4054,9 @@ const Flashcards = () => {
         }}
       />
 
+      <div style={{position:'fixed',top:'10px',right:'12px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
+        <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+      </div>
       <ContextPanel
         isOpen={contextPanelOpen}
         onClose={() => setContextPanelOpen(false)}

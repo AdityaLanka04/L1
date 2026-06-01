@@ -2761,70 +2761,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
         onClose={() => setShowSlashMenu(false)}
       />
 
-      {/* Header - Exact MyNotes mn-header Style */}
-      <header className={`top-nav-new ${titleSectionCollapsed ? 'hidden' : ''}`}>
-        <div className="nav-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          {!isSharedContent && (
-            <button
-              onClick={() => navigate('/notes/my-notes')}
-              className="toggle-sidebar nr-exit-btn"
-              title="Exit to My Notes"
-            >
-              <ChevronLeft size={18} />
-            </button>
-          )}
-          {isSharedContent && (
-            <button
-              onClick={() => navigate('/social')}
-              className="toggle-sidebar"
-              title="Back to Social"
-            >
-              <ChevronLeft size={18} />
-            </button>
-          )}
-          <h1 className="nr-header-title" onClick={() => navigate('/dashboard-cerbyl')}>
-            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
-            cerbyl
-          </h1>
-          <div className="nr-header-divider"></div>
-          <p className="nr-header-subtitle">NOTES EDITOR</p>
-          {isSharedContent && <span className="shared-badge">SHARED</span>}
-        </div>
+      {/* Floating back button */}
+      {!isSharedContent && (
+        <button style={{position:'fixed',top:'14px',left:'60px',zIndex:8000}} className="toggle-sidebar nr-exit-btn" onClick={() => navigate('/notes/my-notes')} title="Exit to My Notes"><ChevronLeft size={18} /></button>
+      )}
 
-        {isSharedContent && sharedNoteData && (
-          <div className="nav-center">
-            <div className="shared-note-info">
-              <span className="shared-by">
-                Shared by: {sharedNoteData.owner?.username}
-              </span>
-              <span className={`permission-badge ${sharedNoteData.permission}`}>
-                {sharedNoteData.permission === 'view' ? 'View Only' : 'Can Edit'}
-              </span>
-            </div>
-          </div>
-        )}
-
-        <nav className="nav-actions-new">
-          {!isSharedContent && (
-            <button className="nr-nav-btn-ghost" onClick={() => navigate('/canvas')}>
-              <span>Canvas</span>
-              <ChevronRight size={14} />
-            </button>
-          )}
-          <button className="nr-nav-btn-ghost" onClick={() => navigate("/notes/my-notes")}>
-            <span>My Notes</span>
-            <ChevronRight size={14} />
-          </button>
-          <button className="nr-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-        </nav>
-      </header>
+      {/* Floating ContextSelector */}
+      <div style={{position:'fixed',top:'10px',right:'16px',zIndex:8000}}>
+        <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+      </div>
 
       {/* Body - Sidebar + Content */}
       <div className="nr-body">

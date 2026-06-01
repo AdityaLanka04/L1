@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, FileText, Users, Clock, Eye, Edit3, Trash2, Search, Filter, Calendar , Menu} from 'lucide-react';
+import { MessageSquare, FileText, Users, Clock, Eye, Edit3, Trash2, Search, Filter, Calendar } from 'lucide-react';
 import './SharedContent.css';
 import { API_URL } from '../config';
 const SharedContent = () => {
@@ -124,29 +124,6 @@ const SharedContent = () => {
 
   return (
     <div className="shared-content-page">
-      <header className="gm-header">
-        <div className="gm-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
-            <div className="gm-logo-img" />
-            cerbyl
-          </h1>
-          <div className="gm-header-divider"></div>
-          <span className="gm-subtitle">SOCIAL</span>
-        </div>
-        <nav className="gm-header-right">
-          <button className="sc-ghost-btn" onClick={() => navigate('/social')}>
-            <Users size={16} />
-            Social
-          </button>
-          <button className="sc-ghost-btn" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-          </button>
-        </nav>
-      </header>
-
       <div className="shared-container">
         <div className="shared-welcome">
           <div className="shared-welcome-left">

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {
   Send, Upload, FileText, Brain, X, Loader2, AlertCircle,
   CheckCircle, Trash2, RefreshCw, Plus,
-  Search, Menu, Tag, ChevronLeft, BookOpen, Layers, Home
+  Search, Tag, ChevronLeft, BookOpen, Layers, Home
 } from 'lucide-react';
 import { API_URL } from '../config/api';
 import contextService from '../services/contextService';
@@ -817,9 +817,7 @@ export default function Atlas(){
       ))}
 
       {}
-      <header className="atl-header">
-        <button className="atl-menu-btn" onClick={()=>window.openGlobalNav&&window.openGlobalNav()}><Menu size={18}/></button>
-        <div className="atl-brand" onClick={()=>setActiveWorld(null)}>cerbyl</div>
+      <div className="atl-topbar">
         <nav className="atl-header-nav">
           {WORLDS.map(w=>(
             <button key={w.key} className={`atl-nav-btn${activeWorld===w.key?' atl-nav-btn--active':''}`} onClick={()=>setActiveWorld(activeWorld===w.key?null:w.key)}>
@@ -834,7 +832,7 @@ export default function Atlas(){
           </div>
         )}
         <button className="atl-btn atl-btn--accent" onClick={()=>setUploadOpen(true)}><Plus size={13}/>ADD</button>
-      </header>
+      </div>
 
       {}
       {activeWorld===null&&(

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Play, Brain, Target, TrendingUp, Award, Clock, CheckCircle,
   XCircle, Zap, ArrowRight, RotateCcw, Home, ChevronRight
-, Menu} from 'lucide-react';
+} from 'lucide-react';
 import './WeaknessPractice.css';
 import { API_URL } from '../config';
 
@@ -259,22 +259,12 @@ const WeaknessPractice = () => {
   if (!sessionActive && !sessionSummary) {
     return (
       <div className="weakness-practice-container">
-        <header className="practice-header">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="practice-logo" onClick={() => navigate('/search-hub')}>
-            <div className="practice-logo-img" />
-            cerbyl
-          </h1>
-          <button className="practice-nav-btn" onClick={() => navigate('/weaknesses')}>
-            <Home size={16} />
-            <span>Back to Weaknesses</span>
-          </button>
-        </header>
-
         <div className="practice-start-screen">
           <div className="start-card">
+            <button className="practice-nav-btn" onClick={() => navigate('/weaknesses')} style={{alignSelf:'flex-start',marginBottom:'12px'}}>
+              <Home size={16} />
+              <span>Back to Weaknesses</span>
+            </button>
             <div className="start-icon">
               <Brain size={64} />
             </div>
@@ -325,26 +315,6 @@ const WeaknessPractice = () => {
   if (sessionSummary) {
     return (
       <div className="weakness-practice-container">
-        <header className="practice-header">
-          <div className="practice-header-left">
-            <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="practice-logo" onClick={() => navigate('/search-hub')}>
-              <div className="practice-logo-img" />
-              cerbyl
-            </h1>
-            <div className="practice-header-divider"></div>
-            <span className="practice-subtitle">PRACTICE COMPLETE</span>
-          </div>
-          <nav className="practice-header-right">
-            <button className="practice-nav-btn practice-nav-btn-ghost" onClick={() => navigate('/weaknesses')}>
-              <span>Back to Weaknesses</span>
-              <ChevronRight size={14} />
-            </button>
-          </nav>
-        </header>
-
         <div className="practice-summary-screen">
           <div className="summary-card">
             <div className="summary-icon">
@@ -413,34 +383,6 @@ const WeaknessPractice = () => {
 
   return (
     <div className="weakness-practice-container">
-      <header className="practice-header">
-        <div className="practice-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="practice-logo" onClick={() => navigate('/search-hub')}>
-            <div className="practice-logo-img" />
-            cerbyl
-          </h1>
-          <div className="practice-header-divider"></div>
-          <span className="practice-subtitle">{topic.toUpperCase()}</span>
-        </div>
-        <div className="practice-stats-bar">
-          <div className="stat-item">
-            <span className="stat-label">Progress:</span>
-            <span className="stat-value">{sessionStats.questionsAnswered}/10</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Accuracy:</span>
-            <span className="stat-value">{sessionStats.accuracy.toFixed(1)}%</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Streak:</span>
-            <span className="stat-value">🔥 {sessionStats.currentStreak}</span>
-          </div>
-        </div>
-      </header>
-
       <div className="practice-main">
         {currentQuestion && (
           <div className="question-container">

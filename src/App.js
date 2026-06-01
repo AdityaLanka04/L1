@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Menu } from 'lucide-react';
 import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from './pages/Dashboard';
 import DashboardCerbyl from './pages/DashboardCerbyl';
@@ -86,6 +87,9 @@ function App() {
           <RateLimitHandler />
           <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
             <CerbylNavSidebar isOpen={isOpen} onClose={closeNav} />
+            <button className="global-nav-btn" onClick={openNav} aria-label="Open navigation">
+              <Menu />
+            </button>
             <GlobalNotifications />
             <AIChatDock />
             {notification && (

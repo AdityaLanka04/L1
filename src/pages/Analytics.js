@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowUpRight, Download, Zap, BookOpen, MessageSquare,
+  Download, Zap, BookOpen, MessageSquare,
   Trophy, Target, Flame, Clock, Brain, Cpu, Database,
   Network, Sparkles, TrendingUp, TrendingDown, CheckCircle,
   Layers, GitBranch, Info, AlertCircle, BarChart3, Activity
@@ -171,30 +171,17 @@ const Analytics = () => {
         <div className="an-grid-texture" />
       </div>
 
-      {}
-      <header className="an-topbar">
-        <div className="an-topbar-brand" onClick={() => navigate('/search-hub')}>cerbyl</div>
-        <div className="an-topbar-tabs">
+      <main className="an-main">
+        {}
+        <div className="an-mobile-tabs">
           {[['overview','OVERVIEW'],['deep','DEEP STATS'],['ml','ML INSIGHTS']].map(([v,l]) => (
             <button key={v} className={`an-topbar-tab ${activeTab===v?'active':''}`} onClick={() => setActiveTab(v)}>{l}</button>
           ))}
         </div>
-        <div className="an-topbar-actions">
+        <div className="an-topbar-actions" style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'12px'}}>
           <button className="an-action-btn" onClick={exportData}><Download size={13}/></button>
           <button className="an-action-btn" onClick={() => navigate('/xp-roadmap')}><Trophy size={13}/></button>
-          <button className="an-action-btn an-action-btn--text" onClick={() => navigate('/dashboard-cerbyl')}>
-            DASHBOARD <ArrowUpRight size={12}/>
-          </button>
           <ThemeSwitcher />
-        </div>
-      </header>
-
-      <main className="an-main">
-        {}
-        <div className="an-mobile-tabs">
-          {[['overview','OVERVIEW'],['deep','DEEP STATS'],['ml','ML']].map(([v,l]) => (
-            <button key={v} className={`an-topbar-tab ${activeTab===v?'active':''}`} onClick={() => setActiveTab(v)}>{l}</button>
-          ))}
         </div>
 
         {}

@@ -9,7 +9,7 @@ import {
   Dna, FlaskConical, Zap, Microscope, Landmark, Code2, BarChart2,
   Palette, Wrench, Dumbbell, Music, Tv, Brain, Scale, Hash,
   Triangle, Heart, Film, Leaf, Mic2, Languages, Building2, Sun,
-  MessageCircle, Globe2, Sigma, Menu, Send,
+  MessageCircle, Globe2, Sigma, Send,
   Tag, ArrowRight, CheckSquare, Square, Filter, Target
 } from 'lucide-react';
 import contextService from '../services/contextService';
@@ -1815,20 +1815,6 @@ export default function ContextHub() {
 
   return (
     <div className="ch-page" data-view={view}>
-      <header className="hub-header">
-        <div className="hub-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>
-            <div className="hub-logo-img" />
-            cerbyl
-          </h1>
-          <div className="hub-header-divider"></div>
-          <p className="hub-header-subtitle">CONTEXT HUB</p>
-        </div>
-      </header>
-
       <div className="ch-layout">
         <Sidebar />
         <main className="ch-main">

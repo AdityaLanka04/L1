@@ -504,26 +504,6 @@ const MyNotes = () => {
 
   return (
     <div className="my-notes-page-full">
-      <header className="mn-header">
-        <div className="mn-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <div className="mn-header-title" onClick={() => navigate('/search-hub')}>
-            <div className="mn-logo-img"></div>
-            cerbyl
-          </div>
-          <div className="mn-header-divider"></div>
-          <p className="mn-header-subtitle">MY NOTES</p>
-        </div>
-        <nav className="mn-header-right">
-          <button className="mn-nav-btn mn-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-        </nav>
-      </header>
-
       <div className="mn-body">
         <aside className={`nt-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
           <button className="nt-new-note-btn" onClick={createNewNote}>

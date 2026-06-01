@@ -2387,24 +2387,6 @@ const AIChat = ({ sharedMode = false }) => {
 
   return (
     <div className="ai-chat-page">
-      {/* Standardized Header */}
-      <header className="hub-header">
-        <div className="hub-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            {Icons.menu}
-          </button>
-          <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>
-            <div className="hub-logo-img" />
-            cerbyl
-          </h1>
-          <div className="hub-header-divider"></div>
-          <p className="hub-header-subtitle">AI CHAT</p>
-        </div>
-        <div className="hub-header-right">
-          <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-        </div>
-      </header>
-
       <div className="ac-layout">
         {/* Sidebar */}
         <aside className="ac-sidebar">
@@ -3180,6 +3162,9 @@ const AIChat = ({ sharedMode = false }) => {
         </>
       )}
 
+      <div style={{position:'fixed',top:'10px',right:'12px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
+        <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+      </div>
       <ContextPanel
         isOpen={contextPanelOpen}
         onClose={() => setContextPanelOpen(false)}

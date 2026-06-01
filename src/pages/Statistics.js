@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader, TrendingUp, BookOpen, Target, Clock , Menu} from 'lucide-react';
+import { ArrowLeft, Loader, TrendingUp, BookOpen, Target, Clock } from 'lucide-react';
 import './Statistics.css';
 import { API_URL } from '../config';
 const Statistics = () => {
@@ -108,29 +108,12 @@ const Statistics = () => {
 
   return (
     <div className="st-page">
-      <header className="st-header">
-        <div className="st-header-left">
-          <button className="st-back-btn" onClick={() => navigate('/learning-review')}>
-            <ArrowLeft size={20} />
-            <span>BACK</span>
-          </button>
-          <div className="st-header-title-group">
-            <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="st-logo" onClick={() => navigate('/search-hub')}>
-              <div className="st-logo-img" />
-              cerbyl
-            </h1>
-            <span className="st-subtitle">STATISTICS</span>
-          </div>
-        </div>
-        <div className="st-header-right">
-          <button className="st-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>
-                  Dashboard</button>
-          <button className="st-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
-        </div>
-      </header>
+      <div className="st-back-bar">
+        <button className="st-back-btn" onClick={() => navigate('/learning-review')}>
+          <ArrowLeft size={20} />
+          <span>BACK</span>
+        </button>
+      </div>
 
       <div className="st-filters">
         <div className="st-filter-group">

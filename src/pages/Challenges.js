@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, Clock, Users, TrendingUp, Zap, Trophy, Plus, X , Menu} from 'lucide-react';
+import { Target, Clock, Users, TrendingUp, Zap, Trophy, Plus, X } from 'lucide-react';
 import './Challenges.css';
 import { API_URL } from '../config';
 
@@ -170,29 +170,6 @@ const Challenges = () => {
         <circle cx="80" cy="600" r="2" fill="currentColor" opacity="0.4"/>
         <circle cx="1100" cy="580" r="2" fill="currentColor" opacity="0.4"/>
       </svg>
-      <header className="gm-header">
-        <div className="gm-header-left">
-          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
-          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
-            <div className="gm-logo-img" />
-            cerbyl
-          </h1>
-          <div className="gm-header-divider"></div>
-          <span className="gm-subtitle">CHALLENGES</span>
-        </div>
-        <nav className="gm-header-right">
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
-            <Users size={16} />
-            Social
-          </button>
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-          </button>
-        </nav>
-      </header>
-
       <div className="challenges-container">
         <div className="challenges-welcome">
           <div className="challenges-welcome-left">

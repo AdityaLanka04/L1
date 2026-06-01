@@ -1750,19 +1750,10 @@ const Vault = () => {
         <div className="vlt-bg-vignette" />
       </div>
 
-      {}
-      <div className="vlt-topbar">
-        <button className="vlt-back-btn" onClick={() => navigate('/dashboard-cerbyl')}>
+      <main className="vlt-main">
+        <button className="vlt-back-btn" onClick={() => navigate('/dashboard-cerbyl')} style={{marginBottom:'12px'}}>
           <ArrowLeft size={15} /> Dashboard
         </button>
-        <div className="vlt-topbar-brand">contexthub<span className="vlt-period">.</span></div>
-        <div className="vlt-topbar-right">
-          <button className="vlt-nav-link" onClick={() => navigate('/search-hub')}>Search Hub</button>
-          <button className="vlt-nav-link" onClick={() => navigate('/ai-chat')}>AI Chat</button>
-        </div>
-      </div>
-
-      <main className="vlt-main">
         {}
         <section className="vlt-hero">
           <div className="vlt-hero-left">
