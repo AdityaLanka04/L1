@@ -7,3 +7,169 @@
 .App {
   text-align: center;
 }
+
+/* ================================================
+   CINEMATIC PAGE HEADERS
+   All page headers → transparent gradient, no border/shadow.
+   The `body` prefix raises specificity above page-specific !important rules.
+   ================================================ */
+
+body .hub-header,
+body .gm-header,
+body .qh-header,
+body .mn-header,
+body .nh-header,
+body .af-header,
+body .st-header,
+body .si-header,
+body .wk-header,
+body .ch-header,
+body .se-header,
+body .qb-header,
+body .sq-header,
+body .lp-header,
+body .lrh-header,
+body .kr-header,
+body .practice-header,
+body .tips-header,
+body .atl-header,
+body .xpv-topbar,
+body .vlt-topbar,
+body .top-nav-new,
+body .sh-topbar,
+body .detail-topbar,
+body .dashboard-header,
+body .ds-header,
+body .an-topbar,
+body .shared-viewer-header {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-primary) 82%, transparent) 0%,
+    transparent 100%
+  ) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ── Brand logos (h1 / div wrappers) ── */
+body .hub-header .hub-logo,
+body .gm-header .gm-logo,
+body .qh-header .qh-logo,
+body .sq-header .sq-logo,
+body .si-header .si-logo,
+body .mn-header .mn-header-title,
+body .nh-header .nh-logo,
+body .af-header .af-logo,
+body .st-header .st-logo,
+body .wk-header .wk-logo,
+body .ch-header .ch-logo,
+body .se-header .se-header-title,
+body .qb-header .qb-logo,
+body .lp-header .lp-header-logo,
+body .lrh-header .lrh-logo,
+body .kr-header .kr-brand,
+body .practice-header .practice-logo,
+body .tips-header .tips-logo,
+body .atl-header .atl-brand,
+body .xpv-topbar .xpv-wordmark,
+body .vlt-topbar .vlt-topbar-brand,
+body .an-topbar .an-topbar-brand,
+body .ds-header .ds-header-center,
+body .top-nav-new .nr-header-title,
+body .sh-topbar .sh-tagline { display: none !important; }
+
+/* ── Logo mask-image divs ── */
+body .hub-header .hub-logo-img,
+body .gm-header .gm-logo-img,
+body .qh-header .qh-logo-img,
+body .sq-header .sq-logo-img,
+body .si-header .si-logo-img,
+body .mn-header .mn-logo-img,
+body .nh-header .nh-logo-img,
+body .af-header .af-logo-img,
+body .st-header .st-logo-img,
+body .wk-header .wk-logo-img,
+body .se-header .se-logo-img,
+body .qb-header .qb-logo-img,
+body .lp-header .lp-header-logo-img,
+body .lrh-header .lrh-logo-img,
+body .kr-header .kr-logo-img,
+body .practice-header .practice-logo-img,
+body .tips-header .tips-logo-img { display: none !important; }
+
+/* ── Header dividers ── */
+body .hub-header .hub-header-divider,
+body .gm-header .gm-header-divider,
+body .qh-header .qh-header-divider,
+body .sq-header .sq-header-divider,
+body .si-header .si-header-divider,
+body .mn-header .mn-header-divider,
+body .nh-header .nh-header-divider,
+body .af-header .af-header-divider,
+body .wk-header .wk-header-divider,
+body .ch-header .ch-header-divider,
+body .se-header .se-header-divider,
+body .qb-header .qb-header-divider,
+body .lp-header .lp-header-divider,
+body .lrh-header .lrh-header-divider,
+body .kr-header .kr-header-divider,
+body .tips-header .tips-header-divider,
+body .top-nav-new .nr-header-divider { display: none !important; }
+
+/* ── Page subtitle labels ── */
+body .hub-header .hub-header-subtitle,
+body .gm-header .gm-subtitle,
+body .qh-header .qh-subtitle,
+body .sq-header .sq-subtitle,
+body .si-header .si-subtitle,
+body .mn-header .mn-header-subtitle,
+body .nh-header .nh-subtitle,
+body .af-header .af-subtitle,
+body .st-header .st-subtitle,
+body .wk-header .wk-subtitle,
+body .ch-header .ch-header-subtitle,
+body .se-header .se-header-subtitle,
+body .qb-header .qb-subtitle,
+body .lp-header .lp-header-subtitle,
+body .lrh-header .lrh-subtitle,
+body .kr-header .kr-page-title,
+body .tips-header .tips-subtitle,
+body .top-nav-new .nr-header-subtitle,
+body .xpv-topbar .xpv-page-label { display: none !important; }
+
+/* ── Redundant nav-right areas (pages with only nav-link buttons) ── */
+body .gm-header .gm-header-right,
+body .si-header .si-header-right,
+body .mn-header .mn-header-right,
+body .af-header .af-header-right,
+body .st-header .st-header-right,
+body .ch-header .ch-nav,
+body .qb-header .qb-header-right,
+body .lp-header .lp-header-right,
+body .xpv-topbar .xpv-topbar-right,
+body .vlt-topbar .vlt-topbar-right,
+body .lrh-header .lrh-header-right,
+body .ds-header .ds-header-right { display: none !important; }
+
+/* ── Special cases ── */
+
+/* Weaknesses: hide Dashboard ghost btn, keep Refresh accent btn */
+body .wk-header .wk-nav-btn-ghost { display: none !important; }
+
+/* NotesRedesign: hide nav-link buttons in header, keep back btn & ContextSelector */
+body .top-nav-new .nr-nav-btn-ghost { display: none !important; }
+
+/* Analytics: hide the DASHBOARD text link, keep download / XP / ThemeSwitcher */
+body .an-topbar .an-action-btn--text { display: none !important; }
+
+/* SearchHub: hide Dashboard nav links; align remaining controls to the right */
+body .sh-topbar .sh-nav-btn { display: none !important; }
+body .sh-topbar { justify-content: flex-end !important; }
+
+/* PlaylistsPage: hide redundant Dashboard ghost btn in hub-header-right, keep Create Playlist */
+body .hub-header .hub-nav-btn-ghost { display: none !important; }
+
+/* NotesHub: hide Dashboard ghost btn in nh-header-right, keep Convert accent btn */
+body .nh-header .nh-nav-btn-ghost { display: none !important; }

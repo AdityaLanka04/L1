@@ -296,7 +296,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     formData.append('file', file);
     
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http:
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/upload-attachment`, {
         method: 'POST',
         body: formData,
         credentials: 'include'
