@@ -7,7 +7,7 @@ import './DashboardCerbyl.css';
 
 const MODULES = [
   { num: '04', label: 'Search Hub',    sub: 'EXPLORE',      route: '/search-hub' },
-  { num: '05', label: 'Roadmap',       sub: 'KNOWLEDGE',    route: '/knowledge-roadmap' },
+  { num: '05', label: 'Knowledge Map', sub: 'KNOWLEDGE',    route: '/knowledge-map' },
   { num: '06', label: 'Questions',     sub: 'PRACTICE',     route: '/question-bank' },
   { num: '07', label: 'Slides',        sub: 'PRESENT',      route: '/slide-explorer' },
   { num: '08', label: 'Weak Areas',    sub: 'IMPROVE',      route: '/weaknesses' },
@@ -22,7 +22,7 @@ const MODULES = [
 
 const SIDE_LINKS = [
   { label: 'Search Hub',        route: '/search-hub' },
-  { label: 'Roadmap',           route: '/knowledge-roadmap' },
+  { label: 'Knowledge Map',     route: '/knowledge-map' },
   { label: 'Questions',         route: '/question-bank' },
   { label: 'Slides',            route: '/slide-explorer' },
   { label: 'Weak Areas',        route: '/weaknesses' },

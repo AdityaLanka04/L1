@@ -11,10 +11,48 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight, X, Edit3, Save, StickyNote, MessageCircle } from 'lucide-react';
-import './KnowledgeRoadmap.css';
+import './KnowledgeMap.css';
 import { API_URL } from '../config';
 import MathRenderer from '../components/MathRenderer';
 import { marked } from 'marked';
+
+const GENERIC_EXPLORATION_MARKERS = new Set([
+  'core principles',
+  'key theories',
+  'practical applications',
+  'related fields',
+  'future directions',
+  'used in various industries',
+  'applied in research and development',
+  'concept 1',
+  'concept 2',
+  'concept 3',
+  'concept 4',
+  'concept 5',
+  'example 1 with context',
+  'example 2 with context',
+]);
+
+const isGenericExplorationContent = (data) => {
+  if (!data) return false;
+  const explanation = String(data.ai_explanation || '').trim().toLowerCase();
+  const concepts = Array.isArray(data.key_concepts) ? data.key_concepts : [];
+  const examples = Array.isArray(data.real_world_examples) ? data.real_world_examples : [];
+  const genericConceptCount = concepts.filter(item =>
+    GENERIC_EXPLORATION_MARKERS.has(String(item || '').trim().toLowerCase())
+  ).length;
+  const hasGenericExamples = examples.some(item =>
+    GENERIC_EXPLORATION_MARKERS.has(String(item || '').trim().toLowerCase())
+  );
+
+  return (
+    explanation.startsWith('an exploration of') ||
+    explanation.includes('fundamental concepts and their applications') ||
+    genericConceptCount >= 3 ||
+    hasGenericExamples
+  );
+};
+
 const CustomNode = ({ data, selected }) => {
   const [activeAction, setActiveAction] = useState(null);
   const setAction = (action) => () => setActiveAction(action);
@@ -117,10 +155,11 @@ const CustomNode = ({ data, selected }) => {
   );
 };
 
-const KnowledgeRoadmap = () => {
+const KnowledgeMap = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { roadmapId } = useParams();
+  const { mapId, roadmapId } = useParams();
+  const activeMapId = mapId || roadmapId;
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
 
@@ -163,6 +202,7 @@ const KnowledgeRoadmap = () => {
   const [exportedNodeCount, setExportedNodeCount] = useState(0);
   const [exportedNoteId, setExportedNoteId] = useState(null);
   const contextRoadmapTriggeredRef = useRef(false);
+  const topicMapTriggeredRef = useRef(false);
 
   
   useEffect(() => {
@@ -246,10 +286,10 @@ const createRoadmapFromChat = async () => {
       await fetchRoadmaps();
       viewRoadmap(data.roadmap_id);
     } else {
-      alert('Failed to create roadmap');
+      alert('Failed to create knowledge map');
     }
   } catch (error) {
-        alert('Error creating roadmap from chat');
+        alert('Error creating knowledge map from chat');
   } finally {
     setLoading(false);
   }
@@ -319,23 +359,67 @@ const createRoadmapFromChat = async () => {
           body: JSON.stringify({
             user_id: userId,
             context_doc_ids: contextDocIds,
-            title: sourceSummary ? `Roadmap: ${sourceSummary}` : undefined,
+            title: sourceSummary ? `Knowledge Map: ${sourceSummary}` : undefined,
           }),
         });
         if (!response.ok) {
-          throw new Error('Failed to create roadmap from selected context');
+          throw new Error('Failed to create knowledge map from selected context');
         }
         const data = await response.json();
         if (data?.roadmap_id) {
           clearRoadmapState(data.roadmap_id);
-          navigate(`/knowledge-roadmap/${data.roadmap_id}`, { replace: true, state: {} });
+          navigate(`/knowledge-map/${data.roadmap_id}`, { replace: true, state: {} });
         } else {
-          navigate('/knowledge-roadmap', { replace: true, state: {} });
-          alert('Could not create roadmap from selected files.');
+          navigate('/knowledge-map', { replace: true, state: {} });
+          alert('Could not create knowledge map from selected files.');
         }
       } catch (error) {
-        navigate('/knowledge-roadmap', { replace: true, state: {} });
-        alert('Failed to build roadmap from selected files. Please try again.');
+        navigate('/knowledge-map', { replace: true, state: {} });
+        alert('Failed to build knowledge map from selected files. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+  }, [location.state, userId, token, navigate, clearRoadmapState]);
+
+  useEffect(() => {
+    const autoCreateTopic = String(location.state?.autoCreateTopic || '').trim();
+    if (!autoCreateTopic) return;
+    if (topicMapTriggeredRef.current) return;
+    if (!userId || !token) return;
+
+    topicMapTriggeredRef.current = true;
+
+    const run = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_URL}/create_knowledge_roadmap`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            root_topic: autoCreateTopic,
+          }),
+        });
+        if (!response.ok) {
+          throw new Error('Failed to create knowledge map from topic');
+        }
+        const data = await response.json();
+        if (data?.roadmap_id) {
+          clearRoadmapState(data.roadmap_id);
+          navigate(`/knowledge-map/${data.roadmap_id}`, { replace: true, state: {} });
+        } else {
+          navigate('/knowledge-map', { replace: true, state: {} });
+          alert('Could not create knowledge map from that topic.');
+        }
+      } catch (error) {
+        navigate('/knowledge-map', { replace: true, state: {} });
+        alert('Failed to build knowledge map from that topic. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -346,10 +430,10 @@ const createRoadmapFromChat = async () => {
 
   
   useEffect(() => {
-    if (roadmapId && !currentRoadmap) {
-      viewRoadmap(parseInt(roadmapId));
+    if (activeMapId && !currentRoadmap) {
+      viewRoadmap(parseInt(activeMapId));
     }
-  }, [roadmapId]);
+  }, [activeMapId]);
 
   const fetchRoadmaps = async () => {
     try {
@@ -400,17 +484,17 @@ const createRoadmapFromChat = async () => {
         await fetchRoadmaps();
         viewRoadmap(data.roadmap_id);
       } else {
-        alert('Failed to create roadmap');
+        alert('Failed to create knowledge map');
       }
     } catch (error) {
-            alert('Error creating roadmap');
+            alert('Error creating knowledge map');
     } finally {
       setLoading(false);
     }
   };
 
   const deleteRoadmap = async (roadmapId) => {
-    if (!window.confirm('Are you sure you want to delete this roadmap? This action cannot be undone.')) {
+    if (!window.confirm('Are you sure you want to delete this knowledge map? This action cannot be undone.')) {
       return;
     }
 
@@ -437,12 +521,12 @@ const createRoadmapFromChat = async () => {
           setNodeExplanation(null);
         }
         
-        alert('Roadmap deleted successfully');
+        alert('Knowledge map deleted successfully');
       } else {
-        alert('Failed to delete roadmap');
+        alert('Failed to delete knowledge map');
       }
     } catch (error) {
-            alert('Error deleting roadmap');
+            alert('Error deleting knowledge map');
     }
   };
 
@@ -811,14 +895,18 @@ const createRoadmapFromChat = async () => {
   
   expandNodeRef.current = expandNode;
 
-  
   const exploreNode = useCallback(async (nodeId) => {
-        
-    
     if (exploredNodesCache.has(nodeId)) {
-            const cachedData = exploredNodesCache.get(nodeId);
-      setNodeExplanation(cachedData);
-      return;
+      const cachedData = exploredNodesCache.get(nodeId);
+      if (!isGenericExplorationContent(cachedData)) {
+        setNodeExplanation(cachedData);
+        return;
+      }
+      setExploredNodesCache(prev => {
+        const next = new Map(prev);
+        next.delete(nodeId);
+        return next;
+      });
     }
     
     setNodes((nds) =>
@@ -1167,10 +1255,10 @@ const createRoadmapFromChat = async () => {
       .map((msg) => `${msg.type === 'user' ? 'Student' : 'Tutor'}: ${msg.content}`)
       .join('\n');
 
-    return `You are helping the student with one specific Knowledge Roadmap node.
+    return `You are helping the student with one specific Knowledge Map node.
 Stay tightly focused on this node and its scope unless the student explicitly asks to broaden.
 
-Roadmap: ${currentRoadmap?.title || currentRoadmap?.root_topic || 'Knowledge Roadmap'}
+Knowledge Map: ${currentRoadmap?.title || currentRoadmap?.root_topic || 'Knowledge Map'}
 Node: ${nodeTopic}
 Node Path: ${nodePath || nodeTopic}
 Node Summary: ${node?.ai_explanation || 'No generated summary yet.'}
@@ -1468,7 +1556,7 @@ Instructions:
   
   const viewRoadmap = async (roadmapId) => {
     
-    navigate(`/knowledge-roadmap/${roadmapId}`);
+    navigate(`/knowledge-map/${roadmapId}`);
     
     try {
       setLoading(true);
@@ -1613,7 +1701,7 @@ Instructions:
         
       }
     } catch (error) {
-      console.error('❌ Error loading roadmap:', error);
+      console.error('Error loading knowledge map:', error);
           } finally {
       setLoading(false);
     }
@@ -1631,7 +1719,7 @@ Instructions:
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch roadmap data');
+        throw new Error('Failed to fetch knowledge map data');
       }
 
       const data = await response.json();
@@ -1672,7 +1760,7 @@ Instructions:
 
       
       let htmlContent = `<h1 style="font-weight: 800; font-size: 28px; margin-bottom: 24px; color: var(--accent);">${currentRoadmap.title || `Exploring ${currentRoadmap.root_topic}`}</h1>`;
-      htmlContent += `<p style="color: var(--text-secondary); margin-bottom: 32px; font-style: italic;">Exported from Knowledge Roadmap on ${new Date().toLocaleDateString()}</p>`;
+      htmlContent += `<p style="color: var(--text-secondary); margin-bottom: 32px; font-style: italic;">Exported from Knowledge Map on ${new Date().toLocaleDateString()}</p>`;
       htmlContent += `<hr style="border: none; border-top: 2px solid var(--border); margin: 24px 0;">`;
 
       const generateNodeContent = (node, depth = 0) => {
@@ -1771,7 +1859,7 @@ Instructions:
       
       htmlContent += `<hr style="border: none; border-top: 2px solid var(--border); margin: 32px 0;">`;
       htmlContent += `<p style="color: var(--text-secondary); font-size: 12px; text-align: center; margin-top: 24px;">`;
-      htmlContent += `Exported ${exploredNodes.length} explored node${exploredNodes.length !== 1 ? 's' : ''} from Knowledge Roadmap`;
+      htmlContent += `Exported ${exploredNodes.length} explored node${exploredNodes.length !== 1 ? 's' : ''} from Knowledge Map`;
       htmlContent += `</p>`;
 
       
@@ -1783,7 +1871,7 @@ Instructions:
         },
         body: JSON.stringify({
           user_id: userId,
-          title: `${currentRoadmap.title || currentRoadmap.root_topic} - Roadmap Export`,
+          title: `${currentRoadmap.title || currentRoadmap.root_topic} - Knowledge Map Export`,
           content: htmlContent
         })
       });
@@ -1798,7 +1886,7 @@ Instructions:
       }
 
     } catch (error) {
-            alert('Failed to export roadmap to notes. Please try again.');
+            alert('Failed to export knowledge map to notes. Please try again.');
     } finally {
       setExporting(false);
     }
@@ -1809,6 +1897,13 @@ Instructions:
     : '';
   const activeNodeId = nodeExplanation ? (nodeExplanation.id || nodeExplanation.nodeId) : null;
   const activeNodeNotes = activeNodeId ? (manualNotes.get(activeNodeId) || '') : '';
+  const activeKeyConceptCount = Array.isArray(nodeExplanation?.key_concepts)
+    ? nodeExplanation.key_concepts.length
+    : 0;
+  const activeExamplesCount = Array.isArray(nodeExplanation?.real_world_examples)
+    ? nodeExplanation.real_world_examples.length
+    : 0;
+  const hasActiveNotes = activeNodeNotes.trim().length > 0;
 
   return (
     <div className="kr-page">
@@ -1844,18 +1939,18 @@ Instructions:
         <circle cx="1000" cy="600" r="2" fill="currentColor"/>
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
-      {/* Floating toolbar for roadmap actions */}
+      {/* Floating toolbar for knowledge map actions */}
       <div style={{position:'fixed',top:'10px',right:'16px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
         {currentRoadmap ? (
           <>
             <button className="kr-nav-btn" onClick={() => {
-              navigate('/knowledge-roadmap');
+              navigate('/knowledge-map');
               setCurrentRoadmap(null);
               setNodes([]);
               setEdges([]);
               setNodeExplanation(null);
             }}>
-              Back to Roadmaps
+              Back to Maps
             </button>
             {selectedNodeId && (
               <button
@@ -1901,13 +1996,13 @@ Instructions:
               <div className="kr-header-content">
                 <div>
                   <span className="view-kicker">Knowledge Maps</span>
-                  <h2 className="view-title" style={{ marginTop: '6px' }}>My Roadmaps</h2>
+                  <h2 className="view-title" style={{ marginTop: '6px' }}>My Knowledge Maps</h2>
                   <p className="view-sub">Build interactive learning maps with expandable topics</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button className="kr-create-btn" onClick={() => setShowCreateModal(true)}>
                     <Plus size={18} />
-                    <span>Create Roadmap</span>
+                    <span>Create Map</span>
                   </button>
                   <button 
                     className="kr-create-btn" 
@@ -1927,12 +2022,12 @@ Instructions:
               {loading && roadmaps.length === 0 ? (
                 <div className="kr-loading">
                   <Loader size={32} className="kr-spinner" />
-                  <p>Loading roadmaps...</p>
+                  <p>Loading knowledge maps...</p>
                 </div>
               ) : roadmaps.length === 0 ? (
                 <div className="kr-empty">
                   <MapPin size={48} className="kr-empty-icon" />
-                  <p>No roadmaps yet. Create your first roadmap to start exploring!</p>
+                  <p>No knowledge maps yet. Create your first map to start exploring!</p>
                 </div>
               ) : (
                 <div className="kr-grid">
@@ -1948,7 +2043,7 @@ Instructions:
                             e.stopPropagation();
                             deleteRoadmap(roadmap.id);
                           }}
-                          title="Delete Roadmap"
+                          title="Delete Knowledge Map"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -1985,7 +2080,7 @@ Instructions:
                 {loading && nodes.length === 0 ? (
                   <div className="kr-loading">
                     <Loader size={32} className="kr-spinner" />
-                    <p>Loading roadmap...</p>
+                    <p>Loading knowledge map...</p>
                   </div>
                 ) : (
                   <ReactFlow
@@ -2018,62 +2113,135 @@ Instructions:
               {nodeExplanation && (
                 <div className="kr-explanation-sidebar">
                   <div className="kr-explanation-header-sticky">
-                    <div className="kr-explanation-header-meta">
-                      <span className="kr-explanation-kicker">Topic Deep Dive</span>
-                      <h3 className="kr-explanation-title">{nodeExplanation.topic_name}</h3>
-                      <p className="kr-explanation-path">{activeNodePath || nodeExplanation.topic_name}</p>
+                    <div className="kr-panel-title-row">
+                      <div className="kr-panel-icon">
+                        <Book size={18} />
+                      </div>
+                      <div className="kr-explanation-header-meta">
+                        <span className="kr-explanation-kicker">Topic Deep Dive</span>
+                        <h3 className="kr-explanation-title">{nodeExplanation.topic_name}</h3>
+                      </div>
+                      <button 
+                        className="kr-close-explanation"
+                        onClick={() => setNodeExplanation(null)}
+                        aria-label="Close topic panel"
+                      >
+                        <X size={16} />
+                      </button>
                     </div>
-                    <button 
-                      className="kr-close-explanation"
-                      onClick={() => setNodeExplanation(null)}
-                      aria-label="Close topic panel"
-                    >
-                      <X size={16} />
-                    </button>
+                    <div className="kr-panel-path" title={activeNodePath || nodeExplanation.topic_name}>
+                      <span>Path</span>
+                      <p>{activeNodePath || nodeExplanation.topic_name}</p>
+                    </div>
+                    <div className="kr-panel-metrics" aria-label="Topic summary">
+                      <div className="kr-panel-metric">
+                        <strong>{activeKeyConceptCount}</strong>
+                        <span>Concepts</span>
+                      </div>
+                      <div className="kr-panel-metric">
+                        <strong>{activeExamplesCount}</strong>
+                        <span>Examples</span>
+                      </div>
+                      <div className={`kr-panel-metric ${hasActiveNotes ? 'kr-panel-metric--active' : ''}`}>
+                        <strong>{hasActiveNotes ? 'Yes' : 'No'}</strong>
+                        <span>Notes</span>
+                      </div>
+                    </div>
+                    <div className="kr-sidebar-tabs" role="tablist" aria-label="Topic panel sections">
+                      <button
+                        className={`kr-sidebar-tab ${sidebarView === 'learn' ? 'active' : ''}`}
+                        onClick={() => setSidebarView('learn')}
+                        type="button"
+                        role="tab"
+                        aria-selected={sidebarView === 'learn'}
+                      >
+                        <Info size={15} />
+                        <span>Learn</span>
+                      </button>
+                      <button
+                        className={`kr-sidebar-tab ${sidebarView === 'notes' ? 'active' : ''}`}
+                        onClick={() => setSidebarView('notes')}
+                        type="button"
+                        role="tab"
+                        aria-selected={sidebarView === 'notes'}
+                      >
+                        <StickyNote size={15} />
+                        <span>Notes</span>
+                        {hasActiveNotes && <i aria-hidden="true" />}
+                      </button>
+                      <button
+                        className={`kr-sidebar-tab ${sidebarView === 'chat' ? 'active' : ''}`}
+                        onClick={() => setSidebarView('chat')}
+                        type="button"
+                        role="tab"
+                        aria-selected={sidebarView === 'chat'}
+                      >
+                        <MessageCircle size={15} />
+                        <span>Chat</span>
+                      </button>
+                    </div>
                   </div>
                   <div className="kr-sidebar-body">
                     <div className="kr-sidebar-content">
                       {sidebarView === 'learn' && (
                         <div className="kr-sidebar-pane">
                           {nodeExplanation.ai_explanation && (
-                            <div className="kr-explanation-section">
-                              <h4>Overview</h4>
+                            <div className="kr-explanation-section kr-section-card kr-section-card--overview">
+                              <div className="kr-section-card-head">
+                                <Info size={15} />
+                                <h4>Overview</h4>
+                              </div>
                               <p>{nodeExplanation.ai_explanation}</p>
                             </div>
                           )}
 
                           {nodeExplanation.key_concepts && nodeExplanation.key_concepts.length > 0 && (
-                            <div className="kr-explanation-section">
-                              <h4>Key Concepts</h4>
-                              <ul className="kr-concepts-list">
+                            <div className="kr-explanation-section kr-section-card">
+                              <div className="kr-section-card-head">
+                                <Sparkles size={15} />
+                                <h4>Key Concepts</h4>
+                              </div>
+                              <div className="kr-concepts-grid">
                                 {nodeExplanation.key_concepts.map((concept, idx) => (
-                                  <li key={idx}>{concept}</li>
+                                  <span className="kr-concept-chip" key={idx}>{concept}</span>
                                 ))}
-                              </ul>
+                              </div>
                             </div>
                           )}
 
                           {nodeExplanation.why_important && (
-                            <div className="kr-explanation-section">
-                              <h4>Why This Matters</h4>
+                            <div className="kr-explanation-section kr-section-card">
+                              <div className="kr-section-card-head">
+                                <MapPin size={15} />
+                                <h4>Why This Matters</h4>
+                              </div>
                               <p>{nodeExplanation.why_important}</p>
                             </div>
                           )}
 
                           {nodeExplanation.real_world_examples && nodeExplanation.real_world_examples.length > 0 && (
-                            <div className="kr-explanation-section">
-                              <h4>Real-World Examples</h4>
-                              <ul className="kr-examples-list">
+                            <div className="kr-explanation-section kr-section-card">
+                              <div className="kr-section-card-head">
+                                <Book size={15} />
+                                <h4>Real-World Examples</h4>
+                              </div>
+                              <div className="kr-example-stack">
                                 {nodeExplanation.real_world_examples.map((example, idx) => (
-                                  <li key={idx}>{example}</li>
+                                  <div className="kr-example-card" key={idx}>
+                                    <span>{String(idx + 1).padStart(2, '0')}</span>
+                                    <p>{example}</p>
+                                  </div>
                                 ))}
-                              </ul>
+                              </div>
                             </div>
                           )}
 
                           {nodeExplanation.learning_tips && (
-                            <div className="kr-explanation-section">
-                              <h4>Learning Tips</h4>
+                            <div className="kr-explanation-section kr-section-card kr-section-card--tips">
+                              <div className="kr-section-card-head">
+                                <Sparkles size={15} />
+                                <h4>Learning Tips</h4>
+                              </div>
                               <p>{nodeExplanation.learning_tips}</p>
                             </div>
                           )}
@@ -2088,11 +2256,11 @@ Instructions:
 
                       {sidebarView === 'notes' && (
                         <div className="kr-manual-notes-section kr-sidebar-pane">
-                          <div className="kr-manual-notes-header">
-                            <h4>
-                              <StickyNote size={14} />
-                              My Notes
-                            </h4>
+                          <div className="kr-notes-panel-head">
+                            <div>
+                              <span>Personal Notes</span>
+                              <h4>{nodeExplanation.topic_name}</h4>
+                            </div>
                             {!editingNotes ? (
                               <button 
                                 className="kr-edit-notes-btn"
@@ -2113,20 +2281,28 @@ Instructions:
                           </div>
                           <p className="kr-notes-context">{activeNodePath || nodeExplanation.topic_name}</p>
                           {editingNotes ? (
-                            <textarea
-                              className="kr-manual-notes-input"
-                              value={tempNotes}
-                              onChange={(e) => setTempNotes(e.target.value)}
-                              placeholder="Add your own notes about this topic..."
-                              rows={8}
-                              autoFocus
-                            />
+                            <div className="kr-notes-editor-card">
+                              <textarea
+                                className="kr-manual-notes-input"
+                                value={tempNotes}
+                                onChange={(e) => setTempNotes(e.target.value)}
+                                placeholder="Add your own notes about this topic..."
+                                rows={10}
+                                autoFocus
+                              />
+                            </div>
                           ) : (
                             <div className="kr-manual-notes-content">
                               {activeNodeNotes ? (
                                 <p>{activeNodeNotes}</p>
                               ) : (
-                                <p className="kr-no-notes">No personal notes yet. Click "Add Notes" to add your own thoughts.</p>
+                                <div className="kr-empty-note-state">
+                                  <StickyNote size={22} />
+                                  <p className="kr-no-notes">No saved notes for this topic yet.</p>
+                                  <button className="kr-inline-note-btn" onClick={startEditingNotes} type="button">
+                                    Add Notes
+                                  </button>
+                                </div>
                               )}
                             </div>
                           )}
@@ -2136,11 +2312,11 @@ Instructions:
                       {sidebarView === 'chat' && (
                         <div className="kr-chat-section kr-sidebar-pane">
                           <div className="kr-chat-section-header">
-                            <span className="kr-chat-kicker">Topic Chat</span>
-                            <h4 className="kr-chat-title">Ask Questions About This Topic</h4>
-                            <p className="kr-chat-subtitle">
-                              This chat stays scoped to <strong>{nodeExplanation.topic_name}</strong>.
-                            </p>
+                            <div>
+                              <span className="kr-chat-kicker">Topic Chat</span>
+                              <h4 className="kr-chat-title">Ask Questions About This Topic</h4>
+                            </div>
+                            <span className="kr-chat-scope">Scoped</span>
                           </div>
                           <div className="kr-chat-messages" ref={chatMessagesRef}>
                             {chatMessages.length === 0 ? (
@@ -2179,7 +2355,7 @@ Instructions:
                               </div>
                             )}
                           </div>
-                          <div className="ac-input-wrapper kr-chat-input-wrapper">
+                          <div className="kr-chat-input-wrapper">
                             <div className="ac-input-row">
                               <textarea
                                 value={chatInput}
@@ -2209,33 +2385,6 @@ Instructions:
                         </div>
                       )}
                     </div>
-
-                    <aside className="kr-sidebar-rail" aria-label="Sidebar sections">
-                      <button
-                        className={`kr-sidebar-rail-btn ${sidebarView === 'learn' ? 'active' : ''}`}
-                        onClick={() => setSidebarView('learn')}
-                        title="Learn panel"
-                      >
-                        <Info size={16} />
-                        <span className="kr-sidebar-rail-label">Learn</span>
-                      </button>
-                      <button
-                        className={`kr-sidebar-rail-btn ${sidebarView === 'notes' ? 'active' : ''}`}
-                        onClick={() => setSidebarView('notes')}
-                        title="Notes panel"
-                      >
-                        <StickyNote size={16} />
-                        <span className="kr-sidebar-rail-label">Notes</span>
-                      </button>
-                      <button
-                        className={`kr-sidebar-rail-btn ${sidebarView === 'chat' ? 'active' : ''}`}
-                        onClick={() => setSidebarView('chat')}
-                        title="Topic chat panel"
-                      >
-                        <MessageCircle size={16} />
-                        <span className="kr-sidebar-rail-label">Chat</span>
-                      </button>
-                    </aside>
                   </div>
                 </div>
               )}
@@ -2248,7 +2397,7 @@ Instructions:
   <div className="kr-modal-overlay" onClick={() => setShowCreateModal(false)}>
     <div className="kr-modal" onClick={e => e.stopPropagation()}>
       <div className="kr-modal-header">
-        <h3>Create Knowledge Roadmap</h3>
+        <h3>Create Knowledge Map</h3>
         <button className="kr-modal-close" onClick={() => setShowCreateModal(false)}>×</button>
       </div>
 
@@ -2277,7 +2426,7 @@ Instructions:
           onClick={createRoadmap}
           disabled={loading || !rootTopic.trim()}
         >
-          {loading ? 'Creating...' : 'Create Roadmap'}
+          {loading ? 'Creating...' : 'Create Map'}
         </button>
       </div>
     </div>
@@ -2289,7 +2438,7 @@ Instructions:
   <div className="kr-modal-overlay" onClick={() => setShowChatSelectModal(false)}>
     <div className="kr-modal" onClick={e => e.stopPropagation()}>
       <div className="kr-modal-header">
-        <h3>Create Roadmap from Chat</h3>
+        <h3>Create Map from Chat</h3>
         <button className="kr-modal-close" onClick={() => setShowChatSelectModal(false)}>×</button>
       </div>
 
@@ -2297,7 +2446,7 @@ Instructions:
         <div className="kr-form-group">
           <label>Select a chat session</label>
           <p className="kr-input-hint" style={{ marginBottom: '16px' }}>
-            AI will analyze the conversation and create a roadmap based on the main topic discussed.
+            AI will analyze the conversation and create a knowledge map based on the main topic discussed.
           </p>
           <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border)', padding: '12px' }}>
             {chatSessions.length === 0 ? (
@@ -2347,7 +2496,7 @@ Instructions:
           onClick={createRoadmapFromChat}
           disabled={loading || !selectedChatId}
         >
-          {loading ? 'Creating...' : 'Create Roadmap'}
+          {loading ? 'Creating...' : 'Create Map'}
         </button>
       </div>
     </div>
@@ -2441,4 +2590,4 @@ Instructions:
   );
 };
 
-export default KnowledgeRoadmap;
+export default KnowledgeMap;

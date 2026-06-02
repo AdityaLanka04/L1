@@ -464,7 +464,8 @@ const MyNotes = () => {
       } else if (selectedFolder === 'source-roadmaps') {
         filtered = filtered.filter(n => 
           n.source_type === 'roadmap' || 
-          n.title?.toLowerCase().includes('roadmap')
+          n.title?.toLowerCase().includes('roadmap') ||
+          n.title?.toLowerCase().includes('knowledge map')
         );
       } else {
         
@@ -602,8 +603,8 @@ const MyNotes = () => {
                 onClick={() => { setSelectedFolder('source-roadmaps'); setShowFavorites(false); setShowTrash(false); }}
               >
                 <span className="nt-nav-icon nt-source-roadmaps"><FileText size={18} /></span>
-                <span className="nt-nav-text">From Roadmaps</span>
-                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'roadmap' || n.title?.toLowerCase().includes('roadmap')).length}</span>
+                <span className="nt-nav-text">From Knowledge Maps</span>
+                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'roadmap' || n.title?.toLowerCase().includes('roadmap') || n.title?.toLowerCase().includes('knowledge map')).length}</span>
               </button>
             </div>
           </nav>

@@ -367,7 +367,7 @@ const SearchHub = () => {
 
   const GENERIC_TOKENS = new Set([
     'flashcards', 'flashcard', 'notes', 'note', 'quiz', 'quizzes',
-    'roadmap', 'path', 'plan', 'study', 'learning', 'guide',
+    'roadmap', 'map', 'path', 'plan', 'study', 'learning', 'guide',
     'review', 'overview', 'summary', 'explain', 'practice'
   ]);
 
@@ -432,7 +432,7 @@ const SearchHub = () => {
       .toLowerCase()
       .replace(/[?!.,:;]+/g, ' ')
       .replace(/^(explain|create|make|generate|write|what is|tell me about|learn about|study|understand|summarize|summary|overview|review|practice|quiz on|notes on|flashcards on|about|a quiz on|a note on)\s+/gi, '')
-      .replace(/\s+(flashcards?|notes?|quiz|quizzes|roadmap|export|step-by-step)$/gi, '')
+      .replace(/\s+(flashcards?|notes?|quiz|quizzes|roadmap|knowledge map|map|export|step-by-step)$/gi, '')
       .trim();
 
     
@@ -446,7 +446,7 @@ const SearchHub = () => {
     }
     
     
-    const prefixMatch = cleaned.match(/^(?:learning path|study plan|study guide|flashcards?|notes?|quiz(?:zes)?|roadmap|path)\s+(?:on|about|for|of)?\s*(.+)$/i);
+    const prefixMatch = cleaned.match(/^(?:learning path|study plan|study guide|flashcards?|notes?|quiz(?:zes)?|roadmap|knowledge map|map|path)\s+(?:on|about|for|of)?\s*(.+)$/i);
     if (prefixMatch && prefixMatch[1]) {
       cleaned = prefixMatch[1].trim();
     }
@@ -489,7 +489,7 @@ const SearchHub = () => {
     if (lower.includes('flashcard')) return 'flashcards';
     if (lower.includes('note')) return 'notes';
     if (lower.includes('quiz')) return 'quiz';
-    if (lower.includes('path') || lower.includes('roadmap') || lower.includes('study plan')) return 'path';
+    if (lower.includes('path') || lower.includes('roadmap') || lower.includes('knowledge map') || lower.includes('study plan')) return 'path';
     if (lower.includes('chat') || lower.includes('talk')) return 'chat';
     if (lower.includes('weak')) return 'weak';
     if (lower.includes('progress')) return 'progress';
@@ -1241,9 +1241,9 @@ const SearchHub = () => {
 
     const commands = [
       { pattern: 'create', suggestions: [
-        { text: 'create a learning path on {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
-        { text: 'create a path on {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
-        { text: 'create a roadmap for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
+        { text: 'create a learning path on {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+        { text: 'create a path on {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+        { text: 'create a knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'AI generates a structured map' },
         { text: 'create a note on {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
         { text: 'create 10 flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
         { text: 'create 15 flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'More cards for deeper study' },
@@ -1251,18 +1251,18 @@ const SearchHub = () => {
         { text: 'create a quiz on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
       ]},
       { pattern: 'make', suggestions: [
-        { text: 'make a learning path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
-        { text: 'make a path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
-        { text: 'make a roadmap for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
+        { text: 'make a learning path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+        { text: 'make a path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+        { text: 'make a knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'AI generates a structured map' },
         { text: 'make a note about {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
         { text: 'make flashcards for {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
         { text: 'make a quiz about {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
         { text: 'make questions about {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
       ]},
       { pattern: 'generate', suggestions: [
-        { text: 'generate a learning path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
-        { text: 'generate a path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
-        { text: 'generate a roadmap for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
+        { text: 'generate a learning path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+        { text: 'generate a path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+        { text: 'generate a knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'AI generates a structured map' },
         { text: 'generate flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
         { text: 'generate questions on {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
         { text: 'generate a study guide for {topic}', icon: '', action: 'create_note', description: 'Comprehensive study guide' },
@@ -1272,19 +1272,19 @@ const SearchHub = () => {
         { text: 'write about {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
       ]},
       { pattern: 'learn', suggestions: [
-        { text: 'learn {topic} step by step', icon: '', action: 'create_learning_path', description: 'Structured learning roadmap' },
+        { text: 'learn {topic} step by step', icon: '', action: 'create_learning_path', description: 'Structured learning path' },
         { text: 'learn about {topic}', icon: '', action: 'explain', description: 'Get AI explanation' },
         { text: 'learn {topic} from scratch', icon: '', action: 'create_learning_path', description: 'Beginner-friendly path' },
       ]},
       { pattern: 'path', suggestions: [
         { text: 'path on {topic}', icon: '', action: 'create_learning_path', description: 'Create learning path' },
         { text: 'path for {topic}', icon: '', action: 'create_learning_path', description: 'Create learning path' },
-        { text: 'learning path on {topic}', icon: '', action: 'create_learning_path', description: 'Structured roadmap' },
+        { text: 'learning path on {topic}', icon: '', action: 'create_learning_path', description: 'Structured path' },
       ]},
-      { pattern: 'roadmap', suggestions: [
-        { text: 'roadmap for {topic}', icon: '', action: 'create_learning_path', description: 'Create learning roadmap' },
-        { text: 'roadmap on {topic}', icon: '', action: 'create_learning_path', description: 'Create learning roadmap' },
-        { text: 'study roadmap for {topic}', icon: '', action: 'create_learning_path', description: 'Structured study plan' },
+      { pattern: 'map', suggestions: [
+        { text: 'knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'Create knowledge map' },
+        { text: 'knowledge map on {topic}', icon: '', action: 'create_knowledge_map', description: 'Create knowledge map' },
+        { text: 'study map for {topic}', icon: '', action: 'create_knowledge_map', description: 'Structured study map' },
       ]},
       { pattern: 'teach', suggestions: [
         { text: 'teach me {topic}', icon: '', action: 'explain', description: 'Interactive AI tutoring' },
@@ -1722,7 +1722,7 @@ const SearchHub = () => {
     const { action, parameters } = intentData;
     
     
-    if (!userName && ['create_note', 'create_flashcards', 'create_questions', 'create_quiz', 'create_learning_path'].includes(action)) {
+    if (!userName && ['create_note', 'create_flashcards', 'create_questions', 'create_quiz', 'create_learning_path', 'create_knowledge_map'].includes(action)) {
       setShowLoginModal(true);
       setIsSearching(false);
       return;
@@ -1950,6 +1950,39 @@ const SearchHub = () => {
             });
           }, 800);
           break;
+
+        case 'create_knowledge_map': {
+          const mapTopic = parameters.topic || searchQuery;
+          setIsCreating(true);
+          setCreatingMessage(`Creating knowledge map for ${mapTopic}...`);
+
+          try {
+            const mapResponse = await fetchWithTimeout(`${API_URL}/create_knowledge_roadmap`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                user_id: userName,
+                root_topic: mapTopic
+              })
+            });
+
+            if (mapResponse.ok) {
+              const mapData = await safeJson(mapResponse);
+              setIsCreating(false);
+              navigate(mapData?.roadmap_id ? `/knowledge-map/${mapData.roadmap_id}` : '/knowledge-map');
+              break;
+            }
+          } catch (error) {
+            console.error('Create knowledge map error:', error);
+          }
+
+          setIsCreating(false);
+          navigate('/knowledge-map');
+          break;
+        }
           
         case 'show_learning_paths':
           navigate('/learning-paths');
@@ -2017,7 +2050,11 @@ const SearchHub = () => {
                 category = 'Command';
               }
               
-              else if (suggestionLower.includes('learning path') || suggestionLower.includes('roadmap') || suggestionLower.includes('step by step') || 
+              else if (suggestionLower.includes('knowledge map') || suggestionLower.includes('roadmap')) {
+                type = 'create_knowledge_map';
+                category = 'Knowledge Map';
+              }
+              else if (suggestionLower.includes('learning path') || suggestionLower.includes('step by step') || 
                   (suggestionLower.includes('path') && (suggestionLower.includes('create') || suggestionLower.includes('make') || suggestionLower.includes('generate'))) ||
                   suggestionLower.includes('study plan')) {
                 type = 'create_learning_path';
@@ -2118,19 +2155,22 @@ const SearchHub = () => {
     if (queryLower.includes('create') || queryLower.includes('make') || queryLower.includes('generate')) {
       
       let topic = queryLower
-        .replace(/^(create|make|generate)\s+(a\s+)?(learning\s+)?(path|roadmap|study\s+plan)\s+(on|for|about)\s+/i, '')
+        .replace(/^(create|make|generate)\s+(a\s+)?(learning\s+)?(path|roadmap|knowledge\s+map|study\s+plan)\s+(on|for|about)\s+/i, '')
         .replace(/^(create|make|generate)\s+(a\s+)?/i, '')
         .trim();
       
       
-      const pathMatch = topic.match(/(?:path|roadmap|study\s+plan)\s+(?:on|for|about)\s+(.+)/i);
+      const pathMatch = topic.match(/(?:path|roadmap|knowledge\s+map|study\s+plan)\s+(?:on|for|about)\s+(.+)/i);
       if (pathMatch) {
         topic = pathMatch[1].trim();
       }
       
       if (topic && topic.length > 2) {
+        const mapQuery = queryLower.includes('knowledge map') || queryLower.includes('roadmap');
         suggestions.push(
-          { text: `/path ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          mapQuery
+            ? { text: `/map ${topic}`, type: 'create_knowledge_map', category: 'Knowledge Map', source: 'smart' }
+            : { text: `/path ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
           { text: `/flashcards ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
           { text: `/notes ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
           { text: `/quiz ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' },
@@ -2163,7 +2203,7 @@ const SearchHub = () => {
       let topic = query.trim();
       
       
-      const pathPatternMatch = topic.match(/^(path|roadmap|study\s+plan)\s+(on|for|about)\s+(.+)/i);
+      const pathPatternMatch = topic.match(/^(path|roadmap|knowledge\s+map|study\s+plan)\s+(on|for|about)\s+(.+)/i);
       if (pathPatternMatch) {
         const actualTopic = pathPatternMatch[3].trim();
         suggestions.push(
@@ -2283,7 +2323,10 @@ const SearchHub = () => {
         let type = 'suggestion';
         let category = 'Suggested';
         
-        if (textLower.includes('learning path') || textLower.includes('roadmap') || 
+        if (textLower.includes('knowledge map') || textLower.includes('roadmap')) {
+          type = 'create_knowledge_map';
+          category = 'Knowledge Map';
+        } else if (textLower.includes('learning path') || 
             (textLower.includes('path') && (textLower.includes('create') || textLower.includes('make'))) ||
             textLower.includes('study plan')) {
           type = 'create_learning_path';
@@ -2339,6 +2382,7 @@ const SearchHub = () => {
       { command: 'notes', syntax: '/notes <topic>', label: 'Study notes' },
       { command: 'quiz', syntax: '/quiz <topic>', label: 'Quick quiz' },
       { command: 'path', syntax: '/path <topic>', label: 'Learning path' },
+      { command: 'map', syntax: '/map <topic>', label: 'Knowledge map' },
       { command: 'chat', syntax: '/chat <topic>', label: 'Talk to AI' },
       { command: 'progress', syntax: '/progress', label: 'Your progress' },
       { command: 'weak', syntax: '/weak', label: 'Weak areas' }
@@ -2408,7 +2452,7 @@ const SearchHub = () => {
     } else if (result.type === 'chats' || result.type === 'chat') {
       navigate(`/ai-chat?session_id=${result.id}`);
     } else if (result.type === 'roadmap') {
-      navigate(`/knowledge-roadmap?id=${result.id}`);
+      navigate(`/knowledge-map/${result.id}`);
     }
   };
 
@@ -2665,7 +2709,7 @@ const SearchHub = () => {
         { label: 'Analytics', route: '/analytics' },
         { label: 'Study Insights', route: '/study-insights' },
         { label: 'XP Roadmap', route: '/xp-roadmap' },
-        { label: 'Knowledge Roadmap', route: '/knowledge-roadmap' },
+        { label: 'Knowledge Map', route: '/knowledge-map' },
         { label: 'Activity Timeline', route: '/activity-timeline' }
       ]
     },
@@ -3010,7 +3054,7 @@ const SearchHub = () => {
                     <option value="flashcards">Flashcards</option>
                     <option value="notes">Notes</option>
                     <option value="chats">Chats</option>
-                    <option value="roadmaps">Roadmaps</option>
+                    <option value="roadmaps">Knowledge Maps</option>
                   </select>
                 </div>
                 <div className="sh-filter-group">
@@ -3112,7 +3156,7 @@ const SearchHub = () => {
                   <div className="sh-create-options-head">Create study materials or explore this topic:</div>
                   <div className="sh-create-grid">
                     {[
-                      { icon: <Target size={22} />, label: 'Learning Path', desc: 'Structured roadmap', num: '01', action: () => {
+                      { icon: <Target size={22} />, label: 'Learning Path', desc: 'Structured path', num: '01', action: () => {
                         if (!userName) { setShowLoginModal(true); return; }
                         setIsCreating(true);
                         setCreatingMessage(`Generating learning path for ${searchQuery}...`);

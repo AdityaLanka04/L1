@@ -792,7 +792,7 @@ const Vault = () => {
     }
 
     recordDocActions(validDocIds, 'roadmap');
-    navigate('/knowledge-roadmap', {
+    navigate('/knowledge-map', {
       state: {
         contextDocIds: validDocIds,
         sourceSummary: sourceNames,
@@ -1534,7 +1534,7 @@ const Vault = () => {
               {bulkActionLoading === 'notes' ? <Loader2 size={12} className="vlt-spin" /> : <FileText size={12} />} Notes
             </button>
             <button className="vlt-action-btn vlt-action-btn--quiz" onClick={() => openSelectedDocsAction('quiz')}><Brain size={12} /> Quiz</button>
-            <button className="vlt-action-btn vlt-action-btn--roadmap" onClick={() => openSelectedDocsAction('roadmap')}><Target size={12} /> Roadmap</button>
+            <button className="vlt-action-btn vlt-action-btn--roadmap" onClick={() => openSelectedDocsAction('roadmap')}><Target size={12} /> Knowledge Map</button>
             <button className="vlt-bulk-clear" onClick={clearFileSelection}><X size={12} /></button>
           </div>
         )}

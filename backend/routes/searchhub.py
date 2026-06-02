@@ -89,6 +89,7 @@ _ACTION_REQUIRES_TOPIC = {
     "create_questions",
     "create_quiz",
     "create_learning_path",
+    "create_knowledge_map",
     "explain",
 }
 
@@ -116,7 +117,7 @@ def _extract_difficulty(query: str) -> Optional[str]:
 def _extract_topic_after_action(query: str) -> str:
     q = (query or "").strip()
     q = re.sub(
-        r"^/(flashcards?|notes?|quiz|quizzes|questions?|explain|path|roadmap)\s*",
+        r"^/(flashcards?|notes?|quiz|quizzes|questions?|explain|path|map|roadmap)\s*",
         "",
         q,
         flags=re.IGNORECASE,
@@ -128,7 +129,7 @@ def _extract_topic_after_action(query: str) -> str:
         flags=re.IGNORECASE,
     ).strip()
     q = re.sub(
-        r"^(flashcards?|notes?|quiz|quizzes|questions?|learning path|path|roadmap|study plan)\s+(on|for|about)\s+",
+        r"^(flashcards?|notes?|quiz|quizzes|questions?|learning path|knowledge map|path|map|roadmap|study plan)\s+(on|for|about)\s+",
         "",
         q,
         flags=re.IGNORECASE,
@@ -188,7 +189,14 @@ def _infer_action(query: str) -> dict:
             "confidence": 0.88,
         }
 
-    if "roadmap" in lower or "learning path" in lower or "study plan" in lower or lower.startswith("/path"):
+    if "knowledge map" in lower or "roadmap" in lower or lower.startswith("/map"):
+        return {
+            "action": "create_knowledge_map",
+            "topic": _extract_topic_after_action(text),
+            "confidence": 0.84,
+        }
+
+    if "learning path" in lower or "study plan" in lower or lower.startswith("/path"):
         topic = _extract_topic_after_action(text)
         path_difficulty = "intermediate"
         if "beginner" in lower:
@@ -243,7 +251,8 @@ def _get_action_command_examples(action: str) -> list[str]:
         "create_flashcards": ["/flashcards osmosis", "/flashcards algebra 15"],
         "create_questions": ["/quiz electrochemistry 10", "/questions trigonometry"],
         "create_quiz": ["/quiz probability", "/quiz thermodynamics hard"],
-        "create_learning_path": ["/path data structures", "/roadmap organic chemistry"],
+        "create_learning_path": ["/path data structures", "/path organic chemistry"],
+        "create_knowledge_map": ["/map data structures", "/map organic chemistry"],
         "explain": ["/explain black body radiation", "/explain photosynthesis"],
     }
     return mapping.get(action, _build_default_command_suggestions())
@@ -254,6 +263,7 @@ def _get_command_catalog() -> list[dict]:
         {"command": "/flashcards <topic>", "description": "Generate flashcards"},
         {"command": "/quiz <topic>", "description": "Generate practice questions"},
         {"command": "/path <topic>", "description": "Create a learning path"},
+        {"command": "/map <topic>", "description": "Create a knowledge map"},
         {"command": "/explain <topic>", "description": "Quick explanation"},
         {"command": "/progress", "description": "Open study insights"},
         {"command": "/help", "description": "Show command help"},
@@ -443,6 +453,7 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
                 "/notes <topic> â€” create notes\n"
                 "/quiz <topic> â€” start a quiz\n"
                 "/path <topic> â€” generate a learning path\n"
+                "/map <topic> â€” create a knowledge map\n"
                 "/progress â€” open study insights\n"
                 "Type /help anytime to see the full command list."
             ),
@@ -452,6 +463,7 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
                 "/notes world history",
                 "/quiz calculus",
                 "/path machine learning",
+                "/map organic chemistry",
                 "/progress",
                 "/weak",
             ],
@@ -521,6 +533,20 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
                 "confidence": intent.get("confidence", 0.8),
                 "response_type": "navigation",
                 "chatbot_message": f"Generating a learning path for {topic}.",
+            },
+        }
+
+    if action == "create_knowledge_map":
+        return {
+            "navigate_to": "/knowledge-map",
+            "navigate_params": {
+                "autoCreateTopic": topic,
+            },
+            "metadata": {
+                "action": "create_knowledge_map",
+                "confidence": intent.get("confidence", 0.8),
+                "response_type": "navigation",
+                "chatbot_message": f"Creating a knowledge map for {topic}.",
             },
         }
 
@@ -847,6 +873,7 @@ async def actions_endpoint():
             {"action": "create_questions", "label": "Create Questions"},
             {"action": "create_quiz", "label": "Create Quiz"},
             {"action": "create_learning_path", "label": "Create Learning Path"},
+            {"action": "create_knowledge_map", "label": "Create Knowledge Map"},
             {"action": "show_progress", "label": "Show Progress"},
             {"action": "show_weak_areas", "label": "Show Weak Areas"},
             {"action": "review_flashcards", "label": "Review Flashcards"},

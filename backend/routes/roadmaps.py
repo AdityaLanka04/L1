@@ -84,6 +84,8 @@ def _create_roadmap_record(db: Session, user_id: int, root_topic: str, title: Op
         last_accessed=datetime.now(timezone.utc),
     )
     db.add(roadmap)
+    db.flush()
+    root_node.roadmap_id = roadmap.id
     db.commit()
     db.refresh(roadmap)
     db.refresh(root_node)
@@ -140,9 +142,9 @@ def _infer_root_topic_from_docs(docs: list[models.ContextDocument], extracted_te
         for d in docs[:40]
     ]
     prompt = (
-        "Infer one concise study topic for a knowledge roadmap from these selected documents.\n"
+        "Infer one concise study topic for a knowledge map from these selected documents.\n"
         "Return JSON only:\n"
-        '{"root_topic":"2-6 word topic","title":"short roadmap title"}\n\n'
+        '{"root_topic":"2-6 word topic","title":"short knowledge map title"}\n\n'
         f"Document metadata:\n{chr(10).join(doc_lines)}\n\n"
         f"Document excerpts:\n{extracted_text[:14000]}"
     )
@@ -170,6 +172,250 @@ def _infer_root_topic_from_docs(docs: list[models.ContextDocument], extracted_te
     if not title:
         title = f"Exploring {root_topic}"
     return root_topic[:120], title[:255]
+
+_GENERIC_EXPLORATION_TERMS = {
+    "core principles",
+    "key theories",
+    "practical applications",
+    "related fields",
+    "future directions",
+    "used in various industries",
+    "applied in research and development",
+    "concept 1",
+    "concept 2",
+    "concept 3",
+    "concept 4",
+    "concept 5",
+    "example 1 with context",
+    "example 2 with context",
+    "practical mastery advice",
+}
+
+def _coerce_string_list(value: Any, max_items: int = 6) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                value = parsed
+            else:
+                value = [value]
+        except Exception:
+            value = [value]
+    if not isinstance(value, list):
+        return []
+
+    seen = set()
+    cleaned = []
+    for item in value:
+        text = str(item or "").strip()
+        key = text.lower()
+        if not text or key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(text[:280])
+        if len(cleaned) >= max_items:
+            break
+    return cleaned
+
+def _looks_like_placeholder(text: Any) -> bool:
+    normalized = str(text or "").strip().lower()
+    if not normalized:
+        return True
+    if normalized in _GENERIC_EXPLORATION_TERMS:
+        return True
+    placeholder_starts = (
+        "clear explanation",
+        "concept ",
+        "example ",
+        "why this matters",
+        "practical mastery",
+        "an exploration of ",
+    )
+    return normalized.startswith(placeholder_starts) and (
+        "fundamental concepts" in normalized
+        or "with context" in normalized
+        or normalized in _GENERIC_EXPLORATION_TERMS
+    )
+
+def _parse_json_object(text: str) -> dict[str, Any]:
+    raw = (text or "").strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.IGNORECASE)
+        raw = re.sub(r"\s*```$", "", raw)
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+
+    decoder = json.JSONDecoder()
+    for match in re.finditer(r"\{", raw):
+        try:
+            parsed, _ = decoder.raw_decode(raw[match.start():])
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            continue
+    raise ValueError("No valid JSON object found")
+
+def _build_node_path(db: Session, node: models.KnowledgeNode, user_id: int) -> list[str]:
+    path = []
+    current = node
+    visited = set()
+    while current and current.id not in visited:
+        visited.add(current.id)
+        path.insert(0, current.topic_name)
+        if current.parent_node_id:
+            current = db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.id == current.parent_node_id,
+                models.KnowledgeNode.user_id == user_id,
+            ).first()
+        else:
+            current = None
+    return path
+
+def _find_roadmap_for_node(db: Session, node: models.KnowledgeNode, user_id: int):
+    if node.roadmap_id:
+        roadmap = db.query(models.KnowledgeRoadmap).filter(
+            models.KnowledgeRoadmap.id == node.roadmap_id,
+            models.KnowledgeRoadmap.user_id == user_id,
+        ).first()
+        if roadmap:
+            return roadmap
+
+    root = node
+    visited = set()
+    while root.parent_node_id and root.id not in visited:
+        visited.add(root.id)
+        parent = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.id == root.parent_node_id,
+            models.KnowledgeNode.user_id == user_id,
+        ).first()
+        if not parent:
+            break
+        root = parent
+
+    return db.query(models.KnowledgeRoadmap).filter(
+        models.KnowledgeRoadmap.root_node_id == root.id,
+        models.KnowledgeRoadmap.user_id == user_id,
+    ).first()
+
+def _topic_specific_exploration_fallback(
+    topic: str,
+    context_path: str,
+    description: Optional[str] = None,
+) -> dict[str, Any]:
+    clean_topic = (topic or "this topic").strip()
+    clean_context = (context_path or clean_topic).strip()
+    useful_description = (description or "").strip()
+    if useful_description.lower().startswith("explore ") and "click" in useful_description.lower():
+        useful_description = ""
+
+    explanation_parts = [
+        f"{clean_topic} is the focus of this node in the path {clean_context}.",
+        f"Study it by defining the boundaries of {clean_topic}, identifying the ideas that make it work, and connecting those ideas back to the parent topic.",
+    ]
+    if useful_description:
+        explanation_parts.append(f"In this map, the node is described as: {useful_description}")
+    explanation_parts.append(
+        f"A strong understanding of {clean_topic} should let you explain the main terms, recognize when the idea is being used, and compare it with nearby nodes in the knowledge map."
+    )
+
+    return {
+        "explanation": " ".join(explanation_parts),
+        "key_concepts": [
+            f"{clean_topic} definition and scope",
+            f"Core mechanisms inside {clean_topic}",
+            f"How {clean_topic} connects to {clean_context}",
+            f"Common examples involving {clean_topic}",
+            f"Typical mistakes when learning {clean_topic}",
+        ],
+        "why_important": (
+            f"{clean_topic} matters because it is a specific step in understanding {clean_context}. "
+            f"If this node is unclear, later subtopics in the map will be harder to organize."
+        ),
+        "real_world_examples": [
+            f"Use {clean_topic} to explain a concrete case, problem, or source connected to {clean_context}.",
+            f"Compare {clean_topic} with a sibling or parent node to decide what belongs inside this topic and what belongs elsewhere.",
+        ],
+        "learning_tips": (
+            f"Write a three-sentence explanation of {clean_topic}, list three examples, then ask one question that distinguishes it from the parent topic."
+        ),
+    }
+
+def _normalize_exploration_payload(
+    raw_data: dict[str, Any],
+    topic: str,
+    context_path: str,
+    description: Optional[str],
+) -> dict[str, Any]:
+    fallback = _topic_specific_exploration_fallback(topic, context_path, description)
+
+    explanation = str(raw_data.get("explanation") or raw_data.get("ai_explanation") or "").strip()
+    if len(explanation) < 80 or _looks_like_placeholder(explanation):
+        explanation = fallback["explanation"]
+
+    key_concepts = [
+        item for item in _coerce_string_list(raw_data.get("key_concepts"), max_items=7)
+        if not _looks_like_placeholder(item)
+    ]
+    if len(key_concepts) < 3:
+        key_concepts = fallback["key_concepts"]
+
+    why_important = str(raw_data.get("why_important") or "").strip()
+    if len(why_important) < 40 or _looks_like_placeholder(why_important):
+        why_important = fallback["why_important"]
+
+    real_world_examples = [
+        item for item in _coerce_string_list(raw_data.get("real_world_examples"), max_items=4)
+        if not _looks_like_placeholder(item)
+    ]
+    if len(real_world_examples) < 2:
+        real_world_examples = fallback["real_world_examples"]
+
+    learning_tips = str(raw_data.get("learning_tips") or "").strip()
+    if len(learning_tips) < 40 or _looks_like_placeholder(learning_tips):
+        learning_tips = fallback["learning_tips"]
+
+    return {
+        "explanation": explanation,
+        "key_concepts": key_concepts,
+        "why_important": why_important,
+        "real_world_examples": real_world_examples,
+        "learning_tips": learning_tips,
+    }
+
+def _node_has_generic_exploration(node: models.KnowledgeNode) -> bool:
+    concepts = {item.lower() for item in _coerce_string_list(node.key_concepts, max_items=10)}
+    generic_concepts = concepts.intersection(_GENERIC_EXPLORATION_TERMS)
+    explanation = (node.ai_explanation or "").strip()
+    examples = {item.lower() for item in _coerce_string_list(node.real_world_examples, max_items=10)}
+    return (
+        _looks_like_placeholder(explanation)
+        or len(generic_concepts) >= 3
+        or bool(examples.intersection({"used in various industries", "applied in research and development"}))
+    )
+
+def _serialize_explored_node(node: models.KnowledgeNode, context_path: Optional[list[str]] = None) -> dict[str, Any]:
+    return {
+        "id": node.id,
+        "nodeId": node.id,
+        "parent_id": node.parent_node_id,
+        "topic_name": node.topic_name,
+        "description": node.description,
+        "depth_level": node.depth_level,
+        "context_path": context_path or [],
+        "ai_explanation": node.ai_explanation,
+        "key_concepts": _coerce_string_list(node.key_concepts, max_items=10),
+        "why_important": node.why_important,
+        "real_world_examples": _coerce_string_list(node.real_world_examples, max_items=10),
+        "learning_tips": node.learning_tips,
+        "is_explored": node.is_explored,
+        "exploration_count": node.exploration_count,
+    }
 
 @router.post("/create_knowledge_roadmap")
 async def create_knowledge_roadmap(
@@ -331,7 +577,7 @@ Topic:"""
             "status": "success",
             "root_topic": root_topic,
             "chat_title": chat_session.title,
-            "message": f"Roadmap topic identified: {root_topic}",
+            "message": f"Knowledge map topic identified: {root_topic}",
         }
 
     except Exception as e:
@@ -524,72 +770,104 @@ async def explore_node(
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
 
-        if node.ai_explanation and node.key_concepts:
+        context_path = _build_node_path(db, node, current_user.id)
+        context_str = " → ".join(context_path) if context_path else node.topic_name
+        roadmap = _find_roadmap_for_node(db, node, current_user.id)
+        if roadmap and not node.roadmap_id:
+            node.roadmap_id = roadmap.id
+
+        if node.ai_explanation and node.key_concepts and not _node_has_generic_exploration(node):
             node.exploration_count += 1
             node.last_explored = datetime.now(timezone.utc)
+            if roadmap:
+                roadmap.last_accessed = datetime.now(timezone.utc)
             db.commit()
             db.refresh(node)
 
             return {
                 "status": "already_generated",
-                "node": {
-                    "id": node.id,
-                    "topic_name": node.topic_name,
-                    "ai_explanation": node.ai_explanation,
-                    "key_concepts": json.loads(node.key_concepts) if node.key_concepts else [],
-                    "is_explored": node.is_explored,
-                    "exploration_count": node.exploration_count,
-                },
+                "node": _serialize_explored_node(node, context_path),
             }
 
         user = db.query(models.User).filter(models.User.id == node.user_id).first()
         user_profile = build_user_profile_dict(user)
 
-        context_path = []
-        current = node.parent_node_id
-        while current:
-            parent = db.query(models.KnowledgeNode).filter(
-                models.KnowledgeNode.id == current,
+        sibling_nodes = []
+        if node.parent_node_id:
+            sibling_nodes = db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.parent_node_id == node.parent_node_id,
+                models.KnowledgeNode.id != node.id,
                 models.KnowledgeNode.user_id == current_user.id,
-            ).first()
-            if parent:
-                context_path.insert(0, parent.topic_name)
-                current = parent.parent_node_id
-            else:
-                current = None
+            ).limit(6).all()
+        child_nodes = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.parent_node_id == node.id,
+            models.KnowledgeNode.user_id == current_user.id,
+        ).limit(6).all()
 
-        context_str = " → ".join(context_path) if context_path else "Root level"
+        sibling_context = ", ".join(s.topic_name for s in sibling_nodes) or "None listed"
+        child_context = ", ".join(c.topic_name for c in child_nodes) or "None expanded yet"
+        roadmap_title = roadmap.title if roadmap else "Knowledge Map"
+        root_topic = roadmap.root_topic if roadmap else (context_path[0] if context_path else node.topic_name)
 
-        explanation_prompt = f"""Explain "{node.topic_name}" for {user_profile.get('first_name', 'student')}.
-Context: {context_str}
-Level: {user_profile.get('difficulty_level', 'intermediate')}
+        explanation_prompt = f"""You are generating the Learn panel for one Knowledge Map node.
+Return strict JSON only. No markdown, no prose outside JSON.
 
-**JSON OUTPUT**:
+Knowledge Map Title: {roadmap_title}
+Root Topic: {root_topic}
+Node Topic: {node.topic_name}
+Node Path: {context_str}
+Node Description: {node.description or "No description provided"}
+Nearby Sibling Nodes: {sibling_context}
+Existing Child Nodes: {child_context}
+Student Level: {user_profile.get('difficulty_level', 'intermediate')}
+
+Requirements:
+- Every field must be specifically about "{node.topic_name}" in the scope of this node path.
+- Do not use generic placeholders such as "Core principles", "Key theories", "Practical applications", "Used in various industries", or "Applied in research and development".
+- Explain the actual topic, not the Knowledge Map UI.
+- Key concepts must be named concepts, steps, terms, or distinctions a student should learn for this exact topic.
+- Real-world examples must mention concrete situations where "{node.topic_name}" appears or is applied.
+
+JSON schema:
 {{
-  "explanation": "Clear explanation (250-400 words) with examples",
-  "key_concepts": ["Concept 1", "Concept 2", "Concept 3", "Concept 4", "Concept 5"],
-  "why_important": "Why this matters (2-3 sentences)",
-  "real_world_examples": ["Example 1 with context", "Example 2 with context"],
-  "learning_tips": "Practical mastery advice"
+  "explanation": "250-400 words specifically explaining this node topic",
+  "key_concepts": ["specific concept 1", "specific concept 2", "specific concept 3", "specific concept 4", "specific concept 5"],
+  "why_important": "2-3 sentences explaining why this exact topic matters in the node path",
+  "real_world_examples": ["specific example 1", "specific example 2"],
+  "learning_tips": "practical advice for mastering this exact topic"
 }}"""
 
-        response_text = call_ai(explanation_prompt, max_tokens=2048, temperature=0.7)
-
         try:
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if json_match:
-                ai_data = json.loads(json_match.group())
-            else:
-                raise ValueError("No JSON found")
+            response_text = call_ai(explanation_prompt, max_tokens=2048, temperature=0.55)
+            ai_data = _normalize_exploration_payload(
+                _parse_json_object(response_text),
+                topic=node.topic_name,
+                context_path=context_str,
+                description=node.description,
+            )
         except Exception as e:
-            logger.error(f"Failed to parse explanation JSON: {str(e)}")
-            ai_data = {
-                "explanation": f"An exploration of {node.topic_name}. This topic involves understanding the fundamental concepts and their applications.",
-                "key_concepts": ["Core principles", "Key theories", "Practical applications", "Related fields", "Future directions"],
-                "why_important": "Understanding this topic is essential for building a strong foundation in this domain.",
-                "real_world_examples": ["Used in various industries", "Applied in research and development"],
-                "learning_tips": "Practice regularly, connect concepts to real-world scenarios, and explore related topics.",
-            }
+            logger.warning(f"Failed to generate strict exploration JSON for node {node.id}: {str(e)}")
+            repair_prompt = f"""Create valid strict JSON for the Knowledge Map node "{node.topic_name}".
+Node Path: {context_str}
+Description: {node.description or "No description provided"}
+Avoid all generic placeholders. Make every value specific to "{node.topic_name}".
+
+JSON keys required: explanation, key_concepts, why_important, real_world_examples, learning_tips."""
+            try:
+                response_text = call_ai(repair_prompt, max_tokens=1800, temperature=0.35)
+                ai_data = _normalize_exploration_payload(
+                    _parse_json_object(response_text),
+                    topic=node.topic_name,
+                    context_path=context_str,
+                    description=node.description,
+                )
+            except Exception as retry_error:
+                logger.warning(f"Using topic-scoped fallback for node {node.id}: {str(retry_error)}")
+                ai_data = _topic_specific_exploration_fallback(
+                    topic=node.topic_name,
+                    context_path=context_str,
+                    description=node.description,
+                )
 
         node.ai_explanation = ai_data.get("explanation", "")
         node.key_concepts = json.dumps(ai_data.get("key_concepts", []))
@@ -608,23 +886,15 @@ Level: {user_profile.get('difficulty_level', 'intermediate')}
         )
         db.add(history)
 
+        if roadmap:
+            roadmap.last_accessed = datetime.now(timezone.utc)
+
         db.commit()
         db.refresh(node)
 
         return {
             "status": "success",
-            "node": {
-                "id": node.id,
-                "topic_name": node.topic_name,
-                "description": node.description,
-                "ai_explanation": node.ai_explanation,
-                "key_concepts": json.loads(node.key_concepts) if node.key_concepts else [],
-                "why_important": ai_data.get("why_important", ""),
-                "real_world_examples": ai_data.get("real_world_examples", []),
-                "learning_tips": ai_data.get("learning_tips", ""),
-                "is_explored": node.is_explored,
-                "exploration_count": node.exploration_count,
-            },
+            "node": _serialize_explored_node(node, context_path),
         }
 
     except HTTPException:
@@ -647,7 +917,7 @@ async def get_knowledge_roadmap(
         ).first()
 
         if not roadmap:
-            raise HTTPException(status_code=404, detail="Roadmap not found")
+            raise HTTPException(status_code=404, detail="Knowledge map not found")
 
         root_node = db.query(models.KnowledgeNode).filter(
             models.KnowledgeNode.id == roadmap.root_node_id,
@@ -844,7 +1114,7 @@ async def delete_roadmap(
         ).first()
 
         if not roadmap:
-            raise HTTPException(status_code=404, detail="Roadmap not found")
+            raise HTTPException(status_code=404, detail="Knowledge map not found")
 
         def delete_node_tree(node_id):
             children = db.query(models.KnowledgeNode).filter(
@@ -870,7 +1140,7 @@ async def delete_roadmap(
         db.delete(roadmap)
         db.commit()
 
-        return {"status": "success", "message": "Roadmap deleted successfully"}
+        return {"status": "success", "message": "Knowledge map deleted successfully"}
 
     except Exception as e:
         logger.error(f"Error deleting roadmap: {str(e)}")
@@ -906,7 +1176,7 @@ async def add_manual_node(
         ).first()
 
         if not roadmap:
-            raise HTTPException(status_code=404, detail="Roadmap not found")
+            raise HTTPException(status_code=404, detail="Knowledge map not found")
 
         new_node = models.KnowledgeNode(
             user_id=current_user.id,

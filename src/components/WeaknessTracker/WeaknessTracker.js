@@ -231,7 +231,7 @@ export default function WeaknessTracker({ userId, token, onNavigate }) {
     { name: 'Chat',      value: Math.round((stats.weekly_points || 0) * 0.3), color: '#3b82f6' },
     { name: 'Quiz',      value: Math.round((stats.weekly_points || 0) * 0.4), color: '#22c55e' },
     { name: 'Flashcard', value: Math.round((stats.weekly_points || 0) * 0.2), color: '#eab308' },
-    { name: 'Roadmap',   value: Math.round((stats.weekly_points || 0) * 0.1), color: '#a855f7' },
+    { name: 'Knowledge Map', value: Math.round((stats.weekly_points || 0) * 0.1), color: '#a855f7' },
   ];
 
   const handleConceptClick = (conceptId, conceptName) => {

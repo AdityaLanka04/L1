@@ -252,7 +252,7 @@ function matchesSource(note: Note, source: 'flashcards' | 'quizzes' | 'roadmaps'
   const haystack = `${note.title} ${getPlainNoteText(note.content)}`.toLowerCase();
   if (source === 'flashcards') return haystack.includes('flashcard');
   if (source === 'quizzes') return haystack.includes('quiz');
-  return haystack.includes('roadmap');
+  return haystack.includes('roadmap') || haystack.includes('knowledge map');
 }
 
 function buildNoteFromApi(data: any): Note {
@@ -729,7 +729,7 @@ export function NotesHome({
           : filter === 'source:quizzes'
             ? 'quiz notes'
             : filter === 'source:roadmaps'
-              ? 'roadmap notes'
+              ? 'knowledge map notes'
               : folders.find((folder) => filter === `folder:${folder.id}`)?.name ?? 'folder notes';
 
   const saveSearchHistory = async (nextHistory: string[]) => {
@@ -982,7 +982,7 @@ export function NotesHome({
     />,
     <FilterChip
       key="roadmaps"
-      label={`roadmaps ${countSource(notes, 'roadmaps')}`}
+      label={`knowledge maps ${countSource(notes, 'roadmaps')}`}
       active={filter === 'source:roadmaps'}
       onPress={() => setFilter('source:roadmaps')}
       icon="trail-sign-outline"

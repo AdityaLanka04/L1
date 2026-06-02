@@ -23,7 +23,7 @@ const CORE_SMART_ACTIONS = [
   { id: 'quiz_me', kind: 'quiz_on_topic', label: 'Quiz Me', description: 'Start a focused quiz on this topic', icon: 'quiz', category: 'assessment', baseScore: 116, intents: ['explain', 'assessment', 'review', 'general'] },
   { id: 'go_deeper', kind: 'deepen_topic', label: 'Go Deeper', description: 'Push into advanced understanding', icon: 'depth', category: 'depth', baseScore: 112, intents: ['explain', 'planning', 'general'] },
   { id: 'build_path', kind: 'create_learning_path', label: 'Build Learning Path', description: 'Create a guided plan from beginner to advanced', icon: 'path', category: 'planning', baseScore: 108, intents: ['planning', 'explain', 'review'] },
-  { id: 'build_roadmap', kind: 'create_roadmap', label: 'Create Knowledge Roadmap', description: 'Generate a visual knowledge graph from this chat', icon: 'roadmap', category: 'planning', baseScore: 106, intents: ['planning', 'explain', 'review'] },
+  { id: 'build_roadmap', kind: 'create_roadmap', label: 'Create Knowledge Map', description: 'Generate a visual knowledge graph from this chat', icon: 'roadmap', category: 'planning', baseScore: 106, intents: ['planning', 'explain', 'review'] },
   { id: 'flashcards_now', kind: 'open_route', route: '/flashcards', label: 'Build Flashcards', description: 'Convert this topic into spaced-repetition cards', icon: 'flashcard', category: 'memory', baseScore: 102, intents: ['review', 'memory', 'assessment'] },
 ];
 
@@ -36,7 +36,7 @@ const FEATURE_ROUTE_ACTIONS = [
   { id: 'feature_quiz_hub', kind: 'open_route', route: '/quiz-hub', label: 'Quiz Hub', description: 'Access all quiz modes', icon: 'quiz', category: 'assessment', baseScore: 88, intents: ['assessment'] },
   { id: 'feature_solo_quiz', kind: 'open_route', route: '/solo-quiz', label: 'Solo Quiz', description: 'Generate a fresh solo quiz', icon: 'quiz', category: 'assessment', baseScore: 90, intents: ['assessment', 'review'] },
   { id: 'feature_question_bank', kind: 'open_route', route: '/question-bank', label: 'Question Bank', description: 'Generate and manage question sets', icon: 'bank', category: 'assessment', baseScore: 89, intents: ['assessment', 'review'] },
-  { id: 'feature_knowledge_roadmap', kind: 'open_route', route: '/knowledge-roadmap', label: 'Knowledge Roadmap', description: 'Explore topics as connected maps', icon: 'roadmap', category: 'planning', baseScore: 92, intents: ['planning', 'explain'] },
+  { id: 'feature_knowledge_roadmap', kind: 'open_route', route: '/knowledge-map', label: 'Knowledge Map', description: 'Explore topics as connected maps', icon: 'roadmap', category: 'planning', baseScore: 92, intents: ['planning', 'explain'] },
   { id: 'feature_learning_paths', kind: 'open_route', route: '/learning-paths', label: 'Learning Paths', description: 'Generate structured step-by-step plans', icon: 'path', category: 'planning', baseScore: 94, intents: ['planning', 'review'] },
   { id: 'feature_xp_roadmap', kind: 'open_route', route: '/xp-roadmap', label: 'XP Roadmap', description: 'Track milestone progress and streaks', icon: 'xp', category: 'planning', baseScore: 79, intents: ['planning', 'analytics'] },
   { id: 'feature_concept_web', kind: 'open_route', route: '/concept-web', label: 'Concept Web', description: 'Visualize concept relationships', icon: 'concept', category: 'planning', baseScore: 78, intents: ['planning', 'explain'] },
@@ -1268,21 +1268,21 @@ const AIChat = ({ sharedMode = false }) => {
           }),
         });
         if (!roadmapResponse.ok) {
-          throw new Error('Failed to create roadmap');
+          throw new Error('Failed to create knowledge map');
         }
         const roadmapData = await roadmapResponse.json();
         if (roadmapData?.roadmap_id) {
           activateChatDock(activeChatId);
-          navigate(`/knowledge-roadmap/${roadmapData.roadmap_id}`);
+          navigate(`/knowledge-map/${roadmapData.roadmap_id}`);
         } else {
           activateChatDock(activeChatId);
-          navigate('/knowledge-roadmap');
+          navigate('/knowledge-map');
         }
         showSmartActionNotice(noticeText);
       };
 
       if (action.kind === 'deepen_topic') {
-        await createAndOpenRoadmap(topic, 'Deep roadmap created for this topic.');
+        await createAndOpenRoadmap(topic, 'Deep knowledge map created for this topic.');
         return;
       }
 
@@ -1361,7 +1361,7 @@ const AIChat = ({ sharedMode = false }) => {
       }
 
       if (action.kind === 'create_roadmap') {
-        await createAndOpenRoadmap(topic, 'Knowledge roadmap created.');
+        await createAndOpenRoadmap(topic, 'Knowledge map created.');
       }
     } catch (error) {
       console.error('Smart action failed:', error);
@@ -2303,7 +2303,7 @@ const AIChat = ({ sharedMode = false }) => {
     }
   }, [selectedTheme]);
 
-  // Enhanced scroll event listener setup from Knowledge Roadmap
+  // Enhanced scroll event listener setup from Knowledge Map
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (container) {

@@ -31,11 +31,11 @@ const LearningReviewHub = () => {
   const tools = [
     {
       icon: Map,
-      title: 'Knowledge Roadmap',
+      title: 'Knowledge Map',
       description: 'Build interactive concept maps with expandable nodes. Navigate through topics progressively and master complex subjects.',
-      path: '/knowledge-roadmap',
+      path: '/knowledge-map',
       id: 'roadmap',
-      cta: 'Build Roadmap',
+      cta: 'Build Map',
       stat: 'Visual Learning',
       featured: true
     },

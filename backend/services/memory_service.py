@@ -124,7 +124,7 @@ def _build_content(event: MemoryEvent) -> tuple[str, str]:
         mtype = "struggle" if event.score < 0.6 else "mastery"
     elif src == "roadmap":
         content = (
-            f"Student explored {event.concept_name} on roadmap. "
+            f"Student explored {event.concept_name} on a knowledge map. "
             f"Current mastery: {event.p_mastery:.0%}. "
             f"Time spent: {event.time_seconds}s."
         )

@@ -75,7 +75,7 @@ const NAV_GROUPS = [
     links: [
       { label: 'Analytics', route: '/analytics' },
       { label: 'XP Roadmap', route: '/xp-roadmap' },
-      { label: 'Knowledge Roadmap', route: '/knowledge-roadmap' },
+      { label: 'Knowledge Map', route: '/knowledge-map' },
       { label: 'Activity Timeline', route: '/activity-timeline' },
       { label: 'Learning Paths', route: '/learning-paths' },
       { label: 'Playlists', route: '/playlists' },

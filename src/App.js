@@ -21,7 +21,7 @@ import Analytics from './pages/Analytics';
 import ChallengeSession from './pages/ChallengeSession';
 import Challenges from './pages/Challenges';
 import SharedContent from './pages/SharedContent';
-import KnowledgeRoadmap from './pages/KnowledgeRoadmap';
+import KnowledgeMap from './pages/KnowledgeMap';
 import ConceptWeb from './pages/ConceptWeb';
 import QuestionBank from './pages/Questionbankdashboard';
 import SlideExplorer from './pages/SlideExplorer';
@@ -141,8 +141,10 @@ function App() {
               <Route path="/xp-roadmap" element={<ProtectedRoute><XPRoadmap /></ProtectedRoute>} />
               <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
               <Route path="/challenge/:challengeId" element={<ProtectedRoute><ChallengeSession /></ProtectedRoute>} />
-              <Route path="/knowledge-roadmap" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
-              <Route path="/knowledge-roadmap/:roadmapId" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
+              <Route path="/knowledge-map" element={<ProtectedRoute><KnowledgeMap /></ProtectedRoute>} />
+              <Route path="/knowledge-map/:mapId" element={<ProtectedRoute><KnowledgeMap /></ProtectedRoute>} />
+              <Route path="/knowledge-roadmap" element={<ProtectedRoute><KnowledgeMap /></ProtectedRoute>} />
+              <Route path="/knowledge-roadmap/:roadmapId" element={<ProtectedRoute><KnowledgeMap /></ProtectedRoute>} />
               <Route path="/concept-web" element={<ProtectedRoute><ConceptWeb /></ProtectedRoute>} />
               <Route path="/learning-paths" element={<ProtectedRoute><LearningPaths /></ProtectedRoute>} />
               <Route path="/learning-paths/:pathId" element={<ProtectedRoute><LearningPathDetail /></ProtectedRoute>} />

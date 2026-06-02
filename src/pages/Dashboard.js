@@ -934,9 +934,9 @@ const Dashboard = () => {
             <p className="ds-learning-hub-subtitle">ACCELERATE YOUR LEARNING</p>
           </div>
           <div className="ds-learning-hub-grid-items">
-            <div className="ds-learning-hub-grid-item" onClick={() => navigate('/knowledge-roadmap')}>
+            <div className="ds-learning-hub-grid-item" onClick={() => navigate('/knowledge-map')}>
               <Target size={32} strokeWidth={1.5} />
-              <h3>Roadmap</h3>
+              <h3>Knowledge Map</h3>
               <p>Concept maps</p>
             </div>
             <div className="ds-learning-hub-grid-item" onClick={() => navigate('/question-bank')}>
@@ -1236,10 +1236,10 @@ const Dashboard = () => {
               ACCELERATE YOUR LEARNING
             </p>
             <div className="ds-learning-hub-list">
-              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }} onClick={() => navigate('/knowledge-roadmap')}>
+              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }} onClick={() => navigate('/knowledge-map')}>
                 <ChevronRight size={14} />
                 <div className="ds-learning-hub-item-text">
-                  <span className="ds-learning-hub-name">Knowledge Roadmap</span>
+                  <span className="ds-learning-hub-name">Knowledge Map</span>
                   <span className="ds-learning-hub-desc">Build interactive concept maps</span>
                 </div>
               </div>

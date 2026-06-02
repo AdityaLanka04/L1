@@ -57,13 +57,13 @@ const FEATURES = [
   },
   {
     id: 'roadmap',
-    label: 'Roadmap',
+    label: 'Knowledge Map',
     icon: Target,
     color: '#22d3ee',
     bg: 'rgba(34,211,238,0.09)',
     border: 'rgba(34,211,238,0.30)',
-    btnLabel: 'Create Roadmap',
-    desc: 'Build a knowledge roadmap from this file\'s topics',
+    btnLabel: 'Create Map',
+    desc: 'Build a knowledge map from this file\'s topics',
   },
 ];
 
@@ -291,7 +291,7 @@ const ContextFileAnalysis = () => {
     }
     if (featureId === 'roadmap') {
       recordAction('roadmap');
-      navigate('/knowledge-roadmap', {
+      navigate('/knowledge-map', {
         state: {
           contextDocIds: [targetId],
           sourceSummary: sourceName,

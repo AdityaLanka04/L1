@@ -35,7 +35,7 @@ const SIDEBAR_NAV_GROUPS = [
     title: 'Explore',
     items: [
       { label: 'Search Hub', route: '/search-hub' },
-      { label: 'Roadmap', route: '/knowledge-roadmap' },
+      { label: 'Knowledge Map', route: '/knowledge-map' },
       { label: 'Slide Explorer', route: '/slide-explorer' }
     ]
   },

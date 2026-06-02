@@ -19,7 +19,7 @@ const FEATURES = [
   { icon: <Layers size={19}/>,   title: 'Smart Notes',             desc: 'Depth (brief / standard / deep) + tone control. AI knows your gaps before writing.' },
   { icon: <Mic size={19}/>,      title: 'AI Podcasts',             desc: 'Coach, Story, Rapid Review, or Socratic mode. Any topic becomes an on-demand lesson.' },
   { icon: <Swords size={19}/>,   title: 'Live Quiz Battles',       desc: 'Real-time WebSocket multiplayer. Race friends, see live scores, track wins.' },
-  { icon: <Map size={19}/>,      title: 'Knowledge Roadmaps',      desc: 'Neo4j prerequisite maps. Know exactly what to learn before attempting a topic.' },
+  { icon: <Map size={19}/>,      title: 'Knowledge Maps',          desc: 'Neo4j prerequisite maps. Know exactly what to learn before attempting a topic.' },
   { icon: <Award size={19}/>,    title: 'XP & Gamification',       desc: 'Daily challenges, weekly bingo, achievements, global leaderboards. Gamified mastery.' },
 ];
 
@@ -350,7 +350,7 @@ function SlideWhyCerbyl({ navigate }) {
   const reasons = [
     { num: '01', title: 'Built by students', desc: 'We were the students losing hours to four apps that never talked to each other. Cerbyl is the single workspace we wished existed.' },
     { num: '02', title: 'AI that remembers you', desc: 'Every quiz score, note, and chat session is stored in your personal knowledge graph. The AI reads your actual history before every reply — not just the current message.' },
-    { num: '03', title: 'The full study loop', desc: 'Tutor → Notes → Flashcards → Quizzes → Battles → Roadmaps. One platform, one profile, zero app switching.' },
+    { num: '03', title: 'The full study loop', desc: 'Tutor → Notes → Flashcards → Quizzes → Battles → Knowledge Maps. One platform, one profile, zero app switching.' },
     { num: '04', title: 'Science-backed scheduling', desc: 'FSRS-6 spaced repetition and Neo4j prerequisite graphs ensure you study the right thing at the right time — always.' },
   ];
   return (

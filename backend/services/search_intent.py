@@ -67,7 +67,7 @@ _COMMAND_CATALOG: List[Dict[str, Any]] = [
     },
     {
         "command": "path",
-        "aliases": ["path", "learning-path", "learning-paths", "roadmap", "lp"],
+        "aliases": ["path", "learning-path", "learning-paths", "lp"],
         "action": "create_learning_path",
         "description": "Generate a learning path and open it",
         "syntax": "/path <topic> [--difficulty beginner|intermediate|advanced] [--length short|medium|long]",
@@ -78,6 +78,20 @@ _COMMAND_CATALOG: List[Dict[str, Any]] = [
         "navigate_to": "/learning-paths",
         "requires_topic": True,
         "params": ["topic", "difficulty", "length"],
+    },
+    {
+        "command": "map",
+        "aliases": ["map", "knowledge-map", "km", "roadmap"],
+        "action": "create_knowledge_map",
+        "description": "Create a knowledge map and open it",
+        "syntax": "/map <topic>",
+        "examples": [
+            "/map organic chemistry",
+            "/map machine learning",
+        ],
+        "navigate_to": "/knowledge-map",
+        "requires_topic": True,
+        "params": ["topic"],
     },
     {
         "command": "chat",
@@ -197,6 +211,7 @@ ACTION_REQUIRES_TOPIC = {
     "create_questions",
     "create_quiz",
     "create_learning_path",
+    "create_knowledge_map",
     "explain",
 }
 
@@ -220,6 +235,7 @@ def build_topic_suggestions(topic: str) -> List[str]:
         f"/questions {topic}",
         f"/explain {topic}",
         f"/path {topic}",
+        f"/map {topic}",
         f"/chat {topic}",
     ]
 
@@ -385,7 +401,12 @@ def infer_action(query: str) -> Dict[str, Any]:
     if "show my learning paths" in query_lower or "show learning paths" in query_lower:
         return {"action": "show_learning_paths", "confidence": 0.85}
 
-    if "learning path" in query_lower or "roadmap" in query_lower or "study plan" in query_lower:
+    if "knowledge map" in query_lower or "roadmap" in query_lower:
+        topic = _extract_topic(query_clean, [r"(?:map|roadmap|knowledge map)\s+(?:on|for|about)\s+(.+)"])
+        topic = topic or re.sub(r"^(create|make|generate|build)\s+", "", query_lower, flags=re.IGNORECASE).strip()
+        return {"action": "create_knowledge_map", "topic": topic or query_clean, "confidence": 0.8}
+
+    if "learning path" in query_lower or "study plan" in query_lower:
         topic = _extract_topic(query_clean, [r"(?:path|roadmap|learning path|study plan)\s+(?:on|for|about)\s+(.+)"])
         topic = topic or re.sub(r"^(create|make|generate)\s+", "", query_lower, flags=re.IGNORECASE).strip()
         return {"action": "create_learning_path", "topic": topic or query_clean, "confidence": 0.8}
