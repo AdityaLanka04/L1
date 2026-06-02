@@ -14,7 +14,11 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: var(--bg-primary) !important;
+  background-color: var(--bg-primary) !important;
+  background-image:
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 38%, transparent) 1px, transparent 1.5px) !important;
+  background-size: 40px 40px !important;
+  background-position: 0 0 !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--text-primary);
   overflow: hidden !important;
@@ -478,14 +482,35 @@
   overflow: hidden;
   width: 100%;
   height: 100%;
-  background: var(--bg-primary);
+  background-color: transparent;
 }
 
 .kr-flow-container-fullscreen {
   width: 100%;
   height: 100%;
-  background: var(--bg-primary);
+  background-color: transparent;
   position: relative;
+}
+
+.kr-page .geo-bg {
+  display: none;
+}
+
+.kr-flow-container-fullscreen .react-flow,
+.kr-flow-container-fullscreen .react-flow__background {
+  width: 100%;
+  height: 100%;
+}
+
+.kr-flow-container-fullscreen .react-flow {
+  background: transparent !important;
+}
+
+.kr-flow-container-fullscreen .react-flow__background {
+  inset: -2px !important;
+  width: calc(100% + 4px) !important;
+  height: calc(100% + 4px) !important;
+  opacity: 0 !important;
 }
 
 .custom-kr-node {
@@ -855,7 +880,8 @@
 }
 
 .react-flow__background {
-  background: var(--bg-primary);
+  background: transparent !important;
+  opacity: 0 !important;
 }
 
 .react-flow__attribution {

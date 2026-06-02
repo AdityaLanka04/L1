@@ -374,6 +374,7 @@ async def ask_ai(
 async def ask_simple(
     user_id: str = Form(...),
     question: str = Form(...),
+    original_question: Optional[str] = Form(None),
     chat_id: Optional[str] = Form(None),
     use_hs_context: bool = Form(True),
     context_doc_ids: Optional[str] = Form(None),
@@ -384,6 +385,8 @@ async def ask_simple(
         selected_doc_ids = [x.strip() for x in (context_doc_ids or "").split(",") if x.strip()][:200]
         _assert_user_matches_request(user_id, current_user)
         user = current_user
+        user_question = (original_question or question or "").strip()
+        model_question = question
 
         chat_id_int = int(chat_id) if chat_id else None
 
@@ -414,7 +417,7 @@ async def ask_simple(
         if tutor:
             result = await tutor.invoke(
                 user_id=str(user.id),
-                user_input=question,
+                user_input=model_question,
                 chat_id=chat_id_int,
                 chat_history=chat_history,
                 use_hs_context=bool(use_hs_context),
@@ -428,13 +431,13 @@ async def ask_simple(
             except Exception:
                 pass
         else:
-            response_text = _context_only_fallback_answer(str(user.id), question, selected_doc_ids)
+            response_text = _context_only_fallback_answer(str(user.id), model_question, selected_doc_ids)
 
         if chat_id_int:
             msg = models.ChatMessage(
                 chat_session_id=chat_id_int,
                 user_id=user.id,
-                user_message=question,
+                user_message=user_question or model_question,
                 ai_response=response_text,
                 timestamp=datetime.now(timezone.utc),
             )
@@ -460,13 +463,13 @@ async def ask_simple(
         try:
             from services.intent_engine import CerbylIntentEngine
             _engine = CerbylIntentEngine.get()
-            _intent_result = _engine.classify(question)
+            _intent_result = _engine.classify(user_question or model_question)
             _computed_confidence = _engine.estimate_response_confidence(
                 result=_intent_result,
                 response_text=response_text,
             )
             _engine.record_signal(
-                question,
+                user_question or model_question,
                 "INSTRUCTION" if _intent_result.is_instruction() else _intent_result.label,
                 weight=1.5 if _intent_result.is_instruction() else 0.7,
             )
@@ -498,6 +501,7 @@ async def ask_simple(
 async def ask_with_files(
     user_id: str = Form(...),
     question: str = Form(...),
+    original_question: Optional[str] = Form(None),
     chat_id: Optional[str] = Form(None),
     use_hs_context: bool = Form(True),
     context_doc_ids: Optional[str] = Form(None),
@@ -510,6 +514,8 @@ async def ask_with_files(
         context_only_mode = bool(selected_doc_ids)
         _assert_user_matches_request(user_id, current_user)
         user = current_user
+        user_question = (original_question or question or "").strip()
+        model_question = question
 
         chat_id_int = int(chat_id) if chat_id else None
         if chat_id_int:
@@ -562,7 +568,7 @@ async def ask_with_files(
                     "is_image": False,
                 })
 
-        enriched_question = question.strip() or "Please analyze the attached content."
+        enriched_question = model_question.strip() or "Please analyze the attached content."
         if text_extracts:
             enriched_question += "\n\n" + "\n\n".join(text_extracts)
         if image_payloads:
@@ -610,7 +616,7 @@ async def ask_with_files(
                 logger.warning(f"Vision call failed ({e}) — answering text only")
 
         if not response_text:
-            tutor_input = question.strip() or "What can you help me with?"
+            tutor_input = model_question.strip() or "What can you help me with?"
             if text_extracts and not context_only_mode:
                 tutor_input += "\n\n" + "\n\n".join(text_extracts)
             try:
@@ -649,7 +655,7 @@ async def ask_with_files(
             msg = models.ChatMessage(
                 chat_session_id=chat_id_int,
                 user_id=user.id,
-                user_message=question or "[image upload]",
+                user_message=user_question or model_question or "[image upload]",
                 ai_response=response_text,
                 timestamp=datetime.now(timezone.utc),
                 image_metadata=json.dumps(saved_metadata) if saved_metadata else None,
@@ -681,7 +687,7 @@ async def ask_with_files(
         try:
             from services.intent_engine import CerbylIntentEngine
             _engine = CerbylIntentEngine.get()
-            _intent_result = _engine.classify(question)
+            _intent_result = _engine.classify(user_question or model_question)
             _computed_confidence = _engine.estimate_response_confidence(
                 result=_intent_result,
                 response_text=response_text,

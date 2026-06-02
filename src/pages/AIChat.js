@@ -180,9 +180,12 @@ const EDUCATIONAL_INTENT_CLASSES = new Set(['LEARN_CONCEPT', 'ASSESS', 'REVIEW']
 
 function pickSmartActions({ userMessage, aiResponse, recentActionIds = [], intentClass = null }) {
   const userMsg = (userMessage || '').trim();
+  const userOnlyIntents = detectIntents(userMsg);
+  const hasSpecificIntent = userOnlyIntents.some((i) => i !== 'general');
 
-  // Backend classification is authoritative — trust it first
-  if (intentClass && !EDUCATIONAL_INTENT_CLASSES.has(intentClass)) return [];
+  // Backend classification is usually authoritative, but the model prompt can add
+  // internal guidance that makes the backend intent noisy.
+  if (intentClass && !EDUCATIONAL_INTENT_CLASSES.has(intentClass) && !hasSpecificIntent) return [];
 
   // Hard lexical gates (catch what backend might miss on first message)
   if (CASUAL_RE.test(userMsg)) return [];
@@ -191,8 +194,6 @@ function pickSmartActions({ userMessage, aiResponse, recentActionIds = [], inten
   if (EMOTIONAL_RE.test(userMsg)) return [];
 
   // Require at least one specific educational intent keyword in user message
-  const userOnlyIntents = detectIntents(userMsg);
-  const hasSpecificIntent = userOnlyIntents.some((i) => i !== 'general');
   if (!hasSpecificIntent) return [];
 
   const combined = `${userMsg} ${aiResponse || ''}`.trim();
@@ -1052,6 +1053,7 @@ const AIChat = ({ sharedMode = false }) => {
       const formData = new FormData();
       formData.append('user_id', userName);
       formData.append('question', messageForModel || 'Please analyze the uploaded files.');
+      formData.append('original_question', messageText || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
       formData.append('use_hs_context', hsMode.toString());
       if (selectedContextDocIds.length > 0) {
@@ -1198,17 +1200,21 @@ const AIChat = ({ sharedMode = false }) => {
   const getSmartActionsForMessage = useCallback((message, messageIndex) => {
     if (message.type !== 'ai') return [];
 
-    // Backend told us the intent — use it as primary gate
-    if (message.intentClass && !EDUCATIONAL_INTENT_CLASSES.has(message.intentClass)) {
-      return [];
-    }
-
     if (Array.isArray(message.smartActions) && message.smartActions.length) {
       return message.smartActions;
     }
 
     const previousMessages = messages.slice(0, messageIndex);
     const previousUserMessage = [...previousMessages].reverse().find((entry) => entry.type === 'user');
+    const previousUserIntents = detectIntents(previousUserMessage?.content || '');
+    const previousUserHasSpecificIntent = previousUserIntents.some((intent) => intent !== 'general');
+
+    // Backend told us the intent — use it as primary gate unless the visible user
+    // message clearly has an educational intent.
+    if (message.intentClass && !EDUCATIONAL_INTENT_CLASSES.has(message.intentClass) && !previousUserHasSpecificIntent) {
+      return [];
+    }
+
     const recentActionIds = previousMessages
       .filter((entry) => entry.type === 'ai')
       .slice(-2)
@@ -2182,6 +2188,7 @@ const AIChat = ({ sharedMode = false }) => {
           const formData = new FormData();
           formData.append('user_id', userName);
           formData.append('question', buildGraphAwarePrompt(initialMsg));
+          formData.append('original_question', initialMsg);
           formData.append('chat_id', newChatId.toString());
           
           const response = await fetch(`${API_URL}/ask_simple/`, {
