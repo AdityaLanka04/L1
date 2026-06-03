@@ -248,17 +248,17 @@ const PlaylistsPage = () => {
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
       <div className="playlists-body">
-        <div style={{display:'flex',justifyContent:'flex-end',padding:'12px 16px 0'}}>
+        <aside className="playlists-sidebar">
           <button
-            className="hub-nav-btn create-playlist-btn"
+            className="pl-new-playlist-btn"
             onClick={() => setShowCreateModal(true)}
-            title="Create new playlist"
           >
             <Plus size={16} />
-            <span>Create Playlist</span>
+            <span>New Playlist</span>
           </button>
-        </div>
-        <aside className="playlists-sidebar">
+
+          <div className="sidebar-divider"></div>
+
           <div className="sidebar-section">
             <h3 className="sidebar-heading">Browse</h3>
             <nav className="sidebar-menu">

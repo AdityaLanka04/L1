@@ -228,11 +228,33 @@ const ActivityFeed = () => {
     { value: 'month', label: 'This Month', icon: TrendingDown }
   ];
 
+  const GEO_SVG = (
+    <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
+      <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+      <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
+      <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+      <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
+      <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
+      <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
+      <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
+      <circle cx="600" cy="40" r="5" fill="currentColor"/>
+      <circle cx="600" cy="760" r="5" fill="currentColor"/>
+      <circle cx="240" cy="400" r="5" fill="currentColor"/>
+      <circle cx="960" cy="400" r="5" fill="currentColor"/>
+      <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
+      <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
+      <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
+      <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
+    </svg>
+  );
+
   if (loading) {
     return (
       <div className="activity-feed-page">
-        <div className="af-content-section">
-          <div className="af-loading-text">Loading activity feed...</div>
+        {GEO_SVG}
+        <div className="af-layout">
+          <div className="af-main"><div className="af-loading-text">Loading activity feed...</div></div>
         </div>
       </div>
     );
@@ -240,109 +262,74 @@ const ActivityFeed = () => {
 
   return (
     <div className="activity-feed-page">
-      <div className="af-content-section">
-        <div className="af-section-header">
-          <div className="view-heading" style={{ marginBottom: 0, paddingBottom: 0, border: 'none' }}>
-            <span className="view-kicker">Social</span>
-            <h2 className="view-title">Friend Activity</h2>
-          </div>
-          <div className="af-header-actions">
-            <button 
-              className="af-refresh-btn"
-              onClick={fetchActivityFeed}
-              title="Refresh feed"
-            >
-              <RefreshCw size={16} />
-            </button>
-            <button 
-              className={`af-filter-toggle-btn ${showFilters ? 'active' : ''}`}
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter size={16} />
-              Filters
-            </button>
-          </div>
-        </div>
+      {GEO_SVG}
 
-        <div className="af-stats-grid">
-          <div className="af-stat-card">
-            <div className="af-stat-icon af-stat-icon--accent">
-              <ActivityIcon size={20} />
-            </div>
-            <div className="af-stat-content">
-              <div className="af-stat-value">{stats.totalActivities}</div>
-              <div className="af-stat-label">Total Activities</div>
-            </div>
+      <div className="af-layout">
+        <aside className="af-sidebar">
+          <div className="af-sidebar-section">
+            <div className="af-sidebar-heading">Activity Type</div>
+            {activityTypes.map(type => {
+              const IconComp = type.icon;
+              return (
+                <button key={type.value} className={`af-sidebar-item ${activeFilter === type.value ? 'active' : ''}`} onClick={() => setActiveFilter(type.value)}>
+                  <IconComp size={16} />
+                  <span>{type.label}</span>
+                  {activeFilter === type.value && <div className="af-sidebar-indicator"></div>}
+                </button>
+              );
+            })}
           </div>
-          <div className="af-stat-card">
-            <div className="af-stat-icon af-stat-icon--success">
-              <Clock size={20} />
-            </div>
-            <div className="af-stat-content">
-              <div className="af-stat-value">{stats.todayActivities}</div>
-              <div className="af-stat-label">Today</div>
-            </div>
-          </div>
-          <div className="af-stat-card">
-            <div className="af-stat-icon af-stat-icon--danger">
-              <Heart size={20} />
-            </div>
-            <div className="af-stat-content">
-              <div className="af-stat-value">{stats.totalKudos}</div>
-              <div className="af-stat-label">Total Kudos</div>
-            </div>
-          </div>
-          <div className="af-stat-card">
-            <div className="af-stat-icon af-stat-icon--warning">
-              <Flame size={20} />
-            </div>
-            <div className="af-stat-content">
-              <div className="af-stat-value">{stats.activeStreaks}</div>
-              <div className="af-stat-label">Active Streaks</div>
-            </div>
-          </div>
-        </div>
 
-        {showFilters && (
-          <div className="af-filters-panel">
-            <div className="af-filter-section">
-              <h4 className="af-filter-title">Activity Type</h4>
-              <div className="af-filter-chips">
-                {activityTypes.map(type => {
-                  const IconComp = type.icon;
-                  return (
-                    <button
-                      key={type.value}
-                      className={`af-filter-chip ${activeFilter === type.value ? 'active' : ''}`}
-                      onClick={() => setActiveFilter(type.value)}
-                    >
-                      <IconComp size={14} />
-                      {type.label}
-                    </button>
-                  );
-                })}
+          <div className="af-sidebar-divider"></div>
+
+          <div className="af-sidebar-section">
+            <div className="af-sidebar-heading">Time Period</div>
+            {timeFilters.map(filter => {
+              const IconComp = filter.icon;
+              return (
+                <button key={filter.value} className={`af-sidebar-item ${timeFilter === filter.value ? 'active' : ''}`} onClick={() => setTimeFilter(filter.value)}>
+                  <IconComp size={16} />
+                  <span>{filter.label}</span>
+                  {timeFilter === filter.value && <div className="af-sidebar-indicator"></div>}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="af-sidebar-stats">
+            <div className="af-sidebar-stat-grid">
+              <div className="af-sidebar-stat">
+                <span className="af-sidebar-stat-val">{stats.totalActivities}</span>
+                <span className="af-sidebar-stat-lbl">Total</span>
               </div>
-            </div>
-            <div className="af-filter-section">
-              <h4 className="af-filter-title">Time Period</h4>
-              <div className="af-filter-chips">
-                {timeFilters.map(filter => {
-                  const IconComp = filter.icon;
-                  return (
-                    <button
-                      key={filter.value}
-                      className={`af-filter-chip ${timeFilter === filter.value ? 'active' : ''}`}
-                      onClick={() => setTimeFilter(filter.value)}
-                    >
-                      <IconComp size={14} />
-                      {filter.label}
-                    </button>
-                  );
-                })}
+              <div className="af-sidebar-stat">
+                <span className="af-sidebar-stat-val">{stats.todayActivities}</span>
+                <span className="af-sidebar-stat-lbl">Today</span>
+              </div>
+              <div className="af-sidebar-stat">
+                <span className="af-sidebar-stat-val">{stats.totalKudos}</span>
+                <span className="af-sidebar-stat-lbl">Kudos</span>
+              </div>
+              <div className="af-sidebar-stat">
+                <span className="af-sidebar-stat-val">{stats.activeStreaks}</span>
+                <span className="af-sidebar-stat-lbl">Streaks</span>
               </div>
             </div>
           </div>
-        )}
+        </aside>
+
+        <main className="af-main">
+          <div className="af-content">
+            <div className="af-content-header">
+              <div className="view-heading">
+                <span className="view-kicker">Social</span>
+                <h2 className="view-title">Friend Activity</h2>
+                <p className="view-sub">{filteredActivities.length} activit{filteredActivities.length !== 1 ? 'ies' : 'y'}</p>
+              </div>
+              <button className="af-refresh-btn" onClick={fetchActivityFeed} title="Refresh feed">
+                <RefreshCw size={16} />
+              </button>
+            </div>
 
         {filteredActivities.length === 0 ? (
           <div className="af-empty-feed">
@@ -489,6 +476,8 @@ const ActivityFeed = () => {
             })}
           </div>
         )}
+          </div>
+        </main>
       </div>
     </div>
   );

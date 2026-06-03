@@ -2034,3 +2034,18 @@
 .nav-menu-btn svg {
   stroke-width: 2;
 }
+
+.mn-view-heading {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  text-align: left;
+}
+
+.mn-view-heading .view-title {
+  font-size: clamp(26px, 2.5vw, 38px);
+}
+
+.mn-upload-section {
+  display: flex;
+  flex-direction: column;
+}

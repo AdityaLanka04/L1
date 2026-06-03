@@ -1885,3 +1885,25 @@
   background: var(--accent);
   color: #ffffff;
 }
+
+.nt-view-header {
+  padding: 24px 32px 0;
+  flex-shrink: 0;
+}
+
+.nt-view-header .view-heading {
+  margin-bottom: 0;
+  padding-bottom: 20px;
+}
+
+.nt-view-header .view-title {
+  font-size: clamp(26px, 2.5vw, 36px);
+}
+
+.nt-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}

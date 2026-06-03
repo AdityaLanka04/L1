@@ -283,6 +283,24 @@ const FriendsDashboard = () => {
 
   return (
     <div className="fd-container">
+      <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
+        <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
+        <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+        <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
+        <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
+        <circle cx="600" cy="40" r="5" fill="currentColor"/>
+        <circle cx="600" cy="760" r="5" fill="currentColor"/>
+        <circle cx="240" cy="400" r="5" fill="currentColor"/>
+        <circle cx="960" cy="400" r="5" fill="currentColor"/>
+        <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
+      </svg>
       <div className="fd-layout">
         <aside className="fd-sidebar">
           <div className="fd-self-level-card">
@@ -327,10 +345,10 @@ const FriendsDashboard = () => {
               : friends.length > 0
               ? (
                 <>
-                  <div className="fd-view-header">
-                    <span className="fd-view-kicker">Your Network</span>
-                    <h2 className="fd-view-title">My Friends</h2>
-                    <p className="fd-view-sub">{friends.length} connection{friends.length !== 1 ? 's' : ''}</p>
+                  <div className="view-heading">
+                    <span className="view-kicker">Your Network</span>
+                    <h2 className="view-title">My Friends</h2>
+                    <p className="view-sub">{friends.length} connection{friends.length !== 1 ? 's' : ''}</p>
                   </div>
                   <div className="fd-friends-grid">
                     {friends.map(renderFriendCard)}
@@ -351,10 +369,10 @@ const FriendsDashboard = () => {
 
           {activeView === 'find-friends' && (
             <>
-              <div className="fd-view-header">
-                <span className="fd-view-kicker">Discover</span>
-                <h2 className="fd-view-title">Find Friends</h2>
-                <p className="fd-view-sub">Search and connect with learners</p>
+              <div className="view-heading">
+                <span className="view-kicker">Discover</span>
+                <h2 className="view-title">Find Friends</h2>
+                <p className="view-sub">Search and connect with learners</p>
               </div>
               <div className="fd-search-box">
                 <Search size={16} className="fd-search-icon" />
@@ -384,10 +402,10 @@ const FriendsDashboard = () => {
 
           {activeView === 'requests' && (
             <>
-              <div className="fd-view-header">
-                <span className="fd-view-kicker">Inbox</span>
-                <h2 className="fd-view-title">Requests</h2>
-                <p className="fd-view-sub">{totalRequests} pending</p>
+              <div className="view-heading">
+                <span className="view-kicker">Inbox</span>
+                <h2 className="view-title">Requests</h2>
+                <p className="view-sub">{totalRequests} pending</p>
               </div>
 
               {friendRequests.received.length > 0 && (

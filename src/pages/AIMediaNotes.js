@@ -423,6 +423,24 @@ const AIMediaNotes = () => {
 
   return (
     <div className="ai-media-notes-page">
+      <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
+        <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
+        <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+        <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
+        <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
+        <circle cx="600" cy="40" r="5" fill="currentColor"/>
+        <circle cx="600" cy="760" r="5" fill="currentColor"/>
+        <circle cx="240" cy="400" r="5" fill="currentColor"/>
+        <circle cx="960" cy="400" r="5" fill="currentColor"/>
+        <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
+      </svg>
       <div className="mn-layout">
         <aside className={`mn-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
           <div className="mn-sidebar-header">
@@ -492,13 +510,11 @@ const AIMediaNotes = () => {
           <div className="mn-content" ref={contentRef}>
             {!results ? (
               <div className="mn-upload-section">
-                <h2 className="mn-upload-title">Transform Media into Smart Notes</h2>
-                <p className="mn-upload-subtitle">
-                  Upload audio or video files, or paste a YouTube URL to generate AI-powered study notes
-                </p>
-                <p className="mn-upload-subtitle" style={{ marginTop: '-6px' }}>
-                  Podcast mode appears after processing, under the <strong>PODCAST</strong> tab.
-                </p>
+                <div className="view-heading mn-view-heading">
+                  <span className="view-kicker">AI-Powered</span>
+                  <h2 className="view-title">AI Media Notes</h2>
+                  <p className="view-sub">Transform audio, video &amp; YouTube into smart study notes</p>
+                </div>
 
                 <div
                   className={`mn-upload-area ${isDragging ? 'dragging' : ''}`}

@@ -954,3 +954,45 @@
   .fd-friends-grid { grid-template-columns: 1fr; }
   .gm-header { padding: 0 20px; }
 }
+
+.fd-container .view-heading {
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid color-mix(in srgb, var(--fd-accent) 12%, transparent);
+  position: relative;
+}
+
+.fd-container .view-heading::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 60px;
+  height: 2px;
+  background: var(--fd-accent);
+}
+
+.fd-container .view-title {
+  font-size: clamp(32px, 3.5vw, 48px);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.fd-container .view-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  color: var(--fd-accent);
+  opacity: 0.85;
+  display: block;
+}
+
+.fd-container .view-sub {
+  font-size: 14px;
+  color: color-mix(in srgb, var(--text-primary) 40%, transparent);
+  font-weight: 500;
+  margin-top: 4px;
+}

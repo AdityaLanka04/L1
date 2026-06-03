@@ -2431,13 +2431,87 @@
   }
 }
 
+.pl-new-playlist-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 16px;
+  background: linear-gradient(135deg, var(--lp-accent), var(--lp-accent-dark));
+  border: none;
+  border-radius: 10px;
+  color: var(--lp-bg-primary);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.pl-new-playlist-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.pl-new-playlist-btn:hover::before {
+  left: 100%;
+}
+
+.pl-new-playlist-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--lp-accent) 40%, transparent);
+}
+
+[data-theme-mode="light"] .pl-new-playlist-btn {
+  color: #fff;
+}
+
+[data-theme-mode="dark"] .pl-new-playlist-btn {
+  color: var(--bg-primary);
+}
+
+.playlists-page .view-heading .view-title {
+  font-size: clamp(36px, 3.8vw, 52px);
+}
+
+.playlists-page .view-heading .view-kicker {
+  font-size: 12px;
+  letter-spacing: 4px;
+}
+
+.playlists-page .view-heading {
+  padding-bottom: 28px;
+  margin-bottom: 28px;
+}
+
 .playlists-page {
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
   overflow: hidden !important;
-  background: var(--pl-bg-primary) !important;
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 70%),
+    linear-gradient(160deg, #0d0b08 0%, #090909 56%, #111 100%) !important;
+}
+
+[data-theme-mode="light"] .playlists-page {
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 50%),
+    var(--bg-primary) !important;
 }
 
 .playlists-page .hub-header {
@@ -2482,7 +2556,7 @@
   min-height: 0 !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  padding: 0 0 12px !important;
+  padding: 28px 32px 40px !important;
   align-items: stretch !important;
   gap: 20px !important;
 }

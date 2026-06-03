@@ -13,13 +13,35 @@
 
   position: fixed;
   inset: 0;
-  background: var(--sh-bg);
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--sh-accent) 12%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--sh-accent) 6%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--sh-accent) 3%, transparent), transparent 70%),
+    linear-gradient(160deg, #0d0b08 0%, #090909 56%, #111 100%);
   color: var(--sh-text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow: hidden;
   z-index: 9999;
   display: flex;
   flex-direction: column;
+}
+
+[data-theme-mode="light"] .hub-page {
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--sh-accent) 8%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--sh-accent) 5%, transparent), transparent 50%),
+    var(--bg-primary);
+}
+
+.hub-page::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--sh-accent) 16%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.22;
 }
 
 .hub-page *,
@@ -1018,4 +1040,419 @@
   .bento-container {
     padding: 12px;
   }
+}
+
+/* ─── Spotify-style layout ─── */
+
+.sh-layout-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.sh-sidebar {
+  flex: 0 0 260px;
+  width: 260px;
+  height: 100%;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--sh-accent) 15%, #000000) 0%,
+    color-mix(in srgb, var(--sh-accent) 8%, #000000) 100%);
+  border-right: 1px solid color-mix(in srgb, var(--sh-accent) 35%, transparent);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+}
+
+.sh-sidebar::-webkit-scrollbar { width: 4px; }
+.sh-sidebar::-webkit-scrollbar-track { background: transparent; }
+.sh-sidebar::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--sh-accent) 30%, transparent); border-radius: 4px; }
+
+[data-theme-mode="light"] .sh-sidebar {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--sh-accent) 15%, #ffffff) 0%,
+    color-mix(in srgb, var(--sh-accent) 25%, #ffffff) 50%,
+    color-mix(in srgb, var(--sh-accent) 18%, #ffffff) 100%);
+  box-shadow: 4px 0 20px color-mix(in srgb, var(--sh-accent) 15%, transparent);
+}
+
+.sh-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 14px 4px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--sh-accent), color-mix(in srgb, var(--sh-accent) 80%, black));
+  border: none;
+  border-radius: 10px;
+  color: #0d0b08;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.sh-new-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.sh-new-btn:hover::before { left: 100%; }
+
+.sh-new-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--sh-accent) 35%, transparent);
+}
+
+.sh-divider {
+  height: 1px;
+  margin: 12px 14px;
+  background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--sh-accent) 25%, transparent) 50%, transparent 100%);
+}
+
+.sh-nav-section {
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+.sh-nav-heading {
+  font-size: 10px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--sh-accent) 55%, transparent);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  padding: 6px 10px 5px;
+  font-family: 'Inter', sans-serif;
+}
+
+.sh-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--sh-text) 55%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  margin-bottom: 2px;
+}
+
+.sh-nav-item svg { flex-shrink: 0; transition: all 0.2s; }
+
+.sh-nav-item:hover {
+  background: color-mix(in srgb, var(--sh-accent) 10%, transparent);
+  color: var(--sh-text);
+  transform: translateX(3px);
+}
+
+.sh-nav-item.active {
+  background: color-mix(in srgb, var(--sh-accent) 15%, transparent);
+  color: var(--sh-accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--sh-accent) 12%, transparent);
+}
+
+.sh-active-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--sh-accent);
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 8px var(--sh-accent);
+}
+
+.sh-nav-badge {
+  margin-left: auto;
+  padding: 2px 7px;
+  background: var(--sh-accent);
+  color: #0d0b08;
+  border-radius: 99px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.sh-sidebar-stats {
+  margin-top: auto;
+  padding: 16px 14px;
+  border-top: 1px solid color-mix(in srgb, var(--sh-accent) 20%, transparent);
+  flex-shrink: 0;
+}
+
+.sh-stat-box {
+  padding: 16px;
+  background: color-mix(in srgb, var(--sh-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sh-accent) 20%, transparent);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.sh-stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--sh-accent);
+  line-height: 1;
+  margin-bottom: 6px;
+  font-family: 'Inter', sans-serif;
+}
+
+.sh-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--sh-accent) 65%, var(--sh-text));
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-family: 'Inter', sans-serif;
+}
+
+.sh-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.sh-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.sh-hub-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 20px 28px 0;
+}
+
+.sh-hub-view .view-heading {
+  margin-bottom: 16px;
+}
+
+.sh-hub-view .bento-container {
+  flex: 1;
+  min-height: 0;
+  padding: 0 0 20px;
+}
+
+.sh-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 28px 32px 40px;
+}
+
+.sh-tab-content::-webkit-scrollbar { width: 6px; }
+.sh-tab-content::-webkit-scrollbar-track { background: transparent; }
+.sh-tab-content::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--sh-accent) 25%, transparent); border-radius: 6px; }
+
+.sh-tab-content .view-heading {
+  margin-bottom: 24px;
+}
+
+.sh-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--sh-accent) 60%, transparent);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 12px;
+  margin-top: 4px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* view-heading in Social uses sh-text colors */
+.sh-content .view-title { color: var(--sh-text); }
+.sh-content .view-kicker { color: var(--sh-accent); }
+.sh-content .view-sub { color: var(--sh-mute); }
+.sh-content .view-heading { border-bottom-color: var(--sh-line-soft); }
+.sh-content .view-heading::before { background: var(--sh-accent); }
+
+.section-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.sh-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 14px 4px;
+  padding: 11px 16px;
+  background: color-mix(in srgb, var(--sh-accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sh-accent) 30%, transparent);
+  border-radius: 10px;
+  color: var(--sh-accent);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sh-back-btn:hover {
+  background: color-mix(in srgb, var(--sh-accent) 18%, transparent);
+  transform: translateX(-2px);
+}
+
+.sh-share-content-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  background: linear-gradient(135deg, var(--sh-accent), color-mix(in srgb, var(--sh-accent) 80%, black));
+  border: none;
+  border-radius: 8px;
+  color: #0d0b08;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.sh-share-content-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--sh-accent) 30%, transparent);
+}
+
+/* ── Swiss bento geometric overlays ── */
+
+.bento-geo-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.bento-geo-lines span {
+  position: absolute;
+  background: color-mix(in srgb, var(--sh-accent) 8%, transparent);
+}
+
+.bento-geo-lines span:nth-child(1) {
+  top: 0; left: 50%; width: 1px; height: 100%;
+  background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--sh-accent) 14%, transparent) 50%, transparent 100%);
+}
+
+.bento-geo-lines span:nth-child(2) {
+  top: 50%; left: 0; height: 1px; width: 100%;
+  background: linear-gradient(to right, transparent 0%, color-mix(in srgb, var(--sh-accent) 14%, transparent) 50%, transparent 100%);
+}
+
+.bento-geo-lines span:nth-child(3) {
+  top: 12px; right: 12px;
+  width: 20px; height: 20px;
+  border-top: 1px solid color-mix(in srgb, var(--sh-accent) 35%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--sh-accent) 35%, transparent);
+  background: none;
+}
+
+.bento-geo-lines span:nth-child(4) {
+  bottom: 12px; left: 12px;
+  width: 20px; height: 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sh-accent) 35%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--sh-accent) 35%, transparent);
+  background: none;
+}
+
+.bento-card:hover .bento-geo-lines span:nth-child(3),
+.bento-card:hover .bento-geo-lines span:nth-child(4) {
+  border-color: color-mix(in srgb, var(--sh-accent) 70%, transparent);
+}
+
+.bento-card-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Welcome card Swiss design upgrade */
+.welcome-card .bento-card-title {
+  line-height: 0.95;
+  font-size: clamp(48px, 5.5vw, 78px);
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, var(--sh-text) 0%, color-mix(in srgb, var(--sh-accent) 60%, var(--sh-text)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.welcome-card .bento-card-subtitle {
+  font-size: 10px;
+  letter-spacing: 0.35em;
+  opacity: 0.7;
+  margin-top: 8px;
+}
+
+/* Swiss accent circle on welcome card */
+.welcome-card::after {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  right: -60px;
+  width: 200px;
+  height: 200px;
+  border: 1px solid color-mix(in srgb, var(--sh-accent) 20%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.welcome-card::before {
+  content: '';
+  position: absolute;
+  bottom: -30px;
+  right: -30px;
+  width: 140px;
+  height: 140px;
+  border: 1px solid color-mix(in srgb, var(--sh-accent) 12%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .sh-layout-body { flex-direction: column; }
+  .sh-sidebar { flex: none; width: 100%; height: auto; max-height: 200px; flex-direction: row; padding: 10px 8px; gap: 8px; overflow-x: auto; overflow-y: hidden; }
+  .sh-sidebar-stats { display: none; }
+  .sh-nav-section { display: flex; flex-direction: row; gap: 0; padding: 0; }
+  .sh-nav-heading { display: none; }
+  .sh-divider { width: 1px; height: 100%; margin: 0 4px; }
+  .sh-new-btn { white-space: nowrap; flex-shrink: 0; margin: 0 0 0 4px; }
 }

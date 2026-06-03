@@ -4,7 +4,6 @@ import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, U
 import ShareModal from './SharedModal';
 import './Social.css';
 import { API_URL } from '../config';
-import GeoBackground from '../components/GeoBackground';
 
 const Social = () => {
   const navigate = useNavigate();
@@ -444,23 +443,56 @@ const Social = () => {
 
   return (
     <div className="hub-page">
-      <GeoBackground />
-      {activeTab === 'hub' && (
+      <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
+        <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
+        <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+        <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
+        <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
+        <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
+        <circle cx="600" cy="40" r="5" fill="currentColor"/>
+        <circle cx="600" cy="760" r="5" fill="currentColor"/>
+        <circle cx="240" cy="400" r="5" fill="currentColor"/>
+        <circle cx="960" cy="400" r="5" fill="currentColor"/>
+        <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
+        <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
+        <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
+        <rect x="24" y="24" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="44" y="44" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+        <circle cx="60" cy="60" r="3" fill="currentColor"/>
+        <rect x="1104" y="704" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="1124" y="724" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+        <circle cx="1140" cy="740" r="3" fill="currentColor"/>
+        <line x1="0" y1="0" x2="1200" y2="800" stroke="currentColor" strokeWidth="0.2"/>
+        <line x1="1200" y1="0" x2="0" y2="800" stroke="currentColor" strokeWidth="0.2"/>
+        <circle cx="300" cy="200" r="1.5" fill="currentColor" opacity="0.5"/>
+        <circle cx="900" cy="200" r="1.5" fill="currentColor" opacity="0.5"/>
+        <circle cx="300" cy="600" r="1.5" fill="currentColor" opacity="0.5"/>
+        <circle cx="900" cy="600" r="1.5" fill="currentColor" opacity="0.5"/>
+      </svg>
+
+      {activeTab === 'hub' ? (
         <div className="bento-container">
           {bentoCards.map(card => {
             const IconComponent = card.icon;
             return (
-              <div 
+              <div
                 key={card.id}
                 className={`bento-card ${card.size} ${card.className}`}
                 onClick={card.onClick}
                 style={{ cursor: card.onClick ? 'pointer' : 'default' }}
               >
                 {card.onClick && <ChevronRight className="bento-card-arrow" size={20} />}
+                <div className="bento-geo-lines" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span>
+                </div>
                 <div className="bento-card-content">
                   {IconComponent && (
                     <div className="bento-card-icon">
-                      <IconComponent size={card.size === 'tall' ? 64 : card.size === 'large-square' ? 72 : 40} strokeWidth={1.5} />
+                      <IconComponent size={card.size === 'tall' ? 56 : card.size === 'large-square' ? 64 : card.size === 'large-horizontal' ? 36 : 32} strokeWidth={1.2} />
                     </div>
                   )}
                   <div className="bento-card-text">
@@ -472,295 +504,223 @@ const Social = () => {
             );
           })}
         </div>
-      )}
-
-      {activeTab === 'search' && (
-        <div className="friend-section">
-          <div className="search-container">
-            <Search size={20} />
-            <input
-              type="text"
-              placeholder="Search by username or email..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="search-input"
-            />
-          </div>
-
-          {isSearching && <div className="loading-text">Searching...</div>}
-
-          <div className="users-grid">
-            {searchResults.map(user => renderUserCard(user, 
-              user.is_friend ? (
-                <span className="friend-badge">Friends</span>
-              ) : user.request_sent ? (
-                <span className="pending-badge">Request Sent</span>
-              ) : user.request_received ? (
-                <span className="pending-badge">Pending Response</span>
-              ) : (
-                <button 
-                  className="social-action-button add-friend"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    sendFriendRequest(user.id);
-                  }}
-                >
-                  <UserPlus size={14} />
-                </button>
-              )
-            ))}
-          </div>
-
-          {searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && (
-            <div className="empty-state">No users found matching "{searchQuery}"</div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'requests' && (
-        <div className="friend-section">
-          {friendRequests.received.length > 0 && (
-            <div className="requests-section">
-              <div className="view-heading">
-                <span className="view-kicker">Inbox</span>
-                <h2 className="view-title">Received Requests</h2>
-                <p className="view-sub">People who want to connect with you</p>
-              </div>
-              <div className="users-grid">
-                {friendRequests.received.map(request => renderUserCard(request,
-                  <div className="request-actions">
-                    <button 
-                      className="social-action-button accept"
-                      onClick={() => respondToFriendRequest(request.request_id, 'accept')}
-                      title="Accept"
-                    >
-                      <Check size={14} />
-                    </button>
-                    <button 
-                      className="social-action-button reject"
-                      onClick={() => respondToFriendRequest(request.request_id, 'reject')}
-                      title="Reject"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {friendRequests.sent.length > 0 && (
-            <div className="requests-section">
-              <div className="view-heading">
-                <span className="view-kicker">Outbox</span>
-                <h2 className="view-title">Sent Requests</h2>
-                <p className="view-sub">Requests you've sent, awaiting response</p>
-              </div>
-              <div className="users-grid">
-                {friendRequests.sent.map(request => renderUserCard(request,
-                  <span className="pending-badge">Pending</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {friendRequests.received.length === 0 && friendRequests.sent.length === 0 && (
-            <div className="empty-state">No pending friend requests</div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'friends' && (
-        <div className="friend-section">
-          <div className="section-header">
-            <div className="view-heading">
-              <span className="view-kicker">Your Network</span>
-              <h2 className="view-title">Friends</h2>
-              <p className="view-sub">{friends.length} {friends.length === 1 ? 'friend' : 'friends'} connected</p>
-            </div>
-            <button className="hub-nav-btn" onClick={() => setActiveTab('search')}>
-              <UserPlus size={16} />
-              <span>Find Friends</span>
+      ) : (
+        <div className="sh-layout-body">
+          <aside className="sh-sidebar">
+            <button className="sh-back-btn" onClick={() => setActiveTab('hub')}>
+              <ChevronRight size={14} style={{transform:'rotate(180deg)'}} />
+              <span>Social Hub</span>
             </button>
-          </div>
-          {friends.length > 0 ? (
-            <div className="users-grid">
-              {friends.map(friend => renderUserCard(friend,
-                <button 
-                  className="social-action-button remove"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeFriend(friend.id);
-                  }}
-                  title="Remove Friend"
-                >
-                  <UserMinus size={14} />
+
+            <div className="sh-divider"></div>
+
+            <div className="sh-nav-section">
+              <div className="sh-nav-heading">People</div>
+              <nav>
+                <button className={`sh-nav-item ${activeTab === 'search' ? 'active' : ''}`} onClick={() => setActiveTab('search')}>
+                  <Search size={17} /><span>Find People</span>
+                  {activeTab === 'search' && <div className="sh-active-indicator"></div>}
                 </button>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              You haven't added any friends yet. Search for users to connect!
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'shared' && (
-        <div className="friend-section">
-          <div className="shared-header-actions">
-            <button 
-              className="share-new-content-btn"
-              onClick={handleShareNewContent}
-            >
-              <Plus size={20} />
-              <span>Share New Content</span>
-            </button>
-          </div>
-
-          <div className="shared-controls">
-            <div className="search-container">
-              <Search size={20} />
-              <input
-                type="text"
-                placeholder="Search shared content..."
-                value={sharedSearch}
-                onChange={(e) => setSharedSearch(e.target.value)}
-                className="search-input"
-              />
+                <button className={`sh-nav-item ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => setActiveTab('requests')}>
+                  <UserPlus size={17} /><span>Requests</span>
+                  {friendRequests.received.length > 0 && <span className="sh-nav-badge">{friendRequests.received.length}</span>}
+                  {activeTab === 'requests' && <div className="sh-active-indicator"></div>}
+                </button>
+                <button className={`sh-nav-item ${activeTab === 'friends' ? 'active' : ''}`} onClick={() => setActiveTab('friends')}>
+                  <Users size={17} /><span>Friends</span>
+                  {activeTab === 'friends' && <div className="sh-active-indicator"></div>}
+                </button>
+              </nav>
             </div>
 
-            <div className="shared-filter-buttons">
-              <button
-                className={`filter-btn ${sharedFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setSharedFilter('all')}
-              >
-                All
-              </button>
-              <button
-                className={`filter-btn ${sharedFilter === 'chat' ? 'active' : ''}`}
-                onClick={() => setSharedFilter('chat')}
-              >
-                <MessageSquare size={14} />
-                Chats
-              </button>
-              <button
-                className={`filter-btn ${sharedFilter === 'note' ? 'active' : ''}`}
-                onClick={() => setSharedFilter('note')}
-              >
-                <FileText size={14} />
-                Notes
-              </button>
-            </div>
-          </div>
+            <div className="sh-divider"></div>
 
-          {filteredSharedItems.length === 0 ? (
-            <div className="empty-state">
-              {sharedSearch || sharedFilter !== 'all'
-                ? 'No shared content found matching your filters'
-                : 'No content has been shared with you yet. When friends share notes or AI chats, they will appear here.'}
+            <div className="sh-nav-section">
+              <div className="sh-nav-heading">Content</div>
+              <nav>
+                <button className={`sh-nav-item ${activeTab === 'shared' ? 'active' : ''}`} onClick={() => setActiveTab('shared')}>
+                  <Share2 size={17} /><span>Shared With Me</span>
+                  {activeTab === 'shared' && <div className="sh-active-indicator"></div>}
+                </button>
+              </nav>
             </div>
-          ) : (
-            <div className="shared-items-grid">
-              {filteredSharedItems.map((item) => (
-                <div key={item.id} className="shared-item-card">
-                  <div className="shared-item-header">
-                    <div className="content-type-badge" data-type={item.content_type}>
-                      {item.content_type === 'chat' ? (
-                        <MessageSquare size={16} />
-                      ) : (
-                        <FileText size={16} />
-                      )}
-                      <span>{item.content_type === 'chat' ? 'AI Chat' : 'Note'}</span>
-                    </div>
-                    
-                    <div className="permission-badge" data-permission={item.permission}>
-                      {item.permission === 'view' ? (
-                        <Eye size={14} />
-                      ) : (
-                        <Edit3 size={14} />
-                      )}
-                      <span>{item.permission === 'view' ? 'View' : 'Edit'}</span>
-                    </div>
+
+            <div className="sh-sidebar-stats">
+              <div className="sh-stat-box">
+                <div className="sh-stat-value">{friends.length}</div>
+                <div className="sh-stat-label">Friends</div>
+              </div>
+            </div>
+          </aside>
+
+          <main className="sh-main">
+            <div className="sh-content">
+
+              {activeTab === 'search' && (
+                <div className="sh-tab-content">
+                  <div className="view-heading">
+                    <span className="view-kicker">Discover</span>
+                    <h2 className="view-title">Find People</h2>
+                    <p className="view-sub">Search by username or email to connect</p>
                   </div>
-
-                  <div className="shared-item-content">
-                    <h3 className="shared-item-title">{item.title}</h3>
-                    
-                    {item.message && (
-                      <p className="share-message">
-                        "{item.message}"
-                      </p>
+                  <div className="friend-section">
+                    <div className="search-container">
+                      <Search size={20} />
+                      <input type="text" placeholder="Search by username or email..." value={searchQuery} onChange={(e) => handleSearch(e.target.value)} className="search-input" />
+                    </div>
+                    {isSearching && <div className="loading-text">Searching...</div>}
+                    <div className="users-grid">
+                      {searchResults.map(user => renderUserCard(user,
+                        user.is_friend ? <span className="friend-badge">Friends</span>
+                        : user.request_sent ? <span className="pending-badge">Request Sent</span>
+                        : user.request_received ? <span className="pending-badge">Pending Response</span>
+                        : <button className="social-action-button add-friend" onClick={(e) => { e.stopPropagation(); sendFriendRequest(user.id); }}><UserPlus size={14} /></button>
+                      ))}
+                    </div>
+                    {searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && (
+                      <div className="empty-state">No users found matching "{searchQuery}"</div>
                     )}
-
-                    <div className="shared-by">
-                      <div className="shared-by-avatar">
-                        {item.shared_by.picture_url ? (
-                          <img src={item.shared_by.picture_url} alt={item.shared_by.username} />
-                        ) : (
-                          <div className="shared-by-avatar-placeholder">
-                            {(item.shared_by.first_name?.[0] || item.shared_by.username[0]).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="shared-by-info">
-                        <span className="shared-by-text">Shared by</span>
-                        <span className="shared-by-name">
-                          {item.shared_by.first_name && item.shared_by.last_name
-                            ? `${item.shared_by.first_name} ${item.shared_by.last_name}`
-                            : item.shared_by.username}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="shared-meta">
-                      <div className="meta-item">
-                        <Clock size={12} />
-                        <span>{formatDate(item.shared_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="shared-item-footer">
-                    <button 
-                      className="shared-item-action-btn open"
-                      onClick={() => handleOpenSharedItem(item)}
-                    >
-                      {item.permission === 'view' ? (
-                        <>
-                          <Eye size={16} />
-                          <span>View</span>
-                        </>
-                      ) : (
-                        <>
-                          <Edit3 size={16} />
-                          <span>Open</span>
-                        </>
-                      )}
-                    </button>
-                    
-                    <button 
-                      className="shared-item-action-btn remove"
-                      onClick={() => handleDeleteSharedAccess(item.id)}
-                      title="Remove from your shared items"
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   </div>
                 </div>
-              ))}
+              )}
+
+              {activeTab === 'requests' && (
+                <div className="sh-tab-content">
+                  <div className="view-heading">
+                    <span className="view-kicker">Inbox</span>
+                    <h2 className="view-title">Friend Requests</h2>
+                    <p className="view-sub">{friendRequests.received.length + friendRequests.sent.length} pending</p>
+                  </div>
+                  <div className="friend-section">
+                    {friendRequests.received.length > 0 && (
+                      <div className="requests-section">
+                        <div className="sh-section-label">Received</div>
+                        <div className="users-grid">
+                          {friendRequests.received.map(request => renderUserCard(request,
+                            <div className="request-actions">
+                              <button className="social-action-button accept" onClick={() => respondToFriendRequest(request.request_id, 'accept')} title="Accept"><Check size={14} /></button>
+                              <button className="social-action-button reject" onClick={() => respondToFriendRequest(request.request_id, 'reject')} title="Reject"><X size={14} /></button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {friendRequests.sent.length > 0 && (
+                      <div className="requests-section">
+                        <div className="sh-section-label">Sent</div>
+                        <div className="users-grid">
+                          {friendRequests.sent.map(request => renderUserCard(request,
+                            <span className="pending-badge">Pending</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {friendRequests.received.length === 0 && friendRequests.sent.length === 0 && (
+                      <div className="empty-state">No pending friend requests</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'friends' && (
+                <div className="sh-tab-content">
+                  <div className="view-heading">
+                    <span className="view-kicker">Your Network</span>
+                    <h2 className="view-title">Friends</h2>
+                    <p className="view-sub">{friends.length} {friends.length === 1 ? 'friend' : 'friends'} connected</p>
+                  </div>
+                  <div className="friend-section">
+                    <div className="section-header">
+                      <button className="hub-nav-btn" onClick={() => setActiveTab('search')}><UserPlus size={16} /><span>Find Friends</span></button>
+                    </div>
+                    {friends.length > 0 ? (
+                      <div className="users-grid">
+                        {friends.map(friend => renderUserCard(friend,
+                          <button className="social-action-button remove" onClick={(e) => { e.stopPropagation(); removeFriend(friend.id); }} title="Remove Friend"><UserMinus size={14} /></button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="empty-state">You haven't added any friends yet. Search for users to connect!</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'shared' && (
+                <div className="sh-tab-content">
+                  <div className="view-heading">
+                    <span className="view-kicker">Library</span>
+                    <h2 className="view-title">Shared With Me</h2>
+                    <p className="view-sub">Content friends have shared with you</p>
+                  </div>
+                  <div className="friend-section">
+                    <div className="shared-controls">
+                      <div className="search-container">
+                        <Search size={20} />
+                        <input type="text" placeholder="Search shared content..." value={sharedSearch} onChange={(e) => setSharedSearch(e.target.value)} className="search-input" />
+                      </div>
+                      <div className="shared-filter-buttons">
+                        <button className={`filter-btn ${sharedFilter === 'all' ? 'active' : ''}`} onClick={() => setSharedFilter('all')}>All</button>
+                        <button className={`filter-btn ${sharedFilter === 'chat' ? 'active' : ''}`} onClick={() => setSharedFilter('chat')}><MessageSquare size={14} /> Chats</button>
+                        <button className={`filter-btn ${sharedFilter === 'note' ? 'active' : ''}`} onClick={() => setSharedFilter('note')}><FileText size={14} /> Notes</button>
+                      </div>
+                      <button className="sh-share-content-btn" onClick={handleShareNewContent}><Plus size={15}/><span>Share New</span></button>
+                    </div>
+                    {filteredSharedItems.length === 0 ? (
+                      <div className="empty-state">{sharedSearch || sharedFilter !== 'all' ? 'No shared content found matching your filters' : 'No content has been shared with you yet.'}</div>
+                    ) : (
+                      <div className="shared-items-grid">
+                        {filteredSharedItems.map((item) => (
+                          <div key={item.id} className="shared-item-card">
+                            <div className="shared-item-header">
+                              <div className="content-type-badge" data-type={item.content_type}>
+                                {item.content_type === 'chat' ? <MessageSquare size={16} /> : <FileText size={16} />}
+                                <span>{item.content_type === 'chat' ? 'AI Chat' : 'Note'}</span>
+                              </div>
+                              <div className="permission-badge" data-permission={item.permission}>
+                                {item.permission === 'view' ? <Eye size={14} /> : <Edit3 size={14} />}
+                                <span>{item.permission === 'view' ? 'View' : 'Edit'}</span>
+                              </div>
+                            </div>
+                            <div className="shared-item-content">
+                              <h3 className="shared-item-title">{item.title}</h3>
+                              {item.message && <p className="share-message">"{item.message}"</p>}
+                              <div className="shared-by">
+                                <div className="shared-by-avatar">
+                                  {item.shared_by.picture_url ? <img src={item.shared_by.picture_url} alt={item.shared_by.username} /> : <div className="shared-by-avatar-placeholder">{(item.shared_by.first_name?.[0] || item.shared_by.username[0]).toUpperCase()}</div>}
+                                </div>
+                                <div className="shared-by-info">
+                                  <span className="shared-by-text">Shared by</span>
+                                  <span className="shared-by-name">{item.shared_by.first_name && item.shared_by.last_name ? `${item.shared_by.first_name} ${item.shared_by.last_name}` : item.shared_by.username}</span>
+                                </div>
+                              </div>
+                              <div className="shared-meta">
+                                <div className="meta-item"><Clock size={12} /><span>{formatDate(item.shared_at)}</span></div>
+                              </div>
+                            </div>
+                            <div className="shared-item-footer">
+                              <button className="shared-item-action-btn open" onClick={() => handleOpenSharedItem(item)}>
+                                {item.permission === 'view' ? <><Eye size={16}/><span>View</span></> : <><Edit3 size={16}/><span>Open</span></>}
+                              </button>
+                              <button className="shared-item-action-btn remove" onClick={() => handleDeleteSharedAccess(item.id)} title="Remove"><Trash2 size={16} /></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
             </div>
-          )}
+          </main>
         </div>
       )}
 
       {shareModalOpen && itemToShare && (
         <ShareModal
           isOpen={shareModalOpen}
-          onClose={() => {
-            setShareModalOpen(false);
-            setItemToShare(null);
-          }}
+          onClose={() => { setShareModalOpen(false); setItemToShare(null); }}
           itemType={itemToShare.type}
           itemId={itemToShare.id}
           itemTitle={itemToShare.title}

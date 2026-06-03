@@ -1,56 +1,221 @@
 .activity-feed-page {
-  --af-bg-primary: var(--bg-bottom, var(--bg-primary));
-  --af-bg-secondary: var(--panel, var(--bg-secondary));
-  --af-bg-tertiary: var(--bg-top, #1a1a1f);
-  --af-bg-card: var(--panel, var(--bg-secondary));
-  --af-border-subtle: var(--border, var(--border));
-  --af-text-primary: var(--text-primary, var(--text-primary));
-  --af-text-secondary: var(--text-secondary, var(--text-secondary));
   --af-accent: var(--accent, #D7B38C);
-  --af-accent-2: var(--accent-2, #B88F63);
   --af-accent-glow: color-mix(in srgb, var(--accent) 20%, transparent);
-  --af-accent-glow-strong: color-mix(in srgb, var(--accent) 40%, transparent);
   --af-success: #22c55e;
-  --af-warning: var(--accent, #D7B38C);
   --af-danger: #ef4444;
-  --af-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --af-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
-  --af-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.2);
-  --af-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.3);
+  --af-warning: #f59e0b;
+  --af-sidebar-width: 260px;
 
   position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
+  inset: 0;
   width: 100vw !important;
   height: 100vh !important;
-  background: 
-    radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.08) 1.5px, transparent 0),
-    linear-gradient(135deg, var(--af-bg-primary) 0%, color-mix(in srgb, var(--af-bg-primary) 55%, var(--accent)) 50%, var(--af-bg-primary) 100%) !important;
-  background-size: 30px 30px, 100% 100%;
-  background-position: 5px 5px, 0 0;
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 70%),
+    linear-gradient(160deg, #0d0b08 0%, #090909 56%, #111 100%);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: var(--af-text-primary);
+  color: var(--text-primary);
   overflow: hidden !important;
   display: flex;
   flex-direction: column;
 }
 
-.activity-feed-page::before {
+[data-theme-mode="light"] .activity-feed-page {
+  background:
+    radial-gradient(ellipse 55% 45% at 5% 20%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 95% 80%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 50%),
+    var(--bg-primary);
+}
+
+.activity-feed-page::after {
   content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(ellipse 80% 50% at 20% 40%, var(--af-accent-glow) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 80% 60%, color-mix(in srgb, var(--af-accent) 10%, transparent) 0%, transparent 50%);
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.6;
+  opacity: 0.3;
 }
+
+.af-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.af-sidebar {
+  flex: 0 0 var(--af-sidebar-width);
+  width: var(--af-sidebar-width);
+  height: 100%;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--af-accent) 15%, #000000) 0%,
+    color-mix(in srgb, var(--af-accent) 8%, #000000) 100%);
+  border-right: 1px solid color-mix(in srgb, var(--af-accent) 40%, transparent);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+[data-theme-mode="light"] .af-sidebar {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--af-accent) 15%, #fff) 0%,
+    color-mix(in srgb, var(--af-accent) 25%, #fff) 100%);
+}
+
+.af-sidebar::-webkit-scrollbar { width: 4px; }
+.af-sidebar::-webkit-scrollbar-track { background: transparent; }
+.af-sidebar::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--af-accent) 30%, transparent); border-radius: 4px; }
+
+.af-sidebar-section { padding: 0 8px; flex-shrink: 0; }
+
+.af-sidebar-heading {
+  font-size: 10px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--af-accent) 55%, transparent);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  padding: 6px 10px 5px;
+  font-family: 'Inter', sans-serif;
+}
+
+.af-sidebar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  margin-bottom: 2px;
+}
+
+.af-sidebar-item:hover {
+  background: color-mix(in srgb, var(--af-accent) 10%, transparent);
+  color: var(--text-primary);
+  transform: translateX(3px);
+}
+
+.af-sidebar-item.active {
+  background: color-mix(in srgb, var(--af-accent) 15%, transparent);
+  color: var(--af-accent);
+}
+
+.af-sidebar-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 55%;
+  background: var(--af-accent);
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 6px var(--af-accent);
+}
+
+.af-sidebar-divider {
+  height: 1px;
+  margin: 12px 14px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--af-accent) 25%, transparent) 50%, transparent);
+}
+
+.af-sidebar-stats {
+  margin-top: auto;
+  padding: 16px 14px;
+  border-top: 1px solid color-mix(in srgb, var(--af-accent) 20%, transparent);
+  flex-shrink: 0;
+}
+
+.af-sidebar-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.af-sidebar-stat {
+  padding: 12px 10px;
+  background: color-mix(in srgb, var(--af-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--af-accent) 18%, transparent);
+  border-radius: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.af-sidebar-stat-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--af-accent);
+  line-height: 1;
+  font-family: 'Inter', sans-serif;
+}
+
+.af-sidebar-stat-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--af-accent) 60%, var(--text-primary));
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-family: 'Inter', sans-serif;
+}
+
+.af-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.af-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 28px 32px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.af-content::-webkit-scrollbar { width: 6px; }
+.af-content::-webkit-scrollbar-track { background: transparent; }
+.af-content::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--af-accent) 25%, transparent); border-radius: 6px; }
+
+.af-content-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.af-content-header .view-heading {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+  flex: 1;
+}
+
+.af-content-header .view-heading::before { display: none; }
 
 .af-header {
   position: sticky;

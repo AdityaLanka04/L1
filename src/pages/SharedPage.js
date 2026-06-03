@@ -187,69 +187,87 @@ const SharedPage = () => {
   const filteredSharedItems = getFilteredSharedItems();
   const filteredMyContent = getFilteredMyContent();
 
+  const GEO_SVG = (
+    <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
+      <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+      <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
+      <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+      <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
+      <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
+      <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
+      <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
+      <circle cx="600" cy="40" r="5" fill="currentColor"/>
+      <circle cx="600" cy="760" r="5" fill="currentColor"/>
+      <circle cx="240" cy="400" r="5" fill="currentColor"/>
+      <circle cx="960" cy="400" r="5" fill="currentColor"/>
+      <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
+      <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
+      <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
+      <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
+    </svg>
+  );
+
   if (loading) {
     return (
       <div className="sp-page">
-        <div className="sp-loading-text">Loading shared content...</div>
+        {GEO_SVG}
+        <div className="sp-layout"><div className="sp-main"><div className="sp-loading-text">Loading shared content...</div></div></div>
       </div>
     );
   }
 
   return (
     <div className="sp-page">
-      <div className="sp-content-section">
-        <div className="sp-section-header">
-          <div className="sp-header-title-group">
-            <Share2 size={32} className="sp-header-icon" />
-            <div>
-              <h2 className="sp-section-title">Shared with Me</h2>
-              <p className="sp-section-description">Content shared by your friends and collaborators</p>
+      {GEO_SVG}
+
+      <div className="sp-layout">
+        <aside className="sp-sidebar">
+          <button className="sp-new-btn" onClick={handleShareNewContent}>
+            <Plus size={16} />
+            <span>Share Content</span>
+          </button>
+
+          <div className="sp-sidebar-divider"></div>
+
+          <div className="sp-sidebar-section">
+            <div className="sp-sidebar-heading">Filter</div>
+            <button className={`sp-sidebar-item ${sharedFilter === 'all' ? 'active' : ''}`} onClick={() => setSharedFilter('all')}>
+              <Share2 size={16} /><span>All Content</span>
+              {sharedFilter === 'all' && <div className="sp-sidebar-indicator"></div>}
+            </button>
+            <button className={`sp-sidebar-item ${sharedFilter === 'chat' ? 'active' : ''}`} onClick={() => setSharedFilter('chat')}>
+              <MessageSquare size={16} /><span>AI Chats</span>
+              {sharedFilter === 'chat' && <div className="sp-sidebar-indicator"></div>}
+            </button>
+            <button className={`sp-sidebar-item ${sharedFilter === 'note' ? 'active' : ''}`} onClick={() => setSharedFilter('note')}>
+              <FileText size={16} /><span>Notes</span>
+              {sharedFilter === 'note' && <div className="sp-sidebar-indicator"></div>}
+            </button>
+          </div>
+
+          <div className="sp-sidebar-stats">
+            <div className="sp-sidebar-stat-box">
+              <div className="sp-sidebar-stat-val">{sharedItems.length}</div>
+              <div className="sp-sidebar-stat-lbl">Shared Items</div>
             </div>
           </div>
-          <button 
-            className="sp-share-new-content-btn"
-            onClick={handleShareNewContent}
-          >
-            <Plus size={20} />
-            <span>Share New Content</span>
-          </button>
-        </div>
+        </aside>
 
-        <div className="sp-controls">
-          <div className="sp-search-container">
-            <Search size={20} />
-            <input
-              type="text"
-              placeholder="Search shared content..."
-              value={sharedSearch}
-              onChange={(e) => setSharedSearch(e.target.value)}
-              className="sp-search-input"
-            />
-          </div>
+        <main className="sp-main">
+          <div className="sp-content">
+            <div className="view-heading">
+              <span className="view-kicker">Library</span>
+              <h2 className="view-title">Shared With Me</h2>
+              <p className="view-sub">{filteredSharedItems.length} item{filteredSharedItems.length !== 1 ? 's' : ''}</p>
+            </div>
 
-          <div className="sp-filter-buttons">
-            <button
-              className={`sp-filter-btn ${sharedFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setSharedFilter('all')}
-            >
-              All
-            </button>
-            <button
-              className={`sp-filter-btn ${sharedFilter === 'chat' ? 'active' : ''}`}
-              onClick={() => setSharedFilter('chat')}
-            >
-              <MessageSquare size={14} />
-              Chats
-            </button>
-            <button
-              className={`sp-filter-btn ${sharedFilter === 'note' ? 'active' : ''}`}
-              onClick={() => setSharedFilter('note')}
-            >
-              <FileText size={14} />
-              Notes
-            </button>
-          </div>
-        </div>
+            <div className="sp-search-row">
+              <div className="sp-search-container">
+                <Search size={16} />
+                <input type="text" placeholder="Search shared content..." value={sharedSearch} onChange={(e) => setSharedSearch(e.target.value)} className="sp-search-input" />
+              </div>
+            </div>
 
         {filteredSharedItems.length === 0 ? (
           <div className="sp-empty-state">
@@ -356,6 +374,8 @@ const SharedPage = () => {
             ))}
           </div>
         )}
+          </div>
+        </main>
       </div>
 
       {showMyContentModal && (
