@@ -177,6 +177,7 @@ if "sqlite" in DATABASE_URL:
             "quiz_questions": "TEXT",
             "key_moments": "TEXT",
             "media_file_id": "INTEGER",
+            "canvas_data": "TEXT",
         }
         for _col, _typ in _note_additions.items():
             if _col not in _note_cols:

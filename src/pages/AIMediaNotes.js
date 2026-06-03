@@ -12,6 +12,13 @@ import { sanitizeHtml } from '../utils/sanitize';
 import ImportExportModal from '../components/ImportExportModal';
 import PodcastStudio from '../components/media/PodcastStudio';
 
+const asText = (value) => (value === null || value === undefined ? '' : String(value));
+
+const formatDate = (value) => {
+  const date = new Date(value);
+  return value && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : '';
+};
+
 const AIMediaNotes = () => {
   const navigate = useNavigate();
   const { noteId } = useParams();
@@ -43,7 +50,9 @@ const AIMediaNotes = () => {
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState('notes');
   const [history, setHistory] = useState([]);
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768); 
+  const [sidebarOpen, setSidebarOpen] = useState(() => (
+    typeof window === 'undefined' ? true : window.innerWidth > 768
+  ));
   const [activeNoteId, setActiveNoteId] = useState(null);
 
   
@@ -91,6 +100,7 @@ const AIMediaNotes = () => {
     setProgress(0);
     setResults(null);
     setActiveNoteId(null); 
+    let progressInterval = null;
 
     try {
       const formData = new FormData();
@@ -112,7 +122,7 @@ const AIMediaNotes = () => {
         setProgress(10);
       }
 
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setProgress(prev => prev < 90 ? prev + 5 : prev);
       }, 500);
 
@@ -126,6 +136,7 @@ const AIMediaNotes = () => {
       });
 
       clearInterval(progressInterval);
+      progressInterval = null;
 
       if (!response.ok) {
         const error = await response.json();
@@ -150,6 +161,7 @@ const AIMediaNotes = () => {
       }
       alert(`Failed to process media: ${errorMessage}`);
     } finally {
+      if (progressInterval) clearInterval(progressInterval);
       setIsProcessing(false);
       setProcessingStage('');
       setTimeout(() => setProgress(0), 1000);
@@ -157,7 +169,10 @@ const AIMediaNotes = () => {
   };
 
   const saveNotes = async () => {
-    if (!results) return;
+    if (!results?.notes?.content) {
+      alert('No notes to save');
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -169,7 +184,7 @@ const AIMediaNotes = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          transcript: results.transcript.substring(0, 1000),
+          transcript: asText(results.transcript).substring(0, 1000),
           key_concepts: results.analysis?.key_concepts || [],
           summary: results.analysis?.summary || ''
         })
@@ -191,7 +206,7 @@ const AIMediaNotes = () => {
           user_id: userName,
           title: smartTitle,
           content: results.notes.content,
-          transcript: results.transcript,
+          transcript: asText(results.transcript),
           analysis: results.analysis,
           flashcards: results.flashcards,
           quiz_questions: results.quiz_questions,
@@ -296,14 +311,20 @@ const AIMediaNotes = () => {
     }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(asText(text));
+      alert('Copied to clipboard!');
+    } catch (error) {
+      alert('Failed to copy');
+    }
   };
 
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
+    const totalSeconds = Number(seconds);
+    if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return '0:00';
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = Math.floor(totalSeconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -333,9 +354,11 @@ const AIMediaNotes = () => {
       if (response.ok) {
         const data = await response.json();
         setHistory(data.history || []);
+      } else {
+        throw new Error(`Failed to load history: ${response.status}`);
       }
     } catch (error) {
-    
+      console.error('Media history load error:', error);
   }
   };
 
@@ -408,6 +431,8 @@ const AIMediaNotes = () => {
           setResults(null);
           setActiveNoteId(null);
         }
+      } else {
+        throw new Error(`Failed to delete note: ${response.status}`);
       }
     } catch (error) {
       console.error('Delete error:', error);
@@ -444,8 +469,13 @@ const AIMediaNotes = () => {
       <div className="mn-layout">
         <aside className={`mn-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
           <div className="mn-sidebar-header">
-            <div className="mn-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
-            </div>
+            <button className="mn-sidebar-home" onClick={() => navigate('/notes')} title="Back to notes hub">
+              <ArrowLeft size={15} />
+              <span>Notes Hub</span>
+            </button>
+            <button className="mn-sidebar-close" onClick={() => setSidebarOpen(false)} title="Hide sidebar">
+              <ChevronLeft size={16} />
+            </button>
           </div>
 
           <button className="mn-new-upload-btn" onClick={() => {
@@ -473,12 +503,13 @@ const AIMediaNotes = () => {
                     <div className="mn-history-info">
                       <div className="mn-history-title">{item.title}</div>
                       <div className="mn-history-date">
-                        {new Date(item.created_at).toLocaleDateString()}
+                        {formatDate(item.created_at)}
                       </div>
                     </div>
                     <div className="mn-history-actions">
                       <button 
                         className="mn-history-btn"
+                        title="Delete"
                         onClick={(e) => deleteHistoryItem(e, item)}
                       >
                         <Trash2 size={14} />
@@ -505,6 +536,12 @@ const AIMediaNotes = () => {
             </button>
           </div>
         </aside>
+
+        {!sidebarOpen && (
+          <button className="mn-open-sidebar-btn" onClick={() => setSidebarOpen(true)} title="Show sidebar">
+            <ChevronRight size={18} />
+          </button>
+        )}
 
         <main className="mn-main">
           <div className="mn-content" ref={contentRef}>
@@ -728,7 +765,7 @@ const AIMediaNotes = () => {
                       <div className="mn-notes-panel">
                         <div
                           className="mn-notes-output"
-                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(results.notes.content) }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(results.notes.content || '') }}
                         />
                       </div>
                     </div>
@@ -845,7 +882,7 @@ const AIMediaNotes = () => {
                               <h4>Question {idx + 1}</h4>
                               <p className="mn-question-text">{q.question}</p>
                               <div className="mn-quiz-options">
-                                {q.options.map((option, optIdx) => (
+                                {(Array.isArray(q.options) ? q.options : []).map((option, optIdx) => (
                                   <div
                                     key={optIdx}
                                     className={`mn-quiz-option ${optIdx === q.correct_answer ? 'correct' : ''}`}
@@ -902,11 +939,27 @@ const AIMediaNotes = () => {
         sourceType="media"
         onSuccess={(result) => {
           if (result?.shouldNavigate) {
-            if (result.destinationType === 'questions') {
+            if (result.destinationType === 'flashcards') {
+              if (result.set_id) {
+                navigate(`/flashcards?set_id=${result.set_id}&mode=preview`);
+              } else {
+                navigate('/flashcards');
+              }
+            } else if (result.destinationType === 'questions') {
               if (result.set_id) {
                 navigate(`/question-bank?set_id=${result.set_id}`);
               } else {
                 navigate('/question-bank');
+              }
+            } else if (result.destinationType === 'podcast') {
+              const noteIds = Array.isArray(result.note_ids) ? result.note_ids.join(',') : '';
+              const route = noteIds ? `/notes/podcast?note_ids=${encodeURIComponent(noteIds)}` : '/notes/podcast';
+              navigate(route, { state: { podcastPayload: result } });
+            } else if (result.destinationType === 'notes') {
+              if (result.note_id) {
+                navigate(`/notes/editor/${result.note_id}`);
+              } else {
+                navigate('/notes/my-notes');
               }
             }
           } else {

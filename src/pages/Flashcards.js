@@ -4040,7 +4040,7 @@ const Flashcards = () => {
             } else if (result.destinationType === 'notes') {
               // Navigate to the created note
               if (result.note_id) {
-                navigate(`/notes/${result.note_id}`);
+                navigate(`/notes/editor/${result.note_id}`);
               } else {
                 navigate('/notes');
               }

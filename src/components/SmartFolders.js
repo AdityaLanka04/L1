@@ -9,6 +9,7 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
   const [selectedFolder, setSelectedFolder] = useState(null);
 
   useEffect(() => {
+    setSelectedFolder(null);
     if (notes.length > 0) {
       autoGroupNotes();
     } else {
@@ -61,11 +62,12 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
     }
 
     const data = await response.json();
+    const groups = Array.isArray(data.groups) ? data.groups : [];
     
     
-    return data.groups.map(group => ({
-      name: group.name,
-      notes: group.note_ids.map(id => notesToGroup.find(n => n.id === id)).filter(Boolean)
+    return groups.map(group => ({
+      name: group.name || 'Untitled Group',
+      notes: (Array.isArray(group.note_ids) ? group.note_ids : []).map(id => notesToGroup.find(n => n.id === id)).filter(Boolean)
     })).filter(g => g.notes.length > 0);
   };
 
@@ -129,7 +131,7 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString();
+    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString();
   };
 
   if (loading) {

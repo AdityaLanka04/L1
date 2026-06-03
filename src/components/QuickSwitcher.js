@@ -2,7 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, FileText, Clock, Star, Folder, X } from 'lucide-react';
 import './QuickSwitcher.css';
 
-const QuickSwitcher = ({ isOpen, onClose, notes, folders, onSelectNote, recentNotes = [] }) => {
+const asText = (value) => (value === null || value === undefined ? '' : String(value));
+
+const formatDate = (value) => {
+  const date = new Date(value);
+  return value && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : '';
+};
+
+const QuickSwitcher = ({ isOpen, onClose, notes = [], folders = [], onSelectNote, recentNotes = [] }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef(null);
@@ -12,8 +19,8 @@ const QuickSwitcher = ({ isOpen, onClose, notes, folders, onSelectNote, recentNo
   const filteredNotes = notes.filter(note => {
     const query = searchQuery.toLowerCase();
     return (
-      note.title.toLowerCase().includes(query) ||
-      note.content.toLowerCase().includes(query)
+      asText(note.title).toLowerCase().includes(query) ||
+      asText(note.content).toLowerCase().includes(query)
     );
   }).slice(0, 10);
 
@@ -47,13 +54,14 @@ const QuickSwitcher = ({ isOpen, onClose, notes, folders, onSelectNote, recentNo
       e.preventDefault();
       handleSelect(displayNotes[selectedIndex]);
     } else if (e.key === 'Escape') {
-      onClose();
+      onClose?.();
     }
   };
 
   const handleSelect = (note) => {
+    if (!onSelectNote) return;
     onSelectNote(note);
-    onClose();
+    onClose?.();
   };
 
   useEffect(() => {
@@ -72,7 +80,7 @@ const QuickSwitcher = ({ isOpen, onClose, notes, folders, onSelectNote, recentNo
 
   const getSnippet = (content, query) => {
     if (!query) return '';
-    const text = content.replace(/<[^>]+>/g, '').substring(0, 200);
+    const text = asText(content).replace(/<[^>]+>/g, '').substring(0, 200);
     const index = text.toLowerCase().indexOf(query.toLowerCase());
     if (index === -1) return text.substring(0, 100) + '...';
     
@@ -136,7 +144,7 @@ const QuickSwitcher = ({ isOpen, onClose, notes, folders, onSelectNote, recentNo
                 <div className="quick-switcher-item-content">
                   <div className="quick-switcher-item-title">
                     {isFavorite && <Star size={14} className="favorite-icon" />}
-                    {note.title}
+                    {note.title || 'Untitled'}
                   </div>
                   {searchQuery && (
                     <div className="quick-switcher-item-snippet">
@@ -151,7 +159,7 @@ const QuickSwitcher = ({ isOpen, onClose, notes, folders, onSelectNote, recentNo
                       </span>
                     )}
                     <span className="meta-date">
-                      {new Date(note.updated_at).toLocaleDateString()}
+                      {formatDate(note.updated_at)}
                     </span>
                   </div>
                 </div>

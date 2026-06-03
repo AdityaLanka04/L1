@@ -285,3 +285,77 @@
 [data-theme-mode="light"] .sf-notes-preview {
   border-color: #e0e0e0;
 }
+
+/* Notes smart folders polish */
+.smart-folders-panel {
+  background: color-mix(in srgb, var(--bg-secondary, #1a1a1a) 94%, var(--accent) 3%);
+  border-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.sf-header {
+  background: color-mix(in srgb, var(--bg-primary, #111) 86%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: 16px 16px 0 0;
+}
+
+.sf-header h3 {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+.sf-refresh-btn,
+.sf-close-btn,
+.sf-folder-item,
+.sf-note-item,
+.sf-folder-count {
+  border-radius: 10px;
+}
+
+.sf-folder-item,
+.sf-note-item {
+  background: color-mix(in srgb, var(--bg-primary, #222) 72%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.sf-folder-item:hover,
+.sf-folder-item.selected {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+}
+
+.sf-folder-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-theme-mode="light"] .smart-folders-panel {
+  background: color-mix(in srgb, var(--bg-secondary, #fff) 94%, var(--accent) 3%);
+  border-color: color-mix(in srgb, var(--accent) 18%, rgba(0, 0, 0, 0.08));
+}
+
+[data-theme-mode="light"] .sf-header,
+[data-theme-mode="light"] .sf-folder-item,
+[data-theme-mode="light"] .sf-note-item {
+  background: color-mix(in srgb, var(--bg-primary, #fff) 78%, transparent);
+}
+
+@media (max-width: 520px) {
+  .smart-folders-panel {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .sf-folder-info,
+  .sf-note-item {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}

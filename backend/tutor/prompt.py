@@ -61,7 +61,7 @@ def build_tutor_prompt(state: TutorState) -> str:
             if selected_style:
                 sections.append(_style_section(selected_style))
 
-    sections.append(_task_section(task, user_input))
+    sections.append(_task_section(task, user_input, intent=intent))
 
     return "\n\n".join(sections)
 
@@ -205,9 +205,10 @@ def _style_section(style: str) -> str:
         return ""
     return f"[TEACHING FORMAT]\n{instructions}"
 
-def _task_section(task: str, user_input: str) -> str:
+def _task_section(task: str, user_input: str, intent: str = "") -> str:
     lines = ["[TASK]"]
     if task:
         lines.append(task)
-    lines.append(f"\nStudent's question: {user_input}")
+    label = "Student's answer" if intent == "comprehension_answer" else "Student's question"
+    lines.append(f"\n{label}: {user_input}")
     return "\n".join(lines)

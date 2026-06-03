@@ -121,8 +121,43 @@ function stripInternalGraphGuidance(text = '') {
   });
   if (cutAt === -1) return raw.trim();
 
-  
+
   return raw.slice(0, cutAt).replace(/\n{2,}$/g, '').trim();
+}
+
+const COMPREHENSION_CHECK_RE = /\b(comprehension\s+check|check\s+your\s+understanding|quick\s+(?:understanding\s+)?check|to\s+ensure\s+you'?re\s+following\s+along|can\s+you\s+briefly\s+(?:describe|explain|summari[sz]e)|how\s+(?:would|do)\s+you\s+(?:explain|describe|understand)|what\s+do\s+you\s+understand|try\s+(?:answering|explaining|summari[sz]ing))\b/i;
+const NEW_QUESTION_START_RE = /^\s*(what|why|how|when|where|who|which|can|could|would|should|please|explain|tell|show|give|quiz|make|create|generate)\b/i;
+
+function getLastAiMessage(messages = []) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.type === 'ai' && message.content) {
+      return message.content;
+    }
+  }
+  return '';
+}
+
+function looksLikeComprehensionAnswer(text = '') {
+  const trimmed = String(text || '').trim();
+  if (trimmed.length < 3 || !/[a-z]/i.test(trimmed)) return false;
+
+  const lower = trimmed.toLowerCase();
+  if (NEW_QUESTION_START_RE.test(trimmed)) return false;
+  if (trimmed.endsWith('?') && /\b(what|why|how|can|could|explain|tell|show)\b/i.test(trimmed)) {
+    return false;
+  }
+
+  if (/\b(i\s+don'?t\s+know|not\s+sure|no\s+idea|idk)\b/i.test(lower)) return true;
+  const words = trimmed.match(/[a-z][a-z'-]*/gi) || [];
+  if (words.length >= 5) return true;
+
+  return /\b(it|this|that|they|wave|particle|means?)\b/i.test(trimmed);
+}
+
+function isAnsweringPreviousComprehensionCheck(text = '', messages = []) {
+  const previousAiMessage = getLastAiMessage(messages);
+  return COMPREHENSION_CHECK_RE.test(previousAiMessage) && looksLikeComprehensionAnswer(text);
 }
 
 function normalizeLoadedMessage(message) {
@@ -983,7 +1018,8 @@ const AIChat = ({ sharedMode = false }) => {
     
     
     const messageText = sanitizedMessage;
-    const messageForModel = buildGraphAwarePrompt(messageText);
+    const answeringComprehensionCheck = isAnsweringPreviousComprehensionCheck(messageText, messages);
+    const messageForModel = answeringComprehensionCheck ? messageText : buildGraphAwarePrompt(messageText);
     const messagedFiles = useOverride ? [] : [...selectedFiles];
     
     if (!useOverride) {

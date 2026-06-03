@@ -20,6 +20,7 @@ const AudioVideoNotes = () => {
     const file = e.target.files[0];
     if (file) {
       setUploadedFile(file);
+      setYoutubeUrl('');
     }
   };
 
@@ -38,6 +39,7 @@ const AudioVideoNotes = () => {
     const file = e.dataTransfer.files[0];
     if (file) {
       setUploadedFile(file);
+      setYoutubeUrl('');
     }
   };
 
@@ -49,6 +51,7 @@ const AudioVideoNotes = () => {
 
     setIsGenerating(true);
     setGenerationProgress(0);
+    let progressInterval = null;
 
     try {
       const formData = new FormData();
@@ -60,7 +63,7 @@ const AudioVideoNotes = () => {
         formData.append('youtube_url', youtubeUrl);
       }
 
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setGenerationProgress(prev => Math.min(prev + 10, 90));
       }, 500);
 
@@ -74,25 +77,31 @@ const AudioVideoNotes = () => {
       });
 
       clearInterval(progressInterval);
+      progressInterval = null;
       setGenerationProgress(100);
 
       if (response.ok) {
         const data = await response.json();
-        setGeneratedNotes(data.notes);
+        setGeneratedNotes(data.notes || '');
       } else {
         throw new Error('Failed to generate notes');
       }
     } catch (error) {
-            alert('Failed to generate notes. Please try again.');
+      alert('Failed to generate notes. Please try again.');
     } finally {
+      if (progressInterval) clearInterval(progressInterval);
       setIsGenerating(false);
       setTimeout(() => setGenerationProgress(0), 1000);
     }
   };
 
-  const copyNotes = () => {
-    navigator.clipboard.writeText(generatedNotes);
-    alert('Notes copied to clipboard!');
+  const copyNotes = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedNotes || '');
+      alert('Notes copied to clipboard!');
+    } catch (error) {
+      alert('Failed to copy notes');
+    }
   };
 
   const saveToMyNotes = async () => {
@@ -115,9 +124,11 @@ const AudioVideoNotes = () => {
         const newNote = await response.json();
         alert('Notes saved successfully!');
         navigate(`/notes/editor/${newNote.id}`);
+      } else {
+        throw new Error(`Failed to save notes: ${response.status}`);
       }
     } catch (error) {
-            alert('Failed to save notes');
+      alert('Failed to save notes');
     }
   };
 
@@ -186,7 +197,10 @@ const AudioVideoNotes = () => {
               type="text"
               placeholder="Paste YouTube URL here..."
               value={youtubeUrl}
-              onChange={(e) => setYoutubeUrl(e.target.value)}
+              onChange={(e) => {
+                setYoutubeUrl(e.target.value);
+                if (e.target.value) setUploadedFile(null);
+              }}
             />
           </div>
 

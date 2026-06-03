@@ -62,6 +62,7 @@ class Note(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     custom_font = Column(String(50), default="Inter")
+    canvas_data = Column(Text, nullable=True)
 
     transcript = Column(Text, nullable=True)
     analysis = Column(Text, nullable=True)

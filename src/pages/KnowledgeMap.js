@@ -53,6 +53,44 @@ const isGenericExplorationContent = (data) => {
   );
 };
 
+const KM_COMPREHENSION_CHECK_RE = /\b(comprehension\s+check|check\s+your\s+understanding|quick\s+(?:understanding\s+)?check|to\s+ensure\s+you'?re\s+following\s+along|can\s+you\s+briefly\s+(?:describe|explain|summari[sz]e)|how\s+(?:would|do)\s+you\s+(?:explain|describe|understand)|what\s+do\s+you\s+understand|try\s+(?:answering|explaining|summari[sz]ing))\b/i;
+const KM_NEW_QUESTION_START_RE = /^\s*(what|why|how|when|where|who|which|can|could|would|should|please|explain|tell|show|give|quiz|make|create|generate)\b/i;
+
+const getLastKnowledgeMapTutorMessage = (messages = []) => {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.type !== 'user' && message?.content) {
+      return message.content;
+    }
+  }
+  return '';
+};
+
+const extractLastQuestion = (text = '') => {
+  const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+  const matches = normalized.match(/[^?]{8,320}\?/g);
+  if (matches && matches.length > 0) {
+    return matches[matches.length - 1].replace(/^[-#*\s]+/, '').trim();
+  }
+  return normalized.slice(-320).trim();
+};
+
+const looksLikeKnowledgeMapCheckAnswer = (text = '') => {
+  const trimmed = String(text || '').trim();
+  if (trimmed.length < 3 || !/[a-z]/i.test(trimmed)) return false;
+  if (KM_NEW_QUESTION_START_RE.test(trimmed)) return false;
+  if (trimmed.endsWith('?') && /\b(what|why|how|can|could|explain|tell|show)\b/i.test(trimmed)) return false;
+  if (/\b(i\s+don'?t\s+know|not\s+sure|no\s+idea|idk)\b/i.test(trimmed)) return true;
+  const words = trimmed.match(/[a-z][a-z'-]*/gi) || [];
+  return words.length >= 5 || /\b(it|this|that|they|means?)\b/i.test(trimmed);
+};
+
+const getKnowledgeMapComprehensionCheck = (messages = []) => {
+  const lastTutorMessage = getLastKnowledgeMapTutorMessage(messages);
+  if (!KM_COMPREHENSION_CHECK_RE.test(lastTutorMessage)) return '';
+  return extractLastQuestion(lastTutorMessage);
+};
+
 const CustomNode = ({ data, selected }) => {
   const [activeAction, setActiveAction] = useState(null);
   const setAction = (action) => () => setActiveAction(action);
@@ -1249,6 +1287,8 @@ const createRoadmapFromChat = async () => {
     const keyConcepts = Array.isArray(node?.key_concepts) ? node.key_concepts : [];
     const examples = Array.isArray(node?.real_world_examples) ? node.real_world_examples : [];
     const personalNotes = nodeId ? (manualNotes.get(nodeId) || 'No personal notes yet.') : 'No personal notes yet.';
+    const previousCheck = getKnowledgeMapComprehensionCheck(chatMessages);
+    const answeringComprehensionCheck = Boolean(previousCheck && looksLikeKnowledgeMapCheckAnswer(questionText));
 
     const recentTurns = chatMessages
       .slice(-6)
@@ -1271,13 +1311,16 @@ Student Notes: ${personalNotes}
 Recent Conversation (same node):
 ${recentTurns || 'No prior turns.'}
 
-Student Question:
+${answeringComprehensionCheck ? 'Student Answer To Previous Comprehension Check' : 'Student Question'}:
 ${questionText}
 
 Instructions:
 - Answer in the context of this exact node.
 - Reference the node path when helpful.
-- If the question is ambiguous, ask one clarifying question tied to this node.`;
+- If the question is ambiguous, ask one clarifying question tied to this node.
+${answeringComprehensionCheck ? `- The student is answering this previous comprehension check: ${previousCheck}
+- Evaluate their answer like a tutor: give a direct verdict, name what is correct, identify the most important missing or inaccurate point, provide a stronger 2-4 sentence model answer, and end with one short follow-up check.
+- Do not simply re-explain the whole node unless the answer is empty or says they do not know.` : ''}`;
   }, [chatMessages, currentRoadmap, getNodePathForContext, manualNotes]);
 
   const copyToClipboard = (text, codeIndex) => {

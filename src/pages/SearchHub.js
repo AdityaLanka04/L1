@@ -2464,7 +2464,7 @@ const SearchHub = () => {
     } else if (action.type === 'continue_chat') {
       navigate(`/chat/${result.id}`);
     } else if (action.type === 'edit_note') {
-      navigate(`/notes/${result.id}`);
+      navigate(`/notes/editor/${result.id}`);
     } else if (action.type === 'view_progress') {
       navigate(`/progress`);
     }
@@ -2685,11 +2685,11 @@ const SearchHub = () => {
       items: [
         { label: 'AI Chat', route: '/ai-chat' },
         { label: 'Context Hub', route: '/context' },
-        { label: 'Notes', route: '/notes-redesign' },
+        { label: 'Notes', route: '/notes' },
         { label: 'Flashcards', route: '/flashcards' },
         { label: 'Quiz Hub', route: '/quiz-hub' },
         { label: 'Slide Explorer', route: '/slide-explorer' },
-        { label: 'Media Notes', route: '/ai-media-notes' }
+        { label: 'Media Notes', route: '/notes/ai-media' }
       ]
     },
     {

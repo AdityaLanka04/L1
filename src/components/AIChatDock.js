@@ -22,6 +22,8 @@ const INTERNAL_GRAPH_GUIDANCE_MARKERS = [
   'only include graphjson when necessary.',
   'do not include any graph or diagram block unless the user explicitly asks for one.',
 ];
+const COMPREHENSION_CHECK_RE = /\b(comprehension\s+check|check\s+your\s+understanding|quick\s+(?:understanding\s+)?check|to\s+ensure\s+you'?re\s+following\s+along|can\s+you\s+briefly\s+(?:describe|explain|summari[sz]e)|how\s+(?:would|do)\s+you\s+(?:explain|describe|understand)|what\s+do\s+you\s+understand|try\s+(?:answering|explaining|summari[sz]ing))\b/i;
+const NEW_QUESTION_START_RE = /^\s*(what|why|how|when|where|who|which|can|could|would|should|please|explain|tell|show|give|quiz|make|create|generate)\b/i;
 
 const stripInternalGraphGuidance = (text = '') => {
   const raw = String(text || '').replace(/\r\n/g, '\n');
@@ -75,6 +77,29 @@ function buildGraphAwarePrompt(userText = '') {
     return `${base}\n\n${proactiveInstruction}\n${graphJsonHint}`;
   }
   return `${base}\n\nDo not include any graph or diagram block unless the user explicitly asks for one.`;
+}
+
+function getLastAiMessage(messages = []) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.type === 'ai' && message.content) return message.content;
+  }
+  return '';
+}
+
+function looksLikeComprehensionAnswer(text = '') {
+  const trimmed = String(text || '').trim();
+  if (trimmed.length < 3 || !/[a-z]/i.test(trimmed)) return false;
+  if (NEW_QUESTION_START_RE.test(trimmed)) return false;
+  if (trimmed.endsWith('?') && /\b(what|why|how|can|could|explain|tell|show)\b/i.test(trimmed)) return false;
+  if (/\b(i\s+don'?t\s+know|not\s+sure|no\s+idea|idk)\b/i.test(trimmed)) return true;
+  const words = trimmed.match(/[a-z][a-z'-]*/gi) || [];
+  if (words.length >= 5) return true;
+  return /\b(it|this|that|they|wave|particle|means?)\b/i.test(trimmed);
+}
+
+function isAnsweringPreviousComprehensionCheck(text = '', messages = []) {
+  return COMPREHENSION_CHECK_RE.test(getLastAiMessage(messages)) && looksLikeComprehensionAnswer(text);
 }
 
 function renderMarkdownWithMath(text) {
@@ -231,7 +256,11 @@ const AIChatDock = () => {
     try {
       const formData = new FormData();
       formData.append('user_id', userName);
-      formData.append('question', buildGraphAwarePrompt(text));
+      const messageForModel = isAnsweringPreviousComprehensionCheck(text, messages)
+        ? text
+        : buildGraphAwarePrompt(text);
+      formData.append('question', messageForModel);
+      formData.append('original_question', text);
       formData.append('chat_id', String(chatId));
       formData.append('use_hs_context', String(localStorage.getItem('hs_mode_enabled') === 'true'));
 

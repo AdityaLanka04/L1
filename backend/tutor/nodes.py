@@ -63,6 +63,23 @@ FOLLOWUP_PATTERNS = [
     r"\bbut\s+(what|how|why)\b",
 ]
 
+COMPREHENSION_CHECK_PATTERNS = [
+    r"\bcomprehension\s+check\b",
+    r"\bcheck\s+your\s+understanding\b",
+    r"\bquick\s+(?:understanding\s+)?check\b",
+    r"\bto\s+ensure\s+you'?re\s+following\s+along\b",
+    r"\bcan\s+you\s+briefly\s+(?:describe|explain|summari[sz]e)\b",
+    r"\bhow\s+(?:would|do)\s+you\s+(?:explain|describe|understand)\b",
+    r"\bwhat\s+do\s+you\s+understand\b",
+    r"\btry\s+(?:answering|explaining|summari[sz]ing)\b",
+]
+
+NEW_QUESTION_START_RE = re.compile(
+    r"^\s*(?:what|why|how|when|where|who|which|can|could|would|should|please|"
+    r"explain|tell|show|give|quiz|make|create|generate)\b",
+    re.I,
+)
+
 RECALL_PATTERNS = [
     r"\bwhat\s*did\s*(i|we)\s*(ask|discuss|talk|study|learn|cover|do|work)\b",
     r"\bdo\s*you\s*remember\b",
@@ -110,6 +127,58 @@ def _is_repetitive(text: str, chat_history: list[dict]) -> bool:
     )
     return repeat_count >= 2
 
+def _last_ai_message(chat_history: list[dict]) -> str:
+    for turn in reversed(chat_history or []):
+        if not isinstance(turn, dict):
+            continue
+        ai_text = (
+            turn.get("ai")
+            or turn.get("assistant")
+            or turn.get("ai_response")
+            or turn.get("response")
+            or ""
+        )
+        if ai_text and str(ai_text).strip():
+            return str(ai_text)
+    return ""
+
+def _extract_last_question(text: str) -> str:
+    normalized = re.sub(r"\s+", " ", text or "").strip()
+    if not normalized:
+        return ""
+    questions = re.findall(r"([^?]{8,320}\?)", normalized)
+    if questions:
+        return questions[-1].strip(" -#*")
+    return normalized[-320:].strip()
+
+def _previous_comprehension_check(chat_history: list[dict]) -> str:
+    last_ai = _last_ai_message(chat_history)
+    if not last_ai:
+        return ""
+    if not any(re.search(pattern, last_ai, re.I) for pattern in COMPREHENSION_CHECK_PATTERNS):
+        return ""
+    return _extract_last_question(last_ai)
+
+def _looks_like_comprehension_answer(text: str) -> bool:
+    stripped = (text or "").strip()
+    if len(stripped) < 3 or not any(ch.isalpha() for ch in stripped):
+        return False
+
+    lower = stripped.lower()
+    if NEW_QUESTION_START_RE.search(stripped):
+        return False
+    if stripped.endswith("?") and re.search(r"\b(what|why|how|can|could|explain|tell|show)\b", lower):
+        return False
+
+    if re.search(r"\b(i\s+don'?t\s+know|not\s+sure|no\s+idea|idk)\b", lower):
+        return True
+
+    words = re.findall(r"[a-zA-Z][a-zA-Z'-]*", stripped)
+    if len(words) >= 5:
+        return True
+
+    return bool(re.search(r"\b(it|this|that|they|wave|particle|means?)\b", lower))
+
 def _detect_query_domain(text: str) -> list[str]:
     text_lower = text.lower()
     domains = []
@@ -127,6 +196,13 @@ def detect_intent(state: TutorState) -> dict:
 
     if _is_repetitive(text, chat_history):
         return {"intent": "repetitive"}
+
+    previous_check = _previous_comprehension_check(chat_history)
+    if previous_check and _looks_like_comprehension_answer(state.get("user_input", "")):
+        return {
+            "intent": "comprehension_answer",
+            "comprehension_check": previous_check,
+        }
 
     if any(re.search(p, text) for p in GREETING_PATTERNS):
         if chat_history:
@@ -734,7 +810,7 @@ def gate_and_retrieve(state: TutorState) -> dict:
     context_doc_ids = state.get("context_doc_ids") or []
     context_only = bool(state.get("context_only") or context_doc_ids)
 
-    should_retrieve = intent in ("recall", "confusion", "followup", "question")
+    should_retrieve = intent in ("recall", "confusion", "followup", "question", "comprehension_answer")
 
     if not should_retrieve and student and student.weaknesses:
         input_lower = user_input.lower()
@@ -1093,6 +1169,22 @@ def _build_instructional_task(state: TutorState) -> str:
             "If STRUCTURED LEARNING DATA contains their weak areas, past topics, notes, or flashcard sets — "
             "reference those specifically to suggest what to work on next. "
             "If there is NO data about them yet, just ask what they want to study — do NOT invent topics."
+        )
+
+    if intent == "comprehension_answer":
+        previous_check = state.get("comprehension_check") or _previous_comprehension_check(state.get("chat_history", []))
+        answer = state.get("user_input", "")
+        return (
+            "The student is answering your previous comprehension check, not asking a new question.\n"
+            f"Previous comprehension check: {previous_check or 'the last check question'}\n"
+            f"Student answer to evaluate: {answer}\n\n"
+            "Respond like a tutor evaluating understanding:\n"
+            "- Start with a direct verdict: Correct, Partly correct, or Not yet.\n"
+            "- Name 1-2 specific ideas the student got right.\n"
+            "- Name the most important missing or inaccurate point.\n"
+            "- Give a stronger 2-4 sentence version of the answer they can model.\n"
+            "- End with one short follow-up check that targets the remaining gap.\n"
+            "Keep it concise and specific. Do not simply re-explain the whole topic unless the answer is empty or says they do not know."
         )
 
     if hint:

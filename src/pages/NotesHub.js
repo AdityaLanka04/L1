@@ -23,7 +23,7 @@ const NotesHub = () => {
   }, []);
 
   return (
-    <div className="nh">
+    <div className="nh notes-hub-page">
       <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
         <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
@@ -154,7 +154,7 @@ const NotesHub = () => {
         </main>
       </div>
 
-      <div style={{position:'fixed',top:'10px',right:'12px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
+      <div className="nh-floating-actions">
         <button
           onClick={(e) => {
             e.stopPropagation();

@@ -37,6 +37,13 @@ import SmartFolders from '../components/SmartFolders';
 import KeyboardShortcuts from '../components/KeyboardShortcuts';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 
+const asText = (value) => (value === null || value === undefined ? '' : String(value));
+
+const formatDateTime = (value) => {
+  const date = new Date(value);
+  return value && !Number.isNaN(date.getTime()) ? date.toLocaleString() : '';
+};
+
 const encodeBlockPayload = (value) => {
   if (!value) return '';
   try {
@@ -642,14 +649,21 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setCanEdit(data.permission === 'edit' || data.is_owner);
         
         
+        const normalizedContent = normalizeNoteContent(data.content || '');
+        const sharedBlocks = htmlToBlocks(normalizedContent);
+
         setSelectedNote({
           id: data.content_id,
-          title: data.title,
-          content: data.content,
+          title: data.title || 'Untitled Note',
+          content: normalizedContent,
           updated_at: data.updated_at
         });
-        setNoteTitle(data.title);
-        setNoteContent(data.content);
+        setNoteTitle(data.title || 'Untitled Note');
+        setNoteContent(normalizedContent);
+        setCanvasData(data.canvas_data || "");
+        setCanvasBlockId(null);
+        setPendingFocusBlockId(null);
+        setNoteBlocks(sharedBlocks);
       } else {
         throw new Error('Failed to load shared note');
       }
@@ -716,7 +730,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       });
       if (res.ok) {
         const data = await res.json();
-        const activeNotes = data.filter(n => !n.is_deleted);
+        const activeNotes = (Array.isArray(data) ? data : []).filter(n => !n.is_deleted);
         setNotes(activeNotes);
         
         
@@ -809,8 +823,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }
     };
 
+    const onScroll = () => setShowAIButton(false);
+
     document.addEventListener("mousedown", onHide);
-    document.addEventListener("scroll", () => setShowAIButton(false));
+    document.addEventListener("scroll", onScroll);
 
     return () => {
       clearTimeout(debounceTimer);
@@ -820,7 +836,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }
       document.removeEventListener("selectionchange", onSelectionChange);
       document.removeEventListener("mousedown", onHide);
-      document.removeEventListener("scroll", () => setShowAIButton(false));
+      document.removeEventListener("scroll", onScroll);
     };
   }, [handleTextSelection, showAIButton, quillReady, canEdit, isSharedContent]);
 
@@ -1326,9 +1342,11 @@ const NotesRedesign = ({ sharedMode = false }) => {
           setSelectedNote(prev => ({ ...prev, is_favorite: newFavoriteStatus }));
         }
         showPopup("Success", newFavoriteStatus ? "Added to favorites" : "Removed from favorites");
+      } else {
+        throw new Error(`Failed to update favorite: ${res.status}`);
       }
     } catch (e) {
-    
+      showPopup("Error", "Failed to update favorite");
   }
   };
 
@@ -1489,8 +1507,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         },
         body: JSON.stringify({
           user_id: userName,
-          title: `${note.title} (Copy)`,
-          content: note.content,
+          title: `${note.title || 'Untitled Note'} (Copy)`,
+          content: note.content || '',
         }),
       });
       if (res.ok) {
@@ -1545,7 +1563,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const selectNote = (n) => {
     const normalizedContent = normalizeNoteContent(n.content || '');
     setSelectedNote(n);
-    setNoteTitle(n.title);
+    setNoteTitle(n.title || 'Untitled Note');
     setNoteContent(normalizedContent);
     setCanvasData(n.canvas_data || "");
     setCanvasBlockId(null);
@@ -1587,7 +1605,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const trackRecentlyViewed = (note) => {
     const viewedItem = {
       id: note.id,
-      title: note.title,
+      title: note.title || 'Untitled Note',
       viewedAt: new Date().toISOString()
     };
     
@@ -1854,7 +1872,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 showPopup("Error", "Failed to save note");
       }
     }
-  }, [selectedNote, noteTitle, noteContent, notes, isSharedContent, canEdit]);
+  }, [selectedNote, noteTitle, noteContent, canvasData, notes, isSharedContent, canEdit]);
 
   
   useEffect(() => {
@@ -2244,19 +2262,21 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error("AI response failed");
       }
 
-      const resultContent = result.content || result.response;
-            
-      const quill = quillRef.current?.getEditor();
+      const formatted = formatAiOutput(result.content || result.response);
+      const blocksToInsert = formatted.useBlocks && formatted.blocks.length > 0
+        ? formatted.blocks
+        : [{
+            id: Date.now() + Math.random(),
+            type: 'paragraph',
+            content: formatted.html || formatted.text,
+            properties: {}
+          }];
+      const updatedBlocks = [...noteBlocks, ...blocksToInsert.map(block => ({
+        ...block,
+        id: block.id || Date.now() + Math.random()
+      }))];
 
-      if (quill) {
-        const range = quill.getSelection();
-        const index = range ? range.index : quill.getLength();
-        quill.insertText(index, "\n\n");
-        quill.clipboard.dangerouslyPasteHTML(index + 2, resultContent);
-        quill.setSelection(index + resultContent.length + 2);
-      }
-
-      setNoteContent(quillRef.current?.getEditor().root.innerHTML);
+      handleBlocksChange(updatedBlocks);
       showPopup("Success", "Voice transcribed and AI response added to note");
       setVoiceTranscript("");
     } catch (error) {
@@ -2461,7 +2481,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const exportAsPDF = () => {
+    if (!selectedNote) return;
     const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showPopup("Export Blocked", "Please allow popups to export this note.");
+      return;
+    }
     
     const styles = `
       <style>
@@ -2618,7 +2643,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         <body>
           <h1>${escapeHtml(noteTitle || 'Untitled Note')}</h1>
           <div class="metadata">
-            Last edited: ${escapeHtml(new Date(selectedNote.updated_at).toLocaleString())}<br>
+            Last edited: ${escapeHtml(formatDateTime(selectedNote.updated_at) || 'Unknown')}<br>
             ${wordCount} words - ${charCount} characters
           </div>
           <div class="content">
@@ -2653,8 +2678,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
     let filtered = notes.filter(
       (n) =>
         !n.is_deleted &&
-        (n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.content.toLowerCase().includes(searchTerm.toLowerCase()))
+        (asText(n.title).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asText(n.content).toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     if (showFavorites) {
@@ -2935,7 +2960,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   />
                   <div className="title-meta">
                     <span className="last-edited">
-                      Last edited: {new Date(selectedNote.updated_at).toLocaleString()}
+                      Last edited: {formatDateTime(selectedNote.updated_at) || 'Unknown'}
                     </span>
                   </div>
                 </div>
@@ -3824,13 +3849,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                         <div className="session-info-new">
                           <div className="session-title-new">{session.title || "Untitled Session"}</div>
                           <div className="session-date-new">
-                            {new Date(session.updated_at).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {formatDateTime(session.updated_at || session.created_at) || 'Unknown'}
                           </div>
                         </div>
                       </label>
@@ -4028,7 +4047,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             } else if (result.destinationType === 'notes') {
               // Navigate to the created note
               if (result.note_id) {
-                navigate(`/notes/${result.note_id}`);
+                navigate(`/notes/editor/${result.note_id}`);
               } else {
                 loadNotes();
               }

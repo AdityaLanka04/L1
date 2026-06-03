@@ -1,11 +1,16 @@
 
 
+import { escapeHtml } from './sanitize';
+
+const asText = (value) => (value === null || value === undefined ? '' : String(value));
+
 export const parsePageLinks = (content) => {
   const linkRegex = /\[\[([^\]]+)\]\]/g;
   const links = [];
   let match;
+  const source = asText(content);
   
-  while ((match = linkRegex.exec(content)) !== null) {
+  while ((match = linkRegex.exec(source)) !== null) {
     links.push({
       text: match[1],
       index: match.index,
@@ -18,7 +23,7 @@ export const parsePageLinks = (content) => {
 
 export const parseTags = (content) => {
   
-  const textContent = content.replace(/<[^>]*>/g, ' ');
+  const textContent = asText(content).replace(/<[^>]*>/g, ' ');
   const tagRegex = /#([a-zA-Z0-9_-]+)/g;
   const tags = new Set();
   let match;
@@ -31,22 +36,25 @@ export const parseTags = (content) => {
 };
 
 export const renderPageLinks = (content, notes, onLinkClick) => {
-  const links = parsePageLinks(content);
+  const source = asText(content);
+  const safeNotes = Array.isArray(notes) ? notes : [];
+  const links = parsePageLinks(source);
   
-  if (links.length === 0) return content;
+  if (links.length === 0) return source;
   
-  let result = content;
+  let result = source;
   
   
   for (let i = links.length - 1; i >= 0; i--) {
     const link = links[i];
-    const linkedNote = notes.find(n => 
-      n.title.toLowerCase() === link.text.toLowerCase()
+    const linkedNote = safeNotes.find(n =>
+      asText(n.title).toLowerCase() === link.text.toLowerCase()
     );
+    const safeText = escapeHtml(link.text);
     
     const replacement = linkedNote
-      ? `<span class="page-link" data-note-id="${linkedNote.id}">${link.text}</span>`
-      : `<span class="page-link-missing">${link.text}</span>`;
+      ? `<span class="page-link" data-note-id="${escapeHtml(linkedNote.id)}">${safeText}</span>`
+      : `<span class="page-link-missing">${safeText}</span>`;
     
     result = result.substring(0, link.index) + replacement + result.substring(link.index + link.fullMatch.length);
   }
@@ -56,7 +64,7 @@ export const renderPageLinks = (content, notes, onLinkClick) => {
 
 export const renderTags = (content, onTagClick) => {
   
-  const parts = content.split(/(<[^>]*>)/);
+  const parts = asText(content).split(/(<[^>]*>)/);
   
   return parts.map((part, index) => {
     if (part.startsWith('<')) return part;
@@ -68,10 +76,13 @@ export const renderTags = (content, onTagClick) => {
 };
 
 export const findBacklinks = (noteTitle, allNotes) => {
+  const title = asText(noteTitle).toLowerCase();
+  if (!title || !Array.isArray(allNotes)) return [];
+
   return allNotes.filter(note => {
     const links = parsePageLinks(note.content);
     return links.some(link => 
-      link.text.toLowerCase() === noteTitle.toLowerCase()
+      link.text.toLowerCase() === title
     );
   });
 };
@@ -79,7 +90,7 @@ export const findBacklinks = (noteTitle, allNotes) => {
 export const getAllTags = (notes) => {
   const allTags = new Set();
   
-  notes.forEach(note => {
+  (Array.isArray(notes) ? notes : []).forEach(note => {
     const tags = parseTags(note.content);
     tags.forEach(tag => allTags.add(tag));
   });
@@ -88,23 +99,25 @@ export const getAllTags = (notes) => {
 };
 
 export const filterNotesByTag = (notes, tag) => {
-  return notes.filter(note => {
+  return (Array.isArray(notes) ? notes : []).filter(note => {
     const tags = parseTags(note.content);
     return tags.includes(tag);
   });
 };
 
 export const getNotesSuggestions = (notes, query) => {
-  if (!query) return notes.slice(0, 10);
+  const safeNotes = Array.isArray(notes) ? notes : [];
+  if (!query) return safeNotes.slice(0, 10);
   
-  const lowerQuery = query.toLowerCase();
-  return notes
-    .filter(note => note.title.toLowerCase().includes(lowerQuery))
+  const lowerQuery = asText(query).toLowerCase();
+  return safeNotes
+    .filter(note => asText(note.title).toLowerCase().includes(lowerQuery))
     .slice(0, 10);
 };
 
 export const formatDate = (dateString) => {
   const date = new Date(dateString);
+  if (!dateString || Number.isNaN(date.getTime())) return '';
   const now = new Date();
   const diffMs = now - date;
   const diffMins = Math.floor(diffMs / 60000);

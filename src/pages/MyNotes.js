@@ -15,13 +15,17 @@ import { sanitizeHtml } from '../utils/sanitize';
 import Templates from '../components/Templates';
 import ImportExportModal from '../components/ImportExportModal';
 
+const asText = (value) => (value === null || value === undefined ? '' : String(value));
+
 const MyNotes = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const userName = localStorage.getItem('username');
 
   
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  ));
 
   const [notes, setNotes] = useState([]);
   const [folders, setFolders] = useState([]);
@@ -110,10 +114,12 @@ const MyNotes = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setNotes(data.filter(n => !n.is_deleted));
+        setNotes((Array.isArray(data) ? data : []).filter(n => !n.is_deleted));
+      } else {
+        throw new Error(`Failed to load notes: ${res.status}`);
       }
     } catch (error) {
-    
+      console.error('Error loading notes:', error);
   } finally {
       setLoading(false);
     }
@@ -128,9 +134,11 @@ const MyNotes = () => {
       if (res.ok) {
         const data = await res.json();
         setFolders(data.folders || []);
+      } else {
+        throw new Error(`Failed to load folders: ${res.status}`);
       }
     } catch (error) {
-    
+      console.error('Error loading folders:', error);
   }
   };
 
@@ -143,9 +151,11 @@ const MyNotes = () => {
       if (res.ok) {
         const data = await res.json();
         setChatSessions(data.sessions || []);
+      } else {
+        throw new Error(`Failed to load chat sessions: ${res.status}`);
       }
     } catch (error) {
-    
+      console.error('Error loading chat sessions:', error);
   }
   };
 
@@ -158,9 +168,11 @@ const MyNotes = () => {
       if (res.ok) {
         const data = await res.json();
         setFlashcardSets(data.flashcard_history || []);
+      } else {
+        throw new Error(`Failed to load flashcards: ${res.status}`);
       }
     } catch (error) {
-    
+      console.error('Error loading flashcard sets:', error);
   }
   };
 
@@ -173,9 +185,11 @@ const MyNotes = () => {
       if (res.ok) {
         const data = await res.json();
         setQuizHistory(data.quiz_history || data.quizzes || []);
+      } else {
+        throw new Error(`Failed to load quizzes: ${res.status}`);
       }
     } catch (error) {
-    
+      console.error('Error loading quiz history:', error);
   }
   };
 
@@ -188,9 +202,11 @@ const MyNotes = () => {
       if (res.ok) {
         const data = await res.json();
         setTrashedNotes(data.trash || []);
+      } else {
+        throw new Error(`Failed to load trash: ${res.status}`);
       }
     } catch (error) {
-    
+      console.error('Error loading trash:', error);
   }
   };
 
@@ -214,9 +230,12 @@ const MyNotes = () => {
       if (response.ok) {
         const newNote = await response.json();
         navigate(`/notes/editor/${newNote.id}`);
+      } else {
+        throw new Error(`Failed to create note: ${response.status}`);
       }
     } catch (error) {
-    
+      console.error('Error creating note:', error);
+      alert('Failed to create note');
   }
   };
 
@@ -242,9 +261,12 @@ const MyNotes = () => {
         await loadFolders();
         setNewFolderName('');
         setShowFolderModal(false);
+      } else {
+        throw new Error(`Failed to create folder: ${res.status}`);
       }
     } catch (error) {
-    
+      console.error('Error creating folder:', error);
+      alert('Failed to create folder');
   }
   };
 
@@ -280,6 +302,7 @@ const MyNotes = () => {
       }
     } catch (error) {
       console.error('Chat to note conversion error:', error);
+      alert('Failed to import chat sessions');
     } finally {
       setImporting(false);
     }
@@ -301,7 +324,8 @@ const MyNotes = () => {
         if (result.note_id) navigate(`/notes/editor/${result.note_id}`);
       }
     } catch (error) {
-    
+      console.error('Flashcards to notes import error:', error);
+      alert('Failed to import flashcards');
     } finally {
       setImporting(false);
     }
@@ -325,7 +349,8 @@ const MyNotes = () => {
         if (result.note_id) navigate(`/notes/editor/${result.note_id}`);
       }
     } catch (error) {
-    
+      console.error('Quiz to notes import error:', error);
+      alert('Failed to import quizzes');
     } finally {
       setImporting(false);
     }
@@ -352,9 +377,12 @@ const MyNotes = () => {
         await loadNotes();
         setShowMoveModal(false);
         setNoteToMove(null);
+      } else {
+        throw new Error(`Failed to move note: ${res.status}`);
       }
     } catch (error) {
-    
+      console.error('Error moving note:', error);
+      alert('Failed to move note');
   }
   };
 
@@ -370,9 +398,12 @@ const MyNotes = () => {
 
       if (res.ok) {
         await loadNotes();
+      } else {
+        throw new Error(`Failed to delete note: ${res.status}`);
       }
     } catch (error) {
-    
+      console.error('Error deleting note:', error);
+      alert('Failed to move note to trash');
   }
   };
 
@@ -387,6 +418,8 @@ const MyNotes = () => {
       if (res.ok) {
         await loadTrash();
         await loadNotes();
+      } else {
+        throw new Error(`Failed to restore note: ${res.status}`);
       }
     } catch (error) {
       console.error('Error restoring note:', error);
@@ -418,9 +451,12 @@ const MyNotes = () => {
       if (res.ok) {
         const newNote = await res.json();
         navigate(`/notes/editor/${newNote.id}`);
+      } else {
+        throw new Error(`Failed to create note from template: ${res.status}`);
       }
     } catch (error) {
-    
+      console.error('Template note creation error:', error);
+      alert('Failed to create note from template');
   }
   };
 
@@ -445,8 +481,8 @@ const MyNotes = () => {
   const getFilteredNotes = () => {
     let filtered = showTrash ? trashedNotes : notes;
     filtered = filtered.filter(note =>
-      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchTerm.toLowerCase())
+      asText(note.title).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      asText(note.content).toLowerCase().includes(searchTerm.toLowerCase())
     );
     if (showFavorites) filtered = filtered.filter(n => n.is_favorite);
     if (selectedFolder && !showTrash && !showFavorites) {
@@ -454,18 +490,18 @@ const MyNotes = () => {
       if (selectedFolder === 'source-flashcards') {
         filtered = filtered.filter(n => 
           n.source_type === 'flashcards' || 
-          n.title?.toLowerCase().includes('flashcard')
+          asText(n.title).toLowerCase().includes('flashcard')
         );
       } else if (selectedFolder === 'source-quizzes') {
         filtered = filtered.filter(n => 
           n.source_type === 'quiz' || 
-          n.title?.toLowerCase().includes('quiz')
+          asText(n.title).toLowerCase().includes('quiz')
         );
       } else if (selectedFolder === 'source-roadmaps') {
         filtered = filtered.filter(n => 
           n.source_type === 'roadmap' || 
-          n.title?.toLowerCase().includes('roadmap') ||
-          n.title?.toLowerCase().includes('knowledge map')
+          asText(n.title).toLowerCase().includes('roadmap') ||
+          asText(n.title).toLowerCase().includes('knowledge map')
         );
       } else {
         
@@ -477,6 +513,7 @@ const MyNotes = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
+    if (!dateString || Number.isNaN(date.getTime())) return '';
     const now = new Date();
     const diffMs = now - date;
     const diffHours = Math.floor(diffMs / 3600000);
@@ -489,7 +526,7 @@ const MyNotes = () => {
   };
 
   const extractPreview = (content) => {
-    const text = content.replace(/<[^>]+>/g, '').trim();
+    const text = asText(content).replace(/<[^>]+>/g, '').trim();
     return text.substring(0, 100) + (text.length > 100 ? '...' : '');
   };
 
@@ -525,6 +562,16 @@ const MyNotes = () => {
       </svg>
       <div className="mn-body">
         <aside className={`nt-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+          <div className="nt-sidebar-topbar">
+            <button className="nt-sidebar-back" onClick={() => navigate('/notes')} title="Back to notes hub">
+              <ChevronLeft size={16} />
+              <span>Notes Hub</span>
+            </button>
+            <button className="nt-collapse-btn" onClick={() => setSidebarCollapsed(true)} title="Hide sidebar">
+              <Menu size={15} />
+            </button>
+          </div>
+
           <button className="nt-new-note-btn" onClick={createNewNote}>
             <Plus size={18} />
             <span className="nt-nav-text">New Note</span>
@@ -606,7 +653,7 @@ const MyNotes = () => {
               >
                 <span className="nt-nav-icon nt-source-flashcards"><FileText size={18} /></span>
                 <span className="nt-nav-text">From Flashcards</span>
-                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'flashcards' || n.title?.toLowerCase().includes('flashcard')).length}</span>
+                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'flashcards' || asText(n.title).toLowerCase().includes('flashcard')).length}</span>
               </button>
               <button 
                 className={`nt-nav-item ${selectedFolder === 'source-quizzes' ? 'active' : ''}`}
@@ -614,7 +661,7 @@ const MyNotes = () => {
               >
                 <span className="nt-nav-icon nt-source-quizzes"><FileText size={18} /></span>
                 <span className="nt-nav-text">From Quizzes</span>
-                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'quiz' || n.title?.toLowerCase().includes('quiz')).length}</span>
+                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'quiz' || asText(n.title).toLowerCase().includes('quiz')).length}</span>
               </button>
               <button 
                 className={`nt-nav-item ${selectedFolder === 'source-roadmaps' ? 'active' : ''}`}
@@ -622,12 +669,20 @@ const MyNotes = () => {
               >
                 <span className="nt-nav-icon nt-source-roadmaps"><FileText size={18} /></span>
                 <span className="nt-nav-text">From Knowledge Maps</span>
-                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'roadmap' || n.title?.toLowerCase().includes('roadmap') || n.title?.toLowerCase().includes('knowledge map')).length}</span>
+                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'roadmap' || asText(n.title).toLowerCase().includes('roadmap') || asText(n.title).toLowerCase().includes('knowledge map')).length}</span>
               </button>
             </div>
           </nav>
 
           <div className="nt-sidebar-footer">
+            <button className="nt-nav-item" onClick={() => navigate('/dashboard-cerbyl')}>
+              <span className="nt-nav-icon"><Home size={18} /></span>
+              <span className="nt-nav-text">Dashboard</span>
+            </button>
+            <button className="nt-nav-item" onClick={handleLogout}>
+              <span className="nt-nav-icon"><LogOut size={18} /></span>
+              <span className="nt-nav-text">Logout</span>
+            </button>
           </div>
         </aside>
 
@@ -690,7 +745,13 @@ const MyNotes = () => {
             ) : (
               <div className={viewMode === 'grid' ? 'nt-notes-grid' : 'nt-notes-list'}>
                 {filteredNotes.map(note => (
-                  <div key={note.id} className="nt-note-card" onClick={() => navigate(`/notes/editor/${note.id}`)}>
+                  <div
+                    key={note.id}
+                    className="nt-note-card"
+                    onClick={() => {
+                      if (!showTrash) navigate(`/notes/editor/${note.id}`);
+                    }}
+                  >
                     {note.is_favorite && (
                       <div className="nt-favorite-badge"><Star size={14} /></div>
                     )}

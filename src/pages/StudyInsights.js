@@ -337,7 +337,7 @@ const StudyInsights = () => {
               <span className="view-kicker si-bento-title">RECENT NOTES</span>
               <div className="si-notes-list">
                 {insights.notes.recent_notes.map((note) => (
-                  <div key={note.id} className="si-note-row" onClick={() => navigate(`/notes-redesign?note_id=${note.id}`)}>
+                  <div key={note.id} className="si-note-row" onClick={() => navigate(`/notes/editor/${note.id}`)}>
                     <span className="si-note-title">{note.title}</span>
                   </div>
                 ))}

@@ -2,7 +2,23 @@ import { useState, useEffect } from 'react';
 import { X, Search, Clock, Calendar, Folder, Info } from 'lucide-react';
 import './AdvancedSearch.css';
 
-const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
+const asText = (value) => (value === null || value === undefined ? '' : String(value));
+
+const readSearchHistory = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const formatDate = (value) => {
+  const date = new Date(value);
+  return value && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : '';
+};
+
+const AdvancedSearch = ({ notes = [], folders = [], onSelectNote, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -14,13 +30,12 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
 
   useEffect(() => {
     
-    const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-    setSearchHistory(history);
+    setSearchHistory(readSearchHistory());
   }, []);
 
   const saveToHistory = (query) => {
     if (!query.trim()) return;
-    const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+    const history = readSearchHistory();
     const newHistory = [query, ...history.filter(h => h !== query)].slice(0, 10);
     localStorage.setItem('searchHistory', JSON.stringify(newHistory));
     setSearchHistory(newHistory);
@@ -55,13 +70,15 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
       filtered = filtered.filter(n => new Date(n.updated_at) >= new Date(dateFrom));
     }
     if (dateTo) {
-      filtered = filtered.filter(n => new Date(n.updated_at) <= new Date(dateTo));
+      const inclusiveTo = new Date(dateTo);
+      inclusiveTo.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(n => new Date(n.updated_at) <= inclusiveTo);
     }
 
     let searchPattern = null;
     if (useRegex) {
       try {
-        searchPattern = new RegExp(searchQuery, caseSensitive ? 'g' : 'gi');
+        searchPattern = new RegExp(searchQuery, caseSensitive ? '' : 'i');
       } catch {
         setResults([]);
         return;
@@ -71,16 +88,17 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
     filtered = filtered.filter(note => {
       
       let titleMatch = false;
+      const title = asText(note.title);
       if (useRegex) {
-        titleMatch = searchPattern.test(note.title);
+        titleMatch = searchPattern.test(title);
       } else {
         titleMatch = caseSensitive 
-          ? note.title.includes(searchQuery)
-          : note.title.toLowerCase().includes(searchQuery.toLowerCase());
+          ? title.includes(searchQuery)
+          : title.toLowerCase().includes(searchQuery.toLowerCase());
       }
 
       
-      const content = note.content.replace(/<[^>]+>/g, '');
+      const content = asText(note.content).replace(/<[^>]+>/g, '');
       let contentMatch = false;
       if (useRegex) {
         contentMatch = searchPattern.test(content);
@@ -104,7 +122,7 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
   }, [searchQuery, selectedFolder, dateFrom, dateTo, caseSensitive, useRegex]);
 
   const getPreview = (content, query) => {
-    const text = content.replace(/<[^>]+>/g, '');
+    const text = asText(content).replace(/<[^>]+>/g, '');
     if (!query) return text.substring(0, 150) + '...';
     
     const index = caseSensitive 
@@ -141,6 +159,10 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
               placeholder="Type to search across all notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') performSearch();
+                if (e.key === 'Escape') onClose?.();
+              }}
               autoFocus
             />
           </div>
@@ -224,18 +246,18 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
                       key={note.id}
                       className="search-result-item"
                       onClick={() => {
-                        onSelectNote(note);
-                        onClose();
+                        onSelectNote?.(note);
+                        onClose?.();
                       }}
                     >
-                      <div className="result-title">{note.title}</div>
+                      <div className="result-title">{note.title || 'Untitled'}</div>
                       <div className="result-preview">
                         {getPreview(note.content, searchQuery)}
                       </div>
                       <div className="result-meta">
                         <span>
                           <Calendar size={10} style={{ display: 'inline', marginRight: '4px' }} />
-                          {new Date(note.updated_at).toLocaleDateString()}
+                          {formatDate(note.updated_at)}
                         </span>
                         {note.folder_id && (
                           <span>

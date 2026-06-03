@@ -337,3 +337,93 @@
   }
 }
 
+/* Legacy audio/video notes polish */
+.audio-video-notes-page {
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent) 1px, transparent 1.5px),
+    var(--bg-primary);
+  background-size: 40px 40px, auto;
+}
+
+.page-header-bar,
+.content-grid {
+  width: 100%;
+  max-width: 1320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.upload-panel,
+.output-panel,
+.upload-area,
+.youtube-input-group,
+.uploaded-file,
+.generate-btn,
+.back-btn,
+.action-btn,
+.notes-output,
+.progress-bar {
+  border-radius: 12px;
+}
+
+.upload-panel,
+.output-panel {
+  border-width: 1px;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
+}
+
+.upload-area {
+  background: color-mix(in srgb, var(--bg-bottom) 86%, transparent);
+}
+
+.youtube-input-group {
+  min-width: 0;
+}
+
+.youtube-input-group input {
+  min-width: 0;
+}
+
+.output-header {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.output-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.notes-output {
+  overflow-wrap: anywhere;
+}
+
+.notes-output pre,
+.notes-output table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .audio-video-notes-page {
+    padding: 24px 18px;
+  }
+
+  .upload-panel,
+  .output-panel {
+    padding: 24px 20px;
+  }
+
+  .upload-area {
+    padding: 42px 20px;
+  }
+
+  .output-header {
+    flex-direction: column;
+  }
+
+  .output-actions {
+    justify-content: flex-start;
+  }
+}

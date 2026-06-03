@@ -31,12 +31,14 @@ class NoteCreate(BaseModel):
     content: str = ""
     folder_id: Optional[int] = None
     custom_font: Optional[str] = "Inter"
+    canvas_data: Optional[str] = None
 
 class NoteUpdate(BaseModel):
     note_id: int
     title: str
     content: str
     custom_font: Optional[str] = None
+    canvas_data: Optional[str] = None
 
 class FolderCreate(BaseModel):
     user_id: str
@@ -409,6 +411,7 @@ def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
             "is_favorite": getattr(n, "is_favorite", False),
             "folder_id": getattr(n, "folder_id", None),
             "custom_font": getattr(n, "custom_font", "Inter"),
+            "canvas_data": getattr(n, "canvas_data", None) or "",
             "is_deleted": False,
         }
         for n in notes
@@ -427,6 +430,7 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         content=note_data.content,
         folder_id=note_data.folder_id,
         custom_font=note_data.custom_font or "Inter",
+        canvas_data=note_data.canvas_data,
     )
     db.add(new_note)
     db.commit()
@@ -470,6 +474,7 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         "title": new_note.title,
         "content": new_note.content,
         "custom_font": getattr(new_note, "custom_font", "Inter"),
+        "canvas_data": getattr(new_note, "canvas_data", None) or "",
         "user_id": user.id,
         "created_at": new_note.created_at.isoformat() + "Z",
         "updated_at": new_note.updated_at.isoformat() + "Z",
@@ -574,6 +579,7 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db), current_us
     note.content = note_data.content
     if note_data.custom_font:
         note.custom_font = note_data.custom_font
+    note.canvas_data = note_data.canvas_data
     note.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(note)
@@ -610,6 +616,7 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db), current_us
         "content": note.content,
         "updated_at": note.updated_at.isoformat() + "Z",
         "custom_font": getattr(note, "custom_font", "Inter"),
+        "canvas_data": getattr(note, "canvas_data", None) or "",
         "status": "success",
     }
 
@@ -661,6 +668,7 @@ def get_single_note(note_id: int, db: Session = Depends(get_db), current_user: m
         "is_favorite": getattr(note, "is_favorite", False),
         "folder_id": getattr(note, "folder_id", None),
         "custom_font": getattr(note, "custom_font", "Inter"),
+        "canvas_data": getattr(note, "canvas_data", None) or "",
         "transcript": getattr(note, "transcript", "") or "",
         "analysis": _safe_json(getattr(note, "analysis", None), {}),
         "flashcards": _safe_json(getattr(note, "flashcards", None), []),
@@ -988,6 +996,8 @@ def update_shared_note(
         note.title = str(data["title"])[:500]
     if "content" in data:
         note.content = data["content"]
+    if "canvas_data" in data:
+        note.canvas_data = data["canvas_data"]
     note.updated_at = datetime.now(timezone.utc)
     db.commit()
 

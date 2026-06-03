@@ -275,6 +275,7 @@ def get_shared_content(
                 "content_id": content.id,
                 "title": content.title,
                 "content": content.content,
+                "canvas_data": getattr(content, "canvas_data", None) or "",
                 "created_at": content.created_at.isoformat() + "Z",
                 "updated_at": content.updated_at.isoformat() + "Z",
                 "permission": shared.permission if shared else "owner",
@@ -465,6 +466,8 @@ def update_shared_note(
             note.content = note_data["content"]
         if "title" in note_data:
             note.title = note_data["title"]
+        if "canvas_data" in note_data:
+            note.canvas_data = note_data["canvas_data"]
 
         note.updated_at = datetime.now(timezone.utc)
         db.commit()
@@ -476,6 +479,7 @@ def update_shared_note(
                 "id": note.id,
                 "title": note.title,
                 "content": note.content,
+                "canvas_data": getattr(note, "canvas_data", None) or "",
                 "updated_at": note.updated_at.isoformat() + "Z"
             }
         }

@@ -35,6 +35,7 @@ class TutorState(TypedDict, total=False):
     chat_id: Optional[int]
     chat_history: list[dict]
     intent: str
+    comprehension_check: Optional[str]
     student_state: StudentState
     neo4j_insights: Neo4jInsights
     episodic_memories: list[str]
