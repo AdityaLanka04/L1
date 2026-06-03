@@ -1621,6 +1621,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
   
   
   
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((value) => !value);
+  }, []);
+
   const keyboardHandlers = {
     onSave: () => selectedNote && autoSave(),
     onPrint: () => exportAsPDF(),
@@ -1662,7 +1666,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     onGoToDashboard: () => navigate('/dashboard-cerbyl'),
     onGoToAIChat: () => navigate('/ai-chat'),
     onGoToNotes: () => navigate('/notes/dashboard'),
-    onFullscreen: () => setIsFullscreen(!isFullscreen),
+    onFullscreen: toggleFullscreen,
     onPreviewMode: () => setViewMode('preview'),
     onEditMode: () => setViewMode('edit'),
     onToggleFavorite: () => selectedNote && toggleFavorite(selectedNote.id),
@@ -1671,6 +1675,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
   
   useKeyboardShortcuts(keyboardHandlers);
+
+  useEffect(() => {
+    if (isFullscreen) {
+      setSidebarOpen(false);
+    }
+  }, [isFullscreen]);
 
   
   const handleBlocksChange = (newBlocks) => {
@@ -1914,14 +1924,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const handleFullscreenKey = (e) => {
       if (e.key === "F11") {
         e.preventDefault();
-        setIsFullscreen(!isFullscreen);
+        toggleFullscreen();
       } else if (e.key === "Escape" && isFullscreen) {
         setIsFullscreen(false);
       }
     };
     window.addEventListener("keydown", handleFullscreenKey);
     return () => window.removeEventListener("keydown", handleFullscreenKey);
-  }, [isFullscreen]);
+  }, [isFullscreen, toggleFullscreen]);
 
   
   useEffect(() => {
@@ -2786,15 +2796,35 @@ const NotesRedesign = ({ sharedMode = false }) => {
         onClose={() => setShowSlashMenu(false)}
       />
 
-      {/* Floating back button */}
-      {!isSharedContent && (
-        <button style={{position:'fixed',top:'14px',left:'60px',zIndex:8000}} className="toggle-sidebar nr-exit-btn" onClick={() => navigate('/notes/my-notes')} title="Exit to My Notes"><ChevronLeft size={18} /></button>
-      )}
+      <div className="nr-floating-left">
+        {!isSharedContent && (
+          <button
+            className="nr-floating-control nr-exit-btn"
+            onClick={() => navigate('/notes/my-notes')}
+            title="Exit to My Notes"
+            type="button"
+          >
+            <ChevronLeft size={18} />
+            <span>My Notes</span>
+          </button>
+        )}
+      </div>
 
-      {/* Floating ContextSelector */}
-      <div style={{position:'fixed',top:'10px',right:'16px',zIndex:8000}}>
+      <div className="nr-context-shell">
         <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
       </div>
+
+      {isFullscreen && (
+        <button
+          className="nr-fullscreen-exit"
+          type="button"
+          onClick={() => setIsFullscreen(false)}
+          title="Exit fullscreen"
+        >
+          <Minimize2 size={16} />
+          <span>Exit Fullscreen</span>
+        </button>
+      )}
 
       {/* Body - Sidebar + Content */}
       <div className="nr-body">
@@ -2838,6 +2868,54 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     >
                       <Edit3 size={16} />
                       <span>Edit</span>
+                    </button>
+                    <button
+                      className={`tool-panel-btn ${viewMode === "preview" ? "active" : ""}`}
+                      onClick={() => setViewMode("preview")}
+                      title="Preview note"
+                    >
+                      <Eye size={16} />
+                      <span>Preview</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="tool-section">
+                  <label className="tool-section-label">EDITOR</label>
+                  <div className="tool-buttons-group">
+                    <button
+                      className={`tool-panel-btn ${editorDarkMode ? "active" : ""}`}
+                      onClick={() => setEditorDarkMode((value) => !value)}
+                      title={editorDarkMode ? "Use light paper" : "Use dark paper"}
+                    >
+                      <Palette size={16} />
+                      <span>{editorDarkMode ? "Dark Paper" : "Light Paper"}</span>
+                    </button>
+                    {!isSharedContent && (
+                      <button
+                        className={`tool-panel-btn ${showPageProperties ? "active" : ""}`}
+                        onClick={() => setShowPageProperties((value) => !value)}
+                        title="Page properties"
+                      >
+                        <Layout size={16} />
+                        <span>Page Setup</span>
+                      </button>
+                    )}
+                    <button
+                      className={`tool-panel-btn ${isFullscreen ? "active" : ""}`}
+                      onClick={toggleFullscreen}
+                      title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                    >
+                      {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                      <span>{isFullscreen ? "Exit Full" : "Fullscreen"}</span>
+                    </button>
+                    <button
+                      className="tool-panel-btn"
+                      onClick={() => setShowKeyboardShortcuts(true)}
+                      title="Keyboard shortcuts"
+                    >
+                      <Command size={16} />
+                      <span>Shortcuts</span>
                     </button>
                   </div>
                 </div>
@@ -2968,7 +3046,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   <button
                     className="title-action-btn"
                     type="button"
-                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    onClick={toggleFullscreen}
                     title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                   >
                     {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -3281,7 +3359,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
               {/* Backlinks Panel */}
               {selectedNote && backlinks.length > 0 && !isSharedContent && (
-                <div style={{ padding: '0 60px 40px' }}>
+                <div className="nr-backlinks-wrap">
                   <BacklinksPanel
                     backlinks={backlinks}
                     onNoteClick={selectNote}
