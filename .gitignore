@@ -5,6 +5,12 @@ __pycache__/
 
 # DBs / local state
 *.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.db.corrupt-*
+*.db-shm.corrupt-*
+*.db-wal.corrupt-*
 backend/brainwave.db
 backend/.chroma_data/
 backend/services/intent_state.json
