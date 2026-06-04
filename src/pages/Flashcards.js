@@ -15,6 +15,35 @@ import GeoBackground from '../components/GeoBackground';
 
 const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
 
+const FC_ICONS = {
+  menu: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>,
+  fire: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2c.5 2.5 2 4.5 2 7a4 4 0 1 1-8 0c0-2.5 1.5-4.5 2-7 1.5 1.5 2.5 2 4 0z"/></svg>,
+  book: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+  target: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+  cards: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>,
+  sparkle: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/></svg>,
+  chart: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>,
+  bolt: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  chat: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
+  edit: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+  file: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+  calendar: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  play: <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+  eye: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  shuffle: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>,
+  check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>,
+  x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  arrowRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
+  arrowLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
+  refresh: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
+  celebration: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/></svg>,
+  chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+};
+
 const Flashcards = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -143,37 +172,8 @@ const Flashcards = () => {
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
   const closePopup = () => setPopup({ isOpen: false, message: '', title: '' });
 
-  
-  const Icons = {
-    menu: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>,
-    fire: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2c.5 2.5 2 4.5 2 7a4 4 0 1 1-8 0c0-2.5 1.5-4.5 2-7 1.5 1.5 2.5 2 4 0z"/></svg>,
-    book: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
-    target: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
-    cards: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>,
-    sparkle: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/></svg>,
-    chart: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>,
-    bolt: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-    home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-    chat: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-    logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-    search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
-    edit: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-    trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-    file: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
-    calendar: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-    play: <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
-    eye: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
-    shuffle: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>,
-    check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>,
-    x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-    arrowRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
-    arrowLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
-    refresh: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
-    celebration: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/></svg>,
-    chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
-  };
 
-  
+
   const formatTitle = (title) => {
     if (!title) return '';
     
@@ -907,22 +907,17 @@ const Flashcards = () => {
         });
       }
 
-      
-      for (const card of editingCards) {
+      await Promise.all(editingCards.map(card => {
         if (card.isDeleted && card.id) {
-          
-          await fetch(`${API_URL}/flashcards/cards/${card.id}`, {
+          return fetch(`${API_URL}/flashcards/cards/${card.id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
           });
-        } else if (card.isNew && card.question.trim() && card.answer.trim()) {
-          
-          await fetch(`${API_URL}/flashcards/cards/create`, {
+        }
+        if (card.isNew && card.question.trim() && card.answer.trim()) {
+          return fetch(`${API_URL}/flashcards/cards/create`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({
               set_id: currentSetInfo.setId,
               question: card.question,
@@ -930,14 +925,11 @@ const Flashcards = () => {
               difficulty: card.difficulty || 'medium'
             })
           });
-        } else if (!card.isNew && !card.isDeleted && card.id && card.wasModified) {
-          
-          await fetch(`${API_URL}/flashcards/cards/${card.id}`, {
+        }
+        if (!card.isNew && !card.isDeleted && card.id && card.wasModified) {
+          return fetch(`${API_URL}/flashcards/cards/${card.id}`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({
               question: card.question,
               answer: card.answer,
@@ -945,7 +937,8 @@ const Flashcards = () => {
             })
           });
         }
-      }
+        return Promise.resolve();
+      }));
 
       showPopup('Updated Successfully', 'Your flashcard set has been updated.');
       setEditMode(false);
@@ -1976,7 +1969,7 @@ const Flashcards = () => {
               />
             </div>
             <button className="fc-exit-btn fc-exit-styled" onClick={exitCustomCreateMode}>
-              EXIT {Icons.chevronRight}
+              EXIT {FC_ICONS.chevronRight}
             </button>
           </div>
 
@@ -2012,7 +2005,7 @@ const Flashcards = () => {
                       disabled={customCards.length === 1}
                       title="Delete this card"
                     >
-                      {Icons.trash}
+                      {FC_ICONS.trash}
                     </button>
                   </div>
                 </div>
@@ -2107,10 +2100,10 @@ const Flashcards = () => {
                 onClick={saveEditedFlashcards}
                 disabled={generating}
               >
-                {generating ? 'SAVING...' : <>{Icons.check} SAVE</>}
+                {generating ? 'SAVING...' : <>{FC_ICONS.check} SAVE</>}
               </button>
               <button className="fc-exit-btn fc-exit-styled" onClick={cancelEditMode}>
-                EXIT {Icons.chevronRight}
+                EXIT {FC_ICONS.chevronRight}
               </button>
             </div>
           </div>
@@ -2158,7 +2151,7 @@ const Flashcards = () => {
                       }}
                       title="Delete this card"
                     >
-                      {Icons.trash}
+                      {FC_ICONS.trash}
                     </button>
                   </div>
                 </div>
@@ -2277,7 +2270,7 @@ const Flashcards = () => {
                 <div className="fc-results-orb fc-results-orb--br" />
 
                 <div className="fc-results-header">
-                  <div className="fc-results-icon">{Icons.celebration}</div>
+                  <div className="fc-results-icon">{FC_ICONS.celebration}</div>
                   <h2>Review Complete!</h2>
                   <p className="fc-results-subtitle">{currentSetInfo?.setTitle || 'Preview Session'}</p>
                 </div>
@@ -2307,17 +2300,17 @@ const Flashcards = () => {
 
                 <div className="fc-results-stats">
                   <div className="fc-result-stat correct">
-                    <div className="fc-result-stat-icon">{Icons.check}</div>
+                    <div className="fc-result-stat-icon">{FC_ICONS.check}</div>
                     <div className="fc-result-stat-num">{studySessionStats.correct}</div>
                     <div className="fc-result-stat-label">I Know This</div>
                   </div>
                   <div className="fc-result-stat incorrect">
-                    <div className="fc-result-stat-icon">{Icons.x}</div>
+                    <div className="fc-result-stat-icon">{FC_ICONS.x}</div>
                     <div className="fc-result-stat-num">{studySessionStats.incorrect}</div>
                     <div className="fc-result-stat-label">Don't Know</div>
                   </div>
                   <div className="fc-result-stat skipped">
-                    <div className="fc-result-stat-icon">{Icons.eye}</div>
+                    <div className="fc-result-stat-icon">{FC_ICONS.eye}</div>
                     <div className="fc-result-stat-num">{totalReviewed}</div>
                     <div className="fc-result-stat-label">Cards Reviewed</div>
                   </div>
@@ -2337,7 +2330,7 @@ const Flashcards = () => {
 
                 <div className="fc-results-actions">
                   <button className="fc-btn fc-btn-secondary" onClick={restartStudy}>
-                    {Icons.refresh} Review Again
+                    {FC_ICONS.refresh} Review Again
                   </button>
                   <button
                     className="fc-btn fc-btn-primary"
@@ -2352,7 +2345,7 @@ const Flashcards = () => {
                       setStudyMode(true);
                     }}
                   >
-                    {Icons.target} Start Quiz
+                    {FC_ICONS.target} Start Quiz
                   </button>
                   <button className="fc-btn fc-btn-secondary" onClick={exitStudyMode}>
                     Exit
@@ -2378,7 +2371,7 @@ const Flashcards = () => {
               
               setShowStudyResults(true);
             }}>
-              EXIT {Icons.chevronRight}
+              EXIT {FC_ICONS.chevronRight}
             </button>
           </div>
 
@@ -2464,7 +2457,7 @@ const Flashcards = () => {
                   }
                 }}
               >
-                {Icons.x}
+                {FC_ICONS.x}
                 <span>I don't know this</span>
               </button>
               <button
@@ -2491,7 +2484,7 @@ const Flashcards = () => {
                   }
                 }}
               >
-                {Icons.check}
+                {FC_ICONS.check}
                 <span>I know this</span>
               </button>
             </div>
@@ -2559,7 +2552,7 @@ const Flashcards = () => {
         <div className="fc-study-mode">
           <div className="fc-study-header">
             <button className="fc-btn fc-btn-ghost" onClick={exitSrStudy}>
-              {Icons.back} Exit
+              {FC_ICONS.back} Exit
             </button>
             <div className="fc-study-progress">
               <span>{srCurrentCard + 1} / {cards.length}</span>
@@ -2647,23 +2640,23 @@ const Flashcards = () => {
           {showStudyResults ? (
             <div className="fc-results">
               <div className="fc-results-card">
-                <div className="fc-results-icon">{Icons.celebration}</div>
+                <div className="fc-results-icon">{FC_ICONS.celebration}</div>
                 <h2>Quiz Complete!</h2>
                 <p className="fc-results-subtitle">{currentSetInfo?.setTitle || 'Study Session'}</p>
                 
                 <div className="fc-results-stats">
                   <div className="fc-result-stat correct">
-                    <div className="fc-result-stat-icon">{Icons.check}</div>
+                    <div className="fc-result-stat-icon">{FC_ICONS.check}</div>
                     <div className="fc-result-stat-num">{studySessionStats.correct}</div>
                     <div className="fc-result-stat-label">Correct</div>
                   </div>
                   <div className="fc-result-stat incorrect">
-                    <div className="fc-result-stat-icon">{Icons.x}</div>
+                    <div className="fc-result-stat-icon">{FC_ICONS.x}</div>
                     <div className="fc-result-stat-num">{studySessionStats.incorrect}</div>
                     <div className="fc-result-stat-label">Incorrect</div>
                   </div>
                   <div className="fc-result-stat skipped">
-                    <div className="fc-result-stat-icon">{Icons.eye}</div>
+                    <div className="fc-result-stat-icon">{FC_ICONS.eye}</div>
                     <div className="fc-result-stat-num">{currentStudyCards.length}</div>
                     <div className="fc-result-stat-label">Total Questions</div>
                   </div>
@@ -2692,7 +2685,7 @@ const Flashcards = () => {
 
                 <div className="fc-results-actions">
                   <button className="fc-btn fc-btn-secondary" onClick={restartStudy}>
-                    {Icons.refresh} Study Again
+                    {FC_ICONS.refresh} Study Again
                   </button>
                   <button className="fc-btn fc-btn-primary" onClick={exitStudyMode}>
                     Back to Flashcards
@@ -2708,7 +2701,7 @@ const Flashcards = () => {
                   <span className="fc-card-counter">CARD {currentCard + 1} OF {currentStudyCards.length}</span>
                 </div>
                 <button className="fc-exit-btn fc-exit-styled" onClick={exitStudyMode}>
-                  EXIT {Icons.chevronRight}
+                  EXIT {FC_ICONS.chevronRight}
                 </button>
               </div>
 
@@ -2753,8 +2746,8 @@ const Flashcards = () => {
                         >
                           <span className="fc-mcq-letter">{String.fromCharCode(65 + index)}</span>
                           <span className="fc-mcq-text">{option}</span>
-                          {showAnswer && isCorrect && <span className="fc-mcq-icon">{Icons.check}</span>}
-                          {showAnswer && isSelected && !isCorrect && <span className="fc-mcq-icon">{Icons.x}</span>}
+                          {showAnswer && isCorrect && <span className="fc-mcq-icon">{FC_ICONS.check}</span>}
+                          {showAnswer && isSelected && !isCorrect && <span className="fc-mcq-icon">{FC_ICONS.x}</span>}
                         </button>
                       );
                     })}
@@ -2763,7 +2756,7 @@ const Flashcards = () => {
                   {showAnswer && (
                     <button className="fc-next-question-btn" onClick={handleNextMCQ}>
                       {currentCard < currentStudyCards.length - 1 ? 'NEXT QUESTION' : 'FINISH'}
-                      {Icons.chevronRight}
+                      {FC_ICONS.chevronRight}
                     </button>
                   )}
                 </div>
@@ -2784,7 +2777,7 @@ const Flashcards = () => {
           <aside className={`fc-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
             <div className="fc-sidebar-header">
               <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            {Icons.menu}
+            {FC_ICONS.menu}
           </button>
           <div className="fc-logo" onClick={() => navigate('/search-hub')}>
                 <div className="fc-logo-img" />
@@ -2797,11 +2790,11 @@ const Flashcards = () => {
 
           <nav className="fc-sidebar-nav">
             <button className={`fc-nav-item fc-nav-item--primary ${activePanel === 'generator' ? 'active' : ''}`} onClick={() => setActivePanel('generator')}>
-              <span className="fc-nav-icon">{Icons.sparkle}</span>
+              <span className="fc-nav-icon">{FC_ICONS.sparkle}</span>
               <span className="fc-nav-text">Generator</span>
             </button>
             <button className={`fc-nav-item ${activePanel === 'sources' ? 'active' : ''}`} onClick={() => { setActivePanel('sources'); loadUploadedDocuments(); }}>
-              <span className="fc-nav-icon">{Icons.file}</span>
+              <span className="fc-nav-icon">{FC_ICONS.file}</span>
               <span className="fc-nav-text">PDF Sources</span>
               {uploadedDocuments.length > 0 && (
                 <span className="fc-nav-badge">{uploadedDocuments.length}</span>
@@ -2809,44 +2802,44 @@ const Flashcards = () => {
             </button>
             <div className="fc-nav-divider" />
             <button className={`fc-nav-item ${activePanel === 'cards' ? 'active' : ''}`} onClick={() => setActivePanel('cards')}>
-              <span className="fc-nav-icon">{Icons.cards}</span>
+              <span className="fc-nav-icon">{FC_ICONS.cards}</span>
               <span className="fc-nav-text">My Flashcards</span>
             </button>
             <button className={`fc-nav-item ${activePanel === 'sr_study' ? 'active' : ''}`} onClick={() => { setActivePanel('sr_study'); loadDueCards(); loadSrStats(); }}>
-              <span className="fc-nav-icon">{Icons.target}</span>
+              <span className="fc-nav-icon">{FC_ICONS.target}</span>
               <span className="fc-nav-text">Study Queue</span>
               {dueCards.due_count > 0 && (
                 <span className="fc-nav-badge fc-nav-badge-sr">{dueCards.due_count}</span>
               )}
             </button>
             <button className={`fc-nav-item ${activePanel === 'review' ? 'active' : ''}`} onClick={() => setActivePanel('review')}>
-              <span className="fc-nav-icon">{Icons.refresh}</span>
+              <span className="fc-nav-icon">{FC_ICONS.refresh}</span>
               <span className="fc-nav-text">Needs Review</span>
               {reviewCards.total_cards > 0 && (
                 <span className="fc-nav-badge">{reviewCards.total_cards}</span>
               )}
             </button>
             <button className={`fc-nav-item ${activePanel === 'explore' ? 'active' : ''}`} onClick={() => { setActivePanel('explore'); loadAllPublicFlashcards(); }}>
-              <span className="fc-nav-icon">{Icons.search}</span>
+              <span className="fc-nav-icon">{FC_ICONS.search}</span>
               <span className="fc-nav-text">Explore Public</span>
             </button>
             <button className={`fc-nav-item ${activePanel === 'statistics' ? 'active' : ''}`} onClick={() => setActivePanel('statistics')}>
-              <span className="fc-nav-icon">{Icons.chart}</span>
+              <span className="fc-nav-icon">{FC_ICONS.chart}</span>
               <span className="fc-nav-text">Statistics</span>
             </button>
             <button className="fc-nav-item fc-convert-btn" onClick={() => setShowImportExport(true)}>
-              <span className="fc-nav-icon">{Icons.bolt}</span>
+              <span className="fc-nav-icon">{FC_ICONS.bolt}</span>
               <span className="fc-nav-text">Convert</span>
             </button>
           </nav>
 
           <div className="fc-sidebar-footer">
             <button className="fc-nav-item" onClick={() => navigate('/dashboard-cerbyl')}>
-              <span className="fc-nav-icon">{Icons.home}</span>
+              <span className="fc-nav-icon">{FC_ICONS.home}</span>
               <span className="fc-nav-text">Dashboard</span>
             </button>
             <button className="fc-nav-item" onClick={() => navigate('/ai-chat')}>
-              <span className="fc-nav-icon">{Icons.chat}</span>
+              <span className="fc-nav-icon">{FC_ICONS.chat}</span>
               <span className="fc-nav-text">AI Chat</span>
             </button>
           </div>
@@ -2871,7 +2864,7 @@ const Flashcards = () => {
                     <h3>No Flashcard Sets Yet</h3>
                     <p>Create your first set to start learning!</p>
                     <button className="fc-btn fc-btn-primary" onClick={() => setActivePanel('generator')}>
-                      {Icons.sparkle} Create Your First Set
+                      {FC_ICONS.sparkle} Create Your First Set
                     </button>
                   </div>
                 ) : (
@@ -2929,7 +2922,7 @@ const Flashcards = () => {
                                   e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.5)';
                                 }}
                               >
-                                {Icons.trash}
+                                {FC_ICONS.trash}
                               </button>
                             </div>
 
@@ -3007,7 +3000,7 @@ const Flashcards = () => {
                       className={`fc-mode-btn ${generationMode === 'topic' ? 'active' : ''}`}
                       onClick={() => setGenerationMode('topic')}
                     >
-                      <div className="fc-mode-icon">{Icons.sparkle}</div>
+                      <div className="fc-mode-icon">{FC_ICONS.sparkle}</div>
                       <span className="fc-mode-label">AI BY TOPIC</span>
                       <span className="fc-mode-desc">Generate cards from any topic</span>
                     </button>
@@ -3015,7 +3008,7 @@ const Flashcards = () => {
                       className={`fc-mode-btn ${generationMode === 'chat_history' ? 'active' : ''}`}
                       onClick={() => setGenerationMode('chat_history')}
                     >
-                      <div className="fc-mode-icon">{Icons.chat}</div>
+                      <div className="fc-mode-icon">{FC_ICONS.chat}</div>
                       <span className="fc-mode-label">FROM CHAT</span>
                       <span className="fc-mode-desc">Convert AI conversations</span>
                     </button>
@@ -3023,7 +3016,7 @@ const Flashcards = () => {
                       className="fc-mode-btn"
                       onClick={enterCustomCreateMode}
                     >
-                      <div className="fc-mode-icon">{Icons.edit}</div>
+                      <div className="fc-mode-icon">{FC_ICONS.edit}</div>
                       <span className="fc-mode-label">CREATE CUSTOM</span>
                       <span className="fc-mode-desc">Make your own flashcards</span>
                     </button>
@@ -3186,7 +3179,7 @@ const Flashcards = () => {
 
                       {chatSessions.length === 0 ? (
                         <div className="fc-empty">
-                          <div className="fc-empty-icon">{Icons.chat}</div>
+                          <div className="fc-empty-icon">{FC_ICONS.chat}</div>
                           <h3>No Chat Sessions</h3>
                           <p>Start a conversation with AI to generate flashcards from it.</p>
                           <button className="fc-btn fc-btn-primary" onClick={() => navigate('/ai-chat')}>Go to AI Chat</button>
@@ -3360,7 +3353,7 @@ const Flashcards = () => {
 
                 <div className="fc-source-layout">
                   <section className="fc-source-upload-card">
-                    <div className="fc-source-upload-icon">{Icons.file}</div>
+                    <div className="fc-source-upload-icon">{FC_ICONS.file}</div>
                     <h3>Add PDF Source</h3>
                     <p>Uploaded PDFs appear in both Question Hub and Flashcards.</p>
                     <input
@@ -3426,17 +3419,17 @@ const Flashcards = () => {
                                 }
                               }}
                             >
-                              <span className="fc-source-check">{isSelected ? Icons.check : null}</span>
+                              <span className="fc-source-check">{isSelected ? FC_ICONS.check : null}</span>
                               <button
                                 type="button"
                                 className="fc-source-delete"
                                 onClick={(event) => deleteUploadedDocument(doc.id, event)}
                                 aria-label={`Delete ${doc.filename}`}
                               >
-                                {Icons.trash}
+                                {FC_ICONS.trash}
                               </button>
                               <div className="fc-source-card-head">
-                                <span className="fc-source-file-icon">{Icons.file}</span>
+                                <span className="fc-source-file-icon">{FC_ICONS.file}</span>
                                 <div>
                                   <h4>{doc.filename}</h4>
                                   <p>{doc.document_type || 'PDF source'}</p>
@@ -3472,7 +3465,7 @@ const Flashcards = () => {
                     <div className="fc-selected-source-list">
                       {selectedPDFs.map((doc) => (
                         <div key={doc.id} className="fc-selected-source-pill">
-                          {Icons.file}
+                          {FC_ICONS.file}
                           <span>{doc.filename}</span>
                           <button type="button" onClick={() => togglePDFSelection(doc)}>×</button>
                         </div>
@@ -3605,7 +3598,7 @@ const Flashcards = () => {
                                   }}
                                   title="I know this now"
                                 >
-                                  {Icons.check}
+                                  {FC_ICONS.check}
                                 </button>
                               </div>
                             </div>
@@ -3629,7 +3622,7 @@ const Flashcards = () => {
                             setPreviewMode(true);
                           }}
                         >
-                          {Icons.play} Study These Cards
+                          {FC_ICONS.play} Study These Cards
                         </button>
                       </div>
                     ))}
@@ -3661,7 +3654,7 @@ const Flashcards = () => {
                     </div>
                     <div className="fc-explore-search-landing">
                       <div className="fc-explore-searchbar">
-                        <span className="fc-explore-search-icon">{Icons.search}</span>
+                        <span className="fc-explore-search-icon">{FC_ICONS.search}</span>
                         <input
                           type="text"
                           className="fc-explore-search-input"
@@ -3690,7 +3683,7 @@ const Flashcards = () => {
                     <div className="fc-public-search-bar">
                       <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                         <div className="fc-search fc-search-large">
-                          <span className="fc-search-icon">{Icons.search}</span>
+                          <span className="fc-search-icon">{FC_ICONS.search}</span>
                           <input 
                             type="text"
                             placeholder="Search public flashcard sets..."
@@ -3794,14 +3787,14 @@ const Flashcards = () => {
 
                 {dueCards.due_count > 0 && (
                   <button className="fc-btn fc-btn-primary fc-sr-start-btn-inline" onClick={startSrStudy}>
-                    {Icons.bolt} Start Review ({dueCards.due_count})
+                    {FC_ICONS.bolt} Start Review ({dueCards.due_count})
                   </button>
                 )}
               </div>
 
               {dueCards.due_count === 0 && (
                 <div className="fc-sr-empty">
-                  <div className="fc-sr-empty-icon">{Icons.check}</div>
+                  <div className="fc-sr-empty-icon">{FC_ICONS.check}</div>
                   <h3>You're all caught up!</h3>
                   <p>No cards due for review right now. Great job!</p>
                 </div>
@@ -3981,22 +3974,22 @@ const Flashcards = () => {
                   <>
                     <div className="fc-stats-grid">
                       <div className="fc-stat-card">
-                        <div className="fc-stat-icon">{Icons.book}</div>
+                        <div className="fc-stat-icon">{FC_ICONS.book}</div>
                         <div className="fc-stat-value">{flashcardStats.total_sets}</div>
                         <div className="fc-stat-label">TOTAL SETS</div>
                       </div>
                       <div className="fc-stat-card">
-                        <div className="fc-stat-icon">{Icons.cards}</div>
+                        <div className="fc-stat-icon">{FC_ICONS.cards}</div>
                         <div className="fc-stat-value">{flashcardStats.total_cards}</div>
                         <div className="fc-stat-label">TOTAL CARDS</div>
                       </div>
                       <div className="fc-stat-card">
-                        <div className="fc-stat-icon">{Icons.target}</div>
+                        <div className="fc-stat-icon">{FC_ICONS.target}</div>
                         <div className="fc-stat-value">{flashcardStats.overall_accuracy}%</div>
                         <div className="fc-stat-label">ACCURACY</div>
                       </div>
                       <div className="fc-stat-card">
-                        <div className="fc-stat-icon">{Icons.fire}</div>
+                        <div className="fc-stat-icon">{FC_ICONS.fire}</div>
                         <div className="fc-stat-value">{currentStreak}</div>
                         <div className="fc-stat-label">Day Streak</div>
                       </div>
@@ -4004,7 +3997,7 @@ const Flashcards = () => {
                   </>
                 ) : (
                   <div className="fc-empty">
-                    <div className="fc-empty-icon">{Icons.chart}</div>
+                    <div className="fc-empty-icon">{FC_ICONS.chart}</div>
                     <h3>No Statistics Yet</h3>
                     <p>Start studying flashcards to see your analytics here!</p>
                     <button className="fc-btn fc-btn-primary" onClick={() => setActivePanel('cards')}>

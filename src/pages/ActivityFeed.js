@@ -1,17 +1,78 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Trophy, Target, Flame, TrendingUp, Heart, Award, Zap, Star, 
+import {
+  Trophy, Target, Flame, TrendingUp, Heart, Award, Zap, Star,
   Users, Filter, MessageCircle, Send, X, BookOpen,
   Brain, CheckCircle, Clock, Calendar, Sparkles, TrendingDown,
   Activity as ActivityIcon, RefreshCw
 } from 'lucide-react';
 import './ActivityFeed.css';
 import { API_URL } from '../config';
+import { formatCompactRelativeTime } from '../utils/dateUtils';
+
+const ACTIVITY_COLORS = {
+  achievement: '#D7B38C',
+  milestone: '#22c55e',
+  streak: '#F59E0B',
+  quiz_completed: '#8B5CF6',
+  quiz_battle_won: '#22c55e',
+  note_created: '#3B82F6',
+  flashcard_created: '#EC4899',
+  study_session: '#10B981',
+  learning_path: '#F59E0B',
+};
+
+const ACTIVITY_LABELS = {
+  achievement: 'Achievement',
+  milestone: 'Milestone',
+  streak: 'Streak',
+  quiz_completed: 'Quiz',
+  quiz_battle_won: 'Battle Victory',
+  note_created: 'Note',
+  flashcard_created: 'Flashcard',
+  study_session: 'Study Session',
+  learning_path: 'Learning Path',
+};
+
+const ACTIVITY_TYPES = [
+  { value: 'all', label: 'All Activities', icon: ActivityIcon },
+  { value: 'achievement', label: 'Achievements', icon: Trophy },
+  { value: 'streak', label: 'Streaks', icon: Flame },
+  { value: 'quiz_completed', label: 'Quizzes', icon: Brain },
+  { value: 'quiz_battle_won', label: 'Battles', icon: Zap },
+  { value: 'milestone', label: 'Milestones', icon: Target },
+];
+
+const TIME_FILTERS = [
+  { value: 'all', label: 'All Time', icon: Calendar },
+  { value: 'today', label: 'Today', icon: Clock },
+  { value: 'week', label: 'This Week', icon: TrendingUp },
+  { value: 'month', label: 'This Month', icon: TrendingDown },
+];
+
+const GEO_SVG = (
+  <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
+    <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+    <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
+    <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+    <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
+    <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
+    <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
+    <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
+    <circle cx="600" cy="40" r="5" fill="currentColor"/>
+    <circle cx="600" cy="760" r="5" fill="currentColor"/>
+    <circle cx="240" cy="400" r="5" fill="currentColor"/>
+    <circle cx="960" cy="400" r="5" fill="currentColor"/>
+    <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
+    <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
+    <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
+    <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
+  </svg>
+);
 
 const ActivityFeed = () => {
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
   const [activities, setActivities] = useState([]);
   const [filteredActivities, setFilteredActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +91,7 @@ const ActivityFeed = () => {
 
   useEffect(() => {
     fetchActivityFeed();
-    
+
     const interval = setInterval(fetchActivityFeed, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -46,6 +107,7 @@ const ActivityFeed = () => {
   }, [commentingOn]);
 
   const fetchActivityFeed = async () => {
+    const token = localStorage.getItem('token');
     try {
       const response = await fetch(`${API_URL}/friend_activity_feed?limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -65,14 +127,14 @@ const ActivityFeed = () => {
   const calculateStats = (activitiesData) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    const todayCount = activitiesData.filter(a => 
+
+    const todayCount = activitiesData.filter(a =>
       new Date(a.created_at) >= today
     ).length;
-    
+
     const totalKudos = activitiesData.reduce((sum, a) => sum + (a.kudos_count || 0), 0);
-    
-    const streakActivities = activitiesData.filter(a => 
+
+    const streakActivities = activitiesData.filter(a =>
       a.activity_type === 'streak'
     ).length;
 
@@ -87,12 +149,10 @@ const ActivityFeed = () => {
   const applyFilters = () => {
     let filtered = [...activities];
 
-    
     if (activeFilter !== 'all') {
       filtered = filtered.filter(a => a.activity_type === activeFilter);
     }
 
-    
     const now = new Date();
     if (timeFilter === 'today') {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -109,6 +169,7 @@ const ActivityFeed = () => {
   };
 
   const handleKudos = async (activityId) => {
+    const token = localStorage.getItem('token');
     try {
       const response = await fetch(`${API_URL}/give_kudos`, {
         method: 'POST',
@@ -120,7 +181,6 @@ const ActivityFeed = () => {
       });
 
       if (response.ok) {
-        
         setActivities(prev => prev.map(activity => {
           if (activity.id === activityId) {
             const wasGiven = activity.user_gave_kudos;
@@ -138,116 +198,20 @@ const ActivityFeed = () => {
     }
   };
 
-  const handleComment = async (activityId) => {
+  const handleComment = (activityId) => {
     if (!commentText.trim()) return;
-
-    try {
-      
-      
-      setCommentText('');
-      setCommentingOn(null);
-      
-      
-      alert('Comment feature coming soon!');
-    } catch (error) {
-      console.error('Error posting comment:', error);
-    }
+    setCommentText('');
+    setCommentingOn(null);
+    alert('Comment feature coming soon!');
   };
 
   const getIconComponent = (iconName) => {
     const icons = {
-      Trophy, Target, Flame, TrendingUp, Award, Zap, Star, 
+      Trophy, Target, Flame, TrendingUp, Award, Zap, Star,
       BookOpen, Brain, CheckCircle, Sparkles, ActivityIcon
     };
     return icons[iconName] || Trophy;
   };
-
-  const getActivityColor = (type) => {
-    const colors = {
-      achievement: '#D7B38C',
-      milestone: '#22c55e',
-      streak: '#F59E0B',
-      quiz_completed: '#8B5CF6',
-      quiz_battle_won: '#22c55e',
-      note_created: '#3B82F6',
-      flashcard_created: '#EC4899',
-      study_session: '#10B981',
-      learning_path: '#F59E0B'
-    };
-    return colors[type] || '#D7B38C';
-  };
-
-  const getActivityTypeLabel = (type) => {
-    const labels = {
-      achievement: 'Achievement',
-      milestone: 'Milestone',
-      streak: 'Streak',
-      quiz_completed: 'Quiz',
-      quiz_battle_won: 'Battle Victory',
-      note_created: 'Note',
-      flashcard_created: 'Flashcard',
-      study_session: 'Study Session',
-      learning_path: 'Learning Path'
-    };
-    return labels[type] || 'Activity';
-  };
-
-  const formatTimeAgo = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-    });
-  };
-
-  const activityTypes = [
-    { value: 'all', label: 'All Activities', icon: ActivityIcon },
-    { value: 'achievement', label: 'Achievements', icon: Trophy },
-    { value: 'streak', label: 'Streaks', icon: Flame },
-    { value: 'quiz_completed', label: 'Quizzes', icon: Brain },
-    { value: 'quiz_battle_won', label: 'Battles', icon: Zap },
-    { value: 'milestone', label: 'Milestones', icon: Target }
-  ];
-
-  const timeFilters = [
-    { value: 'all', label: 'All Time', icon: Calendar },
-    { value: 'today', label: 'Today', icon: Clock },
-    { value: 'week', label: 'This Week', icon: TrendingUp },
-    { value: 'month', label: 'This Month', icon: TrendingDown }
-  ];
-
-  const GEO_SVG = (
-    <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
-      <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
-      <circle cx="600" cy="400" r="168" fill="none" stroke="currentColor" strokeWidth="0.7"/>
-      <circle cx="600" cy="400" r="90" fill="none" stroke="currentColor" strokeWidth="0.6"/>
-      <line x1="600" y1="0" x2="600" y2="800" stroke="currentColor" strokeWidth="0.5"/>
-      <line x1="0" y1="400" x2="1200" y2="400" stroke="currentColor" strokeWidth="0.5"/>
-      <line x1="0" y1="800" x2="500" y2="0" stroke="currentColor" strokeWidth="0.4"/>
-      <line x1="1200" y1="0" x2="700" y2="800" stroke="currentColor" strokeWidth="0.4"/>
-      <circle cx="600" cy="40" r="5" fill="currentColor"/>
-      <circle cx="600" cy="760" r="5" fill="currentColor"/>
-      <circle cx="240" cy="400" r="5" fill="currentColor"/>
-      <circle cx="960" cy="400" r="5" fill="currentColor"/>
-      <circle cx="345" cy="146" r="3.5" fill="currentColor"/>
-      <circle cx="855" cy="654" r="3.5" fill="currentColor"/>
-      <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
-      <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
-    </svg>
-  );
 
   if (loading) {
     return (
@@ -268,7 +232,7 @@ const ActivityFeed = () => {
         <aside className="af-sidebar">
           <div className="af-sidebar-section">
             <div className="af-sidebar-heading">Activity Type</div>
-            {activityTypes.map(type => {
+            {ACTIVITY_TYPES.map(type => {
               const IconComp = type.icon;
               return (
                 <button key={type.value} className={`af-sidebar-item ${activeFilter === type.value ? 'active' : ''}`} onClick={() => setActiveFilter(type.value)}>
@@ -284,7 +248,7 @@ const ActivityFeed = () => {
 
           <div className="af-sidebar-section">
             <div className="af-sidebar-heading">Time Period</div>
-            {timeFilters.map(filter => {
+            {TIME_FILTERS.map(filter => {
               const IconComp = filter.icon;
               return (
                 <button key={filter.value} className={`af-sidebar-item ${timeFilter === filter.value ? 'active' : ''}`} onClick={() => setTimeFilter(filter.value)}>
@@ -336,8 +300,8 @@ const ActivityFeed = () => {
             <Zap size={48} />
             <p>No activities found</p>
             <p className="af-empty-feed-hint">
-              {activeFilter !== 'all' || timeFilter !== 'all' 
-                ? 'Try adjusting your filters' 
+              {activeFilter !== 'all' || timeFilter !== 'all'
+                ? 'Try adjusting your filters'
                 : 'Add more friends to see their achievements here'}
             </p>
           </div>
@@ -345,7 +309,7 @@ const ActivityFeed = () => {
           <div className="af-activity-list">
             {filteredActivities.map(activity => {
               const IconComponent = getIconComponent(activity.icon);
-              const activityColor = getActivityColor(activity.activity_type);
+              const activityColor = ACTIVITY_COLORS[activity.activity_type] || '#D7B38C';
 
               return (
                 <div key={activity.id} className="af-activity-card">
@@ -367,14 +331,14 @@ const ActivityFeed = () => {
                             : activity.user.username}
                         </span>
                         <div className="af-activity-meta-row">
-                          <span className="af-activity-type-badge" style={{ 
+                          <span className="af-activity-type-badge" style={{
                             background: `${activityColor}20`,
                             color: activityColor,
                             borderColor: `${activityColor}40`
                           }}>
-                            {getActivityTypeLabel(activity.activity_type)}
+                            {ACTIVITY_LABELS[activity.activity_type] || 'Activity'}
                           </span>
-                          <span className="af-activity-time">{formatTimeAgo(activity.created_at)}</span>
+                          <span className="af-activity-time">{formatCompactRelativeTime(activity.created_at)}</span>
                         </div>
                       </div>
                     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
@@ -284,6 +284,93 @@ function pickSmartActions({ userMessage, aiResponse, recentActionIds = [], inten
   }));
 }
 
+const CHAT_GREETINGS = [
+  "Welcome back! How can I help you today?",
+  "Ready to explore new topics together?",
+  "Let's dive into learning something new",
+  "Your personal AI tutor is here to help",
+  "What would you like to learn today?",
+  "Hello {name}! I'm excited to help you learn",
+  "{name}, ready to unlock new knowledge?",
+  "Welcome back, {name}! Let's continue your learning",
+  "Hey {name}! What would you like to explore?",
+  "{name}, let's make today a learning adventure",
+  "Good day, {name}! Ready to expand your horizons?",
+  "Hi {name}! Let's tackle your questions together",
+  "Welcome, {name}! Your AI learning companion is here",
+  "{name}, let's turn curiosity into understanding",
+  "Hello {name}! What fascinating topic shall we discuss?",
+];
+
+const SYMBOL_MAP = {
+  '*alpha*': 'α', '*Alpha*': 'Α',
+  '*beta*': 'β', '*Beta*': 'Β',
+  '*gamma*': 'γ', '*Gamma*': 'Γ',
+  '*delta*': 'δ', '*Delta*': 'Δ',
+  '*epsilon*': 'ε', '*Epsilon*': 'Ε',
+  '*zeta*': 'ζ', '*Zeta*': 'Ζ',
+  '*eta*': 'η', '*Eta*': 'Η',
+  '*theta*': 'θ', '*Theta*': 'Θ',
+  '*iota*': 'ι', '*Iota*': 'Ι',
+  '*kappa*': 'κ', '*Kappa*': 'Κ',
+  '*lambda*': 'λ', '*Lambda*': 'Λ',
+  '*mu*': 'μ', '*Mu*': 'Μ',
+  '*nu*': 'ν', '*Nu*': 'Ν',
+  '*xi*': 'ξ', '*Xi*': 'Ξ',
+  '*omicron*': 'ο', '*Omicron*': 'Ο',
+  '*pi*': 'π', '*Pi*': 'Π',
+  '*rho*': 'ρ', '*Rho*': 'Ρ',
+  '*sigma*': 'σ', '*Sigma*': 'Σ',
+  '*tau*': 'τ', '*Tau*': 'Τ',
+  '*upsilon*': 'υ', '*Upsilon*': 'Υ',
+  '*phi*': 'φ', '*Phi*': 'Φ',
+  '*chi*': 'χ', '*Chi*': 'Χ',
+  '*psi*': 'ψ', '*Psi*': 'Ψ',
+  '*omega*': 'ω', '*Omega*': 'Ω',
+  '*infinity*': '∞',
+  '*sum*': '∑', '*Sum*': '∑', '*summation*': '∑', '*Summation*': '∑',
+  '*product*': '∏', '*Product*': '∏',
+  '*integral*': '∫', '*Integral*': '∫',
+  '*partial*': '∂', '*nabla*': '∇', '*sqrt*': '√',
+  '*approx*': '≈', '*neq*': '≠', '*leq*': '≤', '*geq*': '≥',
+  '*times*': '×', '*divide*': '÷', '*plusminus*': '±', '*degree*': '°',
+  '*therefore*': '∴', '*because*': '∵',
+  '*forall*': '∀', '*exists*': '∃',
+  '*in*': '∈', '*notin*': '∉',
+  '*subset*': '⊂', '*supset*': '⊃',
+  '*union*': '∪', '*intersection*': '∩',
+  '*angle*': '∠', '*perpendicular*': '⊥', '*parallel*': '∥',
+  '*arrow*': '→', '*leftarrow*': '←', '*rightarrow*': '→',
+  '*uparrow*': '↑', '*downarrow*': '↓',
+  '*mean*': 'x̄', '*variance*': 'σ²', '*stddev*': 'σ',
+  '*correlation*': 'ρ', '*proportion*': 'p̂',
+  '*emptyset*': '∅', '*element*': '∈', '*notelement*': '∉',
+  '*contains*': '∋', '*notcontains*': '∌',
+  '*and*': '∧', '*or*': '∨', '*not*': '¬',
+  '*implies*': '⇒', '*iff*': '⇔', '*equivalent*': '≡',
+  '*limit*': 'lim', '*derivative*': 'd/dx', '*del*': '∂',
+  '*much_less*': '≪', '*much_greater*': '≫',
+  '*less_equal*': '≤', '*greater_equal*': '≥', '*not_equal*': '≠',
+  '*implies_arrow*': '⇒', '*iff_arrow*': '⇔',
+  '*maps_to*': '↦', '*left_right_arrow*': '↔',
+  '*half*': '½', '*third*': '⅓', '*quarter*': '¼',
+  '*two_thirds*': '⅔', '*three_quarters*': '¾',
+  '*squared*': '²', '*cubed*': '³',
+  '*planck*': 'ℏ', '*angstrom*': 'Å', '*ohm*': 'Ω', '*micro*': 'μ',
+  '*euro*': '€', '*pound*': '£', '*yen*': '¥', '*cent*': '¢',
+  '*check*': '✓', '*cross*': '✗', '*star*': '★', '*bullet*': '•',
+  '*ellipsis*': '…', '*dagger*': '†', '*double_dagger*': '‡',
+  '*section*': '§', '*paragraph*': '¶',
+  '*copyright*': '©', '*registered*': '®', '*trademark*': '™',
+  '*circle*': '○', '*filled_circle*': '●', '*square*': '□',
+  '*filled_square*': '■', '*triangle*': '△', '*filled_triangle*': '▲',
+  '*equilibrium*': '⇌', '*reversible*': '⇄',
+  '*real*': 'ℝ', '*complex*': 'ℂ', '*natural*': 'ℕ',
+  '*integer*': 'ℤ', '*rational*': 'ℚ',
+  '*expected*': 'E', '*probability*': 'P', '*given*': '|',
+  '*cdot*': '·', '*ldots*': '…', '*cdots*': '⋯', '*vdots*': '⋮', '*ddots*': '⋱',
+};
+
 const AIChat = ({ sharedMode = false }) => {
   const { chatId } = useParams();
   const navigate = useNavigate();
@@ -493,23 +580,7 @@ const AIChat = ({ sharedMode = false }) => {
     return false;
   };
 
-  const greetings = [
-    "Welcome back! How can I help you today?",
-    "Ready to explore new topics together?",
-    "Let's dive into learning something new",
-    "Your personal AI tutor is here to help",
-    "What would you like to learn today?",
-    "Hello {name}! I'm excited to help you learn",
-    "{name}, ready to unlock new knowledge?",
-    "Welcome back, {name}! Let's continue your learning",
-    "Hey {name}! What would you like to explore?",
-    "{name}, let's make today a learning adventure",
-    "Good day, {name}! Ready to expand your horizons?",
-    "Hi {name}! Let's tackle your questions together",
-    "Welcome, {name}! Your AI learning companion is here",
-    "{name}, let's turn curiosity into understanding",
-    "Hello {name}! What fascinating topic shall we discuss?"
-  ];
+  const greetings = CHAT_GREETINGS;
 
   const loadSharedChat = async () => {
     try {
@@ -1758,188 +1829,11 @@ const AIChat = ({ sharedMode = false }) => {
           });
   };
 
-  
+  const convertSymbolsToUnicode_REMOVE = null;
   const convertSymbolsToUnicode = (text) => {
-    const symbolMap = {
-      
-      '*alpha*': 'α', '*Alpha*': 'Α',
-      '*beta*': 'β', '*Beta*': 'Β',
-      '*gamma*': 'γ', '*Gamma*': 'Γ',
-      '*delta*': 'δ', '*Delta*': 'Δ',
-      '*epsilon*': 'ε', '*Epsilon*': 'Ε',
-      '*zeta*': 'ζ', '*Zeta*': 'Ζ',
-      '*eta*': 'η', '*Eta*': 'Η',
-      '*theta*': 'θ', '*Theta*': 'Θ',
-      '*iota*': 'ι', '*Iota*': 'Ι',
-      '*kappa*': 'κ', '*Kappa*': 'Κ',
-      '*lambda*': 'λ', '*Lambda*': 'Λ',
-      '*mu*': 'μ', '*Mu*': 'Μ',
-      '*nu*': 'ν', '*Nu*': 'Ν',
-      '*xi*': 'ξ', '*Xi*': 'Ξ',
-      '*omicron*': 'ο', '*Omicron*': 'Ο',
-      '*pi*': 'π', '*Pi*': 'Π',
-      '*rho*': 'ρ', '*Rho*': 'Ρ',
-      '*sigma*': 'σ', '*Sigma*': 'Σ',
-      '*tau*': 'τ', '*Tau*': 'Τ',
-      '*upsilon*': 'υ', '*Upsilon*': 'Υ',
-      '*phi*': 'φ', '*Phi*': 'Φ',
-      '*chi*': 'χ', '*Chi*': 'Χ',
-      '*psi*': 'ψ', '*Psi*': 'Ψ',
-      '*omega*': 'ω', '*Omega*': 'Ω',
-      
-      
-      '*infinity*': '∞',
-      '*sum*': '∑',
-      '*Sum*': '∑',
-      '*summation*': '∑',
-      '*Summation*': '∑',
-      '*product*': '∏',
-      '*Product*': '∏',
-      '*integral*': '∫',
-      '*Integral*': '∫',
-      '*partial*': '∂',
-      '*nabla*': '∇',
-      '*sqrt*': '√',
-      '*approx*': '≈',
-      '*neq*': '≠',
-      '*leq*': '≤',
-      '*geq*': '≥',
-      '*times*': '×',
-      '*divide*': '÷',
-      '*plusminus*': '±',
-      '*degree*': '°',
-      '*therefore*': '∴',
-      '*because*': '∵',
-      '*forall*': '∀',
-      '*exists*': '∃',
-      '*in*': '∈',
-      '*notin*': '∉',
-      '*subset*': '⊂',
-      '*supset*': '⊃',
-      '*union*': '∪',
-      '*intersection*': '∩',
-      '*angle*': '∠',
-      '*perpendicular*': '⊥',
-      '*parallel*': '∥',
-      '*arrow*': '→',
-      '*leftarrow*': '←',
-      '*rightarrow*': '→',
-      '*uparrow*': '↑',
-      '*downarrow*': '↓',
-      
-      
-      '*mean*': 'x̄',
-      '*variance*': 'σ²',
-      '*stddev*': 'σ',
-      '*correlation*': 'ρ',
-      '*proportion*': 'p̂',
-      
-      
-      '*emptyset*': '∅',
-      '*element*': '∈',
-      '*notelement*': '∉',
-      '*contains*': '∋',
-      '*notcontains*': '∌',
-      
-      
-      '*and*': '∧',
-      '*or*': '∨',
-      '*not*': '¬',
-      '*implies*': '⇒',
-      '*iff*': '⇔',
-      '*equivalent*': '≡',
-      
-      
-      '*limit*': 'lim',
-      '*derivative*': 'd/dx',
-      '*del*': '∂',
-      
-      
-      '*much_less*': '≪',
-      '*much_greater*': '≫',
-      '*less_equal*': '≤',
-      '*greater_equal*': '≥',
-      '*not_equal*': '≠',
-      
-      
-      '*implies_arrow*': '⇒',
-      '*iff_arrow*': '⇔',
-      '*maps_to*': '↦',
-      '*left_right_arrow*': '↔',
-      
-      
-      '*half*': '½',
-      '*third*': '⅓',
-      '*quarter*': '¼',
-      '*two_thirds*': '⅔',
-      '*three_quarters*': '¾',
-      
-      
-      '*squared*': '²',
-      '*cubed*': '³',
-      
-      
-      '*planck*': 'ℏ',
-      '*angstrom*': 'Å',
-      '*ohm*': 'Ω',
-      '*micro*': 'μ',
-      
-      
-      '*euro*': '€',
-      '*pound*': '£',
-      '*yen*': '¥',
-      '*cent*': '¢',
-      
-      
-      '*check*': '✓',
-      '*cross*': '✗',
-      '*star*': '★',
-      '*bullet*': '•',
-      '*ellipsis*': '…',
-      '*dagger*': '†',
-      '*double_dagger*': '‡',
-      '*section*': '§',
-      '*paragraph*': '¶',
-      '*copyright*': '©',
-      '*registered*': '®',
-      '*trademark*': '™',
-      
-      
-      '*circle*': '○',
-      '*filled_circle*': '●',
-      '*square*': '□',
-      '*filled_square*': '■',
-      '*triangle*': '△',
-      '*filled_triangle*': '▲',
-      
-      
-      '*equilibrium*': '⇌',
-      '*reversible*': '⇄',
-      
-      
-      '*real*': 'ℝ',
-      '*complex*': 'ℂ',
-      '*natural*': 'ℕ',
-      '*integer*': 'ℤ',
-      '*rational*': 'ℚ',
-      
-      
-      '*expected*': 'E',
-      '*probability*': 'P',
-      '*given*': '|',
-      
-      
-      '*cdot*': '·',
-      '*ldots*': '…',
-      '*cdots*': '⋯',
-      '*vdots*': '⋮',
-      '*ddots*': '⋱',
-    };
-    
     let result = text;
-    for (const [symbol, unicode] of Object.entries(symbolMap)) {
+    for (const [symbol, unicode] of Object.entries(SYMBOL_MAP)) {
       try {
-        // Escape ALL regex metacharacters, not just *
         const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         result = result.replace(new RegExp(escaped, 'gi'), unicode);
       } catch {

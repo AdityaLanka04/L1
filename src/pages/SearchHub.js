@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus, Plus } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -47,6 +47,155 @@ const extractCommandFromQuery = (value = '') => {
   const match = String(value || '').trimStart().match(/^[/:>!]([a-z0-9][a-z0-9-]*)/i);
   return match ? normalizeCommandToken(match[1]) : '';
 };
+
+const SUGGESTION_COMMANDS = [
+  { pattern: 'create', suggestions: [
+    { text: 'create a learning path on {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+    { text: 'create a path on {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+    { text: 'create a knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'AI generates a structured map' },
+    { text: 'create a note on {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
+    { text: 'create 10 flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
+    { text: 'create 15 flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'More cards for deeper study' },
+    { text: 'create questions on {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
+    { text: 'create a quiz on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
+  ]},
+  { pattern: 'make', suggestions: [
+    { text: 'make a learning path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+    { text: 'make a path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+    { text: 'make a knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'AI generates a structured map' },
+    { text: 'make a note about {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
+    { text: 'make flashcards for {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
+    { text: 'make a quiz about {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
+    { text: 'make questions about {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
+  ]},
+  { pattern: 'generate', suggestions: [
+    { text: 'generate a learning path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+    { text: 'generate a path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
+    { text: 'generate a knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'AI generates a structured map' },
+    { text: 'generate flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
+    { text: 'generate questions on {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
+    { text: 'generate a study guide for {topic}', icon: '', action: 'create_note', description: 'Comprehensive study guide' },
+  ]},
+  { pattern: 'write', suggestions: [
+    { text: 'write a note on {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
+    { text: 'write about {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
+  ]},
+  { pattern: 'learn', suggestions: [
+    { text: 'learn {topic} step by step', icon: '', action: 'create_learning_path', description: 'Structured learning path' },
+    { text: 'learn about {topic}', icon: '', action: 'explain', description: 'Get AI explanation' },
+    { text: 'learn {topic} from scratch', icon: '', action: 'create_learning_path', description: 'Beginner-friendly path' },
+  ]},
+  { pattern: 'path', suggestions: [
+    { text: 'path on {topic}', icon: '', action: 'create_learning_path', description: 'Create learning path' },
+    { text: 'path for {topic}', icon: '', action: 'create_learning_path', description: 'Create learning path' },
+    { text: 'learning path on {topic}', icon: '', action: 'create_learning_path', description: 'Structured path' },
+  ]},
+  { pattern: 'map', suggestions: [
+    { text: 'knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'Create knowledge map' },
+    { text: 'knowledge map on {topic}', icon: '', action: 'create_knowledge_map', description: 'Create knowledge map' },
+    { text: 'study map for {topic}', icon: '', action: 'create_knowledge_map', description: 'Structured study map' },
+  ]},
+  { pattern: 'teach', suggestions: [
+    { text: 'teach me {topic}', icon: '', action: 'explain', description: 'Interactive AI tutoring' },
+    { text: 'teach me about {topic}', icon: '', action: 'explain', description: 'Interactive AI tutoring' },
+  ]},
+  { pattern: 'study', suggestions: [
+    { text: 'study {topic} systematically', icon: '', action: 'create_learning_path', description: 'Structured learning path' },
+    { text: 'study {topic}', icon: '', action: 'create_flashcards', description: 'Create flashcards to study' },
+    { text: 'study my flashcards', icon: '', action: 'review_flashcards', description: 'Review your cards' },
+    { text: 'study weak areas', icon: '', action: 'show_weak_areas', description: 'Focus on improvements' },
+  ]},
+  { pattern: 'adapt', suggestions: [
+    { text: 'adapt difficulty to my level', icon: '', action: 'adapt_difficulty' },
+    { text: 'adapt content for me', icon: '', action: 'adapt_content' },
+  ]},
+  { pattern: 'review', suggestions: [
+    { text: 'review flashcards', icon: '', action: 'review_flashcards' },
+    { text: 'review weak flashcards', icon: '', action: 'review_flashcards' },
+    { text: "review what I'll forget next", icon: '', action: 'predict_forgetting' },
+  ]},
+  { pattern: 'show', suggestions: [
+    { text: 'show my learning paths', icon: '', action: 'show_learning_paths' },
+    { text: 'show my progress', icon: '', action: 'show_progress' },
+    { text: 'show weak areas', icon: '', action: 'show_weak_areas' },
+    { text: 'show my achievements', icon: '', action: 'show_achievements' },
+    { text: 'show my learning style', icon: '', action: 'show_learning_style' },
+    { text: 'show knowledge gaps', icon: '', action: 'show_knowledge_gaps' },
+  ]},
+  { pattern: 'find', suggestions: [
+    { text: 'find my knowledge blind spots', icon: '', action: 'show_knowledge_gaps' },
+    { text: 'find my study twin', icon: '', action: 'find_study_twin' },
+    { text: 'find complementary learners', icon: '', action: 'find_complementary' },
+  ]},
+  { pattern: 'what', suggestions: [
+    { text: 'what is {topic}', icon: '', action: 'explain', description: 'Get AI explanation' },
+    { text: 'what am I weak in', icon: '', action: 'show_weak_areas' },
+    { text: 'what is my learning style', icon: '', action: 'show_learning_style' },
+    { text: "what will I forget next", icon: '', action: 'predict_forgetting' },
+    { text: 'what are my knowledge gaps', icon: '', action: 'show_knowledge_gaps' },
+    { text: 'what should I study next', icon: '', action: 'suggest_next_topic' },
+  ]},
+  { pattern: 'how', suggestions: [
+    { text: 'how does {topic} work', icon: '', action: 'explain', description: 'Detailed explanation' },
+    { text: 'how to {topic}', icon: '', action: 'explain', description: 'Step-by-step guide' },
+    { text: 'how am I doing', icon: '', action: 'show_progress', description: 'View your progress' },
+  ]},
+  { pattern: 'explain', suggestions: [
+    { text: 'explain {topic}', icon: '', action: 'explain', description: 'Clear AI explanation' },
+    { text: 'explain {topic} step-by-step', icon: '', action: 'explain' },
+    { text: "explain like I'm 5", icon: '', action: 'eli5' },
+    { text: 'explain with examples', icon: '', action: 'explain_examples' },
+  ]},
+  { pattern: 'summarize', suggestions: [
+    { text: 'summarize {topic}', icon: '', action: 'summarize' },
+    { text: 'summarize my notes on {topic}', icon: '', action: 'summarize_notes' },
+  ]},
+  { pattern: 'quiz', suggestions: [
+    { text: 'quiz me on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
+    { text: 'quiz me on weak areas', icon: '', action: 'quiz_weak' },
+  ]},
+  { pattern: 'test', suggestions: [
+    { text: 'test me on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
+    { text: 'test my knowledge of {topic}', icon: '', action: 'create_quiz' },
+  ]},
+  { pattern: 'optimize', suggestions: [
+    { text: 'optimize my retention', icon: '', action: 'optimize_retention' },
+    { text: 'optimize my study schedule', icon: '', action: 'optimize_schedule' },
+  ]},
+  { pattern: 'predict', suggestions: [
+    { text: "predict what I'll forget next", icon: '', action: 'predict_forgetting' },
+    { text: 'predict my performance', icon: '', action: 'predict_performance' },
+  ]},
+  { pattern: 'detect', suggestions: [
+    { text: 'detect my burnout risk', icon: '', action: 'detect_burnout' },
+    { text: 'detect knowledge gaps', icon: '', action: 'show_knowledge_gaps' },
+  ]},
+  { pattern: 'chat', suggestions: [
+    { text: 'chat about {topic}', icon: '', action: 'start_chat', description: 'Start AI conversation' },
+    { text: 'chat with AI about {topic}', icon: '', action: 'start_chat' },
+  ]},
+  { pattern: 'talk', suggestions: [
+    { text: 'talk about {topic}', icon: '', action: 'start_chat', description: 'Start AI conversation' },
+  ]},
+  { pattern: 'search', suggestions: [
+    { text: 'search for {topic}', icon: '', action: 'search', description: 'Search your content' },
+    { text: 'search notes about {topic}', icon: '', action: 'search_notes' },
+    { text: 'search flashcards about {topic}', icon: '', action: 'search_flashcards' },
+  ]},
+];
+
+const GENERIC_TOKENS = new Set([
+  'flashcards', 'flashcard', 'notes', 'note', 'quiz', 'quizzes',
+  'roadmap', 'map', 'path', 'plan', 'study', 'learning', 'guide',
+  'review', 'overview', 'summary', 'explain', 'practice',
+]);
+
+const STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'from', 'this', 'that', 'into', 'over',
+  'about', 'your', 'their', 'there', 'what', 'which', 'when', 'where',
+  'will', 'would', 'could', 'should', 'have', 'has', 'had', 'are', 'was',
+  'were', 'been', 'being', 'you', 'your', 'our', 'they', 'them', 'than',
+]);
 
 const SearchHub = () => {
   const navigate = useNavigate();
@@ -382,15 +531,9 @@ const SearchHub = () => {
       .trim();
 
     if (!cleaned) return null;
-    const stopwords = new Set([
-      'the', 'and', 'for', 'with', 'from', 'this', 'that', 'into', 'over',
-      'about', 'your', 'their', 'there', 'what', 'which', 'when', 'where',
-      'will', 'would', 'could', 'should', 'have', 'has', 'had', 'are', 'was',
-      'were', 'been', 'being', 'you', 'your', 'our', 'they', 'them', 'than'
-    ]);
     const words = cleaned
       .split(' ')
-      .filter(word => word.length > 2 && !stopwords.has(word) && !GENERIC_TOKENS.has(word));
+      .filter(word => word.length > 2 && !STOPWORDS.has(word) && !GENERIC_TOKENS.has(word));
 
     if (!words.length) return null;
     const topicWords = words.slice(0, 3);
@@ -1239,143 +1382,7 @@ const SearchHub = () => {
     const inputLower = input.toLowerCase();
     const commandSuggestions = [];
 
-    const commands = [
-      { pattern: 'create', suggestions: [
-        { text: 'create a learning path on {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
-        { text: 'create a path on {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
-        { text: 'create a knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'AI generates a structured map' },
-        { text: 'create a note on {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
-        { text: 'create 10 flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
-        { text: 'create 15 flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'More cards for deeper study' },
-        { text: 'create questions on {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
-        { text: 'create a quiz on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
-      ]},
-      { pattern: 'make', suggestions: [
-        { text: 'make a learning path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
-        { text: 'make a path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
-        { text: 'make a knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'AI generates a structured map' },
-        { text: 'make a note about {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
-        { text: 'make flashcards for {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
-        { text: 'make a quiz about {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
-        { text: 'make questions about {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
-      ]},
-      { pattern: 'generate', suggestions: [
-        { text: 'generate a learning path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
-        { text: 'generate a path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates a structured path' },
-        { text: 'generate a knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'AI generates a structured map' },
-        { text: 'generate flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
-        { text: 'generate questions on {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
-        { text: 'generate a study guide for {topic}', icon: '', action: 'create_note', description: 'Comprehensive study guide' },
-      ]},
-      { pattern: 'write', suggestions: [
-        { text: 'write a note on {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
-        { text: 'write about {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
-      ]},
-      { pattern: 'learn', suggestions: [
-        { text: 'learn {topic} step by step', icon: '', action: 'create_learning_path', description: 'Structured learning path' },
-        { text: 'learn about {topic}', icon: '', action: 'explain', description: 'Get AI explanation' },
-        { text: 'learn {topic} from scratch', icon: '', action: 'create_learning_path', description: 'Beginner-friendly path' },
-      ]},
-      { pattern: 'path', suggestions: [
-        { text: 'path on {topic}', icon: '', action: 'create_learning_path', description: 'Create learning path' },
-        { text: 'path for {topic}', icon: '', action: 'create_learning_path', description: 'Create learning path' },
-        { text: 'learning path on {topic}', icon: '', action: 'create_learning_path', description: 'Structured path' },
-      ]},
-      { pattern: 'map', suggestions: [
-        { text: 'knowledge map for {topic}', icon: '', action: 'create_knowledge_map', description: 'Create knowledge map' },
-        { text: 'knowledge map on {topic}', icon: '', action: 'create_knowledge_map', description: 'Create knowledge map' },
-        { text: 'study map for {topic}', icon: '', action: 'create_knowledge_map', description: 'Structured study map' },
-      ]},
-      { pattern: 'teach', suggestions: [
-        { text: 'teach me {topic}', icon: '', action: 'explain', description: 'Interactive AI tutoring' },
-        { text: 'teach me about {topic}', icon: '', action: 'explain', description: 'Interactive AI tutoring' },
-      ]},
-      { pattern: 'study', suggestions: [
-        { text: 'study {topic} systematically', icon: '', action: 'create_learning_path', description: 'Structured learning path' },
-        { text: 'study {topic}', icon: '', action: 'create_flashcards', description: 'Create flashcards to study' },
-        { text: 'study my flashcards', icon: '', action: 'review_flashcards', description: 'Review your cards' },
-        { text: 'study weak areas', icon: '', action: 'show_weak_areas', description: 'Focus on improvements' },
-      ]},
-      { pattern: 'adapt', suggestions: [
-        { text: 'adapt difficulty to my level', icon: '', action: 'adapt_difficulty' },
-        { text: 'adapt content for me', icon: '', action: 'adapt_content' },
-      ]},
-      { pattern: 'review', suggestions: [
-        { text: 'review flashcards', icon: '', action: 'review_flashcards' },
-        { text: 'review weak flashcards', icon: '', action: 'review_flashcards' },
-        { text: 'review what I\'ll forget next', icon: '', action: 'predict_forgetting' },
-      ]},
-      { pattern: 'show', suggestions: [
-        { text: 'show my learning paths', icon: '', action: 'show_learning_paths' },
-        { text: 'show my progress', icon: '', action: 'show_progress' },
-        { text: 'show weak areas', icon: '', action: 'show_weak_areas' },
-        { text: 'show my achievements', icon: '', action: 'show_achievements' },
-        { text: 'show my learning style', icon: '', action: 'show_learning_style' },
-        { text: 'show knowledge gaps', icon: '', action: 'show_knowledge_gaps' },
-      ]},
-      { pattern: 'find', suggestions: [
-        { text: 'find my knowledge blind spots', icon: '', action: 'show_knowledge_gaps' },
-        { text: 'find my study twin', icon: '', action: 'find_study_twin' },
-        { text: 'find complementary learners', icon: '', action: 'find_complementary' },
-      ]},
-      { pattern: 'what', suggestions: [
-        { text: 'what is {topic}', icon: '', action: 'explain', description: 'Get AI explanation' },
-        { text: 'what am I weak in', icon: '', action: 'show_weak_areas' },
-        { text: 'what is my learning style', icon: '', action: 'show_learning_style' },
-        { text: 'what will I forget next', icon: '', action: 'predict_forgetting' },
-        { text: 'what are my knowledge gaps', icon: '', action: 'show_knowledge_gaps' },
-        { text: 'what should I study next', icon: '', action: 'suggest_next_topic' },
-      ]},
-      { pattern: 'how', suggestions: [
-        { text: 'how does {topic} work', icon: '', action: 'explain', description: 'Detailed explanation' },
-        { text: 'how to {topic}', icon: '', action: 'explain', description: 'Step-by-step guide' },
-        { text: 'how am I doing', icon: '', action: 'show_progress', description: 'View your progress' },
-      ]},
-      { pattern: 'explain', suggestions: [
-        { text: 'explain {topic}', icon: '', action: 'explain', description: 'Clear AI explanation' },
-        { text: 'explain {topic} step-by-step', icon: '', action: 'explain' },
-        { text: 'explain like I\'m 5', icon: '', action: 'eli5' },
-        { text: 'explain with examples', icon: '', action: 'explain_examples' },
-      ]},
-      { pattern: 'summarize', suggestions: [
-        { text: 'summarize {topic}', icon: '', action: 'summarize' },
-        { text: 'summarize my notes on {topic}', icon: '', action: 'summarize_notes' },
-      ]},
-      { pattern: 'quiz', suggestions: [
-        { text: 'quiz me on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
-        { text: 'quiz me on weak areas', icon: '', action: 'quiz_weak' },
-      ]},
-      { pattern: 'test', suggestions: [
-        { text: 'test me on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
-        { text: 'test my knowledge of {topic}', icon: '', action: 'create_quiz' },
-      ]},
-      { pattern: 'optimize', suggestions: [
-        { text: 'optimize my retention', icon: '', action: 'optimize_retention' },
-        { text: 'optimize my study schedule', icon: '', action: 'optimize_schedule' },
-      ]},
-      { pattern: 'predict', suggestions: [
-        { text: 'predict what I\'ll forget next', icon: '', action: 'predict_forgetting' },
-        { text: 'predict my performance', icon: '', action: 'predict_performance' },
-      ]},
-      { pattern: 'detect', suggestions: [
-        { text: 'detect my burnout risk', icon: '', action: 'detect_burnout' },
-        { text: 'detect knowledge gaps', icon: '', action: 'show_knowledge_gaps' },
-      ]},
-      { pattern: 'chat', suggestions: [
-        { text: 'chat about {topic}', icon: '', action: 'start_chat', description: 'Start AI conversation' },
-        { text: 'chat with AI about {topic}', icon: '', action: 'start_chat' },
-      ]},
-      { pattern: 'talk', suggestions: [
-        { text: 'talk about {topic}', icon: '', action: 'start_chat', description: 'Start AI conversation' },
-      ]},
-      { pattern: 'search', suggestions: [
-        { text: 'search for {topic}', icon: '', action: 'search', description: 'Search your content' },
-        { text: 'search notes about {topic}', icon: '', action: 'search_notes' },
-        { text: 'search flashcards about {topic}', icon: '', action: 'search_flashcards' },
-      ]},
-    ];
-
-    for (const command of commands) {
+    for (const command of SUGGESTION_COMMANDS) {
       if (inputLower.includes(command.pattern)) {
         const words = inputLower.split(' ');
         const patternIndex = words.indexOf(command.pattern);

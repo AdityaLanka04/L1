@@ -48,8 +48,13 @@ const GREETING_MESSAGES = [
   "Stay Curious"
 ];
 
-const getRandomGreeting = () => {
-  return GREETING_MESSAGES[Math.floor(Math.random() * GREETING_MESSAGES.length)];
+const getRandomGreeting = () =>
+  GREETING_MESSAGES[Math.floor(Math.random() * GREETING_MESSAGES.length)];
+
+const TIME_GREETINGS = {
+  morning: ['Good morning', 'Rise and shine', 'Hello there', 'Welcome back', 'Great to see you'],
+  afternoon: ['Good afternoon', 'Hello', 'Welcome back', 'Great to see you', 'Hey there'],
+  evening: ['Good evening', 'Welcome back', 'Hello', 'Hey there', 'Great to see you'],
 };
 
 const Dashboard = () => {
@@ -118,6 +123,7 @@ const Dashboard = () => {
   const timeIntervalRef = useRef(null);
   const sessionUpdateRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
+  const timeTrackingCleanupRef = useRef(null);
   const notifPanelRef = useRef(null);
   const notifButtonRef = useRef(null);
 
@@ -396,40 +402,32 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const params = new URLSearchParams({ user_id: userName });
-      
-      const analyticsResponse = await fetch(`${API_URL}/get_analytics_history?user_id=${userName}&period=week`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
+      const authHeader = { 'Authorization': `Bearer ${token}` };
+
+      const [analyticsResponse, response, notesResp, fcResp, dcResp] = await Promise.all([
+        fetch(`${API_URL}/get_analytics_history?user_id=${userName}&period=week`, { headers: authHeader }),
+        fetch(`${API_URL}/get_dashboard_data?${params}`, { headers: authHeader }),
+        fetch(`${API_URL}/get_notes?user_id=${userName}`, { headers: authHeader }),
+        fetch(`${API_URL}/get_flashcards?user_id=${userName}`, { headers: authHeader }),
+        fetch(`${API_URL}/get_daily_challenge?user_id=${userName}`, { headers: authHeader }),
+      ]);
+
       if (analyticsResponse.ok) {
         const analyticsData = await analyticsResponse.json();
         const history = analyticsData.history || [];
-        
-        const weeklyAIChats = history.reduce((sum, day) => sum + (day.ai_chats || 0), 0);
-        const weeklyFlashcards = history.reduce((sum, day) => sum + (day.flashcards || 0), 0);
-        const weeklyNotes = history.reduce((sum, day) => sum + (day.notes || 0), 0);
-        const weeklyStudyMinutes = history.reduce((sum, day) => sum + (day.study_minutes || 0), 0);
-        
         setWeeklyStats(prev => ({
           ...prev,
-          weeklyAIChats,
-          weeklyFlashcards,
-          weeklyNotes,
-          weeklyStudyMinutes
+          weeklyAIChats: history.reduce((sum, day) => sum + (day.ai_chats || 0), 0),
+          weeklyFlashcards: history.reduce((sum, day) => sum + (day.flashcards || 0), 0),
+          weeklyNotes: history.reduce((sum, day) => sum + (day.notes || 0), 0),
+          weeklyStudyMinutes: history.reduce((sum, day) => sum + (day.study_minutes || 0), 0),
         }));
-        
-        
         const progressData = history.map(day => day.ai_chats + day.flashcards + day.notes);
         setWeeklyProgress(progressData.length === 7 ? progressData : [0, 0, 0, 0, 0, 0, 0]);
       }
-      
-      const response = await fetch(`${API_URL}/get_dashboard_data?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
+
       if (response.ok) {
         const data = await response.json();
-        
         if (data.gamification) {
           setStats({
             streak: data.gamification.current_streak || 0,
@@ -444,7 +442,6 @@ const Dashboard = () => {
           setCurrentQuestions(data.gamification.current_messages || data.gamification.total_chat_sessions || 0);
           setCurrentSessions(data.gamification.total_chat_sessions || 0);
         }
-        
         setRecentActivities(data.recent_activities || []);
         setMotivationalQuote(data.motivational_quote || 'Keep learning every day!');
         setAchievements(data.achievements || []);
@@ -453,17 +450,11 @@ const Dashboard = () => {
         setLearningReviews(data.learning_reviews || []);
       }
 
-      const notesResp = await fetch(`${API_URL}/get_notes?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
       if (notesResp.ok) {
         const notesData = await notesResp.json();
         setRecentNotes(notesData.slice(0, 2));
       }
 
-      const fcResp = await fetch(`${API_URL}/get_flashcards?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
       if (fcResp.ok) {
         const fcData = await fcResp.json();
         const seenSets = new Map();
@@ -476,15 +467,12 @@ const Dashboard = () => {
         setRecentFlashcards(Array.from(seenSets.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 2));
       }
 
-      const dcResp = await fetch(`${API_URL}/get_daily_challenge?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
       if (dcResp.ok) {
         const dcData = await dcResp.json();
         setDailyChallenge(dcData);
       }
     } catch (error) {
-    
+
   }
   };
 
@@ -555,7 +543,7 @@ const Dashboard = () => {
       document.removeEventListener('scroll', updateActivity);
       document.removeEventListener('focus', updateActivity);
     };
-    window.dashboardTimeTrackingCleanup = cleanup;
+    timeTrackingCleanupRef.current = cleanup;
   };
 
   const startSessionTimeUpdater = () => {
@@ -594,27 +582,17 @@ const Dashboard = () => {
   } finally {
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
-      if (window.dashboardTimeTrackingCleanup) window.dashboardTimeTrackingCleanup();
+      if (timeTrackingCleanupRef.current) timeTrackingCleanupRef.current();
     }
   };
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    const greetings = {
-      morning: ['Good morning', 'Rise and shine', 'Hello there', 'Welcome back', 'Great to see you'],
-      afternoon: ['Good afternoon', 'Hello', 'Welcome back', 'Great to see you', 'Hey there'],
-      evening: ['Good evening', 'Welcome back', 'Hello', 'Hey there', 'Great to see you']
-    };
-    
-    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-    
-    if (hour < 12) {
-      return greetings.morning[dayOfYear % greetings.morning.length];
-    }
-    if (hour < 18) {
-      return greetings.afternoon[dayOfYear % greetings.afternoon.length];
-    }
-    return greetings.evening[dayOfYear % greetings.evening.length];
+    const now = new Date();
+    const hour = now.getHours();
+    const dayOfYear = Math.floor((Date.now() - new Date(now.getFullYear(), 0, 0)) / 86400000);
+    const bucket = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+    const pool = TIME_GREETINGS[bucket];
+    return pool[dayOfYear % pool.length];
   };
 
   const getDisplayName = () => {
