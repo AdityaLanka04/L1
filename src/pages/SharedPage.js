@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import ShareModal from './SharedModal';
 import './SharedPage.css';
+import SocialHubChrome from '../components/SocialHubChrome';
 import { API_URL } from '../config';
 
 const SharedPage = () => {
@@ -208,52 +209,69 @@ const SharedPage = () => {
     </svg>
   );
 
+  const sharedChatCount = sharedItems.filter(item => item.content_type === 'chat').length;
+  const sharedNoteCount = sharedItems.filter(item => item.content_type === 'note').length;
+  const sharedChromeProps = {
+    title: 'Shared Content',
+    tagline: 'shared content',
+    activeKey: 'shared',
+    primaryAction: {
+      label: 'Share Content',
+      icon: <Plus size={14} />,
+      onClick: handleShareNewContent,
+    },
+    sideSections: [
+      {
+        label: 'Filter',
+        children: (
+          <nav className="shc-view-nav" aria-label="Shared content filters">
+            <button className={`shc-view-link ${sharedFilter === 'all' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setSharedFilter('all')}>
+              <Share2 size={16} />
+              <span>All Content</span>
+              <span className="shc-nav-count">{sharedItems.length}</span>
+            </button>
+            <button className={`shc-view-link ${sharedFilter === 'chat' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setSharedFilter('chat')}>
+              <MessageSquare size={16} />
+              <span>AI Chats</span>
+              <span className="shc-nav-count">{sharedChatCount}</span>
+            </button>
+            <button className={`shc-view-link ${sharedFilter === 'note' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setSharedFilter('note')}>
+              <FileText size={16} />
+              <span>Notes</span>
+              <span className="shc-nav-count">{sharedNoteCount}</span>
+            </button>
+          </nav>
+        ),
+      },
+    ],
+    stats: [
+      { label: 'Items', value: sharedItems.length },
+      { label: 'Visible', value: filteredSharedItems.length },
+      { label: 'Chats', value: sharedChatCount },
+      { label: 'Notes', value: sharedNoteCount },
+    ],
+  };
+
   if (loading) {
     return (
-      <div className="sp-page">
+      <div className="sp-page with-social-chrome">
         {GEO_SVG}
-        <div className="sp-layout"><div className="sp-main"><div className="sp-loading-text">Loading shared content...</div></div></div>
+        <SocialHubChrome {...sharedChromeProps}>
+          <main className="sp-main">
+            <div className="sp-content">
+              <div className="sp-loading-text">Loading shared content...</div>
+            </div>
+          </main>
+        </SocialHubChrome>
       </div>
     );
   }
 
   return (
-    <div className="sp-page">
+    <div className="sp-page with-social-chrome">
       {GEO_SVG}
 
-      <div className="sp-layout">
-        <aside className="sp-sidebar">
-          <button className="sp-new-btn" onClick={handleShareNewContent}>
-            <Plus size={16} />
-            <span>Share Content</span>
-          </button>
-
-          <div className="sp-sidebar-divider"></div>
-
-          <div className="sp-sidebar-section">
-            <div className="sp-sidebar-heading">Filter</div>
-            <button className={`sp-sidebar-item ${sharedFilter === 'all' ? 'active' : ''}`} onClick={() => setSharedFilter('all')}>
-              <Share2 size={16} /><span>All Content</span>
-              {sharedFilter === 'all' && <div className="sp-sidebar-indicator"></div>}
-            </button>
-            <button className={`sp-sidebar-item ${sharedFilter === 'chat' ? 'active' : ''}`} onClick={() => setSharedFilter('chat')}>
-              <MessageSquare size={16} /><span>AI Chats</span>
-              {sharedFilter === 'chat' && <div className="sp-sidebar-indicator"></div>}
-            </button>
-            <button className={`sp-sidebar-item ${sharedFilter === 'note' ? 'active' : ''}`} onClick={() => setSharedFilter('note')}>
-              <FileText size={16} /><span>Notes</span>
-              {sharedFilter === 'note' && <div className="sp-sidebar-indicator"></div>}
-            </button>
-          </div>
-
-          <div className="sp-sidebar-stats">
-            <div className="sp-sidebar-stat-box">
-              <div className="sp-sidebar-stat-val">{sharedItems.length}</div>
-              <div className="sp-sidebar-stat-lbl">Shared Items</div>
-            </div>
-          </div>
-        </aside>
-
+      <SocialHubChrome {...sharedChromeProps}>
         <main className="sp-main">
           <div className="sp-content">
             <div className="view-heading">
@@ -376,7 +394,7 @@ const SharedPage = () => {
         )}
           </div>
         </main>
-      </div>
+      </SocialHubChrome>
 
       {showMyContentModal && (
         <div className="sp-modal-overlay" onClick={() => setShowMyContentModal(false)}>

@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award } from 'lucide-react';
+import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award, RefreshCw, Users } from 'lucide-react';
 import './Leaderboards.css';
+import SocialHubChrome from '../components/SocialHubChrome';
 import { API_URL } from '../config';
 const Leaderboards = () => {
-  const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const [leaderboard, setLeaderboard] = useState([]);
   const [currentUserRank, setCurrentUserRank] = useState(null);
@@ -76,63 +75,86 @@ const Leaderboards = () => {
   };
 
   return (
-    <div className="leaderboard-page">
+    <div className="leaderboard-page with-social-chrome">
+      <SocialHubChrome
+        title="Leaderboards"
+        tagline="rankings"
+        activeKey="leaderboards"
+        primaryAction={{
+          label: 'Refresh',
+          icon: <RefreshCw size={14} />,
+          onClick: fetchLeaderboard,
+        }}
+        sideSections={[
+          {
+            label: 'Category',
+            children: (
+              <nav className="shc-view-nav" aria-label="Leaderboard category">
+                <button className={`shc-view-link ${category === 'global' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setCategory('global')}>
+                  <Trophy size={16} />
+                  <span>Global</span>
+                </button>
+                <button className={`shc-view-link ${category === 'friends' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setCategory('friends')}>
+                  <Users size={16} />
+                  <span>Friends Only</span>
+                </button>
+              </nav>
+            ),
+          },
+          {
+            label: 'Metric',
+            children: (
+              <nav className="shc-view-nav" aria-label="Leaderboard metric">
+                <button className={`shc-view-link ${metric === 'total_hours' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setMetric('total_hours')}>
+                  <Clock size={16} />
+                  <span>Study Time</span>
+                </button>
+                <button className={`shc-view-link ${metric === 'accuracy' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setMetric('accuracy')}>
+                  <Target size={16} />
+                  <span>Accuracy</span>
+                </button>
+                <button className={`shc-view-link ${metric === 'streak' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setMetric('streak')}>
+                  <TrendingUp size={16} />
+                  <span>Streak</span>
+                </button>
+                <button className={`shc-view-link ${metric === 'lessons' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setMetric('lessons')}>
+                  <Award size={16} />
+                  <span>Lessons</span>
+                </button>
+              </nav>
+            ),
+          },
+          {
+            label: 'Period',
+            children: (
+              <nav className="shc-view-nav" aria-label="Leaderboard period">
+                {[
+                  ['all_time', 'All Time'],
+                  ['month', 'This Month'],
+                  ['week', 'This Week'],
+                ].map(([value, label]) => (
+                  <button key={value} className={`shc-view-link ${period === value ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setPeriod(value)}>
+                    <Clock size={16} />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </nav>
+            ),
+          },
+        ]}
+        stats={[
+          { label: 'Entries', value: leaderboard.length },
+          { label: 'Rank', value: currentUserRank ? `#${currentUserRank.rank}` : '—' },
+          { label: 'Scope', value: category === 'global' ? 'All' : 'Friends' },
+          { label: 'Metric', value: metric === 'total_hours' ? 'Hours' : metric },
+        ]}
+      >
       <div className="leaderboard-container">
         <div className="leaderboard-welcome">
           <div className="view-heading">
             <span className="view-kicker">Rankings</span>
             <h2 className="view-title">Leaderboards</h2>
             <p className="view-sub">See where you stand among all learners</p>
-          </div>
-        </div>
-
-        <div className="filter-section">
-          <div className="filter-group">
-            <label>Category</label>
-            <div className="filter-buttons">
-              <button 
-                className={`filter-btn ${category === 'global' ? 'active' : ''}`}
-                onClick={() => setCategory('global')}
-              >
-                Global
-              </button>
-              <button 
-                className={`filter-btn ${category === 'friends' ? 'active' : ''}`}
-                onClick={() => setCategory('friends')}
-              >
-                Friends Only
-              </button>
-            </div>
-          </div>
-
-          <div className="filter-group">
-            <label>Metric</label>
-            <div className="filter-buttons">
-              <button 
-                className={`filter-btn ${metric === 'total_hours' ? 'active' : ''}`}
-                onClick={() => setMetric('total_hours')}
-              >
-                Study Time
-              </button>
-              <button 
-                className={`filter-btn ${metric === 'accuracy' ? 'active' : ''}`}
-                onClick={() => setMetric('accuracy')}
-              >
-                Accuracy
-              </button>
-              <button 
-                className={`filter-btn ${metric === 'streak' ? 'active' : ''}`}
-                onClick={() => setMetric('streak')}
-              >
-                Streak
-              </button>
-              <button 
-                className={`filter-btn ${metric === 'lessons' ? 'active' : ''}`}
-                onClick={() => setMetric('lessons')}
-              >
-                Lessons
-              </button>
-            </div>
           </div>
         </div>
 
@@ -196,6 +218,7 @@ const Leaderboards = () => {
           </div>
         )}
       </div>
+      </SocialHubChrome>
     </div>
   );
 };

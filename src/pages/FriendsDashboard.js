@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Users, Search, UserPlus, Check, X, UserMinus } from 'lucide-react';
 import './FriendsDashboard.css';
+import SocialHubChrome from '../components/SocialHubChrome';
 import { API_URL } from '../config';
 
 const FriendsDashboard = () => {
-  const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const [activeView, setActiveView] = useState('my-friends');
   const [friends, setFriends] = useState([]);
@@ -282,7 +281,7 @@ const FriendsDashboard = () => {
   const totalRequests = friendRequests.received.length + friendRequests.sent.length;
 
   return (
-    <div className="fd-container">
+    <div className="fd-container with-social-chrome">
       <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
         <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>
@@ -301,43 +300,71 @@ const FriendsDashboard = () => {
         <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
         <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
       </svg>
-      <div className="fd-layout">
-        <aside className="fd-sidebar">
-          <div className="fd-self-level-card">
-            <span className="fd-self-kicker">Your Level</span>
-            <strong>Level {selfStats?.level || 1}</strong>
-            <div className="fd-self-xp">{(selfStats?.total_points || 0).toLocaleString()} XP</div>
-            <div className="fd-self-track">
-              <span style={{ width: `${Math.min(100, Math.max(0, ((selfStats?.experience || 0) / Math.max(1, selfStats?.next_level_xp || 100)) * 100))}%` }} />
-            </div>
-          </div>
-          <nav className="fd-sidebar-nav">
-            <button
-              className={`fd-sidebar-item ${activeView === 'my-friends' ? 'active' : ''}`}
-              onClick={() => setActiveView('my-friends')}
-            >
-              <Users size={18} />
-              <span>My Friends</span>
-              {friends.length > 0 && <span className="fd-count">{friends.length}</span>}
-            </button>
-            <button
-              className={`fd-sidebar-item ${activeView === 'find-friends' ? 'active' : ''}`}
-              onClick={() => setActiveView('find-friends')}
-            >
-              <Search size={18} />
-              <span>Find Friends</span>
-            </button>
-            <button
-              className={`fd-sidebar-item ${activeView === 'requests' ? 'active' : ''}`}
-              onClick={() => setActiveView('requests')}
-            >
-              <UserPlus size={18} />
-              <span>Requests</span>
-              {totalRequests > 0 && <span className="fd-count fd-count--alert">{totalRequests}</span>}
-            </button>
-          </nav>
-        </aside>
 
+      <SocialHubChrome
+        title="Friends"
+        tagline="your network"
+        activeKey="friends"
+        primaryAction={{
+          label: 'Find Friends',
+          icon: <UserPlus size={14} />,
+          onClick: () => setActiveView('find-friends'),
+        }}
+        sideSections={[
+          {
+            label: 'Friends Workspace',
+            children: (
+              <nav className="shc-view-nav" aria-label="Friends workspace">
+                <button
+                  className={`shc-view-link ${activeView === 'my-friends' ? 'shc-view-link--active' : ''}`}
+                  type="button"
+                  onClick={() => setActiveView('my-friends')}
+                >
+                  <Users size={16} />
+                  <span>My Friends</span>
+                  {friends.length > 0 && <span className="shc-nav-count">{friends.length}</span>}
+                </button>
+                <button
+                  className={`shc-view-link ${activeView === 'find-friends' ? 'shc-view-link--active' : ''}`}
+                  type="button"
+                  onClick={() => setActiveView('find-friends')}
+                >
+                  <Search size={16} />
+                  <span>Find Friends</span>
+                </button>
+                <button
+                  className={`shc-view-link ${activeView === 'requests' ? 'shc-view-link--active' : ''}`}
+                  type="button"
+                  onClick={() => setActiveView('requests')}
+                >
+                  <UserPlus size={16} />
+                  <span>Requests</span>
+                  {totalRequests > 0 && <span className="shc-nav-count">{totalRequests}</span>}
+                </button>
+              </nav>
+            ),
+          },
+          {
+            label: 'Your Level',
+            children: (
+              <div className="fd-self-level-card fd-self-level-card--chrome">
+                <span className="fd-self-kicker">Current Level</span>
+                <strong>Level {selfStats?.level || 1}</strong>
+                <div className="fd-self-xp">{(selfStats?.total_points || 0).toLocaleString()} XP</div>
+                <div className="fd-self-track">
+                  <span style={{ width: `${Math.min(100, Math.max(0, ((selfStats?.experience || 0) / Math.max(1, selfStats?.next_level_xp || 100)) * 100))}%` }} />
+                </div>
+              </div>
+            ),
+          },
+        ]}
+        stats={[
+          { label: 'Friends', value: friends.length },
+          { label: 'Requests', value: totalRequests },
+          { label: 'Level', value: selfStats?.level || 1 },
+          { label: 'XP', value: (selfStats?.total_points || 0).toLocaleString() },
+        ]}
+      >
         <main className="fd-main">
           {activeView === 'my-friends' && (
             loading
@@ -465,7 +492,7 @@ const FriendsDashboard = () => {
             </>
           )}
         </main>
-      </div>
+      </SocialHubChrome>
     </div>
   );
 };

@@ -2772,80 +2772,152 @@ const Flashcards = () => {
   return (
     <div className="flashcards-page">
       <GeoBackground />
-      <div className="fc-layout">
-        <div className="fc-layout-body">
-          <aside className={`fc-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-            <div className="fc-sidebar-header">
-              <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-            {FC_ICONS.menu}
+      <div className="fc-qb-topbar">
+        <div className="fc-qb-tagline">accelerate <span>your flashcards</span></div>
+        <div className="fc-qb-topbar-right">
+          <button className="fc-qb-top-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+            Dashboard
           </button>
-          <div className="fc-logo" onClick={() => navigate('/search-hub')}>
-                <div className="fc-logo-img" />
-                <span className="fc-logo-text">cerbyl</span>
-              </div>
-              <button className="fc-collapse-btn" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
-                {sidebarCollapsed ? '›' : '‹'}
-              </button>
-            </div>
-
-          <nav className="fc-sidebar-nav">
-            <button className={`fc-nav-item fc-nav-item--primary ${activePanel === 'generator' ? 'active' : ''}`} onClick={() => setActivePanel('generator')}>
-              <span className="fc-nav-icon">{FC_ICONS.sparkle}</span>
-              <span className="fc-nav-text">Generator</span>
-            </button>
-            <button className={`fc-nav-item ${activePanel === 'sources' ? 'active' : ''}`} onClick={() => { setActivePanel('sources'); loadUploadedDocuments(); }}>
-              <span className="fc-nav-icon">{FC_ICONS.file}</span>
-              <span className="fc-nav-text">PDF Sources</span>
-              {uploadedDocuments.length > 0 && (
-                <span className="fc-nav-badge">{uploadedDocuments.length}</span>
-              )}
-            </button>
-            <div className="fc-nav-divider" />
-            <button className={`fc-nav-item ${activePanel === 'cards' ? 'active' : ''}`} onClick={() => setActivePanel('cards')}>
-              <span className="fc-nav-icon">{FC_ICONS.cards}</span>
-              <span className="fc-nav-text">My Flashcards</span>
-            </button>
-            <button className={`fc-nav-item ${activePanel === 'sr_study' ? 'active' : ''}`} onClick={() => { setActivePanel('sr_study'); loadDueCards(); loadSrStats(); }}>
-              <span className="fc-nav-icon">{FC_ICONS.target}</span>
-              <span className="fc-nav-text">Study Queue</span>
-              {dueCards.due_count > 0 && (
-                <span className="fc-nav-badge fc-nav-badge-sr">{dueCards.due_count}</span>
-              )}
-            </button>
-            <button className={`fc-nav-item ${activePanel === 'review' ? 'active' : ''}`} onClick={() => setActivePanel('review')}>
-              <span className="fc-nav-icon">{FC_ICONS.refresh}</span>
-              <span className="fc-nav-text">Needs Review</span>
-              {reviewCards.total_cards > 0 && (
-                <span className="fc-nav-badge">{reviewCards.total_cards}</span>
-              )}
-            </button>
-            <button className={`fc-nav-item ${activePanel === 'explore' ? 'active' : ''}`} onClick={() => { setActivePanel('explore'); loadAllPublicFlashcards(); }}>
-              <span className="fc-nav-icon">{FC_ICONS.search}</span>
-              <span className="fc-nav-text">Explore Public</span>
-            </button>
-            <button className={`fc-nav-item ${activePanel === 'statistics' ? 'active' : ''}`} onClick={() => setActivePanel('statistics')}>
-              <span className="fc-nav-icon">{FC_ICONS.chart}</span>
-              <span className="fc-nav-text">Statistics</span>
-            </button>
-            <button className="fc-nav-item fc-convert-btn" onClick={() => setShowImportExport(true)}>
-              <span className="fc-nav-icon">{FC_ICONS.bolt}</span>
-              <span className="fc-nav-text">Convert</span>
-            </button>
-          </nav>
-
-          <div className="fc-sidebar-footer">
-            <button className="fc-nav-item" onClick={() => navigate('/dashboard-cerbyl')}>
-              <span className="fc-nav-icon">{FC_ICONS.home}</span>
-              <span className="fc-nav-text">Dashboard</span>
-            </button>
-            <button className="fc-nav-item" onClick={() => navigate('/ai-chat')}>
-              <span className="fc-nav-icon">{FC_ICONS.chat}</span>
-              <span className="fc-nav-text">AI Chat</span>
-            </button>
+          <button className="fc-qb-top-btn" onClick={() => navigate('/ai-chat')} type="button">
+            AI Chat
+          </button>
+          <button className="fc-qb-top-btn" onClick={() => setSidebarCollapsed(prev => !prev)} type="button">
+            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
+          </button>
+          <button className="fc-qb-top-btn fc-qb-top-btn--accent" onClick={() => setActivePanel('generator')} type="button">
+            Generate
+          </button>
+          <button className="fc-qb-top-btn fc-qb-top-btn--accent" onClick={() => setShowImportExport(true)} type="button">
+            Convert
+          </button>
+          <div className="fc-qb-context-control">
+            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
           </div>
-        </aside>
+        </div>
+      </div>
 
-        <main className="fc-main">
+      <div className="fc-layout fc-qb-body">
+        <div className={`fc-qb-shell ${sidebarCollapsed ? 'fc-qb-shell--collapsed' : ''}`}>
+          {!sidebarCollapsed && (
+            <aside className="fc-qb-sidebar" aria-label="Flashcards navigation">
+              <div className="fc-qb-side-brand">
+                <div className="fc-qb-brand-wrap">
+                  <div className="fc-qb-brand">cerbyl</div>
+                  <div className="fc-qb-current-title">Flashcards</div>
+                </div>
+                <button
+                  className="fc-qb-side-close-btn"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Close sidebar"
+                  aria-label="Close flashcards sidebar"
+                  type="button"
+                >
+                  {FC_ICONS.arrowLeft}
+                </button>
+              </div>
+
+              <div className="fc-qb-side-block">
+                <div className="fc-qb-side-label">Quick Actions</div>
+                <nav className="fc-qb-view-nav" aria-label="Flashcard quick actions">
+                  <button className={`fc-qb-view-link fc-qb-view-link--accent ${activePanel === 'generator' ? 'fc-qb-view-link--active' : ''}`} onClick={() => setActivePanel('generator')} type="button">
+                    {FC_ICONS.sparkle}
+                    <span>Generator</span>
+                  </button>
+                  <button className="fc-qb-view-link" onClick={enterCustomCreateMode} type="button">
+                    {FC_ICONS.edit}
+                    <span>Create Custom</span>
+                  </button>
+                  <button className="fc-qb-view-link fc-qb-view-link--accent" onClick={() => setShowImportExport(true)} type="button">
+                    {FC_ICONS.bolt}
+                    <span>Convert</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="fc-qb-side-block fc-qb-side-block--grow">
+                <div className="fc-qb-side-label">Practice</div>
+                <nav className="fc-qb-view-nav" aria-label="Flashcards practice">
+                  <button className={`fc-qb-view-link ${activePanel === 'cards' ? 'fc-qb-view-link--active' : ''}`} onClick={() => setActivePanel('cards')} type="button">
+                    {FC_ICONS.cards}
+                    <span>My Flashcards</span>
+                    <span className="fc-qb-nav-count">{flashcardHistory.length}</span>
+                  </button>
+                  <button className={`fc-qb-view-link ${activePanel === 'sr_study' ? 'fc-qb-view-link--active' : ''}`} onClick={() => { setActivePanel('sr_study'); loadDueCards(); loadSrStats(); }} type="button">
+                    {FC_ICONS.target}
+                    <span>Study Queue</span>
+                    <span className="fc-qb-nav-count">{dueCards.due_count || 0}</span>
+                  </button>
+                  <button className={`fc-qb-view-link ${activePanel === 'review' ? 'fc-qb-view-link--active' : ''}`} onClick={() => setActivePanel('review')} type="button">
+                    {FC_ICONS.refresh}
+                    <span>Needs Review</span>
+                    <span className="fc-qb-nav-count">{reviewCards.total_cards || 0}</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="fc-qb-side-block">
+                <div className="fc-qb-side-label">Library</div>
+                <nav className="fc-qb-view-nav" aria-label="Flashcard library">
+                  <button className={`fc-qb-view-link ${activePanel === 'sources' ? 'fc-qb-view-link--active' : ''}`} onClick={() => { setActivePanel('sources'); loadUploadedDocuments(); }} type="button">
+                    {FC_ICONS.file}
+                    <span>PDF Sources</span>
+                    <span className="fc-qb-nav-count">{uploadedDocuments.length}</span>
+                  </button>
+                  <button className={`fc-qb-view-link ${activePanel === 'explore' ? 'fc-qb-view-link--active' : ''}`} onClick={() => { setActivePanel('explore'); loadAllPublicFlashcards(); }} type="button">
+                    {FC_ICONS.search}
+                    <span>Explore Public</span>
+                  </button>
+                  <button className={`fc-qb-view-link ${activePanel === 'statistics' ? 'fc-qb-view-link--active' : ''}`} onClick={() => setActivePanel('statistics')} type="button">
+                    {FC_ICONS.chart}
+                    <span>Statistics</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="fc-qb-side-block">
+                <div className="fc-qb-side-label">Session</div>
+                <div className="fc-qb-stat-grid">
+                  <div className="fc-qb-stat-card">
+                    <span>{flashcardStats?.total_sets || flashcardHistory.length || 0}</span>
+                    <small>Sets</small>
+                  </div>
+                  <div className="fc-qb-stat-card">
+                    <span>{flashcardStats?.total_cards || 0}</span>
+                    <small>Cards</small>
+                  </div>
+                  <div className="fc-qb-stat-card">
+                    <span>{currentStreak}</span>
+                    <small>Streak</small>
+                  </div>
+                </div>
+              </div>
+
+              <div className="fc-qb-side-actions">
+                <button className="fc-qb-action-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  {FC_ICONS.home}
+                  <span>Dashboard</span>
+                </button>
+                <button className="fc-qb-action-btn fc-qb-action-btn--ghost" onClick={() => navigate('/ai-chat')} type="button">
+                  {FC_ICONS.chat}
+                  <span>AI Chat</span>
+                </button>
+                <button
+                  className="fc-qb-action-btn fc-qb-action-btn--ghost"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  {FC_ICONS.logout}
+                  <span>Logout</span>
+                </button>
+              </div>
+            </aside>
+          )}
+
+          <main className="fc-main fc-qb-main">
           {activePanel === 'cards' && (
             <>
 
@@ -4047,9 +4119,6 @@ const Flashcards = () => {
         }}
       />
 
-      <div style={{position:'fixed',top:'10px',right:'12px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
-        <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-      </div>
       <ContextPanel
         isOpen={contextPanelOpen}
         onClose={() => setContextPanelOpen(false)}

@@ -4,7 +4,7 @@ import {
   Plus, Loader, BookOpen, Target, Clock, Award,
   CheckCircle, Play, Trash2,
   Sparkles, Route, Map, Circle, Search,
-  SlidersHorizontal, ArrowUpDown
+  SlidersHorizontal, ArrowUpDown, ChevronLeft, LogOut
 } from 'lucide-react';
 import learningPathService from '../services/learningPathService';
 import './LearningPaths.css';
@@ -19,6 +19,9 @@ const LearningPaths = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('recent');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  ));
   
   
   const [topicPrompt, setTopicPrompt] = useState('');
@@ -229,178 +232,281 @@ const LearningPaths = () => {
         <circle cx="1000" cy="600" r="2" fill="currentColor"/>
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
-      <div className="lp-layout-body">
-        <aside className="lp-sidebar">
-          <div className="lp-sidebar-section">
-            <h3 className="lp-sidebar-heading">Browse</h3>
-            <nav className="lp-sidebar-menu">
-              <button
-                className={`lp-nav-item ${statusFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setStatusFilter('all')}
-              >
-                <Route size={18} />
-                <span>All Paths</span>
-              </button>
-              <button
-                className={`lp-nav-item ${statusFilter === 'active' ? 'active' : ''}`}
-                onClick={() => setStatusFilter('active')}
-              >
-                <Play size={18} />
-                <span>Active</span>
-              </button>
-              <button
-                className={`lp-nav-item ${statusFilter === 'completed' ? 'active' : ''}`}
-                onClick={() => setStatusFilter('completed')}
-              >
-                <CheckCircle size={18} />
-                <span>Completed</span>
-              </button>
-            </nav>
-          </div>
-          
-          <div className="lp-sidebar-divider"></div>
-          
-          <div className="lp-sidebar-stats">
-            <div className="lp-stat-box">
-              <div className="lp-stat-value">{summary.total}</div>
-              <div className="lp-stat-label">Total Paths</div>
-            </div>
-          </div>
-        </aside>
 
-        <main className="lp-main">
-          <section className="lp-toolbar">
-            <div className="lp-toolbar-left">
-              <button className="lp-toolbar-create" onClick={() => setShowCreateModal(true)}>
-                <Plus size={16} />
-                Create
-              </button>
-              <div className="lp-toolbar-search">
-                <Search size={16} />
-                <input
-                  type="text"
-                  placeholder="Search paths, topics, or goals..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="lp-toolbar-controls">
-              <div className="lp-toolbar-filter">
-                <SlidersHorizontal size={16} />
-                <span>Filter</span>
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                  <option value="all">All</option>
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-              <div className="lp-toolbar-sort">
-                <ArrowUpDown size={16} />
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                  <option value="recent">Most Recent</option>
-                  <option value="progress">Progress</option>
-                  <option value="time">Time Remaining</option>
-                  <option value="az">A → Z</option>
-                </select>
-              </div>
-            </div>
-          </section>
+      <div className="lp-qb-topbar">
+        <div className="lp-qb-tagline">accelerate <span>your path</span></div>
+        <div className="lp-qb-topbar-right">
+          <button className="lp-qb-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
+            Dashboard
+          </button>
+          <button className="lp-qb-top-btn" type="button" onClick={loadPaths}>
+            Refresh
+          </button>
+          <button className="lp-qb-top-btn" type="button" onClick={() => setSidebarCollapsed(prev => !prev)}>
+            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
+          </button>
+          <button className="lp-qb-top-btn lp-qb-top-btn--accent" type="button" onClick={() => setShowCreateModal(true)}>
+            Generate Path
+          </button>
+        </div>
+      </div>
 
-          <div className="lp-content">
-            <div className="view-heading">
-              <span className="view-kicker">Your Curriculum</span>
-              <h2 className="view-title">Learning Paths</h2>
-              <p className="view-sub">{summary.total} path{summary.total !== 1 ? 's' : ''} · {summary.active} active</p>
-            </div>
-            {filteredPaths.length === 0 ? (
-              <div className="lp-empty-state">
-                <div className="lp-empty-icon">
-                  <Map size={64} />
+      <div className="lp-layout-body lp-qb-body">
+        <div className={`lp-qb-shell ${sidebarCollapsed ? 'lp-qb-shell--collapsed' : ''}`}>
+          {!sidebarCollapsed && (
+            <aside className="lp-qb-sidebar" aria-label="Learning paths navigation">
+              <div className="lp-qb-side-brand">
+                <div className="lp-qb-brand-wrap">
+                  <div className="lp-qb-brand">cerbyl</div>
+                  <div className="lp-qb-current-title">Learning Paths</div>
                 </div>
-                <h2>{paths.length === 0 ? 'No Learning Paths Yet' : 'No Matches Found'}</h2>
-                <p>
-                  {paths.length === 0
-                    ? 'Create your first learning path to start your structured learning journey.'
-                    : 'Try adjusting your search or filters to find the right path.'}
-                </p>
-                <button className="lp-empty-create-btn" onClick={() => setShowCreateModal(true)}>
-                  <Sparkles size={20} />
-                  Generate Learning Path
+                <button
+                  className="lp-qb-side-close-btn"
+                  type="button"
+                  title="Close sidebar"
+                  aria-label="Close learning paths sidebar"
+                  onClick={() => setSidebarCollapsed(true)}
+                >
+                  <ChevronLeft size={14} />
                 </button>
               </div>
-            ) : (
-              <div className="lp-paths-grid">
-                {filteredPaths.map(path => {
-                  const progressPct = Math.round(path.progress?.completion_percentage || 0);
-                  const status = path.status || 'active';
-                  return (
-                    <div
-                      key={path.id}
-                      className="lp-path-card"
-                      onClick={() => navigate(`/learning-paths/${path.id}`)}
-                    >
-                      <div className="lp-path-header">
-                        <div className="lp-path-status">
-                          {getStatusIcon(status)}
-                        </div>
-                        <button
-                          className="lp-path-menu"
-                          onClick={(e) => handleDeletePath(path.id, e)}
-                          title="Delete path"
-                          aria-label="Delete learning path"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
 
-                      <div className="lp-path-content">
-                        <h3>{path.title}</h3>
-                        <p className="lp-path-description">{path.description}</p>
-
-                        <div className="lp-path-meta">
-                          <div className="lp-path-meta-item">
-                            <Target size={16} />
-                            <span
-                              className="lp-difficulty-badge"
-                              style={{ backgroundColor: getDifficultyColor(path.difficulty) }}
-                            >
-                              {path.difficulty}
-                            </span>
-                          </div>
-                          <div className="lp-path-meta-item">
-                            <Clock size={16} />
-                            <span>{Math.round(path.estimated_hours || 0)}h</span>
-                          </div>
-                          <div className="lp-path-meta-item">
-                            <BookOpen size={16} />
-                            <span>{path.total_nodes} nodes</span>
-                          </div>
-                        </div>
-
-                        <div className="lp-path-progress">
-                          <div className="lp-progress-bar">
-                            <div
-                              className="lp-progress-fill"
-                              style={{ width: `${progressPct}%` }}
-                            />
-                          </div>
-                          <div className="lp-progress-text">
-                            <span>{path.completed_nodes} / {path.total_nodes} completed</span>
-                            <span className="lp-progress-xp">
-                              <Award size={14} />
-                              {path.progress.total_xp_earned} XP
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="lp-qb-side-block">
+                <div className="lp-qb-side-label">Browse</div>
+                <nav className="lp-qb-view-nav" aria-label="Learning path filters">
+                  <button
+                    className={`lp-qb-view-link ${statusFilter === 'all' ? 'lp-qb-view-link--active' : ''}`}
+                    type="button"
+                    onClick={() => setStatusFilter('all')}
+                  >
+                    <Route size={16} />
+                    <span>All Paths</span>
+                    <span className="lp-qb-nav-count">{summary.total}</span>
+                  </button>
+                  <button
+                    className={`lp-qb-view-link ${statusFilter === 'active' ? 'lp-qb-view-link--active' : ''}`}
+                    type="button"
+                    onClick={() => setStatusFilter('active')}
+                  >
+                    <Play size={16} />
+                    <span>Active</span>
+                    <span className="lp-qb-nav-count">{summary.active}</span>
+                  </button>
+                  <button
+                    className={`lp-qb-view-link ${statusFilter === 'completed' ? 'lp-qb-view-link--active' : ''}`}
+                    type="button"
+                    onClick={() => setStatusFilter('completed')}
+                  >
+                    <CheckCircle size={16} />
+                    <span>Completed</span>
+                    <span className="lp-qb-nav-count">{summary.completed}</span>
+                  </button>
+                </nav>
               </div>
-            )}
-          </div>
-        </main>
+
+              <div className="lp-qb-side-block lp-qb-side-block--grow">
+                <div className="lp-qb-side-label">Sort Order</div>
+                <nav className="lp-qb-view-nav" aria-label="Learning path sort order">
+                  {[
+                    ['recent', 'Most Recent'],
+                    ['progress', 'Progress'],
+                    ['time', 'Time Remaining'],
+                    ['az', 'A → Z'],
+                  ].map(([key, label]) => (
+                    <button
+                      key={key}
+                      className={`lp-qb-view-link ${sortBy === key ? 'lp-qb-view-link--active' : ''}`}
+                      type="button"
+                      onClick={() => setSortBy(key)}
+                    >
+                      <ArrowUpDown size={16} />
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </nav>
+              </div>
+
+              <div className="lp-qb-side-block">
+                <div className="lp-qb-side-label">Quick Stats</div>
+                <div className="lp-qb-stat-grid">
+                  <div className="lp-qb-stat-card">
+                    <span>{summary.total}</span>
+                    <small>Total</small>
+                  </div>
+                  <div className="lp-qb-stat-card">
+                    <span>{summary.active}</span>
+                    <small>Active</small>
+                  </div>
+                  <div className="lp-qb-stat-card">
+                    <span>{summary.avgProgress}%</span>
+                    <small>Avg</small>
+                  </div>
+                  <div className="lp-qb-stat-card">
+                    <span>{summary.hoursRemaining}</span>
+                    <small>Hours</small>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lp-qb-side-actions">
+                <button className="lp-qb-action-btn" type="button" onClick={() => setShowCreateModal(true)}>
+                  <Sparkles size={14} />
+                  <span>Generate Path</span>
+                </button>
+                <button className="lp-qb-action-btn lp-qb-action-btn--ghost" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
+                  <Map size={14} />
+                  <span>Dashboard</span>
+                </button>
+                <button
+                  className="lp-qb-action-btn lp-qb-action-btn--ghost"
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                >
+                  <LogOut size={14} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </aside>
+          )}
+
+          <main className="lp-main lp-qb-main">
+            <section className="lp-toolbar">
+              <div className="lp-toolbar-left">
+                <button className="lp-toolbar-create" onClick={() => setShowCreateModal(true)}>
+                  <Plus size={16} />
+                  Create
+                </button>
+                <div className="lp-toolbar-search">
+                  <Search size={16} />
+                  <input
+                    type="text"
+                    placeholder="Search paths, topics, or goals..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="lp-toolbar-controls">
+                <div className="lp-toolbar-filter">
+                  <SlidersHorizontal size={16} />
+                  <span>Filter</span>
+                  <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="all">All</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+                <div className="lp-toolbar-sort">
+                  <ArrowUpDown size={16} />
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="recent">Most Recent</option>
+                    <option value="progress">Progress</option>
+                    <option value="time">Time Remaining</option>
+                    <option value="az">A → Z</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <div className="lp-content">
+              <div className="view-heading">
+                <span className="view-kicker">Your Curriculum</span>
+                <h2 className="view-title">Learning Paths</h2>
+                <p className="view-sub">{summary.total} path{summary.total !== 1 ? 's' : ''} · {summary.active} active</p>
+              </div>
+              {filteredPaths.length === 0 ? (
+                <div className="lp-empty-state">
+                  <div className="lp-empty-icon">
+                    <Map size={64} />
+                  </div>
+                  <h2>{paths.length === 0 ? 'No Learning Paths Yet' : 'No Matches Found'}</h2>
+                  <p>
+                    {paths.length === 0
+                      ? 'Create your first learning path to start your structured learning journey.'
+                      : 'Try adjusting your search or filters to find the right path.'}
+                  </p>
+                  <button className="lp-empty-create-btn" onClick={() => setShowCreateModal(true)}>
+                    <Sparkles size={20} />
+                    Generate Learning Path
+                  </button>
+                </div>
+              ) : (
+                <div className="lp-paths-grid">
+                  {filteredPaths.map(path => {
+                    const progressPct = Math.round(path.progress?.completion_percentage || 0);
+                    const status = path.status || 'active';
+                    return (
+                      <div
+                        key={path.id}
+                        className="lp-path-card"
+                        onClick={() => navigate(`/learning-paths/${path.id}`)}
+                      >
+                        <div className="lp-path-header">
+                          <div className="lp-path-status">
+                            {getStatusIcon(status)}
+                          </div>
+                          <button
+                            className="lp-path-menu"
+                            onClick={(e) => handleDeletePath(path.id, e)}
+                            title="Delete path"
+                            aria-label="Delete learning path"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+
+                        <div className="lp-path-content">
+                          <h3>{path.title}</h3>
+                          <p className="lp-path-description">{path.description}</p>
+
+                          <div className="lp-path-meta">
+                            <div className="lp-path-meta-item">
+                              <Target size={16} />
+                              <span
+                                className="lp-difficulty-badge"
+                                style={{ backgroundColor: getDifficultyColor(path.difficulty) }}
+                              >
+                                {path.difficulty}
+                              </span>
+                            </div>
+                            <div className="lp-path-meta-item">
+                              <Clock size={16} />
+                              <span>{Math.round(path.estimated_hours || 0)}h</span>
+                            </div>
+                            <div className="lp-path-meta-item">
+                              <BookOpen size={16} />
+                              <span>{path.total_nodes} nodes</span>
+                            </div>
+                          </div>
+
+                          <div className="lp-path-progress">
+                            <div className="lp-progress-bar">
+                              <div
+                                className="lp-progress-fill"
+                                style={{ width: `${progressPct}%` }}
+                              />
+                            </div>
+                            <div className="lp-progress-text">
+                              <span>{path.completed_nodes} / {path.total_nodes} completed</span>
+                              <span className="lp-progress-xp">
+                                <Award size={14} />
+                                {path.progress.total_xp_earned} XP
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
       </div>
 
       {showCreateModal && (

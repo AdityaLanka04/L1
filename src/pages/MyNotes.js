@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus,
-  Grid, List as ListIcon, Layout, Sparkles, ChevronLeft, ChevronRight,
-  Home, LogOut, FileText, Menu, RotateCcw, MessageSquare, BookOpen,
+  Grid, List as ListIcon, Layout, Sparkles, ChevronLeft,
+  Home, LogOut, FileText, RotateCcw, MessageSquare, BookOpen,
   HelpCircle, X
 } from 'lucide-react';
 import './MyNotes.css';
@@ -53,13 +53,6 @@ const MyNotes = () => {
   const [selectedFlashcardSets, setSelectedFlashcardSets] = useState([]);
   const [quizHistory, setQuizHistory] = useState([]);
   const [selectedQuizzes, setSelectedQuizzes] = useState([]);
-
-  
-  const Icons = {
-    notes: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-    home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-    logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-  };
 
   useEffect(() => {
     loadNotes();
@@ -525,11 +518,6 @@ const MyNotes = () => {
     return date.toLocaleDateString();
   };
 
-  const extractPreview = (content) => {
-    const text = asText(content).replace(/<[^>]+>/g, '').trim();
-    return text.substring(0, 100) + (text.length > 100 ? '...' : '');
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
@@ -537,8 +525,15 @@ const MyNotes = () => {
   };
 
   const filteredNotes = getFilteredNotes();
-  const currentTitle = showTrash ? 'Trash' : showFavorites ? 'Favorites' : 
-    selectedFolder ? folders.find(f => f.id === selectedFolder)?.name : 'All Notes';
+  const favoriteCount = notes.filter(n => n.is_favorite).length;
+  const flashcardSourceCount = notes.filter(n => n.source_type === 'flashcards' || asText(n.title).toLowerCase().includes('flashcard')).length;
+  const quizSourceCount = notes.filter(n => n.source_type === 'quiz' || asText(n.title).toLowerCase().includes('quiz')).length;
+  const roadmapSourceCount = notes.filter(n => n.source_type === 'roadmap' || asText(n.title).toLowerCase().includes('roadmap') || asText(n.title).toLowerCase().includes('knowledge map')).length;
+  const currentTitle = showTrash ? 'Trash' : showFavorites ? 'Favorites' :
+    selectedFolder === 'source-flashcards' ? 'From Flashcards' :
+    selectedFolder === 'source-quizzes' ? 'From Quizzes' :
+    selectedFolder === 'source-roadmaps' ? 'From Knowledge Maps' :
+    selectedFolder ? folders.find(f => f.id === selectedFolder)?.name || 'Folder' : 'All Notes';
 
   return (
     <div className="my-notes-page-full">
@@ -560,148 +555,192 @@ const MyNotes = () => {
         <circle cx="855" cy="146" r="3.5" fill="currentColor"/>
         <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
       </svg>
-      <div className="mn-body">
-        <aside className={`nt-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="nt-sidebar-topbar">
-            <button className="nt-sidebar-back" onClick={() => navigate('/notes')} title="Back to notes hub">
-              <ChevronLeft size={16} />
-              <span>Notes Hub</span>
-            </button>
-            <button className="nt-collapse-btn" onClick={() => setSidebarCollapsed(true)} title="Hide sidebar">
-              <Menu size={15} />
-            </button>
-          </div>
-
-          <button className="nt-new-note-btn" onClick={createNewNote}>
-            <Plus size={18} />
-            <span className="nt-nav-text">New Note</span>
+      <div className="mn-qb-topbar">
+        <div className="mn-qb-tagline">accelerate <span>your notes</span></div>
+        <div className="mn-qb-topbar-right">
+          <button className="mn-qb-top-btn" onClick={() => navigate('/notes')} type="button">
+            Notes Hub
           </button>
+          <button className="mn-qb-top-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+            Dashboard
+          </button>
+          <button className="mn-qb-top-btn" onClick={() => setSidebarCollapsed(prev => !prev)} type="button">
+            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
+          </button>
+          <button className="mn-qb-top-btn mn-qb-top-btn--accent" onClick={createNewNote} type="button">
+            New Note
+          </button>
+          <button className="mn-qb-top-btn mn-qb-top-btn--accent" onClick={() => setShowConvertModal(true)} type="button">
+            Convert
+          </button>
+        </div>
+      </div>
 
-          <nav className="nt-sidebar-nav">
-            <div className="nt-nav-section">
-              <div className="nt-nav-section-title">QUICK ACTIONS</div>
-              <button className="nt-nav-item" onClick={() => setShowTemplates(true)}>
-                <span className="nt-nav-icon"><Layout size={18} /></span>
-                <span className="nt-nav-text">Templates</span>
-              </button>
-              <button className="nt-nav-item" onClick={() => { setShowChatImport(true); setImportTab('chat'); setSelectedSessions([]); setSelectedFlashcardSets([]); setSelectedQuizzes([]); }}>
-                <span className="nt-nav-icon"><Upload size={18} /></span>
-                <span className="nt-nav-text">From Chat</span>
-              </button>
-              <button className="nt-nav-item convert-btn" onClick={() => setShowConvertModal(true)}>
-                <span className="nt-nav-icon"><Sparkles size={18} /></span>
-                <span className="nt-nav-text">Convert</span>
-              </button>
-              <button className="nt-nav-item" onClick={() => navigate('/notes/ai-media')}>
-                <span className="nt-nav-icon"><FileText size={18} /></span>
-                <span className="nt-nav-text">Media Notes</span>
-              </button>
-            </div>
-
-            <div className="nt-nav-section">
-              <div className="nt-nav-section-title">LIBRARY</div>
-              <button 
-                className={`nt-nav-item ${!showFavorites && !showTrash && !selectedFolder ? 'active' : ''}`}
-                onClick={() => { setShowFavorites(false); setShowTrash(false); setSelectedFolder(null); }}
-              >
-                <span className="nt-nav-icon"><Folder size={18} /></span>
-                <span className="nt-nav-text">All Notes</span>
-                <span className="nt-nav-count">{notes.length}</span>
-              </button>
-              <button 
-                className={`nt-nav-item ${showFavorites ? 'active' : ''}`}
-                onClick={() => { setShowFavorites(true); setShowTrash(false); setSelectedFolder(null); }}
-              >
-                <span className="nt-nav-icon"><Star size={18} /></span>
-                <span className="nt-nav-text">Favorites</span>
-                <span className="nt-nav-count">{notes.filter(n => n.is_favorite).length}</span>
-              </button>
-              <button 
-                className={`nt-nav-item ${showTrash ? 'active' : ''}`}
-                onClick={() => { setShowTrash(true); setShowFavorites(false); setSelectedFolder(null); loadTrash(); }}
-              >
-                <span className="nt-nav-icon"><Trash2 size={18} /></span>
-                <span className="nt-nav-text">Trash</span>
-              </button>
-            </div>
-
-            <div className="nt-nav-section">
-              <div className="nt-nav-section-title">
-                FOLDERS
-                <button className="nt-add-folder-btn" onClick={() => setShowFolderModal(true)}>
-                  <FolderPlus size={14} />
+      <div className="mn-body mn-qb-body">
+        <div className={`mn-qb-shell ${sidebarCollapsed ? 'mn-qb-shell--collapsed' : ''}`}>
+          {!sidebarCollapsed && (
+            <aside className="mn-qb-sidebar" aria-label="Notes navigation">
+              <div className="mn-qb-side-brand">
+                <div className="mn-qb-brand">cerbyl</div>
+                <button
+                  className="mn-qb-side-close-btn"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Close sidebar"
+                  aria-label="Close notes sidebar"
+                  type="button"
+                >
+                  <ChevronLeft size={14} />
                 </button>
               </div>
-              {folders.map(folder => (
-                <button
-                  key={folder.id}
-                  className={`nt-nav-item ${selectedFolder === folder.id ? 'active' : ''}`}
-                  onClick={() => { setSelectedFolder(folder.id); setShowFavorites(false); setShowTrash(false); }}
-                >
-                  <span className="nt-nav-icon"><Folder size={18} /></span>
-                  <span className="nt-nav-text">{folder.name}</span>
-                  <span className="nt-nav-count">{notes.filter(n => n.folder_id === folder.id).length}</span>
+
+              <div className="mn-qb-side-block">
+                <div className="mn-qb-side-label">Quick Actions</div>
+                <nav className="mn-qb-view-nav" aria-label="Notes quick actions">
+                  <button className="mn-qb-view-link mn-qb-view-link--accent" onClick={createNewNote} type="button">
+                    <Plus size={16} />
+                    <span>New Note</span>
+                  </button>
+                  <button className="mn-qb-view-link" onClick={() => setShowTemplates(true)} type="button">
+                    <Layout size={16} />
+                    <span>Templates</span>
+                  </button>
+                  <button
+                    className="mn-qb-view-link"
+                    onClick={() => {
+                      setShowChatImport(true);
+                      setImportTab('chat');
+                      setSelectedSessions([]);
+                      setSelectedFlashcardSets([]);
+                      setSelectedQuizzes([]);
+                    }}
+                    type="button"
+                  >
+                    <Upload size={16} />
+                    <span>From Chat</span>
+                  </button>
+                  <button className="mn-qb-view-link mn-qb-view-link--accent" onClick={() => setShowConvertModal(true)} type="button">
+                    <Sparkles size={16} />
+                    <span>Convert</span>
+                  </button>
+                  <button className="mn-qb-view-link" onClick={() => navigate('/notes/ai-media')} type="button">
+                    <FileText size={16} />
+                    <span>Media Notes</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="mn-qb-side-block mn-qb-side-block--grow">
+                <div className="mn-qb-side-label">Library</div>
+                <nav className="mn-qb-view-nav" aria-label="Notes library">
+                  <button
+                    className={`mn-qb-view-link ${!showFavorites && !showTrash && !selectedFolder ? 'mn-qb-view-link--active' : ''}`}
+                    onClick={() => { setShowFavorites(false); setShowTrash(false); setSelectedFolder(null); }}
+                    type="button"
+                  >
+                    <Folder size={16} />
+                    <span>All Notes</span>
+                    <span className="mn-qb-nav-count">{notes.length}</span>
+                  </button>
+                  <button
+                    className={`mn-qb-view-link ${showFavorites ? 'mn-qb-view-link--active' : ''}`}
+                    onClick={() => { setShowFavorites(true); setShowTrash(false); setSelectedFolder(null); }}
+                    type="button"
+                  >
+                    <Star size={16} />
+                    <span>Favorites</span>
+                    <span className="mn-qb-nav-count">{favoriteCount}</span>
+                  </button>
+                  <button
+                    className={`mn-qb-view-link ${showTrash ? 'mn-qb-view-link--active' : ''}`}
+                    onClick={() => { setShowTrash(true); setShowFavorites(false); setSelectedFolder(null); loadTrash(); }}
+                    type="button"
+                  >
+                    <Trash2 size={16} />
+                    <span>Trash</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="mn-qb-side-block">
+                <div className="mn-qb-side-label mn-qb-side-label--row">
+                  <span>Folders</span>
+                  <button className="mn-qb-add-folder-btn" onClick={() => setShowFolderModal(true)} title="Create folder" type="button">
+                    <FolderPlus size={14} />
+                  </button>
+                </div>
+                <nav className="mn-qb-view-nav" aria-label="Note folders">
+                  {folders.length === 0 ? (
+                    <div className="mn-qb-empty-line">No folders yet</div>
+                  ) : folders.map(folder => (
+                    <button
+                      key={folder.id}
+                      className={`mn-qb-view-link ${selectedFolder === folder.id ? 'mn-qb-view-link--active' : ''}`}
+                      onClick={() => { setSelectedFolder(folder.id); setShowFavorites(false); setShowTrash(false); }}
+                      type="button"
+                    >
+                      <Folder size={16} />
+                      <span>{folder.name}</span>
+                      <span className="mn-qb-nav-count">{notes.filter(n => n.folder_id === folder.id).length}</span>
+                    </button>
+                  ))}
+                </nav>
+              </div>
+
+              <div className="mn-qb-side-block">
+                <div className="mn-qb-side-label">By Source</div>
+                <nav className="mn-qb-view-nav" aria-label="Notes by source">
+                  <button
+                    className={`mn-qb-view-link ${selectedFolder === 'source-flashcards' ? 'mn-qb-view-link--active' : ''}`}
+                    onClick={() => { setSelectedFolder('source-flashcards'); setShowFavorites(false); setShowTrash(false); }}
+                    type="button"
+                  >
+                    <FileText size={16} />
+                    <span>From Flashcards</span>
+                    <span className="mn-qb-nav-count">{flashcardSourceCount}</span>
+                  </button>
+                  <button
+                    className={`mn-qb-view-link ${selectedFolder === 'source-quizzes' ? 'mn-qb-view-link--active' : ''}`}
+                    onClick={() => { setSelectedFolder('source-quizzes'); setShowFavorites(false); setShowTrash(false); }}
+                    type="button"
+                  >
+                    <FileText size={16} />
+                    <span>From Quizzes</span>
+                    <span className="mn-qb-nav-count">{quizSourceCount}</span>
+                  </button>
+                  <button
+                    className={`mn-qb-view-link ${selectedFolder === 'source-roadmaps' ? 'mn-qb-view-link--active' : ''}`}
+                    onClick={() => { setSelectedFolder('source-roadmaps'); setShowFavorites(false); setShowTrash(false); }}
+                    type="button"
+                  >
+                    <FileText size={16} />
+                    <span>From Knowledge Maps</span>
+                    <span className="mn-qb-nav-count">{roadmapSourceCount}</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="mn-qb-side-actions">
+                <button className="mn-qb-action-btn" onClick={() => navigate('/notes')} type="button">
+                  Notes Hub
                 </button>
-              ))}
-            </div>
+                <button className="mn-qb-action-btn mn-qb-action-btn--ghost" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  <Home size={14} />
+                  <span>Dashboard</span>
+                </button>
+                <button className="mn-qb-action-btn mn-qb-action-btn--ghost" onClick={handleLogout} type="button">
+                  <LogOut size={14} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </aside>
+          )}
 
-            <div className="nt-nav-section">
-              <div className="nt-nav-section-title">BY SOURCE</div>
-              <button 
-                className={`nt-nav-item ${selectedFolder === 'source-flashcards' ? 'active' : ''}`}
-                onClick={() => { setSelectedFolder('source-flashcards'); setShowFavorites(false); setShowTrash(false); }}
-              >
-                <span className="nt-nav-icon nt-source-flashcards"><FileText size={18} /></span>
-                <span className="nt-nav-text">From Flashcards</span>
-                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'flashcards' || asText(n.title).toLowerCase().includes('flashcard')).length}</span>
-              </button>
-              <button 
-                className={`nt-nav-item ${selectedFolder === 'source-quizzes' ? 'active' : ''}`}
-                onClick={() => { setSelectedFolder('source-quizzes'); setShowFavorites(false); setShowTrash(false); }}
-              >
-                <span className="nt-nav-icon nt-source-quizzes"><FileText size={18} /></span>
-                <span className="nt-nav-text">From Quizzes</span>
-                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'quiz' || asText(n.title).toLowerCase().includes('quiz')).length}</span>
-              </button>
-              <button 
-                className={`nt-nav-item ${selectedFolder === 'source-roadmaps' ? 'active' : ''}`}
-                onClick={() => { setSelectedFolder('source-roadmaps'); setShowFavorites(false); setShowTrash(false); }}
-              >
-                <span className="nt-nav-icon nt-source-roadmaps"><FileText size={18} /></span>
-                <span className="nt-nav-text">From Knowledge Maps</span>
-                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'roadmap' || asText(n.title).toLowerCase().includes('roadmap') || asText(n.title).toLowerCase().includes('knowledge map')).length}</span>
-              </button>
-            </div>
-          </nav>
-
-          <div className="nt-sidebar-footer">
-            <button className="nt-nav-item" onClick={() => navigate('/dashboard-cerbyl')}>
-              <span className="nt-nav-icon"><Home size={18} /></span>
-              <span className="nt-nav-text">Dashboard</span>
-            </button>
-            <button className="nt-nav-item" onClick={handleLogout}>
-              <span className="nt-nav-icon"><LogOut size={18} /></span>
-              <span className="nt-nav-text">Logout</span>
-            </button>
-          </div>
-        </aside>
-
-        {sidebarCollapsed && (
-          <button 
-            className="nt-show-sidebar-btn" 
-            onClick={() => setSidebarCollapsed(false)}
-            title="Show Sidebar"
-          >
-            <Menu size={20} />
-          </button>
-        )}
-
-        <main className="nt-main">
-          <div className="nt-content">
+          <main className="mn-qb-main">
+            <div className="nt-content">
             <div className="nt-view-header">
               <div className="view-heading">
-                <span className="view-kicker">Your Library</span>
-                <h2 className="view-title">My Notes</h2>
+                <span className="view-kicker">Notes Library</span>
+                <h2 className="view-title">{currentTitle}</h2>
                 <p className="view-sub">{filteredNotes.length} note{filteredNotes.length !== 1 ? 's' : ''}</p>
               </div>
             </div>
@@ -801,9 +840,10 @@ const MyNotes = () => {
                 ))}
               </div>
             )}
-          </div>
-        </main>
-      </div> {}
+            </div>
+          </main>
+        </div>
+      </div>
 
       {showFolderModal && (
         <div className="nt-modal-overlay" onClick={() => setShowFolderModal(false)}>

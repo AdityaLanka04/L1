@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, Clock, Users, TrendingUp, Zap, Trophy, Plus, X } from 'lucide-react';
+import { Target, Users, TrendingUp, Zap, Trophy, Plus, X } from 'lucide-react';
 import './Challenges.css';
+import SocialHubChrome from '../components/SocialHubChrome';
 import { API_URL } from '../config';
 
 const Challenges = () => {
@@ -145,7 +146,7 @@ const Challenges = () => {
   };
 
   return (
-    <div className="challenges-page">
+    <div className="challenges-page with-social-chrome">
       <svg className="geo-bg" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
         <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.5"/>
@@ -170,6 +171,48 @@ const Challenges = () => {
         <circle cx="80" cy="600" r="2" fill="currentColor" opacity="0.4"/>
         <circle cx="1100" cy="580" r="2" fill="currentColor" opacity="0.4"/>
       </svg>
+
+      <SocialHubChrome
+        title="Challenges"
+        tagline="challenges"
+        activeKey="challenges"
+        primaryAction={{
+          label: 'Create Challenge',
+          icon: <Plus size={14} />,
+          onClick: () => setShowCreateModal(true),
+        }}
+        sideSections={[
+          {
+            label: 'Challenge Filter',
+            children: (
+              <nav className="shc-view-nav" aria-label="Challenge filters">
+                <button className={`shc-view-link ${filterType === 'active' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setFilterType('active')}>
+                  <Zap size={16} />
+                  <span>Active</span>
+                </button>
+                <button className={`shc-view-link ${filterType === 'completed' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setFilterType('completed')}>
+                  <Trophy size={16} />
+                  <span>Completed</span>
+                </button>
+                <button className={`shc-view-link ${filterType === 'my_challenges' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setFilterType('my_challenges')}>
+                  <Target size={16} />
+                  <span>My Challenges</span>
+                </button>
+                <button className={`shc-view-link ${filterType === 'all' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setFilterType('all')}>
+                  <Users size={16} />
+                  <span>All</span>
+                </button>
+              </nav>
+            ),
+          },
+        ]}
+        stats={[
+          { label: 'Visible', value: challenges.length },
+          { label: 'Active', value: challenges.filter(challenge => challenge.status === 'active').length },
+          { label: 'Joined', value: challenges.filter(challenge => challenge.is_participating).length },
+          { label: 'Done', value: challenges.filter(challenge => challenge.user_completed).length },
+        ]}
+      >
       <div className="challenges-container">
         <div className="challenges-welcome">
           <div className="challenges-welcome-left">
@@ -182,33 +225,6 @@ const Challenges = () => {
           <button className="create-challenge-btn" onClick={() => setShowCreateModal(true)}>
             <Plus size={16} />
             <span>Create Challenge</span>
-          </button>
-        </div>
-
-        <div className="challenges-filters">
-          <button 
-            className={`filter-tab ${filterType === 'active' ? 'active' : ''}`}
-            onClick={() => setFilterType('active')}
-          >
-            Active
-          </button>
-          <button 
-            className={`filter-tab ${filterType === 'completed' ? 'active' : ''}`}
-            onClick={() => setFilterType('completed')}
-          >
-            Completed
-          </button>
-          <button 
-            className={`filter-tab ${filterType === 'my_challenges' ? 'active' : ''}`}
-            onClick={() => setFilterType('my_challenges')}
-          >
-            My Challenges
-          </button>
-          <button 
-            className={`filter-tab ${filterType === 'all' ? 'active' : ''}`}
-            onClick={() => setFilterType('all')}
-          >
-            All
           </button>
         </div>
 
@@ -312,6 +328,7 @@ const Challenges = () => {
           </div>
         )}
       </div>
+      </SocialHubChrome>
 
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>

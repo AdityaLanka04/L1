@@ -11,7 +11,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { 
   Plus, FileText, Upload, Search, Star, Trash2, 
   FolderPlus, Folder, Download, FileDown, Printer, 
-  Eye, Edit3, Maximize2, Minimize2, Menu, X, 
+  Eye, Edit3, Maximize2, Minimize2, X, 
   ChevronRight, Check, Sparkles, Mic, MicOff, 
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
@@ -2761,7 +2761,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   return (
-    <div className={`notes-redesign ${viewMode === "preview" ? "preview-mode" : ""} ${isFullscreen ? "fullscreen-mode" : ""}`}>
+    <div className={`notes-redesign ${selectedNote ? "nr-note-selected" : ""} ${viewMode === "preview" ? "preview-mode" : ""} ${isFullscreen ? "fullscreen-mode" : ""}`}>
       <svg className="geo-bg" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
         <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.5"/>
@@ -2796,23 +2796,27 @@ const NotesRedesign = ({ sharedMode = false }) => {
         onClose={() => setShowSlashMenu(false)}
       />
 
-      <div className="nr-floating-left">
-        {!isSharedContent && (
-          <button
-            className="nr-floating-control nr-exit-btn"
-            onClick={() => navigate('/notes/my-notes')}
-            title="Exit to My Notes"
-            type="button"
-          >
-            <ChevronLeft size={18} />
-            <span>My Notes</span>
-          </button>
-        )}
-      </div>
-
-      <div className="nr-context-shell">
-        <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-      </div>
+      {selectedNote && !isFullscreen && (
+        <div className="nr-qb-topbar">
+          <div className="nr-qb-tagline">accelerate <span>your notes</span></div>
+          <div className="nr-qb-topbar-right">
+            {!isSharedContent && (
+              <button className="nr-qb-top-btn" onClick={() => navigate('/notes/my-notes')} type="button">
+                My Notes
+              </button>
+            )}
+            <button className="nr-qb-top-btn" onClick={() => setSidebarOpen((prev) => !prev)} type="button">
+              {sidebarOpen && !isSharedContent ? 'Hide Sidebar' : 'Show Sidebar'}
+            </button>
+            <button className="nr-qb-top-btn nr-qb-top-btn--accent" onClick={() => setShowImportExport(true)} type="button">
+              Convert
+            </button>
+            <div className="nr-qb-context-control">
+              <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {isFullscreen && (
         <button
@@ -2829,193 +2833,193 @@ const NotesRedesign = ({ sharedMode = false }) => {
       {/* Body - Sidebar + Content */}
       <div className="nr-body">
         {selectedNote ? (
-          <div className="editor-with-sidepanel">
-            {/* Floating Menu Button - shows when sidebar is closed */}
-            {!sidebarOpen && !isSharedContent && (
-              <button 
-                className="nr-show-sidebar-btn"
-                type="button"
-                onClick={() => setSidebarOpen(true)}
-                title="Show Tools Panel"
-              >
-                <Menu size={20} />
-              </button>
-            )}
+          <div className={`nr-qb-shell ${sidebarOpen && !isSharedContent ? "" : "nr-qb-shell--collapsed"}`}>
+            {sidebarOpen && !isSharedContent && (
+              <aside className="nr-qb-sidebar" aria-label="Notes tools">
+                <div className="nr-qb-side-brand">
+                  <div className="nr-qb-brand">cerbyl</div>
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="nr-qb-side-close-btn"
+                    type="button"
+                    title="Close sidebar"
+                    aria-label="Close notes sidebar"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                </div>
 
-            {/* LEFT SIDE TOOLS PANEL */}
-            <aside className={`tools-sidepanel ${sidebarOpen && !isSharedContent ? "open" : "closed"}`}>
-              <div className="tools-panel-header">
-                <h3>TOOLS</h3>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="close-panel-btn"
-                  type="button"
-                  title="Close panel"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="tools-panel-content">
-                {/* View Mode Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">VIEW MODE</label>
-                  <div className="tool-buttons-group">
+                <div className="nr-qb-side-block">
+                  <div className="nr-qb-side-label">Notes Workspace</div>
+                  <nav className="nr-qb-view-nav" aria-label="Note view mode">
                     <button
-                      className={`tool-panel-btn ${viewMode === "edit" ? "active" : ""}`}
+                      className={`nr-qb-view-link ${viewMode === "edit" ? "nr-qb-view-link--active" : ""}`}
                       onClick={() => setViewMode("edit")}
                       title="Edit mode"
+                      type="button"
                     >
                       <Edit3 size={16} />
                       <span>Edit</span>
                     </button>
                     <button
-                      className={`tool-panel-btn ${viewMode === "preview" ? "active" : ""}`}
+                      className={`nr-qb-view-link ${viewMode === "preview" ? "nr-qb-view-link--active" : ""}`}
                       onClick={() => setViewMode("preview")}
                       title="Preview note"
+                      type="button"
                     >
                       <Eye size={16} />
                       <span>Preview</span>
                     </button>
-                  </div>
+                  </nav>
                 </div>
 
-                <div className="tool-section">
-                  <label className="tool-section-label">EDITOR</label>
-                  <div className="tool-buttons-group">
+                <div className="nr-qb-side-block nr-qb-side-block--grow">
+                  <div className="nr-qb-side-label">Editor</div>
+                  <nav className="nr-qb-view-nav" aria-label="Editor tools">
                     <button
-                      className={`tool-panel-btn ${editorDarkMode ? "active" : ""}`}
+                      className={`nr-qb-view-link ${editorDarkMode ? "nr-qb-view-link--active" : ""}`}
                       onClick={() => setEditorDarkMode((value) => !value)}
                       title={editorDarkMode ? "Use light paper" : "Use dark paper"}
+                      type="button"
                     >
                       <Palette size={16} />
                       <span>{editorDarkMode ? "Dark Paper" : "Light Paper"}</span>
                     </button>
                     {!isSharedContent && (
                       <button
-                        className={`tool-panel-btn ${showPageProperties ? "active" : ""}`}
+                        className={`nr-qb-view-link ${showPageProperties ? "nr-qb-view-link--active" : ""}`}
                         onClick={() => setShowPageProperties((value) => !value)}
                         title="Page properties"
+                        type="button"
                       >
                         <Layout size={16} />
                         <span>Page Setup</span>
                       </button>
                     )}
                     <button
-                      className={`tool-panel-btn ${isFullscreen ? "active" : ""}`}
+                      className={`nr-qb-view-link ${isFullscreen ? "nr-qb-view-link--active" : ""}`}
                       onClick={toggleFullscreen}
                       title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                      type="button"
                     >
                       {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                       <span>{isFullscreen ? "Exit Full" : "Fullscreen"}</span>
                     </button>
                     <button
-                      className="tool-panel-btn"
+                      className="nr-qb-view-link"
                       onClick={() => setShowKeyboardShortcuts(true)}
                       title="Keyboard shortcuts"
+                      type="button"
                     >
                       <Command size={16} />
                       <span>Shortcuts</span>
                     </button>
-                  </div>
+                  </nav>
                 </div>
 
-                {/* Export Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">EXPORT</label>
-                  <div className="tool-buttons-group">
+                <div className="nr-qb-side-block">
+                  <div className="nr-qb-side-label">Export</div>
+                  <nav className="nr-qb-view-nav" aria-label="Export note">
                     <button 
-                      className="tool-panel-btn" 
+                      className="nr-qb-view-link"
                       onClick={exportAsPDF} 
                       title="Export as PDF"
+                      type="button"
                     >
                       <FileDown size={16} />
                       <span>PDF</span>
                     </button>
                     <button 
-                      className="tool-panel-btn" 
+                      className="nr-qb-view-link"
                       onClick={exportAsText} 
                       title="Export as Text"
+                      type="button"
                     >
                       <Download size={16} />
                       <span>TXT</span>
                     </button>
-                  </div>
+                  </nav>
                 </div>
 
-                {/* AI Tools Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">AI TOOLS</label>
-                  <div className="tool-buttons-group">
+                <div className="nr-qb-side-block">
+                  <div className="nr-qb-side-label">AI Tools</div>
+                  <nav className="nr-qb-view-nav" aria-label="AI note tools">
                     <button
-                      className="tool-panel-btn"
+                      className="nr-qb-view-link"
                       onClick={() => setShowAIAssistant(true)}
                       title="AI Writing Assistant"
+                      type="button"
                     >
                       <Sparkles size={16} />
                       <span>AI Assist</span>
                     </button>
                     <button
-                      className="tool-panel-btn"
+                      className="nr-qb-view-link"
                       onClick={() => {
                                                                         setShowChatImport(true);
                       }}
                       title="Import from AI Chat"
+                      type="button"
                     >
                       <Upload size={16} />
                       <span>From Chat</span>
                     </button>
                     <button
-                      className="tool-panel-btn convert-btn"
+                      className="nr-qb-view-link nr-qb-view-link--accent"
                       onClick={() => setShowImportExport(true)}
                       title="Convert Notes"
+                      type="button"
                     >
                       <Zap size={16} />
                       <span>Convert</span>
                     </button>
-                  </div>
+                  </nav>
                 </div>
 
-                {/* Search & Templates Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">QUICK ACTIONS</label>
-                  <div className="tool-buttons-group">
+                <nav className="nr-qb-side-nav-groups" aria-label="More note tools">
+                  <div className="nr-qb-side-group">
+                    <div className="nr-qb-side-group-title">Quick Actions</div>
                     <button
-                      className="tool-panel-btn"
+                      className="nr-qb-side-link"
                       onClick={() => setShowAdvancedSearch(true)}
                       title="Advanced Search"
+                      type="button"
                     >
-                      <Filter size={16} />
-                      <span>Search</span>
+                      <span className="nr-qb-side-link-dot" />
+                      Search
                     </button>
                     <button
-                      className="tool-panel-btn"
+                      className="nr-qb-side-link"
                       onClick={() => setShowTemplates(true)}
                       title="Templates"
+                      type="button"
                     >
-                      <Layout size={16} />
-                      <span>Templates</span>
+                      <span className="nr-qb-side-link-dot" />
+                      Templates
                     </button>
                   </div>
-                </div>
-
-                {/* Visual & Interactive Features */}
-                <div className="tool-section">
-                  <label className="tool-section-label">VISUAL TOOLS</label>
-                  <div className="tool-buttons-group">
+                  <div className="nr-qb-side-group">
+                    <div className="nr-qb-side-group-title">Visual Tools</div>
                     <button 
                       onClick={() => setShowCanvasMode(true)}
-                      className="tool-panel-btn"
+                      className="nr-qb-side-link"
                       title="Canvas Mode - Draw and brainstorm"
+                      type="button"
                     >
-                      <Palette size={16} />
-                      <span>Canvas</span>
+                      <span className="nr-qb-side-link-dot" />
+                      Canvas
                     </button>
                   </div>
-                </div>
-              </div>
-            </aside>
+                </nav>
 
+                <div className="nr-qb-side-actions">
+                  <button className="nr-qb-action-btn" onClick={() => setShowImportExport(true)} type="button">Convert</button>
+                  <button className="nr-qb-action-btn nr-qb-action-btn--ghost" onClick={() => navigate('/notes/my-notes')} type="button">My Notes</button>
+                </div>
+              </aside>
+            )}
+
+            <main className="nr-qb-main">
             <div className={`editor-content ${editorDarkMode ? 'dark-mode' : ''} ${titleSectionCollapsed ? 'toolbar-hidden' : ''} ${!sidebarOpen ? 'sidebar-closed' : ''}`}>
               {isSharedContent && !canEdit && (
                 <div className="view-only-banner">
@@ -3368,6 +3372,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
               )}
             </div>
 
+            </main>
           </div>
         ) : (
           <div className="empty-state-new">

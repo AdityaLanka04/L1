@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Trophy, Target, Flame, TrendingUp, Heart, Award, Zap, Star,
-  Users, Filter, MessageCircle, Send, X, BookOpen,
+  MessageCircle, Send, X, BookOpen,
   Brain, CheckCircle, Clock, Calendar, Sparkles, TrendingDown,
   Activity as ActivityIcon, RefreshCw
 } from 'lucide-react';
 import './ActivityFeed.css';
+import SocialHubChrome from '../components/SocialHubChrome';
 import { API_URL } from '../config';
 import { formatCompactRelativeTime } from '../utils/dateUtils';
 
@@ -72,7 +72,6 @@ const GEO_SVG = (
 );
 
 const ActivityFeed = () => {
-  const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
   const [filteredActivities, setFilteredActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -213,75 +212,77 @@ const ActivityFeed = () => {
     return icons[iconName] || Trophy;
   };
 
+  const activityChromeProps = {
+    title: 'Activity Feed',
+    tagline: 'friend activity',
+    activeKey: 'activity',
+    primaryAction: {
+      label: 'Refresh Feed',
+      icon: <RefreshCw size={14} />,
+      onClick: fetchActivityFeed,
+    },
+    sideSections: [
+      {
+        label: 'Activity Type',
+        children: (
+          <nav className="shc-view-nav" aria-label="Activity type filters">
+            {ACTIVITY_TYPES.map(type => {
+              const IconComp = type.icon;
+              return (
+                <button key={type.value} className={`shc-view-link ${activeFilter === type.value ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setActiveFilter(type.value)}>
+                  <IconComp size={16} />
+                  <span>{type.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        ),
+      },
+      {
+        label: 'Time Period',
+        children: (
+          <nav className="shc-view-nav" aria-label="Time period filters">
+            {TIME_FILTERS.map(filter => {
+              const IconComp = filter.icon;
+              return (
+                <button key={filter.value} className={`shc-view-link ${timeFilter === filter.value ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setTimeFilter(filter.value)}>
+                  <IconComp size={16} />
+                  <span>{filter.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        ),
+      },
+    ],
+    stats: [
+      { label: 'Total', value: stats.totalActivities },
+      { label: 'Today', value: stats.todayActivities },
+      { label: 'Kudos', value: stats.totalKudos },
+      { label: 'Streaks', value: stats.activeStreaks },
+    ],
+  };
+
   if (loading) {
     return (
-      <div className="activity-feed-page">
+      <div className="activity-feed-page with-social-chrome">
         {GEO_SVG}
-        <div className="af-layout">
-          <div className="af-main"><div className="af-loading-text">Loading activity feed...</div></div>
-        </div>
+        <SocialHubChrome {...activityChromeProps}>
+          <main className="af-main">
+            <div className="af-content">
+              <div className="af-loading-text">Loading activity feed...</div>
+            </div>
+          </main>
+        </SocialHubChrome>
       </div>
     );
   }
 
   return (
-    <div className="activity-feed-page">
+    <div className="activity-feed-page with-social-chrome">
       {GEO_SVG}
 
-      <div className="af-layout">
-        <aside className="af-sidebar">
-          <div className="af-sidebar-section">
-            <div className="af-sidebar-heading">Activity Type</div>
-            {ACTIVITY_TYPES.map(type => {
-              const IconComp = type.icon;
-              return (
-                <button key={type.value} className={`af-sidebar-item ${activeFilter === type.value ? 'active' : ''}`} onClick={() => setActiveFilter(type.value)}>
-                  <IconComp size={16} />
-                  <span>{type.label}</span>
-                  {activeFilter === type.value && <div className="af-sidebar-indicator"></div>}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="af-sidebar-divider"></div>
-
-          <div className="af-sidebar-section">
-            <div className="af-sidebar-heading">Time Period</div>
-            {TIME_FILTERS.map(filter => {
-              const IconComp = filter.icon;
-              return (
-                <button key={filter.value} className={`af-sidebar-item ${timeFilter === filter.value ? 'active' : ''}`} onClick={() => setTimeFilter(filter.value)}>
-                  <IconComp size={16} />
-                  <span>{filter.label}</span>
-                  {timeFilter === filter.value && <div className="af-sidebar-indicator"></div>}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="af-sidebar-stats">
-            <div className="af-sidebar-stat-grid">
-              <div className="af-sidebar-stat">
-                <span className="af-sidebar-stat-val">{stats.totalActivities}</span>
-                <span className="af-sidebar-stat-lbl">Total</span>
-              </div>
-              <div className="af-sidebar-stat">
-                <span className="af-sidebar-stat-val">{stats.todayActivities}</span>
-                <span className="af-sidebar-stat-lbl">Today</span>
-              </div>
-              <div className="af-sidebar-stat">
-                <span className="af-sidebar-stat-val">{stats.totalKudos}</span>
-                <span className="af-sidebar-stat-lbl">Kudos</span>
-              </div>
-              <div className="af-sidebar-stat">
-                <span className="af-sidebar-stat-val">{stats.activeStreaks}</span>
-                <span className="af-sidebar-stat-lbl">Streaks</span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
+      <SocialHubChrome {...activityChromeProps}>
         <main className="af-main">
           <div className="af-content">
             <div className="af-content-header">
@@ -442,7 +443,7 @@ const ActivityFeed = () => {
         )}
           </div>
         </main>
-      </div>
+      </SocialHubChrome>
     </div>
   );
 };
