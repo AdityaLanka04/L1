@@ -63,9 +63,7 @@ const FormattingToolbar = ({ onFormat, onAIAssist, showAI = true, onInsertBlock 
         underline: document.queryCommandState('underline'),
         strikeThrough: document.queryCommandState('strikeThrough')
       });
-    } catch (err) {
-    
-  }
+    } catch (err) { /* silenced */ }
   };
 
   const formatText = (command, value = null) => {
@@ -82,9 +80,7 @@ const FormattingToolbar = ({ onFormat, onAIAssist, showAI = true, onInsertBlock 
       
       
       saveSelection();
-    } catch (err) {
-    
-  }
+    } catch (err) { /* silenced */ }
   };
 
   

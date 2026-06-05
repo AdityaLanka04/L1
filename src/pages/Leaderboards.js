@@ -30,9 +30,7 @@ const Leaderboards = () => {
         setLeaderboard(data.leaderboard);
         setCurrentUserRank(data.current_user_rank);
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setLoading(false);
     }
   };

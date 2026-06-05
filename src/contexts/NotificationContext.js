@@ -21,9 +21,7 @@ const getAuthFromStorage = () => {
       try {
         const parsed = JSON.parse(rawProfile);
         userName = parsed.username || parsed.email || '';
-      } catch (e) {
-    
-  }
+      } catch (e) { /* silenced */ }
     }
   }
 
@@ -105,9 +103,7 @@ export const NotificationProvider = ({ children }) => {
 
         newNotifs.forEach(n => lastNotificationIdsRef.current.add(n.id));
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   }, []);
 
   const startPolling = useCallback(() => {
@@ -164,9 +160,7 @@ export const NotificationProvider = ({ children }) => {
         setUnreadCount(prev => Math.max(0, prev - 1));
         setSlideQueue(prev => prev.filter(n => n.id !== notifId));
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   }, []);
 
   const deleteNotification = useCallback(async (notifId) => {
@@ -193,9 +187,7 @@ export const NotificationProvider = ({ children }) => {
         lastNotificationIdsRef.current.add(notifId);
         setSlideQueue(prev => prev.filter(n => n.id !== notifId));
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   }, []);
 
   return (

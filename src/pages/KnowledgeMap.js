@@ -267,9 +267,7 @@ const fetchChatSessions = async () => {
       const data = await response.json();
       setChatSessions(data.sessions || []);
     }
-  } catch (error) {
-    
-  }
+  } catch (error) { /* silenced */ }
 };
 
 const createRoadmapFromChat = async () => {
@@ -339,9 +337,7 @@ const createRoadmapFromChat = async () => {
       try {
         const state = JSON.parse(savedState);
                 return state;
-      } catch (error) {
-    
-  }
+      } catch (error) { /* silenced */ }
     }
     return null;
   }, []);
@@ -484,9 +480,7 @@ const createRoadmapFromChat = async () => {
         setRoadmaps(data.roadmaps || []);
       } else {
               }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setLoading(false);
     }
   };

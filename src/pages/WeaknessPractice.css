@@ -217,7 +217,7 @@
   justify-content: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: rgba(215, 179, 140, 0.05);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
   border-radius: 8px;
   color: #D7B38C;
 }
@@ -555,7 +555,7 @@
 
 .summary-stat {
   padding: 1.5rem 1rem;
-  background: rgba(215, 179, 140, 0.05);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
   border-radius: 12px;
 }
 

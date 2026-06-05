@@ -78,7 +78,7 @@ const AdminAnalytics = () => {
       userEmail = profile.email;
     }
   } catch (e) {
-    // ignore
+    // silenced
   }
 
   useEffect(() => {

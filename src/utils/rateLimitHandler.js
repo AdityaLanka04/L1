@@ -39,7 +39,7 @@ export async function parseRateLimitResponse(response) {
   try {
     const body = await response.json();
     detail = body.detail || '';
-  } catch (_) {}
+  } catch (_) { /* silenced */ }
 
   return {
     isRateLimit: true,

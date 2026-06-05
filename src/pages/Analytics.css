@@ -7,9 +7,9 @@
   --an-panel2: #161410;
   --an-border: color-mix(in srgb, var(--accent) 18%, transparent);
   --an-bord2:  color-mix(in srgb, var(--accent) 36%, transparent);
-  --an-text:   var(--text-primary, #EAECEF);
-  --an-mute:   color-mix(in srgb, var(--text-primary, #EAECEF) 50%, transparent);
-  --an-faint:  color-mix(in srgb, var(--text-primary, #EAECEF) 28%, transparent);
+  --an-text:   var(--text-primary, var(--text-primary));
+  --an-mute:   color-mix(in srgb, var(--text-primary, var(--text-primary)) 50%, transparent);
+  --an-faint:  color-mix(in srgb, var(--text-primary, var(--text-primary)) 28%, transparent);
 
   position: relative;
   min-height: 100vh;

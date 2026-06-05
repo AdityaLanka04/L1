@@ -27,7 +27,17 @@
       "Bash([ -f \"$f.js\" ])",
       "Bash(rm __TRACKED_VAR__.js)",
       "Bash([ -f \"$f.css\" ])",
-      "Bash(rm __TRACKED_VAR__.css)"
+      "Bash(rm __TRACKED_VAR__.css)",
+      "Bash(sed -n '233,240p' components/AIChatDock.js)",
+      "Bash(sed -n '78,84p' pages/AdminAnalytics.js)",
+      "Bash(sed -n '670,690p' pages/AIChat.js)",
+      "Bash(sed -n '835,845p' pages/AIChat.js)",
+      "Bash(sed -n '1825,1832p' pages/AIChat.js)",
+      "Bash(sed -n '1733,1741p' components/SimpleBlockEditor.js)",
+      "Bash(sed -n '1970,1980p' components/SimpleBlockEditor.js)",
+      "Bash(sed -n '444,452p' components/ThemeSwitcher.js)",
+      "Bash(sed -n '28,35p' pages/BattleNotification.js)",
+      "Bash(sed -n '237,244p' pages/QuizBattle.js)"
     ]
   }
 }

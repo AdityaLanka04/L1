@@ -445,9 +445,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         if (Array.isArray(parsed.canvasElements)) {
           parsedElements = parsed.canvasElements;
         }
-      } catch (e) {
-    
-  }
+      } catch (e) { /* silenced */ }
     }
     setElements(parsedElements);
     elementsRef.current = parsedElements;
@@ -1316,9 +1314,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         if (hasChanges) {
           setLastSaved(new Date());
         }
-      } catch (error) {
-    
-  } finally {
+      } catch (error) { /* silenced */ } finally {
         setAutoSaving(false);
       }
     }

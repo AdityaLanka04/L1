@@ -110,7 +110,7 @@
 }
 
 .notes-redesign .chat-import-modal-new .mode-option-new:hover {
-  background: rgba(215, 179, 140, 0.05) !important;
+  background: color-mix(in srgb, var(--accent) 5%, transparent) !important;
   border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
 }
 
@@ -223,7 +223,7 @@
 }
 
 .notes-redesign .chat-import-modal-new .session-item-new:hover {
-  background: rgba(215, 179, 140, 0.05) !important;
+  background: color-mix(in srgb, var(--accent) 5%, transparent) !important;
 }
 
 .notes-redesign .chat-import-modal-new .session-item-new.selected {

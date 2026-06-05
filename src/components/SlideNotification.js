@@ -55,9 +55,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         try {
           const parsed = JSON.parse(profile);
           showStudyInsights = parsed.showStudyInsights !== false;
-        } catch (e) {
-    
-  }
+        } catch (e) { /* silenced */ }
       }
       
       if (!showStudyInsights) {

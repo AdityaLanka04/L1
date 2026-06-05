@@ -74,9 +74,7 @@ class TrialManager {
       if (serverCheck.blocked) {
         return { expired: true, timeUsed: this.TRIAL_DURATION, reason: 'server_blocked' };
       }
-    } catch (error) {
-      
-    }
+    } catch (error) { /* silenced */ }
 
     const trialData = {
       startTime: now,
@@ -90,9 +88,7 @@ class TrialManager {
 
     try {
       await this.notifyServerTrialStart(fingerprint);
-    } catch (error) {
-      
-    }
+    } catch (error) { /* silenced */ }
 
     return {
       expired: false,
@@ -221,9 +217,7 @@ class TrialManager {
           ip: 'client_side',
         }),
       });
-    } catch (error) {
-      
-    }
+    } catch (error) { /* silenced */ }
   }
 
   generateSessionId() {

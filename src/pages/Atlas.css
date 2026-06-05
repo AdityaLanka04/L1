@@ -8,8 +8,8 @@
   --g-ink:     #3D2410;   
   --g-bg:      #0A0806;   
   --g-bg2:     #110C07;   
-  --g-border:  rgba(215,179,140,0.14);
-  --g-border2: rgba(215,179,140,0.22);
+  --g-border:  color-mix(in srgb, var(--g-main) 14%, transparent);
+  --g-border2: color-mix(in srgb, var(--g-main) 22%, transparent);
 }
 
 .atl-root {
@@ -49,7 +49,7 @@
 .atl-menu-btn {
   background: none;
   border: none;
-  color: rgba(215,179,140,0.40);
+  color: color-mix(in srgb, var(--g-main) 40%, transparent);
   cursor: pointer;
   padding: 6px;
   display: flex;
@@ -72,7 +72,7 @@
   background-clip: text;
   flex-shrink: 0;
   user-select: none;
-  filter: drop-shadow(0 0 10px rgba(215,179,140,0.35));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--g-main) 35%, transparent));
 }
 
 .atl-header-nav { display: flex; gap: 3px; flex: 1; }
@@ -80,7 +80,7 @@
 .atl-nav-btn {
   background: none;
   border: 1px solid transparent;
-  color: rgba(215,179,140,0.32);
+  color: color-mix(in srgb, var(--g-main) 32%, transparent);
   cursor: pointer;
   padding: 4px 13px;
   font-family: 'Inter', sans-serif;
@@ -95,8 +95,8 @@
 .atl-nav-btn--active {
   color: var(--g-light);
   border-color: var(--g-main);
-  background: rgba(215,179,140,0.10);
-  box-shadow: 0 0 14px rgba(215,179,140,0.18);
+  background: color-mix(in srgb, var(--g-main) 10%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--g-main) 18%, transparent);
 }
 
 .atl-btn {
@@ -118,21 +118,21 @@
 .atl-btn--accent {
   background: linear-gradient(135deg, var(--g-main) 0%, var(--g-deep) 100%);
   color: var(--g-bg);
-  box-shadow: 0 0 18px rgba(215,179,140,0.25);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--g-main) 25%, transparent);
 }
-.atl-btn--accent:hover { filter: brightness(1.15); box-shadow: 0 0 26px rgba(215,179,140,0.40); }
+.atl-btn--accent:hover { filter: brightness(1.15); box-shadow: 0 0 26px color-mix(in srgb, var(--g-main) 40%, transparent); }
 .atl-btn--ghost {
-  background: rgba(215,179,140,0.07);
-  color: rgba(215,179,140,0.65);
+  background: color-mix(in srgb, var(--g-main) 7%, transparent);
+  color: color-mix(in srgb, var(--g-main) 65%, transparent);
   border: 1px solid var(--g-border);
 }
-.atl-btn--ghost:hover { background: rgba(215,179,140,0.12); }
+.atl-btn--ghost:hover { background: color-mix(in srgb, var(--g-main) 12%, transparent); }
 .atl-btn:disabled { opacity: 0.40; cursor: not-allowed; }
 
 .atl-icon-btn {
-  background: rgba(215,179,140,0.07);
+  background: color-mix(in srgb, var(--g-main) 7%, transparent);
   border: 1px solid var(--g-border);
-  color: rgba(215,179,140,0.50);
+  color: color-mix(in srgb, var(--g-main) 50%, transparent);
   cursor: pointer;
   padding: 7px;
   border-radius: 3px;
@@ -140,7 +140,7 @@
   align-items: center;
   transition: all 0.2s;
 }
-.atl-icon-btn:hover { background: rgba(215,179,140,0.14); color: var(--g-light); border-color: var(--g-border2); }
+.atl-icon-btn:hover { background: color-mix(in srgb, var(--g-main) 14%, transparent); color: var(--g-light); border-color: var(--g-border2); }
 .atl-icon-btn--del:hover { background: rgba(180,60,60,0.15); color: #e07070; border-color: rgba(180,60,60,0.28); }
 
 .atl-sphere-label {
@@ -157,16 +157,16 @@
   background: rgba(8,6,10,0.84);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
-  border: 1px solid rgba(215,179,140,0.16);
+  border: 1px solid color-mix(in srgb, var(--g-main) 16%, transparent);
   border-radius: 12px;
   padding: 14px 18px 12px;
   width: 210px;
   box-shadow: 0 8px 36px rgba(0,0,0,0.55);
 }
 .atl-sphere-label:hover {
-  border-color: rgba(215,179,140,0.40);
+  border-color: color-mix(in srgb, var(--g-main) 40%, transparent);
   background: rgba(15,10,5,0.92);
-  box-shadow: 0 12px 48px rgba(0,0,0,0.65), 0 0 26px rgba(215,179,140,0.12);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.65), 0 0 26px color-mix(in srgb, var(--g-main) 12%, transparent);
 }
 
 .atl-sphere-label--left {
@@ -184,9 +184,9 @@
   width: 68px;
   height: 1px;
   background: linear-gradient(to right,
-    rgba(215,179,140,0.08) 0%,
-    rgba(215,179,140,0.50) 70%,
-    rgba(215,179,140,0.70) 100%);
+    color-mix(in srgb, var(--g-main) 8%, transparent) 0%,
+    color-mix(in srgb, var(--g-main) 50%, transparent) 70%,
+    color-mix(in srgb, var(--g-main) 70%, transparent) 100%);
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -199,8 +199,8 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(215,179,140,0.65);
-  box-shadow: 0 0 8px rgba(215,179,140,0.50);
+  background: color-mix(in srgb, var(--g-main) 65%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--g-main) 50%, transparent);
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -220,9 +220,9 @@
   width: 68px;
   height: 1px;
   background: linear-gradient(to left,
-    rgba(215,179,140,0.08) 0%,
-    rgba(215,179,140,0.50) 70%,
-    rgba(215,179,140,0.70) 100%);
+    color-mix(in srgb, var(--g-main) 8%, transparent) 0%,
+    color-mix(in srgb, var(--g-main) 50%, transparent) 70%,
+    color-mix(in srgb, var(--g-main) 70%, transparent) 100%);
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -234,8 +234,8 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(215,179,140,0.65);
-  box-shadow: 0 0 8px rgba(215,179,140,0.50);
+  background: color-mix(in srgb, var(--g-main) 65%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--g-main) 50%, transparent);
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -257,9 +257,9 @@
   width: 1px;
   height: 56px;
   background: linear-gradient(to top,
-    rgba(215,179,140,0.08) 0%,
-    rgba(215,179,140,0.50) 70%,
-    rgba(215,179,140,0.70) 100%);
+    color-mix(in srgb, var(--g-main) 8%, transparent) 0%,
+    color-mix(in srgb, var(--g-main) 50%, transparent) 70%,
+    color-mix(in srgb, var(--g-main) 70%, transparent) 100%);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -271,8 +271,8 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(215,179,140,0.65);
-  box-shadow: 0 0 8px rgba(215,179,140,0.50);
+  background: color-mix(in srgb, var(--g-main) 65%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--g-main) 50%, transparent);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -285,7 +285,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 10px rgba(215,179,140,0.45));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--g-main) 45%, transparent));
   line-height: 1;
 }
 
@@ -293,7 +293,7 @@
   font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.20em;
-  color: rgba(215,179,140,0.36);
+  color: color-mix(in srgb, var(--g-main) 36%, transparent);
 }
 
 .atl-sphere-label-desc {
@@ -301,10 +301,10 @@
   font-weight: 400;
   letter-spacing: 0.01em;
   text-transform: none;
-  color: rgba(215,179,140,0.52);
+  color: color-mix(in srgb, var(--g-main) 52%, transparent);
   line-height: 1.55;
   padding-top: 6px;
-  border-top: 1px solid rgba(215,179,140,0.08);
+  border-top: 1px solid color-mix(in srgb, var(--g-main) 8%, transparent);
   margin-top: 2px;
 }
 
@@ -359,14 +359,14 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 40px rgba(215,179,140,0.40));
+  filter: drop-shadow(0 0 40px color-mix(in srgb, var(--g-main) 40%, transparent));
 }
 
 .atl-home-sub {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.28em;
-  color: rgba(215,179,140,0.28);
+  color: color-mix(in srgb, var(--g-main) 28%, transparent);
   margin: 0;
 }
 
@@ -374,7 +374,7 @@
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.22em;
-  color: rgba(215,179,140,0.22);
+  color: color-mix(in srgb, var(--g-main) 22%, transparent);
   margin: 0;
 }
 
@@ -382,10 +382,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(215,179,140,0.07);
-  border: 1px solid rgba(215,179,140,0.22);
+  background: color-mix(in srgb, var(--g-main) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 22%, transparent);
   border-radius: 10px;
-  color: rgba(215,179,140,0.60);
+  color: color-mix(in srgb, var(--g-main) 60%, transparent);
   font-family: 'Inter', sans-serif;
   font-size: 10px;
   font-weight: 800;
@@ -399,10 +399,10 @@
   box-shadow: 0 4px 20px rgba(0,0,0,0.40);
 }
 .atl-home-dash-btn:hover {
-  background: rgba(215,179,140,0.14);
-  border-color: rgba(215,179,140,0.44);
+  background: color-mix(in srgb, var(--g-main) 14%, transparent);
+  border-color: color-mix(in srgb, var(--g-main) 44%, transparent);
   color: var(--g-pale);
-  box-shadow: 0 6px 28px rgba(0,0,0,0.50), 0 0 20px rgba(215,179,140,0.12);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.50), 0 0 20px color-mix(in srgb, var(--g-main) 12%, transparent);
 }
 
 .atl-panel {
@@ -430,7 +430,7 @@
   gap: 5px;
   background: none;
   border: none;
-  color: rgba(215,179,140,0.30);
+  color: color-mix(in srgb, var(--g-main) 30%, transparent);
   cursor: pointer;
   font-family: 'Inter', sans-serif;
   font-weight: 800;
@@ -451,10 +451,10 @@
   gap: 16px;
   padding: 4px 20px 28px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(215,179,140,0.18) transparent;
+  scrollbar-color: color-mix(in srgb, var(--g-main) 18%, transparent) transparent;
 }
 .atl-panel-body::-webkit-scrollbar { width: 3px; }
-.atl-panel-body::-webkit-scrollbar-thumb { background: rgba(215,179,140,0.22); border-radius: 2px; }
+.atl-panel-body::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--g-main) 22%, transparent); border-radius: 2px; }
 
 .atl-panel-hd {
   display: flex;
@@ -474,14 +474,14 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 20px rgba(215,179,140,0.20));
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--g-main) 20%, transparent));
 }
 
 .atl-panel-desc {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.14em;
-  color: rgba(215,179,140,0.25);
+  color: color-mix(in srgb, var(--g-main) 25%, transparent);
   margin: 0;
 }
 
@@ -495,7 +495,7 @@
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.14em;
-  color: rgba(215,179,140,0.38);
+  color: color-mix(in srgb, var(--g-main) 38%, transparent);
   flex-shrink: 0;
 }
 .atl-hs-toggle input { accent-color: var(--g-main); cursor: pointer; }
@@ -508,7 +508,7 @@
   gap: 14px;
   min-height: 0;
   scrollbar-width: thin;
-  scrollbar-color: rgba(215,179,140,0.10) transparent;
+  scrollbar-color: color-mix(in srgb, var(--g-main) 10%, transparent) transparent;
 }
 
 .atl-oracle-empty {
@@ -516,7 +516,7 @@
   flex-direction: column;
   gap: 14px;
   padding: 18px 0;
-  color: rgba(215,179,140,0.30);
+  color: color-mix(in srgb, var(--g-main) 30%, transparent);
   font-size: 10px;
   letter-spacing: 0.10em;
   line-height: 1.7;
@@ -528,9 +528,9 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: rgba(215,179,140,0.07);
-  border: 1px solid rgba(215,179,140,0.18);
-  color: rgba(215,179,140,0.55);
+  background: color-mix(in srgb, var(--g-main) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 18%, transparent);
+  color: color-mix(in srgb, var(--g-main) 55%, transparent);
   cursor: pointer;
   padding: 5px 10px;
   border-radius: 3px;
@@ -542,8 +542,8 @@
   transition: all 0.2s;
 }
 .atl-chip:hover {
-  background: rgba(215,179,140,0.15);
-  border-color: rgba(215,179,140,0.42);
+  background: color-mix(in srgb, var(--g-main) 15%, transparent);
+  border-color: color-mix(in srgb, var(--g-main) 42%, transparent);
   color: var(--g-light);
 }
 
@@ -552,8 +552,8 @@
 .atl-q-bubble {
   align-self: flex-end;
   max-width: 86%;
-  background: linear-gradient(135deg, rgba(215,179,140,0.18) 0%, rgba(122,84,53,0.20) 100%);
-  border: 1px solid rgba(215,179,140,0.30);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--g-main) 18%, transparent) 0%, rgba(122,84,53,0.20) 100%);
+  border: 1px solid color-mix(in srgb, var(--g-main) 30%, transparent);
   color: var(--g-pale);
   padding: 10px 13px;
   border-radius: 4px;
@@ -566,8 +566,8 @@
 
 .atl-a-bubble {
   max-width: 96%;
-  background: rgba(215,179,140,0.030);
-  border: 1px solid rgba(215,179,140,0.10);
+  background: color-mix(in srgb, var(--g-main) 3%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 10%, transparent);
   color: rgba(245,234,213,0.82);
   padding: 11px 13px;
   border-radius: 4px;
@@ -588,9 +588,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(215,179,140,0.06);
-  border: 1px solid rgba(215,179,140,0.14);
-  color: rgba(215,179,140,0.42);
+  background: color-mix(in srgb, var(--g-main) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 14%, transparent);
+  color: color-mix(in srgb, var(--g-main) 42%, transparent);
   padding: 3px 8px;
   border-radius: 2px;
   font-size: 8px;
@@ -599,7 +599,7 @@
 }
 
 .atl-src-badge {
-  background: rgba(215,179,140,0.14);
+  background: color-mix(in srgb, var(--g-main) 14%, transparent);
   color: var(--g-light);
   padding: 1px 5px;
   border-radius: 2px;
@@ -613,7 +613,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  color: rgba(215,179,140,0.30);
+  color: color-mix(in srgb, var(--g-main) 30%, transparent);
   font-size: 9px;
   letter-spacing: 0.18em;
 }
@@ -632,13 +632,13 @@
   gap: 8px;
   flex-shrink: 0;
   padding-top: 10px;
-  border-top: 1px solid rgba(215,179,140,0.09);
+  border-top: 1px solid color-mix(in srgb, var(--g-main) 9%, transparent);
 }
 
 .atl-oracle-textarea {
   flex: 1;
-  background: rgba(215,179,140,0.05);
-  border: 1px solid rgba(215,179,140,0.12);
+  background: color-mix(in srgb, var(--g-main) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 12%, transparent);
   color: var(--g-pale);
   padding: 10px 13px;
   border-radius: 3px;
@@ -652,9 +652,9 @@
   line-height: 1.5;
   transition: border-color 0.2s;
 }
-.atl-oracle-textarea:focus { border-color: rgba(215,179,140,0.42); }
+.atl-oracle-textarea:focus { border-color: color-mix(in srgb, var(--g-main) 42%, transparent); }
 .atl-oracle-textarea::placeholder {
-  color: rgba(215,179,140,0.18);
+  color: color-mix(in srgb, var(--g-main) 18%, transparent);
   text-transform: uppercase;
   font-size: 9px;
   letter-spacing: 0.15em;
@@ -663,8 +663,8 @@
 .atl-oracle-textarea:disabled { opacity: 0.45; }
 
 .atl-send-btn {
-  background: linear-gradient(135deg, rgba(215,179,140,0.20) 0%, rgba(122,84,53,0.22) 100%);
-  border: 1px solid rgba(215,179,140,0.35);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--g-main) 20%, transparent) 0%, rgba(122,84,53,0.22) 100%);
+  border: 1px solid color-mix(in srgb, var(--g-main) 35%, transparent);
   color: var(--g-light);
   cursor: pointer;
   padding: 10px 14px;
@@ -674,11 +674,11 @@
   transition: all 0.2s;
   flex-shrink: 0;
   align-self: flex-end;
-  box-shadow: 0 0 12px rgba(215,179,140,0.12);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--g-main) 12%, transparent);
 }
 .atl-send-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(215,179,140,0.32) 0%, rgba(122,84,53,0.32) 100%);
-  box-shadow: 0 0 22px rgba(215,179,140,0.24);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--g-main) 32%, transparent) 0%, rgba(122,84,53,0.32) 100%);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--g-main) 24%, transparent);
 }
 .atl-send-btn:disabled { opacity: 0.28; cursor: not-allowed; }
 
@@ -686,12 +686,12 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  background: rgba(215,179,140,0.05);
-  border: 1px solid rgba(215,179,140,0.10);
+  background: color-mix(in srgb, var(--g-main) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 10%, transparent);
   padding: 8px 12px;
   border-radius: 3px;
   flex-shrink: 0;
-  color: rgba(215,179,140,0.28);
+  color: color-mix(in srgb, var(--g-main) 28%, transparent);
 }
 
 .atl-search-input {
@@ -706,12 +706,12 @@
   text-transform: uppercase;
   outline: none;
 }
-.atl-search-input::placeholder { color: rgba(215,179,140,0.20); }
+.atl-search-input::placeholder { color: color-mix(in srgb, var(--g-main) 20%, transparent); }
 
 .atl-clear-btn {
   background: none;
   border: none;
-  color: rgba(215,179,140,0.32);
+  color: color-mix(in srgb, var(--g-main) 32%, transparent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -727,8 +727,8 @@
 }
 
 .atl-subject-card {
-  background: rgba(215,179,140,0.05);
-  border: 1px solid rgba(215,179,140,0.12);
+  background: color-mix(in srgb, var(--g-main) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 12%, transparent);
   color: var(--g-pale);
   cursor: pointer;
   padding: 18px 20px;
@@ -741,10 +741,10 @@
   min-height: 80px;
 }
 .atl-subject-card:hover {
-  background: rgba(215,179,140,0.10);
-  border-color: rgba(215,179,140,0.32);
+  background: color-mix(in srgb, var(--g-main) 10%, transparent);
+  border-color: color-mix(in srgb, var(--g-main) 32%, transparent);
   transform: translateY(-3px);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.35), 0 0 0 1px rgba(215,179,140,0.10);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35), 0 0 0 1px color-mix(in srgb, var(--g-main) 10%, transparent);
 }
 
 .atl-subject-name {
@@ -757,8 +757,8 @@
   background-clip: text;
 }
 
-.atl-subject-grade { font-size: 8px; font-weight: 700; letter-spacing: 0.10em; color: rgba(215,179,140,0.28); }
-.atl-subject-count { font-size: 8px; font-weight: 700; letter-spacing: 0.10em; color: rgba(215,179,140,0.42); }
+.atl-subject-grade { font-size: 8px; font-weight: 700; letter-spacing: 0.10em; color: color-mix(in srgb, var(--g-main) 28%, transparent); }
+.atl-subject-count { font-size: 8px; font-weight: 700; letter-spacing: 0.10em; color: color-mix(in srgb, var(--g-main) 42%, transparent); }
 
 .atl-vault-empty {
   display: flex;
@@ -767,7 +767,7 @@
   align-items: center;
   text-align: center;
   padding: 40px 16px;
-  color: rgba(215,179,140,0.28);
+  color: color-mix(in srgb, var(--g-main) 28%, transparent);
   font-size: 9px;
   letter-spacing: 0.14em;
   line-height: 1.8;
@@ -780,13 +780,13 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  background: rgba(215,179,140,0.04);
-  border: 1px solid rgba(215,179,140,0.10);
+  background: color-mix(in srgb, var(--g-main) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 10%, transparent);
   padding: 11px 13px;
   border-radius: 3px;
   transition: all 0.22s;
 }
-.atl-vault-item:hover { background: rgba(215,179,140,0.08); border-color: rgba(215,179,140,0.24); }
+.atl-vault-item:hover { background: color-mix(in srgb, var(--g-main) 8%, transparent); border-color: color-mix(in srgb, var(--g-main) 24%, transparent); }
 
 .atl-vault-item-info { display: flex; gap: 10px; align-items: flex-start; min-width: 0; flex: 1; }
 .atl-vault-file-icon { color: var(--g-dim); flex-shrink: 0; margin-top: 2px; }
@@ -806,7 +806,7 @@
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  color: rgba(215,179,140,0.38);
+  color: color-mix(in srgb, var(--g-main) 38%, transparent);
   text-transform: none;
   line-height: 1.55;
   display: -webkit-box;
@@ -815,15 +815,15 @@
   overflow: hidden;
 }
 
-.atl-vault-meta { display: flex; gap: 10px; font-size: 8px; font-weight: 700; letter-spacing: 0.10em; color: rgba(215,179,140,0.22); }
+.atl-vault-meta { display: flex; gap: 10px; font-size: 8px; font-weight: 700; letter-spacing: 0.10em; color: color-mix(in srgb, var(--g-main) 22%, transparent); }
 .atl-vault-tags { display: flex; gap: 5px; flex-wrap: wrap; }
 
 .atl-tag {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  background: rgba(215,179,140,0.09);
-  border: 1px solid rgba(215,179,140,0.20);
+  background: color-mix(in srgb, var(--g-main) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 20%, transparent);
   color: var(--g-dim);
   padding: 2px 6px;
   border-radius: 2px;
@@ -839,7 +839,7 @@
   justify-content: center;
   align-items: center;
   padding: 50px 0;
-  color: rgba(215,179,140,0.35);
+  color: color-mix(in srgb, var(--g-main) 35%, transparent);
 }
 
 @keyframes atl-spin { to { transform: rotate(360deg); } }
@@ -859,14 +859,14 @@
 
 .atl-modal {
   background: linear-gradient(160deg, #0f0a06 0%, #0a0806 100%);
-  border: 1px solid rgba(215,179,140,0.18);
+  border: 1px solid color-mix(in srgb, var(--g-main) 18%, transparent);
   border-radius: 5px;
   width: min(420px, calc(100vw - 40px));
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 24px;
-  box-shadow: 0 0 60px rgba(215,179,140,0.09);
+  box-shadow: 0 0 60px color-mix(in srgb, var(--g-main) 9%, transparent);
 }
 
 .atl-modal-hd {
@@ -886,7 +886,7 @@
 .atl-modal-close {
   background: none;
   border: none;
-  color: rgba(215,179,140,0.36);
+  color: color-mix(in srgb, var(--g-main) 36%, transparent);
   cursor: pointer;
   padding: 3px;
   display: flex;
@@ -907,7 +907,7 @@
 }
 
 .atl-drop-zone {
-  border: 1.5px dashed rgba(215,179,140,0.20);
+  border: 1.5px dashed color-mix(in srgb, var(--g-main) 20%, transparent);
   border-radius: 4px;
   padding: 28px 20px;
   display: flex;
@@ -919,20 +919,20 @@
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.15em;
-  color: rgba(215,179,140,0.28);
+  color: color-mix(in srgb, var(--g-main) 28%, transparent);
   text-align: center;
 }
-.atl-drop-zone:hover, .atl-drop-zone--over { border-color: rgba(215,179,140,0.50); background: rgba(215,179,140,0.04); }
-.atl-drop-zone--has { border-color: rgba(215,179,140,0.42); background: rgba(215,179,140,0.05); }
-.atl-drop-icon { color: rgba(215,179,140,0.28); }
+.atl-drop-zone:hover, .atl-drop-zone--over { border-color: color-mix(in srgb, var(--g-main) 50%, transparent); background: color-mix(in srgb, var(--g-main) 4%, transparent); }
+.atl-drop-zone--has { border-color: color-mix(in srgb, var(--g-main) 42%, transparent); background: color-mix(in srgb, var(--g-main) 5%, transparent); }
+.atl-drop-icon { color: color-mix(in srgb, var(--g-main) 28%, transparent); }
 
 .atl-drop-file { display: flex; align-items: center; gap: 8px; color: rgba(245,234,213,0.80); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: none; }
-.atl-drop-size { color: rgba(215,179,140,0.28); font-size: 8px; }
-.atl-drop-file button { background: none; border: none; color: rgba(215,179,140,0.32); cursor: pointer; display: flex; align-items: center; }
+.atl-drop-size { color: color-mix(in srgb, var(--g-main) 28%, transparent); font-size: 8px; }
+.atl-drop-file button { background: none; border: none; color: color-mix(in srgb, var(--g-main) 32%, transparent); cursor: pointer; display: flex; align-items: center; }
 
 .atl-modal-subject {
-  background: rgba(215,179,140,0.06);
-  border: 1px solid rgba(215,179,140,0.14);
+  background: color-mix(in srgb, var(--g-main) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 14%, transparent);
   color: var(--g-pale);
   padding: 9px 13px;
   border-radius: 3px;
@@ -946,8 +946,8 @@
   box-sizing: border-box;
   transition: border-color 0.2s;
 }
-.atl-modal-subject:focus { border-color: rgba(215,179,140,0.44); }
-.atl-modal-subject::placeholder { color: rgba(215,179,140,0.18); }
+.atl-modal-subject:focus { border-color: color-mix(in srgb, var(--g-main) 44%, transparent); }
+.atl-modal-subject::placeholder { color: color-mix(in srgb, var(--g-main) 18%, transparent); }
 
 .atl-modal-err { display: flex; align-items: center; gap: 7px; color: #c07070; font-size: 9px; font-weight: 800; letter-spacing: 0.10em; }
 .atl-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
@@ -988,7 +988,7 @@
 }
 .atl-ctx-indicator button {
   background: none; border: none; cursor: pointer;
-  color: rgba(215,179,140,0.50); display: flex; align-items: center;
+  color: color-mix(in srgb, var(--g-main) 50%, transparent); display: flex; align-items: center;
   padding: 0; margin-left: 2px;
 }
 .atl-ctx-indicator button:hover { color: var(--g-light); }
@@ -1006,7 +1006,7 @@
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.12em;
-  color: rgba(215,179,140,0.60);
+  color: color-mix(in srgb, var(--g-main) 60%, transparent);
 }
 .atl-oracle-ctx-bar > svg { flex-shrink: 0; margin-top: 1px; opacity: 0.60; }
 .atl-oracle-ctx-bar > span { margin-right: 4px; }
@@ -1022,7 +1022,7 @@
 }
 .atl-oracle-ctx-pill button {
   background: none; border: none; cursor: pointer;
-  color: rgba(215,179,140,0.40); display: flex; align-items: center; padding: 0;
+  color: color-mix(in srgb, var(--g-main) 40%, transparent); display: flex; align-items: center; padding: 0;
 }
 .atl-oracle-ctx-pill button:hover { color: var(--g-light); }
 
@@ -1045,14 +1045,14 @@
 .atl-vault-ctx-bar strong { color: var(--g-pale); }
 .atl-vault-ctx-clear {
   background: none;
-  border: 1px solid rgba(215,179,140,0.18);
+  border: 1px solid color-mix(in srgb, var(--g-main) 18%, transparent);
   border-radius: 6px;
-  color: rgba(215,179,140,0.50);
+  color: color-mix(in srgb, var(--g-main) 50%, transparent);
   font-size: 8px; font-weight: 800; letter-spacing: 0.12em;
   cursor: pointer; padding: 4px 10px;
   transition: all 0.2s;
 }
-.atl-vault-ctx-clear:hover { border-color: rgba(215,179,140,0.35); color: var(--g-light); }
+.atl-vault-ctx-clear:hover { border-color: color-mix(in srgb, var(--g-main) 35%, transparent); color: var(--g-light); }
 .atl-vault-ctx-ask {
   display: flex; align-items: center; gap: 5px;
   background: color-mix(in srgb, var(--g-main) 20%, transparent);
@@ -1069,19 +1069,19 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  border: 1.5px dashed rgba(215,179,140,0.16);
+  border: 1.5px dashed color-mix(in srgb, var(--g-main) 16%, transparent);
   border-radius: 10px;
   padding: 14px 20px;
   cursor: pointer;
   transition: all 0.25s;
-  background: rgba(215,179,140,0.02);
+  background: color-mix(in srgb, var(--g-main) 2%, transparent);
   margin-bottom: 6px;
 }
 .atl-vault-upload-strip:hover,
 .atl-vault-upload-strip--over {
-  border-color: rgba(215,179,140,0.42);
-  background: rgba(215,179,140,0.05);
-  box-shadow: 0 0 28px rgba(215,179,140,0.06);
+  border-color: color-mix(in srgb, var(--g-main) 42%, transparent);
+  background: color-mix(in srgb, var(--g-main) 5%, transparent);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--g-main) 6%, transparent);
 }
 .atl-vault-upload-strip--over {
   border-style: solid;
@@ -1091,18 +1091,18 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(215,179,140,0.07);
-  border: 1px solid rgba(215,179,140,0.14);
+  background: color-mix(in srgb, var(--g-main) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 14%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(215,179,140,0.45);
+  color: color-mix(in srgb, var(--g-main) 45%, transparent);
   flex-shrink: 0;
   transition: all 0.22s;
 }
 .atl-vault-upload-strip:hover .atl-vault-upload-icon,
 .atl-vault-upload-strip--over .atl-vault-upload-icon {
-  background: rgba(215,179,140,0.12);
+  background: color-mix(in srgb, var(--g-main) 12%, transparent);
   color: var(--g-light);
 }
 .atl-vault-upload-text {
@@ -1114,7 +1114,7 @@
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
-  color: rgba(215,179,140,0.42);
+  color: color-mix(in srgb, var(--g-main) 42%, transparent);
   transition: color 0.22s;
 }
 .atl-vault-upload-strip:hover .atl-vault-upload-primary { color: var(--g-light); }
@@ -1122,7 +1122,7 @@
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.14em;
-  color: rgba(215,179,140,0.20);
+  color: color-mix(in srgb, var(--g-main) 20%, transparent);
 }
 
 .atl-vault-active-bar {
@@ -1178,7 +1178,7 @@
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: none;
-  color: rgba(215,179,140,0.44);
+  color: color-mix(in srgb, var(--g-main) 44%, transparent);
 }
 .atl-vault-active-actions {
   display: flex;
@@ -1191,18 +1191,18 @@
   width: 64px;
   height: 64px;
   border-radius: 16px;
-  background: rgba(215,179,140,0.06);
-  border: 1px solid rgba(215,179,140,0.12);
+  background: color-mix(in srgb, var(--g-main) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 12%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(215,179,140,0.28);
+  color: color-mix(in srgb, var(--g-main) 28%, transparent);
 }
 .atl-vault-empty-title {
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.20em;
-  color: rgba(215,179,140,0.45);
+  color: color-mix(in srgb, var(--g-main) 45%, transparent);
   margin: 0;
 }
 .atl-vault-empty-desc {
@@ -1210,7 +1210,7 @@
   font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: none;
-  color: rgba(215,179,140,0.28);
+  color: color-mix(in srgb, var(--g-main) 28%, transparent);
   max-width: 340px;
   line-height: 1.65;
   margin: 0 0 8px;
@@ -1231,14 +1231,14 @@
 }
 .atl-subject-pill {
   background: none;
-  border: 1px solid rgba(215,179,140,0.14);
+  border: 1px solid color-mix(in srgb, var(--g-main) 14%, transparent);
   border-radius: 16px;
-  color: rgba(215,179,140,0.45);
+  color: color-mix(in srgb, var(--g-main) 45%, transparent);
   font-size: 8px; font-weight: 800; letter-spacing: 0.12em;
   cursor: pointer; padding: 4px 12px;
   transition: all 0.2s;
 }
-.atl-subject-pill:hover { border-color: rgba(215,179,140,0.30); color: var(--g-light); }
+.atl-subject-pill:hover { border-color: color-mix(in srgb, var(--g-main) 30%, transparent); color: var(--g-light); }
 .atl-subject-pill--active {
   background: color-mix(in srgb, var(--g-main) 16%, transparent);
   border-color: color-mix(in srgb, var(--g-main) 35%, transparent);
@@ -1270,7 +1270,7 @@
 
 .atl-doc-card {
   background: rgba(17,12,7,0.70);
-  border: 1px solid rgba(215,179,140,0.10);
+  border: 1px solid color-mix(in srgb, var(--g-main) 10%, transparent);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -1279,8 +1279,8 @@
   transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
 }
 .atl-doc-card:hover {
-  border-color: rgba(215,179,140,0.22);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(215,179,140,0.06);
+  border-color: color-mix(in srgb, var(--g-main) 22%, transparent);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35), inset 0 0 0 1px color-mix(in srgb, var(--g-main) 6%, transparent);
 }
 .atl-doc-card--active {
   border-color: color-mix(in srgb, var(--g-main) 55%, transparent) !important;
@@ -1305,7 +1305,7 @@
   flex-shrink: 0;
   width: 34px; height: 34px;
   background: color-mix(in srgb, var(--g-main) 10%, transparent);
-  border: 1px solid rgba(215,179,140,0.14);
+  border: 1px solid color-mix(in srgb, var(--g-main) 14%, transparent);
   border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   color: var(--g-dim);
@@ -1330,27 +1330,27 @@
   display: inline-block;
   margin-top: 4px;
   background: color-mix(in srgb, var(--g-main) 12%, transparent);
-  border: 1px solid rgba(215,179,140,0.16);
+  border: 1px solid color-mix(in srgb, var(--g-main) 16%, transparent);
   border-radius: 4px;
   padding: 2px 7px;
   font-size: 7px; font-weight: 800; letter-spacing: 0.14em;
-  color: rgba(215,179,140,0.55);
+  color: color-mix(in srgb, var(--g-main) 55%, transparent);
 }
 
 .atl-ctx-pill {
   flex-shrink: 0;
   display: flex; align-items: center; gap: 5px;
-  background: rgba(215,179,140,0.06);
-  border: 1px solid rgba(215,179,140,0.14);
+  background: color-mix(in srgb, var(--g-main) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 14%, transparent);
   border-radius: 16px;
   padding: 4px 10px;
   font-size: 8px; font-weight: 800; letter-spacing: 0.12em;
-  color: rgba(215,179,140,0.42);
+  color: color-mix(in srgb, var(--g-main) 42%, transparent);
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
 }
-.atl-ctx-pill:hover { border-color: rgba(215,179,140,0.28); color: var(--g-light); }
+.atl-ctx-pill:hover { border-color: color-mix(in srgb, var(--g-main) 28%, transparent); color: var(--g-light); }
 .atl-ctx-pill--on {
   background: color-mix(in srgb, var(--g-main) 18%, transparent) !important;
   border-color: color-mix(in srgb, var(--g-main) 42%, transparent) !important;
@@ -1366,15 +1366,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid rgba(215,179,140,0.16);
-  color: rgba(215,179,140,0.22);
+  border: 1.5px solid color-mix(in srgb, var(--g-main) 16%, transparent);
+  color: color-mix(in srgb, var(--g-main) 22%, transparent);
   transition: all 0.22s;
-  background: rgba(215,179,140,0.03);
+  background: color-mix(in srgb, var(--g-main) 3%, transparent);
 }
 .atl-doc-card:hover .atl-doc-ctx-toggle {
-  border-color: rgba(215,179,140,0.36);
-  color: rgba(215,179,140,0.60);
-  background: rgba(215,179,140,0.07);
+  border-color: color-mix(in srgb, var(--g-main) 36%, transparent);
+  color: color-mix(in srgb, var(--g-main) 60%, transparent);
+  background: color-mix(in srgb, var(--g-main) 7%, transparent);
 }
 .atl-doc-ctx-toggle--on {
   border-color: color-mix(in srgb, var(--g-main) 60%, transparent) !important;
@@ -1407,7 +1407,7 @@
   letter-spacing: 0.02em;
   line-height: 1.55;
   text-transform: none;
-  color: rgba(215,179,140,0.50);
+  color: color-mix(in srgb, var(--g-main) 50%, transparent);
   margin: 0;
   cursor: pointer;
 }
@@ -1423,7 +1423,7 @@
   flex-wrap: wrap;
   gap: 8px;
   font-size: 8px; font-weight: 800; letter-spacing: 0.10em;
-  color: rgba(215,179,140,0.32);
+  color: color-mix(in srgb, var(--g-main) 32%, transparent);
 }
 
 .atl-doc-tags {
@@ -1433,33 +1433,33 @@
 }
 .atl-doc-tag {
   display: flex; align-items: center; gap: 4px;
-  background: rgba(215,179,140,0.05);
-  border: 1px solid rgba(215,179,140,0.10);
+  background: color-mix(in srgb, var(--g-main) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 10%, transparent);
   border-radius: 4px;
   padding: 2px 7px;
   font-size: 7px; font-weight: 800; letter-spacing: 0.12em;
-  color: rgba(215,179,140,0.36);
+  color: color-mix(in srgb, var(--g-main) 36%, transparent);
 }
 
 .atl-doc-actions {
   display: flex;
   gap: 8px;
   padding-top: 4px;
-  border-top: 1px solid rgba(215,179,140,0.07);
+  border-top: 1px solid color-mix(in srgb, var(--g-main) 7%, transparent);
   margin-top: 2px;
 }
 .atl-doc-action-btn {
   display: flex; align-items: center; gap: 5px;
   background: none;
-  border: 1px solid rgba(215,179,140,0.14);
+  border: 1px solid color-mix(in srgb, var(--g-main) 14%, transparent);
   border-radius: 6px;
   padding: 5px 11px;
   font-size: 8px; font-weight: 800; letter-spacing: 0.12em;
-  color: rgba(215,179,140,0.48);
+  color: color-mix(in srgb, var(--g-main) 48%, transparent);
   cursor: pointer;
   transition: all 0.2s;
 }
-.atl-doc-action-btn:hover { border-color: rgba(215,179,140,0.30); color: var(--g-light); }
+.atl-doc-action-btn:hover { border-color: color-mix(in srgb, var(--g-main) 30%, transparent); color: var(--g-light); }
 .atl-doc-action-btn--del:hover { border-color: rgba(180,60,60,0.35); color: #e07070; }
 
 @media (max-width: 640px) {
@@ -1515,10 +1515,10 @@
 .atl-oracle-glow-ring {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid rgba(215, 179, 140, 0.22);
+  border: 1px solid color-mix(in srgb, var(--g-main) 22%, transparent);
   animation: atl-oracle-ring-pulse 3.4s ease-in-out infinite;
 }
-.atl-oracle-glow-ring--1 { width: 130px; height: 130px; animation-delay: 0s;    border-color: rgba(215,179,140,0.18); }
+.atl-oracle-glow-ring--1 { width: 130px; height: 130px; animation-delay: 0s;    border-color: color-mix(in srgb, var(--g-main) 18%, transparent); }
 .atl-oracle-glow-ring--2 { width:  96px; height:  96px; animation-delay: 0.9s;  border-color: rgba(237,213,176,0.28); }
 .atl-oracle-glow-ring--3 { width:  64px; height:  64px; animation-delay: 1.8s;  border-color: rgba(245,234,213,0.38); }
 
@@ -1531,14 +1531,14 @@
   width: 50px;
   height: 50px;
   background: radial-gradient(circle at 40% 38%, rgba(245,234,213,0.20), rgba(122,84,53,0.12));
-  border: 1px solid rgba(215,179,140,0.34);
+  border: 1px solid color-mix(in srgb, var(--g-main) 34%, transparent);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 0 32px rgba(215,179,140,0.20),
-    inset 0 0 20px rgba(215,179,140,0.07);
+    0 0 32px color-mix(in srgb, var(--g-main) 20%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--g-main) 7%, transparent);
 }
 
 .atl-oracle-brain-icon {
@@ -1565,14 +1565,14 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 44px rgba(215,179,140,0.30));
+  filter: drop-shadow(0 0 44px color-mix(in srgb, var(--g-main) 30%, transparent));
 }
 
 .atl-oracle-hero-tagline {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.40em;
-  color: rgba(215,179,140,0.24);
+  color: color-mix(in srgb, var(--g-main) 24%, transparent);
   margin-bottom: 32px;
 }
 
@@ -1605,13 +1605,13 @@
   font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.20em;
-  color: rgba(215,179,140,0.22);
+  color: color-mix(in srgb, var(--g-main) 22%, transparent);
 }
 
 .atl-oracle-kstat-sep {
   width: 1px;
   height: 32px;
-  background: rgba(215,179,140,0.11);
+  background: color-mix(in srgb, var(--g-main) 11%, transparent);
 }
 
 .atl-oracle-hero-form {
@@ -1620,15 +1620,15 @@
 }
 
 .atl-oracle-hero-input-wrap {
-  background: rgba(215,179,140,0.035);
-  border: 1px solid rgba(215,179,140,0.16);
+  background: color-mix(in srgb, var(--g-main) 3.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 16%, transparent);
   border-radius: 14px;
   padding: 18px 18px 13px;
   transition: border-color 0.28s, box-shadow 0.28s;
 }
 .atl-oracle-hero-input-wrap:focus-within {
-  border-color: rgba(215,179,140,0.38);
-  box-shadow: 0 0 48px rgba(215,179,140,0.07);
+  border-color: color-mix(in srgb, var(--g-main) 38%, transparent);
+  box-shadow: 0 0 48px color-mix(in srgb, var(--g-main) 7%, transparent);
 }
 
 .atl-oracle-hero-textarea {
@@ -1648,7 +1648,7 @@
   box-sizing: border-box;
 }
 .atl-oracle-hero-textarea::placeholder {
-  color: rgba(215,179,140,0.18);
+  color: color-mix(in srgb, var(--g-main) 18%, transparent);
   font-size: 13px;
   font-weight: 400;
   text-transform: none;
@@ -1661,7 +1661,7 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 13px;
-  border-top: 1px solid rgba(215,179,140,0.07);
+  border-top: 1px solid color-mix(in srgb, var(--g-main) 7%, transparent);
   margin-top: 8px;
 }
 
@@ -1680,11 +1680,11 @@
   padding: 10px 22px;
   cursor: pointer;
   transition: all 0.22s;
-  box-shadow: 0 0 28px rgba(215,179,140,0.20);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--g-main) 20%, transparent);
 }
 .atl-oracle-hero-send:hover:not(:disabled) {
   filter: brightness(1.14);
-  box-shadow: 0 0 40px rgba(215,179,140,0.38);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--g-main) 38%, transparent);
 }
 .atl-oracle-hero-send:disabled { opacity: 0.32; cursor: not-allowed; }
 
@@ -1692,8 +1692,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(215,179,140,0.05);
-  border: 1px solid rgba(215,179,140,0.16);
+  background: color-mix(in srgb, var(--g-main) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 16%, transparent);
   border-radius: 20px;
   padding: 7px 14px;
   font-family: 'Inter', sans-serif;
@@ -1701,14 +1701,14 @@
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(215,179,140,0.38);
+  color: color-mix(in srgb, var(--g-main) 38%, transparent);
   cursor: pointer;
   transition: all 0.22s;
 }
 .atl-oracle-src-pill:hover {
-  border-color: rgba(215,179,140,0.30);
+  border-color: color-mix(in srgb, var(--g-main) 30%, transparent);
   color: var(--g-light);
-  background: rgba(215,179,140,0.09);
+  background: color-mix(in srgb, var(--g-main) 9%, transparent);
 }
 .atl-oracle-src-pill--on {
   background: color-mix(in srgb, var(--g-main) 14%, transparent) !important;
@@ -1726,10 +1726,10 @@
 }
 
 .atl-oracle-sugg {
-  background: rgba(215,179,140,0.04);
-  border: 1px solid rgba(215,179,140,0.11);
+  background: color-mix(in srgb, var(--g-main) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 11%, transparent);
   border-radius: 22px;
-  color: rgba(215,179,140,0.44);
+  color: color-mix(in srgb, var(--g-main) 44%, transparent);
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 500;
@@ -1740,8 +1740,8 @@
   transition: all 0.22s;
 }
 .atl-oracle-sugg:hover {
-  background: rgba(215,179,140,0.11);
-  border-color: rgba(215,179,140,0.30);
+  background: color-mix(in srgb, var(--g-main) 11%, transparent);
+  border-color: color-mix(in srgb, var(--g-main) 30%, transparent);
   color: var(--g-light);
   transform: translateY(-1px);
 }
@@ -1751,13 +1751,13 @@
   align-items: center;
   gap: 8px;
   padding: 6px 0 14px;
-  border-bottom: 1px solid rgba(215,179,140,0.07);
+  border-bottom: 1px solid color-mix(in srgb, var(--g-main) 7%, transparent);
   margin-bottom: 4px;
   flex-shrink: 0;
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.24em;
-  color: rgba(215,179,140,0.28);
+  color: color-mix(in srgb, var(--g-main) 28%, transparent);
 }
 .atl-oracle-compact-icon { color: var(--g-main); flex-shrink: 0; }
 
@@ -1765,7 +1765,7 @@
   margin-left: auto;
   background: none;
   border: none;
-  color: rgba(215,179,140,0.26);
+  color: color-mix(in srgb, var(--g-main) 26%, transparent);
   cursor: pointer;
   padding: 5px;
   display: flex;
@@ -1775,7 +1775,7 @@
 }
 .atl-oracle-reset-btn:hover {
   color: var(--g-light);
-  background: rgba(215,179,140,0.08);
+  background: color-mix(in srgb, var(--g-main) 8%, transparent);
 }
 
 .atl-oracle-thinking {
@@ -1783,8 +1783,8 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: rgba(215,179,140,0.022);
-  border: 1px solid rgba(215,179,140,0.08);
+  background: color-mix(in srgb, var(--g-main) 2.2%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 8%, transparent);
   border-radius: 10px;
   max-width: 96%;
 }
@@ -1813,13 +1813,13 @@
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.18em;
-  color: rgba(215,179,140,0.28);
+  color: color-mix(in srgb, var(--g-main) 28%, transparent);
 }
 
 .atl-answer-card {
   max-width: 96%;
   background: linear-gradient(160deg, rgba(17,12,7,0.88) 0%, rgba(10,8,6,0.82) 100%);
-  border: 1px solid rgba(215,179,140,0.11);
+  border: 1px solid color-mix(in srgb, var(--g-main) 11%, transparent);
   border-radius: 14px;
   padding: 18px;
   display: flex;
@@ -1841,9 +1841,9 @@
   height: 1px;
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(215,179,140,0.32) 40%,
+    color-mix(in srgb, var(--g-main) 32%, transparent) 40%,
     rgba(245,234,213,0.50) 50%,
-    rgba(215,179,140,0.32) 60%,
+    color-mix(in srgb, var(--g-main) 32%, transparent) 60%,
     transparent 100%
   );
 }
@@ -1887,9 +1887,9 @@
   font-size: 7px;
   font-weight: 900;
   letter-spacing: 0.22em;
-  color: rgba(215,179,140,0.22);
+  color: color-mix(in srgb, var(--g-main) 22%, transparent);
   padding-bottom: 5px;
-  border-bottom: 1px solid rgba(215,179,140,0.07);
+  border-bottom: 1px solid color-mix(in srgb, var(--g-main) 7%, transparent);
 }
 
 .atl-answer-sources-grid {
@@ -1902,14 +1902,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(215,179,140,0.04);
-  border: 1px solid rgba(215,179,140,0.10);
+  background: color-mix(in srgb, var(--g-main) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 10%, transparent);
   border-radius: 8px;
   padding: 6px 11px;
   transition: border-color 0.2s;
 }
 .atl-answer-source-card:hover {
-  border-color: rgba(215,179,140,0.22);
+  border-color: color-mix(in srgb, var(--g-main) 22%, transparent);
 }
 
 .atl-answer-source-icon { color: var(--g-dim); flex-shrink: 0; }
@@ -1931,7 +1931,7 @@
   font-size: 7px;
   font-weight: 700;
   letter-spacing: 0.10em;
-  color: rgba(215,179,140,0.32);
+  color: color-mix(in srgb, var(--g-main) 32%, transparent);
 }
 
 .atl-answer-source-badge {
@@ -1952,17 +1952,17 @@
   flex-wrap: wrap;
   gap: 7px;
   padding-top: 8px;
-  border-top: 1px solid rgba(215,179,140,0.06);
+  border-top: 1px solid color-mix(in srgb, var(--g-main) 6%, transparent);
 }
 
 .atl-answer-action {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(215,179,140,0.05);
-  border: 1px solid rgba(215,179,140,0.13);
+  background: color-mix(in srgb, var(--g-main) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-main) 13%, transparent);
   border-radius: 7px;
-  color: rgba(215,179,140,0.50);
+  color: color-mix(in srgb, var(--g-main) 50%, transparent);
   font-family: 'Inter', sans-serif;
   font-size: 8px;
   font-weight: 800;
@@ -1972,8 +1972,8 @@
   transition: all 0.2s;
 }
 .atl-answer-action:hover {
-  background: rgba(215,179,140,0.12);
-  border-color: rgba(215,179,140,0.28);
+  background: color-mix(in srgb, var(--g-main) 12%, transparent);
+  border-color: color-mix(in srgb, var(--g-main) 28%, transparent);
   color: var(--g-light);
   transform: translateY(-1px);
 }
@@ -2000,7 +2000,7 @@
   font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.18em;
-  color: rgba(215,179,140,0.22);
+  color: color-mix(in srgb, var(--g-main) 22%, transparent);
   flex-shrink: 0;
   width: 52px;
 }
@@ -2013,7 +2013,7 @@
 
 .atl-hs-doc-card {
   background: rgba(17,12,7,0.68);
-  border: 1px solid rgba(215,179,140,0.09);
+  border: 1px solid color-mix(in srgb, var(--g-main) 9%, transparent);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -2022,7 +2022,7 @@
   transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
 }
 .atl-hs-doc-card:hover {
-  border-color: rgba(215,179,140,0.20);
+  border-color: color-mix(in srgb, var(--g-main) 20%, transparent);
   background: rgba(20,14,8,0.80);
   box-shadow: 0 4px 22px rgba(0,0,0,0.30);
 }
@@ -2056,19 +2056,19 @@
 
 .atl-hs-badge--subject {
   background: color-mix(in srgb, var(--g-main) 11%, transparent);
-  border: 1px solid rgba(215,179,140,0.16);
-  color: rgba(215,179,140,0.55);
+  border: 1px solid color-mix(in srgb, var(--g-main) 16%, transparent);
+  color: color-mix(in srgb, var(--g-main) 55%, transparent);
 }
 
 .atl-hs-badge--grade {
   background: rgba(122,84,53,0.13);
   border: 1px solid rgba(122,84,53,0.28);
-  color: rgba(215,179,140,0.48);
+  color: color-mix(in srgb, var(--g-main) 48%, transparent);
 }
 
 .atl-hs-source-name {
   font-style: normal;
-  color: rgba(215,179,140,0.22);
+  color: color-mix(in srgb, var(--g-main) 22%, transparent);
   font-size: 7px;
 }
 

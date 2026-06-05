@@ -3,9 +3,6 @@
   --bg-bottom: var(--bg-secondary);
   --bg: var(--bg-secondary);
   --panel: var(--bg-secondary);
-  --border: var(--border);
-  --text-primary: var(--text-primary);
-  --text-secondary: var(--text-secondary);
   --accent: #D7B38C;
   --hover-bg: rgba(255, 255, 255, 0.05);
   --danger: #ef4444;
@@ -4213,9 +4210,9 @@ h1.note-title ::-moz-selection,
   inset: 0;
   pointer-events: none;
   background-image: 
-    radial-gradient(circle at 20% 50%, rgba(215, 179, 140, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(215, 179, 140, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 40% 20%, rgba(215, 179, 140, 0.02) 0%, transparent 50%);
+    radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--accent) 3%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--accent) 3%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, color-mix(in srgb, var(--accent) 2%, transparent) 0%, transparent 50%);
   z-index: 0;
 }
 

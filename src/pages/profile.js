@@ -147,9 +147,7 @@ const Profile = () => {
       } else {
         
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setAutoSaving(false);
     }
   }, [API_URL, token, userName, profileData, autoSaving, lastSavedProfile, setLastSaved, setAutoSaving]);
@@ -237,9 +235,7 @@ const Profile = () => {
               ? JSON.parse(data.archetypeScores) 
               : data.archetypeScores;
           }
-        } catch (e) {
-    
-  }
+        } catch (e) { /* silenced */ }
 
         setProfileData(newProfileData);
         lastSavedProfile.current = JSON.stringify(newProfileData);
@@ -250,9 +246,7 @@ const Profile = () => {
               ? JSON.parse(data.quizResponses)
               : data.quizResponses;
             setQuizAnswers(parsedQuiz);
-          } catch (e) {
-    
-  }
+          } catch (e) { /* silenced */ }
         }
 
         localStorage.setItem('userProfile', JSON.stringify(newProfileData));
@@ -282,16 +276,12 @@ const Profile = () => {
             const parsed = JSON.parse(currentProfile);
             parsed[field] = value;
             localStorage.setItem('userProfile', JSON.stringify(parsed));
-                      } catch (e) {
-    
-  }
+                      } catch (e) { /* silenced */ }
         }
 
         try {
           window.dispatchEvent(new Event('notification-settings-changed'));
-        } catch (e) {
-    
-  }
+        } catch (e) { /* silenced */ }
         
         
         const saveData = {

@@ -1829,7 +1829,6 @@ const AIChat = ({ sharedMode = false }) => {
           });
   };
 
-  const convertSymbolsToUnicode_REMOVE = null;
   const convertSymbolsToUnicode = (text) => {
     let result = text;
     for (const [symbol, unicode] of Object.entries(SYMBOL_MAP)) {

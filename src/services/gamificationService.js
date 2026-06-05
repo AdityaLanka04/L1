@@ -23,9 +23,7 @@ class GamificationService {
         const data = await response.json();
                 return data;
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   }
 
   async trackAIChat(userName) {

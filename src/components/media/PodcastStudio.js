@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import podcastAgentService from '../../services/podcastAgentService';
 import { API_URL, getAuthToken } from '../../config/api';
+import DOMPurify from 'dompurify';
 import './PodcastStudio.css';
 
 const getTranscriptFromResults = (results) => {
@@ -34,7 +35,7 @@ const getTranscriptFromResults = (results) => {
   if (!notesHtml) return '';
 
   const temp = document.createElement('div');
-  temp.innerHTML = notesHtml;
+  temp.innerHTML = DOMPurify.sanitize(notesHtml, { ALLOWED_TAGS: [] });
   return (temp.textContent || temp.innerText || '').trim();
 };
 
@@ -122,9 +123,7 @@ const splitSentences = (text) => {
         }
       }
       if (sentences.length > 0) return sentences;
-    } catch (e) {
-      
-    }
+    } catch (e) { /* silenced */ }
   }
 
   const matcher = /[^.!?]+(?:[.!?]+(?=\s|$)|$)/g;
@@ -283,9 +282,7 @@ const testVoiceBoundarySupport = (synth, voice) => new Promise((resolve) => {
   timeoutId = setTimeout(() => {
     try {
       synth.cancel();
-    } catch (e) {
-      
-    }
+    } catch (e) { /* silenced */ }
     finalize(false);
   }, 2200);
 
@@ -488,9 +485,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       try {
         recognitionRef.current.onend = null;
         recognitionRef.current.stop();
-      } catch (e) {
-        
-      }
+      } catch (e) { /* silenced */ }
     }
     setIsHandsFreeListening(false);
   };
@@ -503,16 +498,14 @@ const PodcastStudio = ({ results, userName, onExit }) => {
     if (fullscreenRef.current?.requestFullscreen) {
       try {
         await fullscreenRef.current.requestFullscreen();
-      } catch (e) {
-        
-      }
+      } catch (e) { /* silenced */ }
     }
   };
 
   const closeFullscreenMode = async () => {
     setIsFullscreenMode(false);
     if (document.fullscreenElement && document.exitFullscreen) {
-      try { await document.exitFullscreen(); } catch (e) {  }
+      try { await document.exitFullscreen(); } catch (e) { /* silenced */ }
     }
     if (onExit) onExit();
   };
@@ -595,9 +588,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
           setTimeout(() => {
             try {
               recognition.start();
-            } catch (e) {
-              
-            }
+            } catch (e) { /* silenced */ }
           }, 250);
         }
       };
@@ -635,9 +626,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
     recognitionRef.current.lang = questionLanguage === 'en' ? 'en-US' : questionLanguage;
     try {
       recognitionRef.current.start();
-    } catch (e) {
-      
-    }
+    } catch (e) { /* silenced */ }
   };
 
   const loadSessionMemory = async () => {
@@ -646,9 +635,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
     try {
       const res = await podcastAgentService.getSavedSessions(userName, 20);
       setSavedSessions(res.sessions || []);
-    } catch (e) {
-      
-    } finally {
+    } catch (e) { /* silenced */ } finally {
       setIsLoadingSaved(false);
     }
   };
@@ -1327,9 +1314,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
         user_id: userName,
         session_id: sessionId,
       });
-    } catch (e) {
-      
-    }
+    } catch (e) { /* silenced */ }
 
     setSessionId('');
     setHasMore(false);

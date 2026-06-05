@@ -233,7 +233,7 @@ const AIChatDock = () => {
         setMessages(toUiMessages(data).slice(-30));
       }
     } catch {
-      // ignore
+      // silenced
     } finally {
       setLoadingMessages(false);
     }

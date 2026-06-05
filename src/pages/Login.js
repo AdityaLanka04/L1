@@ -31,9 +31,7 @@ function Login() {
           if (existingProfile) {
             try {
               mergedProfile = JSON.parse(existingProfile);
-            } catch (e) {
-    
-  }
+            } catch (e) { /* silenced */ }
           }
           
           mergedProfile = {
@@ -54,9 +52,7 @@ function Login() {
           
           localStorage.setItem('userProfile', JSON.stringify(mergedProfile));
         }
-      } catch (_) {
-    
-  }
+      } catch (_) { /* silenced */ }
       
       const response = await axios.get(`${API_URL}/check_profile_quiz?user_id=${username}`, {
         headers: { 'Authorization': `Bearer ${token}` }

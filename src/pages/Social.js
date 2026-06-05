@@ -57,9 +57,7 @@ const Social = () => {
         setUserName(data.first_name || 'User');
         setUserId(data.email || data.username);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const fetchFriendRequests = async () => {
@@ -71,9 +69,7 @@ const Social = () => {
         const data = await response.json();
         setFriendRequests(data);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const fetchFriends = async () => {
@@ -85,9 +81,7 @@ const Social = () => {
         const data = await response.json();
         setFriends(data.friends);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const fetchSharedContent = async () => {
@@ -103,9 +97,7 @@ const Social = () => {
         const data = await response.json();
         setSharedItems(data.shared_items || []);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const fetchMyContent = async () => {
@@ -125,9 +117,7 @@ const Social = () => {
         const chatsData = await chatsResponse.json();
         setMyChats(chatsData.sessions || []);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const handleSearch = async (query) => {
@@ -146,9 +136,7 @@ const Social = () => {
         const data = await response.json();
         setSearchResults(data.users);
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setIsSearching(false);
     }
   };
@@ -170,9 +158,7 @@ const Social = () => {
         ));
         fetchFriendRequests();
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const respondToFriendRequest = async (requestId, action) => {
@@ -190,9 +176,7 @@ const Social = () => {
         fetchFriendRequests();
         fetchFriends();
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const removeFriend = async (friendId) => {
@@ -211,9 +195,7 @@ const Social = () => {
       if (response.ok) {
         fetchFriends();
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const handleOpenSharedItem = (item) => {
@@ -238,9 +220,7 @@ const Social = () => {
       if (response.ok) {
         setSharedItems(prev => prev.filter(item => item.id !== shareId));
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const handleShareNewContent = async () => {

@@ -6,9 +6,9 @@
   --sh-line: color-mix(in srgb, var(--accent) 22%, transparent);
   --sh-line-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --sh-line-strong: color-mix(in srgb, var(--accent) 45%, transparent);
-  --sh-text: var(--text-primary, #EAECEF);
-  --sh-mute: color-mix(in srgb, var(--text-primary, #EAECEF) 55%, transparent);
-  --sh-faint: color-mix(in srgb, var(--text-primary, #EAECEF) 30%, transparent);
+  --sh-text: var(--text-primary, var(--text-primary));
+  --sh-mute: color-mix(in srgb, var(--text-primary, var(--text-primary)) 55%, transparent);
+  --sh-faint: color-mix(in srgb, var(--text-primary, var(--text-primary)) 30%, transparent);
 
   position: fixed;
   inset: 0;

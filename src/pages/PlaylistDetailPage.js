@@ -56,9 +56,7 @@ const PlaylistDetailPage = () => {
         setPlaylist(data);
         setIsFollowing(data.is_following || false);
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setLoading(false);
     }
   };
@@ -81,9 +79,7 @@ const PlaylistDetailPage = () => {
             : (prev.follower_count || 0) + 1
         }));
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setFollowLoading(false);
     }
   };
@@ -100,9 +96,7 @@ const PlaylistDetailPage = () => {
       if (response.ok && data.id) {
         navigate(`/playlists/${data.id}`);
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setForkLoading(false);
     }
   };
@@ -216,9 +210,7 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
           }
         }));
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setUpdatingItem(null);
     }
   };
@@ -238,9 +230,7 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
         setShowAddItemModal(false);
         fetchPlaylistDetails();
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const handleDeleteItem = async (itemId) => {
@@ -255,9 +245,7 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
       if (response.ok) {
         fetchPlaylistDetails();
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const toggleItem = (itemId) => {
@@ -282,9 +270,7 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
             setViewingItem(item);
             setShowViewModal(true);
           }
-        } catch (error) {
-    
-  }
+        } catch (error) { /* silenced */ }
       }
     } else if (item.url) {
       window.open(item.url, '_blank', 'noopener,noreferrer');
@@ -856,9 +842,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
           setUserFlashcards(Array.isArray(data) ? data : (data.flashcard_history || []));
         }
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setLoadingResources(false);
     }
   };
@@ -895,9 +879,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
     try {
       await onAdd(newItem);
       onClose();
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setIsSubmitting(false);
     }
   };
@@ -916,9 +898,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
         await onAdd(itemData);
       }
       onClose();
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setIsSubmitting(false);
     }
   };

@@ -1,5 +1,6 @@
 
 
+import DOMPurify from 'dompurify';
 import { escapeHtml } from './sanitize';
 import { formatCompactRelativeTime } from './dateUtils';
 
@@ -120,9 +121,7 @@ export const formatDate = formatCompactRelativeTime;
 export const extractPlainText = (html) => {
   if (!html) return '';
   const div = document.createElement('div');
-  div.innerHTML = String(html)
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
+  div.innerHTML = DOMPurify.sanitize(String(html), { ALLOWED_TAGS: [] });
   return div.textContent || div.innerText || '';
 };
 

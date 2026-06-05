@@ -28,9 +28,7 @@ const SharedContent = () => {
         const data = await response.json();
         setSharedItems(data.shared_items);
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setLoading(false);
     }
   };
@@ -57,9 +55,7 @@ const SharedContent = () => {
       if (response.ok) {
         setSharedItems(prev => prev.filter(item => item.id !== shareId));
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const getFilteredAndSortedItems = () => {

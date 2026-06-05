@@ -7,9 +7,9 @@
   --pn-line: color-mix(in srgb, var(--accent, #D7B38C) 22%, transparent);
   --pn-line-soft: color-mix(in srgb, var(--accent, #D7B38C) 12%, transparent);
   --pn-line-strong: color-mix(in srgb, var(--accent, #D7B38C) 45%, transparent);
-  --pn-text: var(--text-primary, #EAECEF);
-  --pn-mute: color-mix(in srgb, var(--text-primary, #EAECEF) 55%, transparent);
-  --pn-faint: color-mix(in srgb, var(--text-primary, #EAECEF) 32%, transparent);
+  --pn-text: var(--text-primary, var(--text-primary));
+  --pn-mute: color-mix(in srgb, var(--text-primary, var(--text-primary)) 55%, transparent);
+  --pn-faint: color-mix(in srgb, var(--text-primary, var(--text-primary)) 32%, transparent);
 
   position: fixed;
   inset: 0;
@@ -727,7 +727,7 @@
 
 .pn-select option {
   background: #1a1810;
-  color: var(--text-primary, #EAECEF);
+  color: var(--text-primary, var(--text-primary));
 }
 
 .pn-subjects-grid {
@@ -1332,7 +1332,7 @@
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--text-primary, #EAECEF);
+  color: var(--text-primary, var(--text-primary));
 }
 
 .pn-modal-close {
@@ -1341,7 +1341,7 @@
   border-radius: 9px;
   border: 1px solid color-mix(in srgb, var(--accent, #D7B38C) 22%, transparent);
   background: #131210;
-  color: var(--text-primary, #EAECEF);
+  color: var(--text-primary, var(--text-primary));
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -1412,7 +1412,7 @@
   margin-top: 9px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary, #EAECEF);
+  color: var(--text-primary, var(--text-primary));
 }
 
 .pn-pfp-card-check {

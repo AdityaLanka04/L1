@@ -80,9 +80,7 @@ const PlaylistsPage = () => {
         const data = await response.json();
         setPlaylists(data.playlists || []);
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setLoading(false);
     }
   };
@@ -102,9 +100,7 @@ const PlaylistsPage = () => {
         setShowCreateModal(false);
         fetchPlaylists();
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const handlePlaylistClick = (playlistId) => {
@@ -129,9 +125,7 @@ const PlaylistsPage = () => {
           };
         }));
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const handleAiConvert = async (playlist, action) => {

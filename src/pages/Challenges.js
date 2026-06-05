@@ -37,9 +37,7 @@ const Challenges = () => {
         const data = await response.json();
         setChallenges(data.challenges);
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setLoading(false);
     }
   };
@@ -74,9 +72,7 @@ const Challenges = () => {
         resetForm();
         fetchChallenges();
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const handleJoinChallenge = async (challengeId) => {
@@ -93,9 +89,7 @@ const Challenges = () => {
       if (response.ok) {
         fetchChallenges();
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const resetForm = () => {

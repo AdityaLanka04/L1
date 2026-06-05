@@ -392,7 +392,7 @@ const ProfileNew = () => {
     try {
       const payload = await resp.json();
       if (payload?.detail) return payload.detail;
-    } catch (e) {}
+    } catch (e) { /* silenced */ }
     return fallbackMessage;
   };
 
@@ -536,11 +536,11 @@ const ProfileNew = () => {
         lastSavedRef.current = JSON.stringify(newData);
         if (data.quizResponses) {
           try { setQuizAnswers(typeof data.quizResponses === 'string' ? JSON.parse(data.quizResponses) : data.quizResponses); }
-          catch (e) {}
+          catch (e) { /* silenced */ }
         }
         localStorage.setItem('userProfile', JSON.stringify(newData));
       }
-    } catch (e) {}
+    } catch (e) { /* silenced */ }
     setDataLoaded(true);
     setLastSaved(new Date().toLocaleTimeString());
   };
@@ -553,7 +553,7 @@ const ProfileNew = () => {
       if (resp.ok) {
         setGamificationStats(await resp.json());
       }
-    } catch (e) {}
+    } catch (e) { /* silenced */ }
   };
 
   const autoSave = useCallback(async (data) => {
@@ -573,7 +573,7 @@ const ProfileNew = () => {
         setLastSaved(new Date().toLocaleTimeString());
         localStorage.setItem('userProfile', snapshot);
       }
-    } catch (e) {}
+    } catch (e) { /* silenced */ }
     isSavingRef.current = false;
     setAutoSaving(false);
   }, [token, userName]);
@@ -592,9 +592,9 @@ const ProfileNew = () => {
     if (field === 'showStudyInsights' || field === 'notificationsEnabled') {
       const cp = localStorage.getItem('userProfile');
       if (cp) {
-        try { const p = JSON.parse(cp); p[field] = value; localStorage.setItem('userProfile', JSON.stringify(p)); } catch (e) {}
+        try { const p = JSON.parse(cp); p[field] = value; localStorage.setItem('userProfile', JSON.stringify(p)); } catch (e) { /* silenced */ }
       }
-      try { window.dispatchEvent(new Event('notification-settings-changed')); } catch (e) {}
+      try { window.dispatchEvent(new Event('notification-settings-changed')); } catch (e) { /* silenced */ }
     }
   };
 
@@ -607,7 +607,7 @@ const ProfileNew = () => {
   const savePfp = (next) => {
     let base = {};
     const raw = localStorage.getItem('userProfile');
-    if (raw) try { base = JSON.parse(raw) || {}; } catch (e) {}
+    if (raw) try { base = JSON.parse(raw) || {}; } catch (e) { /* silenced */ }
     const merged = hydrateProfile({ ...base, ...next }, userName);
     setPfp(merged);
     localStorage.setItem('userProfile', JSON.stringify(merged));

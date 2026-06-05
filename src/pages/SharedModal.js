@@ -31,9 +31,7 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
         const data = await response.json();
         setFriends(data.friends);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const generateShareLink = () => {

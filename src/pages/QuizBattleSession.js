@@ -255,9 +255,7 @@ const QuizBattleSession = () => {
       if (response.ok) {
               } else {
               }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const handleNextQuestion = (answerIndex = selectedAnswer) => {
@@ -358,9 +356,7 @@ const QuizBattleSession = () => {
                                       }
       } else {
               }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const formatTime = (seconds) => {

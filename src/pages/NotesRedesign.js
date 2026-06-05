@@ -374,9 +374,7 @@ try {
   if (QuillTableUI && QuillTableUI.default) {
     Quill.register('modules/tableUI', QuillTableUI.default);
   }
-} catch (error) {
-    
-  }
+} catch (error) { /* silenced */ }
 
 let katex;
 try {
@@ -384,9 +382,7 @@ try {
   if (katex) {
     window.katex = katex;
   }
-} catch (error) {
-    
-  }
+} catch (error) { /* silenced */ }
 
 const NotesRedesign = ({ sharedMode = false }) => {
   const { noteId } = useParams();
@@ -622,9 +618,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
           'eb-garamond'
         ];
         Quill.register(Font, true);
-      } catch (error) {
-    
-  }
+      } catch (error) { /* silenced */ }
     }
   }, []);
 
@@ -696,9 +690,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       if (profile) {
         try {
           setUserProfile(JSON.parse(profile));
-        } catch (error) {
-    
-  }
+        } catch (error) { /* silenced */ }
       }
     }
   }, [navigate, sharedMode, noteId]);
@@ -715,9 +707,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       if (stored) {
         try {
           setRecentlyViewed(JSON.parse(stored));
-        } catch (e) {
-    
-  }
+        } catch (e) { /* silenced */ }
       }
     }
   }, [userName, isSharedContent]);
@@ -1106,9 +1096,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const data = await res.json();
         setFolders(data.folders || []);
       }
-    } catch (e) {
-    
-  }
+    } catch (e) { /* silenced */ }
   };
 
   const loadTrash = async () => {
@@ -1121,9 +1109,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const data = await res.json();
         setTrashedNotes(data.trash || []);
       }
-    } catch (e) {
-    
-  }
+    } catch (e) { /* silenced */ }
   };
 
   const loadChatSessions = async () => {
@@ -1136,9 +1122,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const data = await res.json();
         setChatSessions(data.sessions || []);
       }
-    } catch (e) {
-    
-  }
+    } catch (e) { /* silenced */ }
   };
 
   const createFolder = async () => {
@@ -1595,9 +1579,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         if (Array.isArray(props)) {
           setPageProperties(props);
         }
-      } catch (e) {
-    
-  }
+      } catch (e) { /* silenced */ }
     }
   };
   

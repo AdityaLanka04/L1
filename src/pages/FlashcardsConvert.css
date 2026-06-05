@@ -494,7 +494,7 @@
 }
 
 .flashcards-page .iem-item-card.selected {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), rgba(215, 179, 140, 0.05)) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 5%, transparent)) !important;
   border-color: var(--iem-accent) !important;
 }
 

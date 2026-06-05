@@ -2,11 +2,8 @@
   --bg-top: var(--bg-primary);
   --bg-bottom: var(--bg-secondary);
   --panel: var(--bg-secondary);
-  --border: var(--border);
-  --text-primary: var(--text-primary);
-  --text-secondary: var(--text-secondary);
   --accent: #D7B38C;
-  --glow: rgba(215, 179, 140, 0.35);
+  --glow: color-mix(in srgb, var(--accent) 35%, transparent);
   --success: #10B981;
   --warning: #F59E0B;
   --danger: #EF4444;

@@ -59,9 +59,7 @@ const NotesDashboard = () => {
         const data = await res.json();
         setNotes(data.filter(n => !n.is_deleted));
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const loadFolders = async (username) => {
@@ -74,9 +72,7 @@ const NotesDashboard = () => {
         const data = await res.json();
         setFolders(data.folders || []);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const handleSelectNote = (note) => {
@@ -103,9 +99,7 @@ const NotesDashboard = () => {
         const newNote = await res.json();
         navigate(`/notes/editor/${newNote.id}`);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const handleTemplateSelect = async (template) => {
@@ -135,9 +129,7 @@ const NotesDashboard = () => {
         const newNote = await res.json();
         navigate(`/notes/editor/${newNote.id}`);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   

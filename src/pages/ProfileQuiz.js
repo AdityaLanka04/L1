@@ -197,9 +197,7 @@ const ProfileQuiz = () => {
                     navigate('/dashboard-cerbyl');
         }
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const generateMainSubjectSuggestions = (input) => {

@@ -180,7 +180,7 @@
 }
 
 .notes-redesign .iem-item-card:hover {
-  background: rgba(215, 179, 140, 0.05) !important;
+  background: color-mix(in srgb, var(--accent) 5%, transparent) !important;
 }
 
 .notes-redesign .iem-item-card.selected {
@@ -229,7 +229,7 @@
 }
 
 .notes-redesign .iem-conversion-card:hover {
-  background: rgba(215, 179, 140, 0.05) !important;
+  background: color-mix(in srgb, var(--accent) 5%, transparent) !important;
   border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
 }
 
@@ -432,7 +432,7 @@
 }
 
 .notes-redesign .iem-header {
-  background: linear-gradient(135deg, var(--bg-secondary), rgba(215, 179, 140, 0.05)) !important;
+  background: linear-gradient(135deg, var(--bg-secondary), color-mix(in srgb, var(--accent) 5%, transparent)) !important;
 }
 
 .notes-redesign .iem-header h2 {
@@ -447,7 +447,7 @@
 }
 
 .notes-redesign .iem-select-bar {
-  background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, transparent), var(--bg-secondary)) !important;
 }
 
 .notes-redesign .iem-select-all-btn:hover {
@@ -469,7 +469,7 @@
 }
 
 .notes-redesign .iem-item-card.selected {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), rgba(215, 179, 140, 0.05)) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 5%, transparent)) !important;
   border-color: #D7B38C !important;
 }
 
@@ -505,7 +505,7 @@
 
 .notes-redesign .iem-settings {
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, transparent), var(--bg-secondary)) !important;
 }
 
 .notes-redesign .iem-input:focus,
@@ -546,9 +546,9 @@
 
 .notes-redesign .iem-result-details {
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), var(--bg-secondary)) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, transparent), var(--bg-secondary)) !important;
 }
 
 .notes-redesign .iem-actions {
-  background: linear-gradient(135deg, var(--bg-secondary), rgba(215, 179, 140, 0.05)) !important;
+  background: linear-gradient(135deg, var(--bg-secondary), color-mix(in srgb, var(--accent) 5%, transparent)) !important;
 }

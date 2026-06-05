@@ -196,9 +196,7 @@ const Flashcards = () => {
         const data = await response.json();
         setChatSessions(data.sessions || []);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   }, [userName]);
 
   const loadFlashcardHistory = useCallback(async (reset = false) => {
@@ -250,9 +248,7 @@ const Flashcards = () => {
         const data = await response.json();
         setFlashcardStats(data);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   }, [userName]);
 
   const loadUploadedDocuments = useCallback(async () => {
@@ -532,9 +528,7 @@ const Flashcards = () => {
         
         return result;
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const reviewCardWithAgent = async (cardId, quality, responseTime) => {
@@ -576,9 +570,7 @@ const Flashcards = () => {
         
         return data;
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   
@@ -668,9 +660,7 @@ const Flashcards = () => {
       if (result.success) {
         return result.analysis || result;
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   
@@ -688,9 +678,7 @@ const Flashcards = () => {
         setStudyRecommendations(result.recommendations);
         return result.recommendations;
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   
@@ -715,9 +703,7 @@ const Flashcards = () => {
       if (result.success) {
         return result.explanation;
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   
@@ -1034,9 +1020,7 @@ const Flashcards = () => {
     if (profile) {
       try {
         setUserProfile(JSON.parse(profile));
-      } catch (error) {
-    
-  }
+      } catch (error) { /* silenced */ }
     }
   }, [navigate]);
 
@@ -1700,9 +1684,7 @@ const Flashcards = () => {
         loadFlashcardHistory(true); 
         showPopup('Renamed Successfully', 'The flashcard set has been renamed.');
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
     setEditingSetId(null);
     setEditingTitle('');
   };
@@ -1920,9 +1902,7 @@ const Flashcards = () => {
 
         loadFlashcardHistory(true); 
         loadFlashcardStats();
-      } catch (error) {
-    
-  }
+      } catch (error) { /* silenced */ }
     };
     
     

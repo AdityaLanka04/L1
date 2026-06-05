@@ -132,7 +132,7 @@ const CerbylNavSidebar = ({ isOpen, onClose }) => {
   const savePfpProfile = (nextProfile) => {
     let base = {};
     const raw = localStorage.getItem('userProfile');
-    if (raw) try { base = JSON.parse(raw) || {}; } catch (e) {}
+    if (raw) try { base = JSON.parse(raw) || {}; } catch (e) { /* silenced */ }
     const merged = hydrateProfile({ ...base, ...nextProfile }, userName);
     setProfile(merged);
     localStorage.setItem('userProfile', JSON.stringify(merged));

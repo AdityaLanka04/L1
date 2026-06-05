@@ -80,9 +80,7 @@ const Games = () => {
         loadRecentActivities(username),
         loadDailyChallenge(username)
       ]);
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setLoading(false);
     }
   };
@@ -108,9 +106,7 @@ const Games = () => {
           setPointsToNextLevel(expForNextLevel - data.experience);
         }
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const loadBingoStats = async (username) => {
@@ -130,9 +126,7 @@ const Games = () => {
                   }
       } else {
               }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const loadWeeklyProgress = async (username) => {
@@ -146,9 +140,7 @@ const Games = () => {
         const data = await response.json();
                 setWeeklyProgress(data);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const loadRecentActivities = async (username) => {
@@ -162,9 +154,7 @@ const Games = () => {
         const data = await response.json();
         setRecentActivities(data.activities || []);
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const loadDailyChallenge = async (username) => {

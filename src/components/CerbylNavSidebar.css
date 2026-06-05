@@ -20,9 +20,9 @@
   --cns-line: color-mix(in srgb, var(--accent, #D7B38C) 22%, transparent);
   --cns-line-soft: color-mix(in srgb, var(--accent, #D7B38C) 12%, transparent);
   --cns-line-strong: color-mix(in srgb, var(--accent, #D7B38C) 45%, transparent);
-  --cns-text: var(--text-primary, #EAECEF);
-  --cns-mute: color-mix(in srgb, var(--text-primary, #EAECEF) 55%, transparent);
-  --cns-faint: color-mix(in srgb, var(--text-primary, #EAECEF) 35%, transparent);
+  --cns-text: var(--text-primary, var(--text-primary));
+  --cns-mute: color-mix(in srgb, var(--text-primary, var(--text-primary)) 55%, transparent);
+  --cns-faint: color-mix(in srgb, var(--text-primary, var(--text-primary)) 35%, transparent);
 
   position: fixed;
   top: 0;
@@ -572,7 +572,7 @@
 
 .cns-select:focus { border-color: var(--cns-line-strong); }
 
-.cns-select option { background: #1a1810; color: var(--text-primary, #EAECEF); }
+.cns-select option { background: #1a1810; color: var(--text-primary, var(--text-primary)); }
 
 .cns-subjects-grid {
   display: flex;
@@ -777,7 +777,7 @@
   font-size: 20px;
   line-height: 1.1;
   letter-spacing: -0.02em;
-  color: var(--text-primary, #EAECEF);
+  color: var(--text-primary, var(--text-primary));
   font-family: 'Inter', system-ui, sans-serif;
   font-weight: 800;
 }
@@ -788,7 +788,7 @@
   border-radius: 8px;
   border: 1px solid color-mix(in srgb, var(--accent, #D7B38C) 22%, transparent);
   background: #131210;
-  color: var(--text-primary, #EAECEF);
+  color: var(--text-primary, var(--text-primary));
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -858,7 +858,7 @@
   margin-top: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary, #EAECEF);
+  color: var(--text-primary, var(--text-primary));
   font-family: 'Inter', system-ui, sans-serif;
 }
 

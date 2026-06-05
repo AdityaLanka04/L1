@@ -6,9 +6,9 @@
   --cb-line: color-mix(in srgb, var(--accent) 22%, transparent);
   --cb-line-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --cb-line-strong: color-mix(in srgb, var(--accent) 45%, transparent);
-  --cb-text: var(--text-primary, #EAECEF);
-  --cb-mute: color-mix(in srgb, var(--text-primary, #EAECEF) 55%, transparent);
-  --cb-faint: color-mix(in srgb, var(--text-primary, #EAECEF) 35%, transparent);
+  --cb-text: var(--text-primary, var(--text-primary));
+  --cb-mute: color-mix(in srgb, var(--text-primary, var(--text-primary)) 55%, transparent);
+  --cb-faint: color-mix(in srgb, var(--text-primary, var(--text-primary)) 35%, transparent);
 
   position: fixed;
   inset: 0;

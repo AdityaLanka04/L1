@@ -8,11 +8,8 @@
   --bg-top: var(--bg-primary);
   --bg-bottom: var(--bg-secondary);
   --panel: var(--bg-secondary);
-  --border: var(--border);
-  --text-primary: var(--text-primary);
-  --text-secondary: var(--text-secondary);
   --accent: #D7B38C;
-  --glow: rgba(215, 179, 140, 0.35);
+  --glow: color-mix(in srgb, var(--accent) 35%, transparent);
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);

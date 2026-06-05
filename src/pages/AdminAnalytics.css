@@ -1,6 +1,6 @@
 .admin-analytics {
   --aa-accent: var(--accent);
-  --aa-accent-soft: rgba(215, 179, 140, 0.35);
+  --aa-accent-soft: color-mix(in srgb, var(--accent) 35%, transparent);
   --aa-warm: #f4c37a;
   --aa-warm-strong: #e6a85c;
   --aa-card-bg: var(--bg-secondary);
@@ -12,7 +12,7 @@
   margin: 0 auto;
   min-height: 100vh;
   color: var(--aa-text);
-  background: radial-gradient(circle at top right, rgba(215, 179, 140, 0.08), transparent 50%),
+  background: radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
     radial-gradient(circle at 20% 20%, rgba(244, 195, 122, 0.08), transparent 45%),
     var(--bg-primary);
 }
@@ -67,7 +67,7 @@
 .aa-section-tab:hover {
   border-color: var(--aa-accent);
   color: var(--aa-accent);
-  background: rgba(215, 179, 140, 0.12);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .aa-date-select {
@@ -96,7 +96,7 @@
 
 .aa-btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(215, 179, 140, 0.35);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .aa-btn-secondary {
@@ -572,7 +572,7 @@
 
 .aa-list-item-clickable:hover {
   border-color: var(--aa-accent);
-  background: rgba(215, 179, 140, 0.08);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .aa-list .aa-empty {
@@ -739,7 +739,7 @@
 }
 
 .aa-users-table tbody tr:hover {
-  background: rgba(215, 179, 140, 0.08);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .aa-loading {

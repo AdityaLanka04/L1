@@ -904,9 +904,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           newRange.collapse(true);
           newSelection.removeAllRanges();
           newSelection.addRange(newRange);
-        } catch (err) {
-    
-  }
+        } catch (err) { /* silenced */ }
       });
     };
     

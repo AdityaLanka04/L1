@@ -383,9 +383,7 @@ const SearchHub = () => {
     if (saved) {
       try {
         setRecentSearches(JSON.parse(saved));
-      } catch (error) {
-    
-  }
+      } catch (error) { /* silenced */ }
     }
   };
 
@@ -398,9 +396,7 @@ const SearchHub = () => {
       if (Array.isArray(parsed)) {
         return new Set(parsed.map(key => String(key)));
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
     return new Set();
   };
 

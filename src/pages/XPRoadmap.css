@@ -3,9 +3,9 @@
   --xpv-bg-2: #0a0a08;
   --xpv-panel: #0e0d0b;
   --xpv-panel-2: #131210;
-  --xpv-text: var(--text-primary, #EAECEF);
-  --xpv-mute: color-mix(in srgb, var(--text-primary, #EAECEF) 56%, transparent);
-  --xpv-faint: color-mix(in srgb, var(--text-primary, #EAECEF) 34%, transparent);
+  --xpv-text: var(--text-primary, var(--text-primary));
+  --xpv-mute: color-mix(in srgb, var(--text-primary, var(--text-primary)) 56%, transparent);
+  --xpv-faint: color-mix(in srgb, var(--text-primary, var(--text-primary)) 34%, transparent);
   --xpv-accent: var(--accent, #ff6b6b);
   --xpv-line: color-mix(in srgb, var(--accent, #ff6b6b) 22%, transparent);
   --xpv-line-soft: color-mix(in srgb, var(--accent, #ff6b6b) 12%, transparent);
@@ -84,7 +84,7 @@
   place-content: center;
   gap: 14px;
   background: var(--xpv-bg, #050504);
-  color: var(--xpv-text, #EAECEF);
+  color: var(--xpv-text, var(--text-primary));
   font-family: 'Inter', system-ui, sans-serif;
 }
 

@@ -23,9 +23,7 @@ const LearningReviewHub = () => {
         const data = await response.json();
         setUserName(data.first_name || 'User');
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const tools = [

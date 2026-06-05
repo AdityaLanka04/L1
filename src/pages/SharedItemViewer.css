@@ -11,9 +11,6 @@
   --bg-top: var(--bg-primary);
   --bg-bottom: var(--bg-secondary);
   --panel: var(--bg-secondary);
-  --border: var(--border);
-  --text-primary: var(--text-primary);
-  --text-secondary: var(--text-secondary);
   --accent: #D7B38C;
   --success: #10B981;
   --warning: #F59E0B;

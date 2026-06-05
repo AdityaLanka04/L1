@@ -142,9 +142,7 @@ const Dashboard = () => {
     if (profile) {
       try {
         setUserProfile(JSON.parse(profile));
-      } catch (error) {
-    
-  }
+      } catch (error) { /* silenced */ }
     }
 
     
@@ -214,9 +212,7 @@ const Dashboard = () => {
         try {
           const parsed = JSON.parse(profile);
           showStudyInsights = parsed.showStudyInsights !== false;
-        } catch (e) {
-    
-  }
+        } catch (e) { /* silenced */ }
       }
       
       if (justLoggedIn && isFirstLoginToday) {
@@ -392,9 +388,7 @@ const Dashboard = () => {
           setTotalTimeToday(data.total_time_today || 0);
         }
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const loadDashboardData = async () => {
@@ -471,9 +465,7 @@ const Dashboard = () => {
         const dcData = await dcResp.json();
         setDailyChallenge(dcData);
       }
-    } catch (error) {
-
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const loadHeatmapData = async () => {
@@ -488,9 +480,7 @@ const Dashboard = () => {
         setHeatmapData(data.heatmap_data || []);
         setTotalQuestions(data.total_count || 0);
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       setHeatmapLoading(false);
     }
   };
@@ -515,9 +505,7 @@ const Dashboard = () => {
         startTimeTracking();
         startSessionTimeUpdater();
       }
-    } catch (error) {
-    
-  }
+    } catch (error) { /* silenced */ }
   };
 
   const startTimeTracking = () => {
@@ -577,9 +565,7 @@ const Dashboard = () => {
           setTimeout(() => { loadUserStats(); }, 500);
         }
       }
-    } catch (error) {
-    
-  } finally {
+    } catch (error) { /* silenced */ } finally {
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
       if (timeTrackingCleanupRef.current) timeTrackingCleanupRef.current();

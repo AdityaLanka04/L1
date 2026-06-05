@@ -2576,7 +2576,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 2px;
-  background: rgba(215, 179, 140, 0.25);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
   color: var(--fc-accent);
   border-radius: 4px;
   cursor: help;
@@ -2601,7 +2601,7 @@
 }
 
 [data-theme-mode="dark"] .fc-study-hint {
-  color: rgba(215, 179, 140, 0.7);
+  color: color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
 [data-theme-mode="light"] .fc-study-card-text {
@@ -6476,7 +6476,7 @@
 }
 
 [data-theme-mode="light"] .fc-badge-edited {
-  background: rgba(215, 179, 140, 0.25);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
   color: #8B6F47;
 }
 

@@ -9,9 +9,9 @@
   --vlt-line:      color-mix(in srgb, var(--accent) 18%, transparent);
   --vlt-line-soft: color-mix(in srgb, var(--accent) 10%, transparent);
   --vlt-line-str:  color-mix(in srgb, var(--accent) 40%, transparent);
-  --vlt-text:      var(--text-primary, #EAECEF);
-  --vlt-mute:      color-mix(in srgb, var(--text-primary, #EAECEF) 50%, transparent);
-  --vlt-faint:     color-mix(in srgb, var(--text-primary, #EAECEF) 28%, transparent);
+  --vlt-text:      var(--text-primary, var(--text-primary));
+  --vlt-mute:      color-mix(in srgb, var(--text-primary, var(--text-primary)) 50%, transparent);
+  --vlt-faint:     color-mix(in srgb, var(--text-primary, var(--text-primary)) 28%, transparent);
   --vlt-green:     #22c55e;
 
   --vlt-ease:    cubic-bezier(0.22, 1, 0.36, 1);

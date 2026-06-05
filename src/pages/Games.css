@@ -2,12 +2,9 @@
   --bg-top: var(--bg-primary);
   --bg-bottom: var(--bg-secondary);
   --panel: var(--bg-secondary);
-  --border: var(--border);
-  --text-primary: var(--text-primary);
-  --text-secondary: var(--text-secondary);
   --accent: #D7B38C;
   --accent-rgb: 215, 179, 140;
-  --glow: rgba(215, 179, 140, 0.35);
+  --glow: color-mix(in srgb, var(--accent) 35%, transparent);
   --success: #10B981;
   --warning: #F59E0B;
   --danger: #EF4444;
@@ -186,7 +183,7 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(215, 179, 140, 0.03) 1px, transparent 1px);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 3%, transparent) 1px, transparent 1px);
   background-size: 50px 50px;
   pointer-events: none;
   z-index: 0;
@@ -237,7 +234,7 @@
   top: 0;
   width: 44px;
   height: 44px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent), rgba(215, 179, 140, 0.05));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--accent) 5%, transparent));
   border: 1px solid var(--border);
   color: var(--text-secondary);
   cursor: pointer;
@@ -417,7 +414,7 @@
 
 .daily-challenge-banner:hover {
   border-color: var(--accent);
-  box-shadow: 0 8px 32px rgba(215, 179, 140, 0.25);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--accent) 25%, transparent);
   transform: translateY(-2px);
 }
 
@@ -606,7 +603,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(215, 179, 140, 0.08), rgba(167, 139, 250, 0.05), rgba(244, 114, 182, 0.05));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent), rgba(167, 139, 250, 0.05), rgba(244, 114, 182, 0.05));
   pointer-events: none;
 }
 
@@ -857,7 +854,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(215, 179, 140, 0.05), transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, transparent), transparent);
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;

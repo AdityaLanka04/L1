@@ -188,7 +188,7 @@ const DashboardCerbyl = () => {
     if (prof) {
       try {
         setProfile(hydrateProfile(JSON.parse(prof), username || ''));
-      } catch (e) {}
+      } catch (e) { /* silenced */ }
     } else {
       setProfile(hydrateProfile({}, username || ''));
     }
@@ -221,7 +221,7 @@ const DashboardCerbyl = () => {
           rank: g.rank ?? g.global_rank ?? prev.rank,
           weeklyPoints: g.weekly_points ?? prev.weeklyPoints
         }));
-      } catch (e) {}
+      } catch (e) { /* silenced */ }
 
       try {
         const d = await fetchJson(`${API_URL}/get_dashboard_data?user_id=${userName}`);
@@ -241,13 +241,13 @@ const DashboardCerbyl = () => {
           rank: gf.rank ?? prev.rank,
           weeklyPoints: gf.weekly_points ?? prev.weeklyPoints
         }));
-      } catch (e) {}
+      } catch (e) { /* silenced */ }
 
       try {
         const h = await fetchJson(`${API_URL}/get_activity_heatmap?user_id=${userName}`);
         if (cancelled) return;
         setHeatmap(h.heatmap_data || []);
-      } catch (e) {}
+      } catch (e) { /* silenced */ }
 
       try {
         const a = await fetchJson(`${API_URL}/get_analytics_history?user_id=${userName}&period=week`);
@@ -268,13 +268,13 @@ const DashboardCerbyl = () => {
         if (cancelled) return;
         const list = Array.isArray(n) ? n : (n.notes || []);
         setRecentNotes(list.slice(0, 3));
-      } catch (e) {}
+      } catch (e) { /* silenced */ }
 
       try {
         const m = await fetchJson(`${API_URL}/media/history?user_id=${userName}`);
         if (cancelled) return;
         setRecentMedia((m.history || []).slice(0, 2));
-      } catch (e) {}
+      } catch (e) { /* silenced */ }
 
       try {
         const fc = await fetchJson(`${API_URL}/get_flashcards?user_id=${userName}`);
@@ -296,7 +296,7 @@ const DashboardCerbyl = () => {
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
           .slice(0, 3);
         setRecentSets(sets);
-      } catch (e) {}
+      } catch (e) { /* silenced */ }
     })();
 
     return () => { cancelled = true; };
@@ -836,7 +836,7 @@ const DashboardCerbyl = () => {
     let baseProfile = {};
     const raw = localStorage.getItem('userProfile');
     if (raw) {
-      try { baseProfile = JSON.parse(raw) || {}; } catch (e) {}
+      try { baseProfile = JSON.parse(raw) || {}; } catch (e) { /* silenced */ }
     }
     const mergedProfile = hydrateProfile({ ...baseProfile, ...nextProfile }, userName);
     setProfile(mergedProfile);

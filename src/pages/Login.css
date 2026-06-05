@@ -15,8 +15,8 @@
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 15% 40%, rgba(215,179,140,0.07) 0%, transparent 50%),
-    radial-gradient(circle at 75% 60%, rgba(215,179,140,0.04) 0%, transparent 45%);
+    radial-gradient(circle at 15% 40%, color-mix(in srgb, var(--accent) 7%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 75% 60%, color-mix(in srgb, var(--accent) 4%, transparent) 0%, transparent 45%);
   pointer-events: none;
   z-index: 0;
 }
@@ -24,7 +24,7 @@
 .lg-dots {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(215,179,140,0.12) 1px, transparent 1px);
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 12%, transparent) 1px, transparent 1px);
   background-size: 32px 32px;
   opacity: 1;
   pointer-events: none;
@@ -59,7 +59,7 @@
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.14em;
-  color: rgba(215,179,140,0.45);
+  color: color-mix(in srgb, var(--accent) 45%, transparent);
   text-transform: uppercase;
   cursor: pointer;
   text-decoration: none;
@@ -68,7 +68,7 @@
 }
 
 .lg-back-link:hover {
-  color: rgba(215,179,140,0.9);
+  color: color-mix(in srgb, var(--accent) 90%, transparent);
 }
 
 .lg-card {
@@ -77,7 +77,7 @@
   width: 100%;
   max-width: 400px;
   background: rgba(18,17,16,0.82);
-  border: 1px solid rgba(215,179,140,0.14);
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
   border-radius: 20px;
   padding: 48px 44px 40px;
   box-sizing: border-box;
@@ -103,7 +103,7 @@
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.2em;
-  color: rgba(215,179,140,0.45);
+  color: color-mix(in srgb, var(--accent) 45%, transparent);
   margin-top: 7px;
   text-transform: uppercase;
 }
@@ -112,7 +112,7 @@
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.18em;
-  color: rgba(215,179,140,0.4);
+  color: color-mix(in srgb, var(--accent) 40%, transparent);
   text-transform: uppercase;
   text-align: center;
   margin-bottom: 24px;
@@ -156,8 +156,8 @@
 .lg-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(215,179,140,0.25);
-  border-top-color: rgba(215,179,140,0.9);
+  border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top-color: color-mix(in srgb, var(--accent) 90%, transparent);
   border-radius: 50%;
   animation: lg-spin 0.7s linear infinite;
   flex-shrink: 0;
@@ -185,7 +185,7 @@
 .lg-divider span {
   font-size: 0.7rem;
   font-weight: 500;
-  color: rgba(215,179,140,0.35);
+  color: color-mix(in srgb, var(--accent) 35%, transparent);
   letter-spacing: 0.08em;
 }
 
@@ -218,7 +218,7 @@
 }
 
 .lg-input:focus {
-  border-color: rgba(215,179,140,0.45);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .lg-input:disabled {
@@ -228,7 +228,7 @@
 .lg-submit {
   width: 100%;
   padding: 13px;
-  background: rgba(215,179,140,0.92);
+  background: color-mix(in srgb, var(--accent) 92%, transparent);
   border: none;
   border-radius: 10px;
   color: #1a1008;
@@ -257,18 +257,18 @@
   margin-top: 22px;
   text-align: center;
   font-size: 0.78rem;
-  color: rgba(215,179,140,0.4);
+  color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .lg-link {
-  color: rgba(215,179,140,0.85);
+  color: color-mix(in srgb, var(--accent) 85%, transparent);
   font-weight: 600;
   cursor: pointer;
   margin-left: 5px;
 }
 
 .lg-link:hover {
-  color: rgba(215,179,140,1);
+  color: color-mix(in srgb, var(--accent) 100%, transparent);
   text-decoration: underline;
 }
 
