@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import json
 import re
 import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from tutor.state import TutorState, StudentState, Neo4jInsights, EvalResult
+from tutor.state import TutorState, StudentState, Neo4jInsights, EvalResult, AttemptEvaluation
 from tutor import neo4j_store, chroma_store
 from tutor.prompt import build_tutor_prompt
 from tutor.evaluator import evaluate
@@ -68,11 +69,21 @@ COMPREHENSION_CHECK_PATTERNS = [
     r"\bcheck\s+your\s+understanding\b",
     r"\bquick\s+(?:understanding\s+)?check\b",
     r"\bto\s+ensure\s+you'?re\s+following\s+along\b",
-    r"\bcan\s+you\s+briefly\s+(?:describe|explain|summari[sz]e)\b",
-    r"\bhow\s+(?:would|do)\s+you\s+(?:explain|describe|understand)\b",
+    r"\bcan\s+you\s+(?:briefly\s+)?(?:describe|explain|summari[sz]e|integrate|differentiate|solve|calculate|compute|find|apply|choose|select|identify|classify|compare)\b",
+    r"\bhow\s+(?:would|do)\s+you\s+(?:explain|describe|understand|solve|calculate|compute|find|apply|choose|select|identify|classify|compare)\b",
+    r"\bwhat\s+is\s+(?:the\s+)?(?:next\s+step|answer|result|value|integral|derivative|solution|cause|effect|reason|main\s+idea|correct\s+option)\b",
     r"\bwhat\s+do\s+you\s+understand\b",
-    r"\btry\s+(?:answering|explaining|summari[sz]ing)\b",
+    r"\btry\s+(?:answering|explaining|summari[sz]ing|solving|calculating|computing|finding|integrating|differentiating|applying|choosing|selecting|identifying|classifying|comparing)\b",
+    r"\byour\s+turn\b",
+    r"\bnow\s+(?:you|your)\b",
+    r"\bwhich\s+(?:option|choice|answer)\b",
+    r"\bselect\s+(?:one|the\s+best|the\s+correct)\b",
 ]
+
+MATH_ATTEMPT_RE = re.compile(
+    r"(?:\d|[a-z]\s*(?:\^|\*\*|²|³)|\\frac|\\sqrt|\\int|\\sum|[=+\-*/^()])",
+    re.I,
+)
 
 NEW_QUESTION_START_RE = re.compile(
     r"^\s*(?:what|why|how|when|where|who|which|can|could|would|should|please|"
@@ -161,7 +172,7 @@ def _previous_comprehension_check(chat_history: list[dict]) -> str:
 
 def _looks_like_comprehension_answer(text: str) -> bool:
     stripped = (text or "").strip()
-    if len(stripped) < 3 or not any(ch.isalpha() for ch in stripped):
+    if len(stripped) < 1:
         return False
 
     lower = stripped.lower()
@@ -171,6 +182,9 @@ def _looks_like_comprehension_answer(text: str) -> bool:
         return False
 
     if re.search(r"\b(i\s+don'?t\s+know|not\s+sure|no\s+idea|idk)\b", lower):
+        return True
+
+    if MATH_ATTEMPT_RE.search(stripped) and len(stripped) <= 160:
         return True
 
     words = re.findall(r"[a-zA-Z][a-zA-Z'-]*", stripped)
@@ -193,16 +207,36 @@ def _detect_query_domain(text: str) -> list[str]:
 def detect_intent(state: TutorState) -> dict:
     text = state.get("user_input", "").lower().strip()
     chat_history = state.get("chat_history", [])
+    previous_check = _previous_comprehension_check(chat_history)
+    last_ai = _last_ai_message(chat_history)
 
     if _is_repetitive(text, chat_history):
         return {"intent": "repetitive"}
 
-    previous_check = _previous_comprehension_check(chat_history)
+    if state.get("tutor_choice"):
+        return {
+            "intent": "comprehension_answer",
+            "comprehension_check": previous_check or _extract_last_question(last_ai),
+        }
+
     if previous_check and _looks_like_comprehension_answer(state.get("user_input", "")):
         return {
             "intent": "comprehension_answer",
             "comprehension_check": previous_check,
         }
+
+    if state.get("tutor_mode") and _looks_like_comprehension_answer(state.get("user_input", "")):
+        session_state = state.get("tutor_session_state") or {}
+        tutor_step_active = (
+            previous_check
+            or session_state.get("next_action")
+            or any(re.search(pattern, last_ai, re.I) for pattern in COMPREHENSION_CHECK_PATTERNS)
+        )
+        if tutor_step_active:
+            return {
+                "intent": "comprehension_answer",
+                "comprehension_check": previous_check or session_state.get("next_action") or _extract_last_question(last_ai),
+            }
 
     if any(re.search(p, text) for p in GREETING_PATTERNS):
         if chat_history:
@@ -1040,6 +1074,7 @@ def _build_instructional_task(state: TutorState) -> str:
     student  = state.get("student_state")
     domains  = _detect_query_domain(state.get("user_input", ""))
     analysis = state.get("language_analysis") or {}
+    tutor_mode = bool(state.get("tutor_mode"))
 
     signal_type = analysis.get("signal_type", "neutral")
     hint        = analysis.get("instructional_hint", "")
@@ -1174,10 +1209,13 @@ def _build_instructional_task(state: TutorState) -> str:
     if intent == "comprehension_answer":
         previous_check = state.get("comprehension_check") or _previous_comprehension_check(state.get("chat_history", []))
         answer = state.get("user_input", "")
+        clicked_choice = (state.get("tutor_choice") or "").strip()
+        choice_context = f"The student selected this MCQ option: {clicked_choice}\n" if clicked_choice else ""
         return (
             "The student is answering your previous comprehension check, not asking a new question.\n"
             f"Previous comprehension check: {previous_check or 'the last check question'}\n"
             f"Student answer to evaluate: {answer}\n\n"
+            f"{choice_context}"
             "Respond like a tutor evaluating understanding:\n"
             "- Start with a direct verdict: Correct, Partly correct, or Not yet.\n"
             "- Name 1-2 specific ideas the student got right.\n"
@@ -1207,12 +1245,191 @@ def _build_instructional_task(state: TutorState) -> str:
 
     style      = student.preferred_style if student else "balanced"
     difficulty = student.difficulty_level if student else "intermediate"
+    if tutor_mode:
+        reply_style = (state.get("tutor_reply_style") or "guided").strip().lower()
+        style_guidance = {
+            "hint": (
+                "Give the smallest useful hint only. "
+                "Do not solve the step for the student."
+            ),
+            "guided": (
+                "Teach only the next idea, then ask the student to perform one unsolved move. "
+                "Do not give the full final answer up front."
+            ),
+            "check": (
+                "First check whether the student's current reply is correct or incomplete. "
+                "Then give one correction and one unsolved next step."
+            ),
+            "quiz": (
+                "Prefer a short MCQ or practice check when appropriate. "
+                "If you use an MCQ, put choices in the TutorResponse options array."
+            ),
+        }.get(reply_style, "Guide one step at a time and ask a short check question.")
+        return (
+            f"Tutor mode is active. Teach at a {difficulty} level using a {style} style. "
+            "Use the recent chat context to judge what the student already understands. "
+            f"{style_guidance} "
+            "Never ask the student to calculate or answer something you already calculated in this response. "
+            "Show at most one setup/rule, then leave the requested operation for the student. "
+            "If the student asks directly for an answer, provide a hint first unless they have already made a serious attempt. "
+            "End with exactly one focused check or next-step question."
+        )
+
     return (
         f"Answer the student's question clearly at a {difficulty} level. "
         f"Use a {style} explanation style. "
         "If the topic has common mistakes listed above, proactively address them. "
         "End with a brief check or follow-up question to confirm understanding."
     )
+
+def _normalize_attempt_verdict(value: Any) -> str:
+    verdict = str(value or "not_applicable").strip().lower().replace("-", "_").replace(" ", "_")
+    if verdict in {"correct", "partly_correct", "not_yet", "needs_attempt", "not_applicable"}:
+        return verdict
+    if verdict in {"partial", "almost", "close"}:
+        return "partly_correct"
+    if verdict in {"incorrect", "wrong", "false"}:
+        return "not_yet"
+    return "not_applicable"
+
+def _bounded_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return max(0.0, min(1.0, float(value)))
+    except (TypeError, ValueError):
+        return default
+
+def _extract_json_dict(text: str) -> dict:
+    raw = (text or "").strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1]
+        if raw.rstrip().endswith("```"):
+            raw = raw.rsplit("```", 1)[0]
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(raw):
+        if char != "{":
+            continue
+        try:
+            obj, _ = decoder.raw_decode(raw[index:])
+        except Exception:
+            continue
+        if isinstance(obj, dict):
+            return obj
+    return {}
+
+def _attempt_evaluation_from_dict(data: dict) -> AttemptEvaluation:
+    return AttemptEvaluation(
+        verdict=_normalize_attempt_verdict(data.get("verdict")),
+        confidence=round(_bounded_float(data.get("confidence")), 2),
+        rationale=str(data.get("rationale") or "")[:500],
+        expected_answer=str(data.get("expected_answer") or "")[:500],
+        next_action=str(data.get("next_action") or "")[:220],
+    )
+
+def _format_recent_history_for_grading(chat_history: list[dict]) -> str:
+    lines = []
+    for turn in (chat_history or [])[-6:]:
+        user = str(turn.get("user") or "").strip()
+        ai = str(turn.get("ai") or turn.get("assistant") or turn.get("ai_response") or "").strip()
+        if user:
+            lines.append(f"Student: {user[:500]}")
+        if ai:
+            lines.append(f"Tutor: {ai[:900]}")
+    return "\n".join(lines) or "No prior turns."
+
+def evaluate_tutor_attempt(state: TutorState) -> dict:
+    if not state.get("tutor_mode"):
+        return {"attempt_evaluation": AttemptEvaluation()}
+
+    user_answer = (state.get("tutor_choice") or state.get("user_input") or "").strip()
+    if not user_answer:
+        return {"attempt_evaluation": AttemptEvaluation(verdict="needs_attempt", confidence=0.8)}
+
+    if state.get("intent") != "comprehension_answer" and not _looks_like_comprehension_answer(user_answer):
+        return {"attempt_evaluation": AttemptEvaluation()}
+
+    chat_history = state.get("chat_history", [])
+    last_tutor_message = _last_ai_message(chat_history)
+    session_state = state.get("tutor_session_state") or {}
+    previous_check = (
+        state.get("comprehension_check")
+        or _previous_comprehension_check(chat_history)
+        or session_state.get("next_action")
+        or _extract_last_question(last_tutor_message)
+    )
+
+    if not previous_check and not last_tutor_message:
+        return {"attempt_evaluation": AttemptEvaluation(verdict="not_applicable", confidence=0.0)}
+
+    ai_client = state.get("_ai_client")
+    if not ai_client:
+        return {"attempt_evaluation": AttemptEvaluation(verdict="not_applicable", confidence=0.0)}
+
+    rag_context = "\n".join(str(chunk)[:800] for chunk in (state.get("rag_context") or [])[:4])
+    insights = state.get("neo4j_insights") or Neo4jInsights()
+    if isinstance(insights, dict):
+        relevant_concepts = list(insights.get("relevant_concepts") or [])
+        prerequisites = list(insights.get("prerequisites") or [])
+        common_mistakes = list(insights.get("common_mistakes") or [])
+    else:
+        relevant_concepts = list(insights.relevant_concepts or [])
+        prerequisites = list(insights.prerequisites or [])
+        common_mistakes = list(insights.common_mistakes or [])
+    graph_context = (
+        f"Relevant concepts: {', '.join(relevant_concepts[:8]) or 'none'}\n"
+        f"Prerequisites: {', '.join(prerequisites[:8]) or 'none'}\n"
+        f"Common mistakes: {', '.join(common_mistakes[:8]) or 'none'}"
+    )
+
+    prompt = f"""
+You are the hidden grading node inside an educational tutor graph.
+Grade the student's latest attempt against the previous tutor step. This must work for every subject: math, science, coding, language, history, reasoning, definitions, diagrams described in text, and multiple choice.
+
+Rules:
+- Judge semantic correctness, not exact wording.
+- Accept equivalent forms, notation, units, synonyms, abbreviations, and algebraically equivalent expressions.
+- For math, accept forms like (3x^2)/2 and 3x^2/2 as the same.
+- If the previous tutor step asked for only one sub-step, grade only that sub-step.
+- If the answer is right for the requested sub-step, verdict must be "correct" even if the full original problem is unfinished.
+- Use "partly_correct" when the core direction is right but an important piece is missing.
+- Use "not_yet" only when the attempt is materially wrong or does not answer the step.
+- Use "needs_attempt" when the student asks for help instead of attempting.
+- Do not reveal hidden reasoning. Return only JSON.
+
+Recent conversation:
+{_format_recent_history_for_grading(chat_history)}
+
+Previous tutor step to grade:
+{previous_check or "Use the final tutor prompt from the recent conversation."}
+
+Full previous tutor message:
+{last_tutor_message[:1800] or "Unavailable"}
+
+Persisted tutor state:
+{json.dumps(session_state, ensure_ascii=False)[:1200]}
+
+Graph concept context:
+{graph_context}
+
+Retrieved document context:
+{rag_context or "none"}
+
+Student attempt:
+{user_answer}
+
+Return JSON with this exact shape:
+{{"verdict":"correct|partly_correct|not_yet|needs_attempt|not_applicable","confidence":0.0,"rationale":"short factual grading reason","expected_answer":"accepted answer or key idea","next_action":"one next tutor action"}}
+""".strip()
+
+    try:
+        raw = ai_client.generate(prompt, max_tokens=550, temperature=0.0)
+        parsed = _extract_json_dict(raw)
+        evaluation = _attempt_evaluation_from_dict(parsed)
+        if evaluation.verdict == "not_applicable" and parsed:
+            evaluation.verdict = "not_yet"
+        return {"attempt_evaluation": evaluation}
+    except Exception as exc:
+        logger.warning(f"[TUTOR ATTEMPT] grading skipped: {exc}")
+        return {"attempt_evaluation": AttemptEvaluation()}
 
 def build_prompt_and_respond(state: TutorState) -> dict:
     rag_active = bool(state.get("rag_context"))
@@ -1282,6 +1499,38 @@ def build_prompt_and_respond(state: TutorState) -> dict:
             "3. If the answer is not supported by the provided chunks, say that clearly.\n"
             "4. Quote or paraphrase only what is present in those chunks."
         )
+
+    if state.get("tutor_mode") and intent not in ("greeting", "returning_greeting"):
+        system += (
+            "\n\nTUTOR MODE — HARD RULES:\n"
+            "1. Prioritize guided learning over complete answer dumps.\n"
+            "2. Use chat history to estimate the student's current level from attempts, mistakes, and confidence.\n"
+            "3. Evaluate student replies before moving ahead when they appear to answer a prior check.\n"
+            "4. Ask for one small student action at the end, not multiple tasks.\n"
+            "5. Sometimes provide an MCQ when it lowers friction or checks a misconception.\n"
+            "6. Never solve the exact step you ask the student to do next.\n"
+            "7. For math, show one rule/setup, then stop before the student-owned calculation.\n"
+            "8. Do not reveal final answers on the first tutor turn unless the student already attempted the problem.\n"
+            "9. Return ONLY valid JSON. Do not use markdown fences or any prose outside JSON.\n"
+            "10. JSON schema: {\"answer\":\"visible markdown answer with LaTeX\",\"tutor_state\":{\"level\":\"beginner|intermediate|advanced\",\"phase\":\"diagnose|teach|practice|check|review\",\"verdict\":\"correct|partly_correct|not_yet|needs_attempt|not_applicable\",\"confidence\":0.0,\"objective\":\"short current skill\",\"next_action\":\"short student action\",\"hint_level\":1},\"options\":[{\"label\":\"A\",\"text\":\"option text\"}]}.\n"
+            "11. Put any MCQ choices only in the options array. Use [] when no options are needed.\n"
+            "12. The answer field is the only visible tutor response; keep it concise and student-facing."
+        )
+        attempt_evaluation = state.get("attempt_evaluation")
+        attempt_verdict = getattr(attempt_evaluation, "verdict", "not_applicable") if attempt_evaluation else "not_applicable"
+        if attempt_verdict and attempt_verdict != "not_applicable":
+            system += (
+                "\n\nGRAPH ATTEMPT EVALUATION — HARD RULES:\n"
+                f"Verdict: {attempt_verdict}\n"
+                f"Confidence: {getattr(attempt_evaluation, 'confidence', 0.0)}\n"
+                f"Reason: {getattr(attempt_evaluation, 'rationale', '')}\n"
+                f"Accepted answer/key idea: {getattr(attempt_evaluation, 'expected_answer', '')}\n"
+                f"Recommended next action: {getattr(attempt_evaluation, 'next_action', '')}\n"
+                "1. tutor_state.verdict must exactly match this Verdict.\n"
+                "2. If Verdict is correct, say it is correct, briefly explain why, and move to a new next step.\n"
+                "3. If Verdict is correct, do NOT ask the same prior question again.\n"
+                "4. If Verdict is partly_correct or not_yet, repair only the smallest blocking gap.\n"
+            )
 
     if intent in ("greeting", "returning_greeting"):
         system += (

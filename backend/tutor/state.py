@@ -29,6 +29,14 @@ class EvalResult:
     new_struggle: Optional[bool] = None
     distilled_memory: Optional[str] = None
 
+@dataclass
+class AttemptEvaluation:
+    verdict: str = "not_applicable"
+    confidence: float = 0.0
+    rationale: str = ""
+    expected_answer: str = ""
+    next_action: str = ""
+
 class TutorState(TypedDict, total=False):
     user_id: str
     user_input: str
@@ -44,6 +52,11 @@ class TutorState(TypedDict, total=False):
     use_hs_context: bool
     context_doc_ids: list[str]
     context_only: bool
+    tutor_mode: bool
+    tutor_reply_style: str
+    tutor_choice: Optional[str]
+    tutor_session_state: Optional[dict]
+    attempt_evaluation: AttemptEvaluation
     context_only_no_match: bool
     retrieval_gated: bool
     language_analysis: dict

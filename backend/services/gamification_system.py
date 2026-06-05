@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import logging
 
@@ -183,6 +184,17 @@ def check_and_reset_weekly_stats(stats):
 def award_points(db: Session, user_id: int, activity_type: str, metadata: dict = None):
     if metadata is None:
         metadata = {}
+
+    user_exists = db.query(models.User.id).filter(models.User.id == user_id).first()
+    if not user_exists:
+        logger.warning("Skipping gamification award for missing user FK: user_id=%s activity=%s", user_id, activity_type)
+        return {
+            "points_earned": 0,
+            "total_points": 0,
+            "level": 1,
+            "experience": 0,
+            "description": "Missing user (skipped)",
+        }
     
     stats = get_or_create_stats(db, user_id)
     check_and_reset_weekly_stats(stats)
@@ -512,14 +524,31 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         activity_metadata=str(metadata) if metadata else None
     )
     db.add(transaction)
-    db.commit()
-    
-    return {
+    result_payload = {
         "points_earned": points_earned,
         "total_points": stats.total_points,
         "level": stats.level,
         "experience": stats.experience
     }
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        logger.warning(
+            "Skipping gamification award after FK/integrity failure: user_id=%s activity=%s error=%s",
+            user_id,
+            activity_type,
+            exc,
+        )
+        return {
+            "points_earned": 0,
+            "total_points": result_payload["total_points"],
+            "level": result_payload["level"],
+            "experience": result_payload["experience"],
+            "description": "Integrity failure (skipped)",
+        }
+
+    return result_payload
 
 def get_user_stats(db: Session, user_id: int):
     stats = get_or_create_stats(db, user_id)

@@ -20,6 +20,7 @@ def build_tutor_prompt(state: TutorState) -> str:
     selected_style     = state.get("selected_style", "")
     intent             = state.get("intent", "")
     context_only       = bool(state.get("context_only"))
+    tutor_mode         = bool(state.get("tutor_mode"))
 
     is_greeting = intent in ("greeting", "returning_greeting")
 
@@ -60,6 +61,9 @@ def build_tutor_prompt(state: TutorState) -> str:
                     sections.append(conf_section)
             if selected_style:
                 sections.append(_style_section(selected_style))
+
+    if tutor_mode and not is_greeting:
+        sections.append(_tutor_mode_section(state))
 
     sections.append(_task_section(task, user_input, intent=intent))
 
@@ -204,6 +208,89 @@ def _style_section(style: str) -> str:
     if not instructions:
         return ""
     return f"[TEACHING FORMAT]\n{instructions}"
+
+def _tutor_mode_section(state: TutorState) -> str:
+    reply_style = (state.get("tutor_reply_style") or "guided").strip().lower()
+    tutor_choice = (state.get("tutor_choice") or "").strip()
+    session_state = state.get("tutor_session_state") or {}
+    attempt_evaluation = state.get("attempt_evaluation")
+
+    style_lines = {
+        "hint": [
+            "- Give the smallest useful hint, not the solution.",
+            "- Ask the student to do exactly one next move without doing it for them.",
+        ],
+        "guided": [
+            "- Teach only the current idea needed for the next move.",
+            "- Ask one short check question whose answer was not already shown.",
+        ],
+        "check": [
+            "- Treat the student message as an attempted answer when plausible.",
+            "- Start by judging correctness, then repair the most important gap.",
+        ],
+        "quiz": [
+            "- Prefer a short practice question or MCQ before more explanation.",
+            "- If an MCQ is useful, do not reveal the correct option until the student responds.",
+        ],
+    }.get(reply_style, [
+        "- Lead with the next useful hint or step before giving any final answer.",
+        "- Ask one short check question after the step.",
+    ])
+
+    lines = [
+        "[TUTOR MODE ACTIVE]",
+        "- Use the recent conversation to infer the student's level and adjust difficulty.",
+        "- Avoid dumping complete solutions. Teach one step at a time unless the student is clearly stuck after trying.",
+        "- Check the student's replies for correctness before moving to the next step.",
+        "- Keep each response focused on one learning move: hint, check, correction, or next step.",
+        "- Never solve the same step you ask the student to do. If you ask for Step 1, Step 1 must remain unanswered.",
+        "- For calculations, show at most one setup or rule, then stop before the arithmetic/algebra the student should perform.",
+        "- Do not reveal the final answer unless the student already attempted the problem or explicitly asks after multiple hints.",
+        "- End with exactly one concrete student action, and set next_action to that same unsolved action.",
+        "- Bad: solving all terms in an integral and then asking the student to calculate a term already shown.",
+        "- Good: state the power rule, identify the first term, then ask the student to integrate only that first term.",
+        "- Keep the visible answer short: 2-5 sentences unless correcting a submitted attempt.",
+        *style_lines,
+        "- Explicitly adapt difficulty based on the student's latest attempt: lower if stuck, raise if confident.",
+        "- If the student is wrong, correct the smallest blocking misconception first.",
+        "- If the student is right, acknowledge briefly and advance to a slightly harder next step.",
+        "- When a clickable MCQ would help, put choices in the JSON options array.",
+        "- Return ONLY the TutorResponse JSON contract requested in the system instructions.",
+        "- Do not add markdown fences, marker lines, prose outside JSON, or comments around the JSON.",
+    ]
+    if tutor_choice:
+        lines.append(f"- The student clicked this option: {tutor_choice}. Evaluate it before teaching the next step.")
+    if attempt_evaluation:
+        verdict = getattr(attempt_evaluation, "verdict", "not_applicable")
+        confidence = getattr(attempt_evaluation, "confidence", 0.0)
+        rationale = getattr(attempt_evaluation, "rationale", "")
+        expected_answer = getattr(attempt_evaluation, "expected_answer", "")
+        next_action = getattr(attempt_evaluation, "next_action", "")
+        if verdict and verdict != "not_applicable":
+            lines.extend([
+                "[GRAPH ATTEMPT EVALUATION]",
+                f"- Verdict: {verdict}",
+                f"- Confidence: {confidence}",
+                f"- Reason: {rationale or 'No rationale provided.'}",
+                f"- Accepted answer/key idea: {expected_answer or 'Use the prior step context.'}",
+                f"- Recommended next action: {next_action or 'Advance one step if correct; repair the smallest gap if not.'}",
+                "- You must honor this graph verdict in tutor_state.verdict.",
+                "- If Verdict is correct, acknowledge the answer as correct and move to a new next step. Do not ask the same question again.",
+                "- If Verdict is partly_correct, credit the correct part before fixing the missing part.",
+                "- If Verdict is not_yet, explain only the smallest blocking misconception and ask for one retry or easier sub-step.",
+            ])
+    if session_state:
+        lines.extend([
+            "[CURRENT TUTOR SESSION STATE]",
+            f"- Level: {session_state.get('level', 'intermediate')}",
+            f"- Phase: {session_state.get('phase', 'teach')}",
+            f"- Last verdict: {session_state.get('verdict', 'not_applicable')}",
+            f"- Objective: {session_state.get('objective', 'Build understanding step by step')}",
+            f"- Next action from last turn: {session_state.get('next_action', 'Try the next small step')}",
+            f"- Attempts: {session_state.get('attempts', 0)}",
+            f"- Correct answers: {session_state.get('correct_count', 0)}",
+        ])
+    return "\n".join(lines)
 
 def _task_section(task: str, user_input: str, intent: str = "") -> str:
     lines = ["[TASK]"]

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 import json
 import logging
@@ -24,9 +26,419 @@ CHAT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 _SUPPORTED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 _MAX_IMAGE_BYTES = 20 * 1024 * 1024
 _MAX_IMAGES_PER_MESSAGE = 10
+_TUTOR_VISIBLE_OPTION_RE = re.compile(r"(?im)^\s*([A-F])[\).:-]\s+(.{2,220})\s*$")
+_TUTOR_ANSWER_FIELD_RE = re.compile(r'(?is)"answer"\s*:\s*"(.*?)"\s*,\s*"tutor_state"\s*:')
+_TUTOR_STATE_FIELD_RE = re.compile(r'(?is)"tutor_state"\s*:\s*(\{.*?\})\s*,\s*"options"\s*:')
+_TUTOR_OPTIONS_FIELD_RE = re.compile(r'(?is)"options"\s*:\s*(\[.*?\])')
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
+
+class TutorOptionPayload(BaseModel):
+    label: Optional[str] = None
+    text: str
+
+class TutorStatePayload(BaseModel):
+    level: str = "intermediate"
+    phase: str = "teach"
+    verdict: str = "not_applicable"
+    confidence: float = 0.65
+    objective: str = "Build understanding step by step"
+    next_action: str = "Try the next small step"
+    hint_level: int = 2
+
+class TutorResponsePayload(BaseModel):
+    answer: str
+    tutor_state: Optional[TutorStatePayload] = None
+    options: List[TutorOptionPayload] = []
+
+def _normalize_tutor_options(raw_options: object) -> list[dict]:
+    if not isinstance(raw_options, list):
+        return []
+
+    normalized = []
+    for index, option in enumerate(raw_options[:6]):
+        fallback_label = chr(ord("A") + index)
+        if isinstance(option, dict):
+            text = str(option.get("text") or option.get("label") or option.get("value") or "").strip()
+            label = str(option.get("label") or fallback_label).strip()
+        else:
+            text = str(option or "").strip()
+            match = re.match(r"^\s*([A-F])[\).:-]\s*(.+)$", text, flags=re.I)
+            label = match.group(1).upper() if match else fallback_label
+            text = match.group(2).strip() if match else text
+
+        if not text:
+            continue
+        label = label[:1].upper() if label else fallback_label
+        normalized.append({
+            "id": label,
+            "label": label,
+            "text": text,
+            "value": f"{label}. {text}",
+        })
+    return normalized
+
+def _extract_visible_tutor_options(response_text: str) -> list[dict]:
+    raw = response_text or ""
+    visible_options = [
+        f"{match.group(1).upper()}. {match.group(2).strip()}"
+        for match in _TUTOR_VISIBLE_OPTION_RE.finditer(raw)
+    ]
+    has_mcq_language = re.search(
+        r"\b(mcq|multiple choice|choose|which option|select one|quick check)\b",
+        raw,
+        flags=re.I,
+    )
+    if len(visible_options) >= 3 or (len(visible_options) >= 2 and has_mcq_language):
+        return _normalize_tutor_options(visible_options)
+    return []
+
+def _pydantic_to_dict(model: BaseModel | None) -> dict:
+    if not model:
+        return {}
+    if hasattr(model, "model_dump"):
+        return model.model_dump()
+    return model.dict()
+
+def _strip_legacy_tutor_markers(text: str) -> str:
+    return re.sub(r"(?im)^\s*TUTOR_(?:OPTIONS|STATE)\s*:.*$", "", text or "").strip()
+
+def _strip_json_code_fence(text: str) -> str:
+    raw = (text or "").strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1]
+        if raw.rstrip().endswith("```"):
+            raw = raw.rsplit("```", 1)[0]
+    return raw.strip()
+
+def _escape_latex_backslashes_for_json(text: str) -> str:
+    return re.sub(r"(?<!\\)\\(?=[A-Za-z])", r"\\\\", text or "")
+
+def _json_decode_lenient(value: str):
+    raw = _strip_json_code_fence(value)
+    escaped = _escape_latex_backslashes_for_json(raw)
+    candidates = [escaped]
+    if escaped != raw:
+        candidates.append(raw)
+
+    for candidate in candidates:
+        try:
+            return json.loads(candidate)
+        except Exception:
+            continue
+    return None
+
+def _decode_jsonish_string(value: str) -> str:
+    escaped = _escape_latex_backslashes_for_json(value or "")
+    try:
+        decoded = json.loads(f'"{escaped}"')
+        return str(decoded).strip()
+    except Exception:
+        return (value or "").replace('\\"', '"').replace("\\\\", "\\").strip()
+
+def _trim_tutor_text(value: object, fallback: str, max_len: int = 120) -> str:
+    text = re.sub(r"\s+", " ", str(value or "").strip())
+    return (text or fallback)[:max_len]
+
+def _normalize_tutor_state(
+    raw_state: object,
+    reply_style: str = "guided",
+    tutor_choice: Optional[str] = None,
+) -> dict:
+    data = raw_state if isinstance(raw_state, dict) else {}
+    style = (reply_style or "guided").strip().lower()
+
+    levels = {"beginner", "intermediate", "advanced"}
+    phases = {"diagnose", "teach", "practice", "check", "review"}
+    verdicts = {"correct", "partly_correct", "not_yet", "needs_attempt", "not_applicable"}
+    default_phase = {
+        "hint": "teach",
+        "guided": "teach",
+        "check": "check",
+        "quiz": "practice",
+    }.get(style, "teach")
+
+    level = str(data.get("level") or "intermediate").strip().lower()
+    phase = str(data.get("phase") or default_phase).strip().lower()
+    verdict = str(data.get("verdict") or ("needs_attempt" if tutor_choice else "not_applicable")).strip().lower()
+
+    try:
+        confidence = float(data.get("confidence", 0.65))
+    except (TypeError, ValueError):
+        confidence = 0.65
+    confidence = max(0.0, min(1.0, confidence))
+
+    try:
+        hint_level = int(data.get("hint_level", 1 if style == "hint" else 2))
+    except (TypeError, ValueError):
+        hint_level = 2
+    hint_level = max(1, min(3, hint_level))
+
+    return {
+        "level": level if level in levels else "intermediate",
+        "phase": phase if phase in phases else default_phase,
+        "verdict": verdict if verdict in verdicts else "not_applicable",
+        "confidence": round(confidence, 2),
+        "objective": _trim_tutor_text(data.get("objective"), "Build understanding step by step", 96),
+        "next_action": _trim_tutor_text(data.get("next_action"), "Try the next small step", 120),
+        "hint_level": hint_level,
+    }
+
+def _extract_json_object(text: str) -> Optional[dict]:
+    raw = _strip_json_code_fence(text)
+    escaped = _escape_latex_backslashes_for_json(raw)
+    candidates = [escaped]
+    if escaped != raw:
+        candidates.append(raw)
+
+    for candidate in candidates:
+        decoder = json.JSONDecoder()
+        for index, char in enumerate(candidate):
+            if char != "{":
+                continue
+            try:
+                obj, _ = decoder.raw_decode(candidate[index:])
+            except Exception:
+                continue
+            if isinstance(obj, dict):
+                if "answer" in obj or "tutor_state" in obj:
+                    return obj
+    return None
+
+def _extract_tutor_contract_fallback(
+    response_text: str,
+    reply_style: str = "guided",
+    tutor_choice: Optional[str] = None,
+) -> Optional[tuple[str, list[dict], dict]]:
+    raw = _strip_json_code_fence(response_text)
+    if '"answer"' not in raw or '"tutor_state"' not in raw:
+        return None
+
+    answer_match = _TUTOR_ANSWER_FIELD_RE.search(raw)
+    if not answer_match:
+        return None
+
+    tutor_state = {}
+    state_match = _TUTOR_STATE_FIELD_RE.search(raw)
+    if state_match:
+        decoded_state = _json_decode_lenient(state_match.group(1))
+        if isinstance(decoded_state, dict):
+            tutor_state = decoded_state
+
+    tutor_options = []
+    options_match = _TUTOR_OPTIONS_FIELD_RE.search(raw)
+    if options_match:
+        decoded_options = _json_decode_lenient(options_match.group(1))
+        tutor_options = _normalize_tutor_options(decoded_options)
+
+    return (
+        _decode_jsonish_string(answer_match.group(1)),
+        tutor_options,
+        _normalize_tutor_state(tutor_state, reply_style=reply_style, tutor_choice=tutor_choice),
+    )
+
+def _parse_tutor_response(
+    response_text: str,
+    reply_style: str = "guided",
+    tutor_choice: Optional[str] = None,
+) -> tuple[str, list[dict], dict]:
+    raw = response_text or ""
+    parsed = _extract_json_object(raw)
+    if parsed:
+        try:
+            payload = TutorResponsePayload(**parsed)
+            answer = (payload.answer or "").strip()
+            tutor_state = _normalize_tutor_state(
+                _pydantic_to_dict(payload.tutor_state),
+                reply_style=reply_style,
+                tutor_choice=tutor_choice,
+            )
+            tutor_options = _normalize_tutor_options([
+                _pydantic_to_dict(option)
+                for option in (payload.options or [])
+            ])
+            return answer, tutor_options, tutor_state
+        except Exception as exc:
+            logger.warning("TutorResponse JSON validation failed: %s", exc)
+
+    contract_fallback = _extract_tutor_contract_fallback(raw, reply_style, tutor_choice)
+    if contract_fallback:
+        return contract_fallback
+
+    clean_answer = _strip_legacy_tutor_markers(_strip_json_code_fence(raw))
+    return (
+        clean_answer,
+        _extract_visible_tutor_options(clean_answer),
+        _normalize_tutor_state({}, reply_style=reply_style, tutor_choice=tutor_choice),
+    )
+
+def _attempt_evaluation_to_dict(value: object) -> dict:
+    if not value:
+        return {}
+    if isinstance(value, dict):
+        return value
+    return {
+        "verdict": getattr(value, "verdict", None),
+        "confidence": getattr(value, "confidence", None),
+        "rationale": getattr(value, "rationale", None),
+        "expected_answer": getattr(value, "expected_answer", None),
+        "next_action": getattr(value, "next_action", None),
+    }
+
+def _apply_attempt_evaluation(
+    response_text: str,
+    tutor_state: Optional[dict],
+    attempt_evaluation: object,
+) -> tuple[str, Optional[dict]]:
+    data = _attempt_evaluation_to_dict(attempt_evaluation)
+    verdict = str(data.get("verdict") or "").strip().lower()
+    if verdict not in {"correct", "partly_correct", "not_yet", "needs_attempt"}:
+        return response_text, tutor_state
+
+    state = dict(tutor_state or {})
+    state["verdict"] = verdict
+    try:
+        existing_confidence = float(state.get("confidence") or 0.0)
+    except (TypeError, ValueError):
+        existing_confidence = 0.0
+    try:
+        graph_confidence = float(data.get("confidence") or 0.0)
+    except (TypeError, ValueError):
+        graph_confidence = 0.0
+    state["confidence"] = round(max(0.0, min(1.0, max(existing_confidence, graph_confidence))), 2)
+    if verdict == "correct":
+        state["phase"] = "practice" if state.get("phase") == "check" else state.get("phase", "teach")
+    if data.get("next_action"):
+        state["next_action"] = _trim_tutor_text(data.get("next_action"), state.get("next_action") or "Try the next small step", 120)
+
+    answer = response_text or ""
+    if verdict == "correct" and not re.search(r"\b(correct|right|exactly|yes)\b", answer, flags=re.I):
+        reason = _trim_tutor_text(data.get("rationale"), "that matches the requested step", 140)
+        answer = f"Correct — {reason}.\n\n{answer}".strip()
+    elif verdict in {"partly_correct", "not_yet"} and re.search(r"\b(correct|exactly)\b", answer, flags=re.I):
+        answer = re.sub(r"\bCorrect\b\s*[—:-]?\s*", "", answer, count=1, flags=re.I).strip()
+
+    return answer, state
+
+def _tutor_state_row_to_payload(row: models.ChatTutorState | None) -> Optional[dict]:
+    if not row:
+        return None
+    payload = _normalize_tutor_state({
+        "level": row.level,
+        "phase": row.phase,
+        "verdict": row.verdict,
+        "confidence": row.confidence,
+        "objective": row.objective,
+        "next_action": row.next_action,
+        "hint_level": row.hint_level,
+    }, reply_style=row.reply_style or "guided")
+    payload["attempts"] = row.attempts or 0
+    payload["correct_count"] = row.correct_count or 0
+    return payload
+
+def _get_tutor_session_state(db: Session, chat_id: Optional[int], user_id: int) -> Optional[dict]:
+    if not chat_id:
+        return None
+    with db.no_autoflush:
+        row = (
+            db.query(models.ChatTutorState)
+            .filter(
+                models.ChatTutorState.chat_session_id == chat_id,
+                models.ChatTutorState.user_id == user_id,
+            )
+            .first()
+        )
+    return _tutor_state_row_to_payload(row)
+
+def _persist_tutor_session_state(
+    db: Session,
+    chat_id: Optional[int],
+    user_id: int,
+    tutor_state: Optional[dict],
+    reply_style: str,
+    tutor_options: Optional[list[dict]] = None,
+    tutor_choice: Optional[str] = None,
+) -> Optional[dict]:
+    if not chat_id or not tutor_state:
+        return tutor_state
+
+    with db.no_autoflush:
+        session_exists = (
+            db.query(models.ChatSession.id)
+            .filter(
+                models.ChatSession.id == chat_id,
+                models.ChatSession.user_id == user_id,
+            )
+            .first()
+        )
+        user_exists = db.query(models.User.id).filter(models.User.id == user_id).first()
+        if not session_exists or not user_exists:
+            logger.warning(
+                "Skipping tutor state persistence for missing FK target: chat_id=%s user_id=%s",
+                chat_id,
+                user_id,
+            )
+            return tutor_state
+
+        row = (
+            db.query(models.ChatTutorState)
+            .filter(
+                models.ChatTutorState.chat_session_id == chat_id,
+                models.ChatTutorState.user_id == user_id,
+            )
+            .first()
+        )
+    if not row:
+        row = models.ChatTutorState(chat_session_id=chat_id, user_id=user_id)
+        db.add(row)
+
+    verdict = tutor_state.get("verdict")
+    is_student_attempt = bool(tutor_choice) or verdict in {"correct", "partly_correct", "not_yet"}
+
+    if is_student_attempt:
+        row.attempts = (row.attempts or 0) + 1
+
+    if tutor_choice:
+        row.last_choice = tutor_choice
+
+    if is_student_attempt and verdict == "correct":
+        row.correct_count = (row.correct_count or 0) + 1
+
+    row.level = tutor_state.get("level", "intermediate")
+    row.phase = tutor_state.get("phase", "teach")
+    row.verdict = tutor_state.get("verdict", "not_applicable")
+    row.confidence = tutor_state.get("confidence", 0.65)
+    row.objective = tutor_state.get("objective")
+    row.next_action = tutor_state.get("next_action")
+    row.hint_level = tutor_state.get("hint_level", 2)
+    row.reply_style = reply_style or "guided"
+    row.last_options = tutor_options or []
+    row.updated_at = datetime.now(timezone.utc)
+    return _tutor_state_row_to_payload(row)
+
+def _tutor_mode_prompt_prefix(reply_style: str = "guided") -> str:
+    style = (reply_style or "guided").strip().lower()
+    style_hint = {
+        "hint": "Give the smallest useful hint and require the student to do the next move without solving it.",
+        "guided": "Guide one unsolved step at a time and ask one focused check.",
+        "check": "Evaluate the student's attempt first, then correct the key gap and leave one next step unsolved.",
+        "quiz": "Prefer a short practice question or MCQ before giving more explanation; do not reveal the answer first.",
+    }.get(style, "Guide the student one step at a time and ask one focused check.")
+    return (
+        "[Tutor mode active]\n"
+        "Do not dump a complete final answer immediately. Use chat context, infer level, "
+        "check student replies, and move one step at a time. "
+        "Never solve the exact step you ask the student to do. For calculations, show at most one setup or rule, "
+        "then stop before the student-owned arithmetic/algebra. "
+        f"{style_hint} "
+        "Return ONLY valid JSON matching this schema: "
+        "{\"answer\":\"visible markdown answer with LaTeX\",\"tutor_state\":{\"level\":\"beginner|intermediate|advanced\","
+        "\"phase\":\"diagnose|teach|practice|check|review\",\"verdict\":\"correct|partly_correct|not_yet|needs_attempt|not_applicable\","
+        "\"confidence\":0.0,\"objective\":\"short current skill\",\"next_action\":\"short student action\",\"hint_level\":1},"
+        "\"options\":[{\"label\":\"A\",\"text\":\"option text\"}]}. "
+        "Use an empty options array when no MCQ is needed.\n\n"
+    )
 
 def _assert_user_matches_request(user_id: Optional[str], current_user: models.User) -> None:
     if user_id is None:
@@ -114,6 +526,9 @@ async def ask_ai(
     chat_id: Optional[str] = Form(None),
     use_hs_context: bool = Form(True),
     context_doc_ids: Optional[str] = Form(None),
+    tutor_mode: bool = Form(False),
+    tutor_reply_style: str = Form("guided"),
+    tutor_choice: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -174,6 +589,7 @@ async def ask_ai(
                 {"user": msg.user_message, "ai": msg.ai_response}
                 for msg in reversed(recent_msgs_for_ctx)
             ]
+        tutor_session_state = _get_tutor_session_state(db, chat_id_int, user.id) if tutor_mode else None
 
         ml_output = None
         ml_addendum = ""
@@ -265,8 +681,26 @@ async def ask_ai(
                 context_doc_ids=selected_doc_ids,
                 context_only=bool(selected_doc_ids),
                 ml_addendum=ml_addendum,
+                tutor_mode=bool(tutor_mode),
+                tutor_reply_style=tutor_reply_style,
+                tutor_choice=tutor_choice,
+                tutor_session_state=tutor_session_state,
             )
             response_text = result.get("response", "")
+            if tutor_mode:
+                response_text, tutor_options, tutor_state = _parse_tutor_response(
+                    response_text,
+                    tutor_reply_style,
+                    tutor_choice,
+                )
+                response_text, tutor_state = _apply_attempt_evaluation(
+                    response_text,
+                    tutor_state,
+                    result.get("attempt_evaluation"),
+                )
+            else:
+                tutor_options = []
+                tutor_state = None
             try:
                 from services.math_processor import process_math_in_response
                 response_text = process_math_in_response(response_text)
@@ -274,6 +708,8 @@ async def ask_ai(
                 pass
         else:
             response_text = _context_only_fallback_answer(str(user.id), question, selected_doc_ids)
+            tutor_options = []
+            tutor_state = _normalize_tutor_state({}, tutor_reply_style, tutor_choice) if tutor_mode else None
 
         if ml_output:
             try:
@@ -313,6 +749,17 @@ async def ask_ai(
             ).first()
             if session:
                 session.updated_at = datetime.now(timezone.utc)
+
+            if tutor_mode:
+                tutor_state = _persist_tutor_session_state(
+                    db,
+                    chat_id_int,
+                    user.id,
+                    tutor_state,
+                    tutor_reply_style,
+                    tutor_options,
+                    tutor_choice,
+                )
 
             try:
                 from services.gamification_system import award_points
@@ -357,6 +804,10 @@ async def ask_ai(
             "questions_today":   daily_metric.questions_answered,
             "frustration_score": ml_output.frustration_score if ml_output else 0.0,
             "response_strategy": ml_output.response_strategy if ml_output else "",
+            "tutor_mode": bool(tutor_mode),
+            "tutor_reply_style": tutor_reply_style,
+            "tutor_options": tutor_options,
+            "tutor_state": tutor_state,
         }
 
     except HTTPException:
@@ -378,6 +829,9 @@ async def ask_simple(
     chat_id: Optional[str] = Form(None),
     use_hs_context: bool = Form(True),
     context_doc_ids: Optional[str] = Form(None),
+    tutor_mode: bool = Form(False),
+    tutor_reply_style: str = Form("guided"),
+    tutor_choice: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -410,6 +864,7 @@ async def ask_simple(
                 {"user": msg.user_message, "ai": msg.ai_response}
                 for msg in reversed(recent_msgs)
             ]
+        tutor_session_state = _get_tutor_session_state(db, chat_id_int, user.id) if tutor_mode else None
 
         from tutor.graph import get_tutor
 
@@ -423,8 +878,26 @@ async def ask_simple(
                 use_hs_context=bool(use_hs_context),
                 context_doc_ids=selected_doc_ids,
                 context_only=bool(selected_doc_ids),
+                tutor_mode=bool(tutor_mode),
+                tutor_reply_style=tutor_reply_style,
+                tutor_choice=tutor_choice,
+                tutor_session_state=tutor_session_state,
             )
             response_text = result.get("response", "")
+            if tutor_mode:
+                response_text, tutor_options, tutor_state = _parse_tutor_response(
+                    response_text,
+                    tutor_reply_style,
+                    tutor_choice,
+                )
+                response_text, tutor_state = _apply_attempt_evaluation(
+                    response_text,
+                    tutor_state,
+                    result.get("attempt_evaluation"),
+                )
+            else:
+                tutor_options = []
+                tutor_state = None
             try:
                 from services.math_processor import process_math_in_response
                 response_text = process_math_in_response(response_text)
@@ -432,6 +905,8 @@ async def ask_simple(
                 pass
         else:
             response_text = _context_only_fallback_answer(str(user.id), model_question, selected_doc_ids)
+            tutor_options = []
+            tutor_state = _normalize_tutor_state({}, tutor_reply_style, tutor_choice) if tutor_mode else None
 
         if chat_id_int:
             msg = models.ChatMessage(
@@ -449,6 +924,17 @@ async def ask_simple(
             ).first()
             if session:
                 session.updated_at = datetime.now(timezone.utc)
+
+            if tutor_mode:
+                tutor_state = _persist_tutor_session_state(
+                    db,
+                    chat_id_int,
+                    user.id,
+                    tutor_state,
+                    tutor_reply_style,
+                    tutor_options,
+                    tutor_choice,
+                )
 
             try:
                 from services.gamification_system import award_points
@@ -484,6 +970,10 @@ async def ask_simple(
                               for r in (_intent_result.active_rules if _intent_result else [])],
             "topics_discussed": [],
             "query_type":    "conversational_learning",
+            "tutor_mode": bool(tutor_mode),
+            "tutor_reply_style": tutor_reply_style,
+            "tutor_options": tutor_options,
+            "tutor_state": tutor_state,
         }
 
     except HTTPException:
@@ -505,6 +995,9 @@ async def ask_with_files(
     chat_id: Optional[str] = Form(None),
     use_hs_context: bool = Form(True),
     context_doc_ids: Optional[str] = Form(None),
+    tutor_mode: bool = Form(False),
+    tutor_reply_style: str = Form("guided"),
+    tutor_choice: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -569,6 +1062,8 @@ async def ask_with_files(
                 })
 
         enriched_question = model_question.strip() or "Please analyze the attached content."
+        if tutor_mode:
+            enriched_question = _tutor_mode_prompt_prefix(tutor_reply_style) + enriched_question
         if text_extracts:
             enriched_question += "\n\n" + "\n\n".join(text_extracts)
         if image_payloads:
@@ -591,6 +1086,7 @@ async def ask_with_files(
                 {"user": m.user_message, "ai": m.ai_response}
                 for m in reversed(recent)
             ]
+        tutor_session_state = _get_tutor_session_state(db, chat_id_int, user.id) if tutor_mode else None
 
         response_text = ""
         ai_provider = "AI"
@@ -631,6 +1127,10 @@ async def ask_with_files(
                         use_hs_context=bool(use_hs_context),
                         context_doc_ids=selected_doc_ids,
                         context_only=bool(selected_doc_ids),
+                        tutor_mode=bool(tutor_mode),
+                        tutor_reply_style=tutor_reply_style,
+                        tutor_choice=tutor_choice,
+                        tutor_session_state=tutor_session_state,
                     )
                     response_text = result.get("response", "")
                 else:
@@ -645,6 +1145,20 @@ async def ask_with_files(
                     "(Gemini API key required). Your text question was answered above."
                 )
 
+        if tutor_mode:
+            response_text, tutor_options, tutor_state = _parse_tutor_response(
+                response_text,
+                tutor_reply_style,
+                tutor_choice,
+            )
+            response_text, tutor_state = _apply_attempt_evaluation(
+                response_text,
+                tutor_state,
+                result.get("attempt_evaluation") if "result" in locals() else None,
+            )
+        else:
+            tutor_options = []
+            tutor_state = None
         try:
             from services.math_processor import process_math_in_response
             response_text = process_math_in_response(response_text)
@@ -668,6 +1182,17 @@ async def ask_with_files(
             ).first()
             if session:
                 session.updated_at = datetime.now(timezone.utc)
+
+            if tutor_mode:
+                tutor_state = _persist_tutor_session_state(
+                    db,
+                    chat_id_int,
+                    user.id,
+                    tutor_state,
+                    tutor_reply_style,
+                    tutor_options,
+                    tutor_choice,
+                )
 
             try:
                 from services.gamification_system import award_points
@@ -705,6 +1230,10 @@ async def ask_with_files(
             "file_summaries":  file_summaries,
             "has_file_context": bool(saved_metadata),
             "ai_provider":     ai_provider,
+            "tutor_mode":      bool(tutor_mode),
+            "tutor_reply_style": tutor_reply_style,
+            "tutor_options":   tutor_options,
+            "tutor_state":     tutor_state,
         }
 
     except HTTPException:
@@ -843,6 +1372,15 @@ def get_chat_messages(
         .order_by(models.ChatMessage.timestamp.asc())
         .all()
     )
+    tutor_state_row = (
+        db.query(models.ChatTutorState)
+        .filter(
+            models.ChatTutorState.chat_session_id == chat_id,
+            models.ChatTutorState.user_id == current_user.id,
+        )
+        .first()
+    )
+    tutor_state_payload = _tutor_state_row_to_payload(tutor_state_row)
 
     result = []
     for msg in messages:
@@ -859,6 +1397,14 @@ def get_chat_messages(
             "timestamp": msg.timestamp.isoformat() + "Z",
             "aiConfidence": 0.85,
         })
+    if tutor_state_payload:
+        for entry in reversed(result):
+            if entry.get("type") == "ai":
+                entry["tutorMode"] = True
+                entry["tutorReplyMode"] = tutor_state_row.reply_style or "guided"
+                entry["tutorState"] = tutor_state_payload
+                entry["tutorOptions"] = tutor_state_row.last_options or []
+                break
     return result
 
 @router.get("/get_chat_history/{session_id}")
@@ -974,9 +1520,21 @@ def delete_chat_session(
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
 
+    db.query(models.MessageMLLog).filter(
+        models.MessageMLLog.session_id == session_id
+    ).delete(synchronize_session=False)
+    db.query(models.CerbylSessionState).filter(
+        models.CerbylSessionState.session_id == session_id
+    ).delete(synchronize_session=False)
+    db.query(models.ChatConceptSignal).filter(
+        models.ChatConceptSignal.chat_session_id == session_id
+    ).delete(synchronize_session=False)
+    db.query(models.ChatTutorState).filter(
+        models.ChatTutorState.chat_session_id == session_id
+    ).delete(synchronize_session=False)
     db.query(models.ChatMessage).filter(
         models.ChatMessage.chat_session_id == session_id
-    ).delete()
+    ).delete(synchronize_session=False)
     db.delete(chat_session)
     db.commit()
 

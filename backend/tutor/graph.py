@@ -26,6 +26,7 @@ class TutorGraph:
         g.add_node("fetch_student_state",     nodes.fetch_student_state)
         g.add_node("reason_from_graph",       nodes.reason_from_graph)
         g.add_node("gate_and_retrieve",       nodes.gate_and_retrieve)
+        g.add_node("evaluate_tutor_attempt",  nodes.evaluate_tutor_attempt)
         g.add_node("build_prompt_and_respond",nodes.build_prompt_and_respond)
         g.add_node("evaluate_response",       nodes.evaluate_response)
         g.add_node("persist_updates",         nodes.persist_updates)
@@ -35,7 +36,8 @@ class TutorGraph:
         g.add_edge("analyze_message",         "fetch_student_state")
         g.add_edge("fetch_student_state",     "reason_from_graph")
         g.add_edge("reason_from_graph",       "gate_and_retrieve")
-        g.add_edge("gate_and_retrieve",       "build_prompt_and_respond")
+        g.add_edge("gate_and_retrieve",       "evaluate_tutor_attempt")
+        g.add_edge("evaluate_tutor_attempt",  "build_prompt_and_respond")
         g.add_edge("build_prompt_and_respond","evaluate_response")
         g.add_edge("evaluate_response",       "persist_updates")
         g.add_edge("persist_updates",         END)
@@ -52,6 +54,10 @@ class TutorGraph:
         ml_addendum: str = "",
         context_doc_ids: list = None,
         context_only: bool = False,
+        tutor_mode: bool = False,
+        tutor_reply_style: str = "guided",
+        tutor_choice: str | None = None,
+        tutor_session_state: dict | None = None,
     ) -> dict:
         selected_doc_ids = context_doc_ids or []
         initial_state: TutorState = {
@@ -62,6 +68,10 @@ class TutorGraph:
             "use_hs_context": use_hs_context,
             "context_doc_ids": selected_doc_ids,
             "context_only": bool(context_only or selected_doc_ids),
+            "tutor_mode": bool(tutor_mode),
+            "tutor_reply_style": tutor_reply_style or "guided",
+            "tutor_choice": tutor_choice,
+            "tutor_session_state": tutor_session_state,
             "intelligence_context": ml_addendum or None,
             "_ai_client": self.ai_client,
             "_hs_ai_client": self.hs_ai_client,
@@ -72,6 +82,7 @@ class TutorGraph:
             return {
                 "response": result.get("response", ""),
                 "intent": result.get("intent", ""),
+                "attempt_evaluation": result.get("attempt_evaluation"),
                 "evaluation": result.get("evaluation"),
                 "neo4j_updates": result.get("neo4j_updates", []),
                 "chroma_writes": result.get("chroma_writes", []),

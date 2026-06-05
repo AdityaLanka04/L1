@@ -17,6 +17,7 @@ class ChatSession(Base):
     user = relationship("User", back_populates="chat_sessions")
     messages = relationship("ChatMessage", back_populates="chat_session", cascade="all, delete-orphan")
     folder = relationship("ChatFolder", back_populates="chat_sessions")
+    tutor_state = relationship("ChatTutorState", back_populates="chat_session", uselist=False, cascade="all, delete-orphan")
 
 
 class ChatMessage(Base):
@@ -32,6 +33,30 @@ class ChatMessage(Base):
     image_metadata = Column(Text, nullable=True)
 
     chat_session = relationship("ChatSession", back_populates="messages")
+
+
+class ChatTutorState(Base):
+    __tablename__ = "chat_tutor_states"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False, unique=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    level = Column(String(32), default="intermediate")
+    phase = Column(String(32), default="teach")
+    verdict = Column(String(32), default="not_applicable")
+    confidence = Column(Float, default=0.65)
+    objective = Column(Text, nullable=True)
+    next_action = Column(Text, nullable=True)
+    hint_level = Column(Integer, default=2)
+    reply_style = Column(String(32), default="guided")
+    attempts = Column(Integer, default=0)
+    correct_count = Column(Integer, default=0)
+    last_options = Column(JSON, nullable=True)
+    last_choice = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    chat_session = relationship("ChatSession", back_populates="tutor_state")
 
 
 class ChatFolder(Base):

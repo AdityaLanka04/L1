@@ -22,6 +22,7 @@ from models.user import (
 from models.chat import (
     ChatSession,
     ChatMessage,
+    ChatTutorState,
     ChatFolder,
     ConversationMemory,
     AILearningMetrics,

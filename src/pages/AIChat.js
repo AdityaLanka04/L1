@@ -15,6 +15,53 @@ import contextService from '../services/contextService';
 import { enableChatDock } from '../utils/chatDock';
 
 const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
+const TUTOR_MODE_KEY = 'ai_chat_tutor_mode_enabled';
+const TUTOR_REPLY_MODE_KEY = 'ai_chat_tutor_reply_mode';
+
+const TUTOR_REPLY_MODES = [
+  { id: 'hint', label: 'Hint' },
+  { id: 'guided', label: 'Step' },
+  { id: 'check', label: 'Check' },
+  { id: 'quiz', label: 'Quiz' },
+];
+
+const TUTOR_LEVEL_LABELS = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+};
+
+const TUTOR_PHASE_LABELS = {
+  diagnose: 'Diagnose',
+  teach: 'Teach',
+  practice: 'Practice',
+  check: 'Check',
+  review: 'Review',
+};
+
+const TUTOR_VERDICT_LABELS = {
+  correct: 'Correct',
+  partly_correct: 'Partly Right',
+  not_yet: 'Not Yet',
+  needs_attempt: 'Try First',
+  not_applicable: 'Guiding',
+};
+
+const TUTOR_VERDICT_SUMMARY = {
+  correct: 'Step accepted',
+  partly_correct: 'Almost there',
+  not_yet: 'Needs revision',
+  needs_attempt: 'Waiting for attempt',
+  not_applicable: 'Guided mode',
+};
+
+const TUTOR_VERDICT_NEXT_LABEL = {
+  correct: 'Next step',
+  partly_correct: 'Fix this',
+  not_yet: 'Try again',
+  needs_attempt: 'Your move',
+  not_applicable: 'Continue',
+};
 
 const SMART_ACTION_LIMIT = 8;
 
@@ -125,7 +172,8 @@ function stripInternalGraphGuidance(text = '') {
   return raw.slice(0, cutAt).replace(/\n{2,}$/g, '').trim();
 }
 
-const COMPREHENSION_CHECK_RE = /\b(comprehension\s+check|check\s+your\s+understanding|quick\s+(?:understanding\s+)?check|to\s+ensure\s+you'?re\s+following\s+along|can\s+you\s+briefly\s+(?:describe|explain|summari[sz]e)|how\s+(?:would|do)\s+you\s+(?:explain|describe|understand)|what\s+do\s+you\s+understand|try\s+(?:answering|explaining|summari[sz]ing))\b/i;
+const COMPREHENSION_CHECK_RE = /\b(comprehension\s+check|check\s+your\s+understanding|quick\s+(?:understanding\s+)?check|to\s+ensure\s+you'?re\s+following\s+along|can\s+you\s+(?:briefly\s+)?(?:describe|explain|summari[sz]e|integrate|differentiate|solve|calculate|compute|find|apply)|how\s+(?:would|do)\s+you\s+(?:explain|describe|understand|solve|calculate|compute|find|apply)|what\s+do\s+you\s+understand|try\s+(?:answering|explaining|summari[sz]ing|solving|calculating|computing|finding|integrating|differentiating))\b/i;
+const MATH_ATTEMPT_RE = /(?:\d|[a-z]\s*(?:\^|\*\*|²|³)|\\frac|\\int|[=+\-*/^()])/i;
 const NEW_QUESTION_START_RE = /^\s*(what|why|how|when|where|who|which|can|could|would|should|please|explain|tell|show|give|quiz|make|create|generate)\b/i;
 
 function getLastAiMessage(messages = []) {
@@ -140,7 +188,7 @@ function getLastAiMessage(messages = []) {
 
 function looksLikeComprehensionAnswer(text = '') {
   const trimmed = String(text || '').trim();
-  if (trimmed.length < 3 || !/[a-z]/i.test(trimmed)) return false;
+  if (trimmed.length < 1) return false;
 
   const lower = trimmed.toLowerCase();
   if (NEW_QUESTION_START_RE.test(trimmed)) return false;
@@ -149,6 +197,7 @@ function looksLikeComprehensionAnswer(text = '') {
   }
 
   if (/\b(i\s+don'?t\s+know|not\s+sure|no\s+idea|idk)\b/i.test(lower)) return true;
+  if (MATH_ATTEMPT_RE.test(trimmed) && trimmed.length <= 80) return true;
   const words = trimmed.match(/[a-z][a-z'-]*/gi) || [];
   if (words.length >= 5) return true;
 
@@ -160,11 +209,221 @@ function isAnsweringPreviousComprehensionCheck(text = '', messages = []) {
   return COMPREHENSION_CHECK_RE.test(previousAiMessage) && looksLikeComprehensionAnswer(text);
 }
 
+function isAnsweringTutorStep(text = '', messages = []) {
+  const trimmed = String(text || '').trim();
+  if (!looksLikeComprehensionAnswer(trimmed)) return false;
+
+  const previousAi = [...messages].reverse().find((message) => message?.type === 'ai');
+  if (!previousAi) return false;
+  if (previousAi.tutorMode || previousAi.tutorState || (Array.isArray(previousAi.tutorOptions) && previousAi.tutorOptions.length > 0)) {
+    return true;
+  }
+
+  return COMPREHENSION_CHECK_RE.test(previousAi.content || '');
+}
+
+function stripTutorOptionMarkers(text = '') {
+  return String(text || '').replace(/^\s*TUTOR_OPTIONS\s*:\s*\[[^\n]*\]\s*$/gim, '').trim();
+}
+
+function stripTutorJsonFence(text = '') {
+  let raw = String(text || '').trim();
+  if (raw.startsWith('```')) {
+    raw = raw.split('\n').slice(1).join('\n');
+    if (raw.trimEnd().endsWith('```')) {
+      raw = raw.replace(/```\s*$/, '');
+    }
+  }
+  return raw.trim();
+}
+
+function escapeLatexBackslashesForJson(text = '') {
+  const raw = String(text || '');
+  let output = '';
+  for (let index = 0; index < raw.length; index += 1) {
+    const char = raw[index];
+    const previous = raw[index - 1] || '';
+    const next = raw[index + 1] || '';
+    output += char === '\\' && previous !== '\\' && /[A-Za-z]/.test(next) ? '\\\\' : char;
+  }
+  return output;
+}
+
+function parseTutorJsonLenient(text = '') {
+  const raw = stripTutorJsonFence(text);
+  const escaped = escapeLatexBackslashesForJson(raw);
+  const candidates = escaped === raw ? [raw] : [escaped, raw];
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Try the next representation.
+    }
+  }
+  return null;
+}
+
+function decodeJsonishTutorString(value = '') {
+  const escaped = escapeLatexBackslashesForJson(value);
+  try {
+    return JSON.parse(`"${escaped}"`).trim();
+  } catch {
+    return String(value || '').replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
+  }
+}
+
+function parseTutorResponseContract(text = '') {
+  const raw = stripTutorJsonFence(text);
+  if (!/"answer"\s*:/.test(raw) || !/"tutor_state"\s*:/.test(raw)) return null;
+
+  const parsed = parseTutorJsonLenient(raw);
+  if (parsed && typeof parsed === 'object' && typeof parsed.answer === 'string') {
+    return {
+      answer: parsed.answer.trim(),
+      tutorState: parsed.tutor_state || null,
+      tutorOptions: normalizeTutorOptions(parsed.options || []),
+    };
+  }
+
+  const answerMatch = raw.match(/"answer"\s*:\s*"([\s\S]*?)"\s*,\s*"tutor_state"\s*:/i);
+  if (!answerMatch) return null;
+
+  const stateMatch = raw.match(/"tutor_state"\s*:\s*(\{[\s\S]*?\})\s*,\s*"options"\s*:/i);
+  const optionsMatch = raw.match(/"options"\s*:\s*(\[[\s\S]*?\])/i);
+  const tutorState = stateMatch ? parseTutorJsonLenient(stateMatch[1]) : null;
+  const tutorOptions = optionsMatch ? normalizeTutorOptions(parseTutorJsonLenient(optionsMatch[1]) || []) : [];
+
+  return {
+    answer: decodeJsonishTutorString(answerMatch[1]),
+    tutorState,
+    tutorOptions,
+  };
+}
+
+function normalizeTutorOptions(rawOptions = []) {
+  if (!Array.isArray(rawOptions)) return [];
+  return rawOptions.slice(0, 6).map((option, index) => {
+    const fallbackLabel = String.fromCharCode(65 + index);
+    if (option && typeof option === 'object') {
+      const text = String(option.text || option.value || option.label || '').replace(/^[A-F][).:-]\s*/i, '').trim();
+      const label = String(option.label || option.id || fallbackLabel).slice(0, 1).toUpperCase();
+      return text ? { id: label, label, text, value: `${label}. ${text}` } : null;
+    }
+    const raw = String(option || '').trim();
+    const match = raw.match(/^([A-F])[).:-]\s*(.+)$/i);
+    const label = match ? match[1].toUpperCase() : fallbackLabel;
+    const text = (match ? match[2] : raw).trim();
+    return text ? { id: label, label, text, value: `${label}. ${text}` } : null;
+  }).filter(Boolean);
+}
+
+function extractTutorOptionsFromText(text = '') {
+  const content = String(text || '');
+  const markerMatch = content.match(/^\s*TUTOR_OPTIONS\s*:\s*(\[[^\n]*\])\s*$/im);
+  if (markerMatch) {
+    try {
+      const parsed = JSON.parse(markerMatch[1]);
+      const normalized = normalizeTutorOptions(parsed);
+      if (normalized.length >= 2) return normalized;
+    } catch {
+      // Ignore malformed model markers and fall back to visible option lines.
+    }
+  }
+
+  const optionMatches = [...content.matchAll(/^\s*([A-F])[).:-]\s+(.{2,220})\s*$/gim)];
+  const hasMcqCue = /\b(mcq|multiple choice|choose|which option|select one|quick check)\b/i.test(content);
+  if (optionMatches.length >= 3 || (optionMatches.length >= 2 && hasMcqCue)) {
+    return normalizeTutorOptions(optionMatches.map((match) => `${match[1].toUpperCase()}. ${match[2].trim()}`));
+  }
+  return [];
+}
+
+function normalizeTutorState(rawState = null, replyMode = 'guided') {
+  if (!rawState || typeof rawState !== 'object') return null;
+
+  const level = ['beginner', 'intermediate', 'advanced'].includes(rawState.level)
+    ? rawState.level
+    : 'intermediate';
+  const phase = ['diagnose', 'teach', 'practice', 'check', 'review'].includes(rawState.phase)
+    ? rawState.phase
+    : (replyMode === 'quiz' ? 'practice' : replyMode === 'check' ? 'check' : 'teach');
+  const verdict = ['correct', 'partly_correct', 'not_yet', 'needs_attempt', 'not_applicable'].includes(rawState.verdict)
+    ? rawState.verdict
+    : 'not_applicable';
+  const confidence = Number.isFinite(Number(rawState.confidence))
+    ? Math.max(0, Math.min(1, Number(rawState.confidence)))
+    : 0.65;
+  const hintLevel = Number.isFinite(Number(rawState.hint_level))
+    ? Math.max(1, Math.min(3, Number(rawState.hint_level)))
+    : (replyMode === 'hint' ? 1 : 2);
+
+  const rawAttempts = Number.isFinite(Number(rawState.attempts)) ? Math.max(0, Number(rawState.attempts)) : 0;
+  const rawCorrectCount = Number.isFinite(Number(rawState.correct_count)) ? Math.max(0, Number(rawState.correct_count)) : 0;
+  const attempts = verdict === 'correct' ? Math.max(1, rawAttempts) : rawAttempts;
+  const correctCount = verdict === 'correct' ? Math.max(1, rawCorrectCount) : Math.min(rawCorrectCount, Math.max(rawAttempts, rawCorrectCount));
+
+  return {
+    level,
+    phase,
+    verdict,
+    confidence,
+    hintLevel,
+    objective: String(rawState.objective || 'Build understanding step by step').trim().slice(0, 96),
+    nextAction: String(rawState.next_action || 'Try the next small step').trim().slice(0, 120),
+    attempts,
+    correctCount,
+  };
+}
+
+function getLatestTutorState(messages = []) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const state = normalizeTutorState(messages[index]?.tutorState, messages[index]?.tutorReplyMode);
+    if (state) return state;
+  }
+  return null;
+}
+
+function getTutorProgressDisplay(tutorState) {
+  const attempts = Math.max(0, Number(tutorState?.attempts || 0));
+  const correctCount = Math.max(0, Math.min(Number(tutorState?.correctCount || 0), Math.max(attempts, 1)));
+  const hasAttempt = attempts > 0;
+  const accuracy = hasAttempt ? Math.round((correctCount / attempts) * 100) : null;
+  const confidencePercent = Math.round(Math.max(0, Math.min(1, Number(tutorState?.confidence || 0))) * 100);
+
+  return {
+    attempts,
+    correctCount,
+    accuracy,
+    confidencePercent,
+    status: TUTOR_VERDICT_SUMMARY[tutorState?.verdict] || 'Guided mode',
+    nextLabel: TUTOR_VERDICT_NEXT_LABEL[tutorState?.verdict] || 'Continue',
+  };
+}
+
 function normalizeLoadedMessage(message) {
   if (!message || typeof message !== 'object') return message;
   const msgType = String(message.type || message.role || '').toLowerCase();
   const isUserMessage = msgType === 'user' || msgType === 'human';
-  if (!isUserMessage) return message;
+  if (!isUserMessage) {
+    const contract = parseTutorResponseContract(message.content || '');
+    const cleanContent = contract?.answer || stripTutorOptionMarkers(message.content || '');
+    const tutorOptions = normalizeTutorOptions(
+      message.tutorOptions || message.tutor_options || contract?.tutorOptions || []
+    );
+    const inferredTutorOptions = tutorOptions.length ? tutorOptions : extractTutorOptionsFromText(cleanContent);
+    const tutorState = normalizeTutorState(
+      message.tutorState || message.tutor_state || contract?.tutorState,
+      message.tutorReplyMode || message.tutor_reply_style
+    );
+    const isTutorMessage = Boolean(message.tutorMode || message.tutor_mode || tutorState || inferredTutorOptions.length > 0);
+    return {
+      ...message,
+      content: cleanContent,
+      ...(isTutorMessage ? { actionButtons: [], smartActions: [], tutorMode: true } : {}),
+      ...(inferredTutorOptions.length > 0 ? { tutorOptions: inferredTutorOptions } : {}),
+      ...(tutorState ? { tutorState } : {}),
+    };
+  }
   return {
     ...message,
     content: stripInternalGraphGuidance(message.content || ''),
@@ -410,6 +669,11 @@ const AIChat = ({ sharedMode = false }) => {
 
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [tutorMode, setTutorMode] = useState(() => localStorage.getItem(TUTOR_MODE_KEY) === 'true');
+  const [tutorReplyMode, setTutorReplyMode] = useState(() => {
+    const savedMode = localStorage.getItem(TUTOR_REPLY_MODE_KEY);
+    return TUTOR_REPLY_MODES.some((mode) => mode.id === savedMode) ? savedMode : 'guided';
+  });
   const [userDocCount, setUserDocCount] = useState(0);
   const [activeActionKey, setActiveActionKey] = useState(null);
   const [actionNotice, setActionNotice] = useState('');
@@ -648,6 +912,19 @@ const AIChat = ({ sharedMode = false }) => {
   const handleHsModeToggle = (val) => {
     setHsMode(val);
     localStorage.setItem('hs_mode_enabled', String(val));
+  };
+
+  const handleTutorModeToggle = () => {
+    setTutorMode(prev => {
+      const next = !prev;
+      localStorage.setItem(TUTOR_MODE_KEY, String(next));
+      return next;
+    });
+  };
+
+  const handleTutorReplyModeChange = (modeId) => {
+    setTutorReplyMode(modeId);
+    localStorage.setItem(TUTOR_REPLY_MODE_KEY, modeId);
   };
 
   
@@ -1089,8 +1366,10 @@ const AIChat = ({ sharedMode = false }) => {
     
     
     const messageText = sanitizedMessage;
+    const effectiveTutorMode = tutorMode || useOverride;
     const answeringComprehensionCheck = isAnsweringPreviousComprehensionCheck(messageText, messages);
-    const messageForModel = answeringComprehensionCheck ? messageText : buildGraphAwarePrompt(messageText);
+    const answeringTutorStep = effectiveTutorMode && isAnsweringTutorStep(messageText, messages);
+    const messageForModel = (answeringComprehensionCheck || answeringTutorStep) ? messageText : buildGraphAwarePrompt(messageText);
     const messagedFiles = useOverride ? [] : [...selectedFiles];
     
     if (!useOverride) {
@@ -1163,6 +1442,11 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('original_question', messageText || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
       formData.append('use_hs_context', hsMode.toString());
+      formData.append('tutor_mode', effectiveTutorMode.toString());
+      formData.append('tutor_reply_style', tutorReplyMode);
+      if (useOverride || answeringTutorStep) {
+        formData.append('tutor_choice', messageText);
+      }
       if (selectedContextDocIds.length > 0) {
         formData.append('context_doc_ids', selectedContextDocIds.join(','));
       }
@@ -1201,13 +1485,16 @@ const AIChat = ({ sharedMode = false }) => {
       }
       
       const backendIntentClass = data.intent_class || null;
+      const tutorContract = parseTutorResponseContract(data.answer || '');
+      const aiAnswerContent = tutorContract?.answer || stripTutorOptionMarkers(data.answer);
       const recentActionIds = messages
         .filter((m) => m.type === 'ai')
         .slice(-2)
         .flatMap((m) => (Array.isArray(m.smartActions) ? m.smartActions.map((action) => action.id) : []));
-      const smartActions = pickSmartActions({
+      const responseTutorMode = data.tutor_mode || effectiveTutorMode;
+      const smartActions = responseTutorMode ? [] : pickSmartActions({
         userMessage: messageText,
-        aiResponse: data.answer,
+        aiResponse: aiAnswerContent,
         recentActionIds,
         intentClass: backendIntentClass,
       });
@@ -1215,7 +1502,7 @@ const AIChat = ({ sharedMode = false }) => {
       const aiMessage = {
         id: `ai_${Date.now()}`,
         type: 'ai',
-        content: data.answer,
+        content: aiAnswerContent,
         timestamp: new Date().toISOString(),
         ...(data.ai_confidence !== null && data.ai_confidence !== undefined && {
           aiConfidence: data.ai_confidence,
@@ -1227,7 +1514,7 @@ const AIChat = ({ sharedMode = false }) => {
         fileSummaries: data.file_summaries || [],
         hasFileContext: data.has_file_context || false,
         agentAnalysis: agentAnalysis,
-        actionButtons: data.action_buttons || [],
+        actionButtons: responseTutorMode ? [] : (data.action_buttons || []),
         contentFound: data.content_found || null,
         intentClass: backendIntentClass,
         activeRules: data.active_rules || [],
@@ -1237,6 +1524,10 @@ const AIChat = ({ sharedMode = false }) => {
         emotionalState: data.emotional_state || 'neutral',
         aiProvider: data.ai_provider || 'AI',
         smartActions,
+        tutorMode: responseTutorMode,
+        tutorReplyMode: data.tutor_reply_style || tutorReplyMode,
+        tutorOptions: normalizeTutorOptions(data.tutor_options || tutorContract?.tutorOptions || []),
+        tutorState: normalizeTutorState(data.tutor_state || tutorContract?.tutorState, data.tutor_reply_style || tutorReplyMode),
       };
 
       setMessages(prev => [...prev, aiMessage]);
@@ -1284,6 +1575,13 @@ const AIChat = ({ sharedMode = false }) => {
     }
   };
 
+  const handleTutorOptionClick = (option) => {
+    if (loading || !option) return;
+    const optionText = option.value || `${option.label || ''}. ${option.text || ''}`.trim();
+    if (!optionText) return;
+    sendMessage(optionText);
+  };
+
   const showSmartActionNotice = useCallback((message) => {
     setActionNotice(message);
     if (actionNoticeTimerRef.current) {
@@ -1306,6 +1604,9 @@ const AIChat = ({ sharedMode = false }) => {
 
   const getSmartActionsForMessage = useCallback((message, messageIndex) => {
     if (message.type !== 'ai') return [];
+    if (message.tutorMode || message.tutorState || (Array.isArray(message.tutorOptions) && message.tutorOptions.length > 0)) {
+      return [];
+    }
 
     if (Array.isArray(message.smartActions) && message.smartActions.length) {
       return message.smartActions;
@@ -2119,6 +2420,9 @@ const AIChat = ({ sharedMode = false }) => {
           formData.append('question', buildGraphAwarePrompt(initialMsg));
           formData.append('original_question', initialMsg);
           formData.append('chat_id', newChatId.toString());
+          formData.append('use_hs_context', hsMode.toString());
+          formData.append('tutor_mode', tutorMode.toString());
+          formData.append('tutor_reply_style', tutorReplyMode);
           
           const response = await fetch(`${API_URL}/ask_simple/`, {
             method: 'POST',
@@ -2136,15 +2440,22 @@ const AIChat = ({ sharedMode = false }) => {
             throw new Error('No answer received from AI');
           }
           
+          const tutorContract = parseTutorResponseContract(data.answer || '');
+          const aiAnswerContent = tutorContract?.answer || stripTutorOptionMarkers(data.answer);
+
           // Add AI response to UI
           const aiMessage = {
             id: `ai_${Date.now()}`,
             type: 'ai',
-            content: data.answer,
+            content: aiAnswerContent,
             timestamp: new Date().toISOString(),
             aiConfidence: data.ai_confidence || 0.9,
             shouldRequestFeedback: data.should_request_feedback || false,
-            topics: data.topics_discussed || []
+            topics: data.topics_discussed || [],
+            tutorMode: data.tutor_mode || tutorMode,
+            tutorReplyMode: data.tutor_reply_style || tutorReplyMode,
+            tutorOptions: normalizeTutorOptions(data.tutor_options || tutorContract?.tutorOptions || []),
+            tutorState: normalizeTutorState(data.tutor_state || tutorContract?.tutorState, data.tutor_reply_style || tutorReplyMode),
           };
           
           setMessages(prev => [...prev, aiMessage]);
@@ -2317,45 +2628,126 @@ const AIChat = ({ sharedMode = false }) => {
     chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
     send: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
     attach: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>,
+    tutor: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3 2 8l10 5 10-5-10-5z"/><path d="M6 10.5V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-5.5"/><path d="M22 8v6"/></svg>,
     arrowUp: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 15l-6-6-6 6"/></svg>,
     arrowDown: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>,
   };
 
-  return (
-    <div className="ai-chat-page">
-      <div className="ac-layout">
-        {/* Sidebar */}
-        <aside className="ac-sidebar">
-          {/* New Chat Button */}
-          <button
-            className="ac-new-chat-btn"
-            onClick={handleNewChat}
-            disabled={loading}
-          >
-            {Icons.plus}
-            <span>New Chat</span>
-          </button>
+  const renderTutorControls = () => {
+    const latestTutorState = getLatestTutorState(messages);
 
-          {/* Search Input */}
-          <div className="ac-search-container">
-            <div className="ac-search-wrapper">
-              <svg className="ac-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input
-                type="text"
-                className="ac-search-input"
-                placeholder="Search chats..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+    return (
+      <div className="ac-tutor-controls">
+        <button
+          type="button"
+          className={`ac-tutor-toggle ${tutorMode ? 'active' : ''}`}
+          onClick={handleTutorModeToggle}
+          aria-pressed={tutorMode}
+          title="Tutor mode"
+        >
+          <span className="ac-tutor-icon">{Icons.tutor}</span>
+          <span>Tutor</span>
+        </button>
+        {tutorMode && (
+          <div className="ac-tutor-mode-list" role="group" aria-label="Tutor reply type">
+            {TUTOR_REPLY_MODES.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`ac-tutor-mode-btn ${tutorReplyMode === mode.id ? 'active' : ''}`}
+                onClick={() => handleTutorReplyModeChange(mode.id)}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {tutorMode && latestTutorState && (
+          <div className="ac-tutor-live-state">
+            <span>{TUTOR_LEVEL_LABELS[latestTutorState.level]}</span>
+            <span>{TUTOR_PHASE_LABELS[latestTutorState.phase]}</span>
+            <span>{TUTOR_VERDICT_LABELS[latestTutorState.verdict]}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className={`ai-chat-page ac-qb-page ${sidebarOpen ? '' : 'ac-sidebar-hidden'}`}>
+      <div className="ac-qb-topbar">
+        <div className="ac-qb-tagline">accelerate <span>your thinking</span></div>
+        <div className="ac-qb-topbar-right">
+          <button className="ac-qb-top-btn" onClick={goToDashboard} type="button">
+            Dashboard
+          </button>
+          <button className="ac-qb-top-btn" onClick={() => navigate('/notes/my-notes')} type="button">
+            My Notes
+          </button>
+          <button className="ac-qb-top-btn" onClick={() => setSidebarOpen(prev => !prev)} type="button">
+            {sidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
+          </button>
+          <div className="ac-qb-context-action">
+            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+          </div>
+          <button className="ac-qb-top-btn ac-qb-top-btn--accent" onClick={handleNewChat} disabled={loading} type="button">
+            New Chat
+          </button>
+        </div>
+      </div>
+
+      <div className={`ac-layout ac-qb-shell ${sidebarOpen ? '' : 'ac-qb-shell--collapsed'}`}>
+        {/* Sidebar */}
+        {sidebarOpen && (
+        <aside className="ac-sidebar ac-qb-sidebar" aria-label="AI Chat navigation">
+          <div className="ac-qb-side-brand">
+            <div className="ac-qb-brand-wrap">
+              <div className="ac-qb-brand">cerbyl</div>
+              <div className="ac-qb-current-title">AI Chat</div>
+            </div>
+            <button
+              className="ac-qb-side-close-btn"
+              onClick={() => setSidebarOpen(false)}
+              title="Close sidebar"
+              aria-label="Close AI Chat sidebar"
+              type="button"
+            >
+              {Icons.chevronLeft}
+            </button>
+          </div>
+
+          <div className="ac-qb-side-block">
+            <div className="ac-qb-side-label">Chat Workspace</div>
+            <button
+              className="ac-new-chat-btn"
+              onClick={handleNewChat}
+              disabled={loading}
+              type="button"
+            >
+              {Icons.plus}
+              <span>New Chat</span>
+            </button>
+
+            <div className="ac-search-container">
+              <div className="ac-search-wrapper">
+                <svg className="ac-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input
+                  type="text"
+                  className="ac-search-input"
+                  placeholder="Search chats..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
           <nav className="ac-sidebar-nav" ref={sidebarNavRef}>
             {/* Folders Section */}
-            <div className="ac-folders-section">
+            <div className="ac-folders-section ac-qb-side-block">
               <div className="ac-folders-header">
                 <h4>Folders</h4>
                 <button
@@ -2437,7 +2829,7 @@ const AIChat = ({ sharedMode = false }) => {
             </div>
 
             {/* Chats Section */}
-            <div className="ac-nav-section">
+            <div className="ac-nav-section ac-qb-side-block ac-qb-side-block--grow">
               <div className="ac-nav-section-title">
                 {selectedFolder ? folders.find(f => f.id === selectedFolder)?.name || 'Folder' : 'Chats'}
                 {selectedFolder && (
@@ -2513,13 +2905,14 @@ const AIChat = ({ sharedMode = false }) => {
             </div>
           </nav>
 
-          <div className="ac-sidebar-footer">
-            <button className="ac-nav-item" onClick={() => navigate('/dashboard-cerbyl')}>
+          <div className="ac-sidebar-footer ac-qb-side-actions">
+            <button className="ac-nav-item" onClick={goToDashboard} type="button">
               <span className="ac-nav-icon">{Icons.home}</span>
               <span className="ac-nav-text">Dashboard</span>
             </button>
           </div>
         </aside>
+        )}
 
         {/* Main Content */}
         <main className={`ac-main ${messages.length === 0 ? 'empty-state' : ''}`}>
@@ -2581,6 +2974,7 @@ const AIChat = ({ sharedMode = false }) => {
                     onChange={handleFileInputChange}
                     style={{ display: 'none' }}
                   />
+                  {renderTutorControls()}
                   <div className="ac-input-row">
                     <button
                       className="ac-input-btn"
@@ -2613,7 +3007,10 @@ const AIChat = ({ sharedMode = false }) => {
             ) : (
               <div className="ac-messages" ref={messagesContainerRef} onScroll={handleScroll}>
                 {messages.map((message, messageIndex) => {
-                  const smartActions = getSmartActionsForMessage(message, messageIndex);
+                  const tutorOptions = Array.isArray(message.tutorOptions) ? message.tutorOptions : [];
+                  const tutorState = normalizeTutorState(message.tutorState, message.tutorReplyMode);
+                  const isTutorMessage = Boolean(message.tutorMode || tutorState || tutorOptions.length > 0);
+                  const smartActions = isTutorMessage ? [] : getSmartActionsForMessage(message, messageIndex);
                   return (
                   <div key={message.id} className={`ac-message ${message.type}`}>
                     <div className="ac-message-bubble">
@@ -2661,9 +3058,64 @@ const AIChat = ({ sharedMode = false }) => {
                           ))}
                         </div>
                       )}
+
+                      {message.type === 'ai' && tutorOptions.length > 0 && (
+                        <div className="ac-tutor-options">
+                          {tutorOptions.map((option) => (
+                            <button
+                              key={`${message.id}:${option.id}`}
+                              type="button"
+                              className="ac-tutor-option-btn"
+                              onClick={() => handleTutorOptionClick(option)}
+                              disabled={loading}
+                            >
+                              <span className="ac-tutor-option-label">{option.label}</span>
+                              <div className="ac-tutor-option-text">
+                                {renderMessageContent(option.text)}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {message.type === 'ai' && tutorState && (() => {
+                        const progress = getTutorProgressDisplay(tutorState);
+                        return (
+                          <div className={`ac-tutor-state-card verdict-${tutorState.verdict}`}>
+                            <div className="ac-tutor-state-header">
+                              <div className="ac-tutor-verdict-lockup">
+                                <span className="ac-tutor-verdict-dot" aria-hidden="true" />
+                                <div>
+                                  <div className="ac-tutor-state-label">{progress.status}</div>
+                                  <div className="ac-tutor-state-meta">
+                                    {TUTOR_LEVEL_LABELS[tutorState.level]} · {TUTOR_PHASE_LABELS[tutorState.phase]} · {TUTOR_VERDICT_LABELS[tutorState.verdict]}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="ac-tutor-score-pill" aria-label="Tutor progress score">
+                                {progress.correctCount}/{progress.attempts || 1}
+                              </div>
+                            </div>
+                            <div className="ac-tutor-state-focus">{tutorState.objective}</div>
+                            <div className="ac-tutor-state-next">
+                              <span>{progress.nextLabel}</span>
+                              <p>{tutorState.nextAction}</p>
+                            </div>
+                            <div className="ac-tutor-state-stats" aria-label="Tutor progress">
+                              <span>{progress.attempts} attempt{progress.attempts === 1 ? '' : 's'}</span>
+                              <span>{progress.correctCount} correct</span>
+                              <span>{progress.accuracy === null ? 'No score yet' : `${progress.accuracy}% accuracy`}</span>
+                              <span>{progress.confidencePercent}% confidence</span>
+                            </div>
+                            <div className="ac-tutor-confidence-track" aria-hidden="true">
+                              <span style={{ width: `${progress.confidencePercent}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })()}
                       
                       {/* Intelligent Action Grid */}
-                      {message.type === 'ai' && smartActions.length > 0 && (
+                      {message.type === 'ai' && !isTutorMessage && smartActions.length > 0 && (
                         <div className="ac-smart-actions">
                           {smartActions.map((action) => {
                             const actionKey = `${message.id}:${action.id}`;
@@ -2687,7 +3139,7 @@ const AIChat = ({ sharedMode = false }) => {
                       )}
 
                       {/* Backend-provided fallback action buttons */}
-                      {message.type === 'ai' && smartActions.length === 0 && message.actionButtons && message.actionButtons.length > 0 && (
+                      {message.type === 'ai' && !isTutorMessage && smartActions.length === 0 && message.actionButtons && message.actionButtons.length > 0 && (
                         <div className="ac-action-buttons">
                           {message.actionButtons.map((btn, index) => (
                             <button
@@ -2971,6 +3423,7 @@ const AIChat = ({ sharedMode = false }) => {
                   )}
                 </div>
               )}
+              {renderTutorControls()}
               
               <div className="ac-input-row">
                 <button
@@ -3098,9 +3551,6 @@ const AIChat = ({ sharedMode = false }) => {
         </>
       )}
 
-      <div style={{position:'fixed',top:'10px',right:'12px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
-        <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-      </div>
       <ContextPanel
         isOpen={contextPanelOpen}
         onClose={() => setContextPanelOpen(false)}

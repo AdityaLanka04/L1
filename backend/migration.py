@@ -2,7 +2,7 @@ import sqlite3
 import os
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import make_url
-from models import engine, Base, User, ChatSession, ChatMessage, \
+from models import engine, Base, User, ChatSession, ChatMessage, ChatTutorState, \
     Flashcard, FlashcardSet, Note, LearningReview, UserStats, \
     ComprehensiveUserProfile, Friendship, FriendRequest, \
     Notification, Achievement, UserAchievement, Leaderboard, Challenge, \
@@ -122,7 +122,7 @@ def run_migration():
     cursor = conn.cursor()
     
     models = [
-        User, ChatSession, ChatMessage,
+        User, ChatSession, ChatMessage, ChatTutorState,
         Flashcard, FlashcardSet, Note, LearningReview, UserStats,
         ComprehensiveUserProfile, Friendship, FriendRequest,
         Notification, Achievement, UserAchievement,
@@ -337,6 +337,7 @@ def _run_postgres_migration():
         ("ix_activities_user_id",              "activities",             "user_id"),
         ("ix_chat_sessions_user_id",           "chat_sessions",          "user_id"),
         ("ix_chat_messages_user_id",           "chat_messages",          "user_id"),
+        ("ix_chat_tutor_states_user_id",       "chat_tutor_states",      "user_id"),
         ("ix_notes_user_id",                   "notes",                  "user_id"),
         ("ix_flashcard_sets_user_id",          "flashcard_sets",         "user_id"),
         ("ix_flashcards_user_id",              "flashcards",             "user_id"),
