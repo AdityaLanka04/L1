@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ProfileQuiz.css';
 import { API_URL } from '../config';
+import logo from '../assets/logo.svg';
 
 const ProfileQuiz = () => {
   const navigate = useNavigate();
@@ -357,7 +358,7 @@ const ProfileQuiz = () => {
 
           <div className="bento-box bento-text-large">
             <h1 className="bento-large-title">
-              <img src="/logo.svg" alt="" style={{ height: '40px', marginRight: '12px', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+              <img src={logo} alt="" style={{ height: '40px', marginRight: '12px', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
               welcome to cerbyl
             </h1>
           </div>
@@ -367,9 +368,7 @@ const ProfileQuiz = () => {
           </div>
 
           <div className="bento-box bento-symbol-top">
-            <svg className="bento-symbol-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
-            </svg>
+            <img src={logo} alt="cerbyl" className="bento-logo-icon" />
           </div>
 
           <div className="bento-box bento-main-cta" onClick={() => setCurrentStep('form')}>

@@ -693,7 +693,7 @@ const AIChat = ({ sharedMode = false }) => {
         body: JSON.stringify({
           user_id: userName,
           name: folderName.trim(),
-          color: 'var(--accent)'
+          color: folderColor
         })
       });
 
@@ -701,7 +701,9 @@ const AIChat = ({ sharedMode = false }) => {
         const newFolder = await response.json();
         setFolders(prev => [...prev, newFolder]);
         setShowFolderCreation(false);
+        setShowFolderDialog(false);
         setFolderName('');
+        setFolderColor('#D7B38C');
         loadChatFolders();
       }
     } catch (error) {
@@ -815,7 +817,10 @@ const AIChat = ({ sharedMode = false }) => {
   const chatLoadAbortRef = useRef(null);
 
   const [showFolderCreation, setShowFolderCreation] = useState(false);
+  const [showFolderDialog, setShowFolderDialog] = useState(false);
+  const [showSearchDialog, setShowSearchDialog] = useState(false);
   const [folderName, setFolderName] = useState('');
+  const [folderColor, setFolderColor] = useState('#D7B38C');
   const [showMoveMenu, setShowMoveMenu] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -2674,36 +2679,40 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   return (
-    <div className={`ai-chat-page ac-qb-page ${sidebarOpen ? '' : 'ac-sidebar-hidden'}`}>
+    <div className="ai-chat-page ac-qb-page">
       <div className="ac-qb-topbar">
         <div className="ac-qb-tagline">accelerate <span>your thinking</span></div>
         <div className="ac-qb-topbar-right">
-          <button className="ac-qb-top-btn" onClick={goToDashboard} type="button">
-            Dashboard
-          </button>
-          <button className="ac-qb-top-btn" onClick={() => navigate('/notes/my-notes')} type="button">
-            My Notes
-          </button>
-          <button className="ac-qb-top-btn" onClick={() => setSidebarOpen(prev => !prev)} type="button">
-            {sidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
-          </button>
           <div className="ac-qb-context-action">
             <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
           </div>
-          <button className="ac-qb-top-btn ac-qb-top-btn--accent" onClick={handleNewChat} disabled={loading} type="button">
-            New Chat
-          </button>
         </div>
       </div>
 
       <div className={`ac-layout ac-qb-shell ${sidebarOpen ? '' : 'ac-qb-shell--collapsed'}`}>
         {/* Sidebar */}
-        {sidebarOpen && (
-        <aside className="ac-sidebar ac-qb-sidebar" aria-label="AI Chat navigation">
+        <aside className={`ac-sidebar ac-qb-sidebar ${sidebarOpen ? '' : 'ac-qb-sidebar--collapsed'}`} aria-label="AI Chat navigation">
+          {!sidebarOpen ? (
+            <div className="ac-qb-collapsed-strip">
+              <button className="ac-qb-strip-btn" data-tip="Open sidebar" onClick={() => setSidebarOpen(true)} type="button">
+                {Icons.chevronRight}
+              </button>
+              <button className="ac-qb-strip-btn" data-tip="New Chat" onClick={handleNewChat} type="button">
+                {Icons.plus}
+              </button>
+              <button className="ac-qb-strip-btn" data-tip="Search" onClick={() => setShowSearchDialog(true)} type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              </button>
+              <div className="ac-qb-strip-spacer" />
+              <button className="ac-qb-strip-btn" data-tip="Dashboard" onClick={goToDashboard} type="button">
+                {Icons.home}
+              </button>
+            </div>
+          ) : (
+          <>
           <div className="ac-qb-side-brand">
             <div className="ac-qb-brand-wrap">
               <div className="ac-qb-brand">cerbyl</div>
-              <div className="ac-qb-current-title">AI Chat</div>
             </div>
             <button
               className="ac-qb-side-close-btn"
@@ -2728,20 +2737,18 @@ const AIChat = ({ sharedMode = false }) => {
               <span>New Chat</span>
             </button>
 
-            <div className="ac-search-container">
-              <div className="ac-search-wrapper">
+            <div className="ac-search-container" style={{ marginTop: '12px' }}>
+              <button
+                className="ac-search-wrapper ac-search-trigger"
+                onClick={() => setShowSearchDialog(true)}
+                type="button"
+              >
                 <svg className="ac-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="8"/>
                   <path d="m21 21-4.35-4.35"/>
                 </svg>
-                <input
-                  type="text"
-                  className="ac-search-input"
-                  placeholder="Search chats..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+                <span className="ac-search-trigger-text">Search chats...</span>
+              </button>
             </div>
           </div>
 
@@ -2752,43 +2759,11 @@ const AIChat = ({ sharedMode = false }) => {
                 <h4>Folders</h4>
                 <button
                   className="ac-add-folder-btn"
-                  onClick={() => setShowFolderCreation(true)}
+                  onClick={() => setShowFolderDialog(true)}
                 >
                   {Icons.plus}
                 </button>
               </div>
-
-              {showFolderCreation && (
-                <div className="ac-folder-input-group">
-                  <input
-                    type="text"
-                    className="ac-folder-input"
-                    placeholder="Folder name"
-                    value={folderName}
-                    onChange={(e) => setFolderName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleFolderCreation();
-                      else if (e.key === 'Escape') {
-                        setShowFolderCreation(false);
-                        setFolderName('');
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <button className="ac-folder-submit" onClick={handleFolderCreation}>
-                    {Icons.check}
-                  </button>
-                  <button
-                    className="ac-folder-cancel"
-                    onClick={() => {
-                      setShowFolderCreation(false);
-                      setFolderName('');
-                    }}
-                  >
-                    {Icons.x}
-                  </button>
-                </div>
-              )}
 
               {folders.map((folder) => (
                 <div
@@ -2911,7 +2886,108 @@ const AIChat = ({ sharedMode = false }) => {
               <span className="ac-nav-text">Dashboard</span>
             </button>
           </div>
+          </>
+          )}
         </aside>
+
+        {/* Search Dialog */}
+        {showSearchDialog && (
+          <div className="ac-search-dialog-overlay" onClick={() => { setShowSearchDialog(false); setSearchQuery(''); }}>
+            <div className="ac-search-dialog" onClick={e => e.stopPropagation()}>
+              <div className="ac-search-dialog-header">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input
+                  autoFocus
+                  type="text"
+                  className="ac-search-dialog-input"
+                  placeholder="Search chats..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Escape' && setShowSearchDialog(false)}
+                />
+                <button className="ac-search-dialog-close" onClick={() => { setShowSearchDialog(false); setSearchQuery(''); }}>{Icons.x}</button>
+              </div>
+              <div className="ac-search-dialog-results">
+                <button className="ac-search-dialog-new-chat" onClick={() => { handleNewChat(); setShowSearchDialog(false); }} type="button">
+                  <span className="ac-search-dialog-new-icon">{Icons.plus}</span>
+                  <span>New chat</span>
+                </button>
+                {chatSessions.length > 0 && (
+                  <div className="ac-search-dialog-section-label">
+                    {searchQuery ? 'Results' : 'Recent'}
+                  </div>
+                )}
+                {chatSessions
+                  .filter(s => searchQuery ? s.title.toLowerCase().includes(searchQuery.toLowerCase()) : true)
+                  .filter(s => shouldDisplayChat(s))
+                  .slice(0, 20)
+                  .map(session => (
+                    <button
+                      key={session.id}
+                      className={`ac-search-dialog-item ${activeChatId === session.id ? 'active' : ''}`}
+                      onClick={() => { selectChat(session.id); setShowSearchDialog(false); setSearchQuery(''); }}
+                      type="button"
+                    >
+                      <span className="ac-search-dialog-item-icon">{Icons.chat}</span>
+                      <div className="ac-search-dialog-item-info">
+                        <div className="ac-search-dialog-item-title">{session.title}</div>
+                        <div className="ac-search-dialog-item-date">
+                          {new Date(session.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                }
+                {searchQuery && chatSessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                  <div className="ac-search-dialog-empty">No chats found</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Folder Creation Dialog */}
+        {showFolderDialog && (
+          <div className="ac-folder-dialog-overlay" onClick={() => { setShowFolderDialog(false); setFolderName(''); setFolderColor('#D7B38C'); }}>
+            <div className="ac-folder-dialog" onClick={e => e.stopPropagation()}>
+              <div className="ac-folder-dialog-header">
+                <div className="ac-folder-dialog-title-row">
+                  <span className="ac-folder-dialog-icon" style={{ color: folderColor }}>{Icons.folder}</span>
+                  <h3>New Folder</h3>
+                </div>
+                <button className="ac-folder-dialog-close" onClick={() => { setShowFolderDialog(false); setFolderName(''); setFolderColor('#D7B38C'); }}>{Icons.x}</button>
+              </div>
+              <div className="ac-folder-dialog-body">
+                <label className="ac-folder-dialog-label">Folder Name</label>
+                <input
+                  autoFocus
+                  type="text"
+                  className="ac-folder-dialog-input"
+                  placeholder="e.g. Physics, Week 3 Review..."
+                  value={folderName}
+                  onChange={e => setFolderName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && folderName.trim()) handleFolderCreation(); else if (e.key === 'Escape') { setShowFolderDialog(false); setFolderName(''); setFolderColor('#D7B38C'); } }}
+                />
+                <label className="ac-folder-dialog-label">Color</label>
+                <div className="ac-folder-color-grid">
+                  {['#D7B38C','#E07B6A','#6AA8E0','#78C98D','#B48CE0','#E0C56A','#E08C6A','#6AD5E0'].map(color => (
+                    <button
+                      key={color}
+                      type="button"
+                      className={`ac-folder-color-chip ${folderColor === color ? 'selected' : ''}`}
+                      style={{ background: color }}
+                      onClick={() => setFolderColor(color)}
+                      aria-label={color}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="ac-folder-dialog-footer">
+                <button className="ac-folder-dialog-cancel" onClick={() => { setShowFolderDialog(false); setFolderName(''); setFolderColor('#D7B38C'); }} type="button">Cancel</button>
+                <button className="ac-folder-dialog-create" onClick={handleFolderCreation} disabled={!folderName.trim()} type="button">Create Folder</button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Main Content */}

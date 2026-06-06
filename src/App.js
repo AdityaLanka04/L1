@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Menu } from 'lucide-react';
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Dashboard from './pages/Dashboard';
 import DashboardCerbyl from './pages/DashboardCerbyl';
 import AIChat from './pages/AIChat';
@@ -72,6 +72,8 @@ import RateLimitHandler from './components/RateLimitHandler';
 function App() {
   const [notification, setNotification] = useState(null);
   const { isOpen, openNav, closeNav } = useGlobalNav();
+  const location = useLocation();
+  const hideNav = ['/', '/login', '/register', '/profile-quiz'].includes(location.pathname);
 
   React.useEffect(() => {
     window.openGlobalNav = openNav;
@@ -86,10 +88,12 @@ function App() {
         <ToastProvider>
           <RateLimitHandler />
           <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
-            <CerbylNavSidebar isOpen={isOpen} onClose={closeNav} />
-            <button className="global-nav-btn" onClick={openNav} aria-label="Open navigation">
-              <Menu />
-            </button>
+            {!hideNav && <CerbylNavSidebar isOpen={isOpen} onClose={closeNav} />}
+            {!hideNav && (
+              <button className="global-nav-btn" onClick={openNav} aria-label="Open navigation">
+                <Menu />
+              </button>
+            )}
             <GlobalNotifications />
             <AIChatDock />
             {notification && (
