@@ -11,6 +11,7 @@ from jose import JWTError, jwt
 import models
 from database import get_db
 from deps import get_current_user, call_ai, get_user_by_username, get_user_by_email, verify_token, SECRET_KEY, ALGORITHM
+from services.ai_json_parser import parse_json_array_response
 from services.websocket_manager import manager
 
 logger = logging.getLogger(__name__)
@@ -343,12 +344,40 @@ Use this exact structure:
         content = re.sub(r"\n?```\s*$", "", content).strip()
 
     logger.info(f"Cleaned content: {content[:200]}...")
-    questions = json.loads(content)
+    questions = parse_json_array_response(content)
 
     if not isinstance(questions, list) or len(questions) == 0:
         raise ValueError("AI returned empty or invalid questions list")
 
-    return questions
+    normalized_questions = []
+    for index, item in enumerate(questions[:count]):
+        question_text = str(item.get("question") or "").strip()
+        options = item.get("options") if isinstance(item.get("options"), list) else []
+        options = [str(option).strip() for option in options if str(option or "").strip()][:4]
+        if len(options) < 4:
+            raise ValueError(f"AI returned invalid options for question {index + 1}")
+
+        raw_answer = item.get("correct_answer", 0)
+        if isinstance(raw_answer, str) and raw_answer.strip().upper() in {"A", "B", "C", "D"}:
+            correct_answer = ord(raw_answer.strip().upper()) - ord("A")
+        else:
+            try:
+                correct_answer = int(raw_answer)
+            except (TypeError, ValueError):
+                correct_answer = 0
+        correct_answer = max(0, min(3, correct_answer))
+
+        if not question_text:
+            raise ValueError(f"AI returned empty question text for question {index + 1}")
+
+        normalized_questions.append({
+            "question": question_text,
+            "options": options,
+            "correct_answer": correct_answer,
+            "explanation": str(item.get("explanation") or "").strip(),
+        })
+
+    return normalized_questions
 
 
 @ws_router.websocket("/ws")

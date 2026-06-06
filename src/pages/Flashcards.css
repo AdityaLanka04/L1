@@ -2285,6 +2285,11 @@
   overflow-x: hidden;
 }
 
+.fc-study-content:has(.fc-study-mcq-area) {
+  justify-content: flex-start;
+  padding-top: 22px;
+}
+
 .fc-card-counter-above {
   font-size: 14px;
   font-weight: 700;
@@ -4125,12 +4130,13 @@
 
 .fc-study-mcq-area {
   width: 100%;
-  max-width: 900px;
+  max-width: 980px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 18px;
   align-items: center;
-  padding: 20px 0 40px 0;
+  padding: 0 0 28px 0;
+  min-height: 0;
 }
 
 .fc-mcq-question-container {
@@ -4150,8 +4156,8 @@
   padding: 24px;
   text-align: center;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  min-height: 380px;
-  height: 380px;
+  min-height: 300px;
+  height: clamp(260px, 34vh, 330px);
   width: 100%;
   max-width: 700px;
   display: flex;
@@ -4181,6 +4187,8 @@
   align-items: center;
   justify-content: center;
   flex: 1;
+  width: 100%;
+  overflow-wrap: anywhere;
 }
 
 [data-theme-mode="dark"] .fc-study-question-card {
@@ -4218,13 +4226,37 @@
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   width: 100%;
-  max-width: 900px;
+  max-width: 980px;
+  max-height: min(40vh, 330px);
+  overflow-y: auto;
+  padding: 2px 8px 8px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--fc-accent) 55%, transparent) transparent;
+}
+
+.fc-mcq-options::-webkit-scrollbar,
+.fc-mcq-option::-webkit-scrollbar,
+.fc-mcq-text::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fc-mcq-options::-webkit-scrollbar-track,
+.fc-mcq-option::-webkit-scrollbar-track,
+.fc-mcq-text::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fc-mcq-options::-webkit-scrollbar-thumb,
+.fc-mcq-option::-webkit-scrollbar-thumb,
+.fc-mcq-text::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--fc-accent) 45%, transparent);
+  border-radius: 999px;
 }
 
 .fc-mcq-option {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 24px;
+  align-items: center;
   gap: 10px;
   padding: 18px 20px;
   background: var(--fc-bg-card);
@@ -4236,20 +4268,20 @@
   font-size: 14px;
   color: var(--fc-text-primary);
   position: relative;
-  min-height: 120px;
-  max-height: 180px;
-  overflow-y: auto;
+  height: 104px;
+  min-height: 104px;
+  overflow: hidden;
 }
 
-.fc-mcq-option:hover:not(:disabled) {
+.fc-mcq-option:hover:not(.disabled):not(.correct):not(.incorrect) {
   border-color: var(--fc-accent);
   background: var(--fc-bg-tertiary);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.fc-mcq-option:disabled {
-  cursor: not-allowed;
+.fc-mcq-option[aria-disabled="true"] {
+  cursor: default;
 }
 
 .fc-mcq-letter {
@@ -4269,11 +4301,43 @@
 }
 
 .fc-mcq-text {
-  flex: 1;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.45;
   color: var(--fc-text-primary);
   width: 100%;
+  height: auto;
+  max-height: 42px;
+  overflow-y: auto;
+  padding-right: 6px;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 78%, transparent 100%);
+}
+
+.fc-mcq-text::-webkit-scrollbar {
+  display: none;
+}
+
+.fc-mcq-option:hover .fc-mcq-text,
+.fc-mcq-option:focus-visible .fc-mcq-text {
+  max-height: 62px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 88%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 88%, transparent 100%);
+}
+
+.fc-mcq-text p,
+.fc-study-question-text p {
+  margin: 0;
+}
+
+.fc-mcq-text .katex-display,
+.fc-study-question-text .katex-display {
+  margin: 4px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .fc-mcq-icon {
@@ -4283,9 +4347,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
-  top: 12px;
-  right: 12px;
+  grid-column: 3;
+  opacity: 1;
 }
 
 .fc-mcq-icon svg {
@@ -4308,7 +4371,7 @@
 
 .fc-mcq-option.correct .fc-mcq-text {
   color: var(--fc-success) !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .fc-mcq-option.correct .fc-mcq-icon {
@@ -4329,7 +4392,7 @@
 
 .fc-mcq-option.incorrect .fc-mcq-text {
   color: var(--fc-danger) !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .fc-mcq-option.incorrect .fc-mcq-icon {
@@ -4391,12 +4454,13 @@
 @media (max-width: 768px) {
   .fc-study-mcq-area {
     max-width: 100%;
-    gap: 24px;
+    gap: 16px;
   }
   
   .fc-study-question-card {
-    padding: 32px 20px;
-    min-height: 200px;
+    padding: 24px 18px;
+    min-height: 190px;
+    height: clamp(190px, 30vh, 250px);
   }
   
   .fc-study-question-text {
@@ -4406,12 +4470,15 @@
   .fc-mcq-options {
     grid-template-columns: 1fr;
     gap: 12px;
+    max-height: 42vh;
   }
   
   .fc-mcq-option {
     padding: 16px 18px;
     gap: 8px;
-    min-height: 80px;
+    grid-template-columns: 28px minmax(0, 1fr) 22px;
+    height: 96px;
+    min-height: 96px;
   }
   
   .fc-mcq-letter {
@@ -4423,6 +4490,7 @@
   
   .fc-mcq-text {
     font-size: 13px;
+    max-height: 38px;
   }
   
   .fc-next-question-btn {

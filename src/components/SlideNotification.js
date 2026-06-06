@@ -308,6 +308,8 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
           <button 
             className="slide-notif-close" 
             onClick={(e) => { e.stopPropagation(); handleClose(); }}
+            aria-label="Dismiss notification"
+            type="button"
           >
             <X size={16} />
           </button>

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 import models
 from deps import call_ai, enforce_request_user_scope, get_current_user, get_db, get_user_by_email, get_user_by_username, unified_ai
+from services.ai_json_parser import parse_json_array_response
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
@@ -254,6 +255,7 @@ async def generate_flashcards_endpoint(
     difficulty = _unwrap_form_value(difficulty) or "medium"
     depth_level = _unwrap_form_value(depth_level) or "standard"
     additional_specs = _unwrap_form_value(additional_specs) or ""
+    context_doc_ids = _unwrap_form_value(context_doc_ids)
     set_title = _unwrap_form_value(set_title)
     is_public = _coerce_bool(_unwrap_form_value(is_public), default=False)
     try:
@@ -368,14 +370,8 @@ async def generate_flashcards_endpoint(
             f"No other text."
         )
         ai_response = unified_ai.generate(prompt, max_tokens=2000, temperature=0.7)
-        try:
-            cleaned = ai_response.strip()
-            if cleaned.startswith("```"):
-                cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0]
-            flashcards_data = json.loads(cleaned)
-            if isinstance(flashcards_data, dict):
-                flashcards_data = flashcards_data.get("flashcards", [])
-        except json.JSONDecodeError:
+        flashcards_data = parse_json_array_response(ai_response)
+        if not flashcards_data:
             flashcards_data = [{"question": "Error parsing", "answer": ai_response[:500], "difficulty": difficulty}]
 
     if not flashcards_data:

@@ -804,7 +804,7 @@ const Dashboard = () => {
                     <Bell size={18} />
                     <h3>Notifications</h3>
                   </div>
-                  <button className="ds-notif-close-btn" onClick={() => setShowNotifications(false)}>×</button>
+                  <button className="ds-notif-close-btn" onClick={() => setShowNotifications(false)} aria-label="Close notifications" type="button">×</button>
                 </div>
                 <div className="ds-notif-panel-content">
                   {notifications.length === 0 ? (
@@ -827,6 +827,8 @@ const Dashboard = () => {
                             <span className="ds-notif-from">{notification.title}</span>
                             <button
                               className="ds-notif-delete"
+                              aria-label={`Delete notification ${notification.title}`}
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 deleteNotification(notification.id);

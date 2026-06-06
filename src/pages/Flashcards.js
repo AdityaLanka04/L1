@@ -44,6 +44,17 @@ const FC_ICONS = {
   chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
 };
 
+const cleanFlashcardChoiceText = (value) => {
+  return String(value || '')
+    .replace(/^```(?:[a-zA-Z0-9_-]+)?\s*/g, '')
+    .replace(/\s*```$/g, '')
+    .replace(/\\n/g, '\n')
+    .replace(/^[\s"'`“”]+|[\s"'`“”]+$/g, '')
+    .replace(/^\s*(?:[A-D]|\d+)[).:-]\s+/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 const Flashcards = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1705,21 +1716,35 @@ const Flashcards = () => {
     if (!cards || !cards[cardIndex]) return;
     
     const currentCardData = cards[cardIndex];
-    const correctAnswer = currentCardData.answer;
+    const correctAnswer = cleanFlashcardChoiceText(currentCardData.answer);
     
     
     if (currentCardData.wrong_options && currentCardData.wrong_options.length >= 3) {
       
-      const allOptions = [correctAnswer, ...currentCardData.wrong_options.slice(0, 3)].sort(() => Math.random() - 0.5);
+      const allOptions = [
+        { id: 'correct', text: correctAnswer, isCorrect: true },
+        ...currentCardData.wrong_options.slice(0, 3).map((option, index) => ({
+          id: `wrong-${index}`,
+          text: cleanFlashcardChoiceText(option),
+          isCorrect: false,
+        })),
+      ].sort(() => Math.random() - 0.5);
       setMcqOptions(allOptions);
     } else {
       
       const otherCards = cards.filter((_, idx) => idx !== cardIndex);
       const shuffledOthers = [...otherCards].sort(() => Math.random() - 0.5);
-      const wrongAnswers = shuffledOthers.slice(0, 3).map(card => card.answer);
+      const wrongAnswers = shuffledOthers.slice(0, 3).map(card => cleanFlashcardChoiceText(card.answer));
       
       
-      const allOptions = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
+      const allOptions = [
+        { id: 'correct', text: correctAnswer, isCorrect: true },
+        ...wrongAnswers.map((option, index) => ({
+          id: `wrong-${index}`,
+          text: option,
+          isCorrect: false,
+        })),
+      ].sort(() => Math.random() - 0.5);
       setMcqOptions(allOptions);
     }
     setSelectedOption(null);
@@ -1729,11 +1754,10 @@ const Flashcards = () => {
   const handleMCQSelection = async (option) => {
     if (showAnswer) return; 
     
-    setSelectedOption(option);
+    setSelectedOption(option.id);
     setShowAnswer(true);
     
-    const cards = shuffledCards.length > 0 ? shuffledCards : flashcards;
-    const isCorrect = option === cards[currentCard]?.answer;
+    const isCorrect = Boolean(option.isCorrect);
     
     
     setStudySessionStats(prev => ({
@@ -1743,6 +1767,7 @@ const Flashcards = () => {
     }));
     
     
+    const cards = shuffledCards.length > 0 ? shuffledCards : flashcards;
     const card = cards[currentCard];
     if (card?.id) {
       await updateCardMastery(card.id, isCorrect, 'study');
@@ -2695,16 +2720,19 @@ const Flashcards = () => {
               <div className="fc-study-content">
                 <div className="fc-study-mcq-area">
                   <div className="fc-mcq-question-container">
-                    <div className="fc-study-question-card">
-                      <div className="fc-study-badge">Question</div>
-                      <div className="fc-study-question-text">{currentStudyCards[currentCard]?.question}</div>
+                      <div className="fc-study-question-card">
+                        <div className="fc-study-badge">Question</div>
+                      <MathRenderer
+                        content={cleanFlashcardChoiceText(currentStudyCards[currentCard]?.question)}
+                        className="fc-study-question-text"
+                      />
                     </div>
                   </div>
 
                   <div className="fc-mcq-options">
                     {mcqOptions.map((option, index) => {
-                      const isCorrect = option === currentStudyCards[currentCard]?.answer;
-                      const isSelected = option === selectedOption;
+                      const isCorrect = Boolean(option.isCorrect);
+                      const isSelected = option.id === selectedOption;
                       let optionClass = 'fc-mcq-option';
                       
                       if (showAnswer) {
@@ -2719,13 +2747,13 @@ const Flashcards = () => {
                       
                       return (
                         <button
-                          key={index}
+                          key={option.id || index}
                           className={optionClass}
                           onClick={() => handleMCQSelection(option)}
-                          disabled={showAnswer}
+                          aria-disabled={showAnswer}
                         >
                           <span className="fc-mcq-letter">{String.fromCharCode(65 + index)}</span>
-                          <span className="fc-mcq-text">{option}</span>
+                          <MathRenderer content={option.text || ''} className="fc-mcq-text" />
                           {showAnswer && isCorrect && <span className="fc-mcq-icon">{FC_ICONS.check}</span>}
                           {showAnswer && isSelected && !isCorrect && <span className="fc-mcq-icon">{FC_ICONS.x}</span>}
                         </button>

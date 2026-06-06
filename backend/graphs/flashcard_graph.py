@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import json
 import re
 import logging
 from typing import Any, Optional, TypedDict
 
 from langgraph.graph import StateGraph, END
+from services.ai_json_parser import parse_json_array_response
 
 logger = logging.getLogger(__name__)
 
@@ -262,6 +262,8 @@ def build_prompt(state: FlashcardGenState) -> dict:
         "- Questions must be clear and specific\n"
         "- Answers: concise (2-4 sentences max)\n"
         "- wrong_options: 3 plausible but incorrect answers for MCQ mode\n"
+        "- wrong_options must be similar in length, specificity, and formatting to the correct answer\n"
+        "- Do not make the correct answer obviously longer, more detailed, or more mathematical than all wrong options\n"
         "- No duplicate or redundant cards\n"
         "- No markdown fences or extra text — just the JSON array"
     )
@@ -286,14 +288,7 @@ def generate_cards(state: FlashcardGenState) -> dict:
 
     try:
         response = ai_client.generate(prompt, max_tokens=3000, temperature=0.7)
-        cleaned = response.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-
-        data = json.loads(cleaned)
-
-        if isinstance(data, dict):
-            data = data.get("flashcards", [])
+        data = parse_json_array_response(response)
 
         valid = []
         for card in data[:card_count]:

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import './ToastNotification.css';
-import { Bell, CheckCircle, AlertCircle, Award, TrendingUp, Zap } from 'lucide-react';
+import { Bell, CheckCircle, AlertCircle, Award, TrendingUp, Zap, X } from 'lucide-react';
 
 const ToastNotification = ({ notification, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -28,20 +28,20 @@ const ToastNotification = ({ notification, onClose }) => {
   const getIcon = () => {
     switch (notification.notification_type) {
       case 'quiz_excellent':
-        return <CheckCircle size={24} color="#10B981" />;
+        return <CheckCircle size={18} />;
       case 'quiz_poor_performance':
-        return <AlertCircle size={24} color="#F59E0B" />;
+        return <AlertCircle size={18} />;
       case 'milestone':
       case 'achievement':
-        return <Award size={24} color="#D7B38C" />;
+        return <Award size={18} />;
       case 'level_up':
-        return <TrendingUp size={24} color="#D7B38C" />;
+        return <TrendingUp size={18} />;
       case 'streak_milestone':
-        return <Zap size={24} color="#10B981" />;
+        return <Zap size={18} />;
       case 'battle_won':
-        return <Award size={24} color="#10B981" />;
+        return <Award size={18} />;
       default:
-        return <Bell size={24} color="#D7B38C" />;
+        return <Bell size={18} />;
     }
   };
 
@@ -54,8 +54,8 @@ const ToastNotification = ({ notification, onClose }) => {
         <h4 className="toast-title">{notification.title}</h4>
         <p className="toast-message">{notification.message}</p>
       </div>
-      <button className="toast-close" onClick={handleClose}>
-        ×
+      <button className="toast-close" onClick={handleClose} aria-label="Dismiss notification" type="button">
+        <X size={15} />
       </button>
     </div>
   );

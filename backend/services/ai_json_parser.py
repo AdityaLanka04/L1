@@ -60,6 +60,7 @@ def _repair_json_like(text: str) -> str:
     repaired = (text or "").strip()
     repaired = repaired.replace("\u201c", '"').replace("\u201d", '"').replace("\u2019", "'")
     repaired = repaired.replace("\r\n", "\n")
+    repaired = _escape_latex_backslashes_in_strings(repaired)
 
     repaired = re.sub(r",(\s*[\]}])", r"\1", repaired)
     repaired = re.sub(r'([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*:)', r'\1"\2"\3', repaired)
@@ -68,10 +69,49 @@ def _repair_json_like(text: str) -> str:
     repaired = re.sub(r"\bNone\b", "null", repaired)
     return repaired
 
+def _escape_latex_backslashes_in_strings(text: str) -> str:
+    """Make model-emitted LaTeX commands JSON-safe without touching syntax."""
+    result: list[str] = []
+    in_string = False
+    i = 0
+
+    while i < len(text):
+        ch = text[i]
+
+        if ch == '"':
+            slash_count = 0
+            cursor = i - 1
+            while cursor >= 0 and text[cursor] == "\\":
+                slash_count += 1
+                cursor -= 1
+            if slash_count % 2 == 0:
+                in_string = not in_string
+            result.append(ch)
+            i += 1
+            continue
+
+        if in_string and ch == "\\":
+            start = i
+            while i < len(text) and text[i] == "\\":
+                i += 1
+            slash_count = i - start
+            next_char = text[i] if i < len(text) else ""
+            if next_char.isalpha() and slash_count % 2 == 1:
+                slash_count += 1
+            result.append("\\" * slash_count)
+            continue
+
+        result.append(ch)
+        i += 1
+
+    return "".join(result)
+
 def _normalize_to_list(value: Any) -> list[dict]:
     if isinstance(value, dict):
         if isinstance(value.get("questions"), list):
             value = value["questions"]
+        elif isinstance(value.get("flashcards"), list):
+            value = value["flashcards"]
         else:
             value = [value]
     if not isinstance(value, list):
@@ -121,4 +161,3 @@ def parse_json_array_response(text: str) -> list[dict]:
             return parsed
 
     return []
-

@@ -632,6 +632,7 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
             card_count=count,
             difficulty=difficulty,
             use_hs_context=request.use_hs_context,
+            context_doc_ids="",
             db=db,
         )
         set_id = response.get("set_id")
@@ -783,6 +784,7 @@ async def create_flashcards_endpoint(request: CreateFlashcardsRequest, db: Sessi
         card_count=request.count,
         difficulty=request.difficulty,
         use_hs_context=request.use_hs_context,
+        context_doc_ids="",
         db=db,
     )
 

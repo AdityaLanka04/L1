@@ -1,5 +1,26 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import {
+  BarChart3,
+  BookOpen,
+  Brain,
+  Clapperboard,
+  FileQuestion,
+  FileText,
+  Gamepad2,
+  HelpCircle,
+  Layers,
+  Library,
+  Map,
+  MessageCircle,
+  Network,
+  Route,
+  Search,
+  Sparkles,
+  Target,
+  Trophy,
+  Users,
+} from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
 import { safeInternalPath } from '../utils/sanitize';
@@ -19,10 +40,10 @@ const TUTOR_MODE_KEY = 'ai_chat_tutor_mode_enabled';
 const TUTOR_REPLY_MODE_KEY = 'ai_chat_tutor_reply_mode';
 
 const TUTOR_REPLY_MODES = [
-  { id: 'hint', label: 'Hint' },
-  { id: 'guided', label: 'Step' },
-  { id: 'check', label: 'Check' },
-  { id: 'quiz', label: 'Quiz' },
+  { id: 'hint', label: 'Nudge' },
+  { id: 'guided', label: 'Teach' },
+  { id: 'check', label: 'Check Me' },
+  { id: 'quiz', label: 'Drill' },
 ];
 
 const TUTOR_LEVEL_LABELS = {
@@ -72,6 +93,16 @@ const CORE_SMART_ACTIONS = [
   { id: 'build_path', kind: 'create_learning_path', label: 'Build Learning Path', description: 'Create a guided plan from beginner to advanced', icon: 'path', category: 'planning', baseScore: 108, intents: ['planning', 'explain', 'review'] },
   { id: 'build_roadmap', kind: 'create_roadmap', label: 'Create Knowledge Map', description: 'Generate a visual knowledge graph from this chat', icon: 'roadmap', category: 'planning', baseScore: 106, intents: ['planning', 'explain', 'review'] },
   { id: 'flashcards_now', kind: 'open_route', route: '/flashcards', label: 'Build Flashcards', description: 'Convert this topic into spaced-repetition cards', icon: 'flashcard', category: 'memory', baseScore: 102, intents: ['review', 'memory', 'assessment'] },
+];
+
+const TUTOR_SMART_ACTIONS = [
+  { id: 'tutor_practice_weakness', kind: 'practice_weakness', label: 'Practice Weakness', description: 'Train the exact mistake area', icon: 'practice' },
+  { id: 'tutor_make_flashcards', kind: 'create_flashcards', label: 'Make Flashcards', description: 'Save these gaps for spaced repetition', icon: 'flashcard' },
+  { id: 'tutor_quiz_me', kind: 'quiz_on_topic', label: 'Create Quiz', description: 'Generate a short check on this skill', icon: 'quiz' },
+  { id: 'tutor_open_map', kind: 'create_roadmap', label: 'Open Knowledge Map', description: 'See this concept in context', icon: 'roadmap' },
+  { id: 'tutor_continue_path', kind: 'create_learning_path', label: 'Continue Path', description: 'Build a guided plan from here', icon: 'path' },
+  { id: 'tutor_save_note', kind: 'create_note', label: 'Save as Note', description: 'Capture this tutor step in notes', icon: 'note' },
+  { id: 'tutor_review', kind: 'open_route', route: '/learning-review', label: 'Learning Review', description: 'Review connected study work', icon: 'review' },
 ];
 
 const FEATURE_ROUTE_ACTIONS = [
@@ -338,6 +369,31 @@ function extractTutorOptionsFromText(text = '') {
   return [];
 }
 
+function normalizeTutorLessonPlan(rawPlan = null) {
+  if (!rawPlan || typeof rawPlan !== 'object') return null;
+  const rawSteps = Array.isArray(rawPlan.steps) ? rawPlan.steps : [];
+  const steps = rawSteps.slice(0, 8).map((step, index) => {
+    if (!step || typeof step !== 'object') return null;
+    const id = Number.isFinite(Number(step.id)) ? Number(step.id) : index + 1;
+    const title = String(step.title || `Step ${id}`).trim().slice(0, 80);
+    const expected = String(step.expected || '').trim().slice(0, 180);
+    const skill = String(step.skill || '').trim().slice(0, 80);
+    const misconception = String(step.misconception || '').trim().slice(0, 120);
+    return { id, title, expected, skill, misconception };
+  }).filter(Boolean);
+  const currentStep = Number.isFinite(Number(rawPlan.current_step))
+    ? Math.max(1, Number(rawPlan.current_step))
+    : 1;
+
+  return {
+    goal: String(rawPlan.goal || 'Build understanding step by step').trim().slice(0, 120),
+    currentStep,
+    totalSteps: steps.length || Math.max(0, Number(rawPlan.total_steps || 0)),
+    steps,
+    finalAnswer: String(rawPlan.final_answer || '').trim().slice(0, 240),
+  };
+}
+
 function normalizeTutorState(rawState = null, replyMode = 'guided') {
   if (!rawState || typeof rawState !== 'object') return null;
 
@@ -366,6 +422,9 @@ function normalizeTutorState(rawState = null, replyMode = 'guided') {
   const masteryScore = Number.isFinite(Number(rawState.mastery_score))
     ? Math.max(0, Math.min(1, Number(rawState.mastery_score)))
     : null;
+  const lessonPlan = normalizeTutorLessonPlan(rawState.lesson_plan);
+  const correctStreak = Number.isFinite(Number(rawState.correct_streak)) ? Math.max(0, Number(rawState.correct_streak)) : 0;
+  const wrongStreak = Number.isFinite(Number(rawState.wrong_streak)) ? Math.max(0, Number(rawState.wrong_streak)) : 0;
 
   return {
     level,
@@ -383,6 +442,10 @@ function normalizeTutorState(rawState = null, replyMode = 'guided') {
     finalAnswer: String(rawState.final_answer || '').trim().slice(0, 240),
     skillsUsed: Array.isArray(rawState.skills_used) ? rawState.skills_used.slice(0, 6) : [],
     misconceptions: Array.isArray(rawState.misconceptions) ? rawState.misconceptions.slice(0, 6) : [],
+    autoWeaknessTopics: Array.isArray(rawState.auto_weakness_topics) ? rawState.auto_weakness_topics.slice(0, 6) : [],
+    lessonPlan,
+    correctStreak,
+    wrongStreak,
     masteryScore,
   };
 }
@@ -416,6 +479,54 @@ function getTutorProgressDisplay(tutorState) {
     status: TUTOR_VERDICT_SUMMARY[tutorState?.verdict] || 'Guided mode',
     nextLabel: TUTOR_VERDICT_NEXT_LABEL[tutorState?.verdict] || 'Continue',
   };
+}
+
+function getTutorMissionDisplay(tutorState) {
+  const plan = tutorState?.lessonPlan;
+  const steps = Array.isArray(plan?.steps) ? plan.steps : [];
+  const currentStepNumber = plan?.currentStep || tutorState?.currentStep || 1;
+  const totalSteps = plan?.totalSteps || tutorState?.totalSteps || steps.length || 0;
+  const currentStep = steps.find((step) => Number(step.id) === Number(currentStepNumber))
+    || steps[Math.max(0, Math.min(steps.length - 1, currentStepNumber - 1))]
+    || null;
+  const skill = currentStep?.skill || tutorState?.skillsUsed?.[0] || tutorState?.objective || '';
+
+  return {
+    goal: plan?.goal || tutorState?.objective || 'Build understanding step by step',
+    stepLabel: totalSteps > 0 ? `Step ${Math.min(currentStepNumber, totalSteps)}/${totalSteps}` : 'Current mission',
+    title: currentStep?.title || tutorState?.objective || 'Next learning move',
+    skill,
+    nextAction: tutorState?.nextAction || 'Try the next small step',
+  };
+}
+
+function getTutorMistakeTopics(tutorState) {
+  const topics = [
+    ...(tutorState?.autoWeaknessTopics || []),
+    ...(tutorState?.misconceptions || []),
+  ].map((item) => String(item || '').trim()).filter(Boolean);
+  return [...new Set(topics.map((item) => item.toLowerCase()))]
+    .map((lower) => topics.find((item) => item.toLowerCase() === lower))
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
+function getTutorSessionSummary(tutorState, progress) {
+  const skills = tutorState?.skillsUsed || [];
+  const mistakes = getTutorMistakeTopics(tutorState);
+  const mastery = progress.masteryPercent !== null ? `${progress.masteryPercent}% mastery` : 'Mastery building';
+  const streak = tutorState?.correctStreak > 0
+    ? `${tutorState.correctStreak} correct streak`
+    : tutorState?.wrongStreak > 0
+      ? `${tutorState.wrongStreak} needs-practice streak`
+      : 'No streak yet';
+
+  return [
+    mastery,
+    streak,
+    skills.length ? `${skills.slice(0, 2).join(', ')}` : '',
+    mistakes.length ? `${mistakes.length} weakness ${mistakes.length === 1 ? 'area' : 'areas'} tracked` : '',
+  ].filter(Boolean);
 }
 
 function normalizeLoadedMessage(message) {
@@ -490,7 +601,7 @@ const EMOTIONAL_RE = /\b(i give up|so frustrated|this is (too )?hard|i hate (thi
 
 const EDUCATIONAL_INTENT_CLASSES = new Set(['LEARN_CONCEPT', 'ASSESS', 'REVIEW']);
 
-function pickSmartActions({ userMessage, aiResponse, recentActionIds = [], intentClass = null }) {
+function pickSmartActions({ userMessage, aiResponse, recentActionIds = [], intentClass = null, contextSummary = '', contextLabel = '' }) {
   const userMsg = (userMessage || '').trim();
   const userOnlyIntents = detectIntents(userMsg);
   const hasSpecificIntent = userOnlyIntents.some((i) => i !== 'general');
@@ -510,16 +621,17 @@ function pickSmartActions({ userMessage, aiResponse, recentActionIds = [], inten
 
   const combined = `${userMsg} ${aiResponse || ''}`.trim();
   const intents = detectIntents(combined);
-  const topic = inferTopicFromText(userMessage, aiResponse);
+  const actionContext = String(contextSummary || userMsg || aiResponse || '').trim();
+  const topic = normalizeTopic(contextLabel) || inferTopicFromText(actionContext, '');
   const recentSet = new Set(recentActionIds);
   const actionPool = [...CORE_SMART_ACTIONS, ...FEATURE_ROUTE_ACTIONS];
 
   const scored = actionPool.map((action) => {
     const intentOverlap = (action.intents || []).filter((intent) => intents.includes(intent)).length;
-    const topicBoost = combined.toLowerCase().includes(topic.toLowerCase()) ? 3 : 0;
+    const topicBoost = actionContext.toLowerCase().includes(topic.toLowerCase()) ? 3 : 0;
     const repetitionPenalty = recentSet.has(action.id) ? 12 : 0;
     const score = (action.baseScore || 0) + intentOverlap * 12 + topicBoost - repetitionPenalty;
-    return { ...action, score, topic };
+    return { ...action, score, topic, contextSummary: actionContext };
   });
 
   scored.sort((a, b) => b.score - a.score);
@@ -1515,11 +1627,14 @@ const AIChat = ({ sharedMode = false }) => {
         .slice(-2)
         .flatMap((m) => (Array.isArray(m.smartActions) ? m.smartActions.map((action) => action.id) : []));
       const responseTutorMode = data.tutor_mode || effectiveTutorMode;
+      const chatActionContext = getChatActionContext([...messages, userMessage], currentChatId);
       const smartActions = responseTutorMode ? [] : pickSmartActions({
         userMessage: messageText,
         aiResponse: aiAnswerContent,
         recentActionIds,
         intentClass: backendIntentClass,
+        contextSummary: chatActionContext.summary,
+        contextLabel: chatActionContext.label,
       });
 
       const aiMessage = {
@@ -1625,6 +1740,33 @@ const AIChat = ({ sharedMode = false }) => {
     });
   }, [activeChatId, chatId]);
 
+  const getChatActionContext = useCallback((messagesForContext = messages, chatSessionId = activeChatId) => {
+    const currentSession = chatSessions.find((session) => Number(session.id) === Number(chatSessionId));
+    const sessionTitle = normalizeTopic(currentSession?.title || '');
+    const recentEntries = [...(messagesForContext || [])]
+      .filter((entry) => entry?.content && (entry.type === 'user' || entry.type === 'ai'))
+      .slice(-8)
+      .map((entry) => {
+        const role = entry.type === 'user' ? 'Student' : 'Tutor';
+        const content = stripInternalGraphGuidance(entry.content || '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, entry.type === 'user' ? 220 : 280);
+        return content ? `${role}: ${content}` : '';
+      })
+      .filter(Boolean);
+    const summary = [
+      sessionTitle && sessionTitle !== 'New Chat' ? `Chat title: ${sessionTitle}` : '',
+      ...recentEntries,
+    ].filter(Boolean).join('\n').slice(0, 1100);
+    const labelSeed = recentEntries.find((entry) => entry.startsWith('Student:')) || summary;
+    const inferred = inferTopicFromText(labelSeed.replace(/^Student:\s*/i, ''), '');
+    return {
+      summary,
+      label: normalizeTopic(inferred === 'this topic' ? sessionTitle : inferred).slice(0, 80),
+    };
+  }, [activeChatId, chatSessions, messages]);
+
   const getSmartActionsForMessage = useCallback((message, messageIndex) => {
     if (message.type !== 'ai') return [];
     if (message.tutorMode || message.tutorState || (Array.isArray(message.tutorOptions) && message.tutorOptions.length > 0)) {
@@ -1651,13 +1793,37 @@ const AIChat = ({ sharedMode = false }) => {
       .slice(-2)
       .flatMap((entry) => (Array.isArray(entry.smartActions) ? entry.smartActions.map((action) => action.id) : []));
 
+    const chatActionContext = getChatActionContext(previousMessages, activeChatId);
     return pickSmartActions({
       userMessage: previousUserMessage?.content || '',
       aiResponse: message.content || '',
       recentActionIds,
       intentClass: message.intentClass,
+      contextSummary: chatActionContext.summary,
+      contextLabel: chatActionContext.label,
     });
-  }, [messages]);
+  }, [activeChatId, getChatActionContext, messages]);
+
+  const getTutorActionsForMessage = useCallback((message) => {
+    const tutorState = normalizeTutorState(message?.tutorState, message?.tutorReplyMode);
+    if (!message || message.type !== 'ai' || !tutorState) return [];
+
+    const weaknessTopic = [
+      ...tutorState.autoWeaknessTopics,
+      ...tutorState.misconceptions,
+      ...tutorState.skillsUsed,
+      tutorState.objective,
+    ].map((item) => normalizeTopic(String(item || ''))).find(Boolean);
+    const chatActionContext = getChatActionContext();
+    const topic = weaknessTopic || chatActionContext.label || 'this context';
+    const shouldPracticeWeakness = ['partly_correct', 'not_yet'].includes(tutorState.verdict)
+      || tutorState.misconceptions.length > 0
+      || tutorState.autoWeaknessTopics.length > 0;
+
+    return TUTOR_SMART_ACTIONS
+      .filter((action) => action.kind !== 'practice_weakness' || shouldPracticeWeakness)
+      .map((action) => ({ ...action, topic, contextSummary: chatActionContext.summary }));
+  }, [getChatActionContext]);
 
   const runSmartAction = useCallback(async (action, aiMessage) => {
     if (!action || !aiMessage) return;
@@ -1670,7 +1836,10 @@ const AIChat = ({ sharedMode = false }) => {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     };
-    const topic = normalizeTopic(action.topic || inferTopicFromText('', aiMessage.content)) || 'this topic';
+    const chatActionContext = getChatActionContext();
+    const actionContext = String(action.contextSummary || chatActionContext.summary || aiMessage?.content || '').trim();
+    const topic = normalizeTopic(action.topic || chatActionContext.label || inferTopicFromText(actionContext, '')) || 'this context';
+    const contextPrompt = actionContext || topic;
 
     try {
       const createAndOpenRoadmap = async (baseTopic, noticeText) => {
@@ -1732,12 +1901,27 @@ const AIChat = ({ sharedMode = false }) => {
         return;
       }
 
+      if (action.kind === 'practice_weakness') {
+        activateChatDock(activeChatId);
+        navigate('/weakness-practice', {
+          state: {
+            topic,
+            contextSummary: contextPrompt,
+            difficulty: 'intermediate',
+            source: 'ai_tutor',
+          },
+        });
+        showSmartActionNotice('Opening targeted weakness practice...');
+        return;
+      }
+
       if (action.kind === 'quiz_on_topic') {
         activateChatDock(activeChatId);
         navigate('/solo-quiz', {
           state: {
             autoStart: true,
             topics: [topic],
+            contextSummary: contextPrompt,
             difficulty: 'medium',
             questionCount: 10,
           },
@@ -1753,7 +1937,7 @@ const AIChat = ({ sharedMode = false }) => {
           body: JSON.stringify({
             user_id: userName,
             title: `${topic.slice(0, 45)} Notes`,
-            content: `# ${topic}\n\n${aiMessage.content || ''}`.trim(),
+            content: `# ${topic}\n\n## Chat Context\n${contextPrompt}\n\n## Tutor Response\n${aiMessage.content || ''}`.trim(),
           }),
         });
         if (!noteResponse.ok) {
@@ -1771,15 +1955,42 @@ const AIChat = ({ sharedMode = false }) => {
         return;
       }
 
+      if (action.kind === 'create_flashcards') {
+        const flashcardResponse = await fetch(`${API_URL}/agents/searchhub`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            user_id: userName,
+            query: `create flashcards from this chat context: ${contextPrompt}`,
+            session_id: `chat_${Date.now()}`,
+          }),
+        });
+        if (!flashcardResponse.ok) {
+          throw new Error('Failed to create flashcards');
+        }
+        const flashcardData = await flashcardResponse.json();
+        const safePath = safeInternalPath(flashcardData.navigate_to);
+        activateChatDock(activeChatId);
+        if (safePath) {
+          navigate(safePath);
+        } else if (flashcardData.content_id) {
+          navigate(`/flashcards?set_id=${encodeURIComponent(flashcardData.content_id)}`);
+        } else {
+          navigate('/flashcards');
+        }
+        showSmartActionNotice('Flashcards created from this tutor step.');
+        return;
+      }
+
       if (action.kind === 'create_learning_path') {
         const pathResponse = await fetch(`${API_URL}/learning-paths/generate`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
-            topicPrompt: topic,
+            topicPrompt: contextPrompt,
             difficulty: 'intermediate',
             length: 'medium',
-            goals: [`Master ${topic}`, `Apply ${topic} in practice`],
+            goals: [`Understand this chat context`, `Practice the current explanation level`],
           }),
         });
         if (!pathResponse.ok) {
@@ -1806,56 +2017,56 @@ const AIChat = ({ sharedMode = false }) => {
     } finally {
       setActiveActionKey(null);
     }
-  }, [API_URL, activateChatDock, activeChatId, navigate, showSmartActionNotice, userName]);
+  }, [API_URL, activateChatDock, activeChatId, getChatActionContext, navigate, showSmartActionNotice, userName]);
 
   const renderSmartActionIcon = (icon) => {
     switch (icon) {
       case 'note':
-        return <span>N</span>;
+        return <FileText size={15} strokeWidth={2} />;
       case 'quiz':
-        return <span>Q</span>;
+        return <HelpCircle size={15} strokeWidth={2} />;
       case 'depth':
-        return <span>D</span>;
+        return <Layers size={15} strokeWidth={2} />;
       case 'path':
-        return <span>P</span>;
+        return <Route size={15} strokeWidth={2} />;
       case 'roadmap':
-        return <span>R</span>;
+        return <Map size={15} strokeWidth={2} />;
       case 'flashcard':
-        return <span>F</span>;
+        return <BookOpen size={15} strokeWidth={2} />;
       case 'search':
-        return <span>S</span>;
+        return <Search size={15} strokeWidth={2} />;
       case 'social':
-        return <span>O</span>;
+        return <Users size={15} strokeWidth={2} />;
       case 'analytics':
-        return <span>A</span>;
+        return <BarChart3 size={15} strokeWidth={2} />;
       case 'media':
-        return <span>M</span>;
+        return <Clapperboard size={15} strokeWidth={2} />;
       case 'insights':
-        return <span>I</span>;
+        return <Brain size={15} strokeWidth={2} />;
       case 'practice':
-        return <span>T</span>;
+        return <Target size={15} strokeWidth={2} />;
       case 'vault':
-        return <span>V</span>;
+        return <Library size={15} strokeWidth={2} />;
       case 'canvas':
-        return <span>C</span>;
+        return <Network size={15} strokeWidth={2} />;
       case 'playlist':
-        return <span>L</span>;
+        return <Layers size={15} strokeWidth={2} />;
       case 'games':
-        return <span>G</span>;
+        return <Gamepad2 size={15} strokeWidth={2} />;
       case 'review':
-        return <span>W</span>;
+        return <MessageCircle size={15} strokeWidth={2} />;
       case 'xp':
-        return <span>X</span>;
+        return <Trophy size={15} strokeWidth={2} />;
       case 'concept':
-        return <span>K</span>;
+        return <Network size={15} strokeWidth={2} />;
       case 'bank':
-        return <span>B</span>;
+        return <FileQuestion size={15} strokeWidth={2} />;
       case 'slides':
-        return <span>U</span>;
+        return <Clapperboard size={15} strokeWidth={2} />;
       case 'weakness':
-        return <span>Z</span>;
+        return <Target size={15} strokeWidth={2} />;
       default:
-        return <span>&gt;</span>;
+        return <Sparkles size={15} strokeWidth={2} />;
     }
   };
 
@@ -3137,12 +3348,38 @@ const AIChat = ({ sharedMode = false }) => {
                   const tutorState = normalizeTutorState(message.tutorState, message.tutorReplyMode);
                   const isTutorMessage = Boolean(message.tutorMode || tutorState || tutorOptions.length > 0);
                   const smartActions = isTutorMessage ? [] : getSmartActionsForMessage(message, messageIndex);
+                  const tutorActions = isTutorMessage ? getTutorActionsForMessage(message) : [];
+                  const hasBackendActions = !isTutorMessage && smartActions.length === 0 && message.actionButtons && message.actionButtons.length > 0;
+                  const messageClasses = [
+                    'ac-message',
+                    message.type,
+                    isTutorMessage ? 'has-tutor-ui' : '',
+                    (smartActions.length > 0 || tutorActions.length > 0 || hasBackendActions) ? 'has-action-ui' : '',
+                  ].filter(Boolean).join(' ');
                   return (
-                  <div key={message.id} className={`ac-message ${message.type}`}>
+                  <div key={message.id} className={messageClasses}>
                     <div className="ac-message-bubble">
                       <div className="ac-message-content">
                         {renderMessageContent(message.content)}
                       </div>
+
+                      {message.type === 'ai' && tutorState && (() => {
+                        const mission = getTutorMissionDisplay(tutorState);
+                        return (
+                          <div className="ac-tutor-mission-panel">
+                            <div className="ac-tutor-mission-kicker">
+                              <span>{mission.stepLabel}</span>
+                              {mission.skill && <span>{mission.skill}</span>}
+                            </div>
+                            <div className="ac-tutor-mission-title">{mission.title}</div>
+                            <div className="ac-tutor-mission-goal">{mission.goal}</div>
+                            <div className="ac-tutor-mission-next">
+                              <span>Next move</span>
+                              <p>{mission.nextAction}</p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                       
                       {message.files && message.files.length > 0 && (
                         <div className="ac-msg-attachments">
@@ -3206,6 +3443,8 @@ const AIChat = ({ sharedMode = false }) => {
 
                       {message.type === 'ai' && tutorState && (() => {
                         const progress = getTutorProgressDisplay(tutorState);
+                        const mistakeTopics = getTutorMistakeTopics(tutorState);
+                        const summaryItems = getTutorSessionSummary(tutorState, progress);
                         return (
                           <div className={`ac-tutor-state-card verdict-${tutorState.verdict}`}>
                             <div className="ac-tutor-state-header">
@@ -3227,6 +3466,49 @@ const AIChat = ({ sharedMode = false }) => {
                               <span>{progress.nextLabel}</span>
                               <p>{tutorState.nextAction}</p>
                             </div>
+                            {(tutorState.skillsUsed.length > 0 || mistakeTopics.length > 0) && (
+                              <div className="ac-tutor-chip-block">
+                                {tutorState.skillsUsed.length > 0 && (
+                                  <div className="ac-tutor-chip-row">
+                                    <span className="ac-tutor-chip-label">Skills</span>
+                                    {tutorState.skillsUsed.map((skill) => (
+                                      <span key={`skill:${skill}`} className="ac-tutor-chip">{skill}</span>
+                                    ))}
+                                  </div>
+                                )}
+                                {mistakeTopics.length > 0 && (
+                                  <div className="ac-tutor-chip-row ac-tutor-chip-row--mistakes">
+                                    <span className="ac-tutor-chip-label">What tripped you up</span>
+                                    {mistakeTopics.map((mistake) => (
+                                      <button
+                                        key={`mistake:${mistake}`}
+                                        type="button"
+                                        className="ac-tutor-chip ac-tutor-chip-btn"
+                                        onClick={() => {
+                                          activateChatDock(activeChatId);
+                                          navigate('/weakness-practice', {
+                                            state: {
+                                              topic: mistake,
+                                              difficulty: 'intermediate',
+                                              source: 'ai_tutor',
+                                            },
+                                          });
+                                        }}
+                                      >
+                                        {mistake}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {summaryItems.length > 0 && (
+                              <div className="ac-tutor-session-summary">
+                                {summaryItems.map((item) => (
+                                  <span key={item}>{item}</span>
+                                ))}
+                              </div>
+                            )}
                             <div className="ac-tutor-state-stats" aria-label="Tutor progress">
                               <span>{progress.attempts} attempt{progress.attempts === 1 ? '' : 's'}</span>
                               <span>{progress.correctCount} correct</span>
@@ -3240,6 +3522,29 @@ const AIChat = ({ sharedMode = false }) => {
                           </div>
                         );
                       })()}
+
+                      {message.type === 'ai' && tutorActions.length > 0 && (
+                        <div className="ac-smart-actions ac-tutor-actions">
+                          {tutorActions.map((action) => {
+                            const actionKey = `${message.id}:${action.id}`;
+                            const busy = activeActionKey === actionKey;
+                            return (
+                              <button
+                                key={actionKey}
+                                className={`ac-smart-action ac-smart-action-${action.icon || 'default'}`}
+                                onClick={() => runSmartAction(action, message)}
+                                disabled={busy || loading}
+                              >
+                                <span className="ac-smart-action-icon">{busy ? '...' : renderSmartActionIcon(action.icon)}</span>
+                                <span className="ac-smart-action-copy">
+                                  <span className="ac-smart-action-label">{action.label}</span>
+                                  <span className="ac-smart-action-desc">{action.description}</span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                       
                       {/* Intelligent Action Grid */}
                       {message.type === 'ai' && !isTutorMessage && smartActions.length > 0 && (
@@ -3266,7 +3571,7 @@ const AIChat = ({ sharedMode = false }) => {
                       )}
 
                       {/* Backend-provided fallback action buttons */}
-                      {message.type === 'ai' && !isTutorMessage && smartActions.length === 0 && message.actionButtons && message.actionButtons.length > 0 && (
+                      {message.type === 'ai' && hasBackendActions && (
                         <div className="ac-action-buttons">
                           {message.actionButtons.map((btn, index) => (
                             <button
@@ -3274,7 +3579,9 @@ const AIChat = ({ sharedMode = false }) => {
                               className={`ac-action-btn ac-action-btn-${btn.icon || 'default'}`}
                               onClick={async () => {
                                 const token = localStorage.getItem('token');
-                                const topic = btn.navigate_params?.topic || 'General';
+                                const buttonContext = getChatActionContext(messages.slice(0, messageIndex + 1), activeChatId);
+                                const topic = normalizeTopic(buttonContext.label || btn.navigate_params?.topic || 'General') || 'General';
+                                const contextPrompt = buttonContext.summary || topic;
                                 activateChatDock(activeChatId);
                                 
                                 if (btn.action === 'create' && btn.content_type === 'note') {
@@ -3288,7 +3595,7 @@ const AIChat = ({ sharedMode = false }) => {
                                       },
                                       body: JSON.stringify({
                                         user_id: userName,
-                                        topic: topic,
+                                        topic: contextPrompt,
                                         session_id: `chat_${Date.now()}`
                                       })
                                     });
@@ -3318,7 +3625,7 @@ const AIChat = ({ sharedMode = false }) => {
                                       },
                                       body: JSON.stringify({
                                         user_id: userName,
-                                        query: `create flashcards on ${topic}`,
+                                        query: `create flashcards from this chat context: ${contextPrompt}`,
                                         session_id: `chat_${Date.now()}`
                                       })
                                     });
@@ -3338,8 +3645,14 @@ const AIChat = ({ sharedMode = false }) => {
                                     navigate('/flashcards');
                                   }
                                 } else if (btn.content_type === 'quiz') {
-                                  // Navigate to quiz with auto-start params
-                                  navigate(`/solo-quiz?autoStart=true&topic=${encodeURIComponent(topic)}&questionCount=10`);
+                                  navigate('/solo-quiz', {
+                                    state: {
+                                      autoStart: true,
+                                      topics: [topic],
+                                      contextSummary: contextPrompt,
+                                      questionCount: 10,
+                                    },
+                                  });
                                 } else if (btn.navigate_to) {
                                   // Validate AI-provided path before navigating
                                   const safeDest = safeInternalPath(btn.navigate_to);

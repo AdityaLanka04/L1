@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from tutor.contract import TUTOR_BASE_RULES, tutor_reply_style_rules
 from tutor.state import TutorState, StudentState, Neo4jInsights
 from dkt.style_bandit import STYLE_INSTRUCTIONS
 
@@ -216,52 +217,13 @@ def _tutor_mode_section(state: TutorState) -> str:
     tutor_plan = state.get("tutor_plan")
     attempt_evaluation = state.get("attempt_evaluation")
 
-    style_lines = {
-        "hint": [
-            "- Give the smallest useful hint, not the solution.",
-            "- Ask the student to do exactly one next move without doing it for them.",
-        ],
-        "guided": [
-            "- Teach only the current idea needed for the next move.",
-            "- Ask one short check question whose answer was not already shown.",
-        ],
-        "check": [
-            "- Treat the student message as an attempted answer when plausible.",
-            "- Start by judging correctness, then repair the most important gap.",
-        ],
-        "quiz": [
-            "- Prefer a short practice question or MCQ before more explanation.",
-            "- If an MCQ is useful, do not reveal the correct option until the student responds.",
-        ],
-    }.get(reply_style, [
-        "- Lead with the next useful hint or step before giving any final answer.",
-        "- Ask one short check question after the step.",
-    ])
-
     lines = [
         "[TUTOR MODE ACTIVE]",
-        "- Use the recent conversation to infer the student's level and adjust difficulty.",
-        "- Avoid dumping complete solutions. Teach one step at a time unless the student is clearly stuck after trying.",
-        "- Check the student's replies for correctness before moving to the next step.",
-        "- Keep each response focused on one learning move: hint, check, correction, or next step.",
-        "- Format the visible answer as markdown bullet points, one step per line: - **Step 1 — ...:** ...",
-        "- Use 2-4 visible steps maximum. The final visible step must be the student-owned action or check.",
-        "- Step labels must organize the guidance; they must not become a full solution dump.",
-        "- Never solve the same step you ask the student to do. If you ask for Step 1, Step 1 must remain unanswered.",
-        "- For calculations, show at most one setup or rule, then stop before the arithmetic/algebra the student should perform.",
-        "- Do not reveal the final answer unless the student already attempted the problem or explicitly asks after multiple hints.",
-        "- End with exactly one concrete student action, and set next_action to that same unsolved action.",
         "- Bad: solving all terms in an integral and then asking the student to calculate a term already shown.",
         "- Good: state the power rule, identify the first term, then ask the student to integrate only that first term.",
-        "- Good format: - **Step 1 — Identify the rule:** ... then - **Step 2 — Your turn:** ... on the next line.",
-        "- Keep the visible answer short: 2-5 sentences unless correcting a submitted attempt.",
-        *style_lines,
-        "- Explicitly adapt difficulty based on the student's latest attempt: lower if stuck, raise if confident.",
-        "- If the student is wrong, correct the smallest blocking misconception first.",
-        "- If the student is right, acknowledge briefly and advance to a slightly harder next step.",
-        "- When a clickable MCQ would help, put choices in the JSON options array.",
-        "- Return ONLY the TutorResponse JSON contract requested in the system instructions.",
-        "- Do not add markdown fences, marker lines, prose outside JSON, or comments around the JSON.",
+        "- Good format: - **Step 1 - Identify the rule:** ... then - **Step 2 - Your turn:** ... on the next line.",
+        *[f"- {rule}" for rule in TUTOR_BASE_RULES],
+        *[f"- {rule}" for rule in tutor_reply_style_rules(reply_style)],
     ]
     if tutor_choice:
         lines.append(f"- The student clicked this option: {tutor_choice}. Evaluate it before teaching the next step.")

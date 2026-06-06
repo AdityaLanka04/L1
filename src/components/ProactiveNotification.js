@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Bot, MessageCircle, X } from 'lucide-react';
 import './ProactiveNotification.css';
 
 const ProactiveNotification = ({ message, chatId, onClose }) => {
@@ -32,11 +33,7 @@ const ProactiveNotification = ({ message, chatId, onClose }) => {
       <div className="proactive-notif-card">
         <div className="proactive-notif-header">
           <div className="proactive-notif-avatar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" />
-              <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" fill="none" />
-              <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" fill="none" />
-            </svg>
+            <Bot size={18} />
           </div>
           <div className="proactive-notif-title">
             <span className="proactive-notif-name">Cerbyl AI</span>
@@ -45,8 +42,10 @@ const ProactiveNotification = ({ message, chatId, onClose }) => {
           <button 
             className="proactive-notif-close" 
             onClick={(e) => { e.stopPropagation(); handleClose(); }}
+            aria-label="Dismiss AI notification"
+            type="button"
           >
-            ×
+            <X size={15} />
           </button>
         </div>
         <div className="proactive-notif-body">
@@ -54,7 +53,9 @@ const ProactiveNotification = ({ message, chatId, onClose }) => {
           <button 
             className="proactive-notif-cta"
             onClick={handleClick}
+            type="button"
           >
+            <MessageCircle size={15} />
             Open AI Chat
           </button>
         </div>

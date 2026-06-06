@@ -19,6 +19,7 @@ from deps import (
     get_current_user,
     get_db,
 )
+from tutor.contract import tutor_contract_instruction
 
 CHAT_UPLOAD_DIR = Path("uploads/chat_images")
 CHAT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -251,6 +252,84 @@ def _trim_string_list(value: object, max_items: int = 8, max_len: int = 80) -> l
         if text:
             items.append(text[:max_len])
     return items
+
+def _normalize_weakness_topic(value: object, fallback: str = "") -> str:
+    text_value = re.sub(r"\s+", " ", str(value or "").strip())
+    if not text_value:
+        text_value = fallback
+    text_value = re.sub(r"^(misconception|mistake|error|gap)\s*[:\-]\s*", "", text_value, flags=re.I)
+    return text_value[:255]
+
+def _record_tutor_weakness_signals(
+    db: Session,
+    user_id: int,
+    tutor_state: Optional[dict],
+    tutor_choice: Optional[str] = None,
+) -> list[str]:
+    if not tutor_state:
+        return []
+
+    verdict = str(tutor_state.get("verdict") or "").strip().lower()
+    if verdict not in {"partly_correct", "not_yet"}:
+        return []
+
+    objective = _normalize_weakness_topic(tutor_state.get("objective"), "AI tutor mistake")
+    skills = _trim_string_list(tutor_state.get("skills_used"), 4, 80)
+    misconceptions = _trim_string_list(tutor_state.get("misconceptions"), 5, 120)
+    raw_topics = misconceptions or skills or [objective]
+    topics: list[str] = []
+    for raw_topic in raw_topics:
+        topic = _normalize_weakness_topic(raw_topic, objective)
+        if topic and topic.lower() not in {item.lower() for item in topics}:
+            topics.append(topic)
+
+    now = datetime.now(timezone.utc)
+    recorded: list[str] = []
+    for topic in topics[:5]:
+        existing = db.query(models.UserWeakArea).filter(
+            models.UserWeakArea.user_id == user_id,
+            models.UserWeakArea.topic == topic,
+        ).first()
+        penalty = 18 if verdict == "not_yet" else 10
+        if existing:
+            existing.subtopic = existing.subtopic or objective
+            existing.total_questions = (existing.total_questions or 0) + 1
+            existing.incorrect_count = (existing.incorrect_count or 0) + 1
+            existing.consecutive_wrong = (existing.consecutive_wrong or 0) + 1
+            existing.last_wrong_streak = max(existing.last_wrong_streak or 0, existing.consecutive_wrong or 0)
+            existing.accuracy = round(((existing.correct_count or 0) / max(existing.total_questions or 0, 1)) * 100, 1)
+            existing.weakness_score = min(100.0, max(existing.weakness_score or 0.0, 35.0) + penalty)
+            existing.priority = max(existing.priority or 0, 8 if verdict == "not_yet" else 6)
+            existing.status = "needs_practice"
+            existing.last_updated = now
+        else:
+            db.add(models.UserWeakArea(
+                user_id=user_id,
+                topic=topic,
+                subtopic=objective,
+                total_questions=1,
+                correct_count=0,
+                incorrect_count=1,
+                accuracy=0.0,
+                weakness_score=55.0 if verdict == "not_yet" else 42.0,
+                consecutive_wrong=1,
+                last_wrong_streak=1,
+                status="needs_practice",
+                priority=8 if verdict == "not_yet" else 6,
+                first_identified=now,
+                last_updated=now,
+            ))
+        recorded.append(topic)
+
+    if recorded:
+        logger.info(
+            "Recorded tutor weakness signal: user_id=%s verdict=%s topics=%s choice=%s",
+            user_id,
+            verdict,
+            recorded,
+            (tutor_choice or "")[:80],
+        )
+    return recorded
 
 def _normalize_lesson_plan(value: object) -> Optional[dict]:
     if not isinstance(value, dict):
@@ -664,34 +743,14 @@ def _persist_tutor_session_state(
     row.reply_style = reply_style or "guided"
     row.last_options = tutor_options or []
     row.updated_at = datetime.now(timezone.utc)
-    return _tutor_state_row_to_payload(row)
+    recorded_weaknesses = _record_tutor_weakness_signals(db, user_id, tutor_state, tutor_choice)
+    payload = _tutor_state_row_to_payload(row)
+    if recorded_weaknesses:
+        payload["auto_weakness_topics"] = recorded_weaknesses
+    return payload
 
 def _tutor_mode_prompt_prefix(reply_style: str = "guided") -> str:
-    style = (reply_style or "guided").strip().lower()
-    style_hint = {
-        "hint": "Give the smallest useful hint and require the student to do the next move without solving it.",
-        "guided": "Guide one unsolved step at a time and ask one focused check.",
-        "check": "Evaluate the student's attempt first, then correct the key gap and leave one next step unsolved.",
-        "quiz": "Prefer a short practice question or MCQ before giving more explanation; do not reveal the answer first.",
-    }.get(style, "Guide the student one step at a time and ask one focused check.")
-    return (
-        "[Tutor mode active]\n"
-        "Do not dump a complete final answer immediately. Use chat context, infer level, "
-        "check student replies, and move one step at a time. "
-        "Format the visible answer as markdown bullet points, one step per line, like - **Step 1 — ...:** ... then - **Step 2 — ...:** ... "
-        "Use 2-4 short steps maximum, and make the final step the student's action/check. "
-        "Never solve the exact step you ask the student to do. For calculations, show at most one setup or rule, "
-        "then stop before the student-owned arithmetic/algebra. "
-        f"{style_hint} "
-        "Return ONLY valid JSON matching this schema: "
-        "{\"answer\":\"visible markdown answer with LaTeX\",\"tutor_state\":{\"level\":\"beginner|intermediate|advanced\","
-        "\"phase\":\"diagnose|teach|practice|check|review\",\"verdict\":\"correct|partly_correct|not_yet|needs_attempt|not_applicable\","
-        "\"confidence\":0.0,\"objective\":\"short current skill\",\"next_action\":\"short student action\",\"hint_level\":1,"
-        "\"current_step\":1,\"total_steps\":3,\"expected_step_answer\":\"hidden expected answer\","
-        "\"final_answer\":\"hidden final answer if known\",\"skills_used\":[\"skill\"],\"misconceptions\":[\"mistake\"],\"mastery_score\":0.0},"
-        "\"options\":[{\"label\":\"A\",\"text\":\"option text\"}]}. "
-        "Use an empty options array when no MCQ is needed.\n\n"
-    )
+    return f"{tutor_contract_instruction(reply_style)}\n\n"
 
 def _assert_user_matches_request(user_id: Optional[str], current_user: models.User) -> None:
     if user_id is None:
