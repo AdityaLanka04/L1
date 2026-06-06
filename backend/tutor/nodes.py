@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from tutor.state import TutorState, StudentState, Neo4jInsights, EvalResult, AttemptEvaluation
+from tutor.state import TutorState, StudentState, Neo4jInsights, EvalResult, AttemptEvaluation, TutorPlan
 from tutor import neo4j_store, chroma_store
 from tutor.prompt import build_tutor_prompt
 from tutor.evaluator import evaluate
@@ -1269,6 +1269,8 @@ def _build_instructional_task(state: TutorState) -> str:
             f"Tutor mode is active. Teach at a {difficulty} level using a {style} style. "
             "Use the recent chat context to judge what the student already understands. "
             f"{style_guidance} "
+            "Format the visible answer as markdown bullet points, one step per line, like - **Step 1 — Identify the idea:** ... and - **Step 2 — Your turn:** ... "
+            "Use 2-4 short steps maximum, with the final step as the student-owned action/check. "
             "Never ask the student to calculate or answer something you already calculated in this response. "
             "Show at most one setup/rule, then leave the requested operation for the student. "
             "If the student asks directly for an answer, provide a hint first unless they have already made a serious attempt. "
@@ -1323,6 +1325,13 @@ def _attempt_evaluation_from_dict(data: dict) -> AttemptEvaluation:
         rationale=str(data.get("rationale") or "")[:500],
         expected_answer=str(data.get("expected_answer") or "")[:500],
         next_action=str(data.get("next_action") or "")[:220],
+        is_final_answer=bool(data.get("is_final_answer")),
+        final_answer_correct=(
+            bool(data.get("final_answer_correct"))
+            if data.get("final_answer_correct") is not None
+            else None
+        ),
+        misconception=str(data.get("misconception") or "")[:180],
     )
 
 def _format_recent_history_for_grading(chat_history: list[dict]) -> str:
@@ -1335,6 +1344,148 @@ def _format_recent_history_for_grading(chat_history: list[dict]) -> str:
         if ai:
             lines.append(f"Tutor: {ai[:900]}")
     return "\n".join(lines) or "No prior turns."
+
+def _trim_plan_text(value: Any, fallback: str = "", max_len: int = 240) -> str:
+    text = re.sub(r"\s+", " ", str(value or "").strip())
+    return (text or fallback)[:max_len]
+
+def _safe_int(value: Any, default: int = 0, min_value: int = 0, max_value: int = 999) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(min_value, min(max_value, parsed))
+
+def _safe_string_list(value: Any, max_items: int = 8, max_len: int = 80) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    output = []
+    for item in value[:max_items]:
+        text = _trim_plan_text(item, "", max_len)
+        if text:
+            output.append(text)
+    return output
+
+def _normalize_tutor_plan(data: dict | None, fallback_goal: str = "") -> TutorPlan:
+    source = data if isinstance(data, dict) else {}
+    raw_steps = source.get("steps") if isinstance(source.get("steps"), list) else []
+    steps = []
+    for index, step in enumerate(raw_steps[:12], start=1):
+        if not isinstance(step, dict):
+            continue
+        steps.append({
+            "id": _safe_int(step.get("id"), index, 1, 99),
+            "title": _trim_plan_text(step.get("title"), f"Step {index}", 80),
+            "expected": _trim_plan_text(step.get("expected"), "", 300),
+            "skill": _trim_plan_text(step.get("skill"), "", 80),
+            "misconception": _trim_plan_text(step.get("misconception"), "", 140),
+        })
+
+    total_steps = _safe_int(source.get("total_steps") or len(steps), len(steps), 0, 99)
+    current_step = _safe_int(source.get("current_step"), 1, 1, max(1, total_steps or len(steps) or 1))
+    current = next((step for step in steps if step.get("id") == current_step), steps[current_step - 1] if steps and current_step <= len(steps) else {})
+
+    return TutorPlan(
+        goal=_trim_plan_text(source.get("goal"), fallback_goal or "Build understanding step by step", 140),
+        current_step=current_step,
+        total_steps=total_steps,
+        steps=steps,
+        expected_step_answer=_trim_plan_text(source.get("expected_step_answer") or current.get("expected"), "", 300),
+        final_answer=_trim_plan_text(source.get("final_answer"), "", 500),
+        skills_used=_safe_string_list(source.get("skills_used"), 10, 80),
+        misconceptions=_safe_string_list(source.get("misconceptions"), 12, 140),
+        mastery_score=round(_bounded_float(source.get("mastery_score"), 0.0), 2),
+    )
+
+def _tutor_plan_to_dict(plan: TutorPlan | None) -> dict:
+    if not plan:
+        return {}
+    return {
+        "goal": plan.goal,
+        "current_step": plan.current_step,
+        "total_steps": plan.total_steps,
+        "steps": plan.steps,
+        "expected_step_answer": plan.expected_step_answer,
+        "final_answer": plan.final_answer,
+        "skills_used": plan.skills_used,
+        "misconceptions": plan.misconceptions,
+        "mastery_score": plan.mastery_score,
+    }
+
+def _plan_from_session_state(session_state: dict) -> TutorPlan | None:
+    if not isinstance(session_state, dict):
+        return None
+    raw_plan = session_state.get("lesson_plan")
+    if isinstance(raw_plan, dict):
+        plan_data = {
+            **raw_plan,
+            "current_step": session_state.get("current_step") or raw_plan.get("current_step"),
+            "total_steps": session_state.get("total_steps") or raw_plan.get("total_steps"),
+            "expected_step_answer": session_state.get("expected_step_answer") or raw_plan.get("expected_step_answer"),
+            "final_answer": session_state.get("final_answer") or raw_plan.get("final_answer"),
+            "skills_used": session_state.get("skills_used") or raw_plan.get("skills_used"),
+            "misconceptions": session_state.get("misconceptions") or raw_plan.get("misconceptions"),
+            "mastery_score": session_state.get("mastery_score") or raw_plan.get("mastery_score"),
+        }
+        return _normalize_tutor_plan(plan_data)
+    if session_state.get("total_steps") or session_state.get("expected_step_answer") or session_state.get("final_answer"):
+        return _normalize_tutor_plan(session_state)
+    return None
+
+def plan_tutor_steps(state: TutorState) -> dict:
+    if not state.get("tutor_mode"):
+        return {"tutor_plan": TutorPlan()}
+
+    session_state = state.get("tutor_session_state") or {}
+    existing_plan = _plan_from_session_state(session_state)
+    if existing_plan and state.get("intent") == "comprehension_answer":
+        return {"tutor_plan": existing_plan}
+
+    ai_client = state.get("_ai_client")
+    user_input = state.get("user_input", "")
+    if not ai_client:
+        fallback = _normalize_tutor_plan({
+            "goal": user_input[:140] or "Build understanding step by step",
+            "steps": [
+                {"id": 1, "title": "Understand the target", "expected": "State what is being asked", "skill": "problem framing"},
+                {"id": 2, "title": "Apply the key idea", "expected": "Use the relevant rule or concept", "skill": "core concept"},
+                {"id": 3, "title": "Check the result", "expected": "Verify the answer or reasoning", "skill": "verification"},
+            ],
+            "current_step": 1,
+        })
+        return {"tutor_plan": fallback}
+
+    prompt = f"""
+Create a hidden tutoring lesson plan. This plan is for the tutor graph only; it must not be shown fully to the student.
+
+Requirements:
+- Work for any subject: math, science, coding, language, history, reasoning, writing, definitions, and MCQ checks.
+- Break the learning task into 2-6 small teachable steps.
+- Each step needs an expected answer/key idea for grading.
+- Include a final_answer when the task has a clear final answer; otherwise leave it empty.
+- Include skills_used and likely misconceptions.
+- Set current_step to 1 unless continuing an existing plan.
+
+Student request:
+{user_input}
+
+Recent conversation:
+{_format_recent_history_for_grading(state.get("chat_history", []))}
+
+Existing tutor state:
+{json.dumps(session_state, ensure_ascii=False)[:1500]}
+
+Return only JSON:
+{{"goal":"short learning goal","current_step":1,"total_steps":3,"steps":[{{"id":1,"title":"short title","expected":"accepted answer or key idea","skill":"skill name","misconception":"likely mistake"}}],"final_answer":"optional final answer","skills_used":["skill"],"misconceptions":["mistake"],"mastery_score":0.0}}
+""".strip()
+
+    try:
+        raw = ai_client.generate(prompt, max_tokens=900, temperature=0.1)
+        parsed = _extract_json_dict(raw)
+        return {"tutor_plan": _normalize_tutor_plan(parsed, fallback_goal=user_input)}
+    except Exception as exc:
+        logger.warning(f"[TUTOR PLAN] planning skipped: {exc}")
+        return {"tutor_plan": existing_plan or _normalize_tutor_plan({"goal": user_input[:140]})}
 
 def evaluate_tutor_attempt(state: TutorState) -> dict:
     if not state.get("tutor_mode"):
@@ -1350,6 +1501,21 @@ def evaluate_tutor_attempt(state: TutorState) -> dict:
     chat_history = state.get("chat_history", [])
     last_tutor_message = _last_ai_message(chat_history)
     session_state = state.get("tutor_session_state") or {}
+    tutor_plan = state.get("tutor_plan")
+    plan_dict = _tutor_plan_to_dict(tutor_plan if isinstance(tutor_plan, TutorPlan) else None)
+    current_step = plan_dict.get("current_step") or session_state.get("current_step") or 1
+    step_data = {}
+    for step in plan_dict.get("steps", []) or []:
+        if int(step.get("id") or 0) == int(current_step or 1):
+            step_data = step
+            break
+    expected_step_answer = (
+        plan_dict.get("expected_step_answer")
+        or step_data.get("expected")
+        or session_state.get("expected_step_answer")
+        or ""
+    )
+    final_answer = plan_dict.get("final_answer") or session_state.get("final_answer") or ""
     previous_check = (
         state.get("comprehension_check")
         or _previous_comprehension_check(chat_history)
@@ -1388,8 +1554,11 @@ Rules:
 - Judge semantic correctness, not exact wording.
 - Accept equivalent forms, notation, units, synonyms, abbreviations, and algebraically equivalent expressions.
 - For math, accept forms like (3x^2)/2 and 3x^2/2 as the same.
+- Grade against the CURRENT STEP first, not against the whole original problem.
 - If the previous tutor step asked for only one sub-step, grade only that sub-step.
 - If the answer is right for the requested sub-step, verdict must be "correct" even if the full original problem is unfinished.
+- Detect if the student jumped to the final answer. If so, set is_final_answer=true and grade final_answer_correct separately.
+- If the final answer is correct but the current step reasoning has not been shown, verdict can be "correct" and next_action should ask for a brief justification of the key step.
 - Use "partly_correct" when the core direction is right but an important piece is missing.
 - Use "not_yet" only when the attempt is materially wrong or does not answer the step.
 - Use "needs_attempt" when the student asks for help instead of attempting.
@@ -1407,6 +1576,18 @@ Full previous tutor message:
 Persisted tutor state:
 {json.dumps(session_state, ensure_ascii=False)[:1200]}
 
+Hidden lesson plan:
+{json.dumps(plan_dict, ensure_ascii=False)[:2200]}
+
+Current step number:
+{current_step}
+
+Current step expected answer/key idea:
+{expected_step_answer or "Use the previous tutor step and lesson plan."}
+
+Known final answer:
+{final_answer or "none"}
+
 Graph concept context:
 {graph_context}
 
@@ -1417,7 +1598,7 @@ Student attempt:
 {user_answer}
 
 Return JSON with this exact shape:
-{{"verdict":"correct|partly_correct|not_yet|needs_attempt|not_applicable","confidence":0.0,"rationale":"short factual grading reason","expected_answer":"accepted answer or key idea","next_action":"one next tutor action"}}
+{{"verdict":"correct|partly_correct|not_yet|needs_attempt|not_applicable","confidence":0.0,"rationale":"short factual grading reason","expected_answer":"accepted current-step answer or key idea","next_action":"one next tutor action","is_final_answer":false,"final_answer_correct":null,"misconception":"short misconception label if any"}}
 """.strip()
 
     try:
@@ -1430,6 +1611,40 @@ Return JSON with this exact shape:
     except Exception as exc:
         logger.warning(f"[TUTOR ATTEMPT] grading skipped: {exc}")
         return {"attempt_evaluation": AttemptEvaluation()}
+
+def update_tutor_plan_progress(state: TutorState) -> dict:
+    plan = state.get("tutor_plan")
+    if not isinstance(plan, TutorPlan):
+        return {}
+
+    evaluation = state.get("attempt_evaluation")
+    if not isinstance(evaluation, AttemptEvaluation):
+        return {"tutor_plan": plan}
+
+    verdict = evaluation.verdict
+    if verdict == "correct":
+        if evaluation.is_final_answer and evaluation.final_answer_correct and plan.total_steps:
+            plan.current_step = plan.total_steps
+            plan.mastery_score = max(plan.mastery_score, 0.95)
+        elif plan.total_steps and plan.current_step < plan.total_steps:
+            plan.current_step += 1
+            plan.mastery_score = min(1.0, max(plan.mastery_score, 0.0) + 0.15)
+        else:
+            plan.mastery_score = min(1.0, max(plan.mastery_score, 0.0) + 0.1)
+    elif verdict == "partly_correct":
+        plan.mastery_score = min(1.0, max(plan.mastery_score, 0.0) + 0.05)
+        if evaluation.misconception and evaluation.misconception not in plan.misconceptions:
+            plan.misconceptions.append(evaluation.misconception)
+    elif verdict == "not_yet":
+        plan.mastery_score = max(0.0, max(plan.mastery_score, 0.0) - 0.05)
+        if evaluation.misconception and evaluation.misconception not in plan.misconceptions:
+            plan.misconceptions.append(evaluation.misconception)
+
+    current = next((step for step in plan.steps if step.get("id") == plan.current_step), None)
+    if current:
+        plan.expected_step_answer = _trim_plan_text(current.get("expected"), plan.expected_step_answer, 300)
+    plan.misconceptions = plan.misconceptions[-12:]
+    return {"tutor_plan": plan}
 
 def build_prompt_and_respond(state: TutorState) -> dict:
     rag_active = bool(state.get("rag_context"))
@@ -1511,10 +1726,12 @@ def build_prompt_and_respond(state: TutorState) -> dict:
             "6. Never solve the exact step you ask the student to do next.\n"
             "7. For math, show one rule/setup, then stop before the student-owned calculation.\n"
             "8. Do not reveal final answers on the first tutor turn unless the student already attempted the problem.\n"
-            "9. Return ONLY valid JSON. Do not use markdown fences or any prose outside JSON.\n"
-            "10. JSON schema: {\"answer\":\"visible markdown answer with LaTeX\",\"tutor_state\":{\"level\":\"beginner|intermediate|advanced\",\"phase\":\"diagnose|teach|practice|check|review\",\"verdict\":\"correct|partly_correct|not_yet|needs_attempt|not_applicable\",\"confidence\":0.0,\"objective\":\"short current skill\",\"next_action\":\"short student action\",\"hint_level\":1},\"options\":[{\"label\":\"A\",\"text\":\"option text\"}]}.\n"
-            "11. Put any MCQ choices only in the options array. Use [] when no options are needed.\n"
-            "12. The answer field is the only visible tutor response; keep it concise and student-facing."
+            "9. The answer field must be formatted as markdown bullet points, one step per line: - **Step 1 — ...:** ... then - **Step 2 — ...:** ...\n"
+            "10. Use 2-4 visible steps maximum. The final step must be the student-owned action/check, not a solved answer.\n"
+            "11. Return ONLY valid JSON. Do not use markdown fences or any prose outside JSON.\n"
+            "12. JSON schema: {\"answer\":\"visible markdown answer with numbered Step sections and LaTeX\",\"tutor_state\":{\"level\":\"beginner|intermediate|advanced\",\"phase\":\"diagnose|teach|practice|check|review\",\"verdict\":\"correct|partly_correct|not_yet|needs_attempt|not_applicable\",\"confidence\":0.0,\"objective\":\"short current skill\",\"next_action\":\"short student action\",\"hint_level\":1,\"current_step\":1,\"total_steps\":3,\"expected_step_answer\":\"hidden expected answer\",\"final_answer\":\"hidden final answer if known\",\"skills_used\":[\"skill\"],\"misconceptions\":[\"mistake\"],\"mastery_score\":0.0},\"options\":[{\"label\":\"A\",\"text\":\"option text\"}]}.\n"
+            "13. Put any MCQ choices only in the options array. Use [] when no options are needed.\n"
+            "14. The answer field is the only visible tutor response; keep it concise and student-facing."
         )
         attempt_evaluation = state.get("attempt_evaluation")
         attempt_verdict = getattr(attempt_evaluation, "verdict", "not_applicable") if attempt_evaluation else "not_applicable"

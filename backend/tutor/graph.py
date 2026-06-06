@@ -26,7 +26,9 @@ class TutorGraph:
         g.add_node("fetch_student_state",     nodes.fetch_student_state)
         g.add_node("reason_from_graph",       nodes.reason_from_graph)
         g.add_node("gate_and_retrieve",       nodes.gate_and_retrieve)
+        g.add_node("plan_tutor_steps",        nodes.plan_tutor_steps)
         g.add_node("evaluate_tutor_attempt",  nodes.evaluate_tutor_attempt)
+        g.add_node("update_tutor_plan_progress", nodes.update_tutor_plan_progress)
         g.add_node("build_prompt_and_respond",nodes.build_prompt_and_respond)
         g.add_node("evaluate_response",       nodes.evaluate_response)
         g.add_node("persist_updates",         nodes.persist_updates)
@@ -36,8 +38,10 @@ class TutorGraph:
         g.add_edge("analyze_message",         "fetch_student_state")
         g.add_edge("fetch_student_state",     "reason_from_graph")
         g.add_edge("reason_from_graph",       "gate_and_retrieve")
-        g.add_edge("gate_and_retrieve",       "evaluate_tutor_attempt")
-        g.add_edge("evaluate_tutor_attempt",  "build_prompt_and_respond")
+        g.add_edge("gate_and_retrieve",       "plan_tutor_steps")
+        g.add_edge("plan_tutor_steps",        "evaluate_tutor_attempt")
+        g.add_edge("evaluate_tutor_attempt",  "update_tutor_plan_progress")
+        g.add_edge("update_tutor_plan_progress","build_prompt_and_respond")
         g.add_edge("build_prompt_and_respond","evaluate_response")
         g.add_edge("evaluate_response",       "persist_updates")
         g.add_edge("persist_updates",         END)
@@ -82,6 +86,7 @@ class TutorGraph:
             return {
                 "response": result.get("response", ""),
                 "intent": result.get("intent", ""),
+                "tutor_plan": result.get("tutor_plan"),
                 "attempt_evaluation": result.get("attempt_evaluation"),
                 "evaluation": result.get("evaluation"),
                 "neo4j_updates": result.get("neo4j_updates", []),

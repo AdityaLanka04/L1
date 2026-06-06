@@ -279,6 +279,22 @@ def _run_postgres_migration():
     )
 
     add_missing_columns(
+        "chat_tutor_states",
+        {
+            "current_step": "INTEGER DEFAULT 1",
+            "total_steps": "INTEGER DEFAULT 0",
+            "expected_step_answer": "TEXT",
+            "final_answer": "TEXT",
+            "skills_used": "JSONB",
+            "misconceptions": "JSONB",
+            "mastery_score": "DOUBLE PRECISION DEFAULT 0.0",
+            "correct_streak": "INTEGER DEFAULT 0",
+            "wrong_streak": "INTEGER DEFAULT 0",
+            "lesson_plan": "JSONB",
+        },
+    )
+
+    add_missing_columns(
         "context_documents",
         {
             "source_name": "VARCHAR(200)",

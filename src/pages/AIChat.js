@@ -361,6 +361,11 @@ function normalizeTutorState(rawState = null, replyMode = 'guided') {
   const rawCorrectCount = Number.isFinite(Number(rawState.correct_count)) ? Math.max(0, Number(rawState.correct_count)) : 0;
   const attempts = verdict === 'correct' ? Math.max(1, rawAttempts) : rawAttempts;
   const correctCount = verdict === 'correct' ? Math.max(1, rawCorrectCount) : Math.min(rawCorrectCount, Math.max(rawAttempts, rawCorrectCount));
+  const currentStep = Number.isFinite(Number(rawState.current_step)) ? Math.max(1, Number(rawState.current_step)) : 1;
+  const totalSteps = Number.isFinite(Number(rawState.total_steps)) ? Math.max(0, Number(rawState.total_steps)) : 0;
+  const masteryScore = Number.isFinite(Number(rawState.mastery_score))
+    ? Math.max(0, Math.min(1, Number(rawState.mastery_score)))
+    : null;
 
   return {
     level,
@@ -372,6 +377,13 @@ function normalizeTutorState(rawState = null, replyMode = 'guided') {
     nextAction: String(rawState.next_action || 'Try the next small step').trim().slice(0, 120),
     attempts,
     correctCount,
+    currentStep,
+    totalSteps,
+    expectedStepAnswer: String(rawState.expected_step_answer || '').trim().slice(0, 180),
+    finalAnswer: String(rawState.final_answer || '').trim().slice(0, 240),
+    skillsUsed: Array.isArray(rawState.skills_used) ? rawState.skills_used.slice(0, 6) : [],
+    misconceptions: Array.isArray(rawState.misconceptions) ? rawState.misconceptions.slice(0, 6) : [],
+    masteryScore,
   };
 }
 
@@ -389,12 +401,18 @@ function getTutorProgressDisplay(tutorState) {
   const hasAttempt = attempts > 0;
   const accuracy = hasAttempt ? Math.round((correctCount / attempts) * 100) : null;
   const confidencePercent = Math.round(Math.max(0, Math.min(1, Number(tutorState?.confidence || 0))) * 100);
+  const masteryPercent = tutorState?.masteryScore === null ? null : Math.round(Math.max(0, Math.min(1, Number(tutorState?.masteryScore || 0))) * 100);
+  const stepLabel = tutorState?.totalSteps > 0
+    ? `Step ${Math.min(tutorState.currentStep, tutorState.totalSteps)}/${tutorState.totalSteps}`
+    : null;
 
   return {
     attempts,
     correctCount,
     accuracy,
     confidencePercent,
+    masteryPercent,
+    stepLabel,
     status: TUTOR_VERDICT_SUMMARY[tutorState?.verdict] || 'Guided mode',
     nextLabel: TUTOR_VERDICT_NEXT_LABEL[tutorState?.verdict] || 'Continue',
   };
@@ -2148,8 +2166,25 @@ const AIChat = ({ sharedMode = false }) => {
     return result;
   };
 
+  const normalizeTutorStepMarkdown = (text = '') => {
+    const raw = String(text || '').trim();
+    if (!/\bStep\s+\d+\s*[—–-]/i.test(raw)) return raw;
+
+    const withoutExistingBullets = raw
+      .replace(/^\s*[-*]\s+(?=(?:\*\*)?Step\s+\d+\s*[—–-])/gim, '')
+      .replace(/\n{3,}/g, '\n\n');
+    const stepPattern = /(?:\*\*)?Step\s+\d+\s*[—–-][\s\S]*?(?=\s+(?:\*\*)?Step\s+\d+\s*[—–-]|$)/gi;
+    const matches = withoutExistingBullets.match(stepPattern);
+    if (!matches || matches.length < 2) return withoutExistingBullets;
+
+    return matches
+      .map((step) => `- ${step.trim().replace(/\*\*/g, '')}`)
+      .join('\n');
+  };
+
   const renderMarkdown = (text) => {
     if (!text) return '';
+    text = normalizeTutorStepMarkdown(text);
 
     // ── Step 1: Extract ALL math blocks BEFORE markdown touches them ──────────
     // Markdown mangles \[, \(, and $$  by treating \ as an escape character
@@ -2204,6 +2239,21 @@ const AIChat = ({ sharedMode = false }) => {
       `<strong class="md-bold-inline">${t}</strong>`;
     renderer.codespan = ({ text: t }) =>
       `<code class="md-inline-code">${t}</code>`;
+    renderer.list = function list(token) {
+      const body = (token.items || []).map((item) => this.listitem(item)).join('');
+      const isTutorStepList = /class="ac-tutor-step-item"/.test(body);
+      const tag = token.ordered ? 'ol' : 'ul';
+      const className = isTutorStepList ? 'ac-tutor-step-list' : (token.ordered ? 'md-ol' : 'md-ul');
+      return `<${tag} class="${className}">${body}</${tag}>`;
+    };
+    renderer.listitem = function listitem(token) {
+      const t = this.parser.parseInline(token.tokens || []);
+      const stepMatch = String(t || '').match(/^(?:<p>)?\s*(?:<strong[^>]*>)?\s*(Step\s+\d+\s*[—–-]\s*[^:<]+:?)(?:<\/strong>)?\s*([\s\S]*?)(?:<\/p>)?$/i);
+      if (stepMatch) {
+        return `<li class="ac-tutor-step-item"><span class="ac-tutor-step-title">${stepMatch[1].trim()}</span>${stepMatch[2] ? ` <span class="ac-tutor-step-body">${stepMatch[2].trim()}</span>` : ''}</li>`;
+      }
+      return `<li>${t}</li>`;
+    };
 
     marked.use({ renderer, breaks: true, gfm: true });
 
@@ -3164,7 +3214,7 @@ const AIChat = ({ sharedMode = false }) => {
                                 <div>
                                   <div className="ac-tutor-state-label">{progress.status}</div>
                                   <div className="ac-tutor-state-meta">
-                                    {TUTOR_LEVEL_LABELS[tutorState.level]} · {TUTOR_PHASE_LABELS[tutorState.phase]} · {TUTOR_VERDICT_LABELS[tutorState.verdict]}
+                                    {[TUTOR_LEVEL_LABELS[tutorState.level], TUTOR_PHASE_LABELS[tutorState.phase], TUTOR_VERDICT_LABELS[tutorState.verdict], progress.stepLabel].filter(Boolean).join(' · ')}
                                   </div>
                                 </div>
                               </div>
@@ -3182,6 +3232,7 @@ const AIChat = ({ sharedMode = false }) => {
                               <span>{progress.correctCount} correct</span>
                               <span>{progress.accuracy === null ? 'No score yet' : `${progress.accuracy}% accuracy`}</span>
                               <span>{progress.confidencePercent}% confidence</span>
+                              {progress.masteryPercent !== null && <span>{progress.masteryPercent}% mastery</span>}
                             </div>
                             <div className="ac-tutor-confidence-track" aria-hidden="true">
                               <span style={{ width: `${progress.confidencePercent}%` }} />

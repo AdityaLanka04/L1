@@ -36,6 +36,21 @@ class AttemptEvaluation:
     rationale: str = ""
     expected_answer: str = ""
     next_action: str = ""
+    is_final_answer: bool = False
+    final_answer_correct: Optional[bool] = None
+    misconception: str = ""
+
+@dataclass
+class TutorPlan:
+    goal: str = ""
+    current_step: int = 1
+    total_steps: int = 0
+    steps: list[dict] = field(default_factory=list)
+    expected_step_answer: str = ""
+    final_answer: str = ""
+    skills_used: list[str] = field(default_factory=list)
+    misconceptions: list[str] = field(default_factory=list)
+    mastery_score: float = 0.0
 
 class TutorState(TypedDict, total=False):
     user_id: str
@@ -56,6 +71,7 @@ class TutorState(TypedDict, total=False):
     tutor_reply_style: str
     tutor_choice: Optional[str]
     tutor_session_state: Optional[dict]
+    tutor_plan: TutorPlan
     attempt_evaluation: AttemptEvaluation
     context_only_no_match: bool
     retrieval_gated: bool

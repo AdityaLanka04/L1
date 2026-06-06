@@ -2056,6 +2056,51 @@ html:has(.ai-chat-page) {
   transition: all 0.3s;
 }
 
+.ac-message-content .ac-tutor-step-list {
+  list-style: none;
+  margin: 4px 0 18px 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.ac-message-content .ac-tutor-step-item {
+  list-style: none;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--ac-accent) 34%, transparent);
+  border-left: 3px solid var(--ac-accent);
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ac-accent) 10%, transparent), transparent 70%),
+    color-mix(in srgb, var(--ac-bg-secondary) 78%, transparent);
+  line-height: 1.65;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.ac-message-content .ac-tutor-step-item::before {
+  display: none;
+}
+
+.ac-message-content .ac-tutor-step-item:hover {
+  transform: none;
+  color: var(--ac-text-primary);
+  border-color: color-mix(in srgb, var(--ac-accent) 58%, transparent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ac-accent) 14%, transparent), transparent 72%),
+    color-mix(in srgb, var(--ac-bg-secondary) 86%, transparent);
+}
+
+.ac-message-content .ac-tutor-step-title {
+  color: var(--ac-accent);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.ac-message-content .ac-tutor-step-body {
+  color: var(--ac-text-primary);
+}
+
 .ac-message-content code {
   background: var(--ac-bg-tertiary);
   padding: 2px 6px;
@@ -6507,4 +6552,3 @@ button:focus-visible {
 .ai-chat-page.ac-qb-page .ac-qb-side-block .ac-new-chat-btn {
   margin-bottom: 0 !important;
 }
-

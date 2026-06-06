@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from pydantic import BaseModel
-from sqlalchemy import and_
+from pydantic import BaseModel, Field
+from sqlalchemy import and_, text
 from sqlalchemy.orm import Session
 
 import models
@@ -34,6 +34,83 @@ _TUTOR_OPTIONS_FIELD_RE = re.compile(r'(?is)"options"\s*:\s*(\[.*?\])')
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
 
+_CHAT_TUTOR_STATE_SCHEMA_CHECKED = False
+_CHAT_TUTOR_STATE_COLUMNS = {
+    "current_step": {
+        "sqlite": "INTEGER DEFAULT 1",
+        "postgresql": "INTEGER DEFAULT 1",
+    },
+    "total_steps": {
+        "sqlite": "INTEGER DEFAULT 0",
+        "postgresql": "INTEGER DEFAULT 0",
+    },
+    "expected_step_answer": {
+        "sqlite": "TEXT",
+        "postgresql": "TEXT",
+    },
+    "final_answer": {
+        "sqlite": "TEXT",
+        "postgresql": "TEXT",
+    },
+    "skills_used": {
+        "sqlite": "TEXT",
+        "postgresql": "JSONB",
+    },
+    "misconceptions": {
+        "sqlite": "TEXT",
+        "postgresql": "JSONB",
+    },
+    "mastery_score": {
+        "sqlite": "REAL DEFAULT 0.0",
+        "postgresql": "DOUBLE PRECISION DEFAULT 0.0",
+    },
+    "correct_streak": {
+        "sqlite": "INTEGER DEFAULT 0",
+        "postgresql": "INTEGER DEFAULT 0",
+    },
+    "wrong_streak": {
+        "sqlite": "INTEGER DEFAULT 0",
+        "postgresql": "INTEGER DEFAULT 0",
+    },
+    "lesson_plan": {
+        "sqlite": "TEXT",
+        "postgresql": "JSONB",
+    },
+}
+
+def _ensure_chat_tutor_state_schema(db: Session) -> None:
+    global _CHAT_TUTOR_STATE_SCHEMA_CHECKED
+    if _CHAT_TUTOR_STATE_SCHEMA_CHECKED:
+        return
+
+    bind = db.get_bind()
+    dialect = bind.dialect.name
+    if dialect not in {"sqlite", "postgresql"}:
+        _CHAT_TUTOR_STATE_SCHEMA_CHECKED = True
+        return
+
+    try:
+        if dialect == "sqlite":
+            existing_rows = db.execute(text("PRAGMA table_info(chat_tutor_states)")).fetchall()
+            existing = {row[1] for row in existing_rows}
+        else:
+            existing_rows = db.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'chat_tutor_states'"
+            )).fetchall()
+            existing = {row[0] for row in existing_rows}
+
+        for column_name, column_defs in _CHAT_TUTOR_STATE_COLUMNS.items():
+            if column_name in existing:
+                continue
+            column_def = column_defs[dialect]
+            db.execute(text(f"ALTER TABLE chat_tutor_states ADD COLUMN {column_name} {column_def}"))
+        db.commit()
+        _CHAT_TUTOR_STATE_SCHEMA_CHECKED = True
+    except Exception as exc:
+        db.rollback()
+        logger.warning("Tutor state schema self-heal failed: %s", exc)
+
 class TutorOptionPayload(BaseModel):
     label: Optional[str] = None
     text: str
@@ -46,11 +123,21 @@ class TutorStatePayload(BaseModel):
     objective: str = "Build understanding step by step"
     next_action: str = "Try the next small step"
     hint_level: int = 2
+    current_step: int = 1
+    total_steps: int = 0
+    expected_step_answer: Optional[str] = None
+    final_answer: Optional[str] = None
+    skills_used: List[str] = Field(default_factory=list)
+    misconceptions: List[str] = Field(default_factory=list)
+    mastery_score: float = 0.0
+    correct_streak: int = 0
+    wrong_streak: int = 0
+    lesson_plan: Optional[dict] = None
 
 class TutorResponsePayload(BaseModel):
     answer: str
     tutor_state: Optional[TutorStatePayload] = None
-    options: List[TutorOptionPayload] = []
+    options: List[TutorOptionPayload] = Field(default_factory=list)
 
 def _normalize_tutor_options(raw_options: object) -> list[dict]:
     if not isinstance(raw_options, list):
@@ -141,6 +228,52 @@ def _trim_tutor_text(value: object, fallback: str, max_len: int = 120) -> str:
     text = re.sub(r"\s+", " ", str(value or "").strip())
     return (text or fallback)[:max_len]
 
+def _bounded_int(value: object, default: int = 0, min_value: int = 0, max_value: int = 999) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(min_value, min(max_value, parsed))
+
+def _bounded_float(value: object, default: float = 0.0) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(0.0, min(1.0, parsed))
+
+def _trim_string_list(value: object, max_items: int = 8, max_len: int = 80) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items = []
+    for item in value[:max_items]:
+        text = re.sub(r"\s+", " ", str(item or "").strip())
+        if text:
+            items.append(text[:max_len])
+    return items
+
+def _normalize_lesson_plan(value: object) -> Optional[dict]:
+    if not isinstance(value, dict):
+        return None
+    steps = value.get("steps") if isinstance(value.get("steps"), list) else []
+    normalized_steps = []
+    for index, step in enumerate(steps[:12], start=1):
+        if not isinstance(step, dict):
+            continue
+        normalized_steps.append({
+            "id": _bounded_int(step.get("id"), index, 1, 99),
+            "title": _trim_tutor_text(step.get("title"), f"Step {index}", 80),
+            "expected": _trim_tutor_text(step.get("expected"), "", 240),
+            "skill": _trim_tutor_text(step.get("skill"), "", 80),
+            "misconception": _trim_tutor_text(step.get("misconception"), "", 120),
+        })
+    return {
+        "goal": _trim_tutor_text(value.get("goal"), "Build understanding step by step", 140),
+        "steps": normalized_steps,
+        "current_step": _bounded_int(value.get("current_step"), 1, 1, max(1, len(normalized_steps) or 99)),
+        "final_answer": _trim_tutor_text(value.get("final_answer"), "", 500),
+    }
+
 def _normalize_tutor_state(
     raw_state: object,
     reply_style: str = "guided",
@@ -175,6 +308,20 @@ def _normalize_tutor_state(
         hint_level = 2
     hint_level = max(1, min(3, hint_level))
 
+    lesson_plan = _normalize_lesson_plan(data.get("lesson_plan"))
+    total_steps = _bounded_int(
+        data.get("total_steps") or (len(lesson_plan.get("steps", [])) if lesson_plan else 0),
+        0,
+        0,
+        99,
+    )
+    current_step = _bounded_int(
+        data.get("current_step") or (lesson_plan.get("current_step") if lesson_plan else 1),
+        1,
+        1,
+        max(1, total_steps or 99),
+    )
+
     return {
         "level": level if level in levels else "intermediate",
         "phase": phase if phase in phases else default_phase,
@@ -183,6 +330,16 @@ def _normalize_tutor_state(
         "objective": _trim_tutor_text(data.get("objective"), "Build understanding step by step", 96),
         "next_action": _trim_tutor_text(data.get("next_action"), "Try the next small step", 120),
         "hint_level": hint_level,
+        "current_step": current_step,
+        "total_steps": total_steps,
+        "expected_step_answer": _trim_tutor_text(data.get("expected_step_answer"), "", 300),
+        "final_answer": _trim_tutor_text(data.get("final_answer"), "", 500),
+        "skills_used": _trim_string_list(data.get("skills_used"), 8, 80),
+        "misconceptions": _trim_string_list(data.get("misconceptions"), 10, 120),
+        "mastery_score": round(_bounded_float(data.get("mastery_score"), 0.0), 2),
+        "correct_streak": _bounded_int(data.get("correct_streak"), 0, 0, 99),
+        "wrong_streak": _bounded_int(data.get("wrong_streak"), 0, 0, 99),
+        "lesson_plan": lesson_plan,
     }
 
 def _extract_json_object(text: str) -> Optional[dict]:
@@ -284,7 +441,47 @@ def _attempt_evaluation_to_dict(value: object) -> dict:
         "rationale": getattr(value, "rationale", None),
         "expected_answer": getattr(value, "expected_answer", None),
         "next_action": getattr(value, "next_action", None),
+        "is_final_answer": getattr(value, "is_final_answer", None),
+        "final_answer_correct": getattr(value, "final_answer_correct", None),
+        "misconception": getattr(value, "misconception", None),
     }
+
+def _tutor_plan_to_dict(value: object) -> dict:
+    if not value:
+        return {}
+    if isinstance(value, dict):
+        return value
+    return {
+        "goal": getattr(value, "goal", None),
+        "current_step": getattr(value, "current_step", None),
+        "total_steps": getattr(value, "total_steps", None),
+        "steps": getattr(value, "steps", None),
+        "expected_step_answer": getattr(value, "expected_step_answer", None),
+        "final_answer": getattr(value, "final_answer", None),
+        "skills_used": getattr(value, "skills_used", None),
+        "misconceptions": getattr(value, "misconceptions", None),
+        "mastery_score": getattr(value, "mastery_score", None),
+    }
+
+def _apply_tutor_plan(tutor_state: Optional[dict], tutor_plan: object) -> Optional[dict]:
+    plan_data = _normalize_lesson_plan(_tutor_plan_to_dict(tutor_plan))
+    if not plan_data:
+        return tutor_state
+    state = dict(tutor_state or {})
+    state["lesson_plan"] = plan_data
+    state["objective"] = state.get("objective") or plan_data.get("goal")
+    state["current_step"] = state.get("current_step") or plan_data.get("current_step") or 1
+    state["total_steps"] = state.get("total_steps") or len(plan_data.get("steps", []))
+    state["final_answer"] = state.get("final_answer") or plan_data.get("final_answer") or ""
+    plan_source = _tutor_plan_to_dict(tutor_plan)
+    state["skills_used"] = state.get("skills_used") or _trim_string_list(plan_source.get("skills_used"), 10, 80)
+    state["misconceptions"] = state.get("misconceptions") or _trim_string_list(plan_source.get("misconceptions"), 12, 120)
+    state["mastery_score"] = state.get("mastery_score", plan_source.get("mastery_score") or 0.0)
+    current_step = _bounded_int(state.get("current_step"), 1, 1, max(1, state.get("total_steps") or 99))
+    step = next((item for item in plan_data.get("steps", []) if item.get("id") == current_step), None)
+    if step and not state.get("expected_step_answer"):
+        state["expected_step_answer"] = step.get("expected", "")
+    return state
 
 def _apply_attempt_evaluation(
     response_text: str,
@@ -311,7 +508,18 @@ def _apply_attempt_evaluation(
         state["phase"] = "practice" if state.get("phase") == "check" else state.get("phase", "teach")
     if data.get("next_action"):
         state["next_action"] = _trim_tutor_text(data.get("next_action"), state.get("next_action") or "Try the next small step", 120)
-
+    if data.get("expected_answer"):
+        state["expected_step_answer"] = _trim_tutor_text(data.get("expected_answer"), state.get("expected_step_answer") or "", 300)
+    if data.get("is_final_answer"):
+        state["phase"] = "review" if data.get("final_answer_correct") else state.get("phase", "check")
+        if data.get("final_answer_correct") and state.get("total_steps"):
+            state["current_step"] = state.get("total_steps")
+    if data.get("misconception") and verdict in {"partly_correct", "not_yet"}:
+        misconceptions = _trim_string_list(state.get("misconceptions"), 12, 120)
+        misconception = _trim_tutor_text(data.get("misconception"), "", 120)
+        if misconception and misconception not in misconceptions:
+            misconceptions.append(misconception)
+        state["misconceptions"] = misconceptions[-12:]
     answer = response_text or ""
     if verdict == "correct" and not re.search(r"\b(correct|right|exactly|yes)\b", answer, flags=re.I):
         reason = _trim_tutor_text(data.get("rationale"), "that matches the requested step", 140)
@@ -332,6 +540,16 @@ def _tutor_state_row_to_payload(row: models.ChatTutorState | None) -> Optional[d
         "objective": row.objective,
         "next_action": row.next_action,
         "hint_level": row.hint_level,
+        "current_step": row.current_step,
+        "total_steps": row.total_steps,
+        "expected_step_answer": row.expected_step_answer,
+        "final_answer": row.final_answer,
+        "skills_used": row.skills_used,
+        "misconceptions": row.misconceptions,
+        "mastery_score": row.mastery_score,
+        "correct_streak": row.correct_streak,
+        "wrong_streak": row.wrong_streak,
+        "lesson_plan": row.lesson_plan,
     }, reply_style=row.reply_style or "guided")
     payload["attempts"] = row.attempts or 0
     payload["correct_count"] = row.correct_count or 0
@@ -340,6 +558,7 @@ def _tutor_state_row_to_payload(row: models.ChatTutorState | None) -> Optional[d
 def _get_tutor_session_state(db: Session, chat_id: Optional[int], user_id: int) -> Optional[dict]:
     if not chat_id:
         return None
+    _ensure_chat_tutor_state_schema(db)
     with db.no_autoflush:
         row = (
             db.query(models.ChatTutorState)
@@ -362,6 +581,7 @@ def _persist_tutor_session_state(
 ) -> Optional[dict]:
     if not chat_id or not tutor_state:
         return tutor_state
+    _ensure_chat_tutor_state_schema(db)
 
     with db.no_autoflush:
         session_exists = (
@@ -412,6 +632,35 @@ def _persist_tutor_session_state(
     row.objective = tutor_state.get("objective")
     row.next_action = tutor_state.get("next_action")
     row.hint_level = tutor_state.get("hint_level", 2)
+    row.current_step = tutor_state.get("current_step", row.current_step or 1)
+    row.total_steps = tutor_state.get("total_steps", row.total_steps or 0)
+    row.expected_step_answer = tutor_state.get("expected_step_answer") or row.expected_step_answer
+    row.final_answer = tutor_state.get("final_answer") or row.final_answer
+    row.skills_used = tutor_state.get("skills_used") or row.skills_used or []
+    row.misconceptions = tutor_state.get("misconceptions") or row.misconceptions or []
+    row.mastery_score = tutor_state.get("mastery_score", row.mastery_score or 0.0)
+    if not is_student_attempt:
+        row.correct_streak = tutor_state.get("correct_streak", row.correct_streak or 0)
+        row.wrong_streak = tutor_state.get("wrong_streak", row.wrong_streak or 0)
+    row.lesson_plan = tutor_state.get("lesson_plan") or row.lesson_plan
+    if is_student_attempt and verdict == "correct":
+        row.correct_streak = (row.correct_streak or 0) + 1
+        row.wrong_streak = 0
+    elif is_student_attempt and verdict in {"partly_correct", "not_yet"}:
+        row.wrong_streak = (row.wrong_streak or 0) + 1
+        row.correct_streak = 0
+
+    if row.correct_streak >= 2 and row.level == "beginner":
+        row.level = "intermediate"
+    elif row.correct_streak >= 2 and row.level == "intermediate":
+        row.level = "advanced"
+    elif row.wrong_streak >= 2 and row.level == "advanced":
+        row.level = "intermediate"
+    elif row.wrong_streak >= 2 and row.level == "intermediate":
+        row.level = "beginner"
+
+    total_attempts = max(1, row.attempts or 0)
+    row.mastery_score = round(min(1.0, max(0.0, (row.correct_count or 0) / total_attempts)), 2)
     row.reply_style = reply_style or "guided"
     row.last_options = tutor_options or []
     row.updated_at = datetime.now(timezone.utc)
@@ -429,13 +678,17 @@ def _tutor_mode_prompt_prefix(reply_style: str = "guided") -> str:
         "[Tutor mode active]\n"
         "Do not dump a complete final answer immediately. Use chat context, infer level, "
         "check student replies, and move one step at a time. "
+        "Format the visible answer as markdown bullet points, one step per line, like - **Step 1 — ...:** ... then - **Step 2 — ...:** ... "
+        "Use 2-4 short steps maximum, and make the final step the student's action/check. "
         "Never solve the exact step you ask the student to do. For calculations, show at most one setup or rule, "
         "then stop before the student-owned arithmetic/algebra. "
         f"{style_hint} "
         "Return ONLY valid JSON matching this schema: "
         "{\"answer\":\"visible markdown answer with LaTeX\",\"tutor_state\":{\"level\":\"beginner|intermediate|advanced\","
         "\"phase\":\"diagnose|teach|practice|check|review\",\"verdict\":\"correct|partly_correct|not_yet|needs_attempt|not_applicable\","
-        "\"confidence\":0.0,\"objective\":\"short current skill\",\"next_action\":\"short student action\",\"hint_level\":1},"
+        "\"confidence\":0.0,\"objective\":\"short current skill\",\"next_action\":\"short student action\",\"hint_level\":1,"
+        "\"current_step\":1,\"total_steps\":3,\"expected_step_answer\":\"hidden expected answer\","
+        "\"final_answer\":\"hidden final answer if known\",\"skills_used\":[\"skill\"],\"misconceptions\":[\"mistake\"],\"mastery_score\":0.0},"
         "\"options\":[{\"label\":\"A\",\"text\":\"option text\"}]}. "
         "Use an empty options array when no MCQ is needed.\n\n"
     )
@@ -693,6 +946,7 @@ async def ask_ai(
                     tutor_reply_style,
                     tutor_choice,
                 )
+                tutor_state = _apply_tutor_plan(tutor_state, result.get("tutor_plan"))
                 response_text, tutor_state = _apply_attempt_evaluation(
                     response_text,
                     tutor_state,
@@ -890,6 +1144,7 @@ async def ask_simple(
                     tutor_reply_style,
                     tutor_choice,
                 )
+                tutor_state = _apply_tutor_plan(tutor_state, result.get("tutor_plan"))
                 response_text, tutor_state = _apply_attempt_evaluation(
                     response_text,
                     tutor_state,
@@ -1151,6 +1406,10 @@ async def ask_with_files(
                 tutor_reply_style,
                 tutor_choice,
             )
+            tutor_state = _apply_tutor_plan(
+                tutor_state,
+                result.get("tutor_plan") if "result" in locals() else None,
+            )
             response_text, tutor_state = _apply_attempt_evaluation(
                 response_text,
                 tutor_state,
@@ -1372,6 +1631,7 @@ def get_chat_messages(
         .order_by(models.ChatMessage.timestamp.asc())
         .all()
     )
+    _ensure_chat_tutor_state_schema(db)
     tutor_state_row = (
         db.query(models.ChatTutorState)
         .filter(
@@ -1520,6 +1780,7 @@ def delete_chat_session(
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
 
+    _ensure_chat_tutor_state_schema(db)
     db.query(models.MessageMLLog).filter(
         models.MessageMLLog.session_id == session_id
     ).delete(synchronize_session=False)

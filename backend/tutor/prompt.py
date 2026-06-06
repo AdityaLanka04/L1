@@ -213,6 +213,7 @@ def _tutor_mode_section(state: TutorState) -> str:
     reply_style = (state.get("tutor_reply_style") or "guided").strip().lower()
     tutor_choice = (state.get("tutor_choice") or "").strip()
     session_state = state.get("tutor_session_state") or {}
+    tutor_plan = state.get("tutor_plan")
     attempt_evaluation = state.get("attempt_evaluation")
 
     style_lines = {
@@ -243,12 +244,16 @@ def _tutor_mode_section(state: TutorState) -> str:
         "- Avoid dumping complete solutions. Teach one step at a time unless the student is clearly stuck after trying.",
         "- Check the student's replies for correctness before moving to the next step.",
         "- Keep each response focused on one learning move: hint, check, correction, or next step.",
+        "- Format the visible answer as markdown bullet points, one step per line: - **Step 1 — ...:** ...",
+        "- Use 2-4 visible steps maximum. The final visible step must be the student-owned action or check.",
+        "- Step labels must organize the guidance; they must not become a full solution dump.",
         "- Never solve the same step you ask the student to do. If you ask for Step 1, Step 1 must remain unanswered.",
         "- For calculations, show at most one setup or rule, then stop before the arithmetic/algebra the student should perform.",
         "- Do not reveal the final answer unless the student already attempted the problem or explicitly asks after multiple hints.",
         "- End with exactly one concrete student action, and set next_action to that same unsolved action.",
         "- Bad: solving all terms in an integral and then asking the student to calculate a term already shown.",
         "- Good: state the power rule, identify the first term, then ask the student to integrate only that first term.",
+        "- Good format: - **Step 1 — Identify the rule:** ... then - **Step 2 — Your turn:** ... on the next line.",
         "- Keep the visible answer short: 2-5 sentences unless correcting a submitted attempt.",
         *style_lines,
         "- Explicitly adapt difficulty based on the student's latest attempt: lower if stuck, raise if confident.",
@@ -260,6 +265,20 @@ def _tutor_mode_section(state: TutorState) -> str:
     ]
     if tutor_choice:
         lines.append(f"- The student clicked this option: {tutor_choice}. Evaluate it before teaching the next step.")
+    if tutor_plan:
+        current_step = getattr(tutor_plan, "current_step", 1)
+        total_steps = getattr(tutor_plan, "total_steps", 0)
+        steps = getattr(tutor_plan, "steps", []) or []
+        current = next((step for step in steps if step.get("id") == current_step), steps[current_step - 1] if steps and current_step <= len(steps) else {})
+        lines.extend([
+            "[HIDDEN LESSON PLAN]",
+            f"- Goal: {getattr(tutor_plan, 'goal', '')}",
+            f"- Current step: {current_step} of {total_steps or max(1, len(steps))}",
+            f"- Current step title: {current.get('title', 'Current step')}",
+            f"- Expected current-step answer/key idea: {getattr(tutor_plan, 'expected_step_answer', '') or current.get('expected', '')}",
+            f"- Known final answer: {getattr(tutor_plan, 'final_answer', '') or 'none'}",
+            "- Do not reveal the full hidden plan. Only teach the current step and the immediate next student action.",
+        ])
     if attempt_evaluation:
         verdict = getattr(attempt_evaluation, "verdict", "not_applicable")
         confidence = getattr(attempt_evaluation, "confidence", 0.0)
@@ -289,6 +308,11 @@ def _tutor_mode_section(state: TutorState) -> str:
             f"- Next action from last turn: {session_state.get('next_action', 'Try the next small step')}",
             f"- Attempts: {session_state.get('attempts', 0)}",
             f"- Correct answers: {session_state.get('correct_count', 0)}",
+            f"- Mastery score: {session_state.get('mastery_score', 0.0)}",
+            f"- Correct streak: {session_state.get('correct_streak', 0)}",
+            f"- Wrong streak: {session_state.get('wrong_streak', 0)}",
+            f"- Misconceptions seen: {', '.join(session_state.get('misconceptions') or []) or 'none'}",
+            "- If correct streak is 2+, raise challenge slightly. If wrong streak is 2+, simplify or use an MCQ.",
         ])
     return "\n".join(lines)
 
