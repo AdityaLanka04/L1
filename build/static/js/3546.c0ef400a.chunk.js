@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunklearning=self.webpackChunklearning||[]).push([[3546],{53546:(e,i,l)=>{l.r(i),l.d(i,{default:()=>n});var r=l(44414);const n=()=>(0,r.jsxs)("div",{style:{padding:"40px"},children:[(0,r.jsx)("h1",{children:"Solo Quiz Review"}),(0,r.jsx)("p",{children:"Your review will appear here."})]})}}]);

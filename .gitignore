@@ -17,6 +17,7 @@ backend/services/intent_state.json
 
 # Node
 node_modules/
+build/
 
 # Env files - never commit real secrets
 venv/
