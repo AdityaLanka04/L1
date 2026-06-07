@@ -37,7 +37,27 @@
       "Bash(sed -n '1970,1980p' components/SimpleBlockEditor.js)",
       "Bash(sed -n '444,452p' components/ThemeSwitcher.js)",
       "Bash(sed -n '28,35p' pages/BattleNotification.js)",
-      "Bash(sed -n '237,244p' pages/QuizBattle.js)"
+      "Bash(sed -n '237,244p' pages/QuizBattle.js)",
+      "Bash(curl -s -o NUL -w \"cerbyl.com: %{http_code}\\\\n\" https://cerbyl.com/)",
+      "Bash(curl -s -o NUL -w \"api.cerbyl.com/health: %{http_code}\\\\n\" https://api.cerbyl.com/health)",
+      "Bash(curl -s -o NUL -w \"api.cerbyl.com/: %{http_code}\\\\n\" https://api.cerbyl.com/)",
+      "Bash(curl -s -m 10 -o NUL -w \"azure backend root: %{http_code}\\\\n\" https://cerbyl-api.yellowwave-ef452238.eastus.azurecontainerapps.io/)",
+      "Bash(curl -s -m 10 -o NUL -w \"azure backend /docs: %{http_code}\\\\n\" https://cerbyl-api.yellowwave-ef452238.eastus.azurecontainerapps.io/docs)",
+      "Bash(curl -s -m 10 -o NUL -w \"azure backend /health: %{http_code}\\\\n\" https://cerbyl-api.yellowwave-ef452238.eastus.azurecontainerapps.io/health)",
+      "Bash(curl -s -m 10 -o NUL -w \"cerbyl.com/api/health: %{http_code}\\\\n\" https://cerbyl.com/api/health)",
+      "Bash(curl -s -m 10 https://cerbyl.com/api/health)",
+      "Bash(curl -s -m 15 https://cerbyl-api.yellowwave-ef452238.eastus.azurecontainerapps.io/api/health)",
+      "Bash(k6 version *)",
+      "Bash(curl -s -m 10 -o NUL -w \"frontend root: %{http_code}\\\\n\" https://cerbyl.com/)",
+      "Bash(curl -s -m 10 -o NUL -w \"frontend /login: %{http_code}\\\\n\" https://cerbyl.com/login)",
+      "Bash(curl -s -m 10 -o NUL -w \"frontend /static/js exists check via main.3ba5e483.js: %{http_code}\\\\n\" https://cerbyl.com/static/js/main.3ba5e483.js)",
+      "Bash(curl -s -m 15 -o NUL -w \"backend /docs: %{http_code}\\\\n\" https://cerbyl-api.yellowwave-ef452238.eastus.azurecontainerapps.io/docs)",
+      "Bash(curl -s -m 15 -o NUL -w \"backend /openapi.json: %{http_code}\\\\n\" https://cerbyl-api.yellowwave-ef452238.eastus.azurecontainerapps.io/openapi.json)",
+      "PowerShell(winget *)",
+      "PowerShell(k6 version *)",
+      "PowerShell(k6 run *)",
+      "Bash(cp tests/k6/load.js /tmp/load_check.js)",
+      "Bash(sed -i \"s/{ duration: '30s', target: 10 }/{ duration: '10s', target: 5 }/; s/{ duration: '2m', target: 10 }/{ duration: '15s', target: 5 }/; s/{ duration: '30s', target: 0 }/{ duration: '10s', target: 0 }/\" /tmp/load_check.js)"
     ]
   }
 }
