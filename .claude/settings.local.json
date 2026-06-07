@@ -57,7 +57,17 @@
       "PowerShell(k6 version *)",
       "PowerShell(k6 run *)",
       "Bash(cp tests/k6/load.js /tmp/load_check.js)",
-      "Bash(sed -i \"s/{ duration: '30s', target: 10 }/{ duration: '10s', target: 5 }/; s/{ duration: '2m', target: 10 }/{ duration: '15s', target: 5 }/; s/{ duration: '30s', target: 0 }/{ duration: '10s', target: 0 }/\" /tmp/load_check.js)"
+      "Bash(sed -i \"s/{ duration: '30s', target: 10 }/{ duration: '10s', target: 5 }/; s/{ duration: '2m', target: 10 }/{ duration: '15s', target: 5 }/; s/{ duration: '30s', target: 0 }/{ duration: '10s', target: 0 }/\" /tmp/load_check.js)",
+      "Skill(run)",
+      "Bash(npx --yes chromium-cli --version)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(mkdir -p /tmp/pwcheck)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(npx playwright *)",
+      "Bash(pkill -f \"react-scripts start\")",
+      "Bash(pkill -f \"node.*3000\")",
+      "Bash(rm -rf /tmp/pwcheck /tmp/pw_check.mjs /tmp/frontend.log)"
     ]
   }
 }

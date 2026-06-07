@@ -1,0 +1,36 @@
+.error-boundary {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.error-boundary-card {
+  max-width: 420px;
+  text-align: center;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color, rgba(128, 128, 128, 0.2));
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.error-boundary-card h2 {
+  margin: 0 0 0.5rem;
+}
+
+.error-boundary-card p {
+  color: var(--text-secondary);
+  margin: 0 0 1.25rem;
+}
+
+.error-boundary-card button {
+  background: var(--accent);
+  color: var(--bg-primary, #fff);
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}

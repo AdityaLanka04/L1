@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunklearning=self.webpackChunklearning||[]).push([[2338],{92338:(e,n,s)=>{s.r(n),s.d(n,{default:()=>r});var a=s(9950),l=s(28429);const r=()=>{const e=(0,l.Zp)();return(0,a.useEffect)(()=>{e("/learning-paths")},[e]),null}}}]);
