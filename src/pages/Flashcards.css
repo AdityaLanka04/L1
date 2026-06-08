@@ -2487,7 +2487,7 @@
 }
 
 .fc-study-card-back {
-  justify-content: flex-start;
+  justify-content: center;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   overscroll-behavior: contain;

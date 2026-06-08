@@ -135,6 +135,39 @@ def get_flashcard_history(
         "limit": limit,
     }
 
+@router.delete("/flashcards/sets/{set_id}")
+def delete_flashcard_set(
+    set_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    flashcard_set = db.query(models.FlashcardSet).filter(
+        models.FlashcardSet.id == set_id,
+        models.FlashcardSet.user_id == current_user.id,
+    ).first()
+
+    if not flashcard_set:
+        raise HTTPException(status_code=404, detail="Flashcard set not found")
+
+    try:
+        db.query(models.FlashcardStudySession).filter(
+            models.FlashcardStudySession.set_id == set_id
+        ).delete(synchronize_session=False)
+        db.query(models.Flashcard).filter(
+            models.Flashcard.set_id == set_id
+        ).delete(synchronize_session=False)
+        db.delete(flashcard_set)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting flashcard set {set_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete flashcard set")
+
+    return {
+        "success": True,
+        "message": "Flashcard set deleted",
+    }
+
 @router.get("/get_flashcard_statistics")
 def get_flashcard_statistics(user_id: str = Query(...), db: Session = Depends(get_db)):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)

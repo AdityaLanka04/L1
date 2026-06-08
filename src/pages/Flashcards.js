@@ -1777,7 +1777,8 @@ const Flashcards = () => {
     }
   };
 
-  const deleteFlashcardSet = async (setId) => {
+  const deleteFlashcardSet = async (setId, event) => {
+    event?.stopPropagation();
     if (!window.confirm('Are you sure you want to delete this flashcard set?')) return;
     try {
       const token = localStorage.getItem('token');
@@ -1793,9 +1794,12 @@ const Flashcards = () => {
           setFlashcards([]);
           setCurrentSetInfo(null);
         }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showPopup('Error', errorData.detail || 'Failed to delete flashcard set');
       }
     } catch (error) {
-            showPopup('Error', 'Failed to delete flashcard set');
+      showPopup('Error', 'Failed to delete flashcard set');
     }
   };
 
@@ -2924,6 +2928,12 @@ const Flashcards = () => {
       <div className="fc-qb-topbar">
         <div className="fc-qb-tagline">accelerate <span>your flashcards</span></div>
         <div className="fc-qb-topbar-right">
+          <button className="fc-qb-top-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+            Dashboard
+          </button>
+          <button className="fc-qb-top-btn" onClick={() => setSidebarCollapsed(prev => !prev)} type="button">
+            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
+          </button>
           <div className="fc-qb-context-control">
             <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
           </div>
@@ -2957,11 +2967,11 @@ const Flashcards = () => {
                   {FC_ICONS.chart}
                 </button>
                 <div className="fc-qb-strip-spacer" />
-                <button className="fc-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-                  {FC_ICONS.home}
-                </button>
                 <button className="fc-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
                   {FC_ICONS.chat}
+                </button>
+                <button className="fc-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  {FC_ICONS.home}
                 </button>
                 <button
                   className="fc-qb-strip-btn"
@@ -3073,6 +3083,14 @@ const Flashcards = () => {
               <div className="fc-qb-side-actions">
                 <button
                   className="fc-qb-action-btn fc-qb-action-btn--ghost"
+                  onClick={() => navigate('/dashboard-cerbyl')}
+                  type="button"
+                >
+                  {FC_ICONS.home}
+                  <span>Dashboard</span>
+                </button>
+                <button
+                  className="fc-qb-action-btn fc-qb-action-btn--ghost"
                   onClick={() => {
                     localStorage.removeItem('token');
                     localStorage.removeItem('username');
@@ -3150,7 +3168,8 @@ const Flashcards = () => {
                               </div>
                               <button 
                                 className="fc-delete-btn-thumb" 
-                                onClick={() => deleteFlashcardSet(set.id)} 
+                                onClick={(e) => deleteFlashcardSet(set.id, e)}
+                                type="button"
                                 style={{ 
                                   background: 'rgba(0, 0, 0, 0.3)',
                                   borderColor: 'rgba(0, 0, 0, 0.5)',

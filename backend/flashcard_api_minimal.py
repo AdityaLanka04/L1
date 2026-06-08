@@ -475,11 +475,14 @@ async def delete_set(set_id: int, db: Session = Depends(get_db)):
     
     if not flashcard_set:
         raise HTTPException(status_code=404, detail="Set not found")
-    
+
+    db.query(models.FlashcardStudySession).filter(
+        models.FlashcardStudySession.set_id == set_id
+    ).delete(synchronize_session=False)
     db.query(models.Flashcard).filter(
         models.Flashcard.set_id == set_id
-    ).delete()
-    
+    ).delete(synchronize_session=False)
+
     db.delete(flashcard_set)
     db.commit()
     
