@@ -76,7 +76,9 @@ function App() {
   const [notification, setNotification] = useState(null);
   const { isOpen, openNav, closeNav } = useGlobalNav();
   const location = useLocation();
-  const hideNav = ['/', '/login', '/register', '/profile-quiz'].includes(location.pathname);
+  const hideNav = ['/', '/login', '/register', '/profile-quiz'].includes(location.pathname)
+    || location.pathname.startsWith('/ai-chat')
+    || location.pathname.startsWith('/shared/chat');
 
   React.useEffect(() => {
     window.openGlobalNav = openNav;

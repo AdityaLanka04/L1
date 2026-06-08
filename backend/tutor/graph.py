@@ -71,7 +71,7 @@ class TutorGraph:
             "chat_history": chat_history or [],
             "use_hs_context": use_hs_context,
             "context_doc_ids": selected_doc_ids,
-            "context_only": bool(context_only or selected_doc_ids),
+            "context_only": bool((context_only or selected_doc_ids) and use_hs_context),
             "tutor_mode": bool(tutor_mode),
             "tutor_reply_style": tutor_reply_style or "guided",
             "tutor_choice": tutor_choice,

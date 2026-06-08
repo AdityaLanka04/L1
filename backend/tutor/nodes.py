@@ -842,7 +842,7 @@ def gate_and_retrieve(state: TutorState) -> dict:
     db_factory = state.get("_db_factory")
     user_id = state.get("user_id", "")
     context_doc_ids = state.get("context_doc_ids") or []
-    context_only = bool(state.get("context_only") or context_doc_ids)
+    context_only = bool(state.get("context_only"))
 
     should_retrieve = intent in ("recall", "confusion", "followup", "question", "comprehension_answer")
 
@@ -993,7 +993,7 @@ def gate_and_retrieve(state: TutorState) -> dict:
         "structured_context": structured_context,
         "rag_context": rag_chunks,
         "context_only": context_only,
-        "context_only_no_match": bool(context_only and not rag_chunks),
+        "context_only_no_match": bool(context_only and use_hs and not rag_chunks),
     }
 
 def select_teaching_style(state: TutorState) -> dict:

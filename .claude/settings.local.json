@@ -67,7 +67,9 @@
       "Bash(npx playwright *)",
       "Bash(pkill -f \"react-scripts start\")",
       "Bash(pkill -f \"node.*3000\")",
-      "Bash(rm -rf /tmp/pwcheck /tmp/pw_check.mjs /tmp/frontend.log)"
+      "Bash(rm -rf /tmp/pwcheck /tmp/pw_check.mjs /tmp/frontend.log)",
+      "Bash(git status *)",
+      "Bash(git rm *)"
     ]
   }
 }

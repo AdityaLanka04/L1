@@ -3523,17 +3523,6 @@ sub {
   opacity: 1;
 }
 
-.ac-folders-header::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 16px;
-  right: 16px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--ac-accent), transparent);
-  opacity: 0.2;
-}
-
 .ac-folder-input:focus,
 .ac-feedback textarea:focus {
   border-color: var(--ac-accent);
@@ -5224,38 +5213,6 @@ button:focus-visible {
   min-width: 0;
 }
 
-.ai-chat-page .ac-tutor-live-state {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  width: 100%;
-  margin-left: 0;
-}
-
-.ai-chat-page .ac-tutor-live-state span {
-  min-height: 24px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  background: color-mix(in srgb, var(--hover-bg) 78%, transparent);
-  color: var(--text-secondary);
-  display: inline-flex;
-  align-items: center;
-  padding: 0 8px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-@media (min-width: 900px) {
-  .ai-chat-page .ac-tutor-live-state {
-    width: auto;
-    margin-left: auto;
-    justify-content: flex-end;
-  }
-}
-
 .ai-chat-page .ac-tutor-options {
   margin-top: 16px;
   display: grid;
@@ -5468,15 +5425,6 @@ button:focus-visible {
   font-weight: 850;
   line-height: 1.2;
   color: var(--text-primary);
-}
-
-.ai-chat-page .ac-tutor-state-meta {
-  margin-top: 2px;
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.45px;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-secondary) 86%, var(--text-primary));
 }
 
 .ai-chat-page .ac-tutor-score-pill {
@@ -6303,6 +6251,7 @@ button:focus-visible {
   min-width: 64px !important;
   padding: 12px 0 !important;
   overflow: visible !important;
+  z-index: 5;
 }
 
 .ac-qb-collapsed-strip {

@@ -46,28 +46,6 @@ const TUTOR_REPLY_MODES = [
   { id: 'quiz', label: 'Drill' },
 ];
 
-const TUTOR_LEVEL_LABELS = {
-  beginner: 'Beginner',
-  intermediate: 'Intermediate',
-  advanced: 'Advanced',
-};
-
-const TUTOR_PHASE_LABELS = {
-  diagnose: 'Diagnose',
-  teach: 'Teach',
-  practice: 'Practice',
-  check: 'Check',
-  review: 'Review',
-};
-
-const TUTOR_VERDICT_LABELS = {
-  correct: 'Correct',
-  partly_correct: 'Partly Right',
-  not_yet: 'Not Yet',
-  needs_attempt: 'Try First',
-  not_applicable: 'Guiding',
-};
-
 const TUTOR_VERDICT_SUMMARY = {
   correct: 'Step accepted',
   partly_correct: 'Almost there',
@@ -448,14 +426,6 @@ function normalizeTutorState(rawState = null, replyMode = 'guided') {
     wrongStreak,
     masteryScore,
   };
-}
-
-function getLatestTutorState(messages = []) {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const state = normalizeTutorState(messages[index]?.tutorState, messages[index]?.tutorReplyMode);
-    if (state) return state;
-  }
-  return null;
 }
 
 function getTutorProgressDisplay(tutorState) {
@@ -2083,39 +2053,26 @@ const AIChat = ({ sharedMode = false }) => {
   const autoRenameChat = async (chatId, userMessage) => {
     try {
       const token = localStorage.getItem('token');
-      
-      
-      let title = userMessage.trim();
-      
-      
-      const firstSentence = title.match(/^[^.!?]+[.!?]/);
-      if (firstSentence) {
-        title = firstSentence[0];
-      }
-      
-      
-      if (title.length > 50) {
-        title = title.substring(0, 47) + '...';
-      }
-      
-      
-      const response = await fetch(`${API_URL}/rename_chat_session`, {
-        method: 'PUT',
+
+      const response = await fetch(`${API_URL}/generate_chat_title`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           chat_id: chatId,
-          new_title: title
+          user_id: userName
         })
       });
 
       if (response.ok) {
-        
-        setChatSessions(prev => prev.map(chat => 
-          chat.id === chatId ? { ...chat, title } : chat
-        ));
+        const result = await response.json();
+        if (result.status === 'success' && result.title) {
+          setChatSessions(prev => prev.map(chat =>
+            chat.id === chatId ? { ...chat, title: result.title } : chat
+          ));
+        }
       }
     } catch (error) {
     // silenced
@@ -2900,8 +2857,6 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const renderTutorControls = () => {
-    const latestTutorState = getLatestTutorState(messages);
-
     return (
       <div className="ac-tutor-controls">
         <button
@@ -2926,13 +2881,6 @@ const AIChat = ({ sharedMode = false }) => {
                 {mode.label}
               </button>
             ))}
-          </div>
-        )}
-        {tutorMode && latestTutorState && (
-          <div className="ac-tutor-live-state">
-            <span>{TUTOR_LEVEL_LABELS[latestTutorState.level]}</span>
-            <span>{TUTOR_PHASE_LABELS[latestTutorState.phase]}</span>
-            <span>{TUTOR_VERDICT_LABELS[latestTutorState.verdict]}</span>
           </div>
         )}
       </div>
@@ -3452,9 +3400,6 @@ const AIChat = ({ sharedMode = false }) => {
                                 <span className="ac-tutor-verdict-dot" aria-hidden="true" />
                                 <div>
                                   <div className="ac-tutor-state-label">{progress.status}</div>
-                                  <div className="ac-tutor-state-meta">
-                                    {[TUTOR_LEVEL_LABELS[tutorState.level], TUTOR_PHASE_LABELS[tutorState.phase], TUTOR_VERDICT_LABELS[tutorState.verdict], progress.stepLabel].filter(Boolean).join(' · ')}
-                                  </div>
                                 </div>
                               </div>
                               <div className="ac-tutor-score-pill" aria-label="Tutor progress score">

@@ -763,18 +763,15 @@ def _assert_user_matches_request(user_id: Optional[str], current_user: models.Us
     if requested and requested not in allowed:
         raise HTTPException(status_code=403, detail="Access denied")
 
-def _context_only_fallback_answer(user_id: str, question: str, context_doc_ids: list[str]) -> str:
+def _context_only_fallback_answer(user_id: str, question: str, context_doc_ids: list[str], use_hs_context: bool = True) -> str:
     selected_ids = [str(d).strip() for d in (context_doc_ids or []) if str(d).strip()]
-    if not selected_ids:
+    if not selected_ids or not use_hs_context:
         return call_ai(question)
 
     try:
         from services import context_store
         if not context_store.available():
-            return (
-                "Selected context retrieval is unavailable right now, so I can't answer "
-                "strictly from the chosen context documents."
-            )
+            return call_ai(question)
 
         q = (question or "").strip() or "Summarize the selected context."
         results = context_store.search_context(
@@ -787,8 +784,8 @@ def _context_only_fallback_answer(user_id: str, question: str, context_doc_ids: 
         chunks = [r.get("text", "").strip() for r in results if r.get("text")]
         if not chunks:
             return (
-                "I couldn’t find enough relevant information in the selected context documents "
-                "to answer that. Please select more relevant context pages/files and try again."
+                "I couldn’t find anything related to that in the selected context documents. "
+                "Please select more relevant context pages/files and try again."
             )
 
         context_blob = "\n\n".join(f"--- Chunk {i+1} ---\n{c}" for i, c in enumerate(chunks[:6]))
@@ -1020,7 +1017,7 @@ async def ask_ai(
             except Exception:
                 pass
         else:
-            response_text = _context_only_fallback_answer(str(user.id), question, selected_doc_ids)
+            response_text = _context_only_fallback_answer(str(user.id), question, selected_doc_ids, use_hs_context)
             tutor_options = []
             tutor_state = _normalize_tutor_state({}, tutor_reply_style, tutor_choice) if tutor_mode else None
 
@@ -1218,7 +1215,7 @@ async def ask_simple(
             except Exception:
                 pass
         else:
-            response_text = _context_only_fallback_answer(str(user.id), model_question, selected_doc_ids)
+            response_text = _context_only_fallback_answer(str(user.id), model_question, selected_doc_ids, use_hs_context)
             tutor_options = []
             tutor_state = _normalize_tutor_state({}, tutor_reply_style, tutor_choice) if tutor_mode else None
 
@@ -1448,10 +1445,10 @@ async def ask_with_files(
                     )
                     response_text = result.get("response", "")
                 else:
-                    response_text = _context_only_fallback_answer(str(user.id), tutor_input, selected_doc_ids)
+                    response_text = _context_only_fallback_answer(str(user.id), tutor_input, selected_doc_ids, use_hs_context)
             except Exception as e:
                 logger.error(f"Tutor graph failed in ask_with_files: {e}")
-                response_text = _context_only_fallback_answer(str(user.id), tutor_input, selected_doc_ids)
+                response_text = _context_only_fallback_answer(str(user.id), tutor_input, selected_doc_ids, use_hs_context)
 
             if vision_unavailable and image_payloads:
                 response_text += (
