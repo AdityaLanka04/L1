@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronRight, Target, Brain, MessageSquare,
+  ChevronLeft, ChevronRight, Target, Brain, MessageSquare,
   CheckCircle, Activity, Zap, RefreshCw, Cpu
 } from 'lucide-react';
 import './Weaknesses.css';
@@ -18,6 +18,7 @@ const Weaknesses = () => {
   const [loading, setLoading] = useState(true);
   const [weakAreasData, setWeakAreasData] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -114,8 +115,36 @@ const Weaknesses = () => {
         <circle cx="1000" cy="600" r="2" fill="currentColor"/>
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
-      <div className="wk-layout">
+      <div className="wk-topbar">
+        <div className="wk-topbar-tagline">accelerate <span>weak areas</span></div>
+        <div className="wk-topbar-actions">
+          <button className="wk-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
+            Dashboard
+          </button>
+          <button className="wk-top-btn" type="button" onClick={loadWeakAreas}>
+            Refresh
+          </button>
+          <button className="wk-top-btn" type="button" onClick={() => setSidebarCollapsed(prev => !prev)}>
+            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
+          </button>
+          <button className="wk-top-btn wk-top-btn-accent" type="button" onClick={() => navigate('/weakness-practice')}>
+            Practice
+          </button>
+        </div>
+      </div>
+
+      <div className={`wk-layout ${sidebarCollapsed ? 'wk-layout-collapsed' : ''}`}>
+        {!sidebarCollapsed && (
         <aside className="wk-sidebar">
+          <button
+            className="wk-side-collapse-btn"
+            type="button"
+            title="Hide sidebar"
+            aria-label="Hide Weak Areas sidebar"
+            onClick={() => setSidebarCollapsed(true)}
+          >
+            <ChevronLeft size={14} />
+          </button>
           <nav className="wk-sidebar-nav">
             <button
               className={`wk-sidebar-item ${activeView === 'weak-areas' ? 'active' : ''}`}
@@ -171,6 +200,7 @@ const Weaknesses = () => {
             </div>
           )}
         </aside>
+        )}
 
         <main className="wk-main">
           {activeView === 'weak-areas' && (

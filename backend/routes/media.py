@@ -816,11 +816,24 @@ def delete_slide(
 
         file_path = Path(slide.file_path).resolve()
         allowed_dir = Path("uploads/slides").resolve()
-        if str(file_path).startswith(str(allowed_dir)) and file_path.exists():
-            file_path.unlink()
 
+        db.query(models.SlideAnalysis).filter(
+            models.SlideAnalysis.slide_id == slide_id,
+        ).delete(synchronize_session=False)
+        db.query(models.QuestionSetSlide).filter(
+            models.QuestionSetSlide.slide_id == slide_id,
+        ).delete(synchronize_session=False)
+        db.query(models.LearningReviewSlide).filter(
+            models.LearningReviewSlide.slide_id == slide_id,
+        ).delete(synchronize_session=False)
         db.delete(slide)
         db.commit()
+
+        try:
+            if str(file_path).startswith(str(allowed_dir)) and file_path.exists():
+                file_path.unlink()
+        except Exception as cleanup_error:
+            logger.warning(f"Deleted slide {slide_id}, but failed to remove file: {cleanup_error}")
 
         return {
             "status": "success",

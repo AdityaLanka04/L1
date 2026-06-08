@@ -110,6 +110,7 @@ const SlideExplorer = () => {
   const [activeView, setActiveView] = useState('grid'); // 'grid' | 'upload'
   const [focusMode, setFocusMode] = useState(false);
   const [showInsights, setShowInsights] = useState({});
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const fetchUploadedSlides = useCallback(async () => {
     try {
@@ -276,18 +277,20 @@ const SlideExplorer = () => {
         <div className="se-analysis-layout">
           {!focusMode && (
             <aside className="se-analysis-sidebar">
-              <div className="se-analysis-sidebar-title">{selectedSlide.filename}</div>
-              <div className="se-analysis-slide-list">
-                {analyzedSlides.map((slide, idx) => (
-                  <button
-                    key={idx}
-                    className={`se-analysis-slide-thumb ${idx === currentSlideIndex ? 'active' : ''}`}
-                    onClick={() => goToSlide(idx)}
-                  >
-                    <div className="se-thumb-num">{idx + 1}</div>
-                    <div className="se-thumb-title">{slide.title || `Slide ${slide.slide_number}`}</div>
-                  </button>
-                ))}
+              <div className="se-analysis-slide-block">
+                <div className="se-analysis-sidebar-title">{selectedSlide.filename}</div>
+                <div className="se-analysis-slide-list">
+                  {analyzedSlides.map((slide, idx) => (
+                    <button
+                      key={idx}
+                      className={`se-analysis-slide-thumb ${idx === currentSlideIndex ? 'active' : ''}`}
+                      onClick={() => goToSlide(idx)}
+                    >
+                      <div className="se-thumb-num">{idx + 1}</div>
+                      <div className="se-thumb-title">{slide.title || `Slide ${slide.slide_number}`}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </aside>
           )}
@@ -431,8 +434,36 @@ const SlideExplorer = () => {
   // ─── MAIN CARD GRID ────────────────────────────────────────────────
   return (
     <div className="se-page">
-      <div className="se-main-layout">
+      <div className="se-topbar">
+        <div className="se-topbar-tagline">accelerate <span>slides</span></div>
+        <div className="se-topbar-actions">
+          <button className="se-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
+            Dashboard
+          </button>
+          <button className="se-top-btn" type="button" onClick={() => setActiveView('grid')}>
+            My Slides
+          </button>
+          <button className="se-top-btn" type="button" onClick={() => setSidebarCollapsed(prev => !prev)}>
+            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
+          </button>
+          <button className="se-top-btn se-top-btn-accent" type="button" onClick={() => setActiveView('upload')} disabled={uploading}>
+            Upload New
+          </button>
+        </div>
+      </div>
+
+      <div className={`se-main-layout ${sidebarCollapsed ? 'se-main-layout-collapsed' : ''}`}>
+        {!sidebarCollapsed && (
         <aside className="se-sidebar">
+          <button
+            className="se-side-collapse-btn"
+            type="button"
+            title="Hide sidebar"
+            aria-label="Hide slides sidebar"
+            onClick={() => setSidebarCollapsed(true)}
+          >
+            <ChevronLeft size={14} />
+          </button>
           <nav className="se-sidebar-nav">
             <button
               className={`se-nav-item se-nav-item--primary ${activeView === 'upload' ? 'active' : ''}`}
@@ -482,6 +513,7 @@ const SlideExplorer = () => {
             </button>
           </div>
         </aside>
+        )}
 
         <main className="se-main-content">
           {activeView === 'upload' ? (
