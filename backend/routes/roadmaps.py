@@ -26,6 +26,25 @@ router = APIRouter(
     dependencies=[Depends(enforce_request_user_scope)],
 )
 
+def _normalize_topic_name(topic: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(topic or "").lower()).strip()
+
+def _topic_names_match(left: str, right: str) -> bool:
+    normalized_left = _normalize_topic_name(left)
+    normalized_right = _normalize_topic_name(right)
+    if not normalized_left or not normalized_right:
+        return False
+    if normalized_left == normalized_right:
+        return True
+
+    left_tokens = set(normalized_left.split())
+    right_tokens = set(normalized_right.split())
+    if not left_tokens or not right_tokens:
+        return False
+
+    overlap = left_tokens & right_tokens
+    return len(overlap) / max(len(left_tokens), len(right_tokens)) >= 0.8
+
 def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
     profile = {
         "user_id": getattr(user, "id", "unknown"),
@@ -600,14 +619,14 @@ async def expand_knowledge_node(
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
 
-        if node.expansion_status == "expanded":
+        if node.expansion_status == "expanded" and node.generated_subtopics:
             children = db.query(models.KnowledgeNode).filter(
                 models.KnowledgeNode.parent_node_id == node_id,
                 models.KnowledgeNode.user_id == current_user.id,
             ).all()
 
             return {
-                "status": "success",
+                "status": "already_expanded",
                 "message": "Node already expanded",
                 "child_nodes": [
                     {
@@ -620,9 +639,13 @@ async def expand_knowledge_node(
                         "expansion_status": child.expansion_status,
                         "position": {"x": child.position_x, "y": child.position_y},
                     }
-                    for child in children
-                ],
-            }
+                for child in children
+            ],
+        }
+
+        roadmap = _find_roadmap_for_node(db, node, current_user.id)
+        if roadmap and not node.roadmap_id:
+            node.roadmap_id = roadmap.id
 
         node.expansion_status = "expanding"
         db.commit()
@@ -644,12 +667,21 @@ async def expand_knowledge_node(
 
         context_str = " → ".join(context_path)
 
+        existing_children = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.parent_node_id == node_id,
+            models.KnowledgeNode.user_id == current_user.id,
+        ).all()
+        existing_child_names = [child.topic_name for child in existing_children]
+        existing_child_context = ", ".join(existing_child_names) if existing_child_names else "None"
+
         expansion_prompt = f"""Expand "{node.topic_name}".
 Context: {context_str}
 Depth: {node.depth_level}
 Level: {user_profile.get('difficulty_level', 'intermediate')}
+Existing immediate child topics: {existing_child_context}
 
 Generate 4-5 specific subtopics (more specific than parent, 2-5 words each).
+Do not repeat, rename, or closely overlap with any existing immediate child topic.
 
 **JSON OUTPUT**:
 {{
@@ -682,6 +714,49 @@ Generate 4-5 specific subtopics (more specific than parent, 2-5 words each).
             }
 
         subtopics = ai_data.get("subtopics", [])[:5]
+        if not subtopics:
+            subtopics = [
+                {"name": "Fundamentals", "description": "Core concepts and basics", "complexity": "beginner"},
+                {"name": "Key Principles", "description": "Essential rules and theories", "complexity": "intermediate"},
+                {"name": "Applications", "description": "Real-world uses", "complexity": "intermediate"},
+                {"name": "Advanced Topics", "description": "Deep dive into complexity", "complexity": "advanced"},
+            ]
+
+        fallback_subtopics = [
+            {"name": f"{node.topic_name} Foundations", "description": "Foundational ideas for this topic", "complexity": "beginner"},
+            {"name": f"{node.topic_name} Examples", "description": "Concrete examples and cases", "complexity": "intermediate"},
+            {"name": f"{node.topic_name} Practice", "description": "Ways to apply and reinforce this topic", "complexity": "intermediate"},
+            {"name": "Core Concepts", "description": "Essential ideas to understand", "complexity": "beginner"},
+            {"name": "Key Methods", "description": "Important techniques and approaches", "complexity": "intermediate"},
+            {"name": "Practical Uses", "description": "How this appears in real scenarios", "complexity": "intermediate"},
+            {"name": "Common Challenges", "description": "Typical problems and tradeoffs", "complexity": "intermediate"},
+            {"name": "Advanced Patterns", "description": "Deeper structures and extensions", "complexity": "advanced"},
+            {"name": "Related Tools", "description": "Helpful tools, systems, or frameworks", "complexity": "intermediate"},
+        ]
+
+        unique_subtopics = []
+        seen_names = list(existing_child_names)
+        for subtopic in [*subtopics, *fallback_subtopics]:
+            name = str(subtopic.get("name", "")).strip()
+            if not name:
+                continue
+            if any(_topic_names_match(name, existing_name) for existing_name in seen_names):
+                continue
+            unique_subtopics.append({**subtopic, "name": name})
+            seen_names.append(name)
+            if len(unique_subtopics) >= 5:
+                break
+
+        subtopics = unique_subtopics
+        if not subtopics:
+            node.expansion_status = "unexpanded"
+            db.commit()
+            return {
+                "status": "success",
+                "message": "No new non-duplicate subtopics were generated",
+                "child_nodes": [],
+            }
+
         child_nodes = []
 
         for idx, subtopic in enumerate(subtopics):
@@ -693,6 +768,7 @@ Generate 4-5 specific subtopics (more specific than parent, 2-5 words each).
 
             child_node = models.KnowledgeNode(
                 user_id=node.user_id,
+                roadmap_id=roadmap.id if roadmap else node.roadmap_id,
                 parent_node_id=node.id,
                 topic_name=subtopic.get("name", ""),
                 description=subtopic.get("description", ""),
@@ -711,10 +787,6 @@ Generate 4-5 specific subtopics (more specific than parent, 2-5 words each).
 
         node.expansion_status = "expanded"
         node.generated_subtopics = json.dumps(subtopics)
-
-        roadmap = db.query(models.KnowledgeRoadmap).filter(
-            models.KnowledgeRoadmap.user_id == node.user_id
-        ).order_by(models.KnowledgeRoadmap.created_at.desc()).first()
 
         if roadmap:
             roadmap.total_nodes += len(child_nodes)
@@ -978,6 +1050,7 @@ async def get_knowledge_roadmap(
                 "is_explored": node.is_explored,
                 "exploration_count": node.exploration_count,
                 "expansion_status": node.expansion_status,
+                "has_generated_subtopics": bool(node.generated_subtopics),
                 "user_notes": node.user_notes,
                 "position": {"x": node.position_x, "y": node.position_y},
                 "created_at": node.created_at.isoformat() + "Z",
@@ -1116,6 +1189,10 @@ async def delete_roadmap(
         if not roadmap:
             raise HTTPException(status_code=404, detail="Knowledge map not found")
 
+        root_node_id = roadmap.root_node_id
+        roadmap.root_node_id = None
+        db.flush()
+
         def delete_node_tree(node_id):
             children = db.query(models.KnowledgeNode).filter(
                 models.KnowledgeNode.parent_node_id == node_id,
@@ -1134,8 +1211,13 @@ async def delete_roadmap(
                 models.KnowledgeNode.user_id == current_user.id,
             ).delete()
 
-        if roadmap.root_node_id:
-            delete_node_tree(roadmap.root_node_id)
+        db.query(models.NodeExplorationHistory).filter(
+            models.NodeExplorationHistory.roadmap_id == roadmap_id,
+            models.NodeExplorationHistory.user_id == current_user.id,
+        ).delete()
+
+        if root_node_id:
+            delete_node_tree(root_node_id)
 
         db.delete(roadmap)
         db.commit()
@@ -1191,8 +1273,6 @@ async def add_manual_node(
         )
 
         db.add(new_node)
-
-        parent_node.expansion_status = "expanded"
 
         roadmap.total_nodes = (roadmap.total_nodes or 0) + 1
         if new_node.depth_level > (roadmap.max_depth_reached or 0):

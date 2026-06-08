@@ -1369,7 +1369,7 @@
 .kr-chat-input-wrapper .ac-input-row {
   display: flex;
   gap: 10px;
-  align-items: flex-end;
+  align-items: center;
 }
 
 .kr-chat-input-wrapper .ac-textarea {
@@ -1381,8 +1381,10 @@
   line-height: 1.45;
   resize: none;
   min-height: 24px;
-  max-height: 180px;
+  max-height: 132px;
+  overflow-y: hidden;
   outline: none;
+  box-shadow: none;
 }
 
 .kr-chat-input-wrapper .ac-textarea::placeholder {
@@ -2466,8 +2468,14 @@
   border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
+.kr-chat-messages.kr-chat-messages-empty {
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
+}
+
 .kr-chat-placeholder {
-  min-height: 180px;
+  min-height: 86px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2492,12 +2500,21 @@
 }
 
 .kr-chat-section .kr-chat-input-wrapper .ac-input-row {
+  display: flex;
+  align-items: center;
   width: 100%;
   min-width: 0;
 }
 
 .kr-chat-section .kr-chat-input-wrapper .ac-textarea {
   min-width: 0;
+  align-self: center;
+  padding: 7px 0;
+}
+
+.kr-chat-section .kr-chat-input:focus {
+  outline: none;
+  outline-offset: 0;
 }
 
 @media (max-width: 1400px) {

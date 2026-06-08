@@ -152,7 +152,7 @@ const CustomNode = ({ data, selected }) => {
           title={data.isExploring ? 'Exploring...' : 'Explore this topic'}
         >
           <Book size={8} />
-          <span>Learn</span>
+          <span>Explore</span>
         </button>
         {(data.expansionStatus === 'unexpanded' || !data.expansionStatus) && (
           <button 
@@ -167,7 +167,7 @@ const CustomNode = ({ data, selected }) => {
             title={data.isExpanding ? 'Expanding...' : 'Expand to show subtopics'}
           >
             <Plus size={8} />
-            <span>More</span>
+            <span>Expand</span>
           </button>
         )}
         <button 
@@ -219,6 +219,7 @@ const KnowledgeMap = () => {
   const [chatLoading, setChatLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
   const chatMessagesRef = useRef(null);
+  const chatInputRef = useRef(null);
 
   
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
@@ -903,6 +904,14 @@ const createRoadmapFromChat = async () => {
               );
             });
           }, 2000);
+        } else {
+          setNodes((nds) =>
+            nds.map(n =>
+              n.data.nodeId === nodeId
+                ? { ...n, data: { ...n.data, isExpanding: false } }
+                : n
+            )
+          );
         }
       } else {
                 setNodes((nds) =>
@@ -1117,11 +1126,6 @@ const createRoadmapFromChat = async () => {
 
         
         setExpandedNodes(prev => new Set(prev).add(addNodeParentId));
-        setNodes((nds) => nds.map(n => 
-          n.data.nodeId === addNodeParentId 
-            ? { ...n, data: { ...n.data, expansionStatus: 'expanded' } }
-            : n
-        ));
 
         
         setTimeout(() => {
@@ -1530,11 +1534,14 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
       const formData = new FormData();
       formData.append('user_id', userId);
       formData.append('question', buildNodeAwareChatPrompt(nodeExplanation, messageText));
+      formData.append('original_question', messageText);
       formData.append('chat_id', ''); 
       const hsModeEnabled = localStorage.getItem('hs_mode_enabled') === 'true';
       formData.append('use_hs_context', String(hsModeEnabled));
+      formData.append('tutor_mode', 'false');
+      formData.append('tutor_reply_style', 'guided');
 
-      const response = await fetch(`${API_URL}/ask/`, {
+      const response = await fetch(`${API_URL}/ask_simple/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -1552,13 +1559,14 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
         };
         setChatMessages(prev => [...prev, aiMessage]);
       } else {
-        throw new Error('Failed to get AI response');
+        const errorText = await response.text().catch(() => '');
+        throw new Error(errorText || 'Failed to get AI response');
       }
     } catch (error) {
             const errorMessage = {
         id: `error_${Date.now()}`,
         type: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: `Sorry, I encountered an error. Please try again.${error.message ? `\n\n${error.message}` : ''}`,
         timestamp: new Date().toISOString()
       };
       setChatMessages(prev => [...prev, errorMessage]);
@@ -1590,6 +1598,14 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
     }
   }, [chatMessages, chatLoading]);
 
+  useEffect(() => {
+    if (!chatInputRef.current) return;
+    chatInputRef.current.style.height = 'auto';
+    const nextHeight = Math.min(chatInputRef.current.scrollHeight, 132);
+    chatInputRef.current.style.height = `${nextHeight}px`;
+    chatInputRef.current.style.overflowY = chatInputRef.current.scrollHeight > 132 ? 'auto' : 'hidden';
+  }, [chatInput, sidebarView, nodeExplanation]);
+
   
   const viewRoadmap = async (roadmapId) => {
     
@@ -1613,7 +1629,8 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
         const allNodes = data.nodes_flat || [];
         
         
-        const savedExpandedNodes = savedState ? new Set(savedState.expandedNodes) : new Set();
+        const savedExpandedNodes = savedState ? new Set(savedState.expandedNodes) : new Set(data.expanded_nodes || []);
+        (data.expanded_nodes || []).forEach(nodeId => savedExpandedNodes.add(nodeId));
         
         
         if (savedState && savedState.exploredNodesCache) {
@@ -1702,7 +1719,7 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
               depth: node.depth_level,
               isExplored: node.is_explored,
               
-              expansionStatus: savedExpandedNodes.has(node.id) ? 'expanded' : 'unexpanded',
+              expansionStatus: node.has_generated_subtopics && node.expansion_status === 'expanded' ? 'expanded' : 'unexpanded',
               nodeId: node.id,
               isManual: node.is_manual || false,
               hasManualNotes: hasNotes,
@@ -2355,7 +2372,7 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
                             </div>
                             <span className="kr-chat-scope">Scoped</span>
                           </div>
-                          <div className="kr-chat-messages" ref={chatMessagesRef}>
+                          <div className={`kr-chat-messages ${chatMessages.length === 0 ? 'kr-chat-messages-empty' : ''}`} ref={chatMessagesRef}>
                             {chatMessages.length === 0 ? (
                               <div className="kr-chat-placeholder">
                                 <p>Ask me anything about "{nodeExplanation.topic_name}"</p>
@@ -2395,6 +2412,7 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
                           <div className="kr-chat-input-wrapper">
                             <div className="ac-input-row">
                               <textarea
+                                ref={chatInputRef}
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
                                 onKeyDown={handleChatKeyDown}
