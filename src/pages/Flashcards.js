@@ -159,8 +159,13 @@ const Flashcards = () => {
   const [loadingSrStats, setLoadingSrStats] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  
-  
+
+  const [askAiOpen, setAskAiOpen] = useState(false);
+  const [askAiQuestion, setAskAiQuestion] = useState('');
+  const [askAiMessages, setAskAiMessages] = useState([]);
+  const [askAiLoading, setAskAiLoading] = useState(false);
+
+
   const [agentSessionActive, setAgentSessionActive] = useState(false);
   const [agentSessionId, setAgentSessionId] = useState(null);
   const [cardMetrics, setCardMetrics] = useState({});
@@ -195,7 +200,125 @@ const Flashcards = () => {
     ).join(' ');
   };
 
-  
+  const askAiAboutSet = (set) => {
+    const setTitle = formatTitle(set?.title) || 'this flashcard set';
+    navigate('/ai-chat', {
+      state: {
+        initialMessage: `I'm studying my flashcard set "${setTitle}" (${set?.card_count || 0} cards). Can you help explain the topics it covers and answer any questions I have about it?`
+      }
+    });
+  };
+
+  const sendAskAiQuestion = async (cardForContext) => {
+    const question = askAiQuestion.trim();
+    if (!question || askAiLoading) return;
+
+    const userEntry = { role: 'user', content: question };
+    setAskAiMessages(prev => [...prev, userEntry]);
+    setAskAiQuestion('');
+    setAskAiLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const cardContext = cardForContext
+        ? `The student is currently looking at this flashcard — Question: "${cardForContext.question || ''}" Answer: "${cardForContext.answer || ''}". `
+        : '';
+      const setTitle = formatTitle(currentSetInfo?.setTitle) || 'their flashcard set';
+      const prompt = `${cardContext}They are studying the flashcard set "${setTitle}" and asked: ${question}\n\nGive a clear, concise explanation that helps them understand the concept (not just repeat the flashcard answer).`;
+
+      const formData = new FormData();
+      formData.append('user_id', userName);
+      formData.append('question', prompt);
+      formData.append('original_question', question);
+
+      const response = await fetch(`${API_URL}/ask_simple/`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (!response.ok) throw new Error('Failed to get an answer');
+      const data = await response.json();
+      setAskAiMessages(prev => [...prev, { role: 'ai', content: data.answer || "I couldn't find an answer to that." }]);
+    } catch (error) {
+      setAskAiMessages(prev => [...prev, { role: 'ai', content: "Sorry, I couldn't reach the AI right now. Please try again." }]);
+    } finally {
+      setAskAiLoading(false);
+    }
+  };
+
+  const renderAskAiPanel = (cardForContext) => {
+    if (!askAiOpen) return null;
+    const setLabel = formatTitle(currentSetInfo?.setTitle) || 'this set';
+    return (
+      <>
+        <div className="fc-ask-ai-backdrop" onClick={() => setAskAiOpen(false)} />
+        <div className="fc-ask-ai-dock">
+          <div className="fc-ask-ai-dock-glow" />
+          <div className="fc-ask-ai-dock-handle" onClick={() => setAskAiOpen(false)}>
+            <span className="fc-ask-ai-dock-grip" />
+          </div>
+          <div className="fc-ask-ai-header">
+            <div className="fc-ask-ai-avatar">{FC_ICONS.sparkle}</div>
+            <div className="fc-ask-ai-heading">
+              <div className="fc-ask-ai-title">Ask AI</div>
+              <div className="fc-ask-ai-subtitle">Studying <strong>{setLabel}</strong> &middot; ask anything about this card</div>
+            </div>
+            <button className="fc-ask-ai-close" onClick={() => setAskAiOpen(false)} type="button" aria-label="Close Ask AI panel">
+              {FC_ICONS.x}
+            </button>
+          </div>
+          <div className="fc-ask-ai-body">
+            {askAiMessages.length === 0 ? (
+              <div className="fc-ask-ai-empty">
+                <div className="fc-ask-ai-empty-icon">{FC_ICONS.sparkle}</div>
+                <p>Stuck on this card? Ask anything — like &ldquo;explain this differently&rdquo; or &ldquo;why is this the answer?&rdquo; — and the AI will walk you through it.</p>
+                <div className="fc-ask-ai-suggestions">
+                  {['Explain this simply', 'Give me an example', 'Why is this the answer?'].map((s) => (
+                    <button key={s} type="button" className="fc-ask-ai-suggestion" onClick={() => setAskAiQuestion(s)}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              askAiMessages.map((msg, idx) => (
+                <div key={idx} className={`fc-ask-ai-msg fc-ask-ai-msg--${msg.role}`}>
+                  <div className="fc-ask-ai-msg-avatar">{msg.role === 'user' ? (userName?.[0]?.toUpperCase() || 'Y') : FC_ICONS.sparkle}</div>
+                  <MathRenderer content={msg.content} className="fc-ask-ai-msg-text" />
+                </div>
+              ))
+            )}
+            {askAiLoading && (
+              <div className="fc-ask-ai-msg fc-ask-ai-msg--ai fc-ask-ai-msg--loading">
+                <div className="fc-ask-ai-msg-avatar">{FC_ICONS.sparkle}</div>
+                <div className="fc-ask-ai-msg-text">
+                  <span className="fc-ask-ai-dot" /><span className="fc-ask-ai-dot" /><span className="fc-ask-ai-dot" />
+                </div>
+              </div>
+            )}
+          </div>
+          <form
+            className="fc-ask-ai-input-row"
+            onSubmit={(e) => { e.preventDefault(); sendAskAiQuestion(cardForContext); }}
+          >
+            <input
+              type="text"
+              value={askAiQuestion}
+              onChange={(e) => setAskAiQuestion(e.target.value)}
+              placeholder="Ask a question about this card..."
+              disabled={askAiLoading}
+            />
+            <button type="submit" disabled={askAiLoading || !askAiQuestion.trim()} aria-label="Send question">
+              {FC_ICONS.arrowRight}
+            </button>
+          </form>
+        </div>
+      </>
+    );
+  };
+
+
   const loadChatSessions = useCallback(async () => {
     if (!userName) return;
     try {
@@ -2372,12 +2495,18 @@ const Flashcards = () => {
               <h2>{formatTitle(currentSetInfo?.setTitle) || 'Preview Mode'}</h2>
               <span className="fc-card-counter">CARD {currentCard + 1} OF {previewCards.length}</span>
             </div>
-            <button className="fc-exit-btn fc-exit-styled" onClick={() => {
-              
-              setShowStudyResults(true);
-            }}>
-              EXIT {FC_ICONS.chevronRight}
-            </button>
+            <div className="fc-study-header-actions">
+              <button className="fc-ask-ai-toggle-btn" onClick={() => setAskAiOpen(prev => !prev)} type="button">
+                {FC_ICONS.chat}
+                <span>Ask AI</span>
+              </button>
+              <button className="fc-exit-btn fc-exit-styled" onClick={() => {
+
+                setShowStudyResults(true);
+              }}>
+                EXIT {FC_ICONS.chevronRight}
+              </button>
+            </div>
           </div>
 
           <div className="fc-study-progress">
@@ -2494,6 +2623,7 @@ const Flashcards = () => {
               </button>
             </div>
           </div>
+          {renderAskAiPanel(previewCards[currentCard])}
         </div>
       </div>
     );
@@ -2571,25 +2701,28 @@ const Flashcards = () => {
               <span className="fc-sr-mini-count fc-sr-good">{srSessionStats.good}</span>
               <span className="fc-sr-mini-count fc-sr-easy">{srSessionStats.easy}</span>
             </div>
+            <button className="fc-ask-ai-toggle-btn" onClick={() => setAskAiOpen(prev => !prev)} type="button">
+              {FC_ICONS.chat}
+              <span>Ask AI</span>
+            </button>
           </div>
 
           <div className="fc-sr-body">
             <div className="fc-sr-card-area">
               {card && (
                 <div className={`fc-sr-card ${srFlipped ? 'fc-sr-card-flipped' : ''}`} onClick={() => !srFlipped && setSrFlipped(true)}>
-                  {!srFlipped ? (
+                  <div className="fc-sr-card-inner">
                     <div className="fc-sr-card-front">
                       <div className="fc-sr-card-badge">{card.sr_state === 'new' ? 'NEW' : card.sr_state?.toUpperCase()}</div>
                       <div className="fc-sr-card-set">{card.set_title}</div>
                       <MathRenderer content={card.question || ''} className="fc-sr-card-content" />
                       <div className="fc-sr-tap-hint">Tap to reveal answer</div>
                     </div>
-                  ) : (
                     <div className="fc-sr-card-back">
                       <div className="fc-sr-card-label">Answer</div>
                       <MathRenderer content={card.answer || ''} className="fc-sr-card-content" />
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
@@ -2632,6 +2765,7 @@ const Flashcards = () => {
               </button>
             </div>
           </div>
+          {renderAskAiPanel(card)}
         </div>
       </div>
     );
@@ -2705,9 +2839,15 @@ const Flashcards = () => {
                   <h2>{formatTitle(currentSetInfo?.setTitle) || 'Study Session'}</h2>
                   <span className="fc-card-counter">CARD {currentCard + 1} OF {currentStudyCards.length}</span>
                 </div>
-                <button className="fc-exit-btn fc-exit-styled" onClick={exitStudyMode}>
-                  EXIT {FC_ICONS.chevronRight}
-                </button>
+                <div className="fc-study-header-actions">
+                  <button className="fc-ask-ai-toggle-btn" onClick={() => setAskAiOpen(prev => !prev)} type="button">
+                    {FC_ICONS.chat}
+                    <span>Ask AI</span>
+                  </button>
+                  <button className="fc-exit-btn fc-exit-styled" onClick={exitStudyMode}>
+                    EXIT {FC_ICONS.chevronRight}
+                  </button>
+                </div>
               </div>
 
               <div className="fc-study-progress">
@@ -2771,33 +2911,19 @@ const Flashcards = () => {
               </div>
             </>
           )}
+          {renderAskAiPanel(currentStudyCards[currentCard])}
         </div>
       </div>
     );
   }
 
-  
+
   return (
     <div className="flashcards-page">
       <GeoBackground />
       <div className="fc-qb-topbar">
         <div className="fc-qb-tagline">accelerate <span>your flashcards</span></div>
         <div className="fc-qb-topbar-right">
-          <button className="fc-qb-top-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-            Dashboard
-          </button>
-          <button className="fc-qb-top-btn" onClick={() => navigate('/ai-chat')} type="button">
-            AI Chat
-          </button>
-          <button className="fc-qb-top-btn" onClick={() => setSidebarCollapsed(prev => !prev)} type="button">
-            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
-          </button>
-          <button className="fc-qb-top-btn fc-qb-top-btn--accent" onClick={() => setActivePanel('generator')} type="button">
-            Generate
-          </button>
-          <button className="fc-qb-top-btn fc-qb-top-btn--accent" onClick={() => setShowImportExport(true)} type="button">
-            Convert
-          </button>
           <div className="fc-qb-context-control">
             <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
           </div>
@@ -2806,8 +2932,52 @@ const Flashcards = () => {
 
       <div className="fc-layout fc-qb-body">
         <div className={`fc-qb-shell ${sidebarCollapsed ? 'fc-qb-shell--collapsed' : ''}`}>
-          {!sidebarCollapsed && (
-            <aside className="fc-qb-sidebar" aria-label="Flashcards navigation">
+          <aside className={`fc-qb-sidebar ${sidebarCollapsed ? 'fc-qb-sidebar--collapsed' : ''}`} aria-label="Flashcards navigation">
+            {sidebarCollapsed ? (
+              <div className="fc-qb-collapsed-strip">
+                <button className="fc-qb-strip-btn fc-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                  cb
+                </button>
+                <button className={`fc-qb-strip-btn ${activePanel === 'generator' ? 'active' : ''}`} data-tip="Generator" onClick={() => { setSidebarCollapsed(false); setActivePanel('generator'); }} type="button">
+                  {FC_ICONS.sparkle}
+                </button>
+                <button className={`fc-qb-strip-btn ${activePanel === 'cards' ? 'active' : ''}`} data-tip="My Flashcards" onClick={() => { setSidebarCollapsed(false); setActivePanel('cards'); }} type="button">
+                  {FC_ICONS.cards}
+                </button>
+                <button className={`fc-qb-strip-btn ${activePanel === 'sr_study' ? 'active' : ''}`} data-tip="Study Queue" onClick={() => { setSidebarCollapsed(false); setActivePanel('sr_study'); loadDueCards(); loadSrStats(); }} type="button">
+                  {FC_ICONS.target}
+                </button>
+                <button className={`fc-qb-strip-btn ${activePanel === 'review' ? 'active' : ''}`} data-tip="Needs Review" onClick={() => { setSidebarCollapsed(false); setActivePanel('review'); }} type="button">
+                  {FC_ICONS.refresh}
+                </button>
+                <button className={`fc-qb-strip-btn ${activePanel === 'sources' ? 'active' : ''}`} data-tip="PDF Sources" onClick={() => { setSidebarCollapsed(false); setActivePanel('sources'); loadUploadedDocuments(); }} type="button">
+                  {FC_ICONS.file}
+                </button>
+                <button className={`fc-qb-strip-btn ${activePanel === 'statistics' ? 'active' : ''}`} data-tip="Statistics" onClick={() => { setSidebarCollapsed(false); setActivePanel('statistics'); }} type="button">
+                  {FC_ICONS.chart}
+                </button>
+                <div className="fc-qb-strip-spacer" />
+                <button className="fc-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  {FC_ICONS.home}
+                </button>
+                <button className="fc-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
+                  {FC_ICONS.chat}
+                </button>
+                <button
+                  className="fc-qb-strip-btn"
+                  data-tip="Logout"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  {FC_ICONS.logout}
+                </button>
+              </div>
+            ) : (
+            <>
               <div className="fc-qb-side-brand">
                 <div className="fc-qb-brand-wrap">
                   <div className="fc-qb-brand">cerbyl</div>
@@ -2901,14 +3071,6 @@ const Flashcards = () => {
               </div>
 
               <div className="fc-qb-side-actions">
-                <button className="fc-qb-action-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-                  {FC_ICONS.home}
-                  <span>Dashboard</span>
-                </button>
-                <button className="fc-qb-action-btn fc-qb-action-btn--ghost" onClick={() => navigate('/ai-chat')} type="button">
-                  {FC_ICONS.chat}
-                  <span>AI Chat</span>
-                </button>
                 <button
                   className="fc-qb-action-btn fc-qb-action-btn--ghost"
                   onClick={() => {
@@ -2922,8 +3084,9 @@ const Flashcards = () => {
                   <span>Logout</span>
                 </button>
               </div>
-            </aside>
-          )}
+            </>
+            )}
+          </aside>
 
           <main className="fc-main fc-qb-main">
           {activePanel === 'cards' && (
@@ -3033,6 +3196,10 @@ const Flashcards = () => {
                               </button>
                               <button className="fc-action-btn-new fc-action-study" onClick={() => loadFlashcardSet(set.id, 'study')} disabled={loadingSetId !== null}>
                                 <span>{loadingSetId === set.id ? '...' : 'STUDY'}</span>
+                              </button>
+                              <button className="fc-action-btn-new fc-action-ask" onClick={() => askAiAboutSet(set)} title={`Ask AI about ${formatTitle(set.title)}`} type="button">
+                                {FC_ICONS.chat}
+                                <span>ASK AI</span>
                               </button>
                             </div>
                           </div>

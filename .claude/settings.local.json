@@ -69,7 +69,8 @@
       "Bash(pkill -f \"node.*3000\")",
       "Bash(rm -rf /tmp/pwcheck /tmp/pw_check.mjs /tmp/frontend.log)",
       "Bash(git status *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(npx eslint *)"
     ]
   }
 }
