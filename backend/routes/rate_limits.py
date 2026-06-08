@@ -38,6 +38,18 @@ def get_rate_limit_status(request: Request):
         identity = identity_ip if tier in _AUTH_TIERS else identity_user
         rl_key = f"rl:{tier}:{identity}"
 
+        if limit <= 0:
+            result[tier] = {
+                "limit": "unlimited",
+                "used": 0,
+                "remaining": "unlimited",
+                "reset_at": 0,
+                "window_seconds": window,
+                "identity": identity if tier in _AUTH_TIERS else ("user" if sub else "ip"),
+                "plan": plan_id,
+            }
+            continue
+
         import time
         now = time.time()
         cutoff = now - window

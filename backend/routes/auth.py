@@ -80,6 +80,8 @@ class RegisterPayload(BaseModel):
     email: EmailStr
     username: str
     password: str
+    whatsapp_phone_number: Optional[str] = None
+    whatsapp_reminders_enabled: Optional[bool] = True
     age: Optional[int] = None
     field_of_study: Optional[str] = None
     learning_style: Optional[str] = None
@@ -266,6 +268,12 @@ async def register(request: Request, payload: RegisterPayload, db: Session = Dep
 
             user_stats = models.UserStats(user_id=db_user.id)
             db.add(user_stats)
+            phone_number = str(payload.whatsapp_phone_number or "").strip()
+            db.add(models.ComprehensiveUserProfile(
+                user_id=db_user.id,
+                whatsapp_phone_number=phone_number or None,
+                whatsapp_reminders_enabled=bool(phone_number and payload.whatsapp_reminders_enabled is not False),
+            ))
             db.commit()
 
             logger.info(f"User {payload.username} registered successfully")
@@ -392,6 +400,7 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
             display_name = data.get('displayName')
             photo_url = data.get('photoURL')
             uid = data.get('uid')
+            whatsapp_phone_number = str(data.get("whatsappPhoneNumber") or "").strip()
 
             if not id_token or not email:
                 raise HTTPException(status_code=400, detail="Missing required fields")
@@ -449,9 +458,32 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                     week_start_date=datetime.now(timezone.utc)
                 )
                 db.add(gamif_stats)
+                db.add(models.ComprehensiveUserProfile(
+                    user_id=user.id,
+                    whatsapp_phone_number=whatsapp_phone_number or None,
+                    whatsapp_reminders_enabled=bool(whatsapp_phone_number),
+                ))
 
                 db.commit()
                 logger.info(f"New user created via Firebase: {email}")
+            else:
+                profile = db.query(models.ComprehensiveUserProfile).filter(
+                    models.ComprehensiveUserProfile.user_id == user.id
+                ).first()
+                if not profile:
+                    profile = models.ComprehensiveUserProfile(user_id=user.id)
+                    db.add(profile)
+                if whatsapp_phone_number and not profile.whatsapp_phone_number:
+                    profile.whatsapp_phone_number = whatsapp_phone_number
+                    profile.whatsapp_reminders_enabled = True
+                user.last_login = datetime.now(timezone.utc)
+                db.commit()
+
+            profile = db.query(models.ComprehensiveUserProfile).filter(
+                models.ComprehensiveUserProfile.user_id == user.id
+            ).first()
+            whatsapp_phone_number_value = profile.whatsapp_phone_number if profile else None
+            whatsapp_reminders_enabled = bool(profile and profile.whatsapp_reminders_enabled)
 
             access_token = create_access_token(
                 data={"sub": user.username, "user_id": user.id}
@@ -461,13 +493,16 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                 "access_token": access_token,
                 "token_type": "bearer",
                 "is_new_user": is_new_user,
+                "needs_whatsapp_phone": not bool(whatsapp_phone_number_value),
                 "user": {
                     "id": user.id,
                     "email": user.email,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "picture_url": user.picture_url,
-                    "google_user": True
+                    "google_user": True,
+                    "whatsapp_phone_number": whatsapp_phone_number_value or "",
+                    "whatsapp_reminders_enabled": whatsapp_reminders_enabled,
                 }
             }
 
@@ -875,14 +910,8 @@ async def select_subscription_plan(payload: dict = Body(...), db: Session = Depe
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        requested_tier = normalize_plan_id(payload.get("tier") or payload.get("subscriptionTier"))
         requested_cycle = _normalize_billing_cycle(payload.get("billingCycle"))
         requested_status = _normalize_subscription_status(payload.get("subscriptionStatus"))
-        if requested_tier != DEFAULT_PLAN_ID:
-            raise HTTPException(
-                status_code=409,
-                detail="Paid plan updates must go through checkout and webhook confirmation.",
-            )
 
         comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
             models.ComprehensiveUserProfile.user_id == user.id
@@ -892,13 +921,22 @@ async def select_subscription_plan(payload: dict = Body(...), db: Session = Depe
             db.add(comprehensive_profile)
 
         previous_tier = normalize_plan_id(comprehensive_profile.subscription_tier)
+        requested_tier = normalize_plan_id(payload.get("tier") or payload.get("subscriptionTier"))
+        if previous_tier == "unlimited" and requested_tier == DEFAULT_PLAN_ID:
+            requested_tier = previous_tier
+        if requested_tier not in (DEFAULT_PLAN_ID, "unlimited"):
+            raise HTTPException(
+                status_code=409,
+                detail="Paid plan updates must go through checkout and webhook confirmation.",
+            )
         comprehensive_profile.subscription_tier = requested_tier
-        comprehensive_profile.billing_cycle = requested_cycle
-        comprehensive_profile.subscription_status = requested_status
-        comprehensive_profile.stripe_subscription_id = None
-        comprehensive_profile.stripe_price_id = None
-        comprehensive_profile.current_period_end = None
-        comprehensive_profile.cancel_at_period_end = False
+        if requested_tier != "unlimited":
+            comprehensive_profile.billing_cycle = requested_cycle
+            comprehensive_profile.subscription_status = requested_status
+            comprehensive_profile.stripe_subscription_id = None
+            comprehensive_profile.stripe_price_id = None
+            comprehensive_profile.current_period_end = None
+            comprehensive_profile.cancel_at_period_end = False
 
         if previous_tier != requested_tier or not comprehensive_profile.subscription_started_at:
             comprehensive_profile.subscription_started_at = datetime.now(timezone.utc)
@@ -987,7 +1025,9 @@ async def update_comprehensive_profile(
 
         if "subscriptionTier" in payload:
             next_tier = normalize_plan_id(payload.get("subscriptionTier"))
-            if next_tier != DEFAULT_PLAN_ID:
+            if previous_subscription_tier == "unlimited" and next_tier == DEFAULT_PLAN_ID:
+                next_tier = previous_subscription_tier
+            if next_tier not in (DEFAULT_PLAN_ID, "unlimited"):
                 raise HTTPException(
                     status_code=409,
                     detail="Paid plan updates must go through checkout and webhook confirmation.",
@@ -995,26 +1035,35 @@ async def update_comprehensive_profile(
             comprehensive_profile.subscription_tier = next_tier
             if previous_subscription_tier != next_tier or not comprehensive_profile.subscription_started_at:
                 comprehensive_profile.subscription_started_at = datetime.now(timezone.utc)
-            comprehensive_profile.stripe_subscription_id = None
-            comprehensive_profile.stripe_price_id = None
-            comprehensive_profile.current_period_end = None
-            comprehensive_profile.cancel_at_period_end = False
+            if next_tier != "unlimited":
+                comprehensive_profile.stripe_subscription_id = None
+                comprehensive_profile.stripe_price_id = None
+                comprehensive_profile.current_period_end = None
+                comprehensive_profile.cancel_at_period_end = False
 
         if "billingCycle" in payload:
-            if normalize_plan_id(comprehensive_profile.subscription_tier) != DEFAULT_PLAN_ID:
+            current_tier = normalize_plan_id(comprehensive_profile.subscription_tier)
+            if current_tier == "unlimited":
+                pass
+            elif current_tier != DEFAULT_PLAN_ID:
                 raise HTTPException(
                     status_code=409,
                     detail="Billing cycle for paid plans is managed by provider webhooks.",
                 )
-            comprehensive_profile.billing_cycle = _normalize_billing_cycle(payload.get("billingCycle"))
+            else:
+                comprehensive_profile.billing_cycle = _normalize_billing_cycle(payload.get("billingCycle"))
 
         if "subscriptionStatus" in payload:
-            if normalize_plan_id(comprehensive_profile.subscription_tier) != DEFAULT_PLAN_ID:
+            current_tier = normalize_plan_id(comprehensive_profile.subscription_tier)
+            if current_tier == "unlimited":
+                pass
+            elif current_tier != DEFAULT_PLAN_ID:
                 raise HTTPException(
                     status_code=409,
                     detail="Subscription status for paid plans is managed by provider webhooks.",
                 )
-            comprehensive_profile.subscription_status = _normalize_subscription_status(payload.get("subscriptionStatus"))
+            else:
+                comprehensive_profile.subscription_status = _normalize_subscription_status(payload.get("subscriptionStatus"))
 
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 

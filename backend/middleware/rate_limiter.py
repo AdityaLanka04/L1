@@ -36,6 +36,7 @@ _AUTH_TIERS = {"auth_login", "auth_register", "auth_social"}
 
 _RULES: list[tuple[Optional[frozenset], Optional[str], Optional[str]]] = [
     (None,                          "/api/health",                      None),
+    (frozenset(["GET"]),            "/api/get_notifications",           None),
 
     (frozenset(["POST"]),           "/api/token",                       "auth_login"),
     (frozenset(["POST"]),           "/api/token_form",                  "auth_login"),
@@ -377,6 +378,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not use_ip:
             plan_id = get_subscription_tier(_get_jwt_sub(request))
         limit = get_effective_rate_limit(plan_id, tier_name, base_limit)
+        if limit <= 0:
+            response = await call_next(request)
+            response.headers["X-RateLimit-Limit"] = "unlimited"
+            response.headers["X-RateLimit-Remaining"] = "unlimited"
+            response.headers["X-RateLimit-Reset"] = "0"
+            response.headers["X-RateLimit-Window"] = str(window)
+            response.headers["X-RateLimit-Tier"] = tier_name
+            response.headers["X-RateLimit-Plan"] = plan_id
+            return response
 
         rl_key = f"rl:{tier_name}:{identity}"
         allowed, current, oldest = _check(rl_key, limit, window)

@@ -332,6 +332,13 @@ def _run_postgres_migration():
             "weekly_note_goal": "INTEGER DEFAULT 5",
             "weekly_flashcard_goal": "INTEGER DEFAULT 20",
             "weekly_quiz_goal": "INTEGER DEFAULT 5",
+            "freeze_charges": "INTEGER DEFAULT 0",
+            "revive_charges": "INTEGER DEFAULT 0",
+            "xp_boost_until": "DATETIME",
+            "xp_boost_multiplier": "FLOAT DEFAULT 1.0",
+            "xp_boost_uses": "INTEGER DEFAULT 0",
+            "vault_rewards_claimed": "INTEGER DEFAULT 0",
+            "powerups_initialized": "BOOLEAN DEFAULT FALSE",
         },
     )
 

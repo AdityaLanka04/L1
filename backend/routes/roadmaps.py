@@ -1189,35 +1189,55 @@ async def delete_roadmap(
         if not roadmap:
             raise HTTPException(status_code=404, detail="Knowledge map not found")
 
-        root_node_id = roadmap.root_node_id
-        roadmap.root_node_id = None
-        db.flush()
+        roadmap_nodes = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.roadmap_id == roadmap_id,
+            models.KnowledgeNode.user_id == current_user.id,
+        ).all()
+        node_ids = {node.id for node in roadmap_nodes}
+        if roadmap.root_node_id:
+            node_ids.add(roadmap.root_node_id)
 
-        def delete_node_tree(node_id):
-            children = db.query(models.KnowledgeNode).filter(
-                models.KnowledgeNode.parent_node_id == node_id,
+        pending_node_ids = list(node_ids)
+        while pending_node_ids:
+            parent_id = pending_node_ids.pop()
+            child_ids = [
+                row.id for row in db.query(models.KnowledgeNode.id).filter(
+                    models.KnowledgeNode.parent_node_id == parent_id,
+                    models.KnowledgeNode.user_id == current_user.id,
+                ).all()
+            ]
+            for child_id in child_ids:
+                if child_id not in node_ids:
+                    node_ids.add(child_id)
+                    pending_node_ids.append(child_id)
+
+        if node_ids:
+            roadmap_nodes = db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.id.in_(node_ids),
                 models.KnowledgeNode.user_id == current_user.id,
             ).all()
 
-            for child in children:
-                delete_node_tree(child.id)
+        if node_ids:
+            db.query(models.KnowledgeRoadmap).filter(
+                models.KnowledgeRoadmap.root_node_id.in_(node_ids),
+                models.KnowledgeRoadmap.user_id == current_user.id,
+            ).update(
+                {models.KnowledgeRoadmap.root_node_id: None},
+                synchronize_session=False,
+            )
 
             db.query(models.NodeExplorationHistory).filter(
-                models.NodeExplorationHistory.node_id == node_id
-            ).delete()
-
-            db.query(models.KnowledgeNode).filter(
-                models.KnowledgeNode.id == node_id,
-                models.KnowledgeNode.user_id == current_user.id,
-            ).delete()
+                models.NodeExplorationHistory.node_id.in_(node_ids),
+                models.NodeExplorationHistory.user_id == current_user.id,
+            ).delete(synchronize_session=False)
 
         db.query(models.NodeExplorationHistory).filter(
             models.NodeExplorationHistory.roadmap_id == roadmap_id,
             models.NodeExplorationHistory.user_id == current_user.id,
-        ).delete()
+        ).delete(synchronize_session=False)
 
-        if root_node_id:
-            delete_node_tree(root_node_id)
+        for node in sorted(roadmap_nodes, key=lambda item: item.depth_level or 0, reverse=True):
+            db.delete(node)
 
         db.delete(roadmap)
         db.commit()

@@ -3,6 +3,24 @@ from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 import models
 from typing import List, Dict, Any
+import re
+from services.suggestion_engine import get_related_topic_recommendations
+
+def _topic_from_text(text: str) -> str:
+    cleaned = re.sub(r"\s+", " ", text or "").strip()
+    cleaned = re.sub(
+        r"^(explain|teach me|help me learn|help me understand|create|make|generate|quiz me on|give me)\s+",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(r"^(notes?|flashcards?|questions?|quiz)\s+(on|about|for)?\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = cleaned.strip(" .?!:-")
+    if not cleaned:
+        return ""
+    sentence = re.split(r"[.?!]", cleaned, maxsplit=1)[0].strip()
+    words = sentence.split()
+    return " ".join(words[:8])[:90].strip()
 
 def _collect_quiz_topic_signals(db: Session, user_id: int) -> List[str]:
     topics: List[str] = []
@@ -77,6 +95,21 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
         if session.title and session.title.strip():
             topic = session.title.strip()
             topics[topic] = topics.get(topic, 0) + 1
+
+    recent_messages = db.query(models.ChatMessage).join(
+        models.ChatSession,
+        models.ChatMessage.chat_session_id == models.ChatSession.id
+    ).filter(
+        models.ChatSession.user_id == user_id,
+        models.ChatMessage.user_message.isnot(None)
+    ).order_by(
+        models.ChatMessage.timestamp.desc()
+    ).limit(12).all()
+
+    for message in recent_messages:
+        topic = _topic_from_text(getattr(message, "user_message", ""))
+        if topic:
+            topics[topic] = topics.get(topic, 0) + 2
     
     notes = db.query(models.Note).filter(
         models.Note.user_id == user_id
@@ -246,6 +279,11 @@ def get_topic_specific_milestones(db: Session, user_id: int, topic: str) -> List
 
 def get_personalized_roadmap(db: Session, user_id: int) -> Dict[str, Any]:
     topics = get_user_study_topics(db, user_id, limit=5)
+    seed_topics = [topic_data["topic"] for topic_data in topics]
+    recommended_topics = {
+        mode: get_related_topic_recommendations(str(user_id), seed_topics, mode, limit=5)
+        for mode in ("chat", "note", "flashcards", "questions", "quiz", "review", "search")
+    }
     
     topic_milestones = {}
     for topic_data in topics:
@@ -262,6 +300,7 @@ def get_personalized_roadmap(db: Session, user_id: int) -> Dict[str, Any]:
     
     return {
         'topics': topics,
+        'recommended_topics': recommended_topics,
         'topic_milestones': topic_milestones,
         'total_topics': len(topics)
     }

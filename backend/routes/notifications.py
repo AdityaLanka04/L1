@@ -65,9 +65,16 @@ def _get_reminder_notif_meta(reminder: models.Reminder) -> tuple[str, str]:
     title_prefix = "Event" if notif_type == "calendar_event" else "Reminder"
     return notif_type, title_prefix
 
+def _reminder_notification_marker(reminder_id: int) -> str:
+    return f"[reminder_id:{reminder_id}]"
+
+def _reminder_due_at_marker(reminder_dt: datetime) -> str:
+    return f"[reminder_due_at:{reminder_dt.isoformat()}]"
+
 @router.get("/get_notifications")
 async def get_notifications(
     user_id: str = Query(...),
+    timezone_offset: int = Query(0),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -76,42 +83,58 @@ async def get_notifications(
         user = current_user
 
         now = _normalize_dt(datetime.now(timezone.utc))
+        reminder_now = now - timedelta(minutes=timezone_offset)
         try:
-            upcoming_reminders = db.query(models.Reminder).filter(
+            reminder_candidates = db.query(models.Reminder).filter(
                 models.Reminder.user_id == user.id,
                 models.Reminder.is_completed == False,
-                models.Reminder.is_notified == False,
-                models.Reminder.reminder_date > now
+                models.Reminder.reminder_date != None
             ).all()
 
-            for reminder in upcoming_reminders:
+            for reminder in reminder_candidates:
                 notif_type, title_prefix = _get_reminder_notif_meta(reminder)
                 reminder_dt = _normalize_dt(reminder.reminder_date)
                 if not reminder_dt:
                     continue
-                time_until = reminder_dt - now
+                time_until = reminder_dt - reminder_now
                 minutes_until = time_until.total_seconds() / 60
                 notify_before = _safe_notify_before_minutes(reminder)
 
                 if minutes_until <= notify_before:
+                    notification_title = f"{title_prefix}: {reminder.title}"
+                    notification_marker = _reminder_notification_marker(reminder.id)
+                    due_at_marker = _reminder_due_at_marker(reminder_dt)
                     existing = db.query(models.Notification).filter(
                         models.Notification.user_id == user.id,
                         models.Notification.notification_type == notif_type,
-                        models.Notification.title.contains(reminder.title),
-                        models.Notification.created_at >= datetime.now(timezone.utc) - timedelta(hours=1)
+                        models.Notification.message.contains(notification_marker)
                     ).first()
 
-                    if not existing:
+                    if existing:
+                        if not reminder.is_notified:
+                            reminder.is_notified = True
+                            db.commit()
+                        continue
+
+                    claimed_reminder = False
+                    if not reminder.is_notified:
+                        claimed_reminder = db.query(models.Reminder).filter(
+                            models.Reminder.id == reminder.id,
+                            models.Reminder.user_id == user.id,
+                            models.Reminder.is_notified == False,
+                        ).update({"is_notified": True}, synchronize_session=False) == 1
+
+                    if claimed_reminder:
+                        reminder_time = reminder_dt.strftime("%I:%M %p")
                         notification = models.Notification(
                             user_id=user.id,
-                            title=f"{title_prefix}: {reminder.title}",
-                            message=f"{reminder.description or 'Upcoming reminder'} at {reminder_dt.isoformat()}",
+                            title=notification_title,
+                            message=f"{reminder.description or 'Upcoming reminder'} - Due at {reminder_time} {notification_marker} {due_at_marker}",
                             notification_type=notif_type
                         )
                         db.add(notification)
-                        reminder.is_notified = True
-                        db.commit()
                         logger.info(f"Created reminder notification for: {reminder.title}")
+                    db.commit()
         except Exception as e:
             logger.error(f"Error generating reminder notifications: {str(e)}", exc_info=True)
 

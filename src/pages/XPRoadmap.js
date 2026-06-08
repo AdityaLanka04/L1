@@ -18,6 +18,7 @@ import {
 
   MessageCircle,
   Package,
+  Plus,
   RefreshCw,
   Rocket,
   Shield,
@@ -100,19 +101,51 @@ function pathForSegment(from, to) {
 }
 
 const MISSION_ACTIONS = {
-  ignite: { label: 'Open Search Hub', route: '/search-hub' },
-  spark: { label: 'Open AI Chat', route: '/ai-chat', state: { initialMessage: 'Help me plan my next study sprint.' } },
-  'vault-one': { label: 'Open Notes', route: '/notes' },
-  focus: { label: 'Practice Questions', route: '/question-bank' },
-  'streak-core': { label: 'Review Flashcards', route: '/flashcards' },
-  'weekly-raid': { label: 'Open Quiz Hub', route: '/quiz-hub' },
-  'vault-two': { label: 'Open Review Hub', route: '/learning-review' },
-  recall: { label: 'Start Solo Quiz', route: '/solo-quiz' },
-  mastery: { label: 'Open Analytics', route: '/analytics' }
+  ignite: { label: 'Explore Topic', route: '/search-hub', mode: 'search' },
+  spark: { label: 'Start AI Chat', route: '/ai-chat', mode: 'chat' },
+  'vault-one': { label: 'Create Note', route: '/notes', mode: 'note' },
+  focus: { label: 'Practice Topic', route: '/question-bank', mode: 'questions' },
+  'streak-core': { label: 'Create Flashcards', route: '/flashcards', mode: 'flashcards' },
+  'weekly-raid': { label: 'Create Quiz', route: '/solo-quiz', mode: 'quiz' },
+  'vault-two': { label: 'Review Topic', route: '/learning-review', mode: 'review' },
+  recall: { label: 'Start Recall Quiz', route: '/solo-quiz', mode: 'quiz' },
+  mastery: { label: 'Open Analytics', route: '/analytics', mode: 'analytics' }
+};
+
+const XP_QUICK_LINKS = [
+  { label: 'AI Chat', route: '/ai-chat' },
+  { label: 'Flashcards', route: '/flashcards' },
+  { label: 'Notes', route: '/notes' }
+];
+
+const XP_SIDEBAR_LINKS = [
+  { label: 'Dashboard', route: '/dashboard-cerbyl' },
+  { label: 'Search Hub', route: '/search-hub' },
+  { label: 'Knowledge Map', route: '/knowledge-map' },
+  { label: 'Question Bank', route: '/question-bank' },
+  { label: 'Quiz Hub', route: '/quiz-hub' },
+  { label: 'Learning Path', route: '/learning-paths' },
+  { label: 'XP Roadmap', route: '/xp-roadmap' },
+  { label: 'Activity Timeline', route: '/activity-timeline' },
+  { label: 'Leaderboards', route: '/leaderboards' }
+];
+
+const MISSION_MODE_TO_MILESTONE_TYPE = {
+  chat: 'ai_chat',
+  note: 'notes',
+  flashcards: 'flashcards',
+  questions: 'quizzes',
+  quiz: 'quizzes',
+  review: 'flashcards'
 };
 
 function getMissionAction(node) {
   return MISSION_ACTIONS[node?.id] || { label: 'Open Dashboard', route: '/dashboard-cerbyl' };
+}
+
+function getFallbackTopic(node) {
+  if (!node?.title) return 'current study topic';
+  return node.title.replace(/\b(run|chain|vault|gate|core|raid|sprint|tower)\b/gi, '').replace(/\s+/g, ' ').trim() || node.title;
 }
 
 const XPRoadmap = () => {
@@ -126,9 +159,15 @@ const XPRoadmap = () => {
   const [xpBursts, setXpBursts] = useState([]);
   const [decayLabel, setDecayLabel] = useState(getWeekDecayLabel());
   const [levelWave, setLevelWave] = useState(false);
+  const [powerUpLoading, setPowerUpLoading] = useState(null);
+  const [powerNotice, setPowerNotice] = useState(null);
+  const [missionLoading, setMissionLoading] = useState(false);
+  const [missionNotice, setMissionNotice] = useState(null);
 
   const xp = stats?.total_points || 0;
   const level = stats?.level || 1;
+  const userName = localStorage.getItem('username') || '';
+  const displayName = localStorage.getItem('cerbyl.displayName') || (userName ? userName.split('@')[0] : 'You');
 
   useEffect(() => {
     let isMounted = true;
@@ -350,13 +389,54 @@ const XPRoadmap = () => {
   }, [stats]);
 
   const powerUps = useMemo(() => {
+    const powerupState = stats?.powerups || {};
+    const freezeCharges = Number(powerupState.freeze_charges ?? stats?.freeze_charges ?? runMechanics.freezes ?? 0);
+    const reviveCharges = Number(powerupState.revive_charges ?? stats?.revive_charges ?? 0);
+    const boostActive = Boolean(powerupState.boost_active || stats?.xp_boost_active);
+    const boostAvailable = Number(powerupState.boost_available || 0);
+    const boostMultiplier = Number(powerupState.boost_multiplier || stats?.xp_boost_multiplier || runMechanics.combo || 1);
+    const vaultsAvailable = Number(powerupState.vaults_available || 0);
+    const vaultsMastered = Number(powerupState.vaults_mastered ?? chestInventory.filter((chest) => chest.state === 'mastered').length);
+
     return [
-      { id: 'freeze', label: 'Freeze', value: runMechanics.freezes, icon: Shield, charged: runMechanics.freezes > 0 },
-      { id: 'revive', label: 'Revive', value: runMechanics.revive, icon: RefreshCw, charged: runMechanics.revive !== 'charging' },
-      { id: 'boost', label: 'Boost', value: `x${runMechanics.combo}`, icon: Zap, charged: Number(runMechanics.combo) > 1 },
-      { id: 'vault', label: 'Vaults', value: `${chestInventory.filter((chest) => chest.state === 'mastered').length}/${chestInventory.length}`, icon: Package, charged: chestInventory.some((chest) => chest.state === 'mastered') }
+      {
+        id: 'freeze',
+        label: 'Freeze',
+        value: freezeCharges,
+        icon: Shield,
+        charged: freezeCharges > 0,
+        disabled: freezeCharges <= 0,
+        description: 'Protect today from breaking your streak'
+      },
+      {
+        id: 'revive',
+        label: 'Revive',
+        value: reviveCharges > 0 ? reviveCharges : runMechanics.revive,
+        icon: RefreshCw,
+        charged: reviveCharges > 0 && (stats?.current_streak || 0) <= 0,
+        disabled: reviveCharges <= 0 || (stats?.current_streak || 0) > 0,
+        description: (stats?.current_streak || 0) > 0 ? 'Your streak is already active' : 'Restart a broken streak'
+      },
+      {
+        id: 'boost',
+        label: 'Boost',
+        value: boostActive ? `x${boostMultiplier.toFixed(1)}` : boostAvailable,
+        icon: Zap,
+        charged: boostActive || boostAvailable > 0,
+        disabled: boostActive || boostAvailable <= 0,
+        description: boostActive ? 'XP boost is already active' : 'Activate a 30 minute XP multiplier'
+      },
+      {
+        id: 'vault',
+        label: 'Vaults',
+        value: `${vaultsAvailable}/${vaultsMastered}`,
+        icon: Package,
+        charged: vaultsAvailable > 0,
+        disabled: vaultsAvailable <= 0,
+        description: 'Claim XP from unlocked campaign vaults'
+      }
     ];
-  }, [runMechanics, chestInventory]);
+  }, [runMechanics, chestInventory, stats]);
 
   const badgeCollection = useMemo(() => {
     return CAMPAIGN_NODES.map((node) => ({
@@ -402,9 +482,70 @@ const XPRoadmap = () => {
     return getMissionAction(targetNode);
   }, [selectedNodeDetails, nextNode]);
 
-  const selectedCtaLabel = selectedNodeDetails?.state === 'locked'
-    ? 'Go To Current Mission'
-    : selectedMissionAction.label;
+  const missionRecommendations = useMemo(() => {
+    const targetNode = selectedNodeDetails?.state === 'locked' ? nextNode : selectedNodeDetails;
+    const action = getMissionAction(targetNode);
+    const generatedRecommendations = personalizedRoadmap?.recommended_topics?.[action.mode] || [];
+    if (generatedRecommendations.length > 0) {
+      return generatedRecommendations.slice(0, 3).map((recommendation, index) => ({
+        topic: recommendation.topic,
+        category: recommendation.source || 'suggestion_engine',
+        activityCount: 0,
+        reason: recommendation.reason || 'Recommended by Search Hub',
+        progress: 0,
+        score: 100 - index
+      }));
+    }
+
+    const topics = personalizedRoadmap?.topics || [];
+    const buckets = personalizedRoadmap?.topic_milestones || {};
+    const milestoneType = MISSION_MODE_TO_MILESTONE_TYPE[action.mode];
+
+    const scoredTopics = topics.map((topicItem, index) => {
+      const topic = topicItem.topic;
+      const milestones = buckets[topic]?.milestones || [];
+      const matchingMilestones = milestoneType
+        ? milestones.filter((milestone) => milestone.type === milestoneType)
+        : milestones;
+      const nextMilestone = matchingMilestones.find((milestone) => !milestone.completed) || matchingMilestones[0] || null;
+      const progressGap = nextMilestone ? Math.max(0, Number(nextMilestone.target || 0) - Number(nextMilestone.current || 0)) : 0;
+
+      return {
+        topic,
+        category: topicItem.category,
+        activityCount: topicItem.activity_count || 0,
+        reason: nextMilestone?.title || `${topicItem.category || 'Study'} focus`,
+        progress: nextMilestone ? Math.round(Number(nextMilestone.progress || 0)) : 0,
+        score: (topicItem.activity_count || 0) + (nextMilestone && !nextMilestone.completed ? 8 : 0) + Math.max(0, 6 - index) + Math.min(4, progressGap)
+      };
+    });
+
+    const recommendations = scoredTopics
+      .sort((left, right) => right.score - left.score)
+      .slice(0, 3);
+
+    if (recommendations.length > 0) return recommendations;
+
+    return [{
+      topic: getFallbackTopic(targetNode),
+      category: 'general',
+      activityCount: 0,
+      reason: 'Campaign focus',
+      progress: 0,
+      score: 0
+    }];
+  }, [personalizedRoadmap, selectedNodeDetails, nextNode]);
+
+  const [selectedMissionTopic, setSelectedMissionTopic] = useState('');
+
+  useEffect(() => {
+    setSelectedMissionTopic(missionRecommendations[0]?.topic || '');
+    setMissionNotice(null);
+  }, [missionRecommendations]);
+
+  const activeMissionTopic = selectedMissionTopic || missionRecommendations[0]?.topic || getFallbackTopic(selectedNodeDetails || nextNode);
+
+  const selectedCtaLabel = `${selectedMissionAction.label}: ${activeMissionTopic}`;
 
   const topicArcs = useMemo(() => {
     const topics = personalizedRoadmap?.topics || [];
@@ -462,12 +603,143 @@ const XPRoadmap = () => {
     }
   };
 
-  const handleContinueMission = () => {
+  const handleContinueMission = async () => {
     const targetNode = selectedNodeDetails?.state === 'locked' ? nextNode : selectedNodeDetails;
     const action = getMissionAction(targetNode);
+    const topic = activeMissionTopic || getFallbackTopic(targetNode);
+    const token = localStorage.getItem('token');
+    const userName = localStorage.getItem('username');
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
 
-    setSelectedNode(null);
-    navigate(action.route, action.state ? { state: action.state } : undefined);
+    try {
+      setMissionLoading(true);
+      setMissionNotice(null);
+
+      if (action.mode === 'note') {
+        const response = await fetch(`${API_BASE_URL}/api/agents/searchhub/create-note`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            user_id: userName,
+            topic,
+            depth: 'standard',
+            tone: 'professional',
+            use_hs_context: true
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.detail || 'Failed to create note');
+        setSelectedNode(null);
+        navigate(data?.navigate_to || '/notes/my-notes');
+        return;
+      }
+
+      if (action.mode === 'flashcards') {
+        const response = await fetch(`${API_BASE_URL}/api/agents/searchhub/create-flashcards`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            user_id: userName,
+            topic,
+            count: 10,
+            difficulty: 'medium',
+            use_hs_context: true
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.detail || 'Failed to create flashcards');
+        setSelectedNode(null);
+        navigate(data?.navigate_to || '/flashcards');
+        return;
+      }
+
+      setSelectedNode(null);
+
+      if (action.mode === 'chat') {
+        navigate('/ai-chat', {
+          state: {
+            initialMessage: `Help me learn ${topic}. Start with the most important ideas, then give me a short practice plan.`
+          }
+        });
+        return;
+      }
+
+      if (action.mode === 'quiz') {
+        navigate('/solo-quiz', {
+          state: {
+            autoStart: true,
+            topics: [topic],
+            contextSummary: `XP Roadmap recommended topic: ${topic}`,
+            difficulty: 'medium',
+            questionCount: 10
+          }
+        });
+        return;
+      }
+
+      if (action.mode === 'questions') {
+        navigate('/question-bank', {
+          state: {
+            initialTopic: topic,
+            topic,
+            source: 'xp_roadmap'
+          }
+        });
+        return;
+      }
+
+      if (action.mode === 'search') {
+        navigate('/search-hub', {
+          state: {
+            initialQuery: topic,
+            source: 'xp_roadmap'
+          }
+        });
+        return;
+      }
+
+      navigate(action.route, action.state ? { state: action.state } : undefined);
+    } catch (error) {
+      setMissionNotice({ type: 'error', text: error.message || 'Mission action failed.' });
+    } finally {
+      setMissionLoading(false);
+    }
+  };
+
+  const handleUsePowerUp = async (power) => {
+    if (power.disabled || powerUpLoading) return;
+
+    try {
+      setPowerUpLoading(power.id);
+      setPowerNotice(null);
+      const token = localStorage.getItem('token');
+      const userName = localStorage.getItem('username');
+      const response = await fetch(`${API_BASE_URL}/api/xp_roadmap/powerups/use?user_id=${encodeURIComponent(userName)}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ powerup_id: power.id })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.detail || 'Power-up failed');
+      }
+
+      if (data?.stats) {
+        setStats(data.stats);
+      }
+      setPowerNotice({ type: 'success', text: data?.message || `${power.label} used.` });
+    } catch (error) {
+      setPowerNotice({ type: 'error', text: error.message || 'Power-up failed.' });
+    } finally {
+      setPowerUpLoading(null);
+    }
   };
 
   if (loading) {
@@ -490,7 +762,67 @@ const XPRoadmap = () => {
 
       {levelWave && <div className="xpv-level-wave" aria-hidden="true" />}
 
-      <main className="xpv-content">
+      <div className="xpv-layout">
+        <div className="xpv-side-slot">
+        <aside className="xpv-side" aria-label="XP Roadmap sidebar">
+          <div className="xpv-brand">
+            <span className="xpv-brand-name">cerbyl</span>
+          </div>
+
+          <div className="xpv-side-hero">
+            <div className="xpv-side-hero-icon">
+              <Zap size={26} />
+            </div>
+            <div className="xpv-side-hero-copy">
+              <strong>XP Roadmap</strong>
+              <span>Level {level} campaign</span>
+            </div>
+          </div>
+
+          <div className="xpv-side-sections">
+            {XP_QUICK_LINKS.map((item) => (
+              <div key={item.label} className="xpv-side-section" onClick={() => navigate(item.route)}>
+                <span className="xpv-side-dot" />
+                <span className="xpv-side-label">{item.label}</span>
+                <button
+                  className="xpv-side-plus"
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate(item.route);
+                  }}
+                  aria-label={`Open ${item.label}`}
+                >
+                  <Plus size={12} strokeWidth={2.4} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <nav className="xpv-side-nav" aria-label="Learning navigation">
+            {XP_SIDEBAR_LINKS.map((item) => (
+              <button
+                key={item.route}
+                type="button"
+                className={`xpv-side-link ${item.route === '/xp-roadmap' ? 'active' : ''}`}
+                onClick={() => navigate(item.route)}
+              >
+                <span className="xpv-side-link-dot" />
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
+          <button className="xpv-user-chip" type="button" onClick={() => navigate('/profile')}>
+            <span className="xpv-user-meta">
+              <span className="xpv-user-name">{displayName}</span>
+              <span className="xpv-user-sub">Level {level} · {xp.toLocaleString()} XP</span>
+            </span>
+          </button>
+        </aside>
+        </div>
+
+        <main className="xpv-content">
         <section className="xpv-run-strip" aria-label="Current run">
           <div className="xpv-run-cell">
             <Flame size={18} />
@@ -683,14 +1015,26 @@ const XPRoadmap = () => {
               {powerUps.map((power) => {
                 const Icon = power.icon;
                 return (
-                  <button key={power.id} type="button" className={`xpv-power ${power.charged ? 'charged' : ''}`}>
+                  <button
+                    key={power.id}
+                    type="button"
+                    className={`xpv-power ${power.charged ? 'charged' : ''}`}
+                    onClick={() => handleUsePowerUp(power)}
+                    disabled={power.disabled || powerUpLoading === power.id}
+                    title={power.description}
+                  >
                     <Icon size={18} />
-                    <strong>{power.value}</strong>
+                    <strong>{powerUpLoading === power.id ? '...' : power.value}</strong>
                     <span>{power.label}</span>
                   </button>
                 );
               })}
             </div>
+            {powerNotice && (
+              <div className={`xpv-power-notice ${powerNotice.type}`}>
+                {powerNotice.text}
+              </div>
+            )}
           </section>
 
           <section className="xpv-system-panel">
@@ -788,7 +1132,8 @@ const XPRoadmap = () => {
             })}
           </div>
         </section>
-      </main>
+        </main>
+      </div>
 
       {xpBursts.map((burst) => (
         <span key={burst.id} className="xpv-xp-burst" style={{ left: burst.x, top: burst.y }}>
@@ -818,13 +1163,31 @@ const XPRoadmap = () => {
               </div>
             ))}
           </div>
-          <div className="xpv-drawer-action-note">
-            {selectedNodeDetails.state === 'locked' && nextNode
-              ? `Locked. Continue from ${nextNode.title}.`
-              : selectedMissionAction.label}
+          <div className="xpv-drawer-recommendations">
+            <span>Recommended topics</span>
+            <div>
+              {missionRecommendations.map((recommendation) => (
+                <button
+                  key={recommendation.topic}
+                  type="button"
+                  className={recommendation.topic === activeMissionTopic ? 'active' : ''}
+                  onClick={() => setSelectedMissionTopic(recommendation.topic)}
+                >
+                  <strong>{recommendation.topic}</strong>
+                  <small>{recommendation.reason}</small>
+                </button>
+              ))}
+            </div>
           </div>
-          <button type="button" className="xpv-drawer-cta" onClick={handleContinueMission}>
-            {selectedCtaLabel}
+          <div className={`xpv-drawer-action-note ${missionNotice?.type || ''}`}>
+            {missionNotice
+              ? missionNotice.text
+              : (selectedNodeDetails.state === 'locked' && nextNode
+                ? `Locked. Continue from ${nextNode.title} with ${activeMissionTopic}.`
+                : `${selectedMissionAction.label} using ${activeMissionTopic}.`)}
+          </div>
+          <button type="button" className="xpv-drawer-cta" onClick={handleContinueMission} disabled={missionLoading}>
+            {missionLoading ? 'Creating...' : selectedCtaLabel}
             <ChevronRight size={14} />
           </button>
         </div>

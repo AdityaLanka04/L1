@@ -148,6 +148,61 @@ def get_or_create_stats(db: Session, user_id: int):
     
     return stats
 
+def _normalize_datetime(value):
+    if not value:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+def _ensure_powerup_baseline(stats):
+    if getattr(stats, 'powerups_initialized', False):
+        return
+
+    earned_freezes = min(3, max(0, int((stats.longest_streak or 0) / 7)))
+    earned_revives = 1 if (stats.longest_streak or 0) > 0 else 0
+    stats.freeze_charges = max(getattr(stats, 'freeze_charges', 0) or 0, earned_freezes)
+    stats.revive_charges = max(getattr(stats, 'revive_charges', 0) or 0, earned_revives)
+    stats.powerups_initialized = True
+
+def _completed_weekly_quest_count(stats):
+    lanes = [
+        ((stats.weekly_ai_chats or 0), max(1, getattr(stats, 'weekly_chat_goal', 10) or 10)),
+        ((stats.weekly_notes_created or 0), max(1, getattr(stats, 'weekly_note_goal', 5) or 5)),
+        ((stats.weekly_flashcards_created or 0), max(1, getattr(stats, 'weekly_flashcard_goal', 20) or 20)),
+        ((stats.weekly_quizzes_completed or 0), max(1, getattr(stats, 'weekly_quiz_goal', 5) or 5)),
+    ]
+    return sum(1 for current, goal in lanes if current >= goal)
+
+def _mastered_vault_count(stats):
+    xp = stats.total_points or 0
+    return sum(1 for threshold in (250, 1700) if xp >= threshold)
+
+def _active_boost_payload(stats):
+    boost_until = _normalize_datetime(getattr(stats, 'xp_boost_until', None))
+    if boost_until and boost_until > datetime.now(timezone.utc):
+        return {
+            "active": True,
+            "until": boost_until.isoformat(),
+            "multiplier": float(getattr(stats, 'xp_boost_multiplier', 1.0) or 1.0),
+        }
+    return {
+        "active": False,
+        "until": None,
+        "multiplier": 1.0,
+    }
+
+def _expire_stale_streak(stats):
+    today = datetime.now(timezone.utc).date()
+    if not stats.last_activity_date:
+        return
+    if hasattr(stats.last_activity_date, 'date'):
+        last_date = stats.last_activity_date.date()
+    else:
+        last_date = stats.last_activity_date
+    if last_date < today - timedelta(days=1):
+        stats.current_streak = 0
+
 def check_and_reset_weekly_stats(stats):
     week_start = get_week_start()
     if stats.week_start_date is None:
@@ -176,6 +231,8 @@ def check_and_reset_weekly_stats(stats):
             stats.weekly_flashcards_reviewed = 0
         if hasattr(stats, 'weekly_flashcards_mastered'):
             stats.weekly_flashcards_mastered = 0
+        if hasattr(stats, 'xp_boost_uses'):
+            stats.xp_boost_uses = 0
         stats.week_start_date = datetime.combine(week_start, datetime.min.time()).replace(tzinfo=timezone.utc)
         logger.info(f"    Weekly stats reset complete")
     else:
@@ -197,6 +254,7 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         }
     
     stats = get_or_create_stats(db, user_id)
+    _ensure_powerup_baseline(stats)
     check_and_reset_weekly_stats(stats)
     
     from datetime import datetime, timedelta, timezone
@@ -454,6 +512,12 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
                 "flashcard_mastered"
             )
     
+    boost = _active_boost_payload(stats)
+    if boost["active"] and points_earned > 0:
+        boosted_points = int(round(points_earned * boost["multiplier"]))
+        points_earned = max(points_earned, boosted_points)
+        description = f"{description} ({boost['multiplier']:g}x boost)"
+
     old_level = stats.level
     stats.total_points += points_earned
     stats.weekly_points += points_earned
@@ -492,6 +556,8 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
                 stats.longest_streak = stats.current_streak
             if stats.current_streak in [7, 14, 30, 60, 100]:
                 streak_milestone_reached = True
+            if stats.current_streak % 7 == 0 and hasattr(stats, 'freeze_charges'):
+                stats.freeze_charges = min(3, (stats.freeze_charges or 0) + 1)
         else:
             if old_streak >= 7:
                 notification = models.Notification(
@@ -552,17 +618,9 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
 
 def get_user_stats(db: Session, user_id: int):
     stats = get_or_create_stats(db, user_id)
+    _ensure_powerup_baseline(stats)
     check_and_reset_weekly_stats(stats)
-    
-    today = datetime.now(timezone.utc).date()
-    if stats.last_activity_date:
-        if hasattr(stats.last_activity_date, 'date'):
-            last_date = stats.last_activity_date.date()
-        else:
-            last_date = stats.last_activity_date
-        
-        if last_date < today - timedelta(days=1):
-            stats.current_streak = 0
+    _expire_stale_streak(stats)
     
     db.commit()
     
@@ -586,6 +644,11 @@ def get_user_stats(db: Session, user_id: int):
         models.ChatSession.user_id == user_id
     ).scalar() or 0
     
+    completed_weekly_quests = _completed_weekly_quest_count(stats)
+    boost = _active_boost_payload(stats)
+    mastered_vaults = _mastered_vault_count(stats)
+    vault_rewards_claimed = getattr(stats, 'vault_rewards_claimed', 0) or 0
+
     return {
         "total_points": stats.total_points,
         "weekly_points": stats.weekly_points,
@@ -622,7 +685,93 @@ def get_user_stats(db: Session, user_id: int):
         "weekly_chat_goal": getattr(stats, 'weekly_chat_goal', 10),
         "weekly_note_goal": getattr(stats, 'weekly_note_goal', 5),
         "weekly_flashcard_goal": getattr(stats, 'weekly_flashcard_goal', 20),
-        "weekly_quiz_goal": getattr(stats, 'weekly_quiz_goal', 5)
+        "weekly_quiz_goal": getattr(stats, 'weekly_quiz_goal', 5),
+        "freeze_charges": getattr(stats, 'freeze_charges', 0) or 0,
+        "revive_charges": getattr(stats, 'revive_charges', 0) or 0,
+        "xp_boost_active": boost["active"],
+        "xp_boost_until": boost["until"],
+        "xp_boost_multiplier": boost["multiplier"],
+        "xp_boost_uses": getattr(stats, 'xp_boost_uses', 0) or 0,
+        "vault_rewards_claimed": vault_rewards_claimed,
+        "powerups": {
+            "freeze_charges": getattr(stats, 'freeze_charges', 0) or 0,
+            "revive_charges": getattr(stats, 'revive_charges', 0) or 0,
+            "boost_active": boost["active"],
+            "boost_until": boost["until"],
+            "boost_multiplier": boost["multiplier"],
+            "boost_available": max(0, completed_weekly_quests - (getattr(stats, 'xp_boost_uses', 0) or 0)),
+            "boost_uses": getattr(stats, 'xp_boost_uses', 0) or 0,
+            "vaults_available": max(0, mastered_vaults - vault_rewards_claimed),
+            "vaults_claimed": vault_rewards_claimed,
+            "vaults_mastered": mastered_vaults,
+        }
+    }
+
+def use_xp_powerup(db: Session, user_id: int, powerup_id: str) -> dict:
+    stats = get_or_create_stats(db, user_id)
+    _ensure_powerup_baseline(stats)
+    check_and_reset_weekly_stats(stats)
+    _expire_stale_streak(stats)
+    now = datetime.now(timezone.utc)
+    powerup = (powerup_id or "").strip().lower()
+
+    if powerup == "freeze":
+        if (stats.freeze_charges or 0) <= 0:
+            raise ValueError("No freeze charges available")
+        stats.freeze_charges -= 1
+        stats.last_activity_date = now
+        stats.current_streak = max(1, stats.current_streak or 0)
+        message = "Freeze used. Your streak is protected for today."
+
+    elif powerup == "revive":
+        if (stats.revive_charges or 0) <= 0:
+            raise ValueError("No revive charges available")
+        if (stats.current_streak or 0) > 0:
+            raise ValueError("Your streak is already active")
+        stats.revive_charges -= 1
+        stats.current_streak = max(1, min(stats.longest_streak or 1, 7))
+        stats.last_activity_date = now
+        message = "Revive used. Your streak is active again."
+
+    elif powerup == "boost":
+        completed_weekly_quests = _completed_weekly_quest_count(stats)
+        available_boosts = completed_weekly_quests - (stats.xp_boost_uses or 0)
+        if available_boosts <= 0:
+            raise ValueError("Complete a weekly quest lane to earn a boost")
+        stats.xp_boost_uses = (stats.xp_boost_uses or 0) + 1
+        stats.xp_boost_multiplier = min(2.0, 1 + (completed_weekly_quests * 0.2))
+        stats.xp_boost_until = now + timedelta(minutes=30)
+        message = f"{stats.xp_boost_multiplier:g}x XP boost active for 30 minutes."
+
+    elif powerup == "vault":
+        mastered_vaults = _mastered_vault_count(stats)
+        vault_rewards_claimed = stats.vault_rewards_claimed or 0
+        if mastered_vaults <= vault_rewards_claimed:
+            raise ValueError("No vault rewards available")
+        reward_points = 25 if vault_rewards_claimed == 0 else 75
+        stats.vault_rewards_claimed = vault_rewards_claimed + 1
+        stats.total_points += reward_points
+        stats.weekly_points += reward_points
+        stats.experience = stats.total_points
+        stats.level = calculate_level_from_xp(stats.experience)
+        db.add(models.PointTransaction(
+            user_id=user_id,
+            activity_type="xp_vault_reward",
+            points_earned=reward_points,
+            description="XP Roadmap Vault Reward",
+            activity_metadata=f"vault_index={stats.vault_rewards_claimed}",
+        ))
+        message = f"Vault opened. You earned {reward_points} XP."
+
+    else:
+        raise ValueError("Unknown power-up")
+
+    stats.updated_at = now
+    db.commit()
+    return {
+        "status": "success",
+        "message": message,
+        "stats": get_user_stats(db, user_id),
     }
 
 def recalculate_all_stats(db: Session):

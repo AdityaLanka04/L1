@@ -136,6 +136,35 @@ async def get_personalized_xp_roadmap(
         logger.error(f"Error getting personalized roadmap: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+@router.post("/xp_roadmap/powerups/use")
+async def use_xp_roadmap_powerup(
+    payload: dict = Body(...),
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        from services.gamification_system import use_xp_powerup
+
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        powerup_id = payload.get("powerup_id")
+        if not powerup_id:
+            raise HTTPException(status_code=400, detail="Missing powerup_id")
+
+        return use_xp_powerup(db, user.id, powerup_id)
+
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error using XP roadmap power-up: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @router.post("/set_weekly_goals")
 async def set_weekly_goals(
     user_id: str = Query(...),

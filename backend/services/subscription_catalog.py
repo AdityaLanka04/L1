@@ -74,6 +74,21 @@ SUBSCRIPTION_PLANS: dict[str, dict[str, Any]] = {
             "read": 7_000,
         },
     },
+    "unlimited": {
+        "id": "unlimited",
+        "name": "Unlimited",
+        "monthly_price_usd": 0.0,
+        "yearly_price_usd": 0.0,
+        "included_tokens_monthly": 0,
+        "estimated_cost_at_included_usage_usd": 0.0,
+        "summary": "Internal unlimited access tier.",
+        "features": [
+            "No app rate limits",
+        ],
+        "rate_limits": {},
+        "hidden": True,
+        "unlimited": True,
+    },
 }
 
 def normalize_plan_id(plan_id: str | None) -> str:
@@ -100,6 +115,8 @@ def get_effective_rate_limit(plan_id: str | None, limiter_tier: str, base_limit:
     plan = SUBSCRIPTION_PLANS.get(normalize_plan_id(plan_id))
     if not plan:
         return base_limit
+    if plan.get("unlimited"):
+        return 0
     return int(plan.get("rate_limits", {}).get(limiter_tier, base_limit))
 
 def estimate_usage_cost_usd(plan_id: str | None, token_count: int | float) -> float:

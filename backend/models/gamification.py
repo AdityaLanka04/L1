@@ -77,6 +77,13 @@ class UserGamificationStats(Base):
     current_streak = Column(Integer, default=0)
     longest_streak = Column(Integer, default=0)
     last_activity_date = Column(DateTime, nullable=True)
+    freeze_charges = Column(Integer, default=0)
+    revive_charges = Column(Integer, default=0)
+    xp_boost_until = Column(DateTime, nullable=True)
+    xp_boost_multiplier = Column(Float, default=1.0)
+    xp_boost_uses = Column(Integer, default=0)
+    vault_rewards_claimed = Column(Integer, default=0)
+    powerups_initialized = Column(Boolean, default=False)
 
     week_start_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

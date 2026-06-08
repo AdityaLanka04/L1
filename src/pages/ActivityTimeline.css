@@ -1,11 +1,11 @@
 .atl-page {
-  --atl-accent: var(--accent, #6ea8ff);
-  --atl-bg: var(--bg, #0b1018);
-  --atl-panel: color-mix(in srgb, var(--panel, #141b26) 88%, transparent);
-  --atl-panel-strong: color-mix(in srgb, var(--panel, #141b26) 98%, transparent);
-  --atl-hover: color-mix(in srgb, var(--hover-bg, #1e293b) 82%, transparent);
-  --atl-border: color-mix(in srgb, var(--atl-accent) 14%, var(--border, #2a3442));
-  --atl-border-strong: color-mix(in srgb, var(--atl-accent) 32%, var(--border, #2a3442));
+  --atl-accent: var(--accent, #D7B38C);
+  --atl-bg: var(--bg-bottom, var(--bg-primary, #0d0c0b));
+  --atl-panel: color-mix(in srgb, var(--panel, var(--bg-top, #131210)) 88%, transparent);
+  --atl-panel-strong: color-mix(in srgb, var(--panel, var(--bg-top, #131210)) 98%, transparent);
+  --atl-hover: color-mix(in srgb, var(--hover-bg, var(--bg-top, #171513)) 82%, transparent);
+  --atl-border: color-mix(in srgb, var(--atl-accent) 14%, var(--border, rgba(215, 179, 140, 0.24)));
+  --atl-border-strong: color-mix(in srgb, var(--atl-accent) 32%, var(--border, rgba(215, 179, 140, 0.34)));
   --atl-text: var(--text-primary, #e8ecf3);
   --atl-muted: color-mix(in srgb, var(--atl-text) 58%, transparent);
   --atl-muted-2: color-mix(in srgb, var(--atl-text) 42%, transparent);
@@ -14,9 +14,9 @@
   color: var(--atl-text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background:
-    radial-gradient(1200px 500px at -12% -8%, color-mix(in srgb, var(--atl-accent) 18%, transparent), transparent 66%),
-    radial-gradient(900px 420px at 112% 4%, color-mix(in srgb, var(--atl-accent) 12%, transparent), transparent 65%),
-    radial-gradient(700px 380px at 50% 102%, color-mix(in srgb, var(--atl-accent) 10%, transparent), transparent 70%),
+    radial-gradient(1200px 500px at -12% -8%, color-mix(in srgb, var(--atl-accent) 10%, transparent), transparent 66%),
+    radial-gradient(900px 420px at 112% 4%, color-mix(in srgb, var(--atl-accent) 7%, transparent), transparent 65%),
+    radial-gradient(700px 380px at 50% 102%, color-mix(in srgb, var(--atl-accent) 6%, transparent), transparent 70%),
     var(--atl-bg);
   padding: 22px clamp(14px, 2vw, 30px) 28px;
   overflow-x: clip;
@@ -550,6 +550,17 @@
   background: color-mix(in srgb, var(--atl-accent) 11%, var(--atl-panel));
 }
 
+.atl-day-cell--density-medium,
+.atl-day-cell--density-high {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--atl-accent) 8%, transparent), transparent 58%),
+    color-mix(in srgb, var(--atl-panel-strong) 86%, transparent);
+}
+
+.atl-day-cell--density-high {
+  border-color: color-mix(in srgb, var(--atl-accent) 38%, transparent);
+}
+
 .atl-day-cell-head {
   display: flex;
   align-items: center;
@@ -575,6 +586,44 @@
   color: #fff;
   background: color-mix(in srgb, var(--atl-accent) 62%, transparent);
   border-radius: 999px;
+}
+
+.atl-day-density {
+  height: 5px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--atl-border) 72%, transparent);
+  border-radius: 999px;
+}
+
+.atl-day-density span {
+  display: block;
+  width: calc(var(--atl-day-density, 0) * 100%);
+  min-width: calc(var(--atl-day-density, 0) * 12px);
+  height: 100%;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--atl-accent) 66%, transparent), var(--atl-accent));
+  border-radius: inherit;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--atl-accent) 28%, transparent);
+}
+
+.atl-day-signals {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 10px;
+}
+
+.atl-day-signals i {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  background: var(--atl-signal-color, var(--atl-accent));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--atl-signal-color, var(--atl-accent)) 35%, transparent);
+  border-radius: 999px;
+}
+
+.atl-day-signals .atl-day-signal--reminder {
+  background: #f59e0b;
+  box-shadow: 0 0 8px color-mix(in srgb, #f59e0b 35%, transparent);
 }
 
 .atl-day-cell-preview {
@@ -1132,8 +1181,8 @@
   --atl-qb-line: color-mix(in srgb, var(--atl-accent) 22%, transparent);
   --atl-qb-line-soft: color-mix(in srgb, var(--atl-accent) 12%, transparent);
   --atl-qb-line-strong: color-mix(in srgb, var(--atl-accent) 45%, transparent);
-  --atl-qb-panel: #0e0d0b;
-  --atl-qb-panel-2: #131210;
+  --atl-qb-panel: var(--panel, var(--bg-bottom, #0e0d0b));
+  --atl-qb-panel-2: var(--bg-top, var(--bg-primary, #131210));
 
   position: relative;
   z-index: 2;
@@ -1420,7 +1469,7 @@
   flex-shrink: 0;
   border: 1px solid color-mix(in srgb, var(--atl-accent) 14%, transparent);
   border-radius: 18px;
-  background: color-mix(in srgb, #0b0b0b 90%, transparent);
+  background: color-mix(in srgb, var(--panel, var(--bg-bottom, #0d0c0b)) 90%, transparent);
   box-shadow: none;
 }
 
@@ -1435,7 +1484,7 @@
   height: 100%;
   border: 1px solid color-mix(in srgb, var(--atl-accent) 14%, transparent);
   border-radius: 18px;
-  background: color-mix(in srgb, #0b0b0b 90%, transparent);
+  background: color-mix(in srgb, var(--panel, var(--bg-bottom, #0d0c0b)) 90%, transparent);
   overflow-y: auto;
   overflow-x: hidden;
 }

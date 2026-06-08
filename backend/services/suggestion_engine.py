@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from typing import List, Optional
 
@@ -7,7 +8,11 @@ from services.topic_utils import is_valid_topic
 
 def _clean_topic(text: str) -> str:
     cleaned = re.sub(r"^(ai generated:|cerbyl:|flashcards?:|notes?:|practice:\s*)\s*", "", text, flags=re.IGNORECASE)
+    cleaned = re.sub(r"^/(flashcards?|notes?|quiz|quizzes|questions?|explain|path|map)\s+", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\*+", "", cleaned)
+    cleaned = cleaned.strip(" .?!:-")
+    if cleaned.lower() in {"untitled note", "untitled", "new note", "new chat"}:
+        return ""
     return cleaned.strip()
 
 def _dedupe_preserve(items: List[str]) -> List[str]:
@@ -200,3 +205,106 @@ def get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) -
         pass
 
     return _dedupe_preserve(suggestions)[:limit]
+
+def _topic_from_command(text: str) -> str:
+    cleaned = _clean_topic(text or "")
+    cleaned = re.sub(
+        r"^(create|make|generate|build|quiz me on|review|explain)\s+",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(r"^(notes?|flashcards?|questions?|quiz)\s+(on|about|for)?\s*", "", cleaned, flags=re.IGNORECASE)
+    return _clean_topic(cleaned)
+
+def _fallback_related_topics(seed_topics: List[str], limit: int) -> List[str]:
+    expansions = {
+        "quantum": ["Wave Particle Duality", "Schrodinger Equation", "Quantum Superposition", "Heisenberg Uncertainty Principle"],
+        "mechanics": ["Forces and Motion", "Energy Conservation", "Momentum and Impulse", "Rotational Dynamics"],
+        "integration": ["Integration by Parts", "U Substitution", "Definite Integrals", "Area Under Curves"],
+        "calculus": ["Limits and Continuity", "Derivatives", "Optimization Problems", "Differential Equations"],
+        "biology": ["Cell Structure", "Photosynthesis", "Genetics", "Homeostasis"],
+        "chemistry": ["Chemical Bonding", "Stoichiometry", "Equilibrium", "Reaction Rates"],
+        "history": ["Primary Sources", "Cause and Effect", "Historical Context", "Timeline Analysis"],
+        "programming": ["Data Structures", "Algorithm Complexity", "Debugging Patterns", "API Design"],
+    }
+    output: List[str] = []
+    for topic in seed_topics:
+        lower = topic.lower()
+        for key, values in expansions.items():
+            if key in lower:
+                output.extend(values)
+        if is_valid_topic(topic):
+            output.append(topic)
+    return _dedupe_preserve([item for item in output if is_valid_topic(item)])[:limit]
+
+def get_related_topic_recommendations(
+    user_id: str,
+    seed_topics: List[str],
+    mission_mode: str = "note",
+    limit: int = 5,
+) -> List[dict]:
+    cleaned_seeds = _dedupe_preserve([
+        _topic_from_command(topic)
+        for topic in seed_topics
+        if is_valid_topic(_topic_from_command(topic))
+    ])
+
+    try:
+        chroma_topics = [
+            _topic_from_command(suggestion)
+            for suggestion in get_chroma_suggestions(user_id, None, limit=10)
+        ]
+        cleaned_seeds = _dedupe_preserve(cleaned_seeds + [
+            topic for topic in chroma_topics if is_valid_topic(topic)
+        ])
+    except Exception:
+        pass
+
+    if not cleaned_seeds:
+        cleaned_seeds = ["current study topic"]
+
+    mode_label = {
+        "note": "note topics",
+        "flashcards": "flashcard topics",
+        "quiz": "quiz topics",
+        "questions": "practice topics",
+        "chat": "AI chat topics",
+        "review": "review topics",
+    }.get(mission_mode, "study topics")
+
+    generated: List[str] = []
+    try:
+        from deps import call_ai
+        prompt = (
+            "Generate closely related study topics for a student.\n"
+            f"Seed topics from their context: {json.dumps(cleaned_seeds[:6])}\n"
+            f"Target format: {mode_label}.\n"
+            "Return JSON only: an array of concise topic strings.\n"
+            "Rules: do not repeat the seed titles exactly, do not include commands like /notes, "
+            "do not include content-type prefixes like Flashcards:, and do not include Untitled Note."
+        )
+        raw = call_ai(prompt, max_tokens=220, temperature=0.55).strip()
+        json_match = re.search(r"\[[\s\S]*\]", raw)
+        parsed = json.loads(json_match.group(0) if json_match else raw)
+        if isinstance(parsed, list):
+            generated = [_topic_from_command(str(item)) for item in parsed]
+    except Exception:
+        generated = []
+
+    fallback = _fallback_related_topics(cleaned_seeds, limit=limit * 2)
+    topics = _dedupe_preserve([
+        topic for topic in generated + fallback + cleaned_seeds
+        if is_valid_topic(topic) and topic.lower() not in {seed.lower() for seed in cleaned_seeds[:2]}
+    ])
+    if not topics:
+        topics = _dedupe_preserve([topic for topic in fallback + cleaned_seeds if is_valid_topic(topic)])
+
+    return [
+        {
+            "topic": topic,
+            "reason": f"Related to {cleaned_seeds[0]}" if cleaned_seeds else "Recommended by Search Hub",
+            "source": "suggestion_engine",
+        }
+        for topic in topics[:limit]
+    ]

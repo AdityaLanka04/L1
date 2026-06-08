@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check, User } from 'lucide-react';
+import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check, User, Bell, Sparkles, Trash2 } from 'lucide-react';
 import { API_URL } from '../config/api';
 import ThemeSwitcher from '../components/ThemeSwitcher';
+import { useNotifications } from '../contexts/NotificationContext';
+import { getRelativeTime } from '../utils/dateUtils';
 import './DashboardCerbyl.css';
 
 const MODULES = [
@@ -43,6 +45,65 @@ const greetingForHour = (h) => {
 const formatDateLong = (d) => {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+};
+
+const routeForNotification = (notificationType) => {
+  switch (notificationType) {
+    case 'reminder':
+    case 'calendar_event':
+    case 'inactivity':
+      return '/activity-timeline';
+    case 'level_up':
+    case 'streak_milestone':
+    case 'streak_broken':
+    case 'achievement':
+      return '/profile';
+    case 'quiz_result':
+    case 'quiz_excellent':
+    case 'quiz_poor_performance':
+    case 'quiz_completed':
+    case 'quiz_milestone':
+      return '/quiz-hub';
+    case 'flashcard_excellent':
+    case 'flashcard_review':
+    case 'flashcard_reviewed':
+    case 'flashcard_mastered':
+    case 'flashcards_milestone':
+      return '/flashcards';
+    case 'proactive_ai':
+    case 'ai_chat_milestone':
+      return '/ai-chat';
+    case 'notes_milestone':
+      return '/notes';
+    case 'questions_milestone':
+      return '/question-bank';
+    case 'study_time_milestone':
+      return '/analytics';
+    case 'friend_request':
+    case 'friend_accepted':
+    case 'friend_rejected':
+    case 'friend_removed':
+      return '/friends';
+    case 'share_received':
+    case 'content_shared':
+      return '/social';
+    case 'battle_challenge':
+    case 'battle_result':
+    case 'battle_accepted':
+    case 'battle_declined':
+    case 'battle_started':
+    case 'battle_won':
+    case 'battle_lost':
+      return '/quiz-battles';
+    case 'challenge_completed':
+    case 'challenge_joined':
+      return '/challenges';
+    case 'study_insights':
+    case 'welcome_insights':
+      return '/study-insights';
+    default:
+      return '/dashboard-cerbyl';
+  }
 };
 
 const fetchJson = async (url) => {
@@ -152,12 +213,22 @@ const DashboardCerbyl = () => {
   const [recentSets, setRecentSets] = useState([]);
   const [isPfpModalOpen, setIsPfpModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [chatPromptDisplay, setChatPromptDisplay] = useState(QUICK_ASK_PROMPT);
   const [chatReplyDisplay, setChatReplyDisplay] = useState('');
   const [isChatTypingAnim, setIsChatTypingAnim] = useState(false);
   const [isChatReplyTypingAnim, setIsChatReplyTypingAnim] = useState(false);
   const [flashCountsDisplay, setFlashCountsDisplay] = useState({});
   const [isFlashAnimating, setIsFlashAnimating] = useState(false);
+  const notifPanelRef = useRef(null);
+  const notifButtonRef = useRef(null);
+  const {
+    notifications,
+    unreadCount,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    deleteNotification,
+  } = useNotifications();
   const [flashActiveSetId, setFlashActiveSetId] = useState('');
   const [isNotesAnimating, setIsNotesAnimating] = useState(false);
   const [notesTitleProgress, setNotesTitleProgress] = useState({});
@@ -906,6 +977,34 @@ const DashboardCerbyl = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isPfpModalOpen]);
 
+  useEffect(() => {
+    if (!showNotifications) return undefined;
+    const onPointerDown = (ev) => {
+      if (
+        notifPanelRef.current?.contains(ev.target) ||
+        notifButtonRef.current?.contains(ev.target)
+      ) {
+        return;
+      }
+      setShowNotifications(false);
+    };
+    const onKeyDown = (ev) => {
+      if (ev.key === 'Escape') setShowNotifications(false);
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [showNotifications]);
+
+  const openNotification = async (notification) => {
+    await markNotificationAsRead(notification.id);
+    setShowNotifications(false);
+    navigate(routeForNotification(notification.notification_type));
+  };
+
   return (
     <div className="cb-root">
       {}
@@ -933,6 +1032,83 @@ const DashboardCerbyl = () => {
           </button>
           <div className="cb-date">{formatDateLong(now)}</div>
           <ThemeSwitcher />
+          <div className="cb-notif-wrap">
+            <button
+              ref={notifButtonRef}
+              className="cb-notif-btn"
+              type="button"
+              onClick={() => setShowNotifications(prev => !prev)}
+              aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+            >
+              <Bell size={16} />
+              {unreadCount > 0 && <span className="cb-notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            </button>
+
+            {showNotifications && (
+              <div ref={notifPanelRef} className="cb-notif-panel" role="dialog" aria-label="Notifications">
+                <div className="cb-notif-panel-head">
+                  <div>
+                    <span>Notifications</span>
+                    <p>
+                      {unreadCount > 0
+                        ? `${unreadCount} unread`
+                        : notifications.length > 0
+                          ? `${notifications.length} notification${notifications.length === 1 ? '' : 's'}`
+                          : 'All caught up'}
+                    </p>
+                  </div>
+                  <button className="cb-notif-mark-all" type="button" onClick={markAllNotificationsAsRead} disabled={unreadCount === 0}>
+                    Mark all read
+                  </button>
+                </div>
+
+                <div className="cb-notif-list">
+                  {notifications.length === 0 ? (
+                    <div className="cb-notif-empty">
+                      <Bell size={24} />
+                      <p>No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.slice(0, 12).map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={`cb-notif-item ${notification.is_read ? '' : 'cb-notif-item--unread'}`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openNotification(notification)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openNotification(notification);
+                          }
+                        }}
+                      >
+                        <span className="cb-notif-item-icon">
+                          <Sparkles size={14} />
+                        </span>
+                        <span className="cb-notif-copy">
+                          <strong>{notification.title}</strong>
+                          <em>{notification.message}</em>
+                          <small>{getRelativeTime(notification.created_at)}</small>
+                        </span>
+                        <button
+                          className="cb-notif-delete"
+                          type="button"
+                          aria-label={`Delete notification ${notification.title}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteNotification(notification.id);
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           <button className="cb-profile-btn" onClick={() => navigate('/profile')} aria-label="Profile">
             {profilePhoto ? (
               <img src={profilePhoto} alt={displayName} className="cb-profile-btn-img" referrerPolicy="no-referrer" />

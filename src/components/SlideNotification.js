@@ -3,6 +3,43 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, Calendar, Award, Flame, TrendingUp, X, Zap, BookOpen, UserPlus, Users, Share2, Swords, MessageSquare, FileText, Target, Clock, Trophy } from 'lucide-react';
 import './SlideNotification.css';
 
+let lastNotificationSoundAt = 0;
+
+const playNotificationSound = () => {
+  if (typeof window === 'undefined') return;
+
+  const now = Date.now();
+  if (now - lastNotificationSoundAt < 700) return;
+  lastNotificationSoundAt = now;
+
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  try {
+    const audioContext = new AudioContextClass();
+    const gain = audioContext.createGain();
+    gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.08, audioContext.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.42);
+    gain.connect(audioContext.destination);
+
+    [880, 1175].forEach((frequency, index) => {
+      const oscillator = audioContext.createOscillator();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + index * 0.1);
+      oscillator.connect(gain);
+      oscillator.start(audioContext.currentTime + index * 0.1);
+      oscillator.stop(audioContext.currentTime + 0.34 + index * 0.08);
+    });
+
+    setTimeout(() => {
+      audioContext.close().catch(() => {});
+    }, 700);
+  } catch (error) {
+    lastNotificationSoundAt = 0;
+  }
+};
+
 const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) => {
   const [visible, setVisible] = useState(false);
   const [isValid, setIsValid] = useState(true);
@@ -20,10 +57,11 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
 
     
     setVisible(true);
+    playNotificationSound();
 
     
     const dismissTimer = setTimeout(() => {
-      handleClose();
+      handleClose(false);
     }, 12000);
 
     return () => {
@@ -36,10 +74,10 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
     return null;
   }
 
-  const handleClose = () => {
+  const handleClose = (markRead = false) => {
     setVisible(false);
     setTimeout(() => {
-      if (onMarkRead && notification.id) {
+      if (markRead && onMarkRead && notification.id) {
         onMarkRead(notification.id);
       }
       onClose();
@@ -60,7 +98,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       
       if (!showStudyInsights) {
         
-        handleClose();
+        handleClose(false);
         return;
       }
     }
@@ -140,7 +178,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       default:
         navigate('/dashboard-cerbyl');
     }
-    handleClose();
+    handleClose(true);
   };
 
   const getIcon = () => {
@@ -307,7 +345,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
           </div>
           <button 
             className="slide-notif-close" 
-            onClick={(e) => { e.stopPropagation(); handleClose(); }}
+            onClick={(e) => { e.stopPropagation(); handleClose(false); }}
             aria-label="Dismiss notification"
             type="button"
           >

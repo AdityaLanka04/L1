@@ -26,16 +26,18 @@ import {
   X,
 } from 'lucide-react';
 import { API_URL } from '../config';
+import { useNotifications } from '../contexts/NotificationContext';
 import { sanitizeUrl } from '../utils/sanitize';
 import './ActivityTimeline.css';
 
 const ACTIVITY_TYPES = ['note', 'flashcard', 'quiz', 'chat'];
+const DEFAULT_ACCENT_COLOR = '#D7B38C';
 
 const TYPE_META = {
   note: { label: 'Notes', color: '#34d399', icon: FileText },
   flashcard: { label: 'Flashcards', color: '#fbbf24', icon: BookOpen },
   quiz: { label: 'Quizzes', color: '#f472b6', icon: Award },
-  chat: { label: 'AI Chats', color: '#60a5fa', icon: MessageSquare },
+  chat: { label: 'AI Chats', color: DEFAULT_ACCENT_COLOR, icon: MessageSquare },
 };
 
 const PRIORITY_LABELS = {
@@ -46,7 +48,7 @@ const PRIORITY_LABELS = {
 };
 
 const REMINDER_COLORS = [
-  '#3b82f6',
+  DEFAULT_ACCENT_COLOR,
   '#8b5cf6',
   '#ec4899',
   '#ef4444',
@@ -87,7 +89,7 @@ const emptyReminderForm = (listId = null) => ({
   description: '',
   reminder_date: '',
   priority: 'none',
-  color: '#3b82f6',
+  color: DEFAULT_ACCENT_COLOR,
   is_flagged: false,
   url: '',
   list_id: listId || null,
@@ -100,6 +102,7 @@ const parseDateSafe = (rawValue) => {
 
 const ActivityTimeline = () => {
   const navigate = useNavigate();
+  const { refreshNotifications } = useNotifications();
   const userName = localStorage.getItem('username') || '';
   const token = localStorage.getItem('token') || '';
 
@@ -410,6 +413,14 @@ const ActivityTimeline = () => {
 
   const monthCells = useMemo(() => monthGrid(currentMonth, true), [currentMonth]);
 
+  const maxCalendarDayCount = useMemo(() => (
+    monthCells.reduce((maxCount, day) => {
+      const key = dayKey(day);
+      const count = (activitiesByDay.get(key)?.length || 0) + (remindersByDay.get(key)?.length || 0);
+      return Math.max(maxCount, count);
+    }, 0)
+  ), [activitiesByDay, monthCells, remindersByDay]);
+
   const stats = useMemo(() => {
     const typeCounts = {
       note: 0,
@@ -538,7 +549,7 @@ const ActivityTimeline = () => {
       description: reminder.description || '',
       reminder_date: toDatetimeLocal(reminder.reminder_date),
       priority: reminder.priority || 'none',
-      color: reminder.color || '#3b82f6',
+      color: reminder.color || DEFAULT_ACCENT_COLOR,
       is_flagged: Boolean(reminder.is_flagged),
       url: reminder.url || '',
       list_id: reminder.list_id || null,
@@ -555,10 +566,12 @@ const ActivityTimeline = () => {
     formData.append('title', title);
     formData.append('description', reminderForm.description || '');
     formData.append('priority', reminderForm.priority || 'none');
-    formData.append('color', reminderForm.color || '#3b82f6');
+    formData.append('color', reminderForm.color || DEFAULT_ACCENT_COLOR);
     formData.append('is_flagged', reminderForm.is_flagged ? 'true' : 'false');
     formData.append('url', reminderForm.url || '');
     if (reminderForm.reminder_date) formData.append('reminder_date', reminderForm.reminder_date);
+    formData.append('timezone_offset', String(new Date().getTimezoneOffset()));
+    formData.append('user_timezone', Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
     if (reminderForm.list_id) formData.append('list_id', String(reminderForm.list_id));
 
     try {
@@ -583,6 +596,7 @@ const ActivityTimeline = () => {
       setShowReminderModal(false);
       setEditingReminder(null);
       setReminderForm(emptyReminderForm(selectedListId));
+      refreshNotifications();
     } catch (e) {
       setError('Could not save reminder.');
     }
@@ -775,11 +789,16 @@ const ActivityTimeline = () => {
             const count = dayActivities.length + dayReminders.length;
             const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
             const isToday = isSameDay(day, new Date());
+            const activityTypes = ACTIVITY_TYPES.filter((type) => dayActivities.some((activity) => activity.type === type));
+            const hasReminders = dayReminders.length > 0;
+            const density = maxCalendarDayCount ? count / maxCalendarDayCount : 0;
+            const densityLevel = count === 0 ? 'empty' : count >= maxCalendarDayCount ? 'high' : count >= Math.ceil(maxCalendarDayCount * 0.5) ? 'medium' : 'low';
 
             return (
               <button
                 key={`${key}-${isCurrentMonth ? 'in' : 'out'}`}
-                className={`atl-day-cell ${isCurrentMonth ? '' : 'atl-day-cell--muted'} ${isToday ? 'atl-day-cell--today' : ''}`}
+                className={`atl-day-cell ${isCurrentMonth ? '' : 'atl-day-cell--muted'} ${isToday ? 'atl-day-cell--today' : ''} atl-day-cell--density-${densityLevel}`}
+                style={{ '--atl-day-density': density }}
                 type="button"
                 onClick={() => {
                   setActiveDay(day);
@@ -790,6 +809,21 @@ const ActivityTimeline = () => {
                   <span>{day.getDate()}</span>
                   {count > 0 && <em>{count}</em>}
                 </div>
+                <div className="atl-day-density" aria-hidden="true">
+                  <span />
+                </div>
+                {(activityTypes.length > 0 || hasReminders) && (
+                  <div className="atl-day-signals" aria-label={`${count} item${count === 1 ? '' : 's'} on this day`}>
+                    {activityTypes.map((type) => (
+                      <i
+                        key={type}
+                        style={{ '--atl-signal-color': TYPE_META[type]?.color || DEFAULT_ACCENT_COLOR }}
+                        title={TYPE_META[type]?.label || type}
+                      />
+                    ))}
+                    {hasReminders && <i className="atl-day-signal--reminder" title="Reminders" />}
+                  </div>
+                )}
                 <div className="atl-day-cell-preview">
                   {dayReminders.slice(0, 1).map((item) => (
                     <span key={`r-${item.id}`} className="atl-preview-pill atl-preview-pill--reminder">{item.title}</span>
@@ -860,7 +894,7 @@ const ActivityTimeline = () => {
           filteredReminders.map((reminder) => {
             const safeUrl = sanitizeUrl(reminder.url || '');
             return (
-              <article key={reminder.id} className="atl-reminder-card" style={{ borderLeftColor: reminder.color || '#3b82f6' }}>
+              <article key={reminder.id} className="atl-reminder-card" style={{ borderLeftColor: reminder.color || DEFAULT_ACCENT_COLOR }}>
                 <button className="atl-icon-btn" type="button" aria-label={reminder.is_completed ? 'Mark reminder incomplete' : 'Mark reminder complete'} onClick={() => toggleReminderComplete(reminder)}>
                 {reminder.is_completed ? <CheckCircle2 size={18} /> : <Circle size={18} />}
                 </button>

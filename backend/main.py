@@ -87,7 +87,7 @@ if "sqlite" in DATABASE_URL:
             "stripe_checkout_session_id": "VARCHAR(120)",
             "billing_currency": "VARCHAR(12)",
             "current_period_end": "DATETIME",
-            "cancel_at_period_end": "BOOLEAN DEFAULT 0",
+            "cancel_at_period_end": "BOOLEAN DEFAULT FALSE",
         }
         for _col, _typ in _profile_additions.items():
             if _col not in _profile_cols:
@@ -102,6 +102,13 @@ if "sqlite" in DATABASE_URL:
             "weekly_note_goal": "INTEGER DEFAULT 5",
             "weekly_flashcard_goal": "INTEGER DEFAULT 20",
             "weekly_quiz_goal": "INTEGER DEFAULT 5",
+            "freeze_charges": "INTEGER DEFAULT 0",
+            "revive_charges": "INTEGER DEFAULT 0",
+            "xp_boost_until": "DATETIME",
+            "xp_boost_multiplier": "FLOAT DEFAULT 1.0",
+            "xp_boost_uses": "INTEGER DEFAULT 0",
+            "vault_rewards_claimed": "INTEGER DEFAULT 0",
+            "powerups_initialized": "BOOLEAN DEFAULT FALSE",
         }
         for _col, _typ in _gamification_additions.items():
             if _col not in _gamification_cols:
@@ -166,10 +173,10 @@ if "sqlite" in DATABASE_URL:
     with engine.connect() as _conn:
         _note_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(notes)"))}
         _note_additions = {
-            "is_public": "BOOLEAN DEFAULT 0",
-            "is_deleted": "BOOLEAN DEFAULT 0",
+            "is_public": "BOOLEAN DEFAULT FALSE",
+            "is_deleted": "BOOLEAN DEFAULT FALSE",
             "deleted_at": "DATETIME",
-            "is_favorite": "BOOLEAN DEFAULT 0",
+            "is_favorite": "BOOLEAN DEFAULT FALSE",
             "custom_font": "VARCHAR(50) DEFAULT 'Inter'",
             "transcript": "TEXT",
             "analysis": "TEXT",

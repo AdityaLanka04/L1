@@ -12,7 +12,7 @@ const GlobalNotifications = () => {
     <>
       {slideQueue.map((notif, index) => (
         <SlideNotification
-          key={notif.id}
+          key={`${notif.id}-${notif.created_at || index}`}
           notification={notif}
           onClose={() => removeSlideNotification(notif.id)}
           onMarkRead={markNotificationAsRead}
