@@ -199,6 +199,50 @@ async def create_playlist(
         logger.error(f"Error creating playlist: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+@router.delete("/playlists/{playlist_id}")
+async def delete_playlist(
+    playlist_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        playlist = db.query(models.LearningPlaylist).filter(
+            models.LearningPlaylist.id == playlist_id
+        ).first()
+
+        if not playlist:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+
+        if playlist.creator_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Only creator can delete playlist")
+
+        db.query(models.PlaylistFollower).filter(
+            models.PlaylistFollower.playlist_id == playlist_id
+        ).delete(synchronize_session=False)
+        db.query(models.PlaylistFork).filter(
+            or_(
+                models.PlaylistFork.original_playlist_id == playlist_id,
+                models.PlaylistFork.forked_playlist_id == playlist_id,
+            )
+        ).delete(synchronize_session=False)
+        db.query(models.PlaylistCollaborator).filter(
+            models.PlaylistCollaborator.playlist_id == playlist_id
+        ).delete(synchronize_session=False)
+        db.query(models.PlaylistComment).filter(
+            models.PlaylistComment.playlist_id == playlist_id
+        ).delete(synchronize_session=False)
+
+        db.delete(playlist)
+        db.commit()
+
+        return {"message": "Playlist deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting playlist: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @router.get("/playlists/{playlist_id}")
 async def get_playlist_detail(
     playlist_id: int,

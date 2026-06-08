@@ -6,10 +6,67 @@ import {
   ChevronDown, ChevronUp, ChevronRight, Share2, Heart, Lock, Globe, GraduationCap,
   CheckCircle, Sparkles, Zap, GitFork
 } from 'lucide-react';
+import { marked } from 'marked';
 import './PlaylistDetailPage.css';
 import { API_URL } from '../config';
 import { sanitizeHtml } from '../utils/sanitize';
+import MathRenderer from '../components/MathRenderer';
 import PlaylistShareModal from '../components/PlaylistShareModal';
+
+const renderPlaylistMarkdown = (value = '') => {
+  if (!value) return '';
+
+  const mathStore = [];
+  const placeholder = (index) => `PMATH${index}P`;
+  let text = String(value);
+
+  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, math) => {
+    mathStore.push({ tex: math.trim(), display: true });
+    return placeholder(mathStore.length - 1);
+  });
+  text = text.replace(/\\\[([\s\S]+?)\\\]/g, (_, math) => {
+    mathStore.push({ tex: math.trim(), display: true });
+    return placeholder(mathStore.length - 1);
+  });
+  text = text.replace(/\$([^\n$]{1,300}?)\$/g, (_, math) => {
+    mathStore.push({ tex: math.trim(), display: false });
+    return placeholder(mathStore.length - 1);
+  });
+  text = text.replace(/\\\(([^\n]{1,300}?)\\\)/g, (_, math) => {
+    mathStore.push({ tex: math.trim(), display: false });
+    return placeholder(mathStore.length - 1);
+  });
+
+  const renderer = new marked.Renderer();
+  renderer.heading = ({ text: heading, depth }) => `<h${depth} class="md-h${depth}">${heading}</h${depth}>`;
+  renderer.strong = ({ text: strongText }) => `<strong class="md-bold-inline">${strongText}</strong>`;
+  renderer.codespan = ({ text: codeText }) => `<code class="md-inline-code">${codeText}</code>`;
+  renderer.list = function list(token) {
+    const body = (token.items || []).map((item) => this.listitem(item)).join('');
+    const tag = token.ordered ? 'ol' : 'ul';
+    const className = token.ordered ? 'md-ol' : 'md-ul';
+    return `<${tag} class="${className}">${body}</${tag}>`;
+  };
+  renderer.listitem = function listitem(token) {
+    return `<li class="md-li">${this.parser.parseInline(token.tokens || [])}</li>`;
+  };
+
+  marked.use({ renderer, breaks: true, gfm: true });
+
+  try {
+    text = marked.parse(text);
+  } catch {
+    text = `<p>${text}</p>`;
+  }
+
+  return text.replace(/PMATH(\d+)P/g, (_, index) => {
+    const record = mathStore[Number(index)];
+    if (!record) return '';
+    return record.display
+      ? `<div class="math-display-wrap">$$${record.tex}$$</div>`
+      : `$${record.tex}$`;
+  });
+};
 
 const PlaylistDetailPage = () => {
   const { playlistId } = useParams();
@@ -32,6 +89,7 @@ const PlaylistDetailPage = () => {
   const [showOnlyRequired, setShowOnlyRequired] = useState(false);
   const [updatingItem, setUpdatingItem] = useState(null);
   const [forkLoading, setForkLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     fetchPlaylistDetails();
@@ -248,6 +306,26 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
     } catch (error) { /* silenced */ }
   };
 
+  const handleDeletePlaylist = async () => {
+    if (!playlist?.is_owner || deleteLoading) return;
+    const confirmed = window.confirm(`Delete "${playlist.title}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    setDeleteLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/playlists/${playlistId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        navigate('/playlists');
+      }
+    } catch (error) { /* silenced */ } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const toggleItem = (itemId) => {
     setExpandedItems(prev => ({
       ...prev,
@@ -256,6 +334,13 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
   };
 
   const handleOpenItem = async (item) => {
+    if (item.item_type === 'flashcard') {
+      if (item.item_id) {
+        navigate(`/flashcards?set_id=${item.item_id}&mode=preview`);
+      }
+      return;
+    }
+
     if (item.item_type === 'note' || item.item_type === 'chat') {
       if (item.item_id) {
         try {
@@ -287,7 +372,8 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
       course: GraduationCap,
       video: BookOpen,
       article: BookOpen,
-      quiz: BookOpen
+      quiz: BookOpen,
+      flashcard: BookOpen
     };
     return icons[type] || BookOpen;
   };
@@ -336,50 +422,117 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
 
   return (
     <div className="playlist-detail-container playlist-detail-page">
-      <div className="detail-header">
-        <div className="detail-header-actions">
-          {playlist.is_owner ? (
-            <>
-              <button className="action-button primary" onClick={() => setShowAddItemModal(true)}>
-                <Plus size={18} />
-                <span>Add Item</span>
-              </button>
-              <button className="action-button secondary" onClick={() => setShowShareModal(true)}>
-                <Share2 size={18} />
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                className={`action-button ${isFollowing ? 'following' : 'primary'}`}
-                onClick={handleFollowToggle}
-                disabled={followLoading}
-              >
-                {followLoading ? (
-                  'Loading...'
-                ) : isFollowing ? (
-                  <>
-                    <Check size={18} />
-                    <span>Following</span>
-                  </>
-                ) : (
-                  <>
-                    <Heart size={18} />
-                    <span>Follow</span>
-                  </>
-                )}
-              </button>
-              <button className="action-button secondary" onClick={() => setShowShareModal(true)}>
-                <Share2 size={18} />
-              </button>
-            </>
-          )}
-          <button className="back-button" onClick={() => navigate('/playlists')}>
-            <span>Playlists</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
+      <div className="detail-shell">
+        <aside className="detail-sidebar">
+          <div className="detail-sidebar-brand">
+            <div className="detail-sidebar-logo">cerbyl</div>
+            <div className="detail-sidebar-kicker">PLAYLIST</div>
+          </div>
 
+          <button className="detail-sidebar-back" onClick={() => navigate('/playlists')}>
+            <ChevronRight size={14} />
+            <span>All Playlists</span>
+          </button>
+
+          <div className="detail-sidebar-divider"></div>
+
+          <div className="detail-sidebar-section">
+            <h3 className="detail-sidebar-heading">Actions</h3>
+            {playlist.is_owner ? (
+              <>
+                <button className="detail-sidebar-action primary" onClick={() => setShowAddItemModal(true)}>
+                  <Plus size={16} />
+                  <span>Add Item</span>
+                </button>
+                <button className="detail-sidebar-action" onClick={() => setShowShareModal(true)}>
+                  <Share2 size={16} />
+                  <span>Share</span>
+                </button>
+                <button
+                  className="detail-sidebar-action danger"
+                  onClick={handleDeletePlaylist}
+                  disabled={deleteLoading}
+                >
+                  <Trash2 size={16} />
+                  <span>{deleteLoading ? 'Deleting' : 'Delete'}</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className={`detail-sidebar-action ${isFollowing ? 'success' : 'primary'}`}
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                >
+                  {isFollowing ? <Check size={16} /> : <Heart size={16} />}
+                  <span>{followLoading ? 'Loading' : isFollowing ? 'Following' : 'Follow'}</span>
+                </button>
+                <button className="detail-sidebar-action" onClick={() => setShowShareModal(true)}>
+                  <Share2 size={16} />
+                  <span>Share</span>
+                </button>
+                <button className="detail-sidebar-action" onClick={handleForkPlaylist} disabled={forkLoading}>
+                  <GitFork size={16} />
+                  <span>{forkLoading ? 'Forking' : 'Fork'}</span>
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="detail-sidebar-divider"></div>
+
+          <div className="detail-sidebar-section">
+            <h3 className="detail-sidebar-heading">AI Tools</h3>
+            <button
+              className="detail-sidebar-action"
+              onClick={handleGenerateNotes}
+              disabled={aiLoading.notes || allItems.length === 0}
+            >
+              {aiLoading.notes ? <span className="detail-btn-spinner" /> : <FileText size={16} />}
+              <span>{aiLoading.notes ? 'Generating' : 'Notes'}</span>
+            </button>
+            <button
+              className="detail-sidebar-action"
+              onClick={handleGenerateFlashcards}
+              disabled={aiLoading.flashcards || allItems.length === 0}
+            >
+              {aiLoading.flashcards ? <span className="detail-btn-spinner" /> : <Zap size={16} />}
+              <span>{aiLoading.flashcards ? 'Generating' : 'Flashcards'}</span>
+            </button>
+            <button className="detail-sidebar-action" onClick={handleAskAI}>
+              <Sparkles size={16} />
+              <span>Ask AI</span>
+            </button>
+          </div>
+
+          <div className="detail-sidebar-progress">
+            <div className="detail-sidebar-progress-meta">
+              <span>Progress</span>
+              <strong>{Math.round(progressPercentage)}%</strong>
+            </div>
+            <div className="detail-sidebar-progress-track">
+              <div style={{ width: `${progressPercentage}%` }}></div>
+            </div>
+          </div>
+
+          <div className="detail-sidebar-stats">
+            <div className="detail-sidebar-stat">
+              <strong>{allItems.length}</strong>
+              <span>Items</span>
+            </div>
+            <div className="detail-sidebar-stat">
+              <strong>{requiredCount}</strong>
+              <span>Required</span>
+            </div>
+            <div className="detail-sidebar-stat">
+              <strong>{totalHours || 0}h</strong>
+              <span>Hours</span>
+            </div>
+          </div>
+        </aside>
+
+        <main className="detail-main">
+      <div className="detail-header">
         <div
           className="header-banner"
           style={{ background: `linear-gradient(135deg, ${playlist.cover_color}33 0%, ${playlist.cover_color}11 100%)` }}
@@ -456,42 +609,9 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
           <div className="playlist-panel-header">
             <div>
               <span className="playlist-panel-eyebrow">Learning Studio</span>
-              <h3>AI + Sharing Tools</h3>
+              <h3>AI Status</h3>
             </div>
             <Sparkles size={20} />
-          </div>
-
-          <div className="studio-actions">
-            <button
-              className="studio-btn"
-              onClick={handleGenerateNotes}
-              disabled={aiLoading.notes || allItems.length === 0}
-            >
-              {aiLoading.notes ? <span className="detail-btn-spinner" /> : <FileText size={16} />}
-              <span>{aiLoading.notes ? 'Generating Notes' : 'Generate Notes'}</span>
-            </button>
-            <button
-              className="studio-btn"
-              onClick={handleGenerateFlashcards}
-              disabled={aiLoading.flashcards || allItems.length === 0}
-            >
-              {aiLoading.flashcards ? <span className="detail-btn-spinner" /> : <Zap size={16} />}
-              <span>{aiLoading.flashcards ? 'Generating Cards' : 'Generate Flashcards'}</span>
-            </button>
-            <button className="studio-btn secondary" onClick={handleAskAI}>
-              <Sparkles size={16} />
-              <span>Ask AI About This</span>
-            </button>
-            <button className="studio-btn secondary" onClick={() => setShowShareModal(true)}>
-              <Share2 size={16} />
-              <span>Share Playlist</span>
-            </button>
-            {!playlist.is_owner && (
-              <button className="studio-btn secondary" onClick={handleForkPlaylist} disabled={forkLoading}>
-                <GitFork size={16} />
-                <span>{forkLoading ? 'Forking...' : 'Fork Playlist'}</span>
-              </button>
-            )}
           </div>
 
           {aiResult && (
@@ -514,6 +634,13 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
               <button className="studio-close" onClick={() => setAiResult(null)}>
                 <X size={14} />
               </button>
+            </div>
+          )}
+
+          {!aiResult && (
+            <div className="studio-empty-state">
+              <Sparkles size={18} />
+              <span>Ready to generate notes, flashcards, or a study plan.</span>
             </div>
           )}
         </div>
@@ -702,6 +829,8 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
           </div>
         )}
       </div>
+        </main>
+      </div>
 
       {showViewModal && itemContent && (
         <ViewItemModal
@@ -759,11 +888,17 @@ const ViewItemModal = ({ item, content, onClose }) => {
                   <div key={index} className="chat-pair">
                     <div className="chat-msg user-msg">
                       <div className="msg-label">You</div>
-                      <div className="msg-text">{msg.user_message}</div>
+                      <MathRenderer
+                        content={renderPlaylistMarkdown(msg.user_message)}
+                        className="msg-text playlist-chat-render"
+                      />
                     </div>
                     <div className="chat-msg ai-msg">
                       <div className="msg-label">AI</div>
-                      <div className="msg-text">{msg.ai_response}</div>
+                      <MathRenderer
+                        content={renderPlaylistMarkdown(msg.ai_response)}
+                        className="msg-text playlist-chat-render"
+                      />
                     </div>
                   </div>
                 ))

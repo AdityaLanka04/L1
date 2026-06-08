@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, Search, BookOpen, Users, Clock,
   Globe, Lock, Heart, Library, Filter, X, Zap,
-  FileText, Share2, Check, Sparkles
+  FileText, Share2, Check, Sparkles, Trash2
 } from 'lucide-react';
 import './PlaylistsPage.css';
 import './PlaylistsConvert.css';
@@ -28,6 +28,7 @@ const PlaylistsPage = () => {
   const [aiLoading, setAiLoading] = useState({});
   const [aiResult, setAiResult] = useState(null);
   const [sortBy, setSortBy] = useState('recent');
+  const [deletingPlaylistId, setDeletingPlaylistId] = useState(null);
 
   const categories = [
     'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
@@ -126,6 +127,29 @@ const PlaylistsPage = () => {
         }));
       }
     } catch (error) { /* silenced */ }
+  };
+
+  const handleDeletePlaylist = async (playlist) => {
+    if (!playlist?.is_owner || deletingPlaylistId) return;
+    const confirmed = window.confirm(`Delete "${playlist.title}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    setDeletingPlaylistId(playlist.id);
+    try {
+      const response = await fetch(`${API_URL}/playlists/${playlist.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setPlaylists(prev => prev.filter(item => item.id !== playlist.id));
+        if (sharePlaylist?.id === playlist.id) {
+          setSharePlaylist(null);
+        }
+      }
+    } catch (error) { /* silenced */ } finally {
+      setDeletingPlaylistId(null);
+    }
   };
 
   const handleAiConvert = async (playlist, action) => {
@@ -511,7 +535,9 @@ const PlaylistsPage = () => {
                     onGenerateNotes={() => handleAiConvert(playlist, 'notes')}
                     onGenerateFlashcards={() => handleAiConvert(playlist, 'flashcards')}
                     onToggleFollow={() => handleFollowToggle(playlist.id, playlist.is_following)}
+                    onDelete={() => handleDeletePlaylist(playlist)}
                     aiLoading={aiLoading}
+                    deleting={deletingPlaylistId === playlist.id}
                   />
                 ))}
               </div>
@@ -584,7 +610,9 @@ const PlaylistCard = ({
   onGenerateNotes,
   onGenerateFlashcards,
   onToggleFollow,
-  aiLoading
+  onDelete,
+  aiLoading,
+  deleting
 }) => {
   const itemCount = playlist.item_count || playlist.items?.length || 0;
   const hasItems = itemCount > 0;
@@ -706,6 +734,19 @@ const PlaylistCard = ({
             >
               <Share2 size={14} />
             </button>
+            {playlist.is_owner && (
+              <button
+                className="playlists-icon-action-btn danger"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                disabled={deleting}
+                title={deleting ? 'Deleting playlist' : 'Delete playlist'}
+              >
+                {deleting ? <span className="lp-btn-spinner danger" /> : <Trash2 size={14} />}
+              </button>
+            )}
           </div>
         </div>
 
