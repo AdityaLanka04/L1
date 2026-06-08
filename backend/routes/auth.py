@@ -80,8 +80,6 @@ class RegisterPayload(BaseModel):
     email: EmailStr
     username: str
     password: str
-    whatsapp_phone_number: Optional[str] = None
-    whatsapp_reminders_enabled: Optional[bool] = True
     age: Optional[int] = None
     field_of_study: Optional[str] = None
     learning_style: Optional[str] = None
@@ -268,12 +266,7 @@ async def register(request: Request, payload: RegisterPayload, db: Session = Dep
 
             user_stats = models.UserStats(user_id=db_user.id)
             db.add(user_stats)
-            phone_number = str(payload.whatsapp_phone_number or "").strip()
-            db.add(models.ComprehensiveUserProfile(
-                user_id=db_user.id,
-                whatsapp_phone_number=phone_number or None,
-                whatsapp_reminders_enabled=bool(phone_number and payload.whatsapp_reminders_enabled is not False),
-            ))
+            db.add(models.ComprehensiveUserProfile(user_id=db_user.id))
             db.commit()
 
             logger.info(f"User {payload.username} registered successfully")
@@ -400,7 +393,6 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
             display_name = data.get('displayName')
             photo_url = data.get('photoURL')
             uid = data.get('uid')
-            whatsapp_phone_number = str(data.get("whatsappPhoneNumber") or "").strip()
 
             if not id_token or not email:
                 raise HTTPException(status_code=400, detail="Missing required fields")
@@ -458,11 +450,7 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                     week_start_date=datetime.now(timezone.utc)
                 )
                 db.add(gamif_stats)
-                db.add(models.ComprehensiveUserProfile(
-                    user_id=user.id,
-                    whatsapp_phone_number=whatsapp_phone_number or None,
-                    whatsapp_reminders_enabled=bool(whatsapp_phone_number),
-                ))
+                db.add(models.ComprehensiveUserProfile(user_id=user.id))
 
                 db.commit()
                 logger.info(f"New user created via Firebase: {email}")
@@ -473,17 +461,8 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                 if not profile:
                     profile = models.ComprehensiveUserProfile(user_id=user.id)
                     db.add(profile)
-                if whatsapp_phone_number and not profile.whatsapp_phone_number:
-                    profile.whatsapp_phone_number = whatsapp_phone_number
-                    profile.whatsapp_reminders_enabled = True
                 user.last_login = datetime.now(timezone.utc)
                 db.commit()
-
-            profile = db.query(models.ComprehensiveUserProfile).filter(
-                models.ComprehensiveUserProfile.user_id == user.id
-            ).first()
-            whatsapp_phone_number_value = profile.whatsapp_phone_number if profile else None
-            whatsapp_reminders_enabled = bool(profile and profile.whatsapp_reminders_enabled)
 
             access_token = create_access_token(
                 data={"sub": user.username, "user_id": user.id}
@@ -493,7 +472,6 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                 "access_token": access_token,
                 "token_type": "bearer",
                 "is_new_user": is_new_user,
-                "needs_whatsapp_phone": not bool(whatsapp_phone_number_value),
                 "user": {
                     "id": user.id,
                     "email": user.email,
@@ -501,8 +479,6 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                     "last_name": user.last_name,
                     "picture_url": user.picture_url,
                     "google_user": True,
-                    "whatsapp_phone_number": whatsapp_phone_number_value or "",
-                    "whatsapp_reminders_enabled": whatsapp_reminders_enabled,
                 }
             }
 
