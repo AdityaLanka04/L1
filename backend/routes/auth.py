@@ -48,6 +48,22 @@ _auth_attempts: dict = defaultdict(list)
 _auth_lock = threading.Lock()
 _AUTH_DICT_MAX = 5000
 
+def _sync_google_profile_fields(user: models.User, *, first_name: Optional[str] = None, last_name: Optional[str] = None, picture_url: Optional[str] = None) -> bool:
+    changed = False
+    if first_name and not user.first_name:
+        user.first_name = first_name
+        changed = True
+    if last_name and not user.last_name:
+        user.last_name = last_name
+        changed = True
+    if picture_url and user.picture_url != picture_url:
+        user.picture_url = picture_url
+        changed = True
+    if not user.google_user:
+        user.google_user = True
+        changed = True
+    return changed
+
 def _check_auth_rate_limit(request: Request, max_attempts: int = 5, window_seconds: int = 60) -> None:
     ip = (request.client.host if request.client else None) or "unknown"
     now = datetime.now(timezone.utc).timestamp()
@@ -359,6 +375,12 @@ async def google_auth(request: Request, auth_data: GoogleAuth, db: Session = Dep
             db.add(user_stats)
             db.commit()
         else:
+            _sync_google_profile_fields(
+                user,
+                first_name=user_info.get('given_name', ''),
+                last_name=user_info.get('family_name', ''),
+                picture_url=user_info.get('picture', ''),
+            )
             user.last_login = datetime.now(timezone.utc)
             db.commit()
 
@@ -461,6 +483,13 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                 if not profile:
                     profile = models.ComprehensiveUserProfile(user_id=user.id)
                     db.add(profile)
+                names = display_name.split(' ') if display_name else []
+                _sync_google_profile_fields(
+                    user,
+                    first_name=names[0] if len(names) > 0 else None,
+                    last_name=' '.join(names[1:]) if len(names) > 1 else None,
+                    picture_url=photo_url,
+                )
                 user.last_login = datetime.now(timezone.utc)
                 db.commit()
 

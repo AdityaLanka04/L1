@@ -1,9 +1,9 @@
 .slide-notif {
   position: fixed;
-  top: 80px;
+  top: 92px;
   right: -440px;
   width: min(400px, calc(100vw - 32px));
-  z-index: 9999;
+  z-index: 2147483000;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
   opacity: 0;

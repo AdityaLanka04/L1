@@ -10,7 +10,17 @@ from jose import JWTError, jwt
 
 import models
 from database import get_db
-from deps import get_current_user, call_ai, get_user_by_username, get_user_by_email, verify_token, SECRET_KEY, ALGORITHM
+from deps import (
+    get_current_user,
+    call_ai,
+    get_user_by_username,
+    get_user_by_email,
+    verify_token,
+    SECRET_KEY,
+    ALGORITHM,
+    JWT_AUDIENCE,
+    JWT_ISSUER,
+)
 from services.ai_json_parser import parse_json_array_response
 from services.websocket_manager import manager
 
@@ -396,7 +406,13 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
         db = next(get_db())
 
         try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            payload = jwt.decode(
+                token,
+                SECRET_KEY,
+                algorithms=[ALGORITHM],
+                audience=JWT_AUDIENCE,
+                issuer=JWT_ISSUER,
+            )
             username = payload.get("sub")
 
             if not username:
@@ -424,15 +440,13 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
             await websocket.close(code=1011, reason="Auth error")
             return
 
-        await websocket.accept()
-        logger.info(f"WebSocket accepted for user {user_id}")
-
         if db:
             db.close()
             db = None
             logger.info(f"Database connection closed for user {user_id}")
 
-        manager.active_connections[user_id] = websocket
+        await manager.connect(websocket, user_id)
+        logger.info(f"WebSocket accepted for user {user_id}")
         logger.info(f"User {user_id} connected (Total: {len(manager.active_connections)})")
 
         await websocket.send_json({
@@ -464,7 +478,7 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
             pass
 
     finally:
-        if user_id and user_id in manager.active_connections:
+        if user_id and manager.active_connections.get(user_id) is websocket:
             del manager.active_connections[user_id]
             logger.info(f"User {user_id} cleaned up")
 

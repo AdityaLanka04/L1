@@ -8,8 +8,10 @@ class WebSocketManager {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectTimeout = null;
+    this.disconnectTimeout = null;
     this.messageQueue = [];
     this.token = null;
+    this.intentionalClose = false;
   }
 
   connect(token) {
@@ -26,7 +28,13 @@ class WebSocketManager {
             return;
     }
 
+    if (this.disconnectTimeout) {
+      clearTimeout(this.disconnectTimeout);
+      this.disconnectTimeout = null;
+    }
+
     this.token = token;
+    this.intentionalClose = false;
 
     
     let wsUrl;
@@ -76,6 +84,10 @@ class WebSocketManager {
                 this.isConnected = false;
         this.notifyListeners({ type: '_connected', isConnected: false });
 
+        if (this.intentionalClose) {
+          return;
+        }
+
         
         if (event.code === 1008) {
                     return;
@@ -97,9 +109,16 @@ class WebSocketManager {
   disconnect() {
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    if (this.disconnectTimeout) {
+      clearTimeout(this.disconnectTimeout);
+      this.disconnectTimeout = null;
     }
     
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.intentionalClose = true;
             this.ws.close(1000, 'Manual disconnect');
     }
     
@@ -108,6 +127,11 @@ class WebSocketManager {
   }
 
   subscribe(id, callback) {
+    if (this.disconnectTimeout) {
+      clearTimeout(this.disconnectTimeout);
+      this.disconnectTimeout = null;
+    }
+
         this.listeners.set(id, callback);
     
     
@@ -119,7 +143,11 @@ class WebSocketManager {
     
     
     if (this.listeners.size === 0) {
-            this.disconnect();
+      this.disconnectTimeout = setTimeout(() => {
+        if (this.listeners.size === 0) {
+          this.disconnect();
+        }
+      }, 10000);
     }
   }
 

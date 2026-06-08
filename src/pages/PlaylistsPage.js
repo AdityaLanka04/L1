@@ -243,6 +243,11 @@ const PlaylistsPage = () => {
       </svg>
       <div className="playlists-body">
         <aside className="playlists-sidebar">
+          <div className="pl-sidebar-brand">
+            <div className="pl-sidebar-logo">cerbyl</div>
+            <div className="pl-sidebar-kicker">PLAYLISTS</div>
+          </div>
+
           <button
             className="pl-new-playlist-btn"
             onClick={() => setShowCreateModal(true)}
@@ -389,6 +394,13 @@ const PlaylistsPage = () => {
               <div className="stat-value">{playlists.length}</div>
               <div className="stat-label">Total Playlists</div>
             </div>
+          </div>
+
+          <div className="pl-sidebar-actions">
+            <button className="pl-sidebar-action" onClick={() => navigate('/dashboard-cerbyl')}>
+              <BookOpen size={16} />
+              <span>Dashboard</span>
+            </button>
           </div>
         </aside>
 

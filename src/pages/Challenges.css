@@ -143,7 +143,7 @@
   transition: all 0.3s;
   text-transform: uppercase;
   letter-spacing: 2px;
-  border-radius: 0;
+  border-radius: 10px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -203,7 +203,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border-radius: 0;
+  border-radius: 12px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -233,6 +233,7 @@
   text-transform: uppercase;
   letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
+  border-radius: 10px 10px 0 0;
 }
 
 .filter-tab:hover {
@@ -250,6 +251,7 @@
   padding: 80px 20px;
   background: var(--panel);
   border: 1px solid var(--border);
+  border-radius: 16px;
   color: var(--text-secondary);
 }
 
@@ -478,6 +480,7 @@
   text-transform: uppercase;
   letter-spacing: 2px;
   border: 1px solid var(--success);
+  border-radius: 12px;
 }
 
 .modal-overlay {
@@ -497,6 +500,7 @@
 .modal-content {
   background: var(--panel);
   border: 1px solid var(--border);
+  border-radius: 16px;
   max-width: 500px;
   width: 100%;
   max-height: 90vh;
@@ -526,6 +530,7 @@
   cursor: pointer;
   padding: 4px;
   transition: all 0.3s;
+  border-radius: 8px;
 }
 
 .modal-close:hover {
@@ -563,7 +568,7 @@
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   transition: all 0.3s;
-  border-radius: 0;
+  border-radius: 10px;
   resize: vertical;
 }
 
@@ -591,7 +596,7 @@
   justify-content: center;
   gap: 8px;
   margin-top: 12px;
-  border-radius: 0;
+  border-radius: 12px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -675,12 +680,6 @@
   }
 }
 
-.challenges-page *,
-.challenges-page *::before,
-.challenges-page *::after {
-  border-radius: 0;
-}
-
 .nav-menu-btn {
   background: transparent;
   border: none;
@@ -691,8 +690,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0;
+  border-radius: 10px;
   position: relative;
+}
+
+.challenges-page.with-social-chrome .shc-sidebar,
+.challenges-page.with-social-chrome .shc-main {
+  border-radius: 18px;
+}
+
+.challenges-page.with-social-chrome .shc-side-block {
+  border-radius: 14px;
+}
+
+.challenges-page.with-social-chrome .shc-view-link,
+.challenges-page.with-social-chrome .shc-action-btn,
+.challenges-page.with-social-chrome .shc-side-close-btn,
+.challenges-page.with-social-chrome .shc-stat-card {
+  border-radius: 10px;
 }
 
 .nav-menu-btn:hover {

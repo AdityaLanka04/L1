@@ -27,7 +27,7 @@ class User(Base):
     field_of_study = Column(String(100), nullable=True)
     learning_style = Column(String(50), nullable=True)
     school_university = Column(String(100), nullable=True)
-    picture_url = Column(String(255), nullable=True)
+    picture_url = Column(Text, nullable=True)
     google_user = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_login = Column(DateTime, default=lambda: datetime.now(timezone.utc))

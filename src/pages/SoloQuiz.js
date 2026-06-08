@@ -122,8 +122,13 @@ const SoloQuiz = () => {
     <div className="sq-page">
       <div className="sq-body">
         <aside className="sq-sidebar">
+          <div className="sq-sidebar-brand">
+            <div className="sq-sidebar-logo">cerbyl</div>
+            <div className="sq-sidebar-kicker">SOLO QUIZ</div>
+          </div>
+
           <div className="sq-sidebar-section">
-            <h3 className="sq-sidebar-heading">Navigation</h3>
+            <h3 className="sq-sidebar-heading">Quiz Workspace</h3>
             <nav className="sq-sidebar-menu">
               <button 
                 className={`sq-menu-item ${activeTab === 'generator' ? 'active' : ''}`}
@@ -152,6 +157,39 @@ const SoloQuiz = () => {
                 {activeTab === 'statistics' && <div className="sq-active-indicator"></div>}
               </button>
             </nav>
+          </div>
+
+          <div className="sq-sidebar-section sq-sidebar-config">
+            <h3 className="sq-sidebar-heading">Current Setup</h3>
+            <div className="sq-config-grid">
+              <div className="sq-config-tile">
+                <span>{difficulty}</span>
+                <small>Difficulty</small>
+              </div>
+              <div className="sq-config-tile">
+                <span>{questionCount}</span>
+                <small>Questions</small>
+              </div>
+              <div className="sq-config-tile sq-config-wide">
+                <span>{timingMode === 'none' ? 'No Timer' : timingMode}</span>
+                <small>Timing</small>
+              </div>
+            </div>
+          </div>
+
+          <div className="sq-sidebar-section sq-sidebar-actions">
+            <button className="sq-sidebar-action primary" onClick={() => setActiveTab('generator')}>
+              <Play size={16} />
+              <span>Start Quiz</span>
+            </button>
+            <button className="sq-sidebar-action" onClick={() => navigate('/quiz-hub')}>
+              <BookOpen size={16} />
+              <span>Quiz Hub</span>
+            </button>
+            <button className="sq-sidebar-action" onClick={() => navigate('/dashboard-cerbyl')}>
+              <ChevronRight size={16} />
+              <span>Dashboard</span>
+            </button>
           </div>
         </aside>
 

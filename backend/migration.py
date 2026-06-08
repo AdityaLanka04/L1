@@ -214,6 +214,22 @@ def _run_postgres_migration():
                 print(f" Added column {table_name}.{column_name}")
             conn.commit()
 
+    def widen_column_to_text(table_name, column_name):
+        if table_name not in tables:
+            return
+        columns = {c["name"]: c for c in inspector.get_columns(table_name)}
+        column = columns.get(column_name)
+        if not column:
+            return
+        if column["type"].__class__.__name__.upper() == "TEXT":
+            return
+        with engine.connect() as conn:
+            conn.execute(text(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE TEXT"))
+            conn.commit()
+            print(f" Widened {table_name}.{column_name} to TEXT")
+
+    widen_column_to_text("users", "picture_url")
+
     add_missing_columns(
         "flashcards",
         {

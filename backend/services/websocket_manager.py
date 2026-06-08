@@ -16,7 +16,7 @@ class ConnectionManager:
         logger.info(f" User {user_id} connected to WebSocket (Total: {len(self.active_connections)})")
     
     def disconnect(self, websocket: WebSocket, user_id: int):
-        if user_id in self.active_connections:
+        if self.active_connections.get(user_id) is websocket:
             del self.active_connections[user_id]
             logger.info(f"🔌 User {user_id} disconnected from WebSocket (Total: {len(self.active_connections)})")
     
@@ -87,4 +87,3 @@ async def notify_battle_completed(user_ids: List[int], battle_id: int, winner_id
     }
     sent_count = await manager.broadcast(message, user_ids)
     logger.info(f"🏁 Battle completed notification sent to {sent_count}/{len(user_ids)} users")
-

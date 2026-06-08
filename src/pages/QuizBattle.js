@@ -255,34 +255,81 @@ const QuizBattle = () => {
 
   return (
     <div className="qb-page">
-      <div className="qb-content">
-        <div className="qb-container">
-          <section className="qb-welcome-section">
-            <div className="qb-welcome-left">
-              <p className="qb-welcome-desc">
-                CHALLENGE YOUR FRIENDS TO EPIC 1V1 KNOWLEDGE DUELS. TEST YOUR SKILLS, 
-                CLIMB THE LEADERBOARD, AND PROVE YOUR MASTERY ACROSS ANY SUBJECT.
-              </p>
-            </div>
-            <button className="qb-create-btn" onClick={() => setShowCreateModal(true)}>
-              CREATE BATTLE
-            </button>
-          </section>
-
-          <div 
-            className="qb-filters"
-            style={{ '--filter-index': filters.indexOf(statusFilter) }}
-          >
-            {filters.map((filter, index) => (
-              <button 
-                key={filter} 
-                className={`qb-filter-tab ${statusFilter === filter ? 'active' : ''}`}
-                onClick={() => setStatusFilter(filter)}
-              >
-                <span>{filter.charAt(0).toUpperCase() + filter.slice(1)}</span>
-              </button>
-            ))}
+      <div className="qb-shell">
+        <aside className="qb-sidebar">
+          <div className="qb-sidebar-brand">
+            <div className="qb-sidebar-logo">cerbyl</div>
+            <div className="qb-sidebar-kicker">Quiz Battles</div>
           </div>
+
+          <div className="qb-sidebar-section">
+            <div className="qb-sidebar-label">Battle Workspace</div>
+            <button className="qb-sidebar-create" onClick={() => setShowCreateModal(true)}>
+              <Swords size={16} />
+              <span>Create Battle</span>
+            </button>
+          </div>
+
+          <div className="qb-sidebar-section">
+            <div className="qb-sidebar-label">Status</div>
+            <div className="qb-sidebar-nav">
+              {filters.map((filter) => (
+                <button
+                  key={filter}
+                  className={`qb-sidebar-link ${statusFilter === filter ? 'active' : ''}`}
+                  onClick={() => setStatusFilter(filter)}
+                >
+                  {filter === 'pending' && <Clock size={16} />}
+                  {filter === 'active' && <Flame size={16} />}
+                  {filter === 'completed' && <Trophy size={16} />}
+                  {filter === 'all' && <Database size={16} />}
+                  <span>{filter.charAt(0).toUpperCase() + filter.slice(1)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="qb-sidebar-section qb-sidebar-stats">
+            <div className="qb-sidebar-label">Current View</div>
+            <div className="qb-stat-tile">
+              <span className="qb-stat-value">{battles.length}</span>
+              <span className="qb-stat-label">{statusFilter} battles</span>
+            </div>
+            <div className="qb-stat-grid">
+              <div>
+                <span>{friends.length}</span>
+                <small>Friends</small>
+              </div>
+              <div>
+                <span>{isConnected ? 'Live' : 'Poll'}</span>
+                <small>Socket</small>
+              </div>
+            </div>
+          </div>
+
+          <div className="qb-sidebar-footer">
+            <button className="qb-sidebar-link" onClick={() => navigate('/dashboard')}>
+              <ChevronRight size={16} />
+              <span>Dashboard</span>
+            </button>
+          </div>
+        </aside>
+
+        <main className="qb-content">
+          <div className="qb-container">
+            <section className="qb-welcome-section">
+              <div className="qb-welcome-left">
+                <div className="qb-view-kicker">Live Arena</div>
+                <h1 className="qb-view-title">Quiz Battles</h1>
+                <p className="qb-welcome-desc">
+                  CHALLENGE YOUR FRIENDS TO EPIC 1V1 KNOWLEDGE DUELS. TEST YOUR SKILLS,
+                  CLIMB THE LEADERBOARD, AND PROVE YOUR MASTERY ACROSS ANY SUBJECT.
+                </p>
+              </div>
+              <button className="qb-create-btn" onClick={() => setShowCreateModal(true)}>
+                CREATE BATTLE
+              </button>
+            </section>
 
           {loading ? (
             <div className="qb-loading">
@@ -438,7 +485,8 @@ const QuizBattle = () => {
               })}
             </div>
           )}
-        </div>
+          </div>
+        </main>
       </div>
 
       {showCreateModal && (

@@ -1,12 +1,22 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Users, Search, UserPlus, Check, X, UserMinus } from 'lucide-react';
 import './FriendsDashboard.css';
 import SocialHubChrome from '../components/SocialHubChrome';
 import { API_URL } from '../config';
 
+const FRIEND_VIEWS = new Set(['my-friends', 'find-friends', 'requests']);
+
 const FriendsDashboard = () => {
+  const location = useLocation();
   const token = localStorage.getItem('token');
-  const [activeView, setActiveView] = useState('my-friends');
+  const getRouteView = () => {
+    const queryView = new URLSearchParams(location.search).get('view');
+    const stateView = location.state?.activeView;
+    const routeView = queryView || stateView;
+    return FRIEND_VIEWS.has(routeView) ? routeView : 'my-friends';
+  };
+  const [activeView, setActiveView] = useState(getRouteView);
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState({ received: [], sent: [] });
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,6 +32,11 @@ const FriendsDashboard = () => {
     fetchFriendRequests();
     if (activeView === 'find-friends') fetchAllUsers();
   }, [activeView]);
+
+  useEffect(() => {
+    const routeView = getRouteView();
+    setActiveView(prev => (prev === routeView ? prev : routeView));
+  }, [location.search, location.state]);
 
   const fetchSelfStats = async () => {
     const username = localStorage.getItem('username');

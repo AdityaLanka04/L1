@@ -1,7 +1,9 @@
+import asyncio
 import json
 import random
 import logging
 from datetime import datetime, timezone, timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy import and_
@@ -10,11 +12,76 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import get_current_user, call_ai, get_user_by_username, get_user_by_email, verify_token
+from services.ai_json_parser import parse_json_array_response
 from services.websocket_manager import manager, notify_battle_challenge, notify_battle_accepted, notify_battle_declined, notify_battle_started, notify_battle_completed
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["battles"])
+
+QUESTION_GENERATION_LOCKS: dict[int, asyncio.Lock] = {}
+
+
+def _build_question_from_answer_snapshot(answer: dict, index: int) -> Optional[dict]:
+    if not isinstance(answer, dict):
+        return None
+
+    question_text = str(answer.get("question") or "").strip()
+    options = answer.get("options")
+    if isinstance(options, str):
+        options = _safe_json_list(options)
+
+    if not question_text or not isinstance(options, list) or not options:
+        return None
+
+    try:
+        correct_answer = int(answer.get("correct_answer", 0))
+    except (TypeError, ValueError):
+        correct_answer = 0
+
+    correct_answer = max(0, min(correct_answer, len(options) - 1))
+
+    return {
+        "id": answer.get("question_id") or index,
+        "question": question_text,
+        "options": [str(option) for option in options],
+        "correct_answer": correct_answer,
+        "explanation": str(answer.get("explanation") or ""),
+    }
+
+
+def _question_snapshots_from_answers(*answer_lists: list) -> list[dict]:
+    snapshots = []
+    seen_questions = set()
+
+    for answers in answer_lists:
+        if not isinstance(answers, list):
+            continue
+
+        for index, answer in enumerate(answers):
+            snapshot = _build_question_from_answer_snapshot(answer, index)
+            if not snapshot:
+                continue
+
+            key = (snapshot["question"], json.dumps(snapshot["options"], sort_keys=True))
+            if key in seen_questions:
+                continue
+            seen_questions.add(key)
+            snapshots.append(snapshot)
+
+    return snapshots
+
+
+def _safe_json_list(value) -> list:
+    if isinstance(value, list):
+        return value
+    if not isinstance(value, str) or not value.strip():
+        return []
+    try:
+        parsed = json.loads(value)
+        return parsed if isinstance(parsed, list) else []
+    except Exception:
+        return []
 
 
 @router.post("/create_quiz_battle")
@@ -72,6 +139,9 @@ async def create_quiz_battle(
         )
         db.add(battle_notification)
         db.commit()
+
+        your_answers = []
+        opponent_answers = []
 
         battle_data = {
             "id": battle.id,
@@ -192,6 +262,21 @@ async def complete_quiz_battle(
 
         if not battle:
             raise HTTPException(status_code=404, detail="Battle not found")
+
+        existing_question = db.query(models.BattleQuestion).filter(
+            models.BattleQuestion.battle_id == battle_id
+        ).first()
+
+        if not existing_question:
+            for snapshot in _question_snapshots_from_answers(answers):
+                battle_question = models.BattleQuestion(
+                    battle_id=battle_id,
+                    question=snapshot["question"],
+                    options=json.dumps(snapshot["options"]),
+                    correct_answer=snapshot["correct_answer"],
+                    explanation=snapshot.get("explanation", ""),
+                )
+                db.add(battle_question)
 
         is_challenger = battle.challenger_id == current_user.id
         if is_challenger:
@@ -460,7 +545,7 @@ async def get_quiz_battle_detail(
             question_list.append({
                 "id": q.id,
                 "question": q.question,
-                "options": json.loads(q.options),
+                "options": _safe_json_list(q.options),
                 "correct_answer": q.correct_answer,
                 "explanation": q.explanation
             })
@@ -475,6 +560,9 @@ async def get_quiz_battle_detail(
         except Exception as e:
             logger.error(f"Error getting opponent: {str(e)}")
             raise HTTPException(status_code=500, detail="Error loading battle opponent")
+
+        your_answers = []
+        opponent_answers = []
 
         battle_data = {
             "id": battle.id,
@@ -501,10 +589,15 @@ async def get_quiz_battle_detail(
             try:
                 your_answers_raw = battle.challenger_answers if is_challenger else battle.opponent_answers
                 opponent_answers_raw = battle.opponent_answers if is_challenger else battle.challenger_answers
-                battle_data["your_answers"] = json.loads(your_answers_raw) if your_answers_raw else []
-                battle_data["opponent_answers"] = json.loads(opponent_answers_raw) if opponent_answers_raw else []
+                your_answers = json.loads(your_answers_raw) if your_answers_raw else []
+                opponent_answers = json.loads(opponent_answers_raw) if opponent_answers_raw else []
+                battle_data["your_answers"] = your_answers
+                battle_data["opponent_answers"] = opponent_answers
             except Exception:
                 pass
+
+        if not question_list:
+            question_list = _question_snapshots_from_answers(your_answers, opponent_answers)
 
         return {
             "battle": battle_data,
@@ -529,6 +622,15 @@ async def generate_battle_questions(
         subject = payload.get("subject")
         difficulty = payload.get("difficulty", "intermediate")
         question_count = payload.get("question_count", 10)
+        difficulty = {
+            "easy": "beginner",
+            "medium": "intermediate",
+            "hard": "advanced",
+        }.get(str(difficulty).lower(), str(difficulty).lower())
+        try:
+            question_count = max(1, min(int(question_count), 50))
+        except (TypeError, ValueError):
+            question_count = 10
 
         battle = db.query(models.QuizBattle).filter(
             models.QuizBattle.id == battle_id
@@ -540,6 +642,12 @@ async def generate_battle_questions(
         if battle.challenger_id != current_user.id and battle.opponent_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized")
 
+        lock_key = int(battle_id)
+        generation_lock = QUESTION_GENERATION_LOCKS.setdefault(lock_key, asyncio.Lock())
+        generation_lock_acquired = False
+        await generation_lock.acquire()
+        generation_lock_acquired = True
+
         existing = db.query(models.BattleQuestion).filter(
             models.BattleQuestion.battle_id == battle_id
         ).first()
@@ -549,24 +657,49 @@ async def generate_battle_questions(
                 models.BattleQuestion.battle_id == battle_id
             ).all()
 
+            generation_lock.release()
+            generation_lock_acquired = False
             return {
                 "questions": [{
                     "id": q.id,
                     "question": q.question,
-                    "options": json.loads(q.options),
+                    "options": _safe_json_list(q.options),
                     "correct_answer": q.correct_answer,
                     "explanation": q.explanation
                 } for q in questions]
             }
 
-        difficulty_map = {
-            "beginner": "easy, suitable for beginners",
-            "intermediate": "moderate difficulty",
-            "advanced": "challenging, advanced level"
+        difficulty_profiles = {
+            "beginner": {
+                "label": "BEGINNER / EASY",
+                "description": (
+                    "Ask direct recall and basic concept questions. Use familiar wording, "
+                    "avoid obscure details, and make distractors clearly wrong to a learner "
+                    "who understands the topic basics."
+                ),
+            },
+            "intermediate": {
+                "label": "INTERMEDIATE / MEDIUM",
+                "description": (
+                    "Ask applied understanding questions. Include cause-effect, chronology, "
+                    "comparisons, and moderately plausible distractors that require more than "
+                    "memorizing a single fact."
+                ),
+            },
+            "advanced": {
+                "label": "ADVANCED / HARD",
+                "description": (
+                    "Ask high-quality analytical questions. Require nuanced reasoning, "
+                    "context, consequences, historiographical or conceptual distinctions, "
+                    "and strong plausible distractors. Avoid simple one-fact recall."
+                ),
+            },
         }
+        difficulty_profile = difficulty_profiles.get(difficulty, difficulty_profiles["intermediate"])
 
         prompt = f"""Generate exactly {question_count} multiple choice questions about {subject}.
-Difficulty level: {difficulty_map.get(difficulty, 'moderate')}.
+Difficulty target: {difficulty_profile["label"]}.
+Difficulty rules: {difficulty_profile["description"]}
 
 Return ONLY a valid JSON array with this exact structure:
 [
@@ -574,6 +707,7 @@ Return ONLY a valid JSON array with this exact structure:
     "question": "Question text here?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correct_answer": 0,
+    "difficulty": "{difficulty}",
     "explanation": "Brief explanation of the correct answer"
   }}
 ]
@@ -581,7 +715,11 @@ Return ONLY a valid JSON array with this exact structure:
 Requirements:
 - Each question must have exactly 4 options
 - correct_answer must be 0, 1, 2, or 3 (index of the correct option)
+- Every question MUST match the requested difficulty target: {difficulty_profile["label"]}
+- Include "difficulty": "{difficulty}" on every question
 - Questions should be clear and unambiguous
+- Do not repeat the same question stem with slightly different options
+- Distractors must be plausible, but exactly one option must be clearly correct
 - Explanations should be concise (1-2 sentences)
 - Make questions engaging and educational
 - Return ONLY the JSON array, no additional text"""
@@ -596,22 +734,39 @@ Requirements:
             content = content[:-3]
         content = content.strip()
 
-        questions_data = json.loads(content)
+        questions_data = parse_json_array_response(content)
+        if not questions_data:
+            raise ValueError("AI returned empty or invalid questions list")
+        questions_data = questions_data[:question_count]
 
         for q_data in questions_data:
-            options = q_data["options"]
-            correct_index = q_data["correct_answer"]
+            question_text = str(q_data.get("question") or "").strip()
+            if not question_text:
+                raise ValueError("AI returned a question without question text")
+            options = q_data.get("options") or []
+            if isinstance(options, str):
+                options = _safe_json_list(options)
+            options = [str(option).strip() for option in options if str(option).strip()]
+            if len(options) != 4:
+                raise ValueError("AI returned a question without exactly 4 options")
+            try:
+                correct_index = int(q_data.get("correct_answer", 0))
+            except (TypeError, ValueError):
+                correct_index = 0
+            correct_index = max(0, min(correct_index, len(options) - 1))
             correct_answer_text = options[correct_index]
             random.shuffle(options)
             new_correct_index = options.index(correct_answer_text)
             q_data["options"] = options
             q_data["correct_answer"] = new_correct_index
+            q_data["difficulty"] = difficulty
+            q_data["question"] = question_text
 
         saved_questions = []
         for q_data in questions_data:
             battle_question = models.BattleQuestion(
                 battle_id=battle_id,
-                question=q_data["question"],
+                question=str(q_data.get("question") or "").strip(),
                 options=json.dumps(q_data["options"]),
                 correct_answer=q_data["correct_answer"],
                 explanation=q_data.get("explanation", "")
@@ -633,12 +788,18 @@ Requirements:
 
         db.commit()
 
+        generation_lock.release()
+        generation_lock_acquired = False
         return {"questions": saved_questions}
 
     except json.JSONDecodeError as e:
+        if locals().get("generation_lock_acquired"):
+            generation_lock.release()
         logger.error(f"JSON decode error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to parse AI response")
     except Exception as e:
+        if locals().get("generation_lock_acquired"):
+            generation_lock.release()
         db.rollback()
         logger.error(f"Error generating battle questions: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -677,7 +838,7 @@ async def get_challenge_detail(
             question_list.append({
                 "id": q.id,
                 "question": q.question,
-                "options": json.loads(q.options),
+                "options": _safe_json_list(q.options),
                 "correct_answer": q.correct_answer,
                 "explanation": q.explanation
             })
@@ -748,7 +909,7 @@ async def generate_challenge_questions(
                 "questions": [{
                     "id": q.id,
                     "question": q.question,
-                    "options": json.loads(q.options),
+                    "options": _safe_json_list(q.options),
                     "correct_answer": q.correct_answer,
                     "explanation": q.explanation
                 } for q in questions]
@@ -791,11 +952,22 @@ Requirements:
             content = content[:-3]
         content = content.strip()
 
-        questions_data = json.loads(content)
+        questions_data = parse_json_array_response(content)
+        if not questions_data:
+            raise ValueError("AI returned empty or invalid questions list")
 
         for q_data in questions_data:
-            options = q_data["options"]
-            correct_index = q_data["correct_answer"]
+            options = q_data.get("options") or []
+            if isinstance(options, str):
+                options = _safe_json_list(options)
+            options = [str(option).strip() for option in options if str(option).strip()]
+            if len(options) != 4:
+                raise ValueError("AI returned a challenge question without exactly 4 options")
+            try:
+                correct_index = int(q_data.get("correct_answer", 0))
+            except (TypeError, ValueError):
+                correct_index = 0
+            correct_index = max(0, min(correct_index, len(options) - 1))
             correct_answer_text = options[correct_index]
             random.shuffle(options)
             new_correct_index = options.index(correct_answer_text)

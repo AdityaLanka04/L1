@@ -80,6 +80,7 @@ const routeForNotification = (notificationType) => {
     case 'study_time_milestone':
       return '/analytics';
     case 'friend_request':
+      return '/friends?view=requests';
     case 'friend_accepted':
     case 'friend_rejected':
     case 'friend_removed':

@@ -33,6 +33,46 @@ const extractFromObject = (obj) => {
   return '';
 };
 
+const normalizeOptions = (options) => {
+  if (Array.isArray(options)) {
+    return options.map((option) => cleanString(option)).filter(Boolean);
+  }
+
+  if (typeof options === 'string') {
+    try {
+      const parsed = JSON.parse(options);
+      if (Array.isArray(parsed)) {
+        return parsed.map((option) => cleanString(option)).filter(Boolean);
+      }
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+};
+
+const normalizeCorrectAnswer = (correctAnswer, optionsLength) => {
+  if (typeof correctAnswer === 'number' && Number.isFinite(correctAnswer)) {
+    return Math.min(Math.max(Math.trunc(correctAnswer), 0), Math.max(optionsLength - 1, 0));
+  }
+
+  if (typeof correctAnswer === 'string') {
+    const trimmed = correctAnswer.trim();
+    const numeric = Number(trimmed);
+    if (Number.isInteger(numeric)) {
+      return Math.min(Math.max(numeric, 0), Math.max(optionsLength - 1, 0));
+    }
+
+    const letterIndex = trimmed.toUpperCase().charCodeAt(0) - 65;
+    if (letterIndex >= 0) {
+      return Math.min(letterIndex, Math.max(optionsLength - 1, 0));
+    }
+  }
+
+  return 0;
+};
+
 export const extractQuestionText = (question) => {
   if (!question) return '';
 
@@ -71,17 +111,20 @@ export const extractQuestionText = (question) => {
 export const normalizeQuestion = (question) => {
   if (!question || typeof question !== 'object') {
     const text = extractQuestionText(question);
-    return { question: text, question_text: text };
+    return { question: text, question_text: text, options: [], correct_answer: 0 };
   }
 
   const text = extractQuestionText(question);
   const questionValue = typeof question.question === 'string' ? question.question : '';
   const questionTextValue = typeof question.question_text === 'string' ? question.question_text : '';
+  const options = normalizeOptions(question.options);
 
   return {
     ...question,
     question: text || questionValue,
-    question_text: text || questionTextValue
+    question_text: text || questionTextValue,
+    options,
+    correct_answer: normalizeCorrectAnswer(question.correct_answer, options.length)
   };
 };
 

@@ -5,7 +5,6 @@ import './QuizBattleSession.css';
 import { API_URL } from '../config';
 import useSharedWebSocket from '../hooks/useSharedWebSocket';
 import gamificationService from '../services/gamificationService';
-import quizAgentService from '../services/quizAgentService';
 import { extractQuestionText, normalizeQuestions } from '../utils/quizQuestionUtils';
 
 const QuizBattleSession = () => {
@@ -74,6 +73,19 @@ const QuizBattleSession = () => {
     loadBattle();
   }, [battleId]);
 
+  useEffect(() => {
+    if (questions.length === 0) {
+      if (currentQuestionIndex !== 0) {
+        setCurrentQuestionIndex(0);
+      }
+      return;
+    }
+
+    if (currentQuestionIndex >= questions.length) {
+      setCurrentQuestionIndex(questions.length - 1);
+    }
+  }, [questions.length, currentQuestionIndex]);
+
   
   useEffect(() => {
     if (opponentCompleted && showResult && !showDetailedResults) {
@@ -140,86 +152,31 @@ const QuizBattleSession = () => {
 
   const generateQuestions = async (battleData) => {
     setGeneratingQuestions(true);
-    const username = localStorage.getItem('username');
     
     try {
-      
-      const difficultyMap = {
-        'beginner': { easy: 7, medium: 3, hard: 0 },
-        'intermediate': { easy: 3, medium: 5, hard: 2 },
-        'advanced': { easy: 1, medium: 3, hard: 6 }
-      };
-      
-      const agentResponse = await quizAgentService.generateQuiz({
-        userId: username,
-        topic: battleData.subject,
-        questionCount: battleData.question_count,
-        difficultyMix: difficultyMap[battleData.difficulty] || difficultyMap['intermediate'],
-        questionTypes: ['multiple_choice']
+      const response = await fetch(`${API_URL}/generate_battle_questions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          battle_id: battleId,
+          subject: battleData.subject,
+          difficulty: battleData.difficulty,
+          question_count: battleData.question_count
+        })
       });
 
-      if (agentResponse.success && agentResponse.questions?.length > 0) {
-        
-        const battleQuestions = agentResponse.questions.map((q, idx) => {
-          
-          let options = q.options || [];
-          if (typeof options === 'string') {
-            try { options = JSON.parse(options); } catch { options = []; }
-          }
-          
-          
-          let correctIndex = 0;
-          if (typeof q.correct_answer === 'number') {
-            correctIndex = q.correct_answer;
-          } else if (typeof q.correct_answer === 'string') {
-            
-            const letter = q.correct_answer.toUpperCase().charAt(0);
-            correctIndex = letter.charCodeAt(0) - 65; 
-            if (correctIndex < 0 || correctIndex >= options.length) correctIndex = 0;
-          }
-          
-          return {
-            id: idx,
-            question: extractQuestionText(q),
-            options: options.map(opt => typeof opt === 'string' ? opt.replace(/^[A-D]\)\s*/, '') : opt),
-            correct_answer: correctIndex,
-            explanation: q.explanation,
-            difficulty: q.difficulty
-          };
-        });
-        
-        setQuestions(normalizeQuestions(battleQuestions));
+      if (response.ok) {
+        const data = await response.json();
+        setQuestions(normalizeQuestions(data.questions));
       } else {
-        throw new Error('Agent returned no questions');
+        throw new Error('Failed to generate questions');
       }
-    } catch (agentError) {
-            
-      
-      try {
-        const response = await fetch(`${API_URL}/generate_battle_questions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            battle_id: battleId,
-            subject: battleData.subject,
-            difficulty: battleData.difficulty,
-            question_count: battleData.question_count
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setQuestions(normalizeQuestions(data.questions));
-        } else {
-          throw new Error('Failed to generate questions');
-        }
-      } catch (fallbackError) {
-                alert('Failed to generate questions. Please try again.');
-        navigate('/quiz-battles');
-      }
+    } catch (error) {
+      alert('Failed to generate questions. Please try again.');
+      navigate('/quiz-battles');
     } finally {
       setGeneratingQuestions(false);
       setLoading(false);
@@ -261,12 +218,18 @@ const QuizBattleSession = () => {
   const handleNextQuestion = (answerIndex = selectedAnswer) => {
     
     const currentQuestion = questions[currentQuestionIndex];
+    if (!currentQuestion) return;
+
     const isCorrect = answerIndex === currentQuestion.correct_answer;
     
     const newAnsweredQuestions = [
       ...answeredQuestions,
       {
         question_id: currentQuestion.id,
+        question: extractQuestionText(currentQuestion),
+        options: currentQuestion.options,
+        correct_answer: currentQuestion.correct_answer,
+        explanation: currentQuestion.explanation || '',
         selected_answer: answerIndex,
         is_correct: isCorrect,
         time_taken: battle.time_limit_seconds - timeRemaining
@@ -375,10 +338,14 @@ const QuizBattleSession = () => {
     );
   }
 
+  const currentQuestion = questions[currentQuestionIndex];
+
   if (showResult) {
     if (showDetailedResults && detailedBattleData) {
       
-      const { battle: battleData, questions: battleQuestions } = detailedBattleData;
+      const { battle: battleData, questions: detailedQuestions = [] } = detailedBattleData;
+      const battleQuestions = normalizeQuestions(detailedQuestions.length > 0 ? detailedQuestions : questions);
+      const totalBattleQuestions = Math.max(battleQuestions.length, battleData.question_count || 0, 1);
       const yourAnswers = battleData.your_answers || [];
       const opponentAnswers = battleData.opponent_answers || [];
       const youWon = battleData.your_score > battleData.opponent_score;
@@ -396,13 +363,13 @@ const QuizBattleSession = () => {
               <div className="player-result you">
                 <h3>You</h3>
                 <div className="player-score">{battleData.your_score}</div>
-                <div className="player-accuracy">{Math.round((battleData.your_score / battleQuestions.length) * 100)}%</div>
+                <div className="player-accuracy">{Math.round((battleData.your_score / totalBattleQuestions) * 100)}%</div>
               </div>
               <div className="vs-divider">VS</div>
               <div className="player-result opponent">
                 <h3>{battleData.opponent.first_name || battleData.opponent.username}</h3>
                 <div className="player-score">{battleData.opponent_score}</div>
-                <div className="player-accuracy">{Math.round((battleData.opponent_score / battleQuestions.length) * 100)}%</div>
+                <div className="player-accuracy">{Math.round((battleData.opponent_score / totalBattleQuestions) * 100)}%</div>
               </div>
             </div>
 
@@ -418,6 +385,7 @@ const QuizBattleSession = () => {
                   const opponentSelectedIndex = opponentAnswer?.selected_answer;
                   const correctAnswerIndex = question.correct_answer;
                   const showExplanation = !yourCorrect || !opponentCorrect; 
+                  const options = Array.isArray(question.options) ? question.options : [];
 
                   return (
                     <div key={index} className="question-comparison-item expanded">
@@ -427,7 +395,7 @@ const QuizBattleSession = () => {
                       </div>
                       
                       <div className="answer-options-review">
-                        {question.options.map((option, optIndex) => {
+                        {options.map((option, optIndex) => {
                           const isCorrect = optIndex === correctAnswerIndex;
                           const youSelected = optIndex === yourSelectedIndex;
                           const opponentSelected = optIndex === opponentSelectedIndex;
@@ -482,6 +450,8 @@ const QuizBattleSession = () => {
     }
 
     
+    const totalQuestions = Math.max(questions.length, 1);
+
     return (
       <div className="battle-result-page">
         <div className="result-container">
@@ -501,7 +471,7 @@ const QuizBattleSession = () => {
             </div>
             <div className="result-stat">
               <span className="stat-label">Accuracy</span>
-              <span className="stat-value">{Math.round((score / questions.length) * 100)}%</span>
+              <span className="stat-value">{Math.round((score / totalQuestions) * 100)}%</span>
             </div>
           </div>
 
@@ -530,9 +500,25 @@ const QuizBattleSession = () => {
     );
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
+  if (!currentQuestion) {
+    return (
+      <div className="battle-session-loading">
+        <Loader size={48} className="spinner" />
+        <h2>No questions available</h2>
+        <p>This battle does not have any playable questions yet.</p>
+        <button
+          className="result-button"
+          onClick={() => navigate('/quiz-battles')}
+        >
+          Back to Quiz Battles
+        </button>
+      </div>
+    );
+  }
+
   const currentQuestionText = extractQuestionText(currentQuestion);
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  const currentOptions = Array.isArray(currentQuestion.options) ? currentQuestion.options : [];
 
   return (
     <div className="battle-session-page">
@@ -592,7 +578,7 @@ const QuizBattleSession = () => {
           </div>
 
           <div className="answers-grid">
-            {currentQuestion.options.map((option, index) => {
+            {currentOptions.map((option, index) => {
               const isSelected = selectedAnswer === index;
               const isCorrect = index === currentQuestion.correct_answer;
               const showCorrect = selectedAnswer !== null && isCorrect;

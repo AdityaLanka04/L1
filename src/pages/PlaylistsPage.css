@@ -2627,3 +2627,216 @@
     padding: 0 0 16px !important;
   }
 }
+
+/* Final playlist shell/sidebar polish */
+.playlists-page {
+  --pl-accent: #d7b98c;
+  --pl-accent-dark: #8f6f45;
+  --pl-accent-glow: color-mix(in srgb, var(--pl-accent) 24%, transparent);
+  --lp-accent: var(--pl-accent);
+  --lp-accent-dark: var(--pl-accent-dark);
+  --lp-accent-glow: var(--pl-accent-glow);
+  --pl-sidebar-width: 292px;
+}
+
+.playlists-page .playlists-body {
+  gap: 28px !important;
+  padding: 28px !important;
+}
+
+.playlists-page .playlists-sidebar {
+  flex: 0 0 var(--pl-sidebar-width) !important;
+  max-width: var(--pl-sidebar-width) !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 28px 22px !important;
+  gap: 18px !important;
+  border: 1px solid color-mix(in srgb, var(--pl-accent) 18%, transparent) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--pl-bg-secondary) 92%, transparent), color-mix(in srgb, var(--pl-bg-primary) 88%, transparent)),
+    radial-gradient(circle at 30% 0%, color-mix(in srgb, var(--pl-accent) 12%, transparent), transparent 46%) !important;
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.28) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+[data-theme-mode="light"] .playlists-page .playlists-sidebar {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--pl-bg-secondary) 95%, white), color-mix(in srgb, var(--pl-bg-primary) 88%, white)),
+    radial-gradient(circle at 30% 0%, color-mix(in srgb, var(--pl-accent) 16%, transparent), transparent 46%) !important;
+}
+
+.pl-sidebar-brand {
+  padding: 6px 8px 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pl-accent) 16%, transparent);
+  text-align: center;
+}
+
+.pl-sidebar-logo {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  color: var(--pl-text-primary);
+}
+
+.pl-sidebar-kicker {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--pl-accent) 66%, var(--pl-text-secondary));
+}
+
+.playlists-page .sidebar-section {
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--pl-accent) 14%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--pl-bg-secondary) 58%, transparent);
+}
+
+.playlists-page .sidebar-heading,
+.playlists-page .filter-item label {
+  color: color-mix(in srgb, var(--pl-accent) 70%, var(--pl-text-primary));
+}
+
+.playlists-page .sidebar-divider {
+  display: none;
+}
+
+.playlists-page .menu-item {
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--pl-text-secondary);
+  font-size: 13px;
+  font-weight: 750;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.playlists-page .menu-item:hover {
+  background: color-mix(in srgb, var(--pl-accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--pl-accent) 28%, transparent);
+  color: var(--pl-text-primary);
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
+.playlists-page .menu-item.active {
+  background: color-mix(in srgb, var(--pl-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--pl-accent) 34%, transparent);
+  color: var(--pl-text-primary);
+  box-shadow: inset 3px 0 0 var(--pl-accent);
+}
+
+.playlists-page .menu-item:hover svg {
+  transform: none;
+}
+
+.playlists-page .active-indicator {
+  display: none;
+}
+
+.playlists-page .dropdown-trigger {
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--pl-bg-primary) 48%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--pl-accent) 18%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.playlists-page .dropdown-menu {
+  border: 1px solid color-mix(in srgb, var(--pl-accent) 22%, transparent) !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--pl-bg-secondary) 96%, #050505) !important;
+}
+
+.playlists-page .sidebar-stats {
+  margin-top: auto;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.playlists-page .stat-box {
+  padding: 16px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--pl-accent) 18%, transparent);
+  background: color-mix(in srgb, var(--pl-accent) 8%, transparent);
+}
+
+.playlists-page .stat-value {
+  color: var(--pl-text-primary);
+}
+
+.playlists-page .stat-label {
+  color: var(--pl-text-secondary);
+}
+
+.playlists-page .pl-new-playlist-btn,
+.playlists-page .pl-sidebar-action {
+  border-radius: 12px;
+}
+
+.playlists-page .pl-new-playlist-btn {
+  justify-content: center;
+  color: #130f09 !important;
+  box-shadow: 0 12px 28px var(--pl-accent-glow);
+}
+
+.pl-sidebar-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.pl-sidebar-action {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--pl-accent) 14%, transparent);
+  background: transparent;
+  color: var(--pl-text-secondary);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.pl-sidebar-action:hover {
+  color: var(--pl-text-primary);
+  border-color: color-mix(in srgb, var(--pl-accent) 32%, transparent);
+  background: color-mix(in srgb, var(--pl-accent) 10%, transparent);
+  transform: translateY(-1px);
+}
+
+.playlists-page .playlists-main {
+  border: 1px solid color-mix(in srgb, var(--pl-accent) 14%, transparent);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--pl-bg-secondary) 78%, transparent), color-mix(in srgb, var(--pl-bg-primary) 92%, transparent));
+}
+
+@media (max-width: 768px) {
+  .playlists-page .playlists-body {
+    gap: 14px !important;
+    padding: 14px !important;
+  }
+
+  .playlists-page .playlists-sidebar {
+    flex: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 42vh !important;
+  }
+
+  .pl-sidebar-brand {
+    display: none;
+  }
+}

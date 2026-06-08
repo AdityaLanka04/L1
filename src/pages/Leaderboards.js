@@ -72,6 +72,10 @@ const Leaderboards = () => {
     }
   };
 
+  const getAvatarInitial = (entry) => (
+    (entry.first_name?.[0] || entry.username?.[0] || '?').toUpperCase()
+  );
+
   return (
     <div className="leaderboard-page with-social-chrome">
       <SocialHubChrome
@@ -176,43 +180,50 @@ const Leaderboards = () => {
           </div>
         ) : (
           <div className="leaderboard-list">
-            {leaderboard.map((entry) => (
-              <div 
-                key={entry.user_id}
-                className={`leaderboard-entry ${entry.is_current_user ? 'current-user' : ''} ${entry.rank <= 3 ? 'top-three' : ''}`}
-              >
-                <div className="entry-rank">
-                  {getRankIcon(entry.rank) || <span className="rank-number">#{entry.rank}</span>}
-                </div>
+            {leaderboard.map((entry) => {
+              const profilePicture = entry.picture_url || entry.picture || entry.photoURL || entry.photo_url || entry.profile_picture;
+              return (
+                <div
+                  key={entry.user_id}
+                  className={`leaderboard-entry ${entry.is_current_user ? 'current-user' : ''} ${entry.rank <= 3 ? 'top-three' : ''}`}
+                >
+                  <div className="entry-rank">
+                    {getRankIcon(entry.rank) || <span className="rank-number">#{entry.rank}</span>}
+                  </div>
 
-                <div className="entry-user">
-                  <div className="entry-avatar">
-                    {entry.picture_url ? (
-                      <img src={entry.picture_url} alt={entry.username} />
-                    ) : (
+                  <div className="entry-user">
+                    <div className="entry-avatar">
+                      {profilePicture && (
+                        <img
+                          src={profilePicture}
+                          alt={entry.username}
+                          referrerPolicy="no-referrer"
+                          onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                        />
+                      )}
                       <div className="entry-avatar-placeholder">
-                        {(entry.first_name?.[0] || entry.username[0]).toUpperCase()}
+                        {getAvatarInitial(entry)}
                       </div>
-                    )}
+                    </div>
+                    <div className="entry-user-info">
+                      <span className="entry-name">
+                        {entry.first_name && entry.last_name
+                          ? `${entry.first_name} ${entry.last_name}`
+                          : entry.username}
+                      </span>
+                      {entry.is_current_user && (
+                        <span className="you-badge">You</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="entry-user-info">
-                    <span className="entry-name">
-                      {entry.first_name && entry.last_name
-                        ? `${entry.first_name} ${entry.last_name}`
-                        : entry.username}
-                    </span>
-                    {entry.is_current_user && (
-                      <span className="you-badge">You</span>
-                    )}
-                  </div>
-                </div>
 
-                <div className="entry-score">
-                  {getMetricIcon(metric)}
-                  <span>{getMetricDisplay(entry.score, metric)}</span>
+                  <div className="entry-score">
+                    {getMetricIcon(metric)}
+                    <span>{getMetricDisplay(entry.score, metric)}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

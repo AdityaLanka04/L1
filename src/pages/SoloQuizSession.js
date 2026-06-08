@@ -540,7 +540,7 @@ const SoloQuizSession = () => {
   const hasAnswered = userAnswers.hasOwnProperty(currentQuestionId);
 
   return (
-    <div className="battle-session-page">
+    <div className="battle-session-page solo-session-page">
       <svg className="geo-bg" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
         <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.5"/>
@@ -663,7 +663,7 @@ const SoloQuizSession = () => {
           </div>
         </div>
 
-        <div className="battle-sidebar">
+        <div className="battle-sidebar solo-session-sidebar">
           <div className="sidebar-meta">
             {timingMode === 'timed' && (
               <div className="session-timer">

@@ -60,6 +60,7 @@ def _repair_json_like(text: str) -> str:
     repaired = (text or "").strip()
     repaired = repaired.replace("\u201c", '"').replace("\u201d", '"').replace("\u2019", "'")
     repaired = repaired.replace("\r\n", "\n")
+    repaired = re.sub(r"\$(?=\s*[\[{\"'\w-])|(?<=[\]}\"'\w-])\$", "", repaired)
     repaired = _escape_latex_backslashes_in_strings(repaired)
 
     repaired = re.sub(r",(\s*[\]}])", r"\1", repaired)

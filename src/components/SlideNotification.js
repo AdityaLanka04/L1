@@ -146,6 +146,8 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         navigate('/analytics');
         break;
       case 'friend_request':
+        navigate('/friends?view=requests', { state: { activeView: 'requests' } });
+        break;
       case 'friend_accepted':
       case 'friend_rejected':
       case 'friend_removed':
