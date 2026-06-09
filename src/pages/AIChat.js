@@ -2922,6 +2922,7 @@ const AIChat = ({ sharedMode = false }) => {
           <div className="ac-qb-side-brand">
             <div className="ac-qb-brand-wrap">
               <div className="ac-qb-brand">cerbyl</div>
+              <div className="ac-qb-brand-kicker">AI Chat</div>
             </div>
             <button
               className="ac-qb-side-close-btn"

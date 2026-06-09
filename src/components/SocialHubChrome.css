@@ -1,3 +1,9 @@
+/* ═══════════════════════════════════════════
+   SOCIAL HUB CHROME
+   Sidebar design mirrors PlaylistsPage sidebar
+   ═══════════════════════════════════════════ */
+
+/* ── page wrapper ── */
 .with-social-chrome {
   position: fixed !important;
   inset: 0 !important;
@@ -10,17 +16,18 @@
 }
 
 .with-social-chrome .geo-bg {
-  color: var(--accent, #d7b38c);
-  opacity: 0.07;
+  color: var(--accent);
+  opacity: 0.05;
 }
 
+/* ── shell ── */
 .shc-shell {
   position: relative;
   z-index: 2;
   flex: 1;
   min-height: 0;
   width: 100%;
-  padding: 22px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -41,14 +48,32 @@
 }
 
 .shc-tagline {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 2px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-primary) 40%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 28%, transparent);
 }
 
 .shc-tagline span {
+  color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.shc-top-btn {
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-primary) 38%, transparent);
+  padding: 4px 0;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.14s;
+}
+
+.shc-top-btn:hover {
   color: var(--accent);
 }
 
@@ -56,24 +81,6 @@
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.shc-top-btn {
-  border: none;
-  background: transparent;
-  color: color-mix(in srgb, var(--text-primary) 50%, transparent);
-  padding: 4px 2px;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.shc-top-btn:hover {
-  color: var(--accent);
 }
 
 /* ── body grid ── */
@@ -85,305 +92,359 @@
   width: min(1600px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 20px;
   transition: grid-template-columns 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .shc-body--collapsed {
-  grid-template-columns: 62px minmax(0, 1fr);
+  grid-template-columns: 52px minmax(0, 1fr);
 }
 
 .shc-body--no-sidebar {
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* ── sidebar shell ── */
+/* ═══════════════════════════════════════════
+   SIDEBAR — mirrors .playlists-page .playlists-sidebar
+   ═══════════════════════════════════════════ */
 .shc-sidebar {
   align-self: stretch;
   min-height: 0;
   height: 100%;
   border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
-  background: linear-gradient(
-    168deg,
-    color-mix(in srgb, var(--accent) 13%, #07060c) 0%,
-    color-mix(in srgb, var(--accent) 5%, #05050a) 55%,
-    color-mix(in srgb, var(--accent) 9%, #080710) 100%
-  );
-  box-shadow: 0 8px 32px rgba(0,0,0,0.32), inset 0 1px 0 color-mix(in srgb, var(--accent) 14%, transparent);
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+
+  /* Same gradient + radial glow as playlists sidebar */
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--bg-secondary) 92%, transparent),
+      color-mix(in srgb, var(--bg-primary) 88%, transparent)
+    ),
+    radial-gradient(
+      circle at 30% 0%,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 46%
+    );
+
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.28);
+
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  overflow: hidden;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  gap: 18px;
+  padding: 28px 22px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 28%, transparent) transparent;
+}
+
+.shc-sidebar::-webkit-scrollbar { width: 4px; }
+.shc-sidebar::-webkit-scrollbar-track { background: transparent; }
+.shc-sidebar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 32%, transparent);
+  border-radius: 8px;
+}
+
+/* ── brand block — same as .pl-sidebar-brand ── */
+.shc-sidebar-brand {
+  padding: 6px 8px 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  text-align: center;
   position: relative;
-  transition: border-color 0.2s;
-}
-
-[data-theme-mode="light"] .shc-sidebar {
-  background: linear-gradient(
-    168deg,
-    color-mix(in srgb, var(--accent) 18%, var(--bg-secondary)) 0%,
-    color-mix(in srgb, var(--accent) 26%, #ffffff) 55%,
-    color-mix(in srgb, var(--accent) 16%, #f8f8f8) 100%
-  );
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--accent) 16%, transparent), inset 0 1px 0 rgba(255,255,255,0.6);
-  border-color: color-mix(in srgb, var(--accent) 24%, transparent);
-}
-
-/* geometric decoration */
-.shc-sidebar-geo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  color: var(--accent);
-  opacity: 0.55;
-  pointer-events: none;
-  z-index: 0;
-}
-
-[data-theme-mode="light"] .shc-sidebar-geo {
-  opacity: 0.35;
-}
-
-/* ── expanded sidebar content ── */
-.shc-sidebar-top {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: flex-end;
-  padding: 10px 10px 0;
   flex-shrink: 0;
 }
 
+/* "cerbyl" — same as .pl-sidebar-logo */
+.shc-brand-name {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+/* "SOCIAL" — same as .pl-sidebar-kicker */
+.shc-brand-kicker {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 66%, var(--text-secondary));
+}
+
+/* collapse button — absolute positioned top-right of brand */
 .shc-collapse-btn {
-  width: 28px;
-  height: 28px;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-60%);
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
   border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
   cursor: pointer;
-  transition: all 0.18s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
   flex-shrink: 0;
 }
 
 .shc-collapse-btn:hover {
-  background: var(--accent);
-  color: #000;
-  transform: scale(1.06);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
+/* ── scrollable section wrapper ── */
 .shc-side-sections {
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 18px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 0 10px;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--accent) 25%, transparent) transparent;
 }
 
-.shc-side-sections::-webkit-scrollbar { width: 3px; }
-.shc-side-sections::-webkit-scrollbar-track { background: transparent; }
-.shc-side-sections::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--accent) 28%, transparent);
-  border-radius: 999px;
-}
-
+/* section block — same as .playlists-page .sidebar-section */
 .shc-side-block {
-  padding: 8px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-secondary) 58%, transparent);
   flex-shrink: 0;
 }
 
-/* section label — matches AI Chat nav-section-title */
+/* section heading — same as .sidebar-heading */
 .shc-side-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: color-mix(in srgb, var(--accent) 60%, transparent);
-  margin-bottom: 5px;
-  padding: 0 4px;
-  white-space: nowrap;
+  letter-spacing: 0.14em;
+  margin: 0;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
 }
 
+/* nav container */
 .shc-view-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
-/* nav link — uppercase, spaced like AI Chat */
+/* nav link — same as .playlists-page .menu-item */
 .shc-view-link {
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: color-mix(in srgb, var(--accent) 62%, var(--text-primary));
-  width: 100%;
-  padding: 10px 12px;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding: 11px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-secondary);
   font-family: inherit;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1.8px;
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
   text-align: left;
-  transition: background 0.15s, color 0.15s;
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
 }
 
 .shc-view-link svg {
   flex-shrink: 0;
-  color: var(--accent);
-  opacity: 0.75;
-  transition: opacity 0.15s;
+  transition: none;
 }
 
 .shc-view-link span:not(.shc-nav-count) {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
 }
 
+/* hover — same as .playlists-page .menu-item:hover */
 .shc-view-link:hover {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
-  color: color-mix(in srgb, var(--accent) 88%, var(--text-primary));
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
-.shc-view-link:hover svg {
-  opacity: 1;
-}
-
+/* active — same as .playlists-page .menu-item.active */
 .shc-view-link--active {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+  color: var(--text-primary);
 }
 
-.shc-view-link--active svg {
-  opacity: 1;
+.shc-view-link--active:hover {
+  transform: none;
 }
 
+/* count badge */
 .shc-nav-count {
   margin-left: auto;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
+  flex-shrink: 0;
+}
+
+/* ── footer nav — same as .pl-sidebar-actions ── */
+.shc-side-footer-nav {
+  display: grid;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+/* footer action — same as .pl-sidebar-action */
+.shc-footer-action {
+  width: 100%;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0;
-  flex-shrink: 0;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
-/* footer nav */
-.shc-side-footer-nav {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 10px 10px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
-  flex-shrink: 0;
+.shc-footer-action:hover {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 32%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  transform: translateY(-1px);
 }
 
-/* ── collapsed strip (mirrors ac-qb-collapsed-strip) ── */
+/* ═══════════════════════════════════════════
+   COLLAPSED STRIP
+   ═══════════════════════════════════════════ */
+.shc-sidebar.shc-sidebar--collapsed {
+  overflow: visible;
+  padding: 10px 0;
+  gap: 0;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--bg-secondary) 92%, transparent),
+      color-mix(in srgb, var(--bg-primary) 88%, transparent)
+    ),
+    radial-gradient(
+      circle at 30% 0%,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 46%
+    );
+}
+
 .shc-strip {
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   height: 100%;
   width: 100%;
-  padding: 10px 0;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.shc-strip-rule {
+  width: 22px;
+  height: 1px;
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  flex-shrink: 0;
+  margin: 6px 0;
 }
 
 .shc-strip-spacer {
   flex: 1;
 }
 
-/* strip icon button — mirrors ac-qb-strip-btn */
+/* strip icon button */
 .shc-strip-btn {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
-  color: color-mix(in srgb, var(--accent) 55%, var(--text-primary));
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
   flex-shrink: 0;
   overflow: visible;
 }
 
 .shc-strip-btn:hover {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-color: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .shc-strip-btn--active {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
 }
 
 .shc-strip-btn--toggle {
-  color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* tooltip on hover — appears to the right like AIChat */
+.shc-strip-btn--toggle:hover {
+  color: var(--accent);
+}
+
+/* tooltip */
 .shc-strip-btn::after {
   content: attr(data-tip);
   position: absolute;
-  left: calc(100% + 14px);
+  left: calc(100% + 12px);
   top: 50%;
   transform: translateY(-50%);
-  background: var(--bg-secondary, #111);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   color: var(--text-primary);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   font-family: inherit;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  letter-spacing: 0.12em;
   white-space: nowrap;
-  padding: 5px 10px;
-  border-radius: 7px;
+  padding: 6px 12px;
+  border-radius: 8px;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.12s, visibility 0.12s;
   z-index: 9999;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
 }
 
 .shc-strip-btn:hover::after {
@@ -391,7 +452,9 @@
   visibility: visible;
 }
 
-/* ── main content ── */
+/* ═══════════════════════════════════════════
+   MAIN CONTENT AREA
+   ═══════════════════════════════════════════ */
 .shc-main {
   min-width: 0;
   min-height: 0;
@@ -400,11 +463,13 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
   border-radius: 18px;
-  background: color-mix(in srgb, #0b0b0b 90%, transparent);
-}
 
-[data-theme-mode="light"] .shc-main {
-  background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--bg-secondary) 78%, transparent),
+      color-mix(in srgb, var(--bg-primary) 92%, transparent)
+    );
 }
 
 .shc-main > * { min-width: 0; }
@@ -443,14 +508,14 @@
   padding: 18px;
 }
 
+/* ── responsive ── */
 @media (max-width: 1100px) {
-  .shc-shell { padding: 14px; }
+  .shc-shell { padding: 12px; }
   .shc-topbar { margin-bottom: 8px; }
 
-  /* force collapsed strip on small screens */
   .shc-body {
-    grid-template-columns: 62px minmax(0, 1fr);
-    gap: 12px;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 14px;
   }
 
   .shc-body--no-sidebar { grid-template-columns: 1fr; }
@@ -465,5 +530,5 @@
   .shc-main .sh-content,
   .shc-main > .fd-main,
   .shc-main > .leaderboard-container,
-  .shc-main > .challenges-container { padding: 18px; }
+  .shc-main > .challenges-container { padding: 16px; }
 }

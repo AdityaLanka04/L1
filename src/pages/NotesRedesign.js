@@ -2819,7 +2819,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
             {sidebarOpen && !isSharedContent && (
               <aside className="nr-qb-sidebar" aria-label="Notes tools">
                 <div className="nr-qb-side-brand">
-                  <div className="nr-qb-brand">cerbyl</div>
+                  <div className="nr-qb-brand-wrap">
+                    <div className="nr-qb-brand">cerbyl</div>
+                    <div className="nr-qb-brand-kicker">Notes</div>
+                  </div>
                   <button
                     onClick={() => setSidebarOpen(false)}
                     className="nr-qb-side-close-btn"

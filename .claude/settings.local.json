@@ -70,7 +70,10 @@
       "Bash(rm -rf /tmp/pwcheck /tmp/pw_check.mjs /tmp/frontend.log)",
       "Bash(git status *)",
       "Bash(git rm *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(sed -n '40,50p' \"D:/Brainwave/L1/src/pages/MyNotes.css\")",
+      "Bash(sed -n '40,55p' \"D:/Brainwave/L1/src/pages/QuizBattle.css\")",
+      "Bash(git checkout *)"
     ]
   }
 }

@@ -6131,18 +6131,28 @@ h1.note-title ::-moz-selection,
   align-self: stretch;
   min-height: 0;
   height: 100%;
-  border: 1px solid var(--nr-qb-line);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
   border-radius: 18px;
-  background: color-mix(in srgb, var(--nr-qb-panel) 96%, transparent);
-  padding: 16px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--bg-secondary) 92%, transparent),
+      color-mix(in srgb, var(--bg-primary) 88%, transparent)
+    ),
+    radial-gradient(
+      circle at 30% 0%,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 46%
+    );
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.28);
+  padding: 28px 22px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
   overflow-y: auto;
   overflow-x: hidden;
-  backdrop-filter: blur(6px);
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--accent) 28%, transparent) transparent;
 }
 
 .notes-redesign .nr-qb-sidebar::-webkit-scrollbar {
@@ -6163,19 +6173,33 @@ h1.note-title ::-moz-selection,
   align-items: center;
   justify-content: center;
   position: relative;
-  padding: 4px 2px 10px;
-  border-bottom: 1px solid var(--nr-qb-line-soft);
+  padding: 6px 8px 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
   flex-shrink: 0;
 }
 
-.notes-redesign .nr-qb-brand {
+.notes-redesign .nr-qb-brand-wrap {
   width: 100%;
   text-align: center;
+  padding: 0 32px;
+}
+
+.notes-redesign .nr-qb-brand {
   font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 900;
+  letter-spacing: -0.06em;
   color: var(--text-primary);
-  line-height: 1;
+  line-height: 0.95;
+  user-select: none;
+}
+
+.notes-redesign .nr-qb-brand-kicker {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 66%, var(--text-secondary));
 }
 
 .notes-redesign .nr-qb-side-close-btn {
@@ -6183,29 +6207,29 @@ h1.note-title ::-moz-selection,
   right: 0;
   top: 50%;
   transform: translateY(-56%);
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
   border-radius: 8px;
-  border: 1px solid var(--nr-qb-line);
-  background: color-mix(in srgb, var(--nr-qb-panel-2) 90%, transparent);
-  color: var(--text-secondary);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
 .notes-redesign .nr-qb-side-close-btn:hover {
   color: var(--accent);
-  border-color: var(--nr-qb-line-strong);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .notes-redesign .nr-qb-side-block {
-  border: 1px solid var(--nr-qb-line-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--nr-qb-panel-2) 34%, transparent);
-  padding: 11px;
+  background: color-mix(in srgb, var(--bg-secondary) 58%, transparent);
+  padding: 14px;
   flex-shrink: 0;
 }
 
