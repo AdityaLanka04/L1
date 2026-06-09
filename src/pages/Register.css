@@ -529,6 +529,12 @@
   gap: 17px;
 }
 
+.rg-verify-form {
+  margin-top: 17px;
+  padding-top: 17px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
 .rg-input-group {
   position: relative;
 }
@@ -627,6 +633,14 @@
 .rg-button-text {
   position: relative;
   z-index: 1;
+}
+
+.rg-status-message {
+  margin-top: 14px;
+  color: color-mix(in srgb, var(--text-primary) 72%, transparent);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .rg-footer {

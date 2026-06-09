@@ -188,12 +188,12 @@ const CerbylNavSidebar = ({ isOpen, onClose }) => {
 
   const userEmail = getStoredUserEmail();
   const isAdmin = ['aditya.s.lanka@gmail.com', 'asphar057@gmail.com'].includes(userEmail);
-  const canViewApiUsage = userEmail === 'aditya.s.lanka@gmail.com';
+  const canViewApiUsage = ['aditya.s.lanka@gmail.com', 'rithvikkumar35@gmail.com'].includes(userEmail);
   const adminLinks = [
     { label: 'Analytics Dashboard', route: '/admin/analytics' },
     ...(canViewApiUsage ? [{ label: 'API Key Usage', route: '/admin/api-usage' }] : []),
   ];
-  const allGroups = isAdmin
+  const allGroups = isAdmin || canViewApiUsage
     ? [...NAV_GROUPS, { label: 'ADMIN', links: adminLinks }]
     : NAV_GROUPS;
 

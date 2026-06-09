@@ -542,6 +542,93 @@
   transform: translateY(-1px);
 }
 
+.account-actions-card {
+  border-color: color-mix(in srgb, var(--pf-danger) 18%, var(--pf-border-subtle));
+}
+
+.profile-action-btn,
+.profile-danger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+
+.profile-action-btn {
+  background: var(--pf-bg-tertiary);
+  border: 1px solid var(--pf-border-subtle);
+  color: var(--pf-text-primary);
+}
+
+.profile-action-btn:hover {
+  border-color: var(--pf-accent);
+  transform: translateY(-1px);
+}
+
+.delete-account-box {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.2fr);
+  gap: 18px;
+  align-items: start;
+  padding: 16px;
+  background: color-mix(in srgb, var(--pf-danger) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pf-danger) 22%, transparent);
+  border-radius: 8px;
+}
+
+.delete-account-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pf-danger);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.delete-account-copy p,
+.delete-account-status {
+  color: var(--pf-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.delete-account-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.profile-danger-btn {
+  background: color-mix(in srgb, var(--pf-danger) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pf-danger) 90%, transparent);
+  color: white;
+  white-space: nowrap;
+}
+
+.profile-danger-btn:hover:not(:disabled) {
+  background: var(--pf-danger);
+  transform: translateY(-1px);
+}
+
+.profile-danger-btn:disabled,
+.profile-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.delete-account-status {
+  grid-column: 1 / -1;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -836,6 +923,11 @@
   }
 
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .delete-account-box,
+  .delete-account-form {
     grid-template-columns: 1fr;
   }
 

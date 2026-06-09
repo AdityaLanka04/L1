@@ -13,6 +13,16 @@ function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetStep, setResetStep] = useState('request');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetStatus, setResetStatus] = useState('');
+  const [resetForm, setResetForm] = useState({
+    email: '',
+    otp: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
   const navigate = useNavigate();
 
   const checkAndRedirect = async (username) => {
@@ -146,6 +156,60 @@ function Login() {
     setLoading(false);
   };
 
+  const handleResetChange = (field, value) => {
+    setResetForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const requestResetOtp = async (e) => {
+    e.preventDefault();
+    if (!resetForm.email.trim()) {
+      setResetStatus('Enter your account email.');
+      return;
+    }
+
+    setResetLoading(true);
+    setResetStatus('');
+    try {
+      const response = await axios.post(`${API_URL}/password-reset/request`, {
+        email: resetForm.email.trim()
+      });
+      const devOtp = response.data?.dev_otp ? ` Dev OTP: ${response.data.dev_otp}` : '';
+      setResetStatus(`${response.data?.message || 'OTP sent if the account exists.'}${devOtp}`);
+      setResetStep('confirm');
+    } catch (err) {
+      setResetStatus(err.response?.data?.detail || 'Could not send OTP. Try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const confirmResetPassword = async (e) => {
+    e.preventDefault();
+    if (resetForm.newPassword !== resetForm.confirmPassword) {
+      setResetStatus('Passwords do not match.');
+      return;
+    }
+
+    setResetLoading(true);
+    setResetStatus('');
+    try {
+      const response = await axios.post(`${API_URL}/password-reset/confirm`, {
+        email: resetForm.email.trim(),
+        otp: resetForm.otp.trim(),
+        new_password: resetForm.newPassword
+      });
+      setResetStatus(response.data?.message || 'Password updated successfully.');
+      setPassword('');
+      setResetStep('request');
+      setResetForm({ email: '', otp: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => setResetOpen(false), 1200);
+    } catch (err) {
+      setResetStatus(err.response?.data?.detail || 'Could not reset password. Try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <>
       {(loading || googleLoading) && <LoadingSpinner />}
@@ -216,6 +280,84 @@ function Login() {
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
+
+          <button
+            type="button"
+            className="lg-forgot-btn"
+            onClick={() => {
+              setResetOpen(prev => !prev);
+              setResetStatus('');
+            }}
+            disabled={loading || googleLoading}
+          >
+            Forgot password?
+          </button>
+
+          {resetOpen && (
+            <div className="lg-reset-panel">
+              {resetStep === 'request' ? (
+                <form onSubmit={requestResetOtp} className="lg-form">
+                  <div className="lg-field">
+                    <input
+                      type="email"
+                      value={resetForm.email}
+                      onChange={e => handleResetChange('email', e.target.value)}
+                      className="lg-input"
+                      placeholder="Account email"
+                      required
+                      disabled={resetLoading}
+                    />
+                  </div>
+                  <button type="submit" className="lg-submit lg-submit-secondary" disabled={resetLoading}>
+                    {resetLoading ? 'Sending OTP…' : 'Send OTP'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={confirmResetPassword} className="lg-form">
+                  <div className="lg-field">
+                    <input
+                      type="text"
+                      value={resetForm.otp}
+                      onChange={e => handleResetChange('otp', e.target.value)}
+                      className="lg-input"
+                      placeholder="6-digit OTP"
+                      inputMode="numeric"
+                      maxLength={6}
+                      required
+                      disabled={resetLoading}
+                    />
+                  </div>
+                  <div className="lg-field">
+                    <input
+                      type="password"
+                      value={resetForm.newPassword}
+                      onChange={e => handleResetChange('newPassword', e.target.value)}
+                      className="lg-input"
+                      placeholder="New password"
+                      required
+                      disabled={resetLoading}
+                    />
+                  </div>
+                  <div className="lg-field">
+                    <input
+                      type="password"
+                      value={resetForm.confirmPassword}
+                      onChange={e => handleResetChange('confirmPassword', e.target.value)}
+                      className="lg-input"
+                      placeholder="Confirm new password"
+                      required
+                      disabled={resetLoading}
+                    />
+                  </div>
+                  <button type="submit" className="lg-submit lg-submit-secondary" disabled={resetLoading}>
+                    {resetLoading ? 'Updating…' : 'Reset Password'}
+                  </button>
+                </form>
+              )}
+
+              {resetStatus && <div className="lg-reset-status">{resetStatus}</div>}
+            </div>
+          )}
 
           <div className="lg-footer">
             Don't have an account?

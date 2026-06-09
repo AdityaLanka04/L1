@@ -2,15 +2,18 @@ import json
 import logging
 import os
 import re
+import secrets
+import smtplib
 import threading
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
+from email.message import EmailMessage
 from typing import List, Optional
 
 from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import and_, func, text
+from sqlalchemy import and_, bindparam, func, inspect, text
 from sqlalchemy.orm import Session
 
 import models
@@ -26,6 +29,7 @@ from deps import (
     get_user_by_email,
     get_user_by_username,
     unified_ai,
+    verify_password,
     verify_google_token,
 )
 from services.subscription_catalog import (
@@ -101,6 +105,10 @@ class RegisterPayload(BaseModel):
     learning_style: Optional[str] = None
     school_university: Optional[str] = None
 
+class RegisterVerifyPayload(BaseModel):
+    email: EmailStr
+    otp: str
+
 class UserCreate(BaseModel):
     first_name: str
     last_name: str
@@ -114,6 +122,20 @@ class UserCreate(BaseModel):
 
 class GoogleAuth(BaseModel):
     token: str
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+class AccountDeletionRequest(BaseModel):
+    password: Optional[str] = None
+
+class AccountDeletionConfirm(BaseModel):
+    otp: str
 
 class UserProfileUpdate(BaseModel):
     user_id: str
@@ -141,6 +163,208 @@ class UserProfileUpdate(BaseModel):
 
 _VALID_BILLING_CYCLES = {"monthly", "yearly"}
 _VALID_SUBSCRIPTION_STATUSES = {"active", "trial", "grace", "paused", "cancelled"}
+_USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{3,50}$")
+
+def _normalize_email(email: str) -> str:
+    return (email or "").strip().lower()
+
+def _validate_username(username: str) -> str:
+    normalized = (username or "").strip()
+    if not _USERNAME_PATTERN.match(normalized):
+        raise HTTPException(
+            status_code=400,
+            detail="Username must be 3-50 characters and can only use letters, numbers, dots, underscores, or hyphens.",
+        )
+    return normalized
+
+def _validate_password(password: str) -> None:
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+    if not any(c.isupper() for c in password) or not any(c.isdigit() or not c.isalpha() for c in password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter and one number or special character")
+
+def _send_otp_email(to_email: str, otp: str, *, subject: str, body_intro: str, log_label: str) -> bool:
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USERNAME") or os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    smtp_from = os.getenv("SMTP_FROM_EMAIL") or os.getenv("SMTP_FROM") or smtp_user
+
+    if not smtp_host or not smtp_from:
+        logger.warning("%s OTP for %s: %s", log_label, to_email, otp)
+        return False
+
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = smtp_from
+    message["To"] = to_email
+    message.set_content(
+        f"{body_intro} {otp}.\n\n"
+        "It expires in 10 minutes. If you did not request this, ignore this email."
+    )
+
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+        if os.getenv("SMTP_USE_TLS", "true").lower() not in ("0", "false", "no"):
+            server.starttls()
+        if smtp_user and smtp_password:
+            server.login(smtp_user, smtp_password)
+        server.send_message(message)
+    return True
+
+def _send_password_reset_email(to_email: str, otp: str) -> bool:
+    return _send_otp_email(
+        to_email,
+        otp,
+        subject="Your Cerbyl password reset OTP",
+        body_intro="Your Cerbyl password reset OTP is",
+        log_label="Password reset",
+    )
+
+def _send_registration_email(to_email: str, otp: str) -> bool:
+    return _send_otp_email(
+        to_email,
+        otp,
+        subject="Verify your Cerbyl email",
+        body_intro="Your Cerbyl account verification OTP is",
+        log_label="Registration verification",
+    )
+
+def _send_account_deletion_email(to_email: str, otp: str) -> bool:
+    return _send_otp_email(
+        to_email,
+        otp,
+        subject="Confirm your Cerbyl account deletion",
+        body_intro="Your Cerbyl account deletion OTP is",
+        log_label="Account deletion",
+    )
+
+def _password_reset_response(email_sent: bool) -> dict:
+    response = {
+        "message": "If an account exists for that email, an OTP has been sent.",
+        "email_sent": email_sent,
+    }
+    if not email_sent and os.getenv("APP_ENV", "development").lower() != "production":
+        response["message"] = "OTP generated. Configure SMTP_HOST and SMTP_FROM_EMAIL to send real email."
+    return response
+
+def _otp_response(email_sent: bool, message: str) -> dict:
+    response = {"message": message, "email_sent": email_sent}
+    if not email_sent and os.getenv("APP_ENV", "development").lower() != "production":
+        response["message"] = "OTP generated. Configure SMTP_HOST and SMTP_FROM_EMAIL to send real email."
+    return response
+
+def _quote_identifier(name: str) -> str:
+    return f'"{name.replace(chr(34), chr(34) + chr(34))}"'
+
+def _is_text_column_type(column_type) -> bool:
+    type_name = column_type.__class__.__name__.lower()
+    return any(token in type_name for token in ("char", "string", "text"))
+
+def _delete_user_graph(db: Session, user: models.User) -> dict:
+    user_id = user.id
+    inspector = inspect(db.bind)
+    tables = inspector.get_table_names()
+    primary_keys = {}
+    column_info = {}
+    for table in tables:
+        pk_columns = inspector.get_pk_constraint(table).get("constrained_columns") or []
+        if len(pk_columns) == 1:
+            primary_keys[table] = pk_columns[0]
+        column_info[table] = {column["name"]: column for column in inspector.get_columns(table)}
+
+    foreign_keys = []
+    child_edges = defaultdict(set)
+    for table in tables:
+        for fk in inspector.get_foreign_keys(table):
+            referred_table = fk.get("referred_table")
+            constrained = fk.get("constrained_columns") or []
+            referred = fk.get("referred_columns") or []
+            if (
+                referred_table
+                and len(constrained) == 1
+                and len(referred) == 1
+                and table in primary_keys
+                and referred_table in primary_keys
+                and referred[0] == primary_keys[referred_table]
+            ):
+                foreign_keys.append({
+                    "child_table": table,
+                    "child_column": constrained[0],
+                    "parent_table": referred_table,
+                })
+                child_edges[referred_table].add(table)
+
+    selected_ids = defaultdict(set)
+    selected_ids["users"].add(user_id)
+
+    user_identifier_values = [str(user.id), user.username or "", user.email or ""]
+    for table in tables:
+        if table == "users" or table not in primary_keys or "user_id" not in column_info.get(table, {}):
+            continue
+        user_id_column = column_info[table]["user_id"]
+        values = user_identifier_values if _is_text_column_type(user_id_column.get("type")) else [user.id]
+        query = text(
+            f"SELECT {_quote_identifier(primary_keys[table])} FROM {_quote_identifier(table)} "
+            f"WHERE {_quote_identifier('user_id')} IN :values"
+        ).bindparams(bindparam("values", expanding=True))
+        try:
+            rows = db.execute(query, {"values": values}).fetchall()
+            selected_ids[table].update(row[0] for row in rows if row[0] is not None)
+        except Exception as e:
+            logger.warning("Skipping direct account cleanup seed for %s.user_id: %s", table, e)
+
+    changed = True
+    while changed:
+        changed = False
+        for fk in foreign_keys:
+            parent_values = selected_ids.get(fk["parent_table"])
+            if not parent_values:
+                continue
+            child_table = fk["child_table"]
+            child_pk = primary_keys[child_table]
+            query = text(
+                f"SELECT {_quote_identifier(child_pk)} FROM {_quote_identifier(child_table)} "
+                f"WHERE {_quote_identifier(fk['child_column'])} IN :values"
+            ).bindparams(bindparam("values", expanding=True))
+            rows = db.execute(query, {"values": list(parent_values)}).fetchall()
+            before = len(selected_ids[child_table])
+            selected_ids[child_table].update(row[0] for row in rows if row[0] is not None)
+            if len(selected_ids[child_table]) > before:
+                changed = True
+
+    depths = {"users": 0}
+
+    def assign_delete_depth(parent_table: str, depth: int, path: set) -> None:
+        for child_table in child_edges.get(parent_table, set()):
+            if child_table in path:
+                logger.warning(
+                    "Skipping cyclic account cleanup edge %s -> %s",
+                    parent_table,
+                    child_table,
+                )
+                continue
+            child_depth = depth + 1
+            if child_depth > depths.get(child_table, -1):
+                depths[child_table] = child_depth
+                assign_delete_depth(child_table, child_depth, path | {child_table})
+
+    assign_delete_depth("users", 0, {"users"})
+
+    deleted_counts = {}
+    for table in sorted(selected_ids.keys(), key=lambda table: depths.get(table, 0), reverse=True):
+        ids = selected_ids[table]
+        if not ids:
+            continue
+        pk = primary_keys.get(table)
+        if not pk:
+            continue
+        delete_stmt = text(
+            f"DELETE FROM {_quote_identifier(table)} WHERE {_quote_identifier(pk)} IN :values"
+        ).bindparams(bindparam("values", expanding=True))
+        result = db.execute(delete_stmt, {"values": list(ids)})
+        deleted_counts[table] = result.rowcount
+
+    return deleted_counts
 
 def _normalize_billing_cycle(raw: Optional[str]) -> str:
     candidate = (raw or "monthly").strip().lower()
@@ -245,35 +469,121 @@ def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get
 
 @router.post("/register")
 async def register(request: Request, payload: RegisterPayload, db: Session = Depends(get_db)):
-    _check_auth_rate_limit(request)
-    logger.info(f"Registering user: {payload.username}")
+    _check_auth_rate_limit(request, max_attempts=3, window_seconds=300)
+    logger.info(f"Starting email verification for user registration: {payload.username}")
 
-    if len(payload.password) < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
-    if not any(c.isupper() for c in payload.password) or not any(c.isdigit() or not c.isalpha() for c in payload.password):
-        raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter and one number or special character")
+    _validate_password(payload.password)
+    username = _validate_username(payload.username)
+    email = _normalize_email(payload.email)
 
-    if get_user_by_username(db, payload.username):
+    if get_user_by_username(db, username):
         raise HTTPException(status_code=400, detail="Username already registered")
 
-    if get_user_by_email(db, payload.email):
+    if get_user_by_email(db, email):
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    hashed_password = get_password_hash(payload.password)
+    otp = f"{secrets.randbelow(1000000):06d}"
+    registration_data = {
+        "first_name": payload.first_name,
+        "last_name": payload.last_name,
+        "email": email,
+        "username": username,
+        "hashed_password": get_password_hash(payload.password),
+        "age": payload.age,
+        "field_of_study": payload.field_of_study,
+        "learning_style": payload.learning_style,
+        "school_university": payload.school_university,
+    }
+
+    db.query(models.RegistrationOTP).filter(
+        models.RegistrationOTP.email == email,
+        models.RegistrationOTP.consumed == False,
+    ).update({"consumed": True})
+    db.query(models.RegistrationOTP).filter(
+        models.RegistrationOTP.username == username,
+        models.RegistrationOTP.consumed == False,
+    ).update({"consumed": True})
+    db.add(models.RegistrationOTP(
+        email=email,
+        username=username,
+        otp_hash=get_password_hash(otp),
+        registration_data=json.dumps(registration_data),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+    ))
+    db.commit()
+
+    try:
+        email_sent = _send_registration_email(email, otp)
+    except Exception as e:
+        logger.error("Failed to send registration OTP to %s: %s", email, e)
+        email_sent = False
+
+    response = _otp_response(
+        email_sent=email_sent,
+        message="Verification OTP sent. Enter it to finish creating your account.",
+    )
+    response["verification_required"] = True
+    if not email_sent and os.getenv("APP_ENV", "development").lower() != "production":
+        response["dev_otp"] = otp
+    return response
+
+@router.post("/register/verify")
+async def verify_registration(request: Request, payload: RegisterVerifyPayload, db: Session = Depends(get_db)):
+    _check_auth_rate_limit(request, max_attempts=5, window_seconds=300)
+    email = _normalize_email(payload.email)
+    otp = (payload.otp or "").strip()
+    if not re.fullmatch(r"\d{6}", otp):
+        raise HTTPException(status_code=400, detail="Enter the 6-digit OTP.")
+
+    pending = db.query(models.RegistrationOTP).filter(
+        models.RegistrationOTP.email == email,
+        models.RegistrationOTP.consumed == False,
+    ).order_by(models.RegistrationOTP.created_at.desc()).first()
+
+    now = datetime.now(timezone.utc)
+    expires_at = pending.expires_at if pending else None
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if (
+        not pending
+        or expires_at < now
+        or pending.attempts >= 5
+        or not verify_password(otp, pending.otp_hash)
+    ):
+        if pending:
+            pending.attempts = (pending.attempts or 0) + 1
+            db.commit()
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP.")
+
+    try:
+        registration_data = json.loads(pending.registration_data)
+    except Exception:
+        pending.consumed = True
+        db.commit()
+        raise HTTPException(status_code=400, detail="Registration session expired. Please try again.")
+
+    username = _validate_username(registration_data.get("username"))
+    email = _normalize_email(registration_data.get("email"))
+
+    if get_user_by_username(db, username):
+        raise HTTPException(status_code=400, detail="Username already registered")
+
+    if get_user_by_email(db, email):
+        raise HTTPException(status_code=400, detail="Email already registered")
 
     max_retries = 2
     for attempt in range(max_retries):
         try:
             db_user = models.User(
-                first_name=payload.first_name,
-                last_name=payload.last_name,
-                email=payload.email,
-                username=payload.username,
-                hashed_password=hashed_password,
-                age=payload.age,
-                field_of_study=payload.field_of_study,
-                learning_style=payload.learning_style,
-                school_university=payload.school_university,
+                first_name=registration_data.get("first_name"),
+                last_name=registration_data.get("last_name"),
+                email=email,
+                username=username,
+                hashed_password=registration_data.get("hashed_password"),
+                age=registration_data.get("age"),
+                field_of_study=registration_data.get("field_of_study"),
+                learning_style=registration_data.get("learning_style"),
+                school_university=registration_data.get("school_university"),
                 google_user=False,
             )
             db.add(db_user)
@@ -283,9 +593,10 @@ async def register(request: Request, payload: RegisterPayload, db: Session = Dep
             user_stats = models.UserStats(user_id=db_user.id)
             db.add(user_stats)
             db.add(models.ComprehensiveUserProfile(user_id=db_user.id))
+            pending.consumed = True
             db.commit()
 
-            logger.info(f"User {payload.username} registered successfully")
+            logger.info(f"User {username} registered successfully")
             return {"message": "User registered successfully"}
 
         except Exception as e:
@@ -339,6 +650,173 @@ async def login_form(request: Request, username: str = Form(...), password: str 
 
     access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/password-reset/request")
+async def request_password_reset(
+    request: Request,
+    payload: PasswordResetRequest,
+    db: Session = Depends(get_db),
+):
+    _check_auth_rate_limit(request, max_attempts=3, window_seconds=300)
+    email = _normalize_email(payload.email)
+    user = get_user_by_email(db, email)
+
+    if not user:
+        return _password_reset_response(email_sent=True)
+
+    otp = f"{secrets.randbelow(1000000):06d}"
+    reset_otp = models.PasswordResetOTP(
+        user_id=user.id,
+        email=email,
+        otp_hash=get_password_hash(otp),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+    )
+
+    db.query(models.PasswordResetOTP).filter(
+        models.PasswordResetOTP.user_id == user.id,
+        models.PasswordResetOTP.consumed == False,
+    ).update({"consumed": True})
+    db.add(reset_otp)
+    db.commit()
+
+    try:
+        email_sent = _send_password_reset_email(email, otp)
+    except Exception as e:
+        logger.error("Failed to send password reset OTP to %s: %s", email, e)
+        email_sent = False
+
+    response = _password_reset_response(email_sent=email_sent)
+    if not email_sent and os.getenv("APP_ENV", "development").lower() != "production":
+        response["dev_otp"] = otp
+    return response
+
+@router.post("/password-reset/confirm")
+async def confirm_password_reset(
+    request: Request,
+    payload: PasswordResetConfirm,
+    db: Session = Depends(get_db),
+):
+    _check_auth_rate_limit(request, max_attempts=5, window_seconds=300)
+    email = _normalize_email(payload.email)
+    otp = (payload.otp or "").strip()
+    if not re.fullmatch(r"\d{6}", otp):
+        raise HTTPException(status_code=400, detail="Enter the 6-digit OTP.")
+    _validate_password(payload.new_password)
+
+    user = get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP.")
+
+    reset_otp = db.query(models.PasswordResetOTP).filter(
+        models.PasswordResetOTP.user_id == user.id,
+        models.PasswordResetOTP.email == email,
+        models.PasswordResetOTP.consumed == False,
+    ).order_by(models.PasswordResetOTP.created_at.desc()).first()
+
+    now = datetime.now(timezone.utc)
+    expires_at = reset_otp.expires_at if reset_otp else None
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if (
+        not reset_otp
+        or expires_at < now
+        or reset_otp.attempts >= 5
+        or not verify_password(otp, reset_otp.otp_hash)
+    ):
+        if reset_otp:
+            reset_otp.attempts = (reset_otp.attempts or 0) + 1
+            db.commit()
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP.")
+
+    user.hashed_password = get_password_hash(payload.new_password)
+    user.google_user = False if user.google_user is None else user.google_user
+    reset_otp.consumed = True
+    db.commit()
+
+    return {"message": "Password updated successfully. You can sign in with your new password."}
+
+@router.post("/account/delete/request")
+async def request_account_deletion(
+    request: Request,
+    payload: AccountDeletionRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _check_auth_rate_limit(request, max_attempts=3, window_seconds=300)
+    if not getattr(current_user, "google_user", False) and not verify_password(payload.password or "", current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect password.")
+
+    otp = f"{secrets.randbelow(1000000):06d}"
+    email = _normalize_email(current_user.email)
+    db.query(models.AccountDeletionOTP).filter(
+        models.AccountDeletionOTP.user_id == current_user.id,
+        models.AccountDeletionOTP.consumed == False,
+    ).update({"consumed": True})
+    db.add(models.AccountDeletionOTP(
+        user_id=current_user.id,
+        email=email,
+        otp_hash=get_password_hash(otp),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+    ))
+    db.commit()
+
+    try:
+        email_sent = _send_account_deletion_email(email, otp)
+    except Exception as e:
+        logger.error("Failed to send account deletion OTP to %s: %s", email, e)
+        email_sent = False
+
+    response = _otp_response(
+        email_sent=email_sent,
+        message="Account deletion OTP sent to your email.",
+    )
+    if not email_sent and os.getenv("APP_ENV", "development").lower() != "production":
+        response["dev_otp"] = otp
+    return response
+
+@router.post("/account/delete/confirm")
+async def confirm_account_deletion(
+    request: Request,
+    payload: AccountDeletionConfirm,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _check_auth_rate_limit(request, max_attempts=5, window_seconds=300)
+    otp = (payload.otp or "").strip()
+    if not re.fullmatch(r"\d{6}", otp):
+        raise HTTPException(status_code=400, detail="Enter the 6-digit OTP.")
+
+    deletion_otp = db.query(models.AccountDeletionOTP).filter(
+        models.AccountDeletionOTP.user_id == current_user.id,
+        models.AccountDeletionOTP.consumed == False,
+    ).order_by(models.AccountDeletionOTP.created_at.desc()).first()
+
+    now = datetime.now(timezone.utc)
+    expires_at = deletion_otp.expires_at if deletion_otp else None
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if (
+        not deletion_otp
+        or expires_at < now
+        or deletion_otp.attempts >= 5
+        or not verify_password(otp, deletion_otp.otp_hash)
+    ):
+        if deletion_otp:
+            deletion_otp.attempts = (deletion_otp.attempts or 0) + 1
+            db.commit()
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP.")
+
+    account_email = current_user.email
+    account_id = current_user.id
+    try:
+        deleted_counts = _delete_user_graph(db, current_user)
+        db.commit()
+        logger.info("Deleted account %s (%s) with related rows: %s", account_email, account_id, deleted_counts)
+        return {"message": "Account deleted successfully."}
+    except Exception as e:
+        logger.error("Failed to delete account %s (%s): %s", account_email, account_id, e, exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to delete account. Please try again.")
 
 @router.post("/google-auth")
 async def google_auth(request: Request, auth_data: GoogleAuth, db: Session = Depends(get_db)):
@@ -799,9 +1277,11 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
         ).first()
 
         result = {
+            "username": user.username or "",
             "firstName": user.first_name or "",
             "lastName": user.last_name or "",
             "email": user.email or "",
+            "googleUser": bool(user.google_user),
             "fieldOfStudy": user.field_of_study or "",
             "brainwaveGoal": "",
             "preferredSubjects": [],
@@ -986,12 +1466,26 @@ async def update_comprehensive_profile(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        new_username = None
+        if "username" in payload:
+            requested_username = _validate_username(payload.get("username"))
+            if requested_username != user.username:
+                existing_user = get_user_by_username(db, requested_username)
+                if existing_user and existing_user.id != user.id:
+                    raise HTTPException(status_code=400, detail="Username already registered")
+                new_username = requested_username
+                user.username = requested_username
+
         if payload.get("firstName"):
             user.first_name = payload["firstName"]
         if payload.get("lastName"):
             user.last_name = payload["lastName"]
         if payload.get("email"):
-            user.email = payload["email"]
+            next_email = _normalize_email(payload["email"])
+            existing_email_user = get_user_by_email(db, next_email)
+            if existing_email_user and existing_email_user.id != user.id:
+                raise HTTPException(status_code=400, detail="Email already registered")
+            user.email = next_email
         if payload.get("fieldOfStudy"):
             user.field_of_study = payload["fieldOfStudy"]
 
@@ -1082,10 +1576,15 @@ async def update_comprehensive_profile(
             except Exception:
                 pass
 
-        return {
+        response = {
             "status": "success",
             "message": "Profile updated successfully"
         }
+        if new_username:
+            response["username"] = new_username
+            response["access_token"] = create_access_token(data={"sub": user.username, "user_id": user.id})
+            response["token_type"] = "bearer"
+        return response
 
     except HTTPException:
         db.rollback()

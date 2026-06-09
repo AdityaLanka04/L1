@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, BookOpen, Target, Brain, Award, TrendingUp, Bell } from 'lucide-react';
+import { User, BookOpen, Target, Brain, Award, TrendingUp, Bell, LogOut, Trash2 } from 'lucide-react';
 import './profile.css';
 import { API_URL } from '../config';
 const Profile = () => {
   const token = localStorage.getItem('token');
   const [userName, setUserName] = useState('');
   const [profileData, setProfileData] = useState({
+    username: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -28,6 +29,10 @@ const Profile = () => {
   const [lastSaved, setLastSaved] = useState(null);
   const [saveTimer, setSaveTimer] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [deleteStep, setDeleteStep] = useState('password');
+  const [deleteForm, setDeleteForm] = useState({ password: '', otp: '' });
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteStatus, setDeleteStatus] = useState('');
   const lastSavedProfile = useRef(null);
   
   const navigate = useNavigate();
@@ -141,9 +146,17 @@ const Profile = () => {
       });
       
       if (response.ok) {
+        const responseData = await response.json().catch(() => ({}));
         lastSavedProfile.current = profileSnapshot;
         setLastSaved(new Date().toLocaleTimeString());
         localStorage.setItem('userProfile', profileSnapshot);
+        if (responseData.username) {
+          setUserName(responseData.username);
+          localStorage.setItem('username', responseData.username);
+        }
+        if (responseData.access_token) {
+          localStorage.setItem('token', responseData.access_token);
+        }
       } else {
         
       }
@@ -211,6 +224,7 @@ const Profile = () => {
         const data = await response.json();
         
         const newProfileData = {
+          username: data.username || username || '',
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
@@ -301,7 +315,16 @@ const Profile = () => {
           body: JSON.stringify(saveData)
         }).then(response => {
           if (response.ok) {
-                        lastSavedProfile.current = JSON.stringify(newData);
+            response.json().then(responseData => {
+              if (responseData.username) {
+                setUserName(responseData.username);
+                localStorage.setItem('username', responseData.username);
+              }
+              if (responseData.access_token) {
+                localStorage.setItem('token', responseData.access_token);
+              }
+            }).catch(() => {});
+            lastSavedProfile.current = JSON.stringify(newData);
             setLastSaved(new Date().toLocaleTimeString());
           } else {
                       }
@@ -326,6 +349,83 @@ const Profile = () => {
 
   const retakeQuiz = () => {
     navigate('/profile-quiz');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userProfile');
+    sessionStorage.removeItem('justLoggedIn');
+    navigate('/login');
+  };
+
+  const requestAccountDeletion = async (e) => {
+    e.preventDefault();
+    if (!deleteForm.password.trim()) {
+      setDeleteStatus('Enter your password first.');
+      return;
+    }
+
+    setDeleteLoading(true);
+    setDeleteStatus('');
+    try {
+      const response = await fetch(`${API_URL}/account/delete/request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ password: deleteForm.password })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.detail || `HTTP ${response.status}`);
+      }
+      const devOtp = data.dev_otp ? ` Dev OTP: ${data.dev_otp}` : '';
+      setDeleteStatus(`${data.message || 'Deletion OTP sent to your email.'}${devOtp}`);
+      setDeleteStep('otp');
+    } catch (error) {
+      setDeleteStatus(error.message || 'Could not send deletion OTP.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const confirmAccountDeletion = async (e) => {
+    e.preventDefault();
+    if (!deleteForm.otp.trim()) {
+      setDeleteStatus('Enter the deletion OTP.');
+      return;
+    }
+    if (!window.confirm('This permanently deletes your account and learning data. Continue?')) {
+      return;
+    }
+
+    setDeleteLoading(true);
+    setDeleteStatus('');
+    try {
+      const response = await fetch(`${API_URL}/account/delete/confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ otp: deleteForm.otp })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.detail || `HTTP ${response.status}`);
+      }
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userProfile');
+      sessionStorage.removeItem('justLoggedIn');
+      navigate('/login');
+    } catch (error) {
+      setDeleteStatus(error.message || 'Could not delete account.');
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   if (!dataLoaded) {
@@ -456,6 +556,17 @@ const Profile = () => {
                   value={profileData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
                   placeholder="Enter your last name"
+                />
+              </div>
+
+              <div className="form-group full-width">
+                <label className="form-label">Username</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={profileData.username}
+                  onChange={(e) => handleInputChange('username', e.target.value)}
+                  placeholder="Choose a username"
                 />
               </div>
 
@@ -612,6 +723,66 @@ const Profile = () => {
                   <span className="toggle-slider"></span>
                 </label>
               </div>
+            </div>
+          </section>
+
+          <section className="profile-card full-width account-actions-card">
+            <div className="card-header">
+              <div className="header-content">
+                <User className="header-icon" />
+                <div>
+                  <h2 className="card-title">Account</h2>
+                  <p className="card-subtitle">Session and account controls</p>
+                </div>
+              </div>
+              <button className="profile-action-btn" onClick={handleLogout}>
+                <LogOut size={16} />
+                Log Out
+              </button>
+            </div>
+
+            <div className="delete-account-box">
+              <div className="delete-account-copy">
+                <div className="delete-account-title">
+                  <Trash2 size={16} />
+                  Delete Account
+                </div>
+                <p>Enter your password first. An OTP will be sent to your account email before deletion.</p>
+              </div>
+
+              {deleteStep === 'password' ? (
+                <form className="delete-account-form" onSubmit={requestAccountDeletion}>
+                  <input
+                    type="password"
+                    className="form-input"
+                    value={deleteForm.password}
+                    onChange={(e) => setDeleteForm(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Account password"
+                    disabled={deleteLoading}
+                  />
+                  <button className="profile-danger-btn" type="submit" disabled={deleteLoading}>
+                    {deleteLoading ? 'Sending OTP...' : 'Send Delete OTP'}
+                  </button>
+                </form>
+              ) : (
+                <form className="delete-account-form" onSubmit={confirmAccountDeletion}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={deleteForm.otp}
+                    onChange={(e) => setDeleteForm(prev => ({ ...prev, otp: e.target.value }))}
+                    placeholder="6-digit deletion OTP"
+                    inputMode="numeric"
+                    maxLength={6}
+                    disabled={deleteLoading}
+                  />
+                  <button className="profile-danger-btn" type="submit" disabled={deleteLoading}>
+                    {deleteLoading ? 'Deleting...' : 'Delete Permanently'}
+                  </button>
+                </form>
+              )}
+
+              {deleteStatus && <div className="delete-account-status">{deleteStatus}</div>}
             </div>
           </section>
 

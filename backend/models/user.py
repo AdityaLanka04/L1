@@ -240,6 +240,50 @@ class StudentStyleModel(Base):
     user = relationship("User")
 
 
+class PasswordResetOTP(Base):
+    __tablename__ = "password_reset_otps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    email = Column(String(100), index=True, nullable=False)
+    otp_hash = Column(String(255), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    attempts = Column(Integer, default=0)
+    consumed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+
+
+class RegistrationOTP(Base):
+    __tablename__ = "registration_otps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(100), index=True, nullable=False)
+    username = Column(String(50), index=True, nullable=False)
+    otp_hash = Column(String(255), nullable=False)
+    registration_data = Column(Text, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    attempts = Column(Integer, default=0)
+    consumed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class AccountDeletionOTP(Base):
+    __tablename__ = "account_deletion_otps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    email = Column(String(100), index=True, nullable=False)
+    otp_hash = Column(String(255), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    attempts = Column(Integer, default=0)
+    consumed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+
+
 class ComprehensiveUserProfile(Base):
     __tablename__ = "comprehensive_user_profiles"
 

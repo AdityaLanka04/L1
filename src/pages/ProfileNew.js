@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck } from 'lucide-react';
+import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut, Trash2 } from 'lucide-react';
 import { API_URL } from '../config';
 import './ProfileNew.css';
 
@@ -271,7 +271,7 @@ const GeoBackground = () => (
 const ProfileNew = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
-  const userName = localStorage.getItem('username') || '';
+  const [userName, setUserName] = useState(() => localStorage.getItem('username') || '');
 
   const [pfp, setPfp] = useState(() => {
     const raw = localStorage.getItem('userProfile');
@@ -282,7 +282,7 @@ const ProfileNew = () => {
   const [gamificationStats, setGamificationStats] = useState(null);
 
   const [profileData, setProfileData] = useState({
-    firstName: '', lastName: '', email: '',
+    username: '', firstName: '', lastName: '', email: '',
     fieldOfStudy: '', brainwaveGoal: '',
     preferredSubjects: [],
     primaryArchetype: '', secondaryArchetype: '',
@@ -293,6 +293,11 @@ const ProfileNew = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [profileSaveError, setProfileSaveError] = useState('');
+  const [deleteStep, setDeleteStep] = useState('password');
+  const [deleteForm, setDeleteForm] = useState({ password: '', otp: '' });
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteStatus, setDeleteStatus] = useState('');
   const lastSavedRef = useRef(null);
   const saveTimerRef = useRef(null);
   const isSavingRef = useRef(false);
@@ -333,6 +338,7 @@ const ProfileNew = () => {
   const displayName = profileData.firstName || pfp?.firstName || pfp?.first_name
     || localStorage.getItem(DISPLAY_NAME_KEY)
     || (userName ? userName.split('@')[0] : 'Profile');
+  const isGoogleAccount = Boolean(pfp?.googleUser || pfp?.google_user);
   const initial = (displayName[0] || 'A').toUpperCase();
   const profilePhoto = pfp?.picture || pfp?.picture_url || '';
   const activeCustomPfp = pfp?.customPfp || '';
@@ -516,9 +522,11 @@ const ProfileNew = () => {
       if (resp.ok) {
         const data = await resp.json();
         const newData = {
+          username: data.username || userName || '',
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
+          googleUser: data.googleUser === true,
           fieldOfStudy: data.fieldOfStudy || '',
           brainwaveGoal: data.brainwaveGoal || '',
           preferredSubjects: data.preferredSubjects || [],
@@ -569,11 +577,28 @@ const ProfileNew = () => {
         body: JSON.stringify({ ...data, user_id: userName })
       });
       if (resp.ok) {
-        lastSavedRef.current = snapshot;
+        const responseData = await resp.json().catch(() => ({}));
+        const savedData = { ...data };
+        if (responseData.username) {
+          savedData.username = responseData.username;
+          localStorage.setItem('username', responseData.username);
+          setUserName(responseData.username);
+        }
+        if (responseData.access_token) {
+          localStorage.setItem('token', responseData.access_token);
+        }
+        const savedSnapshot = JSON.stringify(savedData);
+        lastSavedRef.current = savedSnapshot;
         setLastSaved(new Date().toLocaleTimeString());
-        localStorage.setItem('userProfile', snapshot);
+        setProfileSaveError('');
+        localStorage.setItem('userProfile', savedSnapshot);
+      } else {
+        const errorData = await resp.json().catch(() => ({}));
+        setProfileSaveError(errorData.detail || 'Could not save profile changes.');
       }
-    } catch (e) { /* silenced */ }
+    } catch (e) {
+      setProfileSaveError('Could not save profile changes.');
+    }
     isSavingRef.current = false;
     setAutoSaving(false);
   }, [token, userName]);
@@ -633,6 +658,81 @@ const ProfileNew = () => {
     setPfpModalOpen(false);
   };
 
+  const clearSessionAndNavigate = (targetPath = '/login') => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userProfile');
+    sessionStorage.removeItem('justLoggedIn');
+    navigate(targetPath);
+  };
+
+  const clearSessionAndGoLogin = () => clearSessionAndNavigate('/login');
+
+  const fetchWithTimeout = async (url, options = {}, timeoutMs = 20000) => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  };
+
+  const requestAccountDeletion = async (e) => {
+    e.preventDefault();
+    if (!isGoogleAccount && !deleteForm.password.trim()) {
+      setDeleteStatus('Enter your password first.');
+      return;
+    }
+
+    setDeleteLoading(true);
+    setDeleteStatus('');
+    try {
+      const resp = await fetchWithTimeout(`${API_URL}/account/delete/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ password: isGoogleAccount ? null : deleteForm.password })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
+      const devOtp = data.dev_otp ? ` Dev OTP: ${data.dev_otp}` : '';
+      setDeleteStatus(`${data.message || 'Deletion OTP sent to your email.'}${devOtp}`);
+      setDeleteStep('otp');
+    } catch (e) {
+      setDeleteStatus(e?.name === 'AbortError' ? 'Delete OTP request timed out. Try again.' : (e?.message || 'Could not send deletion OTP.'));
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const confirmAccountDeletion = async (e) => {
+    e.preventDefault();
+    if (!deleteForm.otp.trim()) {
+      setDeleteStatus('Enter the deletion OTP.');
+      return;
+    }
+    if (!window.confirm('This permanently deletes your account and learning data. Continue?')) {
+      return;
+    }
+
+    setDeleteLoading(true);
+    setDeleteStatus('');
+    try {
+      const resp = await fetchWithTimeout(`${API_URL}/account/delete/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ otp: deleteForm.otp.trim() })
+      }, 30000);
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
+      clearSessionAndNavigate('/');
+    } catch (e) {
+      setDeleteStatus(e?.name === 'AbortError' ? 'Account deletion timed out. Refresh and try again.' : (e?.message || 'Could not delete account.'));
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!pfpModalOpen) return;
     const fn = (e) => { if (e.key === 'Escape') setPfpModalOpen(false); };
@@ -682,12 +782,20 @@ const ProfileNew = () => {
           ← Dashboard
         </button>
         <div className="pn-topbar-center">profile</div>
-        <div className="pn-save-status">
-          {autoSaving ? (
-            <span className="pn-saving">saving<span className="pn-saving-dots"><i/><i/><i/></span></span>
-          ) : lastSaved ? (
-            <span className="pn-saved">· saved {lastSaved}</span>
-          ) : null}
+        <div className="pn-topbar-actions">
+          <div className="pn-save-status">
+            {autoSaving ? (
+              <span className="pn-saving">saving<span className="pn-saving-dots"><i/><i/><i/></span></span>
+            ) : profileSaveError ? (
+              <span className="pn-save-error">{profileSaveError}</span>
+            ) : lastSaved ? (
+              <span className="pn-saved">· saved {lastSaved}</span>
+            ) : null}
+          </div>
+          <button className="pn-logout-btn" onClick={clearSessionAndGoLogin}>
+            <LogOut size={14} />
+            Logout
+          </button>
         </div>
       </div>
 
@@ -933,6 +1041,17 @@ const ProfileNew = () => {
               </div>
             </div>
             <div className="pn-field pn-field--full">
+              <label className="pn-field-label">Username</label>
+              <input
+                className="pn-input"
+                value={profileData.username}
+                onChange={e => setField('username', e.target.value)}
+                placeholder="Your username"
+                autoCapitalize="none"
+                autoCorrect="off"
+              />
+            </div>
+            <div className="pn-field pn-field--full">
               <label className="pn-field-label">Email Address</label>
               <input className="pn-input" type="email" value={profileData.email} onChange={e => setField('email', e.target.value)} placeholder="your@email.com" />
             </div>
@@ -1007,6 +1126,56 @@ const ProfileNew = () => {
                 <span className="pn-toggle-thumb" />
               </button>
             </div>
+          </div>
+        </section>
+
+        <div className="pn-divider" />
+
+        <section className="pn-section pn-danger-section">
+          <div className="pn-section-label">ACCOUNT</div>
+          <div className="pn-account-actions">
+            <div className="pn-account-action-copy">
+              <span className="pn-account-title"><Trash2 size={15} /> Delete Account</span>
+              <p>
+                {isGoogleAccount
+                  ? 'We will email an OTP before permanently deleting this Google-linked account.'
+                  : 'Enter your password first. We will email an OTP before permanently deleting the account.'}
+              </p>
+            </div>
+            {deleteStep === 'password' ? (
+              <form className="pn-delete-form" onSubmit={requestAccountDeletion}>
+                {!isGoogleAccount && (
+                  <input
+                    className="pn-input"
+                    type="password"
+                    value={deleteForm.password}
+                    onChange={e => setDeleteForm(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Account password"
+                    disabled={deleteLoading}
+                  />
+                )}
+                <button className="pn-danger-btn" type="submit" disabled={deleteLoading}>
+                  {deleteLoading ? 'Sending OTP...' : 'Send Delete OTP'}
+                </button>
+              </form>
+            ) : (
+              <form className="pn-delete-form" onSubmit={confirmAccountDeletion}>
+                <input
+                  className="pn-input"
+                  type="text"
+                  value={deleteForm.otp}
+                  onChange={e => setDeleteForm(prev => ({ ...prev, otp: e.target.value }))}
+                  placeholder="6-digit deletion OTP"
+                  inputMode="numeric"
+                  maxLength={6}
+                  disabled={deleteLoading}
+                />
+                <button className="pn-danger-btn" type="submit" disabled={deleteLoading}>
+                  {deleteLoading ? 'Deleting...' : 'Delete Permanently'}
+                </button>
+              </form>
+            )}
+            {deleteStatus && <div className="pn-delete-status">{deleteStatus}</div>}
           </div>
         </section>
 

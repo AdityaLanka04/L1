@@ -16,6 +16,9 @@ from models.user import (
     EnhancedUserStats,
     DailyLearningMetrics,
     StudentStyleModel,
+    PasswordResetOTP,
+    RegistrationOTP,
+    AccountDeletionOTP,
     ComprehensiveUserProfile,
 )
 

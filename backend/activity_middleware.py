@@ -53,6 +53,11 @@ ENDPOINT_TOOL_RULES = [
     ('/api/update_profile', 'profile'),
 ]
 
+SKIP_ACTIVITY_LOG_PATHS = {
+    '/api/account/delete/request',
+    '/api/account/delete/confirm',
+}
+
 def get_tool_name(path: str) -> str:
     for endpoint, tool in ENDPOINT_TOOL_RULES:
         if path.startswith(endpoint):
@@ -86,6 +91,11 @@ def is_ai_tool(tool_name: str) -> bool:
 
 async def log_request_activity(request: Request, call_next):
     start_time = time.time()
+    should_log_activity = (
+        request.url.path.startswith('/api/')
+        and not request.url.path.startswith('/api/admin/')
+        and request.url.path not in SKIP_ACTIVITY_LOG_PATHS
+    )
 
     user_id = request.headers.get('X-User-Id')
 
@@ -111,7 +121,7 @@ async def log_request_activity(request: Request, call_next):
 
     context_token = None
     resolved_user_id = None
-    if user_id and user_id != 'null' and user_id.strip() and request.url.path.startswith('/api/') and not request.url.path.startswith('/api/admin/'):
+    if user_id and user_id != 'null' and user_id.strip() and should_log_activity:
         resolved_user_id = resolve_user_id(user_id)
         if resolved_user_id:
             tool_name = get_tool_name(request.url.path)
@@ -132,7 +142,7 @@ async def log_request_activity(request: Request, call_next):
 
     duration = time.time() - start_time
 
-    if user_id and user_id != 'null' and user_id.strip() and request.url.path.startswith('/api/') and not request.url.path.startswith('/api/admin/'):
+    if user_id and user_id != 'null' and user_id.strip() and should_log_activity:
         tool_name = get_tool_name(request.url.path)
         action = get_action(request.method, request.url.path)
 

@@ -12,14 +12,23 @@ function Register() {
     firstName: '',
     lastName: '',
     email: '',
+    username: '',
     password: '',
     confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [verificationStep, setVerificationStep] = useState('form');
+  const [registrationOtp, setRegistrationOtp] = useState('');
+  const [registrationStatus, setRegistrationStatus] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
+    if (verificationStep === 'verify') {
+      setVerificationStep('form');
+      setRegistrationOtp('');
+      setRegistrationStatus('');
+    }
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -68,9 +77,14 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.firstName || !formData.lastName || !formData.email || 
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.username ||
         !formData.password || !formData.confirmPassword) {
       alert("Please fill in all fields");
+      return;
+    }
+
+    if (!/^[A-Za-z0-9_.-]{3,50}$/.test(formData.username.trim())) {
+      alert("Username must be 3-50 characters and can only use letters, numbers, dots, underscores, or hyphens.");
       return;
     }
 
@@ -80,12 +94,13 @@ function Register() {
     }
 
     setLoading(true);
+    setRegistrationStatus('');
     try {
       const registrationData = {
         first_name: formData.firstName,
         last_name: formData.lastName,
-        email: formData.email,
-        username: formData.email,
+        email: formData.email.trim(),
+        username: formData.username.trim(),
         password: formData.password
       };
 
@@ -93,6 +108,41 @@ function Register() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(registrationData),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || `HTTP ${res.status}`);
+      }
+
+      const devOtp = data.dev_otp ? ` Dev OTP: ${data.dev_otp}` : '';
+      setRegistrationStatus(`${data.message || 'Verification OTP sent.'}${devOtp}`);
+      setVerificationStep('verify');
+    } catch (err) {
+      alert("Registration failed: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyRegistration = async (e) => {
+    e.preventDefault();
+
+    if (!registrationOtp.trim()) {
+      setRegistrationStatus('Enter the OTP sent to your email.');
+      return;
+    }
+
+    setLoading(true);
+    setRegistrationStatus('');
+    try {
+      const res = await fetch(`${API_URL}/register/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          otp: registrationOtp.trim()
+        }),
       });
 
       const data = await res.json();
@@ -109,7 +159,7 @@ function Register() {
       alert("Registration successful! Please log in.");
       navigate("/login");
     } catch (err) {
-            alert("Registration failed: " + err.message);
+      setRegistrationStatus("Verification failed: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -336,7 +386,7 @@ function Register() {
                   className="rg-input"
                   placeholder=" "
                   required
-                  disabled={loading || googleLoading}
+                  disabled={loading || googleLoading || verificationStep === 'verify'}
                 />
                 <label className="rg-input-label">First Name</label>
               </div>
@@ -350,7 +400,7 @@ function Register() {
                   className="rg-input"
                   placeholder=" "
                   required
-                  disabled={loading || googleLoading}
+                  disabled={loading || googleLoading || verificationStep === 'verify'}
                 />
                 <label className="rg-input-label">Last Name</label>
               </div>
@@ -364,9 +414,23 @@ function Register() {
                   className="rg-input"
                   placeholder=" "
                   required
-                  disabled={loading || googleLoading}
+                  disabled={loading || googleLoading || verificationStep === 'verify'}
                 />
                 <label className="rg-input-label">Email</label>
+              </div>
+
+              <div className="rg-input-group">
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="rg-input"
+                  placeholder=" "
+                  required
+                  disabled={loading || googleLoading || verificationStep === 'verify'}
+                />
+                <label className="rg-input-label">Username</label>
               </div>
 
               <div className="rg-input-group">
@@ -378,7 +442,7 @@ function Register() {
                   className="rg-input"
                   placeholder=" "
                   required
-                  disabled={loading || googleLoading}
+                  disabled={loading || googleLoading || verificationStep === 'verify'}
                 />
                 <label className="rg-input-label">Password</label>
               </div>
@@ -392,21 +456,55 @@ function Register() {
                   className="rg-input"
                   placeholder=" "
                   required
-                  disabled={loading || googleLoading}
+                  disabled={loading || googleLoading || verificationStep === 'verify'}
                 />
                 <label className="rg-input-label">Confirm Password</label>
               </div>
 
-              <button
-                type="submit"
-                className="rg-button"
-                disabled={loading || googleLoading}
-              >
-                <span className="rg-button-text">
-                  {loading ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
-                </span>
-              </button>
+              {verificationStep === 'form' && (
+                <button
+                  type="submit"
+                  className="rg-button"
+                  disabled={loading || googleLoading}
+                >
+                  <span className="rg-button-text">
+                    {loading ? "SENDING OTP..." : "CREATE ACCOUNT"}
+                  </span>
+                </button>
+              )}
             </form>
+
+            {verificationStep === 'verify' && (
+              <form onSubmit={handleVerifyRegistration} className="rg-form rg-verify-form">
+                <div className="rg-input-group">
+                  <input
+                    type="text"
+                    value={registrationOtp}
+                    onChange={(e) => setRegistrationOtp(e.target.value)}
+                    className="rg-input"
+                    placeholder=" "
+                    inputMode="numeric"
+                    maxLength={6}
+                    required
+                    disabled={loading || googleLoading}
+                  />
+                  <label className="rg-input-label">Email OTP</label>
+                </div>
+                <button
+                  type="submit"
+                  className="rg-button"
+                  disabled={loading || googleLoading}
+                >
+                  <span className="rg-button-text">
+                    {loading ? "VERIFYING..." : "VERIFY & CREATE"}
+                  </span>
+                </button>
+              </form>
+            )}
+
+            {registrationStatus && (
+              <div className="rg-status-message">{registrationStatus}</div>
+            )}
 
             <div className="rg-footer">
               <div className="rg-switch">
@@ -427,4 +525,3 @@ function Register() {
 }
 
 export default Register;
-

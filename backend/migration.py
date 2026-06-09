@@ -4,7 +4,7 @@ from sqlalchemy import inspect, text
 from sqlalchemy.engine import make_url
 from models import engine, Base, User, ChatSession, ChatMessage, ChatTutorState, \
     Flashcard, FlashcardSet, Note, LearningReview, UserStats, \
-    ComprehensiveUserProfile, Friendship, FriendRequest, \
+    ComprehensiveUserProfile, PasswordResetOTP, RegistrationOTP, AccountDeletionOTP, Friendship, FriendRequest, \
     Notification, Achievement, UserAchievement, Leaderboard, Challenge, \
     ChallengeParticipation, ConceptNode, ConceptConnection, KnowledgeRoadmap, \
     Reminder, ReminderList, UserGamificationStats, PointTransaction
@@ -124,7 +124,7 @@ def run_migration():
     models = [
         User, ChatSession, ChatMessage, ChatTutorState,
         Flashcard, FlashcardSet, Note, LearningReview, UserStats,
-        ComprehensiveUserProfile, Friendship, FriendRequest,
+        ComprehensiveUserProfile, PasswordResetOTP, RegistrationOTP, AccountDeletionOTP, Friendship, FriendRequest,
         Notification, Achievement, UserAchievement,
         Leaderboard, Challenge, ChallengeParticipation, ConceptNode,
         ConceptConnection, KnowledgeRoadmap, Reminder, ReminderList,
@@ -357,6 +357,35 @@ def _run_postgres_migration():
             "powerups_initialized": "BOOLEAN DEFAULT FALSE",
         },
     )
+
+    for otp_table in ("password_reset_otps", "registration_otps", "account_deletion_otps"):
+        if otp_table not in tables:
+            continue
+        with engine.connect() as conn:
+            for idx_name, column_name in (
+                (f"ix_{otp_table}_email", "email"),
+                (f"ix_{otp_table}_username", "username"),
+            ):
+                if column_name == "username" and otp_table in ("password_reset_otps", "account_deletion_otps"):
+                    continue
+                try:
+                    conn.execute(text(
+                        f"CREATE INDEX IF NOT EXISTS {idx_name} ON {otp_table}({column_name})"
+                    ))
+                except Exception:
+                    pass
+            if otp_table in ("password_reset_otps", "account_deletion_otps"):
+                try:
+                    conn.execute(text(
+                        f"CREATE INDEX IF NOT EXISTS ix_{otp_table}_user_id ON {otp_table}(user_id)"
+                    ))
+                except Exception:
+                    pass
+            try:
+                conn.commit()
+                print(f" {otp_table} indexes created/verified")
+            except Exception as e:
+                print(f" {otp_table} index commit error: {e}")
 
     if "flashcard_sets" in tables:
         with engine.connect() as conn:
