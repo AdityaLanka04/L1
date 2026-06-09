@@ -3,9 +3,10 @@ import logging
 from datetime import datetime, timezone, timedelta
 import json
 from typing import Any, Iterable
-from dotenv import load_dotenv
 
-load_dotenv()
+from env_loader import load_backend_env
+
+load_backend_env()
 
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -17,6 +18,7 @@ from argon2.exceptions import VerifyMismatchError
 import models
 from database import SessionLocal, get_db
 from services.ai_utils import UnifiedAIClient
+from services.api_key_pool import build_key_pool
 
 logger = logging.getLogger(__name__)
 
@@ -43,24 +45,42 @@ HS_AI_MODEL         = os.getenv("HS_AI_MODEL", "llama-3.3-70b-versatile")
 
 def _init_ai_client() -> UnifiedAIClient:
     from groq import Groq
-    groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+    gemini_key_pool = build_key_pool(
+        "gemini",
+        ("GEMINI_API_KEYS", "GOOGLE_GENERATIVE_AI_KEYS", "GOOGLE_GENERATIVE_AI_KEY", "GEMINI_API_KEY"),
+    )
+    groq_key_pool = build_key_pool("groq", ("GROQ_API_KEYS", "GROQ_API_KEY"))
+    effective_groq_key = GROQ_API_KEY or (groq_key_pool.entries[0].token if groq_key_pool.enabled else None)
+    effective_gemini_key = GEMINI_API_KEY or (gemini_key_pool.entries[0].token if gemini_key_pool.enabled else None)
+    groq_client = Groq(api_key=effective_groq_key) if effective_groq_key and not groq_key_pool.enabled else None
     gemini_client = None
     try:
         import google.generativeai as genai
-        if GEMINI_API_KEY:
-            genai.configure(api_key=GEMINI_API_KEY)
+        if effective_gemini_key:
+            genai.configure(api_key=effective_gemini_key)
             gemini_client = genai
     except ImportError:
         pass
-    return UnifiedAIClient(gemini_client, groq_client, GEMINI_MODEL, GROQ_MODEL, GEMINI_API_KEY)
+    return UnifiedAIClient(
+        gemini_client,
+        groq_client,
+        GEMINI_MODEL,
+        GROQ_MODEL,
+        effective_gemini_key,
+        gemini_key_pool=gemini_key_pool,
+        groq_key_pool=groq_key_pool,
+    )
 
 def _init_hs_context_ai() -> UnifiedAIClient:
-    if not HS_CONTEXT_API_KEY:
+    hs_key_pool = build_key_pool("hs_context", ("HS_CONTEXT_API_KEYS", "HS_CONTEXT_API_KEY"))
+    effective_hs_key = HS_CONTEXT_API_KEY or (hs_key_pool.entries[0].token if hs_key_pool.enabled else None)
+    if not effective_hs_key:
         logger.warning("HS_CONTEXT_API_KEY not set — HS context AI will use main client")
         return _init_ai_client()
     logger.info(f"HS context AI initialised: model={HS_AI_MODEL} base_url={HS_AI_BASE_URL}")
     return UnifiedAIClient(
-        openai_compat_api_key=HS_CONTEXT_API_KEY,
+        openai_compat_api_key=effective_hs_key,
+        openai_compat_key_pool=hs_key_pool,
         openai_compat_base_url=HS_AI_BASE_URL,
         openai_compat_model=HS_AI_MODEL,
     )

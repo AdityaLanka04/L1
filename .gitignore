@@ -12,6 +12,7 @@ __pycache__/
 *.db-shm.corrupt-*
 *.db-wal.corrupt-*
 backend/brainwave.db
+backend/backups/
 backend/.chroma_data/
 backend/services/intent_state.json
 
@@ -26,6 +27,7 @@ venv/
 .env.local
 .env.*.local
 backend/.env
+backend/.env.ai.local
 backend/.env.local
 backend/.env.production.local
 backend/.env.production

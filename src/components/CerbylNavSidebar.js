@@ -12,6 +12,17 @@ const PFP_DEFAULT_KEY = 'cerbyl.defaultPfp';
 const PFP_CUSTOM_KEY = 'cerbyl.customPfp';
 const DISPLAY_NAME_KEY = 'cerbyl.displayName';
 
+const getStoredUserEmail = () => {
+  let email = localStorage.getItem('email') || localStorage.getItem('username') || '';
+  try {
+    const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+    email = profile.email || email;
+  } catch (error) {
+    // Ignore malformed local profile data.
+  }
+  return email;
+};
+
 const hydrateProfile = (parsed = {}, username = '') => {
   const p = parsed || {};
   const storedDefault = localStorage.getItem(PFP_DEFAULT_KEY) || '';
@@ -175,10 +186,15 @@ const CerbylNavSidebar = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  const userEmail = localStorage.getItem('email');
+  const userEmail = getStoredUserEmail();
   const isAdmin = ['aditya.s.lanka@gmail.com', 'asphar057@gmail.com'].includes(userEmail);
+  const canViewApiUsage = userEmail === 'aditya.s.lanka@gmail.com';
+  const adminLinks = [
+    { label: 'Analytics Dashboard', route: '/admin/analytics' },
+    ...(canViewApiUsage ? [{ label: 'API Key Usage', route: '/admin/api-usage' }] : []),
+  ];
   const allGroups = isAdmin
-    ? [...NAV_GROUPS, { label: 'ADMIN', links: [{ label: 'Analytics Dashboard', route: '/admin/analytics' }] }]
+    ? [...NAV_GROUPS, { label: 'ADMIN', links: adminLinks }]
     : NAV_GROUPS;
 
   const filteredGroups = searchQuery

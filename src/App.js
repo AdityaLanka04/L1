@@ -68,6 +68,7 @@ const XPRoadmap = lazy(() => import('./pages/XPRoadmap'));
 const LearningPaths = lazy(() => import('./pages/LearningPaths'));
 const LearningPathDetail = lazy(() => import('./pages/LearningPathDetail'));
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
+const AdminApiUsage = lazy(() => import('./pages/AdminApiUsage'));
 const CanvasHub = lazy(() => import('./pages/CanvasHub'));
 const Vault = lazy(() => import('./pages/Vault'));
 const ContextFileAnalysis = lazy(() => import('./pages/ContextFileAnalysis'));
@@ -175,6 +176,10 @@ function App() {
                   <Route path="/customize-dashboard" element={<ProtectedRoute><CustomizeDashboard /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
+                  <Route path="/admin/api-usage" element={<ProtectedRoute><AdminApiUsage /></ProtectedRoute>} />
+                  <Route path="/admin/api_usage" element={<Navigate to="/admin/api-usage" replace />} />
+                  <Route path="/api-usage" element={<Navigate to="/admin/api-usage" replace />} />
+                  <Route path="/api_usage" element={<Navigate to="/admin/api-usage" replace />} />
                   <Route path="/contexthub" element={<ProtectedRoute><Vault /></ProtectedRoute>} />
                   <Route path="/contexthub/file/:docId" element={<ProtectedRoute><ContextFileAnalysis /></ProtectedRoute>} />
                   <Route path="/context" element={<Navigate to="/contexthub" replace />} />

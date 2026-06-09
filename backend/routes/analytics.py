@@ -1,6 +1,7 @@
 import ast
 import json
 import logging
+import os
 import traceback
 from datetime import datetime, timezone, timedelta
 
@@ -21,6 +22,7 @@ from deps import (
     call_ai,
     calculate_day_streak,
     enforce_request_user_scope,
+    get_current_user,
     get_user_by_email,
     get_user_by_username,
     unified_ai,
@@ -33,6 +35,18 @@ router = APIRouter(
     tags=["analytics"],
     dependencies=[Depends(enforce_request_user_scope)],
 )
+
+
+def check_api_usage_admin(current_user: models.User = Depends(get_current_user)) -> str:
+    allowed = {
+        email.strip()
+        for email in os.getenv("API_USAGE_ADMIN_EMAILS", "aditya.s.lanka@gmail.com").split(",")
+        if email.strip()
+    }
+    user_email = (current_user.email or "").strip()
+    if user_email not in allowed:
+        raise HTTPException(status_code=403, detail="API usage access required")
+    return user_email
 
 @router.get("/get_enhanced_user_stats")
 def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -870,6 +884,14 @@ async def admin_analytics_export_user_csv(
 ):
     from services.admin_analytics import export_user_csv
     return await export_user_csv(target_user_id)
+
+@router.get("/admin/api-key-usage")
+@router.get("/admin/api_key_usage")
+async def admin_api_key_usage(
+    _: str = Depends(check_api_usage_admin),
+):
+    from services.api_key_pool import get_usage_snapshot
+    return get_usage_snapshot()
 
 @router.get("/study_insights/comprehensive")
 async def get_comprehensive_insights(

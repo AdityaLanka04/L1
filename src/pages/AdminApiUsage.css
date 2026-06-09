@@ -1,0 +1,300 @@
+.api-usage-page {
+  --au-bg: #050504;
+  --au-panel: #0e0d0b;
+  --au-panel-2: #131210;
+  --au-accent: var(--accent, #d7b38c);
+  --au-warm: #f4c37a;
+  --au-text: var(--text-primary, #f5f1ea);
+  --au-muted: color-mix(in srgb, var(--au-text) 58%, transparent);
+  --au-faint: color-mix(in srgb, var(--au-text) 36%, transparent);
+  --au-line: color-mix(in srgb, var(--au-accent) 22%, transparent);
+  --au-line-soft: color-mix(in srgb, var(--au-accent) 12%, transparent);
+  --au-line-strong: color-mix(in srgb, var(--au-accent) 44%, transparent);
+
+  min-height: 100vh;
+  padding: 40px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--au-accent) 5%, transparent), transparent 260px),
+    var(--au-bg);
+  color: var(--au-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.api-usage-page *,
+.api-usage-page *::before,
+.api-usage-page *::after {
+  box-sizing: border-box;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.api-usage-header,
+.api-usage-alert,
+.api-usage-summary,
+.api-usage-panel {
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.api-usage-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.api-usage-header h1 {
+  margin: 8px 0 8px;
+  color: var(--au-text);
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.05;
+}
+
+.api-usage-header p {
+  margin: 0;
+  color: var(--au-muted);
+  font-size: 14px;
+}
+
+.api-usage-kicker,
+.api-usage-refresh,
+.api-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.api-usage-kicker {
+  color: var(--au-accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.api-usage-refresh {
+  min-height: 38px;
+  padding: 9px 14px;
+  border: 1px solid var(--au-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--au-accent) 10%, var(--au-panel));
+  color: var(--au-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.16s, background 0.16s, color 0.16s, box-shadow 0.16s;
+}
+
+.api-usage-refresh:hover {
+  border-color: var(--au-line-strong);
+  background: color-mix(in srgb, var(--au-accent) 16%, var(--au-panel));
+  color: var(--au-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--au-accent) 12%, transparent);
+}
+
+.api-usage-refresh:disabled {
+  opacity: 0.58;
+  cursor: wait;
+  box-shadow: none;
+}
+
+.api-usage-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 13px 14px;
+  border: 1px solid color-mix(in srgb, #f97316 42%, transparent);
+  border-left: 3px solid #f97316;
+  border-radius: 8px;
+  background: color-mix(in srgb, #f97316 10%, var(--au-panel));
+  color: #fed7aa;
+  font-weight: 650;
+}
+
+.api-usage-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.api-usage-metric,
+.api-usage-panel,
+.api-provider-card,
+.api-key-row {
+  border: 1px solid var(--au-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--au-panel) 96%, transparent);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+}
+
+.api-usage-metric {
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.api-usage-metric::before,
+.api-provider-card::before,
+.api-key-row::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--au-accent);
+  opacity: 0.75;
+}
+
+.api-usage-metric span,
+.api-provider-stats,
+.api-key-meta,
+.api-key-main span,
+.api-usage-panel-head span {
+  color: var(--au-muted);
+  font-size: 12px;
+}
+
+.api-usage-metric span {
+  display: block;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.api-usage-metric strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--au-text);
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.api-usage-panel {
+  margin-bottom: 18px;
+  padding: 18px;
+}
+
+.api-usage-panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.api-usage-panel-head h2 {
+  margin: 0;
+  color: var(--au-text);
+  font-size: 17px;
+  font-weight: 780;
+  letter-spacing: 0;
+}
+
+.api-provider-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.api-provider-card,
+.api-key-row {
+  position: relative;
+  overflow: hidden;
+  padding: 15px;
+  background: color-mix(in srgb, var(--au-panel-2) 92%, transparent);
+}
+
+.api-provider-title,
+.api-key-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.api-provider-title {
+  justify-content: flex-start;
+  color: var(--au-accent);
+}
+
+.api-provider-title strong,
+.api-key-main strong {
+  color: var(--au-text);
+  font-size: 14px;
+  font-weight: 780;
+}
+
+.api-provider-stats,
+.api-key-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 10px;
+}
+
+.api-key-list {
+  display: grid;
+  gap: 12px;
+}
+
+.api-status {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, #22c55e 34%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #22c55e 12%, var(--au-panel));
+  color: #86efac;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.api-status--warn {
+  border-color: color-mix(in srgb, #f97316 40%, transparent);
+  background: color-mix(in srgb, #f97316 12%, var(--au-panel));
+  color: #fdba74;
+}
+
+.api-usage-bar {
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid var(--au-line-soft);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--au-accent) 7%, #070706);
+}
+
+.api-usage-bar div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--au-accent), var(--au-warm));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--au-accent) 42%, transparent);
+}
+
+.api-usage-empty {
+  padding: 24px;
+  border: 1px dashed var(--au-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--au-panel-2) 60%, transparent);
+  color: var(--au-muted);
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .api-usage-page {
+    padding: 24px 18px;
+  }
+
+  .api-usage-header {
+    flex-direction: column;
+  }
+
+  .api-usage-summary,
+  .api-provider-grid {
+    grid-template-columns: 1fr;
+  }
+}

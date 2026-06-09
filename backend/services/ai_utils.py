@@ -8,6 +8,7 @@ import requests
 from activity_context import get_activity_context
 from activity_logger import log_ai_tokens
 from services.ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
+from services.api_key_pool import ApiKeyPool, ApiKeyPoolExhausted
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,10 @@ class UnifiedAIClient:
         gemini_model: str = "gemini-2.0-flash",
         groq_model: str = "llama-3.3-70b-versatile",
         gemini_api_key: str = None,
+        gemini_key_pool: ApiKeyPool = None,
+        groq_key_pool: ApiKeyPool = None,
         openai_compat_api_key: str = None,
+        openai_compat_key_pool: ApiKeyPool = None,
         openai_compat_base_url: str = "https://api.openai.com/v1",
         openai_compat_model: str = "gpt-4o-mini",
     ):
@@ -32,28 +36,35 @@ class UnifiedAIClient:
         self.gemini_model = gemini_model
         self.groq_model = groq_model
         self.gemini_api_key = gemini_api_key
+        self.gemini_key_pool = gemini_key_pool
+        self.groq_key_pool = groq_key_pool
         self.openai_compat_api_key = openai_compat_api_key
+        self.openai_compat_key_pool = openai_compat_key_pool
         self.openai_compat_base_url = openai_compat_base_url.rstrip("/")
         self.openai_compat_model = openai_compat_model
 
-        if openai_compat_api_key and not gemini_client and not groq_client:
+        if (openai_compat_api_key or self._has_pool(openai_compat_key_pool)) and not gemini_client and not groq_client and not self._has_pool(gemini_key_pool) and not self._has_pool(groq_key_pool):
             self.gemini_client = None
             self.primary_ai = "openai_compat"
-        elif gemini_client:
+        elif groq_client or self._has_pool(groq_key_pool):
             try:
-                self.gemini_client = gemini_client.GenerativeModel(gemini_model)
+                self.gemini_client = gemini_client.GenerativeModel(gemini_model) if gemini_client else None
+            except Exception:
+                self.gemini_client = None
+            self.primary_ai = "groq"
+        elif gemini_client or self._has_pool(gemini_key_pool):
+            try:
+                self.gemini_client = gemini_client.GenerativeModel(gemini_model) if gemini_client else None
                 self.primary_ai = "gemini"
             except Exception:
                 self.gemini_client = None
-                if groq_client:
-                    self.primary_ai = "groq"
-                else:
-                    raise ValueError("Both AI clients failed to initialize")
-        elif groq_client:
-            self.gemini_client = None
-            self.primary_ai = "groq"
+                raise ValueError("Gemini AI client failed to initialize")
         else:
             raise ValueError("At least one AI client (Gemini, Groq, or OpenAI-compat) must be provided")
+
+    @staticmethod
+    def _has_pool(pool: ApiKeyPool = None) -> bool:
+        return bool(pool and pool.enabled)
 
     def generate(
         self,
@@ -64,11 +75,11 @@ class UnifiedAIClient:
         conversation_id: str = None,
     ) -> str:
         try:
-            if self.primary_ai == "openai_compat" and self.openai_compat_api_key:
+            if self.primary_ai == "openai_compat" and (self.openai_compat_api_key or self._has_pool(self.openai_compat_key_pool)):
                 return self._call_openai_compat(prompt, max_tokens, temperature)
-            elif self.primary_ai == "gemini" and self.gemini_api_key:
+            elif self.primary_ai == "gemini" and (self.gemini_api_key or self._has_pool(self.gemini_key_pool)):
                 return self._call_gemini(prompt, max_tokens, temperature)
-            elif self.groq_client:
+            elif self.groq_client or self._has_pool(self.groq_key_pool):
                 return self._call_groq(prompt, max_tokens, temperature)
             else:
                 raise Exception("No AI client available")
@@ -77,10 +88,6 @@ class UnifiedAIClient:
             return self._fallback(prompt, max_tokens, temperature)
 
     def _call_gemini(self, prompt: str, max_tokens: int, temperature: float) -> str:
-        url = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.gemini_model}:generateContent?key={self.gemini_api_key}"
-        )
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -88,79 +95,162 @@ class UnifiedAIClient:
                 "maxOutputTokens": max_tokens,
             },
         }
-        for attempt in range(3):
+        for _ in range(self._pool_attempts(self.gemini_key_pool)):
+            lease = None
             try:
-                resp = requests.post(url, json=payload, timeout=60)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    usage = extract_usage_from_gemini_payload(data)
-                    self._log_usage(usage, model=self.gemini_model, provider="gemini")
-                    if "candidates" in data and data["candidates"]:
-                        return data["candidates"][0]["content"]["parts"][0]["text"]
-                    raise Exception("Gemini response has no candidates")
-                if resp.status_code in (429, 400) and "quota" in resp.text.lower():
-                    raise Exception("Gemini quota exceeded")
-                if attempt == 2:
-                    raise Exception(f"Gemini API error: {resp.status_code}")
-                time.sleep(1)
-            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-                if attempt == 2:
-                    raise
-                time.sleep(2)
-        raise Exception("Gemini request failed after retries")
+                lease, api_key = self._reserve_key(self.gemini_key_pool, self.gemini_api_key, prompt, max_tokens)
+                url = (
+                    f"https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{self.gemini_model}:generateContent?key={api_key}"
+                )
+                for attempt in range(3):
+                    try:
+                        resp = requests.post(url, json=payload, timeout=60)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            usage = extract_usage_from_gemini_payload(data)
+                            self._record_key_success(self.gemini_key_pool, lease, usage)
+                            self._log_usage(usage, model=self.gemini_model, provider="gemini")
+                            if "candidates" in data and data["candidates"]:
+                                return data["candidates"][0]["content"]["parts"][0]["text"]
+                            raise Exception("Gemini response has no candidates")
+                        if resp.status_code == 429 or (resp.status_code == 400 and "quota" in resp.text.lower()):
+                            self._mark_key_exhausted(self.gemini_key_pool, lease)
+                            break
+                        if attempt == 2:
+                            self._release_key(self.gemini_key_pool, lease)
+                            raise Exception(f"Gemini API error: {resp.status_code}")
+                        time.sleep(1)
+                    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                        if attempt == 2:
+                            self._release_key(self.gemini_key_pool, lease)
+                            raise
+                        time.sleep(2)
+            except ApiKeyPoolExhausted:
+                raise
+        raise Exception("Gemini request failed after all configured keys were exhausted")
 
     def _call_groq(self, prompt: str, max_tokens: int, temperature: float) -> str:
-        resp = self.groq_client.chat.completions.create(
-            model=self.groq_model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-        usage = extract_usage_from_openai_like(resp)
-        self._log_usage(usage, model=self.groq_model, provider="groq")
-        return resp.choices[0].message.content.strip()
+        for _ in range(self._pool_attempts(self.groq_key_pool)):
+            lease = None
+            try:
+                client = self.groq_client
+                if self._has_pool(self.groq_key_pool):
+                    lease, api_key = self._reserve_key(self.groq_key_pool, None, prompt, max_tokens)
+                    from groq import Groq
+                    client = Groq(api_key=api_key)
+                resp = client.chat.completions.create(
+                    model=self.groq_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                usage = extract_usage_from_openai_like(resp)
+                self._record_key_success(self.groq_key_pool, lease, usage)
+                self._log_usage(usage, model=self.groq_model, provider="groq")
+                return resp.choices[0].message.content.strip()
+            except Exception as exc:
+                if self._is_quota_error(exc) and lease:
+                    self._mark_key_exhausted(self.groq_key_pool, lease)
+                    continue
+                self._release_key(self.groq_key_pool, lease)
+                raise
+        raise Exception("Groq request failed after all configured keys were exhausted")
 
     def _call_openai_compat(self, prompt: str, max_tokens: int, temperature: float) -> str:
         url = f"{self.openai_compat_base_url}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {self.openai_compat_api_key}",
-            "Content-Type": "application/json",
-        }
         payload = {
             "model": self.openai_compat_model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
-        for attempt in range(3):
+        for _ in range(self._pool_attempts(self.openai_compat_key_pool)):
+            lease = None
             try:
-                resp = requests.post(url, json=payload, headers=headers, timeout=90)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    usage = extract_usage_from_openai_like(data)
-                    self._log_usage(usage, model=self.openai_compat_model, provider="hs_context")
-                    return data["choices"][0]["message"]["content"].strip()
-                if resp.status_code == 429:
-                    time.sleep(2 ** attempt)
-                    continue
-                raise Exception(f"HS context AI error {resp.status_code}: {resp.text[:200]}")
-            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-                if attempt == 2:
-                    raise
-                time.sleep(2)
-        raise Exception("HS context AI request failed after retries")
+                lease, api_key = self._reserve_key(
+                    self.openai_compat_key_pool,
+                    self.openai_compat_api_key,
+                    prompt,
+                    max_tokens,
+                )
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                }
+                for attempt in range(3):
+                    try:
+                        resp = requests.post(url, json=payload, headers=headers, timeout=90)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            usage = extract_usage_from_openai_like(data)
+                            self._record_key_success(self.openai_compat_key_pool, lease, usage)
+                            self._log_usage(usage, model=self.openai_compat_model, provider="hs_context")
+                            return data["choices"][0]["message"]["content"].strip()
+                        if resp.status_code == 429:
+                            self._mark_key_exhausted(self.openai_compat_key_pool, lease)
+                            break
+                        self._release_key(self.openai_compat_key_pool, lease)
+                        raise Exception(f"HS context AI error {resp.status_code}: {resp.text[:200]}")
+                    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                        if attempt == 2:
+                            self._release_key(self.openai_compat_key_pool, lease)
+                            raise
+                        time.sleep(2)
+            except ApiKeyPoolExhausted:
+                raise
+        raise Exception("HS context AI request failed after all configured keys were exhausted")
 
     def _fallback(self, prompt: str, max_tokens: int, temperature: float) -> str:
         if self.primary_ai == "openai_compat":
-            if self.gemini_api_key:
+            if self.gemini_api_key or self._has_pool(self.gemini_key_pool):
                 return self._call_gemini(prompt, max_tokens, temperature)
-            if self.groq_client:
+            if self.groq_client or self._has_pool(self.groq_key_pool):
                 return self._call_groq(prompt, max_tokens, temperature)
-        if self.primary_ai == "gemini" and self.groq_client:
+        if self.primary_ai == "gemini" and (self.groq_client or self._has_pool(self.groq_key_pool)):
             return self._call_groq(prompt, max_tokens, temperature)
-        if self.primary_ai == "groq" and self.gemini_api_key:
+        if self.primary_ai == "groq" and (self.gemini_api_key or self._has_pool(self.gemini_key_pool)):
             return self._call_gemini(prompt, max_tokens, temperature)
         raise Exception("No fallback AI client available")
+
+    def _reserve_key(
+        self,
+        pool: ApiKeyPool,
+        fallback_key: str,
+        prompt: str,
+        max_tokens: int,
+    ):
+        if self._has_pool(pool):
+            lease = pool.reserve(self._estimate_tokens(prompt, max_tokens))
+            return lease, lease.token
+        if fallback_key:
+            return None, fallback_key
+        raise ApiKeyPoolExhausted("No API key is configured")
+
+    def _record_key_success(self, pool: ApiKeyPool, lease, usage) -> None:
+        if self._has_pool(pool) and lease:
+            pool.record_success(lease, (usage or {}).get("total_tokens"))
+
+    def _release_key(self, pool: ApiKeyPool, lease) -> None:
+        if self._has_pool(pool) and lease:
+            pool.release(lease)
+
+    def _mark_key_exhausted(self, pool: ApiKeyPool, lease) -> None:
+        if self._has_pool(pool) and lease:
+            pool.release(lease)
+            pool.mark_exhausted(lease)
+
+    def _pool_attempts(self, pool: ApiKeyPool) -> int:
+        if self._has_pool(pool):
+            return max(1, len(pool.entries))
+        return 1
+
+    def _estimate_tokens(self, prompt: str, max_tokens: int) -> int:
+        return max(1, (len(prompt or "") // 4) + int(max_tokens or 0))
+
+    def _is_quota_error(self, exc: Exception) -> bool:
+        text = str(exc).lower()
+        return "429" in text or "quota" in text or "rate limit" in text or "rate_limit" in text
 
     def generate_with_images(
         self,
@@ -172,13 +262,13 @@ class UnifiedAIClient:
         if not images:
             return self.generate(prompt, max_tokens, temperature)
 
-        if self.gemini_api_key:
+        if self.gemini_api_key or self._has_pool(self.gemini_key_pool):
             try:
                 return self._call_gemini_vision(prompt, images, max_tokens, temperature)
             except Exception as e:
                 logger.warning(f"Gemini vision failed: {e}")
 
-        if self.primary_ai == "openai_compat" and self.openai_compat_api_key:
+        if self.primary_ai == "openai_compat" and (self.openai_compat_api_key or self._has_pool(self.openai_compat_key_pool)):
             try:
                 return self._call_openai_compat_vision(prompt, images, max_tokens, temperature)
             except Exception as e:
@@ -193,10 +283,6 @@ class UnifiedAIClient:
         max_tokens: int,
         temperature: float,
     ) -> str:
-        url = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.gemini_model}:generateContent?key={self.gemini_api_key}"
-        )
         parts: list = [{"text": prompt}]
         for img in images:
             parts.append({
@@ -212,26 +298,40 @@ class UnifiedAIClient:
                 "maxOutputTokens": max_tokens,
             },
         }
-        for attempt in range(3):
+        for _ in range(self._pool_attempts(self.gemini_key_pool)):
+            lease = None
             try:
-                resp = requests.post(url, json=payload, timeout=90)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    usage = extract_usage_from_gemini_payload(data)
-                    self._log_usage(usage, model=self.gemini_model, provider="gemini_vision")
-                    if "candidates" in data and data["candidates"]:
-                        return data["candidates"][0]["content"]["parts"][0]["text"]
-                    raise Exception("Gemini vision response has no candidates")
-                if resp.status_code == 429 or "quota" in resp.text.lower():
-                    raise Exception("Gemini quota exceeded")
-                if attempt == 2:
-                    raise Exception(f"Gemini vision API error: {resp.status_code} — {resp.text[:200]}")
-                time.sleep(1)
-            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-                if attempt == 2:
-                    raise
-                time.sleep(2)
-        raise Exception("Gemini vision request failed after retries")
+                lease, api_key = self._reserve_key(self.gemini_key_pool, self.gemini_api_key, prompt, max_tokens)
+                url = (
+                    f"https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{self.gemini_model}:generateContent?key={api_key}"
+                )
+                for attempt in range(3):
+                    try:
+                        resp = requests.post(url, json=payload, timeout=90)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            usage = extract_usage_from_gemini_payload(data)
+                            self._record_key_success(self.gemini_key_pool, lease, usage)
+                            self._log_usage(usage, model=self.gemini_model, provider="gemini_vision")
+                            if "candidates" in data and data["candidates"]:
+                                return data["candidates"][0]["content"]["parts"][0]["text"]
+                            raise Exception("Gemini vision response has no candidates")
+                        if resp.status_code == 429 or "quota" in resp.text.lower():
+                            self._mark_key_exhausted(self.gemini_key_pool, lease)
+                            break
+                        if attempt == 2:
+                            self._release_key(self.gemini_key_pool, lease)
+                            raise Exception(f"Gemini vision API error: {resp.status_code} — {resp.text[:200]}")
+                        time.sleep(1)
+                    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                        if attempt == 2:
+                            self._release_key(self.gemini_key_pool, lease)
+                            raise
+                        time.sleep(2)
+            except ApiKeyPoolExhausted:
+                raise
+        raise Exception("Gemini vision request failed after all configured keys were exhausted")
 
     def _call_openai_compat_vision(
         self,
@@ -241,10 +341,6 @@ class UnifiedAIClient:
         temperature: float,
     ) -> str:
         url = f"{self.openai_compat_base_url}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {self.openai_compat_api_key}",
-            "Content-Type": "application/json",
-        }
         content: list = [{"type": "text", "text": prompt}]
         for img in images:
             b64 = base64.b64encode(img["data"]).decode("utf-8")
@@ -258,23 +354,41 @@ class UnifiedAIClient:
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
-        for attempt in range(3):
+        for _ in range(self._pool_attempts(self.openai_compat_key_pool)):
+            lease = None
             try:
-                resp = requests.post(url, json=payload, headers=headers, timeout=120)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    usage = extract_usage_from_openai_like(data)
-                    self._log_usage(usage, model=self.openai_compat_model, provider="openai_vision")
-                    return data["choices"][0]["message"]["content"].strip()
-                if resp.status_code == 429:
-                    time.sleep(2 ** attempt)
-                    continue
-                raise Exception(f"OpenAI vision error {resp.status_code}: {resp.text[:200]}")
-            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-                if attempt == 2:
-                    raise
-                time.sleep(2)
-        raise Exception("OpenAI vision request failed after retries")
+                lease, api_key = self._reserve_key(
+                    self.openai_compat_key_pool,
+                    self.openai_compat_api_key,
+                    prompt,
+                    max_tokens,
+                )
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                }
+                for attempt in range(3):
+                    try:
+                        resp = requests.post(url, json=payload, headers=headers, timeout=120)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            usage = extract_usage_from_openai_like(data)
+                            self._record_key_success(self.openai_compat_key_pool, lease, usage)
+                            self._log_usage(usage, model=self.openai_compat_model, provider="openai_vision")
+                            return data["choices"][0]["message"]["content"].strip()
+                        if resp.status_code == 429:
+                            self._mark_key_exhausted(self.openai_compat_key_pool, lease)
+                            break
+                        self._release_key(self.openai_compat_key_pool, lease)
+                        raise Exception(f"OpenAI vision error {resp.status_code}: {resp.text[:200]}")
+                    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                        if attempt == 2:
+                            self._release_key(self.openai_compat_key_pool, lease)
+                            raise
+                        time.sleep(2)
+            except ApiKeyPoolExhausted:
+                raise
+        raise Exception("OpenAI vision request failed after all configured keys were exhausted")
 
     def generate_stream(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7):
         if self.groq_client:

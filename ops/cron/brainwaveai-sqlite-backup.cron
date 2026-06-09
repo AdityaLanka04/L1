@@ -1,0 +1,2 @@
+CRON_TZ=Asia/Kolkata
+0 18 * * * cd /Users/adityalanka/BrainwaveAI && /usr/bin/python3 scripts/sqlite_backup.py backup >> backend/backups/sqlite/cron.log 2>&1

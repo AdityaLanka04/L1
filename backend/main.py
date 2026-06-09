@@ -5,9 +5,9 @@ import warnings
 from contextlib import asynccontextmanager
 from pathlib import Path
 from datetime import datetime, timezone
-from dotenv import load_dotenv
+from env_loader import load_backend_env
 
-load_dotenv()
+load_backend_env()
 
 if not os.getenv("SECRET_KEY"):
     raise RuntimeError("SECRET_KEY environment variable is not set")
@@ -463,7 +463,7 @@ app.add_middleware(
     allow_origin_regex=None if _is_dev else r"^https://brainwave-[a-z0-9]+-[a-z0-9]+\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-User-Id"],
 )
 
 from middleware.rate_limiter import RateLimitMiddleware
