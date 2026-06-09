@@ -26,6 +26,7 @@
   overflow: hidden;
 }
 
+/* ── topbar ── */
 .shc-topbar {
   position: relative;
   z-index: 5;
@@ -40,53 +41,43 @@
 }
 
 .shc-tagline {
-  font-size: 12px;
-  font-weight: 300;
-  letter-spacing: 0.06em;
-  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
-  text-transform: lowercase;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-primary) 40%, transparent);
 }
 
 .shc-tagline span {
   color: var(--accent);
-  margin-left: 4px;
-  font-weight: 500;
 }
 
 .shc-topbar-right {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
 .shc-top-btn {
   border: none;
   background: transparent;
-  color: color-mix(in srgb, var(--text-primary) 62%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 50%, transparent);
   padding: 4px 2px;
   font-family: inherit;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 2px;
   text-transform: uppercase;
   cursor: pointer;
   transition: color 0.15s;
 }
 
-.shc-top-btn:hover,
-.shc-top-btn--accent {
+.shc-top-btn:hover {
   color: var(--accent);
 }
 
+/* ── body grid ── */
 .shc-body {
-  --shc-line: color-mix(in srgb, var(--accent) 22%, transparent);
-  --shc-line-soft: color-mix(in srgb, var(--accent) 12%, transparent);
-  --shc-line-strong: color-mix(in srgb, var(--accent) 45%, transparent);
-  --shc-panel: #0e0d0b;
-  --shc-panel-2: #131210;
-
   position: relative;
   z-index: 2;
   flex: 1;
@@ -94,270 +85,313 @@
   width: min(1600px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 18px;
+  transition: grid-template-columns 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .shc-body--collapsed {
+  grid-template-columns: 62px minmax(0, 1fr);
+}
+
+.shc-body--no-sidebar {
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* ── sidebar shell ── */
 .shc-sidebar {
   align-self: stretch;
   min-height: 0;
   height: 100%;
-  border: 1px solid var(--shc-line);
   border-radius: 18px;
-  background: color-mix(in srgb, var(--shc-panel) 96%, transparent);
-  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  background: linear-gradient(
+    168deg,
+    color-mix(in srgb, var(--accent) 13%, #07060c) 0%,
+    color-mix(in srgb, var(--accent) 5%, #05050a) 55%,
+    color-mix(in srgb, var(--accent) 9%, #080710) 100%
+  );
+  box-shadow: 0 8px 32px rgba(0,0,0,0.32), inset 0 1px 0 color-mix(in srgb, var(--accent) 14%, transparent);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent) transparent;
-}
-
-.shc-sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.shc-sidebar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.shc-sidebar::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--accent) 38%, transparent);
-  border-radius: 999px;
-}
-
-.shc-side-brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   position: relative;
-  padding: 4px 2px 10px;
-  border-bottom: 1px solid var(--shc-line-soft);
+  transition: border-color 0.2s;
+}
+
+[data-theme-mode="light"] .shc-sidebar {
+  background: linear-gradient(
+    168deg,
+    color-mix(in srgb, var(--accent) 18%, var(--bg-secondary)) 0%,
+    color-mix(in srgb, var(--accent) 26%, #ffffff) 55%,
+    color-mix(in srgb, var(--accent) 16%, #f8f8f8) 100%
+  );
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--accent) 16%, transparent), inset 0 1px 0 rgba(255,255,255,0.6);
+  border-color: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+/* geometric decoration */
+.shc-sidebar-geo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--accent);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme-mode="light"] .shc-sidebar-geo {
+  opacity: 0.35;
+}
+
+/* ── expanded sidebar content ── */
+.shc-sidebar-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 10px 0;
   flex-shrink: 0;
 }
 
-.shc-brand-wrap {
-  width: 100%;
-  min-width: 0;
-  text-align: center;
-  padding: 0 32px;
-}
-
-.shc-brand {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--text-primary);
-  line-height: 1;
-}
-
-.shc-current-title {
-  margin-top: 7px;
-  color: color-mix(in srgb, var(--text-primary) 52%, transparent);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.shc-side-close-btn {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-56%);
+.shc-collapse-btn {
   width: 28px;
   height: 28px;
   display: grid;
   place-items: center;
   border-radius: 8px;
-  border: 1px solid var(--shc-line);
-  background: color-mix(in srgb, var(--shc-panel-2) 90%, transparent);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-}
-
-.shc-side-close-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-.shc-side-close-btn:hover {
-  color: var(--accent);
-  border-color: var(--shc-line-strong);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-.shc-side-block {
-  border: 1px solid var(--shc-line-soft);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--shc-panel-2) 34%, transparent);
-  padding: 11px;
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.18s;
   flex-shrink: 0;
 }
 
-.shc-side-block--grow {
-  flex: 0 0 auto;
+.shc-collapse-btn:hover {
+  background: var(--accent);
+  color: #000;
+  transform: scale(1.06);
 }
 
+.shc-side-sections {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 10px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 25%, transparent) transparent;
+}
+
+.shc-side-sections::-webkit-scrollbar { width: 3px; }
+.shc-side-sections::-webkit-scrollbar-track { background: transparent; }
+.shc-side-sections::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: 999px;
+}
+
+.shc-side-block {
+  padding: 8px 0 4px;
+  flex-shrink: 0;
+}
+
+/* section label — matches AI Chat nav-section-title */
 .shc-side-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--accent);
-  margin-bottom: 8px;
+  font-size: 10px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
+  margin-bottom: 5px;
+  padding: 0 4px;
+  white-space: nowrap;
 }
 
 .shc-view-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
+/* nav link — uppercase, spaced like AI Chat */
 .shc-view-link {
-  border: 1px solid transparent;
-  border-radius: 10px;
+  border: none;
+  border-radius: 8px;
   background: transparent;
-  color: var(--text-primary);
+  color: color-mix(in srgb, var(--accent) 62%, var(--text-primary));
   width: 100%;
-  padding: 9px 10px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .shc-view-link svg {
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  color: color-mix(in srgb, var(--accent) 72%, var(--text-primary));
+  color: var(--accent);
+  opacity: 0.75;
+  transition: opacity 0.15s;
 }
 
 .shc-view-link span:not(.shc-nav-count) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1;
 }
 
-.shc-view-link--active,
 .shc-view-link:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: color-mix(in srgb, var(--accent) 88%, var(--text-primary));
+}
+
+.shc-view-link:hover svg {
+  opacity: 1;
+}
+
+.shc-view-link--active {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.shc-view-link--active svg {
+  opacity: 1;
 }
 
 .shc-nav-count {
   margin-left: auto;
-  min-width: 24px;
-  height: 22px;
-  padding: 0 7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  border: 1px solid var(--shc-line-soft);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  color: color-mix(in srgb, var(--text-primary) 72%, transparent);
-  font-size: 11px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0;
+  flex-shrink: 0;
 }
 
-.shc-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.shc-stat-card {
-  border: 1px solid var(--shc-line-soft);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-  padding: 9px 6px;
-  text-align: center;
-  min-width: 0;
-}
-
-.shc-stat-card span,
-.shc-stat-card small {
-  display: block;
-}
-
-.shc-stat-card span {
-  color: var(--text-primary);
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.shc-stat-card small {
-  margin-top: 5px;
-  color: color-mix(in srgb, var(--text-primary) 48%, transparent);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.shc-side-actions {
+/* footer nav */
+.shc-side-footer-nav {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid var(--shc-line-soft);
+  gap: 2px;
+  padding: 6px 10px 10px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  flex-shrink: 0;
 }
 
-.shc-action-btn {
-  border-radius: 11px;
-  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-  color: var(--text-primary);
-  padding: 10px;
+/* ── collapsed strip (mirrors ac-qb-collapsed-strip) ── */
+.shc-strip {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  width: 100%;
+  padding: 10px 0;
+  overflow: hidden;
+}
+
+.shc-strip-spacer {
+  flex: 1;
+}
+
+/* strip icon button — mirrors ac-qb-strip-btn */
+.shc-strip-btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-family: inherit;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.shc-action-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-.shc-action-btn--ghost {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid transparent;
   background: transparent;
-  border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: color-mix(in srgb, var(--accent) 55%, var(--text-primary));
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
-.shc-action-btn:hover {
-  border-color: var(--shc-line-strong);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+.shc-strip-btn:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
+.shc-strip-btn--active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.shc-strip-btn--toggle {
+  color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* tooltip on hover — appears to the right like AIChat */
+.shc-strip-btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-secondary, #111);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 7px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s, visibility 0.12s;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.shc-strip-btn:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ── main content ── */
 .shc-main {
   min-width: 0;
   min-height: 0;
@@ -369,9 +403,11 @@
   background: color-mix(in srgb, #0b0b0b 90%, transparent);
 }
 
-.shc-main > * {
-  min-width: 0;
+[data-theme-mode="light"] .shc-main {
+  background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
 }
+
+.shc-main > * { min-width: 0; }
 
 .shc-main > .fd-main,
 .shc-main > .sp-main,
@@ -384,9 +420,7 @@
   background: transparent !important;
 }
 
-.shc-main > .fd-main {
-  padding: 28px;
-}
+.shc-main > .fd-main { padding: 28px; }
 
 .shc-main > .leaderboard-container,
 .shc-main > .challenges-container {
@@ -401,9 +435,7 @@
 
 .shc-main .sp-content,
 .shc-main .af-content,
-.shc-main .sh-content {
-  padding: 28px;
-}
+.shc-main .sh-content { padding: 28px; }
 
 .shc-main .bento-container {
   width: 100%;
@@ -411,50 +443,27 @@
   padding: 18px;
 }
 
-[data-theme-mode="light"] .shc-sidebar,
-[data-theme-mode="light"] .shc-main {
-  background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
-}
-
 @media (max-width: 1100px) {
-  .shc-shell {
-    padding: 14px;
-  }
+  .shc-shell { padding: 14px; }
+  .shc-topbar { margin-bottom: 8px; }
 
-  .shc-topbar {
-    margin-bottom: 8px;
-  }
-
-  .shc-body,
-  .shc-body--collapsed {
-    grid-template-columns: 1fr;
+  /* force collapsed strip on small screens */
+  .shc-body {
+    grid-template-columns: 62px minmax(0, 1fr);
     gap: 12px;
-    overflow-y: auto;
   }
 
-  .shc-sidebar {
-    height: auto;
-    max-height: 50vh;
-  }
+  .shc-body--no-sidebar { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
-  .shc-topbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .shc-topbar-right {
-    width: 100%;
-    justify-content: flex-start;
-  }
+  .shc-topbar { align-items: flex-start; flex-direction: column; }
+  .shc-topbar-right { width: 100%; justify-content: flex-start; }
 
   .shc-main .sp-content,
   .shc-main .af-content,
   .shc-main .sh-content,
   .shc-main > .fd-main,
   .shc-main > .leaderboard-container,
-  .shc-main > .challenges-container {
-    padding: 20px;
-  }
+  .shc-main > .challenges-container { padding: 18px; }
 }

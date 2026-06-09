@@ -317,96 +317,32 @@ const FriendsDashboard = () => {
       </svg>
 
       <SocialHubChrome
-        title="Friends"
-        tagline="your network"
-        activeKey="friends"
-        primaryAction={{
-          label: 'Find Friends',
-          icon: <UserPlus size={14} />,
-          onClick: () => setActiveView('find-friends'),
-        }}
         sideSections={[
           {
-            label: 'Friends Workspace',
-            children: (
-              <nav className="shc-view-nav" aria-label="Friends workspace">
-                <button
-                  className={`shc-view-link ${activeView === 'my-friends' ? 'shc-view-link--active' : ''}`}
-                  type="button"
-                  onClick={() => setActiveView('my-friends')}
-                >
-                  <Users size={16} />
-                  <span>My Friends</span>
-                  {friends.length > 0 && <span className="shc-nav-count">{friends.length}</span>}
-                </button>
-                <button
-                  className={`shc-view-link ${activeView === 'find-friends' ? 'shc-view-link--active' : ''}`}
-                  type="button"
-                  onClick={() => setActiveView('find-friends')}
-                >
-                  <Search size={16} />
-                  <span>Find Friends</span>
-                </button>
-                <button
-                  className={`shc-view-link ${activeView === 'requests' ? 'shc-view-link--active' : ''}`}
-                  type="button"
-                  onClick={() => setActiveView('requests')}
-                >
-                  <UserPlus size={16} />
-                  <span>Requests</span>
-                  {totalRequests > 0 && <span className="shc-nav-count">{totalRequests}</span>}
-                </button>
-              </nav>
-            ),
+            label: 'Friends',
+            items: [
+              { icon: Users,    label: 'Current Friends',  onClick: () => setActiveView('my-friends'),   active: activeView === 'my-friends',  count: friends.length },
+              { icon: UserPlus, label: 'Pending Requests', onClick: () => setActiveView('requests'),     active: activeView === 'requests',    count: totalRequests },
+              { icon: Search,   label: 'Find Friends',     onClick: () => setActiveView('find-friends'), active: activeView === 'find-friends' },
+            ],
           },
-          {
-            label: 'Your Level',
-            children: (
-              <div className="fd-self-level-card fd-self-level-card--chrome">
-                <span className="fd-self-kicker">Current Level</span>
-                <strong>Level {selfStats?.level || 1}</strong>
-                <div className="fd-self-xp">{(selfStats?.total_points || 0).toLocaleString()} XP</div>
-                <div className="fd-self-track">
-                  <span style={{ width: `${Math.min(100, Math.max(0, ((selfStats?.experience || 0) / Math.max(1, selfStats?.next_level_xp || 100)) * 100))}%` }} />
-                </div>
-              </div>
-            ),
-          },
-        ]}
-        stats={[
-          { label: 'Friends', value: friends.length },
-          { label: 'Requests', value: totalRequests },
-          { label: 'Level', value: selfStats?.level || 1 },
-          { label: 'XP', value: (selfStats?.total_points || 0).toLocaleString() },
         ]}
       >
         <main className="fd-main">
           {activeView === 'my-friends' && (
-            loading
-              ? <div className="fd-loading"><div className="fd-pulse-loader"><div className="fd-pulse-block fd-pulse-1" /><div className="fd-pulse-block fd-pulse-2" /><div className="fd-pulse-block fd-pulse-3" /></div></div>
-              : friends.length > 0
-              ? (
-                <>
-                  <div className="view-heading">
-                    <span className="view-kicker">Your Network</span>
-                    <h2 className="view-title">My Friends</h2>
-                    <p className="view-sub">{friends.length} connection{friends.length !== 1 ? 's' : ''}</p>
-                  </div>
-                  <div className="fd-friends-grid">
-                    {friends.map(renderFriendCard)}
-                  </div>
-                </>
-              )
-              : (
-                <div className="fd-empty">
-                  <div className="fd-empty-icon"><Users size={36} /></div>
-                  <h3>No friends yet</h3>
-                  <p>Start building your study network</p>
-                  <button className="fd-cta-btn" onClick={() => setActiveView('find-friends')}>
-                    <Search size={16} /> Find Friends
-                  </button>
-                </div>
-              )
+            <>
+              <div className="view-heading">
+                <span className="view-kicker">Your Network</span>
+                <h2 className="view-title">Current Friends</h2>
+                <p className="view-sub">{friends.length} connection{friends.length !== 1 ? 's' : ''}</p>
+              </div>
+              {loading
+                ? <div className="fd-loading"><div className="fd-pulse-loader"><div className="fd-pulse-block fd-pulse-1" /><div className="fd-pulse-block fd-pulse-2" /><div className="fd-pulse-block fd-pulse-3" /></div></div>
+                : friends.length > 0
+                ? <div className="fd-friends-grid">{friends.map(renderFriendCard)}</div>
+                : <p className="fd-empty-text">No friends yet.</p>
+              }
+            </>
           )}
 
           {activeView === 'find-friends' && (
@@ -432,12 +368,12 @@ const FriendsDashboard = () => {
                     ? <div className="fd-loading"><div className="fd-pulse-loader"><div className="fd-pulse-block fd-pulse-1" /><div className="fd-pulse-block fd-pulse-2" /><div className="fd-pulse-block fd-pulse-3" /></div></div>
                     : searchResults.length > 0
                     ? searchResults.map(renderUserCard)
-                    : <div className="fd-empty"><p>No users found for "{searchQuery}"</p></div>
+                    : <p className="fd-empty-text">No users found for "{searchQuery}"</p>
                   : loading
                   ? <div className="fd-loading"><div className="fd-pulse-loader"><div className="fd-pulse-block fd-pulse-1" /><div className="fd-pulse-block fd-pulse-2" /><div className="fd-pulse-block fd-pulse-3" /></div></div>
                   : allUsers.length > 0
                   ? allUsers.map(renderUserCard)
-                  : <div className="fd-empty"><p>No users available</p></div>}
+                  : <p className="fd-empty-text">No users available</p>}
               </div>
             </>
           )}
@@ -498,11 +434,7 @@ const FriendsDashboard = () => {
               )}
 
               {totalRequests === 0 && (
-                <div className="fd-empty">
-                  <div className="fd-empty-icon"><UserPlus size={36} /></div>
-                  <h3>No pending requests</h3>
-                  <p>You're all caught up</p>
-                </div>
+                <p className="fd-empty-text">No pending requests.</p>
               )}
             </>
           )}

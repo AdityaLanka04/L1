@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen, ChevronRight } from 'lucide-react';
+import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen } from 'lucide-react';
 import ShareModal from './SharedModal';
 import './Social.css';
 import SocialHubChrome from '../components/SocialHubChrome';
@@ -455,75 +455,7 @@ const Social = () => {
         <circle cx="900" cy="600" r="1.5" fill="currentColor" opacity="0.5"/>
       </svg>
 
-      <SocialHubChrome
-        title="Social Hub"
-        tagline="social hub"
-        activeKey="social"
-        primaryAction={{
-          label: 'Find People',
-          icon: <UserPlus size={14} />,
-          onClick: () => setActiveTab('search'),
-        }}
-        topActions={[
-          { label: 'Share New', onClick: handleShareNewContent },
-        ]}
-        sideSections={[
-          {
-            label: 'Hub Workspace',
-            children: (
-              <nav className="shc-view-nav" aria-label="Social Hub workspace">
-                <button className={`shc-view-link ${activeTab === 'hub' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setActiveTab('hub')}>
-                  <ChevronRight size={16} style={{ transform: 'rotate(180deg)' }} />
-                  <span>Hub Overview</span>
-                </button>
-              </nav>
-            ),
-          },
-          {
-            label: 'People',
-            children: (
-              <nav className="shc-view-nav" aria-label="People tools">
-                <button className={`shc-view-link ${activeTab === 'search' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setActiveTab('search')}>
-                  <Search size={16} />
-                  <span>Find People</span>
-                </button>
-                <button className={`shc-view-link ${activeTab === 'requests' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setActiveTab('requests')}>
-                  <UserPlus size={16} />
-                  <span>Requests</span>
-                  {friendRequests.received.length > 0 && <span className="shc-nav-count">{friendRequests.received.length}</span>}
-                </button>
-                <button className={`shc-view-link ${activeTab === 'friends' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setActiveTab('friends')}>
-                  <Users size={16} />
-                  <span>Friends</span>
-                  {friends.length > 0 && <span className="shc-nav-count">{friends.length}</span>}
-                </button>
-              </nav>
-            ),
-          },
-          {
-            label: 'Content',
-            children: (
-              <nav className="shc-view-nav" aria-label="Shared content tools">
-                <button className={`shc-view-link ${activeTab === 'shared' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setActiveTab('shared')}>
-                  <Share2 size={16} />
-                  <span>Shared With Me</span>
-                  {sharedItems.length > 0 && <span className="shc-nav-count">{sharedItems.length}</span>}
-                </button>
-                <button className="shc-view-link" type="button" onClick={handleShareNewContent}>
-                  <Plus size={16} />
-                  <span>Share New</span>
-                </button>
-              </nav>
-            ),
-          },
-        ]}
-        stats={[
-          { label: 'Friends', value: friends.length },
-          { label: 'Requests', value: friendRequests.received.length },
-          { label: 'Shared', value: sharedItems.length },
-          { label: 'Notes', value: myNotes.length },
-        ]}
-      >
+      <SocialHubChrome tagline="social hub" noSidebar={true}>
         {activeTab === 'hub' ? (
           <div className="bento-container">
             {bentoCards.map(card => {
@@ -535,7 +467,6 @@ const Social = () => {
                   onClick={card.onClick}
                   style={{ cursor: card.onClick ? 'pointer' : 'default' }}
                 >
-                  {card.onClick && <ChevronRight className="bento-card-arrow" size={20} />}
                   <div className="bento-geo-lines" aria-hidden="true">
                     <span></span><span></span><span></span><span></span>
                   </div>

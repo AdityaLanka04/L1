@@ -79,76 +79,31 @@ const Leaderboards = () => {
   return (
     <div className="leaderboard-page with-social-chrome">
       <SocialHubChrome
-        title="Leaderboards"
-        tagline="rankings"
-        activeKey="leaderboards"
-        primaryAction={{
-          label: 'Refresh',
-          icon: <RefreshCw size={14} />,
-          onClick: fetchLeaderboard,
-        }}
         sideSections={[
           {
             label: 'Category',
-            children: (
-              <nav className="shc-view-nav" aria-label="Leaderboard category">
-                <button className={`shc-view-link ${category === 'global' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setCategory('global')}>
-                  <Trophy size={16} />
-                  <span>Global</span>
-                </button>
-                <button className={`shc-view-link ${category === 'friends' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setCategory('friends')}>
-                  <Users size={16} />
-                  <span>Friends Only</span>
-                </button>
-              </nav>
-            ),
+            items: [
+              { icon: Trophy, label: 'Global',       onClick: () => setCategory('global'),   active: category === 'global' },
+              { icon: Users,  label: 'Friends Only', onClick: () => setCategory('friends'),  active: category === 'friends' },
+            ],
           },
           {
             label: 'Metric',
-            children: (
-              <nav className="shc-view-nav" aria-label="Leaderboard metric">
-                <button className={`shc-view-link ${metric === 'total_hours' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setMetric('total_hours')}>
-                  <Clock size={16} />
-                  <span>Study Time</span>
-                </button>
-                <button className={`shc-view-link ${metric === 'accuracy' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setMetric('accuracy')}>
-                  <Target size={16} />
-                  <span>Accuracy</span>
-                </button>
-                <button className={`shc-view-link ${metric === 'streak' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setMetric('streak')}>
-                  <TrendingUp size={16} />
-                  <span>Streak</span>
-                </button>
-                <button className={`shc-view-link ${metric === 'lessons' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setMetric('lessons')}>
-                  <Award size={16} />
-                  <span>Lessons</span>
-                </button>
-              </nav>
-            ),
+            items: [
+              { icon: Clock,      label: 'Study Time', onClick: () => setMetric('total_hours'), active: metric === 'total_hours' },
+              { icon: Target,     label: 'Accuracy',   onClick: () => setMetric('accuracy'),    active: metric === 'accuracy' },
+              { icon: TrendingUp, label: 'Streak',     onClick: () => setMetric('streak'),      active: metric === 'streak' },
+              { icon: Award,      label: 'Lessons',    onClick: () => setMetric('lessons'),     active: metric === 'lessons' },
+            ],
           },
           {
             label: 'Period',
-            children: (
-              <nav className="shc-view-nav" aria-label="Leaderboard period">
-                {[
-                  ['all_time', 'All Time'],
-                  ['month', 'This Month'],
-                  ['week', 'This Week'],
-                ].map(([value, label]) => (
-                  <button key={value} className={`shc-view-link ${period === value ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setPeriod(value)}>
-                    <Clock size={16} />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </nav>
-            ),
+            items: [
+              { icon: Clock, label: 'All Time',   onClick: () => setPeriod('all_time'), active: period === 'all_time' },
+              { icon: Clock, label: 'This Month', onClick: () => setPeriod('month'),    active: period === 'month' },
+              { icon: Clock, label: 'This Week',  onClick: () => setPeriod('week'),     active: period === 'week' },
+            ],
           },
-        ]}
-        stats={[
-          { label: 'Entries', value: leaderboard.length },
-          { label: 'Rank', value: currentUserRank ? `#${currentUserRank.rank}` : '—' },
-          { label: 'Scope', value: category === 'global' ? 'All' : 'Friends' },
-          { label: 'Metric', value: metric === 'total_hours' ? 'Hours' : metric },
         ]}
       >
       <div className="leaderboard-container">

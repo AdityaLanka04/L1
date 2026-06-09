@@ -213,53 +213,25 @@ const ActivityFeed = () => {
   };
 
   const activityChromeProps = {
-    title: 'Activity Feed',
-    tagline: 'friend activity',
-    activeKey: 'activity',
-    primaryAction: {
-      label: 'Refresh Feed',
-      icon: <RefreshCw size={14} />,
-      onClick: fetchActivityFeed,
-    },
     sideSections: [
       {
         label: 'Activity Type',
-        children: (
-          <nav className="shc-view-nav" aria-label="Activity type filters">
-            {ACTIVITY_TYPES.map(type => {
-              const IconComp = type.icon;
-              return (
-                <button key={type.value} className={`shc-view-link ${activeFilter === type.value ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setActiveFilter(type.value)}>
-                  <IconComp size={16} />
-                  <span>{type.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        ),
+        items: ACTIVITY_TYPES.map(type => ({
+          icon: type.icon,
+          label: type.label,
+          onClick: () => setActiveFilter(type.value),
+          active: activeFilter === type.value,
+        })),
       },
       {
         label: 'Time Period',
-        children: (
-          <nav className="shc-view-nav" aria-label="Time period filters">
-            {TIME_FILTERS.map(filter => {
-              const IconComp = filter.icon;
-              return (
-                <button key={filter.value} className={`shc-view-link ${timeFilter === filter.value ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setTimeFilter(filter.value)}>
-                  <IconComp size={16} />
-                  <span>{filter.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        ),
+        items: TIME_FILTERS.map(filter => ({
+          icon: filter.icon,
+          label: filter.label,
+          onClick: () => setTimeFilter(filter.value),
+          active: timeFilter === filter.value,
+        })),
       },
-    ],
-    stats: [
-      { label: 'Total', value: stats.totalActivities },
-      { label: 'Today', value: stats.todayActivities },
-      { label: 'Kudos', value: stats.totalKudos },
-      { label: 'Streaks', value: stats.activeStreaks },
     ],
   };
 

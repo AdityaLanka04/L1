@@ -212,43 +212,15 @@ const SharedPage = () => {
   const sharedChatCount = sharedItems.filter(item => item.content_type === 'chat').length;
   const sharedNoteCount = sharedItems.filter(item => item.content_type === 'note').length;
   const sharedChromeProps = {
-    title: 'Shared Content',
-    tagline: 'shared content',
-    activeKey: 'shared',
-    primaryAction: {
-      label: 'Share Content',
-      icon: <Plus size={14} />,
-      onClick: handleShareNewContent,
-    },
     sideSections: [
       {
         label: 'Filter',
-        children: (
-          <nav className="shc-view-nav" aria-label="Shared content filters">
-            <button className={`shc-view-link ${sharedFilter === 'all' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setSharedFilter('all')}>
-              <Share2 size={16} />
-              <span>All Content</span>
-              <span className="shc-nav-count">{sharedItems.length}</span>
-            </button>
-            <button className={`shc-view-link ${sharedFilter === 'chat' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setSharedFilter('chat')}>
-              <MessageSquare size={16} />
-              <span>AI Chats</span>
-              <span className="shc-nav-count">{sharedChatCount}</span>
-            </button>
-            <button className={`shc-view-link ${sharedFilter === 'note' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setSharedFilter('note')}>
-              <FileText size={16} />
-              <span>Notes</span>
-              <span className="shc-nav-count">{sharedNoteCount}</span>
-            </button>
-          </nav>
-        ),
+        items: [
+          { icon: Share2,        label: 'All Content', onClick: () => setSharedFilter('all'),  active: sharedFilter === 'all',  count: sharedItems.length },
+          { icon: MessageSquare, label: 'AI Chats',    onClick: () => setSharedFilter('chat'), active: sharedFilter === 'chat', count: sharedChatCount },
+          { icon: FileText,      label: 'Notes',       onClick: () => setSharedFilter('note'), active: sharedFilter === 'note', count: sharedNoteCount },
+        ],
       },
-    ],
-    stats: [
-      { label: 'Items', value: sharedItems.length },
-      { label: 'Visible', value: filteredSharedItems.length },
-      { label: 'Chats', value: sharedChatCount },
-      { label: 'Notes', value: sharedNoteCount },
     ],
   };
 

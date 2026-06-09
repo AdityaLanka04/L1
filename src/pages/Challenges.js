@@ -167,44 +167,16 @@ const Challenges = () => {
       </svg>
 
       <SocialHubChrome
-        title="Challenges"
-        tagline="challenges"
-        activeKey="challenges"
-        primaryAction={{
-          label: 'Create Challenge',
-          icon: <Plus size={14} />,
-          onClick: () => setShowCreateModal(true),
-        }}
         sideSections={[
           {
-            label: 'Challenge Filter',
-            children: (
-              <nav className="shc-view-nav" aria-label="Challenge filters">
-                <button className={`shc-view-link ${filterType === 'active' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setFilterType('active')}>
-                  <Zap size={16} />
-                  <span>Active</span>
-                </button>
-                <button className={`shc-view-link ${filterType === 'completed' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setFilterType('completed')}>
-                  <Trophy size={16} />
-                  <span>Completed</span>
-                </button>
-                <button className={`shc-view-link ${filterType === 'my_challenges' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setFilterType('my_challenges')}>
-                  <Target size={16} />
-                  <span>My Challenges</span>
-                </button>
-                <button className={`shc-view-link ${filterType === 'all' ? 'shc-view-link--active' : ''}`} type="button" onClick={() => setFilterType('all')}>
-                  <Users size={16} />
-                  <span>All</span>
-                </button>
-              </nav>
-            ),
+            label: 'Filter',
+            items: [
+              { icon: Zap,    label: 'Active',        onClick: () => setFilterType('active'),        active: filterType === 'active' },
+              { icon: Trophy, label: 'Completed',     onClick: () => setFilterType('completed'),     active: filterType === 'completed' },
+              { icon: Target, label: 'My Challenges', onClick: () => setFilterType('my_challenges'), active: filterType === 'my_challenges' },
+              { icon: Users,  label: 'All',           onClick: () => setFilterType('all'),           active: filterType === 'all' },
+            ],
           },
-        ]}
-        stats={[
-          { label: 'Visible', value: challenges.length },
-          { label: 'Active', value: challenges.filter(challenge => challenge.status === 'active').length },
-          { label: 'Joined', value: challenges.filter(challenge => challenge.is_participating).length },
-          { label: 'Done', value: challenges.filter(challenge => challenge.user_completed).length },
         ]}
       >
       <div className="challenges-container">
