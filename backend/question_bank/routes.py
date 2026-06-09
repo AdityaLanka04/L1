@@ -32,6 +32,10 @@ from .agents import (
     RelatedQuestionAgent,
     ExplanationEnhancerAgent,
     QuestionPreviewAgent,
+    _normalize_document_type,
+    infer_document_type,
+    repair_text_spacing_artifacts,
+    resolve_document_type,
 )
 from .pdf_utils import generate_question_set_pdf
 from .utils import (
@@ -66,6 +70,77 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         "question_preview": QuestionPreviewAgent(unified_ai)
     }
 
+    def _resolve_user_identifier(models, db: Session, user_id: str):
+        user_query = db.query(models.User)
+        if str(user_id).isdigit():
+            return user_query.filter(
+                (models.User.id == int(user_id)) |
+                (models.User.username == user_id) |
+                (models.User.email == user_id)
+            ).first()
+
+        return user_query.filter(
+            (models.User.username == user_id) | (models.User.email == user_id)
+        ).first()
+
+    def _extract_slide_text(models, db: Session, slide):
+        content = (getattr(slide, "extracted_text", None) or "").strip()
+        if content:
+            return content
+
+        analysis = db.query(models.SlideAnalysis).filter(
+            models.SlideAnalysis.slide_id == slide.id
+        ).first()
+        if not analysis or not analysis.analysis_data:
+            return ""
+
+        try:
+            analysis_data = json.loads(analysis.analysis_data)
+        except (TypeError, json.JSONDecodeError):
+            return str(analysis.analysis_data).strip()
+
+        text_parts = []
+        if isinstance(analysis_data, dict):
+            for key in ("summary", "text", "extracted_text", "content"):
+                value = analysis_data.get(key)
+                if isinstance(value, str) and value.strip():
+                    text_parts.append(value.strip())
+
+            slides = analysis_data.get("slides")
+            if isinstance(slides, list):
+                for item in slides:
+                    if isinstance(item, dict):
+                        for key in ("text", "content", "summary", "notes"):
+                            value = item.get(key)
+                            if isinstance(value, str) and value.strip():
+                                text_parts.append(value.strip())
+
+        return "\n\n".join(text_parts).strip()
+
+    def _slide_title(slide, fallback: Optional[str] = None):
+        return (
+            fallback
+            or getattr(slide, "title", None)
+            or getattr(slide, "original_filename", None)
+            or getattr(slide, "filename", None)
+            or f"Slide {slide.id}"
+        )
+
+    def _clean_question_payload_text(question_data: dict) -> dict:
+        cleaned = dict(question_data or {})
+        cleaned["question_text"] = repair_text_spacing_artifacts(
+            cleaned.get("question_text") or cleaned.get("question")
+        )
+        cleaned["correct_answer"] = repair_text_spacing_artifacts(cleaned.get("correct_answer"))
+        cleaned["topic"] = repair_text_spacing_artifacts(cleaned.get("topic") or "")
+        cleaned["explanation"] = repair_text_spacing_artifacts(cleaned.get("explanation") or "")
+        options = cleaned.get("options", [])
+        cleaned["options"] = [
+            repair_text_spacing_artifacts(option)
+            for option in options
+        ] if isinstance(options, list) else []
+        return cleaned
+
     @app.post("/api/qb/upload_pdf")
     async def upload_pdf(
         file: UploadFile = File(...),
@@ -80,9 +155,17 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not file.filename.lower().endswith('.pdf'):
                 raise HTTPException(status_code=400, detail="File must be a PDF")
 
-            user = db.query(models.User).filter(
-                (models.User.username == user_id) | (models.User.email == user_id)
-            ).first()
+            user_query = db.query(models.User)
+            if str(user_id).isdigit():
+                user = user_query.filter(
+                    (models.User.id == int(user_id)) |
+                    (models.User.username == user_id) |
+                    (models.User.email == user_id)
+                ).first()
+            else:
+                user = user_query.filter(
+                    (models.User.username == user_id) | (models.User.email == user_id)
+                ).first()
 
             if not user:
                 logger.warning(f"User not found for identifier: {user_id[:20]}")
@@ -101,13 +184,15 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 raise HTTPException(status_code=400, detail="No text could be extracted from PDF")
 
             logger.info(f"Analyzing document content...")
-            analysis = await agents["pdf_processor"].analyze_document(text)
+            analysis = await agents["pdf_processor"].analyze_document(text, file.filename)
+            document_type = resolve_document_type(analysis.get("document_type"), text, file.filename)
+            analysis["document_type"] = document_type
 
             logger.info(f"Creating document record in database...")
             document = models.UploadedDocument(
                 user_id=user.id,
                 filename=file.filename,
-                document_type=analysis.get("document_type", "unknown"),
+                document_type=document_type,
                 content=text,
                 document_metadata=json.dumps(analysis)
             )
@@ -147,9 +232,17 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         try:
             import models
 
-            user = db.query(models.User).filter(
-                (models.User.username == user_id) | (models.User.email == user_id)
-            ).first()
+            user_query = db.query(models.User)
+            if str(user_id).isdigit():
+                user = user_query.filter(
+                    (models.User.id == int(user_id)) |
+                    (models.User.username == user_id) |
+                    (models.User.email == user_id)
+                ).first()
+            else:
+                user = user_query.filter(
+                    (models.User.username == user_id) | (models.User.email == user_id)
+                ).first()
 
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
@@ -158,17 +251,27 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 models.UploadedDocument.user_id == user.id
             ).order_by(models.UploadedDocument.created_at.desc()).all()
 
+            documents_payload = []
+            for doc in documents:
+                analysis = json.loads(doc.document_metadata) if doc.document_metadata else {}
+                document_type = resolve_document_type(
+                    doc.document_type or analysis.get("document_type"),
+                    doc.content or "",
+                    doc.filename or ""
+                )
+                if analysis.get("document_type") != document_type:
+                    analysis["document_type"] = document_type
+
+                documents_payload.append({
+                    "id": doc.id,
+                    "filename": doc.filename,
+                    "document_type": document_type,
+                    "created_at": doc.created_at.isoformat(),
+                    "analysis": analysis
+                })
+
             return {
-                "documents": [
-                    {
-                        "id": doc.id,
-                        "filename": doc.filename,
-                        "document_type": doc.document_type,
-                        "created_at": doc.created_at.isoformat(),
-                        "analysis": json.loads(doc.document_metadata) if doc.document_metadata else {}
-                    }
-                    for doc in documents
-                ]
+                "documents": documents_payload
             }
 
         except Exception as e:
@@ -222,9 +325,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if request.session_id:
                 logger.info(f"QB generate_from_pdf session_id={request.session_id}")
 
-            user = db.query(models.User).filter(
-                (models.User.username == request.user_id) | (models.User.email == request.user_id)
-            ).first()
+            user = _resolve_user_identifier(models, db, request.user_id)
 
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
@@ -340,6 +441,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.flush()
 
             for idx, q in enumerate(questions):
+                q = _clean_question_payload_text(q)
                 question = models.Question(
                     question_set_id=question_set.id,
                     question_text=q.get("question_text"),
@@ -358,6 +460,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.refresh(question_set)
 
             return {
+                "success": True,
                 "status": "success",
                 "question_set_id": question_set.id,
                 "question_count": len(questions),
@@ -387,9 +490,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
 
             logger.info(f"Generating questions from {len(request.source_ids)} PDFs for user {request.user_id}")
 
-            user = db.query(models.User).filter(
-                (models.User.username == request.user_id) | (models.User.email == request.user_id)
-            ).first()
+            user = _resolve_user_identifier(models, db, request.user_id)
 
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
@@ -491,6 +592,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.flush()
 
             for idx, q in enumerate(questions):
+                q = _clean_question_payload_text(q)
                 question = models.Question(
                     question_set_id=question_set.id,
                     question_text=q.get("question_text"),
@@ -545,9 +647,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 f"Generating related questions from {len(request.source_ids)} PDFs for user {request.user_id}"
             )
 
-            user = db.query(models.User).filter(
-                (models.User.username == request.user_id) | (models.User.email == request.user_id)
-            ).first()
+            user = _resolve_user_identifier(models, db, request.user_id)
 
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
@@ -685,9 +785,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if request.custom_prompt:
                 logger.info(f"Custom prompt: {request.custom_prompt[:100]}...")
 
-            user = db.query(models.User).filter(
-                (models.User.username == request.user_id) | (models.User.email == request.user_id)
-            ).first()
+            user = _resolve_user_identifier(models, db, request.user_id)
 
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
@@ -778,6 +876,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.flush()
 
             for idx, q in enumerate(questions):
+                q = _clean_question_payload_text(q)
                 question = models.Question(
                     question_set_id=question_set.id,
                     question_text=q.get("question_text"),
@@ -848,7 +947,9 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             content_parts = []
             title_parts = []
 
-            if request.source_type == "chat":
+            request_source_type = (request.source_type or "").lower().strip()
+
+            if request_source_type == "chat":
                 chat = db.query(models.ChatSession).filter(
                     models.ChatSession.id == request.source_id,
                     models.ChatSession.user_id == user.id
@@ -868,7 +969,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 content_parts.append(chat_content)
                 title_parts.append(chat.title)
 
-            elif request.source_type == "slide":
+            elif request_source_type in ("slide", "slides", "presentation"):
                 slide = db.query(models.UploadedSlide).filter(
                     models.UploadedSlide.id == request.source_id,
                     models.UploadedSlide.user_id == user.id
@@ -877,8 +978,15 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 if not slide:
                     raise HTTPException(status_code=404, detail="Slide not found")
 
-                content_parts.append(slide.content)
-                title_parts.append(slide.title)
+                slide_content = _extract_slide_text(models, db, slide)
+                if not slide_content:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"No readable text found in slide file: {_slide_title(slide)}"
+                    )
+
+                content_parts.append(slide_content)
+                title_parts.append(_slide_title(slide))
 
             combined_content = "\n\n".join(content_parts)
             title = request.title or f"Questions from {', '.join(title_parts)}"
@@ -908,6 +1016,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.flush()
 
             for idx, q in enumerate(questions):
+                q = _clean_question_payload_text(q)
                 question = models.Question(
                     question_set_id=question_set.id,
                     question_text=q.get("question_text"),
@@ -998,7 +1107,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     content_parts.append(chat_content)
                     title_parts.append(chat.title or source.title or f"Chat {source.id}")
 
-                elif source_type == "slide":
+                elif source_type in ("slide", "slides", "presentation"):
                     slide = db.query(models.UploadedSlide).filter(
                         models.UploadedSlide.id == source.id,
                         models.UploadedSlide.user_id == user.id
@@ -1008,15 +1117,23 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                         logger.warning(f"Slide source not found or unauthorized: {source.id}")
                         continue
 
-                    content_parts.append(slide.content or "")
-                    title_parts.append(slide.title or source.title or f"Slide {source.id}")
+                    slide_content = _extract_slide_text(models, db, slide)
+                    if not slide_content:
+                        logger.warning(f"Slide source has no readable text: {source.id}")
+                        continue
+
+                    content_parts.append(slide_content)
+                    title_parts.append(_slide_title(slide, source.title))
 
                 else:
                     logger.warning(f"Unsupported source type skipped: {source.type}")
 
             combined_content = "\n\n".join([c for c in content_parts if c and c.strip()])
             if not combined_content.strip():
-                raise HTTPException(status_code=400, detail="No usable content found in selected sources")
+                raise HTTPException(
+                    status_code=400,
+                    detail="No readable text found in the selected slides/sources. Try a text-based PDF/PPTX or re-upload the slide file."
+                )
 
             title = request.title or (
                 f"Questions from {title_parts[0]}"
@@ -1048,6 +1165,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.flush()
 
             for idx, q in enumerate(questions):
+                q = _clean_question_payload_text(q)
                 question = models.Question(
                     question_set_id=question_set.id,
                     question_text=q.get("question_text"),
@@ -1160,7 +1278,27 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 models.Question.question_set_id == set_id
             ).order_by(models.Question.order_index).all()
 
-            logger.info(f"Found {len(questions)} questions for set {set_id}")
+            seen_question_signatures = set()
+            unique_questions = []
+            for q in questions:
+                try:
+                    normalized_options = json.dumps(
+                        [str(option).strip().lower() for option in (json.loads(q.options) if q.options else [])],
+                        sort_keys=True
+                    )
+                except Exception:
+                    normalized_options = str(q.options or "").strip().lower()
+
+                signature = (
+                    str(q.question_text or "").strip().lower(),
+                    str(q.correct_answer or "").strip().lower(),
+                    normalized_options
+                )
+                if signature[0] and signature not in seen_question_signatures:
+                    seen_question_signatures.add(signature)
+                    unique_questions.append(q)
+
+            logger.info(f"Found {len(questions)} questions for set {set_id}, {len(unique_questions)} unique")
 
             raw_count = db.execute(text("SELECT COUNT(*) FROM questions WHERE question_set_id = :set_id"), {"set_id": set_id}).scalar()
             logger.info(f"Raw SQL count: {raw_count} questions for set {set_id}")
@@ -1170,12 +1308,12 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 "title": question_set.title,
                 "description": question_set.description,
                 "source_type": question_set.source_type,
-                "total_questions": question_set.total_questions,
+                "total_questions": len(unique_questions),
                 "best_score": question_set.best_score,
                 "attempts": question_set.attempts,
                 "created_at": question_set.created_at.isoformat(),
                 "questions": [
-                    {
+                    _clean_question_payload_text({
                         "id": q.id,
                         "question_text": q.question_text,
                         "question_type": q.question_type,
@@ -1185,8 +1323,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                         "options": json.loads(q.options) if q.options else [],
                         "explanation": q.explanation,
                         "points": q.points
-                    }
-                    for q in questions
+                    })
+                    for q in unique_questions
                 ]
             }
 
@@ -1209,9 +1347,17 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         try:
             import models
 
-            user = db.query(models.User).filter(
-                (models.User.username == user_id) | (models.User.email == user_id)
-            ).first()
+            user_query = db.query(models.User)
+            if str(user_id).isdigit():
+                user = user_query.filter(
+                    (models.User.id == int(user_id)) |
+                    (models.User.username == user_id) |
+                    (models.User.email == user_id)
+                ).first()
+            else:
+                user = user_query.filter(
+                    (models.User.username == user_id) | (models.User.email == user_id)
+                ).first()
 
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
@@ -1224,10 +1370,50 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not question_set:
                 raise HTTPException(status_code=404, detail="Question set not found")
 
+            question_ids = [
+                row[0]
+                for row in db.query(models.Question.id)
+                .filter(models.Question.question_set_id == set_id)
+                .all()
+            ]
+
+            if question_ids and hasattr(models, "QuestionResult"):
+                db.query(models.QuestionResult).filter(
+                    models.QuestionResult.question_id.in_(question_ids)
+                ).delete(synchronize_session=False)
+
+            if hasattr(models, "WrongAnswerLog"):
+                db.query(models.WrongAnswerLog).filter(
+                    models.WrongAnswerLog.question_set_id == set_id
+                ).delete(synchronize_session=False)
+
+            if hasattr(models, "PracticeRecommendation"):
+                db.query(models.PracticeRecommendation).filter(
+                    models.PracticeRecommendation.question_set_id == set_id
+                ).delete(synchronize_session=False)
+
+            if hasattr(models, "QuestionSetSlide"):
+                db.query(models.QuestionSetSlide).filter(
+                    models.QuestionSetSlide.question_set_id == set_id
+                ).delete(synchronize_session=False)
+
+            if hasattr(models, "QuestionAttempt"):
+                db.query(models.QuestionAttempt).filter(
+                    models.QuestionAttempt.question_set_id == set_id
+                ).delete(synchronize_session=False)
+
+            db.query(models.QuestionSession).filter(
+                models.QuestionSession.question_set_id == set_id
+            ).delete(synchronize_session=False)
+
+            db.query(models.Question).filter(
+                models.Question.question_set_id == set_id
+            ).delete(synchronize_session=False)
+
             db.delete(question_set)
             db.commit()
 
-            return {"status": "success", "message": "Question set deleted"}
+            return {"status": "success", "message": "Question set deleted", "deleted_set_id": set_id}
 
         except Exception as e:
             logger.error(f"Error deleting question set: {e}")
@@ -1255,6 +1441,11 @@ def register_question_bank_api(app, unified_ai, get_db_func):
 
             if not question_set:
                 raise HTTPException(status_code=404, detail="Question set not found")
+
+            already_completed = db.query(models.QuestionSession.id).filter(
+                models.QuestionSession.user_id == user.id,
+                models.QuestionSession.question_set_id == request.question_set_id
+            ).first() is not None
 
             questions = db.query(models.Question).filter(
                 models.Question.question_set_id == request.question_set_id
@@ -1305,18 +1496,22 @@ def register_question_bank_api(app, unified_ai, get_db_func):
 
             score = int((earned_points / total_points) * 100) if total_points > 0 else 0
 
-            from adaptive_learning_integration import get_adaptive_integration
-            adaptive_integration = get_adaptive_integration()
+            adaptive_integration = None
+            try:
+                from adaptive_learning_integration import get_adaptive_integration
+                adaptive_integration = get_adaptive_integration()
 
-            for i, question in enumerate(questions):
-                user_answer = request.answers.get(str(question.id))
-                if user_answer:
-                    is_correct = user_answer.strip().lower() == question.correct_answer.strip().lower()
-                    response_time = request.time_taken_seconds / len(questions) if request.time_taken_seconds else 30
+                for question in questions:
+                    user_answer = request.answers.get(str(question.id))
+                    if user_answer:
+                        is_correct = user_answer.strip().lower() == question.correct_answer.strip().lower()
+                        response_time = request.time_taken_seconds / len(questions) if request.time_taken_seconds else 30
 
-                    adaptive_integration.process_question_bank_answer(
-                        db, user.id, question.id, is_correct, response_time
-                    )
+                        adaptive_integration.process_question_bank_answer(
+                            db, user.id, question.id, is_correct, response_time
+                        )
+            except Exception as adaptive_error:
+                logger.warning(f"Adaptive answer tracking failed for question bank submission: {adaptive_error}")
 
             session_record = models.QuestionSession(
                 user_id=user.id,
@@ -1352,44 +1547,62 @@ def register_question_bank_api(app, unified_ai, get_db_func):
 
             adaptation = agents["adaptive_difficulty"].analyze_performance(history_data)
 
-            adaptive_recommendations = adaptive_integration.get_session_recommendations(user.id)
+            adaptive_recommendations = None
+            if adaptive_integration:
+                try:
+                    adaptive_recommendations = adaptive_integration.get_session_recommendations(user.id)
+                except Exception as recommendation_error:
+                    logger.warning(f"Adaptive recommendations failed for question bank submission: {recommendation_error}")
 
-            await _update_weak_areas(db, user.id, results, models)
+            try:
+                await _update_weak_areas(db, user.id, results, models)
+            except Exception as weak_area_error:
+                logger.warning(f"Weak area update failed for question bank submission: {weak_area_error}")
 
             gamification = None
-            try:
-                from services.gamification_system import award_points
+            xp_awarded = False
+            if not already_completed:
+                try:
+                    from services.gamification_system import award_points
 
-                question_points = award_points(
-                    db,
-                    user.id,
-                    "question_answered",
-                    {
-                        "count": len(questions),
-                        "correct_count": correct_count,
-                        "incorrect_count": len(questions) - correct_count,
-                        "source": "question_bank_submit"
+                    question_points = award_points(
+                        db,
+                        user.id,
+                        "question_answered",
+                        {
+                            "count": len(questions),
+                            "correct_count": correct_count,
+                            "incorrect_count": len(questions) - correct_count,
+                            "question_set_id": request.question_set_id,
+                            "source": "question_bank_submit"
+                        }
+                    )
+
+                    quiz_points = award_points(
+                        db,
+                        user.id,
+                        "quiz_completed",
+                        {
+                            "score": earned_points,
+                            "total_questions": len(questions),
+                            "score_percentage": score,
+                            "question_set_id": request.question_set_id,
+                            "source": "question_bank_submit"
+                        }
+                    )
+
+                    gamification = {
+                        "question_answered": question_points,
+                        "quiz_completed": quiz_points
                     }
-                )
-
-                quiz_points = award_points(
-                    db,
-                    user.id,
-                    "quiz_completed",
-                    {
-                        "score": earned_points,
-                        "total_questions": len(questions),
-                        "score_percentage": score,
-                        "source": "question_bank_submit"
-                    }
-                )
-
+                    xp_awarded = True
+                except Exception as gamification_error:
+                    logger.warning(f"Gamification tracking failed for question bank submission: {gamification_error}")
+            else:
                 gamification = {
-                    "question_answered": question_points,
-                    "quiz_completed": quiz_points
+                    "xp_awarded": False,
+                    "reason": "Question set XP is awarded only on the first completion."
                 }
-            except Exception as gamification_error:
-                logger.warning(f"Gamification tracking failed for question bank submission: {gamification_error}")
 
             return {
                 "status": "success",
@@ -1406,7 +1619,9 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     "recommendations": adaptive_recommendations.get('recommendations', []),
                     "performance_trend": adaptive_recommendations.get('performance_trend')
                 } if adaptive_recommendations and 'error' not in adaptive_recommendations else None,
-                "gamification": gamification
+                "gamification": gamification,
+                "xp_awarded": xp_awarded,
+                "already_completed": already_completed
             }
 
         except Exception as e:
@@ -2228,6 +2443,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.flush()
 
             for idx, q in enumerate(questions):
+                q = _clean_question_payload_text(q)
                 question = models.Question(
                     question_set_id=question_set.id,
                     question_text=q.get("question_text"),
@@ -2281,6 +2497,31 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
 
+            seen_question_signatures = set()
+            unique_questions = []
+            for q in questions:
+                q = _clean_question_payload_text(q)
+                question_text = str(q.get("question_text") or "").strip().lower()
+                correct_answer = str(q.get("correct_answer", "")).strip().lower()
+                options = q.get("options", [])
+                if isinstance(options, list):
+                    normalized_options = json.dumps(
+                        [str(option).strip().lower() for option in options],
+                        sort_keys=True
+                    )
+                else:
+                    normalized_options = str(options).strip().lower()
+
+                signature = (question_text, correct_answer, normalized_options)
+                if not question_text or signature in seen_question_signatures:
+                    continue
+                seen_question_signatures.add(signature)
+                unique_questions.append(q)
+
+            questions = unique_questions
+            if not questions:
+                raise HTTPException(status_code=400, detail="No unique questions to save")
+
             question_set = models.QuestionSet(
                 user_id=user.id,
                 title=title,
@@ -2293,7 +2534,8 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.flush()
 
             for idx, q in enumerate(questions):
-                question_text = q.get("question") or q.get("question_text")
+                q = _clean_question_payload_text(q)
+                question_text = q.get("question_text")
                 options = q.get("options", [])
                 correct_answer = q.get("correct_answer", 0)
                 explanation = q.get("explanation", "")
@@ -2451,6 +2693,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.flush()
 
             for idx, q in enumerate(all_questions):
+                q = _clean_question_payload_text(q)
                 question = models.Question(
                     question_set_id=merged_set.id,
                     question_text=q["question_text"],
@@ -2748,6 +2991,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.flush()
 
             for idx, q in enumerate(all_questions):
+                q = _clean_question_payload_text(q)
                 question = models.Question(
                     question_set_id=practice_set.id,
                     question_text=q.get("question_text"),

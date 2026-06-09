@@ -1209,6 +1209,11 @@
   display: block;
 }
 
+.qbd-upload-box .qbd-btn-primary svg {
+  color: #000;
+  opacity: 1;
+}
+
 [data-theme-mode="light"] .qbd-btn-primary {
   color: white;
 }

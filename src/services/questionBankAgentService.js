@@ -81,7 +81,10 @@ class QuestionBankAgentService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(error.detail || 'Failed to generate questions');
+      const message = Array.isArray(error.detail)
+        ? error.detail.map((item) => item.msg || JSON.stringify(item)).join('; ')
+        : error.detail || error.message || 'Failed to generate questions';
+      throw new Error(message);
     }
 
     return await response.json();
@@ -110,7 +113,10 @@ class QuestionBankAgentService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(error.detail || 'Failed to generate questions');
+      const message = Array.isArray(error.detail)
+        ? error.detail.map((item) => item.msg || JSON.stringify(item)).join('; ')
+        : error.detail || error.message || 'Failed to generate questions';
+      throw new Error(message);
     }
 
     return await response.json();
@@ -181,7 +187,10 @@ class QuestionBankAgentService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(error.detail || 'Failed to generate questions');
+      const detail = Array.isArray(error.detail)
+        ? error.detail.map((item) => item.msg || JSON.stringify(item)).join(', ')
+        : error.detail;
+      throw new Error(detail || error.message || error.error || 'Failed to generate questions');
     }
 
     return await response.json();
@@ -277,7 +286,10 @@ class QuestionBankAgentService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(error.detail || 'Failed to generate questions');
+      const message = Array.isArray(error.detail)
+        ? error.detail.map((item) => item.msg || JSON.stringify(item)).join('; ')
+        : error.detail || error.message || 'Failed to generate questions';
+      throw new Error(message);
     }
 
     return await response.json();

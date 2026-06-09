@@ -43,6 +43,7 @@ const formatNotificationMessage = (message = '') => (
   String(message)
     .replace(/\s*\[reminder_id:\d+\]\s*/g, ' ')
     .replace(/\s*\[reminder_due_at:[^\]]+\]\s*/g, ' ')
+    .replace(/\s*\[login_return:\d{4}-\d{2}-\d{2}\]\s*/g, ' ')
     .replace(/\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?)\b/g, (match) => {
       const parsed = new Date(match);
       if (Number.isNaN(parsed.getTime())) return match;

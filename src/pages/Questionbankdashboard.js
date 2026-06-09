@@ -49,6 +49,79 @@ const SIDEBAR_NAV_GROUPS = [
   }
 ];
 
+const getQuestionText = (question) => (
+  question?.question_text || question?.question || ''
+);
+
+const normalizeQuestionText = (value) => (
+  String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
+);
+
+const getQuestionSignature = (question) => {
+  const options = Array.isArray(question?.options)
+    ? question.options.map(normalizeQuestionText).join('|')
+    : '';
+
+  return [
+    normalizeQuestionText(getQuestionText(question)),
+    normalizeQuestionText(question?.correct_answer),
+    options
+  ].join('::');
+};
+
+const dedupeQuestions = (questions = []) => {
+  if (!Array.isArray(questions)) return [];
+
+  const seen = new Set();
+  return questions.filter((question) => {
+    const signature = getQuestionSignature(question);
+    if (!signature.replace(/:/g, '')) return true;
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+};
+
+const withDedupedQuestions = (questionSet) => {
+  const questions = dedupeQuestions(questionSet?.questions);
+  return {
+    ...questionSet,
+    questions,
+    total_questions: questions.length
+  };
+};
+
+const formatDocumentType = (documentType) => {
+  const value = String(documentType || '').trim();
+  if (!value || value.toLowerCase() === 'unknown') return 'PDF source';
+
+  return value
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const normalizeUploadedSlide = (slide = {}) => {
+  const id = slide.id ?? slide.slide_id;
+  const title = slide.title || slide.filename || slide.original_filename || `Slide ${id || ''}`.trim();
+  const uploadedAt = slide.uploaded_at || slide.created_at || slide.processed_at || null;
+
+  return {
+    ...slide,
+    id,
+    title,
+    created_at: uploadedAt
+  };
+};
+
+const formatSourceDate = (value) => {
+  if (!value) return 'No upload date';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No upload date';
+
+  return date.toLocaleDateString();
+};
+
 const QuestionBankDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -278,11 +351,11 @@ const QuestionBankDashboard = () => {
         }
 
         await fetchQuestionSets();
-        setSelectedQuestionSet({
+        setSelectedQuestionSet(withDedupedQuestions({
           id: data.question_set_id || data.id,
           title: data.title || 'Context Quiz',
           questions: data.questions
-        });
+        }));
         setShowStudyModal(true);
         setCurrentQuestion(0);
         setUserAnswers({});
@@ -322,6 +395,7 @@ const QuestionBankDashboard = () => {
       const createGeneratedQuestionSet = async () => {
         try {
           setLoading(true);
+          const uniqueQuestions = dedupeQuestions(generatedQuestions.questions);
           
           const response = await fetch(`${API_URL}/qb/save_question_set`, {
             method: 'POST',
@@ -332,7 +406,7 @@ const QuestionBankDashboard = () => {
             body: JSON.stringify({
               user_id: userId,
               title: generatedQuestions.title,
-              questions: generatedQuestions.questions,
+              questions: uniqueQuestions,
               source: 'learning_path'
             })
           });
@@ -347,7 +421,8 @@ const QuestionBankDashboard = () => {
             const newSet = {
               id: data.set_id,
               title: generatedQuestions.title,
-              questions: generatedQuestions.questions
+              questions: uniqueQuestions,
+              total_questions: uniqueQuestions.length
             };
             
             setSelectedQuestionSet(newSet);
@@ -422,7 +497,7 @@ const QuestionBankDashboard = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setUploadedSlides(data.slides || []);
+        setUploadedSlides((data.slides || []).map(normalizeUploadedSlide));
       }
     } catch (error) { /* silenced */ }
   };
@@ -532,7 +607,7 @@ const QuestionBankDashboard = () => {
 
       if (response.ok) {
         const data = await response.json();
-        alert(`PDF uploaded successfully! Document type: ${data.analysis.document_type}`);
+        alert(`PDF uploaded successfully! Document type: ${formatDocumentType(data.analysis?.document_type)}`);
         await fetchUploadedDocuments();
         setShowUploadModal(false);
       } else {
@@ -807,7 +882,7 @@ const QuestionBankDashboard = () => {
       });
 
       
-      if (response.success) {
+      if (response.success || response.status === 'success') {
         alert(`Successfully generated ${response.questions?.length || response.question_count || questionCount} questions!`);
         setShowCustomModal(false);
         setCustomContent('');
@@ -815,7 +890,7 @@ const QuestionBankDashboard = () => {
         await fetchQuestionSets();
         setActiveView('question-sets');
       } else {
-        alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
+        alert('Failed to generate questions: ' + (response.error || response.detail || response.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('❌ Error:', error);
@@ -834,10 +909,11 @@ const QuestionBankDashboard = () => {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.questions && data.questions.length > 0) {
+        const questionSet = withDedupedQuestions(data);
+        if (questionSet.questions && questionSet.questions.length > 0) {
         } else {
         }
-        setSelectedQuestionSet(data);
+        setSelectedQuestionSet(questionSet);
         setCurrentQuestion(0);
         setUserAnswers({});
         setShowResults(false);
@@ -873,7 +949,12 @@ const QuestionBankDashboard = () => {
   };
 
   const submitAnswers = async () => {
+    if (loading || !selectedQuestionSet?.id) return;
+
     const timeTaken = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const answersPayload = Object.fromEntries(
+      Object.entries(userAnswers).map(([questionId, answer]) => [String(questionId), answer])
+    );
 
     try {
       setLoading(true);
@@ -886,22 +967,26 @@ const QuestionBankDashboard = () => {
         body: JSON.stringify({
           user_id: userId,
           question_set_id: selectedQuestionSet.id,
-          answers: userAnswers,
+          answers: answersPayload,
           time_taken_seconds: timeTaken
         })
       });
 
+      const data = await response.json().catch(() => ({}));
+
       if (response.ok) {
-        const data = await response.json();
         setResults(data);
         setShowResults(true);
         await fetchQuestionSets();
         if (activeView === 'analytics') {
           await fetchAnalytics();
         }
+      } else {
+        alert(`Failed to submit answers: ${data.detail || data.message || response.statusText || 'Unknown error'}`);
       }
     } catch (error) {
-            alert('Error submitting answers');
+      console.error('Error submitting answers:', error);
+      alert(`Error submitting answers: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -912,16 +997,20 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/qb/delete_question_set/${setId}?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/qb/delete_question_set/${setId}?user_id=${encodeURIComponent(userId)}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
         await fetchQuestionSets();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        alert(`Failed to delete question set: ${data.detail || data.message || response.statusText || 'Unknown error'}`);
       }
     } catch (error) {
-            alert('Error deleting question set');
+      console.error('Error deleting question set:', error);
+      alert(`Error deleting question set: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -985,13 +1074,19 @@ const QuestionBankDashboard = () => {
   };
 
   const toggleSourceSelection = (type, id, title) => {
+    if (id === undefined || id === null || id === '') {
+      alert(`Cannot select ${type || 'source'} because it is missing an ID. Please refresh and try again.`);
+      return;
+    }
+
+    const normalizedId = Number.isNaN(Number(id)) ? id : Number(id);
     const sourceKey = `${type}-${id}`;
     const exists = selectedSources.find(s => `${s.type}-${s.id}` === sourceKey);
     
     if (exists) {
       setSelectedSources(selectedSources.filter(s => `${s.type}-${s.id}` !== sourceKey));
     } else {
-      setSelectedSources([...selectedSources, { type, id, title }]);
+      setSelectedSources([...selectedSources, { type, id: normalizedId, title: title || `${type} ${id}` }]);
     }
   };
 
@@ -1447,7 +1542,7 @@ const QuestionBankDashboard = () => {
                       <FileText size={24} />
                       <div className="qbd-document-info">
                         <h4>{doc.filename}</h4>
-                        <p>{doc.document_type}</p>
+                        <p>{formatDocumentType(doc.document_type)}</p>
                       </div>
                     </div>
                     {doc.analysis && (
@@ -1790,7 +1885,7 @@ const QuestionBankDashboard = () => {
                   </div>
                   <FileText size={24} />
                   <h4>{slide.title}</h4>
-                  <p>{new Date(slide.created_at).toLocaleDateString()}</p>
+                  <p>{formatSourceDate(slide.created_at)}</p>
                 </div>
               );
             })}
@@ -2783,6 +2878,7 @@ const QuestionBankDashboard = () => {
                     </button>
                   ) : (
                     <button 
+                      type="button"
                       className="qbd-btn-primary"
                       onClick={submitAnswers}
                       disabled={loading}

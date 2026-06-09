@@ -7,10 +7,192 @@ from typing import Any, Dict, List, Optional
 import PyPDF2
 from fastapi import HTTPException
 
+from services.ai_json_parser import parse_json_array_response
+
 from .utils import _filter_analysis_by_topics
 
 logger = logging.getLogger(__name__)
 
+VALID_DOCUMENT_TYPES = {
+    "lecture_notes",
+    "assignment",
+    "transaction",
+    "requirements",
+    "invoice",
+    "contract",
+    "report",
+    "research_paper",
+    "syllabus",
+    "manual",
+    "policy",
+    "certificate",
+    "form",
+    "resume",
+    "meeting_minutes",
+    "financial_statement",
+    "exam",
+    "review",
+    "textbook",
+    "questions",
+    "document",
+}
+
+DOCUMENT_TYPE_ALIASES = {
+    "lecture": "lecture_notes",
+    "lecture note": "lecture_notes",
+    "lecture notes": "lecture_notes",
+    "notes": "lecture_notes",
+    "note": "lecture_notes",
+    "slides": "lecture_notes",
+    "presentation": "lecture_notes",
+    "worksheet": "assignment",
+    "homework": "assignment",
+    "problem set": "assignment",
+    "receipt": "transaction",
+    "reciept": "transaction",
+    "transaction receipt": "transaction",
+    "payment receipt": "transaction",
+    "bill": "transaction",
+    "billing": "transaction",
+    "purchase receipt": "transaction",
+    "invoice": "invoice",
+    "tax invoice": "invoice",
+    "requirements document": "requirements",
+    "requirement document": "requirements",
+    "requirement pdf": "requirements",
+    "requirements pdf": "requirements",
+    "software requirements": "requirements",
+    "srs": "requirements",
+    "specification": "requirements",
+    "specifications": "requirements",
+    "brd": "requirements",
+    "contract": "contract",
+    "agreement": "contract",
+    "report": "report",
+    "research": "research_paper",
+    "research paper": "research_paper",
+    "paper": "research_paper",
+    "article": "research_paper",
+    "syllabus": "syllabus",
+    "course outline": "syllabus",
+    "manual": "manual",
+    "guide": "manual",
+    "handbook": "manual",
+    "policy": "policy",
+    "certificate": "certificate",
+    "form": "form",
+    "application form": "form",
+    "resume": "resume",
+    "cv": "resume",
+    "curriculum vitae": "resume",
+    "minutes": "meeting_minutes",
+    "meeting minutes": "meeting_minutes",
+    "bank statement": "financial_statement",
+    "financial statement": "financial_statement",
+    "statement": "financial_statement",
+    "quiz": "exam",
+    "test": "exam",
+    "past paper": "exam",
+    "revision": "review",
+    "study guide": "review",
+    "summary": "review",
+    "book": "textbook",
+    "chapter": "textbook",
+    "question bank": "questions",
+    "practice questions": "questions",
+    "mcq": "questions",
+}
+
+
+TEXT_SPACING_REPAIRS = [
+    (r"\bclub\s+s\b", "clubs"),
+    (r"\bchapter\s+s\b", "chapters"),
+    (r"\bchap\s+ter(s?)\b", r"chapter\1"),
+    (r"\bdocumen\s+t(s?)\b", r"document\1"),
+    (r"\bstandar\s+d(s?)\b", r"standard\1"),
+    (r"\bcriter\s+ia\b", "criteria"),
+    (r"\bappr\s+oval\b", "approval"),
+    (r"\bapprov\s+al\b", "approval"),
+    (r"\bpropos\s+al(s?)\b", r"proposal\1"),
+    (r"\btechn\s+ic(s?)\b", r"technic\1"),
+    (r"\btechnic\b", "technical"),
+    (r"\btechn\s+ical\b", "technical"),
+    (r"\blearn\s+ing\b", "learning"),
+    (r"\binnov\s+ation\b", "innovation"),
+    (r"\bcompet\s+itive\b", "competitive"),
+    (r"\borient\s+ed\b", "oriented"),
+    (r"\bfocus\s+ed\b", "focused"),
+    (r"\brespect\s+ive\b", "respective"),
+    (r"\brequir\s+ement(s?)\b", r"requirement\1"),
+    (r"\btrans\s+action(s?)\b", r"transaction\1"),
+    (r"\bsponsor\s+ship(s?)\b", r"sponsorship\1"),
+    (r"\bqual\s+ity\b", "quality"),
+]
+
+
+def repair_text_spacing_artifacts(text: Any) -> str:
+    cleaned = str(text or "")
+    cleaned = re.sub(r"[\u00a0\u200b\u200c\u200d]", " ", cleaned)
+    cleaned = re.sub(r"\s+([,.;:?!])", r"\1", cleaned)
+    cleaned = re.sub(r"([([{])\s+", r"\1", cleaned)
+    cleaned = re.sub(r"\s+([)\]}])", r"\1", cleaned)
+
+    for pattern, replacement in TEXT_SPACING_REPAIRS:
+        cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE)
+
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+def _normalize_document_type(document_type: Any) -> str:
+    normalized = str(document_type or "").strip().lower().replace("-", "_").replace(" ", "_")
+    normalized = DOCUMENT_TYPE_ALIASES.get(normalized.replace("_", " "), normalized)
+    return normalized if normalized in VALID_DOCUMENT_TYPES else ""
+
+
+def infer_document_type(text: str = "", filename: str = "") -> str:
+    content = f"{filename}\n{text[:5000]}".lower()
+
+    checks = [
+        ("transaction", [(r"\brecei[p]?t\b", 4), (r"\btransaction\b", 4), (r"\bpayment\b", 3), (r"\bpaid\b", 3), (r"\bmerchant\b", 3), (r"\bsubtotal\b", 2), (r"\btotal\b", 1), (r"\btax\b", 1)]),
+        ("invoice", [(r"\binvoice\b", 5), (r"\binvoice\s*(no|number|#)\b", 4), (r"\bbill\s+to\b", 4), (r"\bamount\s+due\b", 4), (r"\bdue\s+date\b", 2)]),
+        ("requirements", [(r"\brequirements?\b", 5), (r"\bsoftware\s+requirements?\b", 5), (r"\bsrs\b", 5), (r"\bfunctional\s+requirements?\b", 4), (r"\bnon[-\s]?functional\s+requirements?\b", 4), (r"\bacceptance\s+criteria\b", 3), (r"\buser\s+stor(y|ies)\b", 3), (r"\bscope\b", 2)]),
+        ("contract", [(r"\bagreement\b", 4), (r"\bcontract\b", 4), (r"\bterms\s+and\s+conditions\b", 3), (r"\bparty\b", 2), (r"\bsignature\b", 2)]),
+        ("financial_statement", [(r"\bbank\s+statement\b", 5), (r"\baccount\s+statement\b", 4), (r"\bbalance\s+sheet\b", 4), (r"\bprofit\s+and\s+loss\b", 4), (r"\bstatement\s+period\b", 3)]),
+        ("resume", [(r"\bresume\b", 5), (r"\bcurriculum\s+vitae\b", 5), (r"\bwork\s+experience\b", 3), (r"\beducation\b", 1), (r"\bskills\b", 1)]),
+        ("certificate", [(r"\bcertificate\b", 5), (r"\bcertifies?\b", 4), (r"\bawarded\s+to\b", 4)]),
+        ("form", [(r"\bapplication\s+form\b", 5), (r"\bregistration\s+form\b", 5), (r"\bform\b", 3), (r"\bfill\s+out\b", 2)]),
+        ("policy", [(r"\bpolicy\b", 5), (r"\bprocedure\b", 3), (r"\bguidelines?\b", 2), (r"\bcompliance\b", 2)]),
+        ("meeting_minutes", [(r"\bmeeting\s+minutes\b", 5), (r"\bminutes\s+of\s+meeting\b", 5), (r"\battendees\b", 3), (r"\baction\s+items?\b", 3)]),
+        ("manual", [(r"\bmanual\b", 5), (r"\bhandbook\b", 4), (r"\binstallation\b", 3), (r"\btroubleshooting\b", 3), (r"\binstructions\b", 2)]),
+        ("syllabus", [(r"\bsyllabus\b", 5), (r"\bcourse\s+outline\b", 5), (r"\blearning\s+outcomes\b", 3), (r"\bgrading\b", 3), (r"\bsemester\b", 2)]),
+        ("research_paper", [(r"\babstract\b", 3), (r"\bintroduction\b", 1), (r"\bmethodology\b", 3), (r"\breferences\b", 2), (r"\bdoi\b", 4)]),
+        ("questions", [(r"\bquestion\s*\d+", 4), (r"\bmcq\b", 4), (r"\bchoose\s+the\s+correct", 4), (r"\banswer\s+key\b", 3), (r"\bpractice\s+questions?\b", 3)]),
+        ("exam", [(r"\bexam\b", 4), (r"\btest\b", 3), (r"\bquiz\b", 3), (r"\bmarks?\b", 2), (r"\btime\s+allowed\b", 3), (r"\binstructions\s+to\s+candidates\b", 4)]),
+        ("assignment", [(r"\bassignment\b", 4), (r"\bhomework\b", 4), (r"\bworksheet\b", 3), (r"\bproblem\s+set\b", 4), (r"\bsubmit\b", 2), (r"\bdue\s+date\b", 2)]),
+        ("textbook", [(r"\bchapter\s+\d+", 4), (r"\btable\s+of\s+contents\b", 4), (r"\bindex\b", 1), (r"\btextbook\b", 4), (r"\bpublisher\b", 2)]),
+        ("review", [(r"\breview\b", 3), (r"\brevision\b", 4), (r"\bstudy\s+guide\b", 4), (r"\bsummary\b", 2), (r"\bkey\s+points\b", 2)]),
+        ("lecture_notes", [(r"\blecture\b", 4), (r"\bnotes?\b", 2), (r"\bslides?\b", 3), (r"\blearning\s+objectives\b", 2), (r"\bkey\s+concepts\b", 2)]),
+    ]
+
+    best_type = "document"
+    best_score = 0
+    for document_type, patterns in checks:
+        score = sum(weight for pattern, weight in patterns if re.search(pattern, content))
+        if score > best_score:
+            best_type = document_type
+            best_score = score
+
+    return best_type if best_score >= 2 else "document"
+
+
+def resolve_document_type(document_type: Any, text: str = "", filename: str = "") -> str:
+    normalized = _normalize_document_type(document_type)
+    inferred = infer_document_type(text, filename)
+
+    if inferred not in {"document", "lecture_notes"} and normalized in {"", "document", "lecture_notes"}:
+        return inferred
+
+    return normalized or inferred
 
 class DifficultyClassifierAgent:
     def __init__(self, unified_ai):
@@ -196,7 +378,7 @@ class PDFProcessorAgent:
                 detail=f"Unable to extract text from PDF. The file may be scanned, encrypted, or corrupted. Error: {error_msg[:150]}"
             )
 
-    async def analyze_document(self, text: str) -> Dict[str, Any]:
+    async def analyze_document(self, text: str, filename: str = "") -> Dict[str, Any]:
         prompt = f"""Analyze this document and extract key information:
 
 {text[:8000]}
@@ -205,7 +387,7 @@ Provide a JSON response with:
 {{
     "main_topics": ["topic1", "topic2", ...],
     "key_concepts": ["concept1", "concept2", ...],
-    "document_type": "lecture_notes|assignment|exam|review|textbook|questions",
+    "document_type": "concise snake_case type such as lecture_notes, transaction, invoice, requirements, contract, report, research_paper, syllabus, manual, policy, certificate, form, resume, meeting_minutes, financial_statement, assignment, exam, review, textbook, questions, or document",
     "difficulty_level": "introductory|intermediate|advanced",
     "subject_area": "detected subject"
 }}
@@ -230,14 +412,17 @@ Return ONLY valid JSON, no markdown formatting."""
                 logger.info("No JSON match found, attempting to parse entire content")
                 result = json.loads(content)
 
-            logger.info(f"Document analysis successful: {result.get('document_type', 'unknown')}")
+            result["document_type"] = (
+                resolve_document_type(result.get("document_type"), text, filename)
+            )
+            logger.info(f"Document analysis successful: {result.get('document_type', 'lecture_notes')}")
             return result
         except json.JSONDecodeError as je:
             logger.error(f"JSON decode error in document analysis: {je}, content was: {content[:500]}")
             return {
                 "main_topics": ["General"],
                 "key_concepts": [],
-                "document_type": "unknown",
+                "document_type": infer_document_type(text, filename),
                 "difficulty_level": "intermediate",
                 "subject_area": "Unknown"
             }
@@ -246,7 +431,7 @@ Return ONLY valid JSON, no markdown formatting."""
             return {
                 "main_topics": ["General"],
                 "key_concepts": [],
-                "document_type": "unknown",
+                "document_type": infer_document_type(text, filename),
                 "difficulty_level": "intermediate",
                 "subject_area": "Unknown"
             }
@@ -960,6 +1145,21 @@ class QuestionGeneratorAgent:
 
         questions = await self._agent_validate_questions(questions, content, question_count)
 
+        if not questions:
+            logger.warning("Blueprint question generation returned no usable questions; trying direct generation fallback")
+            fallback_questions = await self._generate_questions_direct(
+                content, question_count, question_types, difficulty_distribution,
+                topics, custom_prompt, reference_content
+            )
+            questions = await self._agent_validate_questions(fallback_questions, content, question_count)
+
+        if not questions:
+            logger.warning("AI question generation returned no usable questions; using source-based fallback")
+            basic_questions = self._generate_source_based_fallback_questions(
+                content, question_count, question_types, difficulty_distribution, topics
+            )
+            questions = await self._agent_validate_questions(basic_questions, content, question_count)
+
         return questions
 
     async def _agent_analyze_content(self, content: str) -> Dict[str, Any]:
@@ -1284,6 +1484,400 @@ CRITICAL RULES:
             logger.error(f"Blueprint generation failed: {e}")
             return []
 
+    async def _generate_questions_direct(
+        self,
+        content: str,
+        question_count: int,
+        question_types: List[str],
+        difficulty_distribution: Dict[str, int],
+        topics: List[str],
+        custom_prompt: str,
+        reference_content: str
+    ) -> List[Dict[str, Any]]:
+        allowed_types = question_types or ["multiple_choice", "true_false", "short_answer"]
+        difficulty_lines = "\n".join(
+            f"- {level}: {count}" for level, count in (difficulty_distribution or {}).items()
+        ) or "- medium: all"
+
+        topics_section = ""
+        if topics:
+            topics_section = f"\nFocus topics: {', '.join(topics)}\n"
+
+        custom_section = ""
+        if custom_prompt:
+            custom_section = f"\nAdditional instructions:\n{custom_prompt}\n"
+
+        reference_section = ""
+        if reference_content:
+            reference_section = f"\nReference style/questions:\n{reference_content[:2000]}\n"
+
+        prompt = f"""Generate exactly {question_count} educational questions from the source content.
+
+Source content:
+{content[:12000]}
+{custom_section}{reference_section}{topics_section}
+Allowed question types: {', '.join(allowed_types)}
+Difficulty distribution:
+{difficulty_lines}
+
+Return ONLY a valid JSON array. Each item must use this schema:
+{{
+  "question_text": "Clear question",
+  "question_type": "multiple_choice|true_false|short_answer|fill_blank",
+  "difficulty": "easy|medium|hard",
+  "topic": "Specific topic from the source",
+  "correct_answer": "Correct answer",
+  "options": ["Full answer option", "Full answer option", "Full answer option", "Full answer option"],
+  "explanation": "Short explanation grounded in the source",
+  "points": 1
+}}
+
+Rules:
+- Every question must be answerable from the source content.
+- Ask about concepts, rules, processes, facts, or applications from the content itself.
+- Do not mention PDF filenames, "selected document", "source content", "according to the document", or document metadata.
+- Do not ask generic matching questions such as "which option best matches this idea".
+- Use only the allowed question types.
+- For multiple_choice, include 4 full-text options and include the correct answer in options.
+- For true_false, use options ["True", "False"].
+- For short_answer and fill_blank, options may be an empty array.
+- Do not include markdown, comments, or text outside the JSON array."""
+
+        try:
+            response = self.unified_ai.generate(prompt, max_tokens=5000, temperature=0.35)
+            questions = self._parse_questions_json(response)
+            if questions:
+                logger.info(f"Direct fallback generated {len(questions)} questions")
+            return questions
+        except Exception as e:
+            logger.error(f"Direct question generation fallback failed: {e}", exc_info=True)
+            return []
+
+    def _generate_source_based_fallback_questions(
+        self,
+        content: str,
+        question_count: int,
+        question_types: List[str],
+        difficulty_distribution: Dict[str, int],
+        topics: List[str],
+    ) -> List[Dict[str, Any]]:
+        clean_content = self._clean_source_content_for_questions(content)
+        if not clean_content:
+            return []
+
+        allowed_types = [
+            q_type for q_type in (question_types or ["multiple_choice", "true_false", "short_answer"])
+            if q_type in {"multiple_choice", "true_false", "short_answer", "fill_blank"}
+        ] or ["multiple_choice", "true_false", "short_answer"]
+
+        raw_sentences = re.split(r"(?<=[.!?])\s+", clean_content)
+        sentences = []
+        seen_sentences = set()
+        for sentence in raw_sentences:
+            sentence = self._clean_question_fragment(sentence)
+            if self._is_metadata_sentence(sentence):
+                continue
+            if len(sentence) < 45 or len(sentence) > 260:
+                continue
+            if not re.search(r"[A-Za-z]", sentence):
+                continue
+            key = sentence.lower()
+            if key in seen_sentences:
+                continue
+            seen_sentences.add(key)
+            sentences.append(sentence)
+            if len(sentences) >= max(question_count * 3, 12):
+                break
+
+        if not sentences:
+            fallback = self._clean_question_fragment(clean_content[:220])
+            sentences = [fallback] if fallback else []
+
+        terms = self._extract_source_terms(clean_content)
+        if not terms:
+            terms = ["the source material", "the selected document", "the main topic", "the described concept"]
+
+        difficulties = self._expand_difficulty_sequence(question_count, difficulty_distribution)
+        questions = []
+
+        for i in range(question_count):
+            sentence = sentences[i % len(sentences)]
+            q_type = allowed_types[i % len(allowed_types)]
+            difficulty = difficulties[i] if i < len(difficulties) else "medium"
+            topic = (topics[i % len(topics)] if topics else self._infer_topic_from_sentence(sentence, terms))
+            term = self._pick_sentence_term(sentence, terms)
+            clue = self._shorten_sentence(sentence, 150)
+            question_focus = self._make_question_focus(sentence, term)
+
+            base = {
+                "difficulty": difficulty,
+                "topic": topic or "General",
+                "explanation": f"The source states: {sentence}",
+                "points": 1,
+                "content_reference": sentence,
+            }
+
+            if q_type == "true_false":
+                questions.append({
+                    **base,
+                    "question_text": f"True or False: {question_focus}",
+                    "question_type": "true_false",
+                    "correct_answer": "True",
+                    "options": ["True", "False"],
+                })
+            elif q_type == "short_answer":
+                question_text, correct_answer = self._make_short_answer_question(sentence, term)
+                questions.append({
+                    **base,
+                    "question_text": question_text,
+                    "question_type": "short_answer",
+                    "correct_answer": correct_answer,
+                    "options": [],
+                })
+            elif q_type == "fill_blank":
+                blanked = self._blank_term_in_sentence(sentence, term)
+                questions.append({
+                    **base,
+                    "question_text": blanked,
+                    "question_type": "fill_blank",
+                    "correct_answer": term,
+                    "options": [],
+                })
+            else:
+                question_text, correct_answer = self._make_multiple_choice_question(sentence, term)
+                options = self._build_fallback_options(correct_answer, terms)
+                questions.append({
+                    **base,
+                    "question_text": question_text,
+                    "question_type": "multiple_choice",
+                    "correct_answer": correct_answer,
+                    "options": options,
+                })
+
+        logger.info(f"Source-based fallback created {len(questions)} questions")
+        return questions
+
+    def _clean_source_content_for_questions(self, content: str) -> str:
+        text = repair_text_spacing_artifacts(content)
+        text = re.sub(r"={2,}\s*Document:\s*[^=\n]+={2,}", " ", text, flags=re.IGNORECASE)
+        text = re.sub(r"\b[\w.-]+\.pdf\b", " ", text, flags=re.IGNORECASE)
+        text = re.sub(r"(?m)^\s*(?:[•●○◦▪▫■□\-–—*]|\d+[\).]|[A-Za-z][\).])\s+", ". ", text)
+        text = re.sub(r"\s*(?:[•●○◦▪▫■□])\s+", ". ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    def _clean_question_fragment(self, text: str) -> str:
+        fragment = repair_text_spacing_artifacts(text)
+        fragment = re.sub(r"^(?:[•●○◦▪▫■□\-–—*]|\d+[\).]|[A-Za-z][\).])\s+", "", fragment)
+        fragment = fragment.strip(" -–—•●○◦▪▫■□:\t\r\n")
+        return fragment
+
+    def _is_metadata_sentence(self, sentence: str) -> bool:
+        lowered = sentence.lower()
+        metadata_patterns = [
+            r"^document\b",
+            r"\.pdf\b",
+            r"={2,}",
+            r"selected document",
+            r"source content",
+            r"according to the document",
+        ]
+        return any(re.search(pattern, lowered) for pattern in metadata_patterns)
+
+    def _make_question_focus(self, sentence: str, term: str) -> str:
+        focus = self._shorten_sentence(self._clean_question_fragment(sentence), 150)
+        focus = re.sub(r"^(this document|the document|document)\s+(outlines|describes|explains|covers)\s+", "", focus, flags=re.IGNORECASE)
+        return focus.rstrip(".?!")
+
+    def _make_short_answer_question(self, sentence: str, term: str) -> tuple[str, str]:
+        clean = self._make_question_focus(sentence, term)
+        patterns = [
+            (r"^(.+?)\s+are\s+expected\s+from\s+(.+)$", "Which {subject} are expected from {target}?"),
+            (r"^(.+?)\s+is\s+expected\s+from\s+(.+)$", "Which {subject} is expected from {target}?"),
+            (r"^(.+?)\s+must\s+(.+)$", "What must {subject} {action}?"),
+            (r"^(.+?)\s+should\s+(.+)$", "What should {subject} {action}?"),
+        ]
+
+        for pattern, template in patterns:
+            match = re.match(pattern, clean, flags=re.IGNORECASE)
+            if match:
+                first = self._normalize_answer_phrase(match.group(1).strip())
+                second = match.group(2).strip() if len(match.groups()) > 1 else ""
+                if "{target}" in template:
+                    return self._normalize_question_text(template.format(subject=first, target=second)), self._shorten_sentence(first, 120)
+                answer = self._extract_answer_phrase(second)
+                question_action = self._remove_answer_from_action(second, answer)
+                return self._normalize_question_text(template.format(subject=first, action=question_action or second)), answer
+
+        if term and term.lower() not in {"the source material", "the selected document", "the main topic", "the described concept"}:
+            return self._normalize_question_text(f"What does the material say about {term}?"), self._shorten_sentence(clean, 120)
+
+        return self._normalize_question_text(f"What is the key takeaway from this point: {clean}?"), self._shorten_sentence(clean, 120)
+
+    def _make_multiple_choice_question(self, sentence: str, term: str) -> str:
+        clean = self._make_question_focus(sentence, term)
+
+        patterns = [
+            (r"^(.+?)\s+must\s+(.+)$", "What must {subject} {action}?"),
+            (r"^(.+?)\s+should\s+(.+)$", "What should {subject} {action}?"),
+            (r"^(.+?)\s+are\s+required\s+to\s+(.+)$", "What are {subject} required to {action}?"),
+            (r"^(.+?)\s+is\s+required\s+to\s+(.+)$", "What is {subject} required to {action}?"),
+            (r"^(.+?)\s+include[s]?\s+(.+)$", "What does {subject} include?"),
+            (r"^(.+?)\s+outline[s]?\s+(.+)$", "What does {subject} outline?"),
+            (r"^(.+?)\s+describe[s]?\s+(.+)$", "What does {subject} describe?"),
+            (r"^(.+?)\s+define[s]?\s+(.+)$", "What does {subject} define?"),
+        ]
+
+        for pattern, template in patterns:
+            match = re.match(pattern, clean, flags=re.IGNORECASE)
+            if match:
+                subject = match.group(1).strip()
+                action = match.group(2).strip() if len(match.groups()) > 1 else ""
+                subject = self._lower_initial_word(subject)
+                answer = self._extract_answer_phrase(action)
+                question_action = self._remove_answer_from_action(action, answer)
+                question = template.format(subject=subject, action=question_action or action)
+                return self._normalize_question_text(question), answer
+
+        if term and term.lower() not in {"the source material", "the selected document", "the main topic", "the described concept"}:
+            return self._normalize_question_text(f"What is stated about {term}?"), self._shorten_sentence(clean, 110)
+
+        return self._normalize_question_text(f"What is the main point of this statement: {clean}?"), self._shorten_sentence(clean, 110)
+
+    def _extract_answer_phrase(self, action: str) -> str:
+        action = action.strip().rstrip(".?!")
+        cleanup_patterns = [
+            r"^(submit|collect|provide|include|prepare|complete|review|follow|use|maintain|ensure)\s+",
+        ]
+        answer = action
+        for pattern in cleanup_patterns:
+            answer = re.sub(pattern, "", answer, count=1, flags=re.IGNORECASE)
+        answer = re.split(
+            r"\s+(?:(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+\w+\s+)?(?:before|after|during|when|where|because|to ensure|in order to)\b",
+            answer,
+            maxsplit=1,
+            flags=re.IGNORECASE
+        )[0]
+        answer = answer.strip(" ,;:")
+        return self._normalize_answer_phrase(self._shorten_sentence(answer or action, 120))
+
+    def _remove_answer_from_action(self, action: str, answer: str) -> str:
+        if not action or not answer:
+            return action
+        remaining = re.sub(re.escape(answer), "", action, count=1, flags=re.IGNORECASE).strip(" ,;:")
+        if remaining and re.match(r"^(before|after|during|when|where)\b", remaining, flags=re.IGNORECASE):
+            return remaining
+        first_word = action.split(" ", 1)[0] if action.split() else ""
+        return first_word if first_word else action
+
+    def _normalize_question_text(self, question: str) -> str:
+        question = repair_text_spacing_artifacts(question)
+        question = question.rstrip(".?!")
+        return f"{question}?"
+
+    def _lower_initial_word(self, text: str) -> str:
+        if not text or text[:2].isupper():
+            return text
+        return text[0].lower() + text[1:]
+
+    def _normalize_answer_phrase(self, text: str) -> str:
+        phrase = self._clean_question_fragment(text).strip(" .?!")
+        if not phrase or phrase[:2].isupper():
+            return phrase
+        return phrase[0].lower() + phrase[1:]
+
+    def _extract_source_terms(self, content: str) -> List[str]:
+        stop_words = {
+            "about", "above", "after", "again", "against", "also", "because", "before",
+            "between", "could", "during", "first", "from", "have", "into", "more",
+            "other", "should", "such", "than", "that", "their", "there", "these",
+            "this", "through", "under", "using", "were", "when", "where", "which",
+            "while", "with", "would", "document", "source", "content", "section"
+        }
+
+        candidates = []
+        candidates.extend(re.findall(r"\b[A-Z][A-Za-z0-9]*(?:\s+[A-Z][A-Za-z0-9]*){0,3}\b", content))
+        candidates.extend(re.findall(r"\b[A-Za-z][A-Za-z0-9-]{6,}\b", content))
+
+        scored = {}
+        for candidate in candidates:
+            term = re.sub(r"\s+", " ", candidate).strip(" .,:;()[]{}")
+            if len(term) < 4 or len(term) > 70:
+                continue
+            if term.lower() in stop_words:
+                continue
+            if term.isdigit():
+                continue
+            key = term.lower()
+            scored[key] = (scored.get(key, (term, 0))[0], scored.get(key, (term, 0))[1] + 1)
+
+        ordered = sorted(scored.values(), key=lambda item: (-item[1], len(item[0])))
+        return [term for term, _ in ordered[:40]]
+
+    def _expand_difficulty_sequence(
+        self, question_count: int, difficulty_distribution: Dict[str, int]
+    ) -> List[str]:
+        distribution = difficulty_distribution or {"easy": 3, "medium": 5, "hard": 2}
+        total = sum(max(0, int(v or 0)) for v in distribution.values())
+        if total <= 0:
+            return ["medium"] * question_count
+
+        sequence = []
+        for level in ("easy", "medium", "hard"):
+            count = round(question_count * max(0, int(distribution.get(level, 0))) / total)
+            sequence.extend([level] * count)
+
+        while len(sequence) < question_count:
+            sequence.append("medium")
+        return sequence[:question_count]
+
+    def _pick_sentence_term(self, sentence: str, terms: List[str]) -> str:
+        sentence_lower = sentence.lower()
+        for term in terms:
+            if term.lower() in sentence_lower:
+                return term
+        return terms[0] if terms else "the main concept"
+
+    def _infer_topic_from_sentence(self, sentence: str, terms: List[str]) -> str:
+        term = self._pick_sentence_term(sentence, terms)
+        return term[:60] if term else "General"
+
+    def _shorten_sentence(self, sentence: str, max_len: int) -> str:
+        sentence = sentence.strip()
+        if len(sentence) <= max_len:
+            return sentence
+        shortened = sentence[:max_len].rsplit(" ", 1)[0].strip()
+        return f"{shortened}..."
+
+    def _blank_term_in_sentence(self, sentence: str, term: str) -> str:
+        if term and term.lower() in sentence.lower():
+            return re.sub(re.escape(term), "_____", sentence, count=1, flags=re.IGNORECASE)
+        return f"_____ is connected to this source statement: {self._shorten_sentence(sentence, 140)}"
+
+    def _build_fallback_options(self, correct_answer: str, terms: List[str]) -> List[str]:
+        options = [correct_answer]
+        for term in terms:
+            if term.lower() == correct_answer.lower():
+                continue
+            if term in options:
+                continue
+            options.append(term)
+            if len(options) == 4:
+                break
+
+        generic_options = [
+            "A different concept from the document",
+            "An unrelated supporting detail",
+            "A background example mentioned elsewhere",
+        ]
+        for option in generic_options:
+            if len(options) == 4:
+                break
+            if option not in options:
+                options.append(option)
+
+        return options[:4]
+
     async def _agent_validate_questions(
         self, questions: List[Dict], content: str, target_count: int
     ) -> List[Dict]:
@@ -1305,11 +1899,18 @@ CRITICAL RULES:
             q.setdefault('explanation', '')
             q.setdefault('points', 1)
 
+            q['question_text'] = repair_text_spacing_artifacts(q.get('question_text'))
+            q['correct_answer'] = repair_text_spacing_artifacts(q.get('correct_answer'))
+            q['topic'] = repair_text_spacing_artifacts(q.get('topic') or 'General') or 'General'
+            q['explanation'] = repair_text_spacing_artifacts(q.get('explanation'))
+
             if q['difficulty'] not in ['easy', 'medium', 'hard']:
                 q['difficulty'] = 'medium'
 
             if not isinstance(q['options'], list):
                 q['options'] = []
+            else:
+                q['options'] = [repair_text_spacing_artifacts(option) for option in q['options']]
 
             letter_only_options = {'a', 'b', 'c', 'd', 'A', 'B', 'C', 'D'}
             if q['options']:
@@ -1352,6 +1953,10 @@ CRITICAL RULES:
         return validated
 
     def _parse_questions_json(self, content: str) -> List[Dict[str, Any]]:
+
+        parsed = parse_json_array_response(content)
+        if parsed:
+            return parsed
 
         try:
             return json.loads(content)

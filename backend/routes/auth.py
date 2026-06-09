@@ -52,6 +52,46 @@ _auth_attempts: dict = defaultdict(list)
 _auth_lock = threading.Lock()
 _AUTH_DICT_MAX = 5000
 
+def _as_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+def _format_away_duration(previous_login: datetime, now: datetime) -> tuple[int, str]:
+    elapsed_seconds = max(0, (now - previous_login).total_seconds())
+    if elapsed_seconds < 24 * 60 * 60:
+        return 0, ""
+    days = max(1, int(elapsed_seconds // (24 * 60 * 60)))
+    label = "1 day" if days == 1 else f"{days} days"
+    return days, label
+
+def _record_login_and_welcome_notification(db: Session, user: models.User) -> None:
+    now = datetime.now(timezone.utc)
+    previous_login = _as_utc(user.last_login)
+
+    if previous_login:
+        away_days, away_label = _format_away_duration(previous_login, now)
+        marker = f"[login_return:{now.date().isoformat()}]"
+
+        if away_days >= 1:
+            existing = db.query(models.Notification).filter(
+                models.Notification.user_id == user.id,
+                models.Notification.notification_type == "login_return",
+                models.Notification.message.contains(marker),
+            ).first()
+
+            if not existing:
+                db.add(models.Notification(
+                    user_id=user.id,
+                    title="Welcome Back!",
+                    message=f"You were away for {away_label}. Ready to jump back in? {marker}",
+                    notification_type="login_return",
+                ))
+
+    user.last_login = now
+
 def _sync_google_profile_fields(user: models.User, *, first_name: Optional[str] = None, last_name: Optional[str] = None, picture_url: Optional[str] = None) -> bool:
     changed = False
     if first_name and not user.first_name:
@@ -632,7 +672,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
-    user.last_login = datetime.now(timezone.utc)
+    _record_login_and_welcome_notification(db, user)
     db.commit()
 
     access_token = create_access_token(data={"sub": user.username})
@@ -645,7 +685,7 @@ async def login_form(request: Request, username: str = Form(...), password: str 
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
 
-    user.last_login = datetime.now(timezone.utc)
+    _record_login_and_welcome_notification(db, user)
     db.commit()
 
     access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
@@ -859,7 +899,7 @@ async def google_auth(request: Request, auth_data: GoogleAuth, db: Session = Dep
                 last_name=user_info.get('family_name', ''),
                 picture_url=user_info.get('picture', ''),
             )
-            user.last_login = datetime.now(timezone.utc)
+            _record_login_and_welcome_notification(db, user)
             db.commit()
 
         access_token = create_access_token(data={"sub": user.username})
@@ -968,7 +1008,7 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                     last_name=' '.join(names[1:]) if len(names) > 1 else None,
                     picture_url=photo_url,
                 )
-                user.last_login = datetime.now(timezone.utc)
+                _record_login_and_welcome_notification(db, user)
                 db.commit()
 
             access_token = create_access_token(

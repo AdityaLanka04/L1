@@ -138,62 +138,6 @@ async def get_notifications(
         except Exception as e:
             logger.error(f"Error generating reminder notifications: {str(e)}", exc_info=True)
 
-        try:
-            inactivity_hours = _parse_hours_list(os.getenv("INACTIVITY_NOTIFICATION_HOURS", "72,168"))
-            if inactivity_hours:
-                activity_candidates = []
-
-                user_stats = db.query(models.UserStats).filter(
-                    models.UserStats.user_id == user.id
-                ).first()
-                if user_stats and user_stats.last_activity:
-                    activity_candidates.append(_normalize_dt(user_stats.last_activity))
-
-                gam_stats = db.query(models.UserGamificationStats).filter(
-                    models.UserGamificationStats.user_id == user.id
-                ).first()
-                if gam_stats and gam_stats.last_activity_date:
-                    activity_candidates.append(_normalize_dt(gam_stats.last_activity_date))
-
-                if user.created_at:
-                    activity_candidates.append(_normalize_dt(user.created_at))
-
-                last_activity = max([dt for dt in activity_candidates if dt], default=None)
-                if last_activity:
-                    hours_offline = (now - last_activity).total_seconds() / 3600
-                    threshold_met = max([h for h in inactivity_hours if hours_offline >= h], default=None)
-                    if threshold_met is not None:
-                        existing_inactivity = db.query(models.Notification).filter(
-                            models.Notification.user_id == user.id,
-                            models.Notification.notification_type == "inactivity",
-                            models.Notification.created_at >= last_activity
-                        ).first()
-
-                        if not existing_inactivity:
-                            overdue_count = db.query(models.Reminder).filter(
-                                models.Reminder.user_id == user.id,
-                                models.Reminder.is_completed == False,
-                                models.Reminder.reminder_date != None,
-                                models.Reminder.reminder_date <= now
-                            ).count()
-
-                            offline_duration = _format_offline_duration(hours_offline)
-                            message = f"You've been away for {offline_duration}. Ready to jump back in?"
-                            if overdue_count > 0:
-                                suffix = "reminders" if overdue_count != 1 else "reminder"
-                                message += f" You also have {overdue_count} overdue {suffix}."
-
-                            inactivity_notification = models.Notification(
-                                user_id=user.id,
-                                title="Welcome Back!",
-                                message=message,
-                                notification_type="inactivity"
-                            )
-                            db.add(inactivity_notification)
-                            db.commit()
-        except Exception as e:
-            logger.error(f"Error generating inactivity notifications: {str(e)}", exc_info=True)
-
         notifications = db.query(models.Notification).filter(
             models.Notification.user_id == user.id
         ).order_by(models.Notification.created_at.desc()).all()

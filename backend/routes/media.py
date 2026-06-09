@@ -704,7 +704,9 @@ async def upload_slides(
                     page_count = len(pdf_reader.pages)
 
                     for page in pdf_reader.pages[:10]:
-                        extracted_text += page.extract_text() + "\n"
+                        page_text = page.extract_text() or ""
+                        if page_text.strip():
+                            extracted_text += page_text + "\n"
 
                     extracted_text = extracted_text[:10000]
                 except Exception as e:
@@ -781,10 +783,12 @@ def get_uploaded_slides(
             "slides": [
                 {
                     "id": slide.id,
+                    "title": slide.original_filename,
                     "filename": slide.original_filename,
                     "file_size": slide.file_size,
                     "file_type": slide.file_type,
                     "page_count": slide.page_count,
+                    "created_at": slide.uploaded_at.isoformat() + "Z",
                     "uploaded_at": slide.uploaded_at.isoformat() + "Z",
                     "preview_url": slide.preview_url,
                     "processing_status": slide.processing_status,
