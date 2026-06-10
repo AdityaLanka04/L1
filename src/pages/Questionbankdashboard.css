@@ -135,11 +135,6 @@
   text-transform: lowercase;
 }
 
-.qbd-rb-tagline span {
-  color: var(--accent);
-  margin-left: 4px;
-  font-weight: 500;
-}
 
 .qbd-rb-topbar-right {
   display: flex;

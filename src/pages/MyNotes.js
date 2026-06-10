@@ -556,7 +556,7 @@ const MyNotes = () => {
         <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
       </svg>
       <div className="mn-qb-topbar">
-        <div className="mn-qb-tagline">accelerate <span>your notes</span></div>
+        <div className="mn-qb-tagline">Learning Unified</div>
         <div className="mn-qb-topbar-right">
           <button className="mn-qb-top-btn" onClick={() => navigate('/notes')} type="button">
             Notes Hub

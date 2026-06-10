@@ -8451,11 +8451,6 @@
   text-transform: lowercase;
 }
 
-.flashcards-page .fc-qb-tagline span {
-  color: var(--accent);
-  margin-left: 4px;
-  font-weight: 500;
-}
 
 .flashcards-page .fc-qb-topbar-right {
   display: flex;
@@ -8504,11 +8499,9 @@
 }
 
 .flashcards-page .fc-qb-shell {
-  --fc-qb-line: color-mix(in srgb, var(--accent) 22%, transparent);
+  --fc-qb-line: color-mix(in srgb, var(--accent) 18%, transparent);
   --fc-qb-line-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --fc-qb-line-strong: color-mix(in srgb, var(--accent) 45%, transparent);
-  --fc-qb-panel: #0e0d0b;
-  --fc-qb-panel-2: #131210;
 
   position: relative;
   z-index: 2;
@@ -8531,15 +8524,13 @@
   height: 100%;
   border: 1px solid var(--fc-qb-line);
   border-radius: 18px;
-  background: color-mix(in srgb, var(--fc-qb-panel) 96%, transparent);
+  background: var(--bg-secondary);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 14px;
   overflow-y: auto;
   overflow-x: hidden;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent) transparent;
 }
@@ -8694,7 +8685,7 @@
   place-items: center;
   border-radius: 8px;
   border: 1px solid var(--fc-qb-line);
-  background: color-mix(in srgb, var(--fc-qb-panel-2) 90%, transparent);
+  background: color-mix(in srgb, var(--bg-primary) 90%, transparent);
   color: var(--text-secondary);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
@@ -8712,10 +8703,10 @@
 }
 
 .flashcards-page .fc-qb-side-block {
-  border: 1px solid var(--fc-qb-line-soft);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--fc-qb-panel-2) 34%, transparent);
-  padding: 11px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 2px;
   flex-shrink: 0;
 }
 
@@ -8911,7 +8902,6 @@
   background-image: none !important;
 }
 
-[data-theme-mode="light"] .flashcards-page .fc-qb-sidebar,
 [data-theme-mode="light"] .flashcards-page .fc-qb-main .fc-content {
   background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
 }

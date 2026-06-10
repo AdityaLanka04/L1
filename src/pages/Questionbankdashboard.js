@@ -2984,7 +2984,7 @@ const QuestionBankDashboard = () => {
       </div>
 
       <div className="qbd-rb-topbar">
-        <div className="qbd-rb-tagline">accelerate <span>your learning</span></div>
+        <div className="qbd-rb-tagline">Learning Unified</div>
         <div className="qbd-rb-topbar-right">
           <button className="qbd-rb-top-btn" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard

@@ -29,8 +29,10 @@
 .ts-panel {
   position: absolute;
   top: calc(100% + 12px);
-  left: 0;
+  right: 0;
+  left: auto;
   width: min(420px, 92vw);
+  max-width: calc(100vw - 24px);
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border) !important;
   background: linear-gradient(
@@ -47,7 +49,7 @@
   transition: width 0.3s ease;
   color: var(--text-primary) !important;
   backdrop-filter: blur(16px) !important;
-  transform-origin: top left;
+  transform-origin: top right;
 }
 
 .ts-panel,
@@ -579,7 +581,7 @@
 
 @media (max-width: 520px) {
   .ts-panel {
-    right: -8px;
+    right: 0;
   }
 
   .ts-grid {
@@ -604,9 +606,10 @@
   .ts-panel,
   .ts-panel.ts-panel-wide {
     width: calc(100vw - 32px);
-    left: -100px;
+    right: 0;
+    left: auto;
   }
-  
+
   .ts-pickers-row {
     grid-template-columns: 1fr;
   }

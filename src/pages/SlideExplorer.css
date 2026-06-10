@@ -51,11 +51,6 @@
   transform: translateY(-4px);
 }
 
-.se-topbar-tagline span {
-  color: var(--accent);
-  margin-left: 4px;
-  font-weight: 500;
-}
 
 .se-topbar-actions {
   display: flex;

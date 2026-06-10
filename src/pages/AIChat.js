@@ -2890,7 +2890,7 @@ const AIChat = ({ sharedMode = false }) => {
   return (
     <div className="ai-chat-page ac-qb-page">
       <div className="ac-qb-topbar">
-        <div className="ac-qb-tagline">accelerate <span>your thinking</span></div>
+        <div className="ac-qb-tagline">Learning Unified</div>
         <div className="ac-qb-topbar-right">
           <div className="ac-qb-context-action">
             <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />

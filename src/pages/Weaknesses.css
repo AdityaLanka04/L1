@@ -98,11 +98,6 @@
   text-transform: lowercase;
 }
 
-.wk-topbar-tagline span {
-  color: var(--accent);
-  margin-left: 4px;
-  font-weight: 500;
-}
 
 .wk-topbar-actions {
   display: flex;

@@ -6058,11 +6058,6 @@ h1.note-title ::-moz-selection,
   text-transform: lowercase;
 }
 
-.notes-redesign .nr-qb-tagline span {
-  color: var(--accent);
-  margin-left: 4px;
-  font-weight: 500;
-}
 
 .notes-redesign .nr-qb-topbar-right {
   display: flex;

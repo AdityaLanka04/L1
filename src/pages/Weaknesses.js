@@ -116,7 +116,7 @@ const Weaknesses = () => {
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
       <div className="wk-topbar">
-        <div className="wk-topbar-tagline">accelerate <span>weak areas</span></div>
+        <div className="wk-topbar-tagline">Learning Unified</div>
         <div className="wk-topbar-actions">
           <button className="wk-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard

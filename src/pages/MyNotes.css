@@ -2304,11 +2304,6 @@
   text-transform: lowercase;
 }
 
-.my-notes-page-full .mn-qb-tagline span {
-  color: var(--accent);
-  margin-left: 4px;
-  font-weight: 500;
-}
 
 .my-notes-page-full .mn-qb-topbar-right {
   display: flex;

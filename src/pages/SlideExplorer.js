@@ -435,7 +435,7 @@ const SlideExplorer = () => {
   return (
     <div className="se-page">
       <div className="se-topbar">
-        <div className="se-topbar-tagline">accelerate <span>slides</span></div>
+        <div className="se-topbar-tagline">Learning Unified</div>
         <div className="se-topbar-actions">
           <button className="se-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard

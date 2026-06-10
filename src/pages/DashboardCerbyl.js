@@ -1019,7 +1019,7 @@ const DashboardCerbyl = () => {
 
       {}
       <div className="cb-topbar">
-        <div className="cb-tagline">accelerate <span>your learning</span></div>
+        <div className="cb-tagline">Learning Unified</div>
         <div className="cb-topbar-right">
           <button
             className="cb-topbar-text-btn"

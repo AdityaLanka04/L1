@@ -2926,7 +2926,7 @@ const Flashcards = () => {
     <div className="flashcards-page">
       <GeoBackground />
       <div className="fc-qb-topbar">
-        <div className="fc-qb-tagline">accelerate <span>your flashcards</span></div>
+        <div className="fc-qb-tagline">Learning Unified</div>
         <div className="fc-qb-topbar-right">
           <button className="fc-qb-top-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
             Dashboard

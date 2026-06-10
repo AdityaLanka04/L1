@@ -80,7 +80,7 @@ const LearningReviewHub = () => {
             Welcome back, <span className="lrh-hero-name">{userName}</span>
           </h2>
           <p className="lrh-hero-subtitle">
-            Select a tool to accelerate your learning journey
+            Select a tool — Learning Unified
           </p>
         </section>
 

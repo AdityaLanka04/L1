@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, Search, BookOpen, Users, Clock,
   Globe, Lock, Heart, Library, Filter, X, Zap,
-  FileText, Share2, Check, Sparkles, Trash2
+  FileText, Share2, Check, Sparkles, Trash2,
+  ChevronLeft, ChevronRight, Home
 } from 'lucide-react';
 import './PlaylistsPage.css';
 import './PlaylistsConvert.css';
@@ -29,6 +30,7 @@ const PlaylistsPage = () => {
   const [aiResult, setAiResult] = useState(null);
   const [sortBy, setSortBy] = useState('recent');
   const [deletingPlaylistId, setDeletingPlaylistId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const categories = [
     'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
@@ -265,11 +267,64 @@ const PlaylistsPage = () => {
         <circle cx="1000" cy="600" r="2" fill="currentColor"/>
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
-      <div className="playlists-body">
-        <aside className="playlists-sidebar">
+      <div className={`playlists-body ${sidebarOpen ? '' : 'pl-body--collapsed'}`}>
+        <aside className={`playlists-sidebar ${sidebarOpen ? '' : 'pl-sidebar--collapsed'}`}>
+          {!sidebarOpen ? (
+            <div className="pl-collapsed-strip">
+              <button className="pl-strip-btn" data-tip="Open sidebar" onClick={() => setSidebarOpen(true)} type="button">
+                <ChevronRight size={18} />
+              </button>
+              <button className="pl-strip-btn" data-tip="New Playlist" onClick={() => setShowCreateModal(true)} type="button">
+                <Plus size={18} />
+              </button>
+
+              <div className="pl-strip-divider"></div>
+
+              <button
+                className={`pl-strip-btn ${view === 'discover' ? 'active' : ''}`}
+                data-tip="Discover"
+                onClick={() => setView('discover')}
+                type="button"
+              >
+                <Globe size={18} />
+              </button>
+              <button
+                className={`pl-strip-btn ${view === 'following' ? 'active' : ''}`}
+                data-tip="Following"
+                onClick={() => setView('following')}
+                type="button"
+              >
+                <Heart size={18} />
+              </button>
+              <button
+                className={`pl-strip-btn ${view === 'my-playlists' ? 'active' : ''}`}
+                data-tip="My Playlists"
+                onClick={() => setView('my-playlists')}
+                type="button"
+              >
+                <Library size={18} />
+              </button>
+
+              <div className="pl-strip-spacer"></div>
+
+              <button className="pl-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                <Home size={18} />
+              </button>
+            </div>
+          ) : (
+          <>
           <div className="pl-sidebar-brand">
             <div className="pl-sidebar-logo">cerbyl</div>
             <div className="pl-sidebar-kicker">PLAYLISTS</div>
+            <button
+              className="pl-sidebar-close-btn"
+              onClick={() => setSidebarOpen(false)}
+              title="Collapse sidebar"
+              aria-label="Collapse playlists sidebar"
+              type="button"
+            >
+              <ChevronLeft size={14} />
+            </button>
           </div>
 
           <button
@@ -285,31 +340,28 @@ const PlaylistsPage = () => {
           <div className="sidebar-section">
             <h3 className="sidebar-heading">Browse</h3>
             <nav className="sidebar-menu">
-              <button 
+              <button
                 className={`menu-item ${view === 'discover' ? 'active' : ''}`}
                 onClick={() => setView('discover')}
               >
                 <Globe size={18} />
                 <span>Discover</span>
-                {view === 'discover' && <div className="active-indicator"></div>}
               </button>
-              
-              <button 
+
+              <button
                 className={`menu-item ${view === 'following' ? 'active' : ''}`}
                 onClick={() => setView('following')}
               >
                 <Heart size={18} />
                 <span>Following</span>
-                {view === 'following' && <div className="active-indicator"></div>}
               </button>
-              
-              <button 
+
+              <button
                 className={`menu-item ${view === 'my-playlists' ? 'active' : ''}`}
                 onClick={() => setView('my-playlists')}
               >
                 <Library size={18} />
                 <span>My Playlists</span>
-                {view === 'my-playlists' && <div className="active-indicator"></div>}
               </button>
             </nav>
           </div>
@@ -327,7 +379,7 @@ const PlaylistsPage = () => {
                 )}
               </div>
               <div className="custom-dropdown">
-                <button 
+                <button
                   className="dropdown-trigger"
                   onClick={() => {
                     setShowDifficultyDropdown(false);
@@ -341,7 +393,7 @@ const PlaylistsPage = () => {
                 </button>
                 {showCategoryDropdown && (
                   <div className="dropdown-menu" style={{ display: 'block', position: 'absolute' }}>
-                    <div 
+                    <div
                       className={`dropdown-item ${!filterCategory ? 'active' : ''}`}
                       onClick={() => {
                         setFilterCategory('');
@@ -372,7 +424,7 @@ const PlaylistsPage = () => {
                 <label>Difficulty</label>
               </div>
               <div className="custom-dropdown">
-                <button 
+                <button
                   className="dropdown-trigger"
                   onClick={() => {
                     setShowCategoryDropdown(false);
@@ -386,7 +438,7 @@ const PlaylistsPage = () => {
                 </button>
                 {showDifficultyDropdown && (
                   <div className="dropdown-menu" style={{ display: 'block', position: 'absolute' }}>
-                    <div 
+                    <div
                       className={`dropdown-item ${!filterDifficulty ? 'active' : ''}`}
                       onClick={() => {
                         setFilterDifficulty('');
@@ -422,10 +474,12 @@ const PlaylistsPage = () => {
 
           <div className="pl-sidebar-actions">
             <button className="pl-sidebar-action" onClick={() => navigate('/dashboard-cerbyl')}>
-              <BookOpen size={16} />
+              <Home size={16} />
               <span>Dashboard</span>
             </button>
           </div>
+          </>
+          )}
         </aside>
 
         <main className="playlists-main">

@@ -234,7 +234,7 @@ const LearningPaths = () => {
       </svg>
 
       <div className="lp-qb-topbar">
-        <div className="lp-qb-tagline">accelerate <span>your path</span></div>
+        <div className="lp-qb-tagline">Learning Unified</div>
         <div className="lp-qb-topbar-right">
           <button className="lp-qb-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard

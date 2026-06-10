@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Upload, Youtube, FileText, Save, Copy, Mic, Loader,
-  Settings, Brain, Zap, Clock, Globe, ChevronLeft,
+  Settings, Brain, Zap, Clock, Globe, ChevronLeft, ChevronRight,
   BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home, LogOut
 } from 'lucide-react';
 import './AIMediaNotes.css';
@@ -477,7 +477,7 @@ const AIMediaNotes = () => {
         <circle cx="345" cy="654" r="3.5" fill="currentColor"/>
       </svg>
       <div className="amn-qb-topbar">
-        <div className="amn-qb-tagline">accelerate <span>your media</span></div>
+        <div className="amn-qb-tagline">Learning Unified</div>
         <div className="amn-qb-topbar-right">
           <button className="amn-qb-top-btn" onClick={() => navigate('/notes')} type="button">
             Notes Hub
@@ -502,11 +502,81 @@ const AIMediaNotes = () => {
 
       <div className="mn-layout amn-qb-body">
         <div className={`amn-qb-shell ${sidebarOpen ? '' : 'amn-qb-shell--collapsed'}`}>
-          {sidebarOpen && (
-            <aside className="amn-qb-sidebar" aria-label="Media notes navigation">
+          <aside className={`amn-qb-sidebar ${sidebarOpen ? '' : 'amn-qb-sidebar--collapsed'}`} aria-label="Media notes navigation">
+            {!sidebarOpen ? (
+              <div className="amn-qb-collapsed-strip">
+                <button className="amn-qb-strip-btn" data-tip="Open sidebar" onClick={() => setSidebarOpen(true)} type="button">
+                  <ChevronRight size={18} />
+                </button>
+                <button className="amn-qb-strip-btn" data-tip="New Upload" onClick={startNewUpload} type="button">
+                  <Upload size={18} />
+                </button>
+                <button className="amn-qb-strip-btn" data-tip="Upload File" onClick={startFileUpload} type="button">
+                  <FileText size={18} />
+                </button>
+                <button
+                  className={`amn-qb-strip-btn ${showSettings ? 'active' : ''}`}
+                  data-tip="AI Settings"
+                  onClick={() => setShowSettings(prev => !prev)}
+                  type="button"
+                >
+                  <Settings size={18} />
+                </button>
+
+                <div className="amn-qb-strip-divider"></div>
+
+                <button
+                  className={`amn-qb-strip-btn ${activeTab === 'notes' ? 'active' : ''}`}
+                  data-tip="Notes"
+                  onClick={() => setActiveTab('notes')}
+                  disabled={!results}
+                  type="button"
+                >
+                  <BookOpen size={18} />
+                </button>
+                <button
+                  className={`amn-qb-strip-btn ${activeTab === 'podcast' ? 'active' : ''}`}
+                  data-tip="Podcast"
+                  onClick={() => setActiveTab('podcast')}
+                  disabled={!results}
+                  type="button"
+                >
+                  <Mic size={18} />
+                </button>
+                <button
+                  className={`amn-qb-strip-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
+                  data-tip="Flashcards"
+                  onClick={() => setActiveTab('flashcards')}
+                  disabled={!results}
+                  type="button"
+                >
+                  <FileText size={18} />
+                </button>
+                <button
+                  className={`amn-qb-strip-btn ${activeTab === 'quiz' ? 'active' : ''}`}
+                  data-tip="Quiz"
+                  onClick={() => setActiveTab('quiz')}
+                  disabled={!results}
+                  type="button"
+                >
+                  <CheckCircle size={18} />
+                </button>
+
+                <div className="amn-qb-strip-spacer"></div>
+
+                <button className="amn-qb-strip-btn" data-tip="My Notes" onClick={() => navigate('/notes/my-notes')} type="button">
+                  <FileText size={18} />
+                </button>
+                <button className="amn-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  <Home size={18} />
+                </button>
+              </div>
+            ) : (
+            <>
               <div className="amn-qb-side-brand">
                 <div className="amn-qb-brand-wrap">
                   <div className="amn-qb-brand">cerbyl</div>
+                  <div className="amn-qb-brand-kicker">Media</div>
                   <div className="amn-qb-current-title">{currentMediaTitle}</div>
                 </div>
                 <button
@@ -520,13 +590,14 @@ const AIMediaNotes = () => {
                 </button>
               </div>
 
+              <button className="amn-qb-new-btn" onClick={startNewUpload} type="button">
+                <Upload size={16} />
+                <span>New Upload</span>
+              </button>
+
               <div className="amn-qb-side-block">
                 <div className="amn-qb-side-label">Media Workspace</div>
                 <nav className="amn-qb-view-nav" aria-label="Media actions">
-                  <button className="amn-qb-view-link amn-qb-view-link--accent" onClick={startNewUpload} type="button">
-                    <Upload size={16} />
-                    <span>New Upload</span>
-                  </button>
                   <button className="amn-qb-view-link" onClick={startFileUpload} type="button">
                     <FileText size={16} />
                     <span>Upload File</span>
@@ -629,8 +700,9 @@ const AIMediaNotes = () => {
                   <span>Logout</span>
                 </button>
               </div>
-            </aside>
-          )}
+            </>
+            )}
+          </aside>
 
           <main className="amn-qb-main">
           <div className="mn-content" ref={contentRef}>

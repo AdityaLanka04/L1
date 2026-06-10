@@ -87,11 +87,6 @@
   text-transform: lowercase;
 }
 
-.cb-tagline span {
-  color: var(--accent);
-  margin-left: 4px;
-  font-weight: 500;
-}
 
 .cb-topbar-right {
   display: flex;

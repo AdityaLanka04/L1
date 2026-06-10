@@ -897,7 +897,7 @@ const Dashboard = () => {
             <h2 className="ds-learning-hub-title">
               {displayName}, {getRandomGreeting()}
             </h2>
-            <p className="ds-learning-hub-subtitle">ACCELERATE YOUR LEARNING</p>
+            <p className="ds-learning-hub-subtitle">LEARNING UNIFIED</p>
           </div>
           <div className="ds-learning-hub-grid-items">
             <div className="ds-learning-hub-grid-item" onClick={() => navigate('/knowledge-map')}>
@@ -1199,7 +1199,7 @@ const Dashboard = () => {
           <div className="ds-templates-content">
             <h3 className="ds-templates-title">Learning Hub</h3>
             <p className="ds-templates-description">
-              ACCELERATE YOUR LEARNING
+              LEARNING UNIFIED
             </p>
             <div className="ds-learning-hub-list">
               <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }} onClick={() => navigate('/knowledge-map')}>

@@ -939,7 +939,7 @@ const ActivityTimeline = () => {
   return (
     <div className="atl-page">
       <div className="atl-qb-topbar">
-        <div className="atl-qb-tagline">accelerate <span>your activity</span></div>
+        <div className="atl-qb-tagline">Learning Unified</div>
         <div className="atl-qb-topbar-right">
           <button className="atl-qb-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard
@@ -961,121 +961,51 @@ const ActivityTimeline = () => {
 
       <div className="atl-layout atl-qb-body">
         <div className={`atl-qb-shell ${sidebarCollapsed ? 'atl-qb-shell--collapsed' : ''}`}>
-          {!sidebarCollapsed && (
-            <aside className="atl-qb-sidebar" aria-label="Activity timeline navigation">
-              <div className="atl-qb-side-brand">
-                <div className="atl-qb-brand-wrap">
-                  <div className="atl-qb-brand">cerbyl</div>
-                  <div className="atl-qb-current-title">Activity Timeline</div>
-                </div>
+          <aside className={`atl-qb-sidebar ${sidebarCollapsed ? 'atl-qb-sidebar--collapsed' : ''}`} aria-label="Activity timeline navigation">
+            {sidebarCollapsed ? (
+              <div className="atl-qb-collapsed-strip">
+                <button className="atl-qb-strip-btn" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                  <ChevronRight size={18} />
+                </button>
+                <button className="atl-qb-strip-btn" data-tip="New Reminder" onClick={openReminderCreate} type="button">
+                  <Plus size={18} />
+                </button>
+
+                <div className="atl-qb-strip-divider"></div>
+
                 <button
-                  className="atl-qb-side-close-btn"
+                  className={`atl-qb-strip-btn ${viewMode === 'timeline' ? 'active' : ''}`}
+                  data-tip="Timeline"
+                  onClick={() => switchViewMode('timeline')}
                   type="button"
-                  title="Close sidebar"
-                  aria-label="Close activity timeline sidebar"
-                  onClick={() => setSidebarCollapsed(true)}
                 >
-                  <ChevronLeft size={14} />
-                </button>
-              </div>
-
-              <div className="atl-qb-side-block">
-                <div className="atl-qb-side-label">Modes</div>
-                <nav className="atl-qb-view-nav" aria-label="Activity timeline modes">
-                  <button className={`atl-qb-view-link ${viewMode === 'timeline' ? 'atl-qb-view-link--active' : ''}`} type="button" onClick={() => switchViewMode('timeline')}>
-                    <Sparkles size={16} />
-                    <span>Timeline</span>
-                    <span className="atl-qb-nav-count">{filteredActivities.length}</span>
-                  </button>
-                  <button className={`atl-qb-view-link ${viewMode === 'calendar' ? 'atl-qb-view-link--active' : ''}`} type="button" onClick={() => switchViewMode('calendar')}>
-                    <CalendarDays size={16} />
-                    <span>Calendar</span>
-                    <span className="atl-qb-nav-count">{activitiesByDay.size}</span>
-                  </button>
-                  <button className={`atl-qb-view-link ${viewMode === 'reminders' ? 'atl-qb-view-link--active' : ''}`} type="button" onClick={() => switchViewMode('reminders')}>
-                    <Bell size={16} />
-                    <span>Reminders</span>
-                    <span className="atl-qb-nav-count">{filteredReminders.length}</span>
-                  </button>
-                </nav>
-              </div>
-
-              <div className="atl-qb-side-block atl-qb-side-block--grow">
-                <div className="atl-qb-side-label">Activity Filters</div>
-                <nav className="atl-qb-view-nav" aria-label="Activity filters">
-                  {ACTIVITY_TYPES.map((type) => {
-                    const meta = TYPE_META[type];
-                    const Icon = meta.icon;
-                    return (
-                      <button
-                        key={type}
-                        className={`atl-qb-view-link ${selectedFilters.includes(type) ? 'atl-qb-view-link--active' : ''}`}
-                        type="button"
-                        onClick={() => toggleFilter(type)}
-                      >
-                        <Icon size={16} style={{ color: meta.color }} />
-                        <span>{meta.label}</span>
-                        <span className="atl-qb-nav-count">{stats[type]}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-
-              <div className="atl-qb-side-block">
-                <div className="atl-qb-side-label">Reminder Lists</div>
-                <nav className="atl-qb-view-nav" aria-label="Reminder smart lists">
-                  {['today', 'scheduled', 'flagged', 'all', 'completed'].map((smartKey) => (
-                    <button
-                      key={smartKey}
-                      className={`atl-qb-view-link ${selectedSmartList === smartKey && !selectedListId ? 'atl-qb-view-link--active' : ''}`}
-                      type="button"
-                      onClick={() => {
-                        setSmartList(smartKey);
-                        switchViewMode('reminders');
-                      }}
-                    >
-                      <Bell size={16} />
-                      <span>{smartKey}</span>
-                      <span className="atl-qb-nav-count">{smartListCounts?.[smartKey] || 0}</span>
-                    </button>
-                  ))}
-                </nav>
-              </div>
-
-              <div className="atl-qb-side-block">
-                <div className="atl-qb-side-label">Quick Stats</div>
-                <div className="atl-qb-stat-grid">
-                  <div className="atl-qb-stat-card">
-                    <span>{stats.total}</span>
-                    <small>Activities</small>
-                  </div>
-                  <div className="atl-qb-stat-card">
-                    <span>{stats.reminders}</span>
-                    <small>Reminders</small>
-                  </div>
-                  <div className="atl-qb-stat-card">
-                    <span>{stats.streak}</span>
-                    <small>Streak</small>
-                  </div>
-                  <div className="atl-qb-stat-card">
-                    <span>{activitiesByDay.size}</span>
-                    <small>Days</small>
-                  </div>
-                </div>
-              </div>
-
-              <div className="atl-qb-side-actions">
-                <button className="atl-qb-action-btn" type="button" onClick={openReminderCreate}>
-                  <Plus size={14} />
-                  <span>New Reminder</span>
-                </button>
-                <button className="atl-qb-action-btn atl-qb-action-btn--ghost" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
-                  <ListChecks size={14} />
-                  <span>Dashboard</span>
+                  <Sparkles size={18} />
                 </button>
                 <button
-                  className="atl-qb-action-btn atl-qb-action-btn--ghost"
+                  className={`atl-qb-strip-btn ${viewMode === 'calendar' ? 'active' : ''}`}
+                  data-tip="Calendar"
+                  onClick={() => switchViewMode('calendar')}
+                  type="button"
+                >
+                  <CalendarDays size={18} />
+                </button>
+                <button
+                  className={`atl-qb-strip-btn ${viewMode === 'reminders' ? 'active' : ''}`}
+                  data-tip="Reminders"
+                  onClick={() => switchViewMode('reminders')}
+                  type="button"
+                >
+                  <Bell size={18} />
+                </button>
+
+                <div className="atl-qb-strip-spacer"></div>
+
+                <button className="atl-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  <ListChecks size={18} />
+                </button>
+                <button
+                  className="atl-qb-strip-btn"
+                  data-tip="Logout"
                   type="button"
                   onClick={() => {
                     localStorage.removeItem('token');
@@ -1083,12 +1013,139 @@ const ActivityTimeline = () => {
                     navigate('/');
                   }}
                 >
-                  <LogOut size={14} />
-                  <span>Logout</span>
+                  <LogOut size={18} />
                 </button>
               </div>
-            </aside>
-          )}
+            ) : (
+              <>
+                <div className="atl-qb-side-brand">
+                  <div className="atl-qb-brand-wrap">
+                    <div className="atl-qb-brand">cerbyl</div>
+                    <div className="atl-qb-current-title">Activity</div>
+                  </div>
+                  <button
+                    className="atl-qb-side-close-btn"
+                    type="button"
+                    title="Collapse sidebar"
+                    aria-label="Collapse activity timeline sidebar"
+                    onClick={() => setSidebarCollapsed(true)}
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                </div>
+
+                <button className="atl-qb-new-reminder-btn" type="button" onClick={openReminderCreate}>
+                  <Plus size={16} />
+                  <span>New Reminder</span>
+                </button>
+
+                <div className="atl-qb-side-block">
+                  <div className="atl-qb-side-label">Modes</div>
+                  <nav className="atl-qb-view-nav" aria-label="Activity timeline modes">
+                    <button className={`atl-qb-view-link ${viewMode === 'timeline' ? 'atl-qb-view-link--active' : ''}`} type="button" onClick={() => switchViewMode('timeline')}>
+                      <Sparkles size={16} />
+                      <span>Timeline</span>
+                      <span className="atl-qb-nav-count">{filteredActivities.length}</span>
+                    </button>
+                    <button className={`atl-qb-view-link ${viewMode === 'calendar' ? 'atl-qb-view-link--active' : ''}`} type="button" onClick={() => switchViewMode('calendar')}>
+                      <CalendarDays size={16} />
+                      <span>Calendar</span>
+                      <span className="atl-qb-nav-count">{activitiesByDay.size}</span>
+                    </button>
+                    <button className={`atl-qb-view-link ${viewMode === 'reminders' ? 'atl-qb-view-link--active' : ''}`} type="button" onClick={() => switchViewMode('reminders')}>
+                      <Bell size={16} />
+                      <span>Reminders</span>
+                      <span className="atl-qb-nav-count">{filteredReminders.length}</span>
+                    </button>
+                  </nav>
+                </div>
+
+                <div className="atl-qb-side-block atl-qb-side-block--grow">
+                  <div className="atl-qb-side-label">Activity Filters</div>
+                  <nav className="atl-qb-view-nav" aria-label="Activity filters">
+                    {ACTIVITY_TYPES.map((type) => {
+                      const meta = TYPE_META[type];
+                      const Icon = meta.icon;
+                      return (
+                        <button
+                          key={type}
+                          className={`atl-qb-view-link ${selectedFilters.includes(type) ? 'atl-qb-view-link--active' : ''}`}
+                          type="button"
+                          onClick={() => toggleFilter(type)}
+                        >
+                          <Icon size={16} style={{ color: meta.color }} />
+                          <span>{meta.label}</span>
+                          <span className="atl-qb-nav-count">{stats[type]}</span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                </div>
+
+                <div className="atl-qb-side-block">
+                  <div className="atl-qb-side-label">Reminder Lists</div>
+                  <nav className="atl-qb-view-nav" aria-label="Reminder smart lists">
+                    {['today', 'scheduled', 'flagged', 'all', 'completed'].map((smartKey) => (
+                      <button
+                        key={smartKey}
+                        className={`atl-qb-view-link ${selectedSmartList === smartKey && !selectedListId ? 'atl-qb-view-link--active' : ''}`}
+                        type="button"
+                        onClick={() => {
+                          setSmartList(smartKey);
+                          switchViewMode('reminders');
+                        }}
+                      >
+                        <Bell size={16} />
+                        <span>{smartKey}</span>
+                        <span className="atl-qb-nav-count">{smartListCounts?.[smartKey] || 0}</span>
+                      </button>
+                    ))}
+                  </nav>
+                </div>
+
+                <div className="atl-qb-side-block">
+                  <div className="atl-qb-side-label">Quick Stats</div>
+                  <div className="atl-qb-stat-grid">
+                    <div className="atl-qb-stat-card">
+                      <span>{stats.total}</span>
+                      <small>Activities</small>
+                    </div>
+                    <div className="atl-qb-stat-card">
+                      <span>{stats.reminders}</span>
+                      <small>Reminders</small>
+                    </div>
+                    <div className="atl-qb-stat-card">
+                      <span>{stats.streak}</span>
+                      <small>Streak</small>
+                    </div>
+                    <div className="atl-qb-stat-card">
+                      <span>{activitiesByDay.size}</span>
+                      <small>Days</small>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="atl-qb-side-actions">
+                  <button className="atl-qb-action-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
+                    <ListChecks size={14} />
+                    <span>Dashboard</span>
+                  </button>
+                  <button
+                    className="atl-qb-action-btn"
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem('token');
+                      localStorage.removeItem('username');
+                      navigate('/');
+                    }}
+                  >
+                    <LogOut size={14} />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </aside>
 
           <main className="atl-main atl-qb-main">
             <section className="atl-toolbar">
