@@ -12,6 +12,7 @@ import './QuestionbankConvert.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 import questionBankAgentService from '../services/questionBankAgentService';
+import { queuedAIJsonFetch } from '../services/aiJobService';
 import MathRenderer from '../components/MathRenderer';
 
 const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
@@ -328,7 +329,7 @@ const QuestionBankDashboard = () => {
     const run = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_URL}/generate_practice_questions`, {
+        const response = await queuedAIJsonFetch('/generate_practice_questions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1093,7 +1094,7 @@ const QuestionBankDashboard = () => {
   const generateSimilarQuestion = async (questionId) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/qb/generate_similar_question`, {
+      const response = await queuedAIJsonFetch('/qb/generate_similar_question', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

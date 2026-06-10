@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   BarChart3,
@@ -34,11 +34,11 @@ import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
 import { enableChatDock } from '../utils/chatDock';
+import { queueChatCompletion, queueLegacyAIFileEndpoint, queuedAIJsonFetch, USE_AI_JOB_QUEUE } from '../services/aiJobService';
 
 const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
 const TUTOR_MODE_KEY = 'ai_chat_tutor_mode_enabled';
 const TUTOR_REPLY_MODE_KEY = 'ai_chat_tutor_reply_mode';
-
 const TUTOR_REPLY_MODES = [
   { id: 'hint', label: 'Nudge' },
   { id: 'guided', label: 'Teach' },
@@ -1561,22 +1561,50 @@ const AIChat = ({ sharedMode = false }) => {
       });
 
       
-      const endpoint = messagedFiles.length > 0 ? 
-        `${API_URL}/ask_with_files/` : 
-        `${API_URL}/ask_simple/`;
+      let data;
+      if (USE_AI_JOB_QUEUE) {
+        if (messagedFiles.length > 0) {
+          data = await queueLegacyAIFileEndpoint('/api/ask_with_files/', {
+            user_id: userName,
+            question: messageForModel || 'Please analyze the uploaded files.',
+            original_question: messageText || 'Please analyze the uploaded files.',
+            chat_id: currentChatId.toString(),
+            use_hs_context: hsMode.toString(),
+            tutor_mode: effectiveTutorMode.toString(),
+            tutor_reply_style: tutorReplyMode,
+            ...((useOverride || answeringTutorStep) ? { tutor_choice: messageText } : {}),
+            ...(selectedContextDocIds.length > 0 ? { context_doc_ids: selectedContextDocIds.join(',') } : {}),
+          }, messagedFiles);
+        } else {
+          data = await queueChatCompletion({
+            prompt: messageForModel || messageText || '',
+            user_message: messageText || '',
+            chat_session_id: currentChatId,
+            use_hs_context: hsMode,
+            context_doc_ids: selectedContextDocIds.join(',') || null,
+            tutor_mode: effectiveTutorMode,
+            tutor_reply_style: tutorReplyMode,
+            tutor_choice: (useOverride || answeringTutorStep) ? messageText : null,
+          });
+        }
+      } else {
+        const endpoint = messagedFiles.length > 0 ?
+          `${API_URL}/ask_with_files/` :
+          `${API_URL}/ask_simple/`;
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        data = await response.json();
       }
-
-      const data = await response.json();
       
       
       if (!data.answer) {
@@ -1816,7 +1844,7 @@ const AIChat = ({ sharedMode = false }) => {
         let rootTopic = baseTopic;
         if (activeChatId) {
           try {
-            const extractResponse = await fetch(`${API_URL}/create_roadmap_from_chat`, {
+            const extractResponse = await queuedAIJsonFetch('/create_roadmap_from_chat', {
               method: 'POST',
               headers,
               body: JSON.stringify({
@@ -1835,7 +1863,7 @@ const AIChat = ({ sharedMode = false }) => {
           }
         }
 
-        const roadmapResponse = await fetch(`${API_URL}/create_knowledge_roadmap`, {
+        const roadmapResponse = await queuedAIJsonFetch('/create_knowledge_roadmap', {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -1926,7 +1954,7 @@ const AIChat = ({ sharedMode = false }) => {
       }
 
       if (action.kind === 'create_flashcards') {
-        const flashcardResponse = await fetch(`${API_URL}/agents/searchhub`, {
+        const flashcardResponse = await queuedAIJsonFetch('/agents/searchhub', {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -1953,7 +1981,7 @@ const AIChat = ({ sharedMode = false }) => {
       }
 
       if (action.kind === 'create_learning_path') {
-        const pathResponse = await fetch(`${API_URL}/learning-paths/generate`, {
+        const pathResponse = await queuedAIJsonFetch('/learning-paths/generate', {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -2054,7 +2082,7 @@ const AIChat = ({ sharedMode = false }) => {
     try {
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`${API_URL}/generate_chat_title`, {
+      const response = await queuedAIJsonFetch('/generate_chat_title', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2647,17 +2675,28 @@ const AIChat = ({ sharedMode = false }) => {
           formData.append('tutor_mode', tutorMode.toString());
           formData.append('tutor_reply_style', tutorReplyMode);
           
-          const response = await fetch(`${API_URL}/ask_simple/`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: formData
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const data = await response.json();
+          const data = USE_AI_JOB_QUEUE
+            ? await queueChatCompletion({
+                prompt: buildGraphAwarePrompt(initialMsg),
+                user_message: initialMsg,
+                chat_session_id: newChatId,
+                use_hs_context: hsMode,
+                tutor_mode: tutorMode,
+                tutor_reply_style: tutorReplyMode,
+              })
+            : await (async () => {
+                const response = await fetch(`${API_URL}/ask_simple/`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${token}` },
+                  body: formData
+                });
+
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return response.json();
+              })();
           
           if (!data.answer) {
             throw new Error('No answer received from AI');
@@ -3533,7 +3572,7 @@ const AIChat = ({ sharedMode = false }) => {
                                 if (btn.action === 'create' && btn.content_type === 'note') {
                                   // Create a note with AI-generated content via SearchHub agent
                                   try {
-                                    const response = await fetch(`${API_URL}/agents/searchhub/create-note`, {
+                                    const response = await queuedAIJsonFetch('/agents/searchhub/create-note', {
                                       method: 'POST',
                                       headers: {
                                         'Content-Type': 'application/json',
@@ -3563,7 +3602,7 @@ const AIChat = ({ sharedMode = false }) => {
                                 } else if (btn.action === 'create' && btn.content_type === 'flashcard_set') {
                                   // Create flashcards via SearchHub agent
                                   try {
-                                    const response = await fetch(`${API_URL}/agents/searchhub`, {
+                                    const response = await queuedAIJsonFetch('/agents/searchhub', {
                                       method: 'POST',
                                       headers: {
                                         'Content-Type': 'application/json',

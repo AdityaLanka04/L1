@@ -13,6 +13,7 @@ import 'reactflow/dist/style.css';
 import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight, X, Edit3, Save, StickyNote, MessageCircle } from 'lucide-react';
 import './KnowledgeMap.css';
 import { API_URL } from '../config';
+import { queueChatCompletion, queuedAIJsonFetch, USE_AI_JOB_QUEUE } from '../services/aiJobService';
 import MathRenderer from '../components/MathRenderer';
 import { marked } from 'marked';
 
@@ -281,7 +282,7 @@ const createRoadmapFromChat = async () => {
     setLoading(true);
     
     
-    const topicResponse = await fetch(`${API_URL}/create_roadmap_from_chat`, {
+    const topicResponse = await queuedAIJsonFetch('/create_roadmap_from_chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -301,7 +302,7 @@ const createRoadmapFromChat = async () => {
     const extractedTopic = topicData.root_topic;
 
     
-    const response = await fetch(`${API_URL}/create_knowledge_roadmap`, {
+    const response = await queuedAIJsonFetch('/create_knowledge_roadmap', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -385,7 +386,7 @@ const createRoadmapFromChat = async () => {
     const run = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_URL}/create_roadmap_from_context_docs`, {
+        const response = await queuedAIJsonFetch('/create_roadmap_from_context_docs', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -430,7 +431,7 @@ const createRoadmapFromChat = async () => {
     const run = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_URL}/create_knowledge_roadmap`, {
+        const response = await queuedAIJsonFetch('/create_knowledge_roadmap', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -494,7 +495,7 @@ const createRoadmapFromChat = async () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/create_knowledge_roadmap`, {
+      const response = await queuedAIJsonFetch('/create_knowledge_roadmap', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -575,7 +576,7 @@ const createRoadmapFromChat = async () => {
     });
     
     try {
-      const response = await fetch(`${API_URL}/expand_knowledge_node/${nodeId}`, {
+      const response = await queuedAIJsonFetch(`/expand_knowledge_node/${nodeId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -959,7 +960,7 @@ const createRoadmapFromChat = async () => {
     );
     
     try {
-      const response = await fetch(`${API_URL}/explore_node/${nodeId}`, {
+      const response = await queuedAIJsonFetch(`/explore_node/${nodeId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1541,16 +1542,32 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
       formData.append('tutor_mode', 'false');
       formData.append('tutor_reply_style', 'guided');
 
-      const response = await fetch(`${API_URL}/ask_simple/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      let data = null;
+      if (USE_AI_JOB_QUEUE) {
+        data = await queueChatCompletion({
+          prompt: buildNodeAwareChatPrompt(nodeExplanation, messageText),
+          user_message: messageText,
+          use_hs_context: hsModeEnabled,
+          tutor_mode: false,
+          tutor_reply_style: 'guided',
+        });
+      } else {
+        const response = await fetch(`${API_URL}/ask_simple/`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
 
-      if (response.ok) {
-        const data = await response.json();
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => '');
+          throw new Error(errorText || 'Failed to get AI response');
+        }
+        data = await response.json();
+      }
+
+      if (data) {
         const aiMessage = {
           id: `ai_${Date.now()}`,
           type: 'assistant',
@@ -1558,9 +1575,6 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
           timestamp: new Date().toISOString()
         };
         setChatMessages(prev => [...prev, aiMessage]);
-      } else {
-        const errorText = await response.text().catch(() => '');
-        throw new Error(errorText || 'Failed to get AI response');
       }
     } catch (error) {
             const errorMessage = {

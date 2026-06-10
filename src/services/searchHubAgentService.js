@@ -1,6 +1,7 @@
 
 
 import { API_URL, getAuthToken } from '../config';
+import { queuedAIJsonFetch } from './aiJobService';
 
 class SearchHubAgentService {
   constructor() {
@@ -19,7 +20,7 @@ class SearchHubAgentService {
   
   async search(userId, query, options = {}) {
     try {
-      const response = await fetch(this.baseUrl, {
+      const response = await queuedAIJsonFetch('/agents/searchhub', {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -44,7 +45,7 @@ class SearchHubAgentService {
   
   async createNote(userId, topic, options = {}) {
     try {
-      const response = await fetch(`${this.baseUrl}/create-note`, {
+      const response = await queuedAIJsonFetch('/agents/searchhub/create-note', {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -70,7 +71,7 @@ class SearchHubAgentService {
   
   async createFlashcards(userId, topic, options = {}) {
     try {
-      const response = await fetch(`${this.baseUrl}/create-flashcards`, {
+      const response = await queuedAIJsonFetch('/agents/searchhub/create-flashcards', {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -96,7 +97,7 @@ class SearchHubAgentService {
   
   async createQuestions(userId, topic, options = {}) {
     try {
-      const response = await fetch(`${this.baseUrl}/create-questions`, {
+      const response = await queuedAIJsonFetch('/agents/searchhub/create-questions', {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -122,7 +123,7 @@ class SearchHubAgentService {
   
   async explain(userId, topic, options = {}) {
     try {
-      const response = await fetch(`${this.baseUrl}/explain`, {
+      const response = await queuedAIJsonFetch('/agents/searchhub/explain', {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({

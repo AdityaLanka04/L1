@@ -26,6 +26,7 @@ import ImportExportModal from '../components/ImportExportModal';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
+import { queueLegacyAIFileEndpoint, USE_AI_JOB_QUEUE } from '../services/aiJobService';
 
 import SimpleBlockEditor from '../components/SimpleBlockEditor';
 import AdvancedSearch from '../components/AdvancedSearch';
@@ -2222,21 +2223,30 @@ const NotesRedesign = ({ sharedMode = false }) => {
       formData.append("user_id", userName);
 
                   
-      const transcribeRes = await fetch(`${API_URL}/transcribe_audio/`, {
-        method: "POST",
-        headers: { 
-          Authorization: `Bearer ${token}`
-        },
-        body: formData,
-      });
+      const transcribeData = USE_AI_JOB_QUEUE
+        ? await queueLegacyAIFileEndpoint(
+            '/api/transcribe_audio/',
+            { user_id: userName },
+            [{ fieldName: 'audio_file', file: audioBlob, filename: 'recording.webm' }],
+            { timeoutMs: 180000 }
+          )
+        : await (async () => {
+            const transcribeRes = await fetch(`${API_URL}/transcribe_audio/`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`
+              },
+              body: formData,
+            });
 
-      
-      if (!transcribeRes.ok) {
-        const errorText = await transcribeRes.text();
-                throw new Error(`Transcription failed: ${transcribeRes.status} - ${errorText}`);
-      }
 
-      const transcribeData = await transcribeRes.json();
+            if (!transcribeRes.ok) {
+              const errorText = await transcribeRes.text();
+                      throw new Error(`Transcription failed: ${transcribeRes.status} - ${errorText}`);
+            }
+
+            return transcribeRes.json();
+          })();
             
       const transcript = transcribeData.transcript;
       setVoiceTranscript(transcript);

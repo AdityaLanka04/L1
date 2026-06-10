@@ -1,6 +1,7 @@
 
 
 import { API_URL, getAuthToken } from '../config/api';
+import { queuedAIJsonFetch } from './aiJobService';
 
 class NoteAgentService {
   constructor() {
@@ -19,7 +20,7 @@ class NoteAgentService {
   
   async invoke(action, params) {
     try {
-      const response = await fetch(this.baseUrl, {
+      const response = await queuedAIJsonFetch('/agents/notes', {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Clock, Target, Trophy, CheckCircle, XCircle, Loader , Menu} from 'lucide-react';
 import './QuizBattleSession.css';
 import { API_URL } from '../config';
+import { queuedAIJsonFetch } from '../services/aiJobService';
 import useSharedWebSocket from '../hooks/useSharedWebSocket';
 import gamificationService from '../services/gamificationService';
 import { extractQuestionText, normalizeQuestions } from '../utils/quizQuestionUtils';
@@ -154,7 +155,7 @@ const QuizBattleSession = () => {
     setGeneratingQuestions(true);
     
     try {
-      const response = await fetch(`${API_URL}/generate_battle_questions`, {
+      const response = await queuedAIJsonFetch('/generate_battle_questions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

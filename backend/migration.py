@@ -6,7 +6,7 @@ from models import engine, Base, User, ChatSession, ChatMessage, ChatTutorState,
     Flashcard, FlashcardSet, Note, LearningReview, UserStats, \
     ComprehensiveUserProfile, PasswordResetOTP, RegistrationOTP, AccountDeletionOTP, Friendship, FriendRequest, \
     Notification, Achievement, UserAchievement, Leaderboard, Challenge, \
-    ChallengeParticipation, ConceptNode, ConceptConnection, KnowledgeRoadmap, \
+    ChallengeParticipation, ConceptNode, ConceptConnection, KnowledgeRoadmap, AIJob, \
     Reminder, ReminderList, UserGamificationStats, PointTransaction
 from database import DATABASE_URL
 
@@ -122,7 +122,7 @@ def run_migration():
     cursor = conn.cursor()
     
     models = [
-        User, ChatSession, ChatMessage, ChatTutorState,
+        User, ChatSession, ChatMessage, ChatTutorState, AIJob,
         Flashcard, FlashcardSet, Note, LearningReview, UserStats,
         ComprehensiveUserProfile, PasswordResetOTP, RegistrationOTP, AccountDeletionOTP, Friendship, FriendRequest,
         Notification, Achievement, UserAchievement,

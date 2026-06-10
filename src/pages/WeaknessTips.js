@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import './WeaknessTips.css';
 import { API_URL } from '../config';
+import { queuedAIJsonFetch } from '../services/aiJobService';
 
 const WeaknessTips = () => {
   const { topic } = useParams();
@@ -35,8 +36,8 @@ const WeaknessTips = () => {
     setLoading(true);
     try {
       
-      const suggestionsRes = await fetch(
-        `${API_URL}/study_insights/topic_suggestions?user_id=${userName}&topic=${encodeURIComponent(topic)}`,
+      const suggestionsRes = await queuedAIJsonFetch(
+        `/study_insights/topic_suggestions?user_id=${userName}&topic=${encodeURIComponent(topic)}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       if (suggestionsRes.ok) {
@@ -45,8 +46,8 @@ const WeaknessTips = () => {
       }
 
       
-      const questionsRes = await fetch(
-        `${API_URL}/study_insights/similar_questions?user_id=${userName}&topic=${encodeURIComponent(topic)}`,
+      const questionsRes = await queuedAIJsonFetch(
+        `/study_insights/similar_questions?user_id=${userName}&topic=${encodeURIComponent(topic)}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       if (questionsRes.ok) {
@@ -69,7 +70,7 @@ const WeaknessTips = () => {
         hard: difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 6
       };
 
-      const response = await fetch(`${API_URL}/generate_practice_questions`, {
+      const response = await queuedAIJsonFetch('/generate_practice_questions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

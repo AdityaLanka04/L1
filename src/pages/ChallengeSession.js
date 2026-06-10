@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, TrendingUp , Menu} from 'lucide-react';
 import './ChallengeSession.css';
 import { API_URL } from '../config';
+import { queuedAIJsonFetch } from '../services/aiJobService';
 
 const ChallengeSession = () => {
   const navigate = useNavigate();
@@ -73,7 +74,7 @@ const ChallengeSession = () => {
         questionCount = Math.ceil(challengeData.target_value);
       }
 
-      const response = await fetch(`${API_URL}/generate_challenge_questions`, {
+      const response = await queuedAIJsonFetch('/generate_challenge_questions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

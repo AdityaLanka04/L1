@@ -4,6 +4,7 @@ import CustomPopup from './CustomPopup';
 import './Flashcards.css';
 import './FlashcardsConvert.css';
 import { API_URL } from '../config';
+import { queueChatCompletion, queuedAIFormFetch, queuedAIJsonFetch, USE_AI_JOB_QUEUE } from '../services/aiJobService';
 import gamificationService from '../services/gamificationService';
 import ImportExportModal from '../components/ImportExportModal';
 import MathRenderer from '../components/MathRenderer';
@@ -231,14 +232,23 @@ const Flashcards = () => {
       formData.append('question', prompt);
       formData.append('original_question', question);
 
-      const response = await fetch(`${API_URL}/ask_simple/`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
+      let data;
+      if (USE_AI_JOB_QUEUE) {
+        data = await queueChatCompletion({
+          prompt,
+          user_message: question,
+          use_hs_context: localStorage.getItem('hs_mode_enabled') === 'true',
+        });
+      } else {
+        const response = await fetch(`${API_URL}/ask_simple/`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
 
-      if (!response.ok) throw new Error('Failed to get an answer');
-      const data = await response.json();
+        if (!response.ok) throw new Error('Failed to get an answer');
+        data = await response.json();
+      }
       setAskAiMessages(prev => [...prev, { role: 'ai', content: data.answer || "I couldn't find an answer to that." }]);
     } catch (error) {
       setAskAiMessages(prev => [...prev, { role: 'ai', content: "Sorry, I couldn't reach the AI right now. Please try again." }]);
@@ -547,7 +557,7 @@ const Flashcards = () => {
     setLoadingSuggestions(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/flashcards/ai_suggestions?user_id=${userName}`, {
+      const response = await queuedAIJsonFetch(`/flashcards/ai_suggestions?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -1534,11 +1544,7 @@ const Flashcards = () => {
       formData.append('max_words', '4');
       formData.append('format', 'title');
       
-      const response = await fetch(`${API_URL}/generate_chat_summary`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
+      const response = await queuedAIFormFetch('/generate_chat_summary', Object.fromEntries(formData.entries()));
 
       if (response.ok) {
         const data = await response.json();
@@ -1593,10 +1599,8 @@ const Flashcards = () => {
         formData.append('topic', summaryTitle);
       }
 
-      const response = await fetch(`${API_URL}/generate_flashcards`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
+      const response = await queuedAIFormFetch('/generate_flashcards', Object.fromEntries(formData.entries()), {
+        timeoutMs: 240000,
       });
 
       if (!response.ok) {
@@ -1637,8 +1641,9 @@ const Flashcards = () => {
       setPreviewMode(true);
     } catch (error) {
       showPopup('Error', 'Failed to generate flashcards. Please try again.');
+    } finally {
+      setGenerating(false);
     }
-    setGenerating(false);
   };
 
   const generateFlashcardsFromPDFs = async () => {
@@ -1667,10 +1672,8 @@ const Flashcards = () => {
       formData.append('use_hs_context', hsMode.toString());
       formData.append('set_title', title);
 
-      const response = await fetch(`${API_URL}/generate_flashcards`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
+      const response = await queuedAIFormFetch('/generate_flashcards', Object.fromEntries(formData.entries()), {
+        timeoutMs: 240000,
       });
 
       if (!response.ok) {

@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { MessageCircle, Minimize2, Maximize2, X, Send } from 'lucide-react';
 import { marked } from 'marked';
 import { API_URL } from '../config';
+import { queueChatCompletion, USE_AI_JOB_QUEUE } from '../services/aiJobService';
 import MathRenderer from './MathRenderer';
 import GraphRenderer, { detectGraphLanguage } from './GraphRenderer';
 import { disableChatDock, getChatDockState, listenChatDockUpdates } from '../utils/chatDock';
@@ -264,15 +265,25 @@ const AIChatDock = () => {
       formData.append('chat_id', String(chatId));
       formData.append('use_hs_context', String(localStorage.getItem('hs_mode_enabled') === 'true'));
 
-      const response = await fetch(`${API_URL}/ask_simple/`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+      let data;
+      if (USE_AI_JOB_QUEUE) {
+        data = await queueChatCompletion({
+          prompt: messageForModel,
+          user_message: text,
+          chat_session_id: Number(chatId),
+          use_hs_context: localStorage.getItem('hs_mode_enabled') === 'true',
+        });
+      } else {
+        const response = await fetch(`${API_URL}/ask_simple/`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
 
-      if (!response.ok) throw new Error('Failed to send message');
+        if (!response.ok) throw new Error('Failed to send message');
 
-      const data = await response.json();
+        data = await response.json();
+      }
       setMessages((prev) => [
         ...prev,
         {

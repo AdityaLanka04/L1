@@ -1,6 +1,7 @@
 
 
 import { API_URL } from '../config/api';
+import { queuedAIJsonFetch } from './aiJobService';
 
 const _memoryStore = new Map();
 
@@ -471,7 +472,7 @@ class ContextService {
     const payload = { question, use_hs: useHs, top_k: topK };
     if (docIds) payload.doc_ids = docIds;
 
-    const response = await fetch(`${API_URL}/context/ask`, {
+    const response = await queuedAIJsonFetch('/context/ask', {
       method: 'POST',
       headers: this._headers(),
       body: JSON.stringify(payload),

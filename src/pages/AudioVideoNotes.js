@@ -4,6 +4,7 @@ import { Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader, ArrowLef
 import './AudioVideoNotes.css';
 import { API_URL } from '../config';
 import { sanitizeHtml } from '../utils/sanitize';
+import { queueLegacyAIFileEndpoint, queuedAIFormFetch } from '../services/aiJobService';
 
 const AudioVideoNotes = () => {
   const navigate = useNavigate();
@@ -67,14 +68,16 @@ const AudioVideoNotes = () => {
         setGenerationProgress(prev => Math.min(prev + 10, 90));
       }, 500);
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/generate_notes_from_media`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      const response = uploadedFile
+        ? new Response(JSON.stringify(await queueLegacyAIFileEndpoint(
+            '/api/generate_notes_from_media',
+            { user_id: userName },
+            [{ fieldName: 'file', file: uploadedFile }],
+            { timeoutMs: 300000 }
+          )), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        : await queuedAIFormFetch('/generate_notes_from_media', Object.fromEntries(formData.entries()), {
+            timeoutMs: 300000,
+          });
 
       clearInterval(progressInterval);
       progressInterval = null;

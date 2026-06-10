@@ -31,6 +31,8 @@ from models.chat import (
     AILearningMetrics,
 )
 
+from models.ai_jobs import AIJob
+
 from models.content import (
     MediaFile,
     Folder,

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Folder, Loader, RefreshCw, X } from 'lucide-react';
 import './SmartFolders.css';
 import { API_URL } from '../config';
+import { queuedAIJsonFetch } from '../services/aiJobService';
 
 const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
   const [smartFolders, setSmartFolders] = useState([]);
@@ -45,7 +46,7 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
       preview: (note.content || '').replace(/<[^>]+>/g, '').substring(0, 200)
     }));
 
-    const response = await fetch(`${API_URL}/ai_group_notes`, {
+    const response = await queuedAIJsonFetch('/ai_group_notes', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

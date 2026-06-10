@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import './Weaknesses.css';
 import { API_URL } from '../config';
+import { queuedAIJsonFetch } from '../services/aiJobService';
 import WeaknessTracker from '../components/WeaknessTracker/WeaknessTracker';
 import RLInsights from '../components/RLInsights/RLInsights';
 
@@ -31,7 +32,7 @@ const Weaknesses = () => {
   const loadWeakAreas = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/study_insights/strengths_weaknesses?user_id=${userName}`, {
+      const response = await queuedAIJsonFetch(`/study_insights/strengths_weaknesses?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {

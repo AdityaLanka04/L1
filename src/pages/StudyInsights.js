@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './StudyInsights.css';
 import { API_URL } from '../config';
+import { queuedAIJsonFetch } from '../services/aiJobService';
 import logo from '../assets/logo.svg';
 
 const StudyInsights = () => {
@@ -40,7 +41,7 @@ const StudyInsights = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/study_insights/comprehensive?user_id=${userName}&time_range=${timeRange}`, {
+      const response = await queuedAIJsonFetch(`/study_insights/comprehensive?user_id=${userName}&time_range=${timeRange}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

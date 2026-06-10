@@ -34,6 +34,7 @@ services:
       - "3000"
     environment:
       - REACT_APP_API_URL=https://yourdomain.com/api
+      - REACT_APP_USE_AI_JOB_QUEUE=true
     restart: always
     networks:
       - brainwave-network
@@ -42,16 +43,54 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: brainwave-backend
     expose:
       - "8000"
     env_file:
       - backend/.env.production
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AI_MAX_ACTIVE_JOBS_PER_USER=4
     volumes:
       - chroma_data:/app/.chroma_data
       - backend_uploads:/app/uploads
       - backend_exports:/app/exports
       - backend_attachments:/app/attachments
+    depends_on:
+      - redis
+    restart: always
+    networks:
+      - brainwave-network
+
+  ai-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "worker.py"]
+    env_file:
+      - backend/.env.production
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AI_MAX_ACTIVE_JOBS_PER_USER=4
+    volumes:
+      - chroma_data:/app/.chroma_data
+      - backend_uploads:/app/uploads
+      - backend_exports:/app/exports
+      - backend_attachments:/app/attachments
+    depends_on:
+      - backend
+      - redis
+    restart: always
+    networks:
+      - brainwave-network
+
+  redis:
+    image: redis/redis-stack-server:latest
+    environment:
+      - REDIS_ARGS=--appendonly yes
+    volumes:
+      - redis_data:/data
     restart: always
     networks:
       - brainwave-network
@@ -65,3 +104,4 @@ volumes:
   backend_uploads:
   backend_exports:
   backend_attachments:
+  redis_data:

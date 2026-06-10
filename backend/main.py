@@ -507,6 +507,7 @@ from routes import (
     knowledge_tracing,
     intelligence,
     rate_limits,
+    ai_jobs,
 )
 
 app.include_router(auth.router)
@@ -537,6 +538,7 @@ app.include_router(context_routes.router)
 app.include_router(knowledge_tracing.router)
 app.include_router(intelligence.router)
 app.include_router(rate_limits.router)
+app.include_router(ai_jobs.router)
 
 try:
     from flashcard_api_minimal import register_flashcard_api_minimal

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus, Plus } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -8,6 +8,7 @@ import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
 import AbstractFx from '../components/AbstractFx';
+import { queueLegacyAIEndpoint, queuedAIFormFetch, queuedAIJsonFetch, USE_AI_JOB_QUEUE } from '../services/aiJobService';
 
 const COMMAND_HIGHLIGHT_PALETTE = [
   '#7dd3fc',
@@ -1451,24 +1452,38 @@ const SearchHub = () => {
       const token = localStorage.getItem('token');
       
       
-      const response = await fetchWithTimeout(`${API_URL}/agents/searchhub`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user_id: userName || 'guest',
-          query: finalQuery,
-          session_id: sessionId,
-          use_hs_context: hsMode
-        })
-      });
-      
-      if (response.ok) {
-        const data = await safeJson(response) || {};
-        
-        
+      let data = null;
+      if (USE_AI_JOB_QUEUE) {
+        data = await queueLegacyAIEndpoint('/api/agents/searchhub', {
+          jsonBody: {
+            user_id: userName || 'guest',
+            query: finalQuery,
+            session_id: sessionId,
+            use_hs_context: hsMode
+          },
+        });
+      } else {
+        const response = await fetchWithTimeout(`${API_URL}/agents/searchhub`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: userName || 'guest',
+            query: finalQuery,
+            session_id: sessionId,
+            use_hs_context: hsMode
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Search failed: ${response.status}`);
+        }
+        data = await safeJson(response) || {};
+      }
+
+      if (data) {
         if (data.navigate_to) {
           setIsCreating(true);
           
@@ -1652,13 +1667,7 @@ const SearchHub = () => {
       formData.append('user_id', userName || 'guest');
       formData.append('topic', topic);
       
-      const fullUrl = `${API_URL}/generate_topic_description`;
-            
-      const response = await fetch(fullUrl, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
+      const response = await queuedAIFormFetch('/generate_topic_description', Object.fromEntries(formData.entries()));
       
             
       if (response.ok) {
@@ -1741,7 +1750,7 @@ const SearchHub = () => {
           
           
           try {
-            const noteResponse = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-note`, {
+            const noteResponse = await queuedAIJsonFetch('/agents/searchhub/create-note', {
               method: 'POST',
               headers: { 
                 'Authorization': `Bearer ${token}`,
@@ -1780,7 +1789,7 @@ const SearchHub = () => {
           setCreatingMessage(`Creating ${parameters.count || 10} flashcards on ${parameters.topic}...`);
           
           try {
-            const fcResponse = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-flashcards`, {
+            const fcResponse = await queuedAIJsonFetch('/agents/searchhub/create-flashcards', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -1818,7 +1827,7 @@ const SearchHub = () => {
           setCreatingMessage(`Creating ${parameters.count || 10} questions on ${parameters.topic}...`);
           
           try {
-            const qResponse = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-questions`, {
+            const qResponse = await queuedAIJsonFetch('/agents/searchhub/create-questions', {
               method: 'POST',
               headers: { 
                 'Authorization': `Bearer ${token}`,
@@ -1856,7 +1865,7 @@ const SearchHub = () => {
           setCreatingMessage(`Creating quiz on ${parameters.topic}...`);
           
           try {
-            const quizResponse = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-questions`, {
+            const quizResponse = await queuedAIJsonFetch('/agents/searchhub/create-questions', {
               method: 'POST',
               headers: { 
                 'Authorization': `Bearer ${token}`,
@@ -1960,7 +1969,7 @@ const SearchHub = () => {
           setCreatingMessage(`Creating knowledge map for ${mapTopic}...`);
 
           try {
-            const mapResponse = await fetchWithTimeout(`${API_URL}/create_knowledge_roadmap`, {
+            const mapResponse = await queuedAIJsonFetch('/create_knowledge_roadmap', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -2508,7 +2517,7 @@ const SearchHub = () => {
       
       if (type === 'flashcards') {
         
-        const response = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-flashcards`, {
+        const response = await queuedAIJsonFetch('/agents/searchhub/create-flashcards', {
           method: 'POST',
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -2538,7 +2547,7 @@ const SearchHub = () => {
 
       } else if (type === 'notes') {
         
-        const response = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-note`, {
+        const response = await queuedAIJsonFetch('/agents/searchhub/create-note', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -2567,7 +2576,7 @@ const SearchHub = () => {
         
       } else if (type === 'questions') {
         
-        const response = await fetchWithTimeout(`${API_URL}/agents/searchhub/create-questions`, {
+        const response = await queuedAIJsonFetch('/agents/searchhub/create-questions', {
           method: 'POST',
           headers: { 
             'Authorization': `Bearer ${token}`,

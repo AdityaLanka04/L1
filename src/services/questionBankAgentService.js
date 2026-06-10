@@ -1,6 +1,34 @@
 
 
 import { API_URL, getAuthToken } from '../config';
+import { queuedAIJsonFetch, USE_AI_JOB_QUEUE } from './aiJobService';
+
+const AI_QUEUED_QB_PATHS = [
+  '/qb/generate_from_pdf',
+  '/qb/generate_from_multiple_pdfs',
+  '/qb/generate_related_from_pdf',
+  '/qb/smart_generate',
+  '/qb/generate_from_sources',
+  '/qb/enhance_prompt',
+  '/qb/extract_topics',
+  '/qb/score_questions',
+  '/qb/tag_bloom_taxonomy',
+  '/qb/check_duplicates',
+  '/qb/analyze_weaknesses',
+  '/qb/generate_adaptive',
+  '/qb/enhance_explanations',
+  '/qb/regenerate_question',
+  '/qb/preview_generate',
+];
+
+const aiAwareFetch = (url, options = {}) => {
+  if (!USE_AI_JOB_QUEUE) return fetch(url, options);
+  const path = url.startsWith(API_URL) ? url.slice(API_URL.length) : url;
+  if (AI_QUEUED_QB_PATHS.some((queuedPath) => path.startsWith(queuedPath))) {
+    return queuedAIJsonFetch(path, options);
+  }
+  return fetch(url, options);
+};
 
 class QuestionBankAgentService {
   constructor() {
@@ -19,7 +47,7 @@ class QuestionBankAgentService {
     };
 
     try {
-      const response = await fetch(url, { 
+      const response = await aiAwareFetch(url, {
         ...defaultOptions, 
         ...options,
         headers: {
@@ -61,7 +89,7 @@ class QuestionBankAgentService {
   async generateFromPDF(params) {
     const { userId, sourceId, questionCount, difficultyMix, questionTypes, topics, title } = params;
 
-    const response = await fetch(`${API_URL}/qb/generate_from_pdf`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/generate_from_pdf`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -94,7 +122,7 @@ class QuestionBankAgentService {
   async generateFromMultiplePDFs(params) {
     const { userId, sourceIds, questionCount, difficultyMix, title, questionTypes, topics } = params;
 
-    const response = await fetch(`${API_URL}/qb/generate_from_multiple_pdfs`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/generate_from_multiple_pdfs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -126,7 +154,7 @@ class QuestionBankAgentService {
   async generateRelatedFromPDF(params) {
     const { userId, sourceIds, questionCount, difficultyMix, questionTypes, title } = params;
 
-    const response = await fetch(`${API_URL}/qb/generate_related_from_pdf`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/generate_related_from_pdf`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -165,7 +193,7 @@ class QuestionBankAgentService {
       contentDocumentIds
     } = params;
 
-    const response = await fetch(`${API_URL}/qb/smart_generate`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/smart_generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -198,7 +226,7 @@ class QuestionBankAgentService {
 
   
   async deleteDocument(userId, documentId) {
-    const response = await fetch(`${API_URL}/qb/delete_document/${documentId}?user_id=${userId}`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/delete_document/${documentId}?user_id=${userId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`
@@ -225,7 +253,7 @@ class QuestionBankAgentService {
       customPrompt,
       sessionId
     } = params;
-    const response = await fetch(`${API_URL}/qb/generate_from_sources`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/generate_from_sources`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -264,7 +292,7 @@ class QuestionBankAgentService {
       customPrompt,
       sessionId
     } = params;
-    const response = await fetch(`${API_URL}/qb/generate_from_pdf`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/generate_from_pdf`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -384,7 +412,7 @@ class QuestionBankAgentService {
 
   
   async enhancePrompt(prompt, contentSummary = '') {
-    const response = await fetch(`${API_URL}/qb/enhance_prompt`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/enhance_prompt`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -406,7 +434,7 @@ class QuestionBankAgentService {
 
   
   async extractTopics(userId, documentId = null, content = '') {
-    const response = await fetch(`${API_URL}/qb/extract_topics`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/extract_topics`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -429,7 +457,7 @@ class QuestionBankAgentService {
 
   
   async scoreQuestions(questions) {
-    const response = await fetch(`${API_URL}/qb/score_questions`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/score_questions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -448,7 +476,7 @@ class QuestionBankAgentService {
 
   
   async tagBloomTaxonomy(questions) {
-    const response = await fetch(`${API_URL}/qb/tag_bloom_taxonomy`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/tag_bloom_taxonomy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -467,7 +495,7 @@ class QuestionBankAgentService {
 
   
   async checkDuplicates(userId, question, questionSetId = null) {
-    const response = await fetch(`${API_URL}/qb/check_duplicates`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/check_duplicates`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -490,7 +518,7 @@ class QuestionBankAgentService {
 
   
   async analyzeWeaknesses(userId) {
-    const response = await fetch(`${API_URL}/qb/analyze_weaknesses`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/analyze_weaknesses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -522,7 +550,7 @@ class QuestionBankAgentService {
       });
     } catch (e) {
       
-      const response = await fetch(`${API_URL}/qb/generate_adaptive`, {
+      const response = await aiAwareFetch(`${API_URL}/qb/generate_adaptive`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -581,7 +609,7 @@ class QuestionBankAgentService {
 
   
   async enhanceExplanations(questions) {
-    const response = await fetch(`${API_URL}/qb/enhance_explanations`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/enhance_explanations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -600,7 +628,7 @@ class QuestionBankAgentService {
 
   
   async regenerateQuestion(userId, question, feedback, documentId = null) {
-    const response = await fetch(`${API_URL}/qb/regenerate_question`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/regenerate_question`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -629,7 +657,7 @@ class QuestionBankAgentService {
       questionTypes, topics, customPrompt, referenceDocumentId, contentDocumentIds, sessionId
     } = params;
 
-    const response = await fetch(`${API_URL}/qb/preview_generate`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/preview_generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -659,7 +687,7 @@ class QuestionBankAgentService {
 
   
   async savePreviewedQuestions(userId, questions, title, description = '', sourceType = 'preview') {
-    const response = await fetch(`${API_URL}/qb/save_previewed_questions`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/save_previewed_questions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -684,7 +712,7 @@ class QuestionBankAgentService {
 
   
   async batchDelete(userId, setIds) {
-    const response = await fetch(`${API_URL}/qb/batch_delete`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/batch_delete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -706,7 +734,7 @@ class QuestionBankAgentService {
 
   
   async mergeSets(userId, setIds, title, deleteOriginals = false) {
-    const response = await fetch(`${API_URL}/qb/merge_sets`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/merge_sets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -732,7 +760,7 @@ class QuestionBankAgentService {
 
   
   async getWeakAreas(userId) {
-    const response = await fetch(`${API_URL}/qb/weak_areas?user_id=${encodeURIComponent(userId)}`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/weak_areas?user_id=${encodeURIComponent(userId)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -755,7 +783,7 @@ class QuestionBankAgentService {
       url += `&topic=${encodeURIComponent(topic)}`;
     }
 
-    const response = await fetch(url, {
+    const response = await aiAwareFetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -773,7 +801,7 @@ class QuestionBankAgentService {
 
   
   async markWrongAnswerReviewed(wrongAnswerId, understood = true) {
-    const response = await fetch(`${API_URL}/qb/mark_reviewed`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/mark_reviewed`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -795,7 +823,7 @@ class QuestionBankAgentService {
 
   
   async generatePractice(userId, topic = null, questionCount = 10, includeReview = true) {
-    const response = await fetch(`${API_URL}/qb/generate_practice`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/generate_practice`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -819,7 +847,7 @@ class QuestionBankAgentService {
 
   
   async getPracticeRecommendations(userId) {
-    const response = await fetch(`${API_URL}/qb/practice_recommendations?user_id=${encodeURIComponent(userId)}`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/practice_recommendations?user_id=${encodeURIComponent(userId)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -837,7 +865,7 @@ class QuestionBankAgentService {
 
   
   async resetWeakArea(weakAreaId, action = 'mastered') {
-    const response = await fetch(`${API_URL}/qb/reset_weak_area`, {
+    const response = await aiAwareFetch(`${API_URL}/qb/reset_weak_area`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -8,6 +8,7 @@ import {
 import './AIMediaNotes.css';
 import './AIMediaNotesConvert.css';
 import { API_URL } from '../config';
+import { queueLegacyAIEndpoint, queueLegacyAIFileEndpoint, USE_AI_JOB_QUEUE } from '../services/aiJobService';
 import { sanitizeHtml } from '../utils/sanitize';
 import ImportExportModal from '../components/ImportExportModal';
 import PodcastStudio from '../components/media/PodcastStudio';
@@ -121,24 +122,31 @@ const AIMediaNotes = () => {
       setProcessingStage('Transcribing audio...');
       
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/media/process`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
+      let data;
+      if (USE_AI_JOB_QUEUE) {
+        const formBody = Object.fromEntries(formData.entries());
+        const queuedFiles = uploadedFile ? [{ fieldName: 'file', file: uploadedFile }] : [];
+        data = await queueLegacyAIFileEndpoint('/api/media/process', formBody, queuedFiles, { timeoutMs: 300000 });
+      } else {
+        const response = await fetch(`${API_URL}/media/process`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Processing failed');
+        }
+        data = await response.json();
+      }
 
       clearInterval(progressInterval);
       progressInterval = null;
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Processing failed');
-      }
-
       setProcessingStage('Generating AI notes...');
       setProgress(95);
 
-      const data = await response.json();
       setProgress(100);
       setResults(data);
       setActiveTab('notes');
@@ -169,22 +177,31 @@ const AIMediaNotes = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const titleResponse = await fetch(`${API_URL}/media/generate-title`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          transcript: asText(results.transcript).substring(0, 1000),
-          key_concepts: results.analysis?.key_concepts || [],
-          summary: results.analysis?.summary || ''
-        })
-      });
+      const titlePayload = {
+        transcript: asText(results.transcript).substring(0, 1000),
+        key_concepts: results.analysis?.key_concepts || [],
+        summary: results.analysis?.summary || ''
+      };
+      const titleResponse = USE_AI_JOB_QUEUE
+        ? await queueLegacyAIEndpoint('/api/media/generate-title', { jsonBody: titlePayload })
+        : await fetch(`${API_URL}/media/generate-title`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(titlePayload)
+          });
+
+      let titleData = {};
+      if (USE_AI_JOB_QUEUE) {
+        titleData = titleResponse || {};
+      } else if (titleResponse.ok) {
+        titleData = await titleResponse.json();
+      }
 
       let smartTitle = results.filename || 'Media Notes';
-      if (titleResponse.ok) {
-        const titleData = await titleResponse.json();
+      if (titleData?.title) {
         smartTitle = titleData.title;
       }
 
@@ -229,21 +246,31 @@ const AIMediaNotes = () => {
       const token = localStorage.getItem('token');
       
       
-      const titleResponse = await fetch(`${API_URL}/media/generate-title`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          transcript: results.transcript?.substring(0, 1000) || '',
-          key_concepts: results.analysis?.key_concepts || [],
-          summary: results.analysis?.summary || ''
-        })
-      });
+      const titleResponse = USE_AI_JOB_QUEUE
+        ? await queueLegacyAIEndpoint('/api/media/generate-title', {
+            jsonBody: {
+              transcript: results.transcript?.substring(0, 1000) || '',
+              key_concepts: results.analysis?.key_concepts || [],
+              summary: results.analysis?.summary || ''
+            }
+          })
+        : await fetch(`${API_URL}/media/generate-title`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              transcript: results.transcript?.substring(0, 1000) || '',
+              key_concepts: results.analysis?.key_concepts || [],
+              summary: results.analysis?.summary || ''
+            })
+          });
 
       let smartTitle = results.filename || 'Media Flashcards';
-      if (titleResponse.ok) {
+      if (USE_AI_JOB_QUEUE && titleResponse?.title) {
+        smartTitle = `${titleResponse.title} - Flashcards`;
+      } else if (!USE_AI_JOB_QUEUE && titleResponse.ok) {
         const titleData = await titleResponse.json();
         smartTitle = `${titleData.title} - Flashcards`;
       }

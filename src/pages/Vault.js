@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import contextService from '../services/contextService';
 import { API_URL } from '../config/api';
+import { queuedAIJsonFetch } from '../services/aiJobService';
 import AbstractFx from '../components/AbstractFx';
 import './Vault.css';
 
@@ -758,7 +759,7 @@ const Vault = () => {
       }
       setBulkActionLoading('notes');
       try {
-        const response = await fetch(`${API_URL}/create_note_from_context_docs`, {
+        const response = await queuedAIJsonFetch('/create_note_from_context_docs', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

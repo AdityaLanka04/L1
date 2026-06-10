@@ -1,6 +1,7 @@
 
 
 import { API_URL, getAuthToken } from '../config';
+import { queuedAIJsonFetch } from './aiJobService';
 
 class LearningPathService {
   constructor() {
@@ -19,7 +20,7 @@ class LearningPathService {
   
   async generatePath(topicPrompt, options = {}) {
     try {
-      const response = await fetch(`${this.baseUrl}/generate`, {
+      const response = await queuedAIJsonFetch('/learning-paths/generate', {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({

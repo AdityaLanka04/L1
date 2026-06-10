@@ -1,6 +1,7 @@
 
 
 import { API_URL, getAuthToken } from '../config';
+import { queuedAIFormFetch } from './aiJobService';
 
 class ConversionAgentService {
   constructor() {
@@ -521,11 +522,7 @@ class ConversionAgentService {
         formData.append('chat_id', sessionId);
         formData.append('user_id', userId);
 
-        const response = await fetch(this.chatConvertUrl, {
-          method: 'POST',
-          headers: this.getFileHeaders(),
-          body: formData
-        });
+        const response = await queuedAIFormFetch('/convert_chat_to_note_content/', Object.fromEntries(formData.entries()));
 
         const data = await response.json().catch(() => ({}));
 

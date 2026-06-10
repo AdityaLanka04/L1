@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import podcastAgentService from '../../services/podcastAgentService';
 import { API_URL, getAuthToken } from '../../config/api';
+import { queueLegacyAIFileEndpoint, USE_AI_JOB_QUEUE } from '../../services/aiJobService';
 import DOMPurify from 'dompurify';
 import './PodcastStudio.css';
 
@@ -1208,20 +1209,29 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       formData.append('audio_file', audioBlob, 'podcast-question.webm');
       formData.append('user_id', userName);
 
-      const response = await fetch(`${API_URL}/transcribe_audio/`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      const data = USE_AI_JOB_QUEUE
+        ? await queueLegacyAIFileEndpoint(
+            '/api/transcribe_audio/',
+            { user_id: userName },
+            [{ fieldName: 'audio_file', file: audioBlob, filename: 'podcast-question.webm' }],
+            { timeoutMs: 180000 }
+          )
+        : await (async () => {
+            const response = await fetch(`${API_URL}/transcribe_audio/`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              body: formData,
+            });
 
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Voice transcription failed');
-      }
+            if (!response.ok) {
+              const text = await response.text();
+              throw new Error(text || 'Voice transcription failed');
+            }
 
-      const data = await response.json();
+            return response.json();
+          })();
       const transcriptQuestion = (data?.transcript || '').trim();
 
       if (!transcriptQuestion) {

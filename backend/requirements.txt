@@ -92,6 +92,7 @@ pytest-asyncio>=0.21.0
 
 # Caching
 redis>=5.0.0
+redisvl>=0.3.0
 
 # RL Reward Scheduler
 apscheduler>=3.10.0
