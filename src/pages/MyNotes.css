@@ -1006,6 +1006,11 @@
   border-color: var(--nt-danger);
 }
 
+.nt-note-action-btn.remove:hover {
+  color: var(--nt-accent);
+  border-color: var(--nt-accent);
+}
+
 .nt-note-action-btn svg {
   width: 14px;
   height: 14px;

@@ -125,6 +125,10 @@ def _verify_user_access(requested_user, current_user: models.User):
     if requested_user.id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
+def _safe_audio_suffix(filename: Optional[str]) -> str:
+    suffix = Path(filename or "").suffix.lower()
+    return suffix if suffix in {".m4a", ".mp3", ".wav", ".webm", ".ogg", ".opus", ".mp4", ".mpeg", ".mpga"} else ".webm"
+
 @router.post("/transcribe_audio/")
 async def transcribe_audio(
     audio_file: UploadFile = File(...),
@@ -142,7 +146,7 @@ async def transcribe_audio(
         if len(audio_content) == 0:
             raise HTTPException(status_code=400, detail="Empty audio file")
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm", mode="wb") as temp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=_safe_audio_suffix(audio_file.filename), mode="wb") as temp_file:
             temp_file.write(audio_content)
             temp_audio_path = temp_file.name
 
@@ -318,7 +322,10 @@ async def process_media(
         )
 
         if not notes_result.get("success"):
-            raise HTTPException(status_code=500, detail="Note generation failed")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Note generation failed: {notes_result.get('error', 'Unknown error')}",
+            )
 
         flashcards = []
         if generate_flashcards:

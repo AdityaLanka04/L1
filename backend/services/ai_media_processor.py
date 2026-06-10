@@ -1,5 +1,6 @@
 import os
 import json
+import html
 import tempfile
 import subprocess
 import shutil
@@ -7,8 +8,10 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 import asyncio
 import logging
+from env_loader import load_backend_env
 from activity_logger import log_ai_tokens
 from services.ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
+from services.api_key_pool import ApiKeyPoolExhausted, build_key_pool
 
 try:
     from langdetect import detect, LangDetectException
@@ -53,6 +56,8 @@ from services.ytdlp_utils import (
 
 logger = logging.getLogger(__name__)
 
+load_backend_env()
+
 GEMINI_API_KEY = os.getenv("GOOGLE_GENERATIVE_AI_KEY") or os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
@@ -64,8 +69,13 @@ groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_AVAILABLE and GROQ_API_KEY else
 class AIMediaProcessor:
     
     def __init__(self):
-        self.groq_client = groq_client
         self.youtube_service = youtube_service
+        self.groq_key_pool = build_key_pool("groq", ("GROQ_API_KEYS", "GROQ_API_KEY"))
+        self.groq_client = (
+            Groq(api_key=self.groq_key_pool.entries[0].token)
+            if GROQ_AVAILABLE and self.groq_key_pool.enabled
+            else groq_client
+        )
         
         if GEMINI_AVAILABLE and GEMINI_API_KEY:
             try:
@@ -77,6 +87,89 @@ class AIMediaProcessor:
         else:
             self.gemini_model = None
             logger.info("Using Groq exclusively for AI processing")
+
+    def _is_groq_quota_error(self, error: Exception) -> bool:
+        text = str(error).lower()
+        return (
+            "429" in text
+            or "rate_limit" in text
+            or "rate limit" in text
+            or "tokens per day" in text
+            or "tpm" in text
+            or "tpd" in text
+            or "quota" in text
+        )
+
+    def _estimate_groq_request_tokens(self, prompt: str, max_tokens: int) -> int:
+        prompt_tokens = max(1, len(prompt or "") // 8)
+        completion_budget = max(500, max_tokens // 2)
+        return min(9000, prompt_tokens + completion_budget)
+
+    async def _create_groq_chat_completion(
+        self,
+        *,
+        messages: List[Dict[str, str]],
+        temperature: float,
+        max_tokens: int,
+        estimated_tokens: int,
+        user_id: Optional[int],
+        usage_extra: Dict,
+    ):
+        if not GROQ_AVAILABLE:
+            raise ValueError("Groq package not available")
+
+        last_error = None
+        tried_keys = 0
+
+        while True:
+            lease = None
+            try:
+                if self.groq_key_pool.enabled:
+                    lease = self.groq_key_pool.reserve(estimated_tokens)
+                    tried_keys += 1
+                    client = Groq(api_key=lease.token)
+                elif self.groq_client:
+                    client = self.groq_client
+                    tried_keys += 1
+                else:
+                    raise ValueError("Groq client not available")
+
+                can_call, wait_time = rate_limiter.can_call_groq()
+                if not can_call:
+                    logger.warning(f"Groq request rate limit check: waiting {wait_time:.1f} seconds...")
+                    await asyncio.sleep(wait_time + 1)
+
+                rate_limiter.record_groq_call()
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                usage = extract_usage_from_openai_like(response) or {}
+                if lease:
+                    self.groq_key_pool.record_success(lease, usage.get("total_tokens"))
+                self._log_groq_usage(user_id, "media_notes_ai", response, usage_extra)
+                return response
+
+            except ApiKeyPoolExhausted:
+                if last_error:
+                    raise last_error
+                raise
+            except Exception as e:
+                last_error = e
+                if lease:
+                    if self._is_groq_quota_error(e):
+                        logger.warning(
+                            "Groq key hit provider quota/rate limit; rotating to next configured key: %s",
+                            str(e),
+                        )
+                        self.groq_key_pool.mark_exhausted(lease, cooldown_seconds=3600)
+                        continue
+                    self.groq_key_pool.release(lease)
+                if self._is_groq_quota_error(e) and tried_keys <= 1:
+                    raise
+                raise
 
     def _log_groq_usage(self, user_id: Optional[int], tool_name: str, response, extra: Dict = None):
         if not user_id:
@@ -422,17 +515,17 @@ Provide a JSON response with:
 
 Format as valid JSON."""
 
-                    rate_limiter.record_groq_call()
-                    response = self.groq_client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                    response = await self._create_groq_chat_completion(
                         messages=[
                             {"role": "system", "content": "You are an expert educational content analyzer. Always respond with valid JSON."},
                             {"role": "user", "content": prompt}
                         ],
                         temperature=0.7,
-                        max_tokens=4000
+                        max_tokens=4000,
+                        estimated_tokens=self._estimate_groq_request_tokens(prompt, 4000),
+                        user_id=user_id,
+                        usage_extra={"task": "analyze_transcript"},
                     )
-                    self._log_groq_usage(user_id, "media_notes_ai", response, {"task": "analyze_transcript"})
                     
                     result_text = response.choices[0].message.content
                     
@@ -528,9 +621,6 @@ Provide a JSON response with:
     
     async def generate_notes_ai(self, transcript: str, analysis: Dict, style: str = "detailed", options: Dict = None, user_id: Optional[int] = None) -> Dict:
         try:
-            if not self.groq_client:
-                raise ValueError("Groq client not available")
-            
             options = options or {}
             difficulty = options.get('difficulty', 'intermediate')
             subject = options.get('subject', 'general')
@@ -541,42 +631,152 @@ Provide a JSON response with:
             
             if word_count > 12000 and style == "detailed":
                 logger.info("Using chunked processing for long transcript")
-                return await self._generate_notes_chunked_groq(transcript, analysis, difficulty, subject, custom_instructions, user_id=user_id)
+                chunked_result = await self._generate_notes_chunked_groq(transcript, analysis, difficulty, subject, custom_instructions, user_id=user_id)
+                if chunked_result.get("success"):
+                    return chunked_result
+                logger.warning("Chunked Groq notes failed, trying fallback generation: %s", chunked_result.get("error"))
             
             prompt = self._get_style_prompt(style, transcript, analysis, difficulty, subject, custom_instructions, word_count)
             system_prompt = self._get_system_prompt(style)
-            
-            rate_limiter.record_groq_call()
-            response = self.groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=8000
-            )
-            self._log_groq_usage(user_id, "media_notes_ai", response, {"task": "generate_notes", "style": style})
-            
-            html_content = response.choices[0].message.content
-            
-            if "```html" in html_content:
-                html_content = html_content.split("```html")[1].split("```")[0]
-            elif "```" in html_content:
-                html_content = html_content.split("```")[1].split("```")[0]
-            
+
+            groq_error = None
+            if self.groq_client:
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        can_call, wait_time = rate_limiter.can_call_groq()
+                        if not can_call:
+                            logger.warning(f"Groq notes rate limit check: waiting {wait_time:.1f} seconds...")
+                            await asyncio.sleep(wait_time + 1)
+
+                        response = await self._create_groq_chat_completion(
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": prompt}
+                            ],
+                            temperature=0.7,
+                            max_tokens=8000,
+                            estimated_tokens=self._estimate_groq_request_tokens(prompt, 8000),
+                            user_id=user_id,
+                            usage_extra={"task": "generate_notes", "style": style},
+                        )
+
+                        html_content = self._strip_code_fences(response.choices[0].message.content)
+                        return {
+                            "success": True,
+                            "content": html_content.strip(),
+                            "style": style
+                        }
+                    except Exception as e:
+                        groq_error = str(e)
+                        is_retryable = "429" in groq_error or "rate" in groq_error.lower() or "timeout" in groq_error.lower()
+                        if is_retryable and attempt < max_retries - 1:
+                            wait_seconds = (attempt + 1) * 8
+                            logger.warning(f"Groq note generation retry {attempt + 1}/{max_retries} after {wait_seconds}s: {groq_error}")
+                            await asyncio.sleep(wait_seconds)
+                            continue
+                        logger.warning(f"Groq note generation failed: {groq_error}")
+                        break
+            else:
+                groq_error = "Groq client not available"
+
+            if self.gemini_model:
+                try:
+                    can_call, wait_time = rate_limiter.can_call_gemini()
+                    if not can_call:
+                        logger.warning(f"Gemini notes rate limit check: waiting {wait_time:.1f} seconds...")
+                        await asyncio.sleep(wait_time + 1)
+
+                    rate_limiter.record_gemini_call()
+                    response = self.gemini_model.generate_content(f"{system_prompt}\n\n{prompt}")
+                    self._log_gemini_usage(user_id, "media_notes_ai", response, {"task": "generate_notes", "style": style, "fallback": "gemini"})
+                    html_content = self._strip_code_fences(response.text)
+                    return {
+                        "success": True,
+                        "content": html_content.strip(),
+                        "style": style,
+                        "provider": "gemini"
+                    }
+                except Exception as gemini_error:
+                    logger.warning(f"Gemini note generation failed: {str(gemini_error)}")
+
+            logger.warning("Using local media notes fallback after AI generation failed: %s", groq_error)
             return {
                 "success": True,
-                "content": html_content.strip(),
-                "style": style
+                "content": self._build_fallback_notes_html(transcript, analysis, subject, difficulty),
+                "style": style,
+                "provider": "local_fallback"
             }
             
         except Exception as e:
             logger.error(f"Note generation error: {str(e)}")
             return {
-                "success": False,
-                "error": str(e)
+                "success": True,
+                "content": self._build_fallback_notes_html(transcript, analysis or {}, (options or {}).get('subject', 'general'), (options or {}).get('difficulty', 'intermediate')),
+                "style": style,
+                "provider": "local_fallback",
+                "warning": str(e)
             }
+
+    def _strip_code_fences(self, content: str) -> str:
+        content = content or ""
+        if "```html" in content:
+            return content.split("```html", 1)[1].split("```", 1)[0]
+        if "```" in content:
+            return content.split("```", 1)[1].split("```", 1)[0]
+        return content
+
+    def _build_fallback_notes_html(self, transcript: str, analysis: Dict, subject: str, difficulty: str) -> str:
+        transcript = transcript or ""
+        analysis = analysis or {}
+        key_concepts = analysis.get("key_concepts") or self._extract_concepts(transcript)
+        summary = analysis.get("summary") or "These notes were generated from the media transcript."
+        action_items = analysis.get("action_items") or []
+        questions = analysis.get("questions") or []
+        words = transcript.split()
+        excerpt_words = words[:900]
+        excerpt = " ".join(excerpt_words)
+
+        concept_items = "\n".join(
+            f"<li><strong>{html.escape(str(concept))}</strong></li>"
+            for concept in key_concepts[:12]
+        ) or "<li><strong>Main ideas</strong> from the transcript</li>"
+
+        action_items_html = "\n".join(
+            f"<li>{html.escape(str(item))}</li>"
+            for item in action_items[:8]
+        )
+
+        questions_html = "\n".join(
+            f"<li>{html.escape(str(question))}</li>"
+            for question in questions[:8]
+        )
+
+        sections = [
+            "<div class=\"lecture-notes media-notes-fallback\">",
+            f"<h1>{html.escape(subject.title() if subject else 'Media')} Notes</h1>",
+            f"<p><em>Difficulty: {html.escape(difficulty.title() if difficulty else 'Intermediate')} &middot; Transcript length: {len(words)} words</em></p>",
+            "<h2>Overview</h2>",
+            f"<p>{html.escape(str(summary))}</p>",
+            "<h2>Key Concepts</h2>",
+            f"<ul>{concept_items}</ul>",
+            "<h2>Transcript-Based Notes</h2>",
+            f"<p>{html.escape(excerpt)}</p>",
+        ]
+
+        if len(words) > len(excerpt_words):
+            sections.append("<p><em>The transcript is long; use the full transcript section below for complete context.</em></p>")
+        if action_items_html:
+            sections.extend(["<h2>Things To Remember</h2>", f"<ul>{action_items_html}</ul>"])
+        if questions_html:
+            sections.extend(["<h2>Study Questions</h2>", f"<ol>{questions_html}</ol>"])
+
+        sections.extend([
+            "<h2>Full Transcript</h2>",
+            f"<p>{html.escape(transcript)}</p>",
+            "</div>",
+        ])
+        return "\n".join(sections)
     
     def _get_system_prompt(self, style: str) -> str:
         prompts = {
@@ -1008,17 +1208,17 @@ Return ONLY HTML content (no markdown)."""
                             logger.warning(f"Rate limit check: waiting {wait_time:.1f} seconds...")
                             await asyncio.sleep(wait_time + 1)
                         
-                        rate_limiter.record_groq_call()
-                        response = self.groq_client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
+                        response = await self._create_groq_chat_completion(
                             messages=[
                                 {"role": "system", "content": "You are an expert educational content writer creating detailed study notes."},
                                 {"role": "user", "content": prompt}
                             ],
                             temperature=0.7,
-                            max_tokens=8000
+                            max_tokens=8000,
+                            estimated_tokens=self._estimate_groq_request_tokens(prompt, 8000),
+                            user_id=user_id,
+                            usage_extra={"task": "generate_notes_chunk", "chunk": idx + 1},
                         )
-                        self._log_groq_usage(user_id, "media_notes_ai", response, {"task": "generate_notes_chunk", "chunk": idx + 1})
                         
                         all_notes.append(response.choices[0].message.content)
                         break

@@ -14,6 +14,7 @@ import ImportExportModal from '../components/ImportExportModal';
 import PodcastStudio from '../components/media/PodcastStudio';
 
 const asText = (value) => (value === null || value === undefined ? '' : String(value));
+const MEDIA_FILE_ACCEPT = 'audio/*,video/*,.m4a,audio/mp4,audio/x-m4a';
 
 const formatDate = (value) => {
   const date = new Date(value);
@@ -135,8 +136,14 @@ const AIMediaNotes = () => {
         });
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail || 'Processing failed');
+          let errorMessage = 'Processing failed';
+          try {
+            const error = await response.json();
+            errorMessage = error.detail || error.message || errorMessage;
+          } catch {
+            errorMessage = await response.text() || errorMessage;
+          }
+          throw new Error(errorMessage);
         }
         data = await response.json();
       }
@@ -751,7 +758,7 @@ const AIMediaNotes = () => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="audio/*,video/*"
+                    accept={MEDIA_FILE_ACCEPT}
                     onChange={handleFileUpload}
                     style={{ display: 'none' }}
                   />

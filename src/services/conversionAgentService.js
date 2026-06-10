@@ -11,6 +11,40 @@ class ConversionAgentService {
     this.createNoteUrl = `${API_URL}/create_note`;
   }
 
+  cleanChatTitle(title) {
+    const cleaned = String(title || '')
+      .replace(/\s+/g, ' ')
+      .replace(/^(ai generated:|cerbyl:|chats?:|new chat:?)\s*/i, '')
+      .trim();
+
+    if (!cleaned) return '';
+    if (/^(new chat|untitled|untitled session|chat|chat notes)$/i.test(cleaned)) return '';
+
+    return cleaned;
+  }
+
+  buildChatNotesTitle(sessionTitles = [], sessionCount = 1) {
+    const titles = [...new Set(
+      (Array.isArray(sessionTitles) ? sessionTitles : [])
+        .map((title) => this.cleanChatTitle(title))
+        .filter(Boolean)
+    )];
+
+    if (titles.length === 1) {
+      return /\bnotes?\b/i.test(titles[0]) ? titles[0] : `${titles[0]} Notes`;
+    }
+
+    if (titles.length > 1) {
+      const visibleTitles = titles.slice(0, 2).join(', ');
+      const remainingCount = Math.max(sessionCount, titles.length) - 2;
+      return remainingCount > 0
+        ? `${visibleTitles} + ${remainingCount} More Notes`
+        : `${visibleTitles} Notes`;
+    }
+
+    return sessionCount > 1 ? `Chat Notes (${sessionCount} Sessions)` : 'Chat Notes';
+  }
+
   
   getHeaders() {
     const token = getAuthToken();
@@ -474,7 +508,8 @@ class ConversionAgentService {
       if (sessionIds && sessionIds.length > 0) {
         return await this.chatToNotes(params.userId, sessionIds, {
           formatStyle: params.noteFormat || params.formatStyle,
-          title: params.title
+          title: params.title,
+          sessionTitles: params.sessionTitles || params.session_titles
         });
       }
 
@@ -543,7 +578,7 @@ class ConversionAgentService {
         });
       }
 
-      const title = options.title || (sessions.length > 1 ? `Chat Notes (${sessions.length} Sessions)` : 'Chat Notes');
+      const title = options.title || this.buildChatNotesTitle(options.sessionTitles, sessions.length);
       const combinedContent = sections
         .map((section, index) => {
           if (sessions.length === 1) {

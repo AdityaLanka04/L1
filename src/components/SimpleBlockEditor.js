@@ -66,6 +66,13 @@ const BLOCK_TYPES = [
   { type: 'mermaid', label: 'Mermaid', icon: GitBranch, description: 'Flowchart diagram', category: 'Advanced' },
 ];
 
+const escapeInsertedText = (value) => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
 const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
   const [showPreview, setShowPreview] = React.useState(false);
   const [renderError, setRenderError] = React.useState(null);
@@ -246,7 +253,7 @@ const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
   );
 };
 
-const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = false, onOpenCanvas, focusBlockId }) => {
+const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = false, onOpenCanvas, focusBlockId, activeTextColor = null }) => {
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
   const [showBlockMenu, setShowBlockMenu] = useState(null);
   const [blockMenuPosition, setBlockMenuPosition] = useState({ top: 0, left: 0 });
@@ -288,6 +295,32 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     );
     onChange(newBlocks);
   }, [blocks, onChange]);
+
+  const handleBeforeInput = useCallback((e, blockId) => {
+    const inputType = e.nativeEvent?.inputType || e.inputType;
+    const inputData = e.data ?? e.nativeEvent?.data;
+    if (readOnly || !activeTextColor || !inputData) return;
+    if (inputType && inputType !== 'insertText') return;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (!range.collapsed) return;
+
+    const editable = e.currentTarget;
+    if (!editable.contains(range.commonAncestorContainer) && editable !== range.commonAncestorContainer) return;
+
+    e.preventDefault();
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand(
+      'insertHTML',
+      false,
+      `<span style="color: ${activeTextColor};">${escapeInsertedText(inputData)}</span>`
+    );
+
+    updateBlock(blockId, { content: editable.innerHTML || '' });
+  }, [activeTextColor, readOnly, updateBlock]);
 
   const handleFileUpload = async (blockId, file) => {
     if (!file) return;
@@ -518,7 +551,18 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   };
 
   const handleInput = (e, blockId) => {
-    const content = e.currentTarget.innerHTML || '';
+    const content = (e.currentTarget.innerHTML || '').replace(/\u200B/g, '');
+    if (content !== e.currentTarget.innerHTML) {
+      e.currentTarget.innerHTML = content;
+      const range = document.createRange();
+      const selection = window.getSelection();
+      range.selectNodeContents(e.currentTarget);
+      range.collapse(false);
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
     
     
     const trimmedContent = content.trim();
@@ -930,9 +974,10 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       },
       contentEditable: !readOnly && block.type !== 'divider',
       suppressContentEditableWarning: true,
+      onBeforeInput: (e) => handleBeforeInput(e, block.id),
       onInput: handleContentInput,
       onBlur: (e) => {
-        const content = e.currentTarget.innerHTML || '';
+        const content = (e.currentTarget.innerHTML || '').replace(/\u200B/g, '');
         if (content !== block.content) {
           updateBlock(block.id, { content });
         }
@@ -956,9 +1001,10 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           style={customStyle}
           contentEditable={!readOnly && block.type !== 'divider'}
           suppressContentEditableWarning={true}
+          onBeforeInput={(e) => handleBeforeInput(e, block.id)}
           onInput={handleContentInput}
           onBlur={(e) => {
-            const content = e.currentTarget.innerHTML || '';
+            const content = (e.currentTarget.innerHTML || '').replace(/\u200B/g, '');
             if (content !== block.content) {
               updateBlock(block.id, { content });
             }

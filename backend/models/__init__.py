@@ -37,6 +37,7 @@ from models.content import (
     MediaFile,
     Folder,
     Note,
+    NoteFolder,
     UploadedSlide,
     SlideAnalysis,
     NoteBlock,

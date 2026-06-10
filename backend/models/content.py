@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float, JSON
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from datetime import datetime, timezone
 from database import Base
@@ -73,6 +73,21 @@ class Note(Base):
     user = relationship("User", back_populates="notes")
     folder = relationship("Folder", back_populates="notes")
     media_file = relationship("MediaFile", back_populates="notes")
+
+
+class NoteFolder(Base):
+    __tablename__ = "note_folders"
+    __table_args__ = (
+        UniqueConstraint("note_id", "folder_id", name="uq_note_folder_note_folder"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    note_id = Column(Integer, ForeignKey("notes.id"), nullable=False, index=True)
+    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    note = relationship("Note", backref=backref("folder_memberships", cascade="all, delete-orphan"))
+    folder = relationship("Folder", backref=backref("note_memberships", cascade="all, delete-orphan"))
 
 
 class UploadedSlide(Base):

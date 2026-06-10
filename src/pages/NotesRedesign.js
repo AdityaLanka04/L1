@@ -39,6 +39,14 @@ import KeyboardShortcuts from '../components/KeyboardShortcuts';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 
 const asText = (value) => (value === null || value === undefined ? '' : String(value));
+const noteFolderIds = (note) => {
+  const ids = Array.isArray(note?.folder_ids) ? note.folder_ids : [];
+  if (note?.folder_id !== null && note?.folder_id !== undefined && !ids.includes(note.folder_id)) {
+    return [...ids, note.folder_id];
+  }
+  return ids;
+};
+const noteIsInFolder = (note, folderId) => noteFolderIds(note).includes(folderId);
 
 const formatDateTime = (value) => {
   const date = new Date(value);
@@ -410,6 +418,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [canvasData, setCanvasData] = useState("");
   const [canvasBlockId, setCanvasBlockId] = useState(null);
   const [pendingFocusBlockId, setPendingFocusBlockId] = useState(null);
+  const [activeTextColor, setActiveTextColor] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const savedSelectionRef = useRef(null);
   
@@ -1245,10 +1254,19 @@ const NotesRedesign = ({ sharedMode = false }) => {
       });
 
       if (res.ok) {
-        setNotes(prev => prev.map(n => n.id === noteId ? { ...n, folder_id: folderId } : n));
+        const data = await res.json().catch(() => ({}));
+        setNotes(prev => prev.map(n => n.id === noteId ? {
+          ...n,
+          folder_id: data.folder_id ?? n.folder_id ?? folderId,
+          folder_ids: data.folder_ids || [...new Set([...noteFolderIds(n), folderId].filter(Boolean))]
+        } : n));
         
         if (selectedNote?.id === noteId) {
-          setSelectedNote(prev => ({ ...prev, folder_id: folderId }));
+          setSelectedNote(prev => ({
+            ...prev,
+            folder_id: data.folder_id ?? prev.folder_id ?? folderId,
+            folder_ids: data.folder_ids || [...new Set([...noteFolderIds(prev), folderId].filter(Boolean))]
+          }));
         }
         
         await loadFolders();
@@ -1703,7 +1721,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const editable = element?.closest?.('[contenteditable="true"]');
     if (editable) editable.focus();
     document.execCommand('styleWithCSS', false, true);
-    document.execCommand(command, false, value);
+    if (command === 'foreColor' && value) {
+      setActiveTextColor(value);
+      if (!range.collapsed) {
+        document.execCommand(command, false, value);
+      }
+    } else {
+      document.execCommand(command, false, value);
+    }
     saveEditorSelection();
   }, [restoreEditorSelection, saveEditorSelection]);
 
@@ -2420,11 +2445,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
       // Use the conversion agent service for chat-to-notes conversion
       const conversionAgentService = (await import('../services/conversionAgentService')).default;
+      const selectedSessionTitles = chatSessions
+        .filter((session) => selectedSessions.includes(session.id))
+        .map((session) => session.title);
       
       const result = await conversionAgentService.chatToNotes(
         userName,
         selectedSessions,
-        { formatStyle: importMode === 'summary' ? 'summary' : 'structured' }
+        {
+          formatStyle: importMode === 'summary' ? 'summary' : 'structured',
+          sessionTitles: selectedSessionTitles
+        }
       );
       
       
@@ -2687,9 +2718,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
     if (showFavorites) {
       filtered = filtered.filter(n => n.is_favorite);
     } else if (selectedFolder) {
-      filtered = filtered.filter(n => n.folder_id === selectedFolder);
+      filtered = filtered.filter(n => noteIsInFolder(n, selectedFolder));
     } else if (selectedFolder === 0) {
-      filtered = filtered.filter(n => !n.folder_id);
+      filtered = filtered.filter(n => noteFolderIds(n).length === 0);
     }
 
     return filtered;
@@ -3160,13 +3191,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       onChange={(e) => applyEditorCommand('foreColor', e.target.value)}
                       title="Text Color"
                     />
-                    <input
-                      type="color"
-                      className="format-color"
-                      onMouseDown={saveEditorSelection}
-                      onChange={(e) => applyEditorCommand('backColor', e.target.value)}
-                      title="Background Color"
-                    />
                     
                     <div className="toolbar-divider"></div>
                     
@@ -3305,6 +3329,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   focusBlockId={pendingFocusBlockId}
                   readOnly={viewMode === "preview" || (isSharedContent && !canEdit)}
                   darkMode={editorDarkMode}
+                  activeTextColor={activeTextColor}
                 />
               </div>
 

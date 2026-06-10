@@ -69,6 +69,52 @@ class NoteAgentRequest(BaseModel):
     depth: Optional[str] = "standard"
     context: Optional[str] = None
 
+def _note_folder_ids(db: Session, note: models.Note) -> list[int]:
+    folder_ids = {
+        folder_id
+        for (folder_id,) in db.query(models.NoteFolder.folder_id)
+        .filter(models.NoteFolder.note_id == note.id)
+        .all()
+        if folder_id is not None
+    }
+    legacy_folder_id = getattr(note, "folder_id", None)
+    if legacy_folder_id is not None:
+        folder_ids.add(legacy_folder_id)
+    return sorted(folder_ids)
+
+def _ensure_note_folder_membership(db: Session, note: models.Note, folder_id: Optional[int]) -> None:
+    if folder_id is None:
+        return
+    exists = (
+        db.query(models.NoteFolder)
+        .filter(
+            models.NoteFolder.note_id == note.id,
+            models.NoteFolder.folder_id == folder_id,
+        )
+        .first()
+    )
+    if not exists:
+        db.add(models.NoteFolder(note_id=note.id, folder_id=folder_id))
+
+def _folder_note_count(db: Session, folder_id: int) -> int:
+    note_ids = {
+        note_id
+        for (note_id,) in db.query(models.NoteFolder.note_id)
+        .join(models.Note, models.Note.id == models.NoteFolder.note_id)
+        .filter(
+            models.NoteFolder.folder_id == folder_id,
+            models.Note.is_deleted == False,
+        )
+        .all()
+    }
+    note_ids.update(
+        note_id
+        for (note_id,) in db.query(models.Note.id)
+        .filter(models.Note.folder_id == folder_id, models.Note.is_deleted == False)
+        .all()
+    )
+    return len(note_ids)
+
 class ContextNotesCreateRequest(BaseModel):
     user_id: str
     context_doc_ids: list[str]
@@ -410,6 +456,7 @@ def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
             "updated_at": n.updated_at.isoformat() + "Z" if n.updated_at else None,
             "is_favorite": getattr(n, "is_favorite", False),
             "folder_id": getattr(n, "folder_id", None),
+            "folder_ids": _note_folder_ids(db, n),
             "custom_font": getattr(n, "custom_font", "Inter"),
             "canvas_data": getattr(n, "canvas_data", None) or "",
             "is_deleted": False,
@@ -435,6 +482,8 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
     db.add(new_note)
     db.commit()
     db.refresh(new_note)
+    _ensure_note_folder_membership(db, new_note, note_data.folder_id)
+    db.commit()
 
     try:
         from services.gamification_system import award_points
@@ -475,6 +524,8 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         "content": new_note.content,
         "custom_font": getattr(new_note, "custom_font", "Inter"),
         "canvas_data": getattr(new_note, "canvas_data", None) or "",
+        "folder_id": getattr(new_note, "folder_id", None),
+        "folder_ids": _note_folder_ids(db, new_note),
         "user_id": user.id,
         "created_at": new_note.created_at.isoformat() + "Z",
         "updated_at": new_note.updated_at.isoformat() + "Z",
@@ -667,6 +718,7 @@ def get_single_note(note_id: int, db: Session = Depends(get_db), current_user: m
         "updated_at": note.updated_at.isoformat() + "Z" if note.updated_at else None,
         "is_favorite": getattr(note, "is_favorite", False),
         "folder_id": getattr(note, "folder_id", None),
+        "folder_ids": _note_folder_ids(db, note),
         "custom_font": getattr(note, "custom_font", "Inter"),
         "canvas_data": getattr(note, "canvas_data", None) or "",
         "transcript": getattr(note, "transcript", "") or "",
@@ -771,9 +823,7 @@ def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
                 "name": f.name,
                 "color": f.color,
                 "parent_id": f.parent_id,
-                "note_count": db.query(models.Note)
-                .filter(models.Note.folder_id == f.id, models.Note.is_deleted == False)
-                .count(),
+                "note_count": _folder_note_count(db, f.id),
                 "created_at": f.created_at.isoformat() + "Z",
             }
             for f in folders
@@ -807,6 +857,7 @@ def delete_folder(folder_id: int, db: Session = Depends(get_db), current_user: m
         raise HTTPException(status_code=403, detail="Access denied")
 
     db.query(models.Note).filter(models.Note.folder_id == folder_id).update({"folder_id": None})
+    db.query(models.NoteFolder).filter(models.NoteFolder.folder_id == folder_id).delete()
     db.delete(folder)
     db.commit()
 
@@ -820,10 +871,55 @@ def move_note_to_folder(data: NoteUpdateFolder, db: Session = Depends(get_db), c
     if note.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    note.folder_id = data.folder_id
+    if data.folder_id is None:
+        note.folder_id = None
+        db.query(models.NoteFolder).filter(models.NoteFolder.note_id == note.id).delete()
+    else:
+        folder = db.query(models.Folder).filter(models.Folder.id == data.folder_id).first()
+        if not folder:
+            raise HTTPException(status_code=404, detail="Folder not found")
+        if folder.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        if note.folder_id is None:
+            note.folder_id = data.folder_id
+        _ensure_note_folder_membership(db, note, data.folder_id)
     db.commit()
 
-    return {"status": "success"}
+    return {"status": "success", "folder_id": getattr(note, "folder_id", None), "folder_ids": _note_folder_ids(db, note)}
+
+@router.put("/remove_note_from_folder")
+def remove_note_from_folder(data: NoteUpdateFolder, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if data.folder_id is None:
+        raise HTTPException(status_code=400, detail="folder_id is required")
+
+    note = db.query(models.Note).filter(models.Note.id == data.note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    if note.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    folder = db.query(models.Folder).filter(models.Folder.id == data.folder_id).first()
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    if folder.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    db.query(models.NoteFolder).filter(
+        models.NoteFolder.note_id == note.id,
+        models.NoteFolder.folder_id == data.folder_id,
+    ).delete()
+
+    if note.folder_id == data.folder_id:
+        remaining_folder_id = (
+            db.query(models.NoteFolder.folder_id)
+            .filter(models.NoteFolder.note_id == note.id)
+            .first()
+        )
+        note.folder_id = remaining_folder_id[0] if remaining_folder_id else None
+
+    db.commit()
+
+    return {"status": "success", "folder_id": getattr(note, "folder_id", None), "folder_ids": _note_folder_ids(db, note)}
 
 @router.put("/toggle_favorite")
 def toggle_favorite(data: NoteFavorite, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -864,6 +960,7 @@ def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db))
             "updated_at": n.updated_at.isoformat() + "Z" if n.updated_at else None,
             "is_favorite": True,
             "folder_id": getattr(n, "folder_id", None),
+            "folder_ids": _note_folder_ids(db, n),
         }
         for n in notes
     ]

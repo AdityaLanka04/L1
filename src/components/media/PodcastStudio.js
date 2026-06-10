@@ -307,6 +307,16 @@ const difficultyFromIndex = (index) => {
   return 'intermediate';
 };
 
+const getPodcastDisplayTitle = (title) => {
+  if (!title) return 'Media Podcast';
+  const cleaned = String(title)
+    .replace(/\.(mp3|mp4|m4a|wav|webm|mov|avi|mkv)$/i, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned || 'Media Podcast';
+};
+
 const PodcastStudio = ({ results, userName, onExit }) => {
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
@@ -1449,6 +1459,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
 
   const difficultySliderValue = difficultyIndexMap[selectedDifficulty] ?? 1;
   const canOpenFullscreen = Boolean(sessionId && currentSegment);
+  const fullscreenTitle = getPodcastDisplayTitle(sessionId ? (episodeTitle || 'Podcast Session') : results?.filename);
 
   return (
     <div className="podcast-fullscreen-shell" ref={fullscreenRef}>
@@ -1461,7 +1472,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
             <span className="podcast-fullscreen-kicker">
               {sessionId ? 'Immersive Podcast Mode' : 'Podcast Studio'}
             </span>
-            <h3>{sessionId ? (episodeTitle || 'Podcast Session') : (results?.filename || 'Media Podcast')}</h3>
+            <h3 title={fullscreenTitle}>{fullscreenTitle}</h3>
             {sessionId && (
               <p>{currentChapter ? `Chapter ${currentChapter.index + 1}: ${currentChapter.title}` : 'Starting session...'}</p>
             )}

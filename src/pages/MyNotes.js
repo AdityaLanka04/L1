@@ -16,6 +16,14 @@ import Templates from '../components/Templates';
 import ImportExportModal from '../components/ImportExportModal';
 
 const asText = (value) => (value === null || value === undefined ? '' : String(value));
+const noteFolderIds = (note) => {
+  const ids = Array.isArray(note?.folder_ids) ? note.folder_ids : [];
+  if (note?.folder_id !== null && note?.folder_id !== undefined && !ids.includes(note.folder_id)) {
+    return [...ids, note.folder_id];
+  }
+  return ids;
+};
+const noteIsInFolder = (note, folderId) => noteFolderIds(note).includes(folderId);
 
 const MyNotes = () => {
   const navigate = useNavigate();
@@ -270,11 +278,14 @@ const MyNotes = () => {
     try {
       
       const conversionAgentService = (await import('../services/conversionAgentService')).default;
+      const selectedSessionTitles = chatSessions
+        .filter((session) => selectedSessions.includes(session.id))
+        .map((session) => session.title);
       
       const result = await conversionAgentService.chatToNotes(
         userName,
         selectedSessions,
-        { formatStyle: 'structured' }
+        { formatStyle: 'structured', sessionTitles: selectedSessionTitles }
       );
       
       if (result.success && result.result) {
@@ -377,6 +388,44 @@ const MyNotes = () => {
       console.error('Error moving note:', error);
       alert('Failed to move note');
   }
+  };
+
+  const removeNoteFromFolder = async (noteId, folderId) => {
+    if (!folderId) return;
+    if (!window.confirm('Remove this note from this folder? The note will stay in your library.')) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/remove_note_from_folder`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          note_id: noteId,
+          folder_id: folderId
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setNotes((prev) => prev.map((note) => {
+          if (note.id !== noteId) return note;
+          return {
+            ...note,
+            folder_id: data.folder_id ?? null,
+            folder_ids: data.folder_ids || noteFolderIds(note).filter((id) => id !== folderId)
+          };
+        }));
+        await loadFolders();
+      } else {
+        throw new Error(`Failed to remove note from folder: ${res.status}`);
+      }
+    } catch (error) {
+      console.error('Error removing note from folder:', error);
+      alert('Failed to remove note from folder');
+    }
   };
 
   const deleteNote = async (noteId) => {
@@ -498,7 +547,7 @@ const MyNotes = () => {
         );
       } else {
         
-        filtered = filtered.filter(n => n.folder_id === selectedFolder);
+        filtered = filtered.filter(n => noteIsInFolder(n, selectedFolder));
       }
     }
     return filtered;
@@ -534,6 +583,7 @@ const MyNotes = () => {
     selectedFolder === 'source-quizzes' ? 'From Quizzes' :
     selectedFolder === 'source-roadmaps' ? 'From Knowledge Maps' :
     selectedFolder ? folders.find(f => f.id === selectedFolder)?.name || 'Folder' : 'All Notes';
+  const viewingRealFolder = !showTrash && !showFavorites && selectedFolder && typeof selectedFolder === 'number';
 
   return (
     <div className="my-notes-page-full">
@@ -680,7 +730,7 @@ const MyNotes = () => {
                     >
                       <Folder size={16} />
                       <span>{folder.name}</span>
-                      <span className="mn-qb-nav-count">{notes.filter(n => n.folder_id === folder.id).length}</span>
+                      <span className="mn-qb-nav-count">{notes.filter(n => noteIsInFolder(n, folder.id)).length}</span>
                     </button>
                   ))}
                 </nav>
@@ -818,6 +868,15 @@ const MyNotes = () => {
                               >
                                 <Folder size={14} />
                               </button>
+                              {viewingRealFolder && noteIsInFolder(note, selectedFolder) && (
+                                <button
+                                  className="nt-note-action-btn remove"
+                                  onClick={(e) => { e.stopPropagation(); removeNoteFromFolder(note.id, selectedFolder); }}
+                                  title="Remove from this folder"
+                                >
+                                  <X size={14} />
+                                </button>
+                              )}
                               <button
                                 className="nt-note-action-btn delete"
                                 onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
@@ -1032,10 +1091,6 @@ const MyNotes = () => {
             <h3>Move to Folder</h3>
             <p className="nt-modal-subtitle">Select a folder for "{noteToMove.title || 'Untitled'}"</p>
             <div className="nt-folder-select-list">
-              <button className="nt-folder-select-item" onClick={() => moveNoteToFolder(null)}>
-                <Folder size={16} />
-                <span>No Folder</span>
-              </button>
               {folders.map(folder => (
                 <button
                   key={folder.id}

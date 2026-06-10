@@ -6,6 +6,8 @@ import { API_URL } from '../config';
 import { sanitizeHtml } from '../utils/sanitize';
 import { queueLegacyAIFileEndpoint, queuedAIFormFetch } from '../services/aiJobService';
 
+const MEDIA_FILE_ACCEPT = 'audio/*,video/*,.m4a,audio/mp4,audio/x-m4a';
+
 const AudioVideoNotes = () => {
   const navigate = useNavigate();
   const userName = localStorage.getItem('username');
@@ -173,7 +175,7 @@ const AudioVideoNotes = () => {
             <input
               type="file"
               id="file-upload"
-              accept="audio/*,video/*"
+              accept={MEDIA_FILE_ACCEPT}
               onChange={handleFileUpload}
               style={{ display: 'none' }}
             />
