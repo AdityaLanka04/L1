@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 import os
 import sqlite3
 from datetime import datetime, timezone
@@ -111,17 +111,23 @@ if DATABASE_URL.startswith("sqlite"):
     logger.info("Using SQLite database (WAL mode)")
     
 else:
+    pool_size = int(os.getenv("DB_POOL_SIZE", "10"))
+    max_overflow = int(os.getenv("DB_MAX_OVERFLOW", "20"))
+    pool_timeout = int(os.getenv("DB_POOL_TIMEOUT", "30"))
+    pool_recycle = int(os.getenv("DB_POOL_RECYCLE_SECONDS", "1800"))
+    connect_timeout = int(os.getenv("DB_CONNECT_TIMEOUT_SECONDS", "10"))
+    application_name = os.getenv("DB_APPLICATION_NAME", "brainwave_api")
     engine = create_engine(
         DATABASE_URL,
         poolclass=QueuePool,
-        pool_size=10,
-        max_overflow=20,
-        pool_timeout=30,
-        pool_recycle=1800,
+        pool_size=pool_size,
+        max_overflow=max_overflow,
+        pool_timeout=pool_timeout,
+        pool_recycle=pool_recycle,
         pool_pre_ping=True,
         connect_args={
-            "connect_timeout": 10,
-            "application_name": "brainwave_api",
+            "connect_timeout": connect_timeout,
+            "application_name": application_name,
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 10,
@@ -129,7 +135,12 @@ else:
         },
         echo=False
     )
-    logger.info("Using PostgreSQL with connection pooling")
+    logger.info(
+        "Using PostgreSQL with connection pooling pool_size=%s max_overflow=%s pool_timeout=%s",
+        pool_size,
+        max_overflow,
+        pool_timeout,
+    )
     
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

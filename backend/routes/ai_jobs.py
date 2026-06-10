@@ -12,7 +12,15 @@ from sqlalchemy.orm import Session
 
 import models
 from deps import get_current_user, get_db
-from services.ai_job_queue import AIJobQueueUnavailable, enqueue_ai_job, queue_depth
+from sqlalchemy import func
+
+from services.ai_job_queue import (
+    AIJobQueueUnavailable,
+    dead_letter_depth,
+    enqueue_ai_job,
+    queue_depth,
+    retry_queue_depth,
+)
 from services.ai_semantic_cache import semantic_cache_status
 
 logger = logging.getLogger(__name__)
@@ -36,6 +44,7 @@ class AIJobCreateRequest(BaseModel):
     conversation_id: Optional[str] = Field(default=None, max_length=200)
     use_semantic_cache: bool = True
     cache_scope: Literal["user", "global"] = "user"
+    timeout_seconds: Optional[int] = Field(default=None, ge=5, le=1800)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -53,7 +62,13 @@ class AIJobResponse(BaseModel):
     job_type: str
     result: Optional[dict[str, Any]]
     error: Optional[str]
+    last_error: Optional[str] = None
     cache_status: Optional[str]
+    attempts: int = 0
+    progress_percent: int = 0
+    progress_message: Optional[str] = None
+    timeout_seconds: Optional[int] = None
+    retry_after: Optional[datetime] = None
     created_at: datetime
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
@@ -63,6 +78,9 @@ def _active_job_limit() -> int:
     return int(os.getenv("AI_MAX_ACTIVE_JOBS_PER_USER", "4"))
 
 
+ACTIVE_JOB_STATUSES = ("queued", "running", "retrying")
+
+
 def _serialize_job(job: models.AIJob) -> AIJobResponse:
     return AIJobResponse(
         id=job.id,
@@ -70,11 +88,68 @@ def _serialize_job(job: models.AIJob) -> AIJobResponse:
         job_type=job.job_type,
         result=job.result_json,
         error=job.error,
+        last_error=job.last_error,
         cache_status=job.cache_status,
+        attempts=job.attempts or 0,
+        progress_percent=job.progress_percent or 0,
+        progress_message=job.progress_message,
+        timeout_seconds=job.timeout_seconds,
+        retry_after=job.retry_after,
         created_at=job.created_at,
         started_at=job.started_at,
         completed_at=job.completed_at,
     )
+
+
+def _as_aware_utc(value: Optional[datetime]) -> Optional[datetime]:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _seconds_between(start: Optional[datetime], end: Optional[datetime]) -> Optional[float]:
+    start_aware = _as_aware_utc(start)
+    end_aware = _as_aware_utc(end)
+    if not start_aware or not end_aware:
+        return None
+    return max(0.0, (end_aware - start_aware).total_seconds())
+
+
+def _timeout_for_path(path: str) -> int:
+    media_keywords = ("/media/", "/transcribe_audio/", "generate_notes_from_media")
+    if any(keyword in path for keyword in media_keywords):
+        return int(os.getenv("AI_JOB_MEDIA_TIMEOUT_SECONDS", "600"))
+    if "/ask_with_files/" in path:
+        return int(os.getenv("AI_JOB_FILE_TIMEOUT_SECONDS", "420"))
+    return int(os.getenv("AI_JOB_ROUTE_TIMEOUT_SECONDS", "240"))
+
+
+def _chat_timeout(payload: AIJobCreateRequest) -> int:
+    if payload.timeout_seconds:
+        return payload.timeout_seconds
+    return int(os.getenv("AI_JOB_CHAT_TIMEOUT_SECONDS", "180"))
+
+
+def _admin_emails() -> set[str]:
+    raw = (
+        os.getenv("AI_JOB_ADMIN_EMAILS")
+        or os.getenv("API_USAGE_ADMIN_EMAILS")
+        or os.getenv("ADMIN_EMAILS")
+        or ""
+    )
+    return {email.strip().lower() for email in raw.split(",") if email.strip()}
+
+
+def _require_ai_jobs_admin(current_user: models.User = Depends(get_current_user)) -> models.User:
+    allowed = _admin_emails()
+    if not allowed:
+        raise HTTPException(status_code=403, detail="AI job admin emails are not configured")
+    email = (current_user.email or "").lower()
+    if email not in allowed:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
 
 
 def _assert_chat_access(db: Session, current_user: models.User, chat_session_id: Optional[int]) -> None:
@@ -191,7 +266,7 @@ def create_ai_job(
         db.query(models.AIJob)
         .filter(
             models.AIJob.user_id == current_user.id,
-            models.AIJob.status.in_(("queued", "running")),
+            models.AIJob.status.in_(ACTIVE_JOB_STATUSES),
         )
         .count()
     )
@@ -206,6 +281,9 @@ def create_ai_job(
         job_type=payload.job_type,
         status="queued",
         input_json=payload.model_dump(),
+        progress_percent=0,
+        progress_message="Queued",
+        timeout_seconds=_chat_timeout(payload),
         queued_at=datetime.now(timezone.utc),
     )
     db.add(job)
@@ -247,7 +325,7 @@ async def create_legacy_file_route_job(
         db.query(models.AIJob)
         .filter(
             models.AIJob.user_id == current_user.id,
-            models.AIJob.status.in_(("queued", "running")),
+            models.AIJob.status.in_(ACTIVE_JOB_STATUSES),
         )
         .count()
     )
@@ -276,6 +354,9 @@ async def create_legacy_file_route_job(
             "auth_subject": _auth_subject(current_user),
             "files": [],
         },
+        progress_percent=0,
+        progress_message="Queued",
+        timeout_seconds=_timeout_for_path(path),
         queued_at=datetime.now(timezone.utc),
     )
     db.add(job)
@@ -341,7 +422,7 @@ def create_legacy_ai_route_job(
         db.query(models.AIJob)
         .filter(
             models.AIJob.user_id == current_user.id,
-            models.AIJob.status.in_(("queued", "running")),
+            models.AIJob.status.in_(ACTIVE_JOB_STATUSES),
         )
         .count()
     )
@@ -359,6 +440,9 @@ def create_legacy_ai_route_job(
             **payload.model_dump(),
             "auth_subject": _auth_subject(current_user),
         },
+        progress_percent=0,
+        progress_message="Queued",
+        timeout_seconds=_timeout_for_path(payload.path),
         queued_at=datetime.now(timezone.utc),
     )
     db.add(job)
@@ -409,8 +493,8 @@ def cancel_ai_job(
     )
     if not job:
         raise HTTPException(status_code=404, detail="AI job not found")
-    if job.status not in {"queued"}:
-        raise HTTPException(status_code=409, detail="Only queued AI jobs can be cancelled")
+    if job.status not in {"queued", "retrying"}:
+        raise HTTPException(status_code=409, detail="Only queued or retrying AI jobs can be cancelled")
 
     job.status = "cancelled"
     job.completed_at = datetime.now(timezone.utc)
@@ -423,13 +507,100 @@ def cancel_ai_job(
 def ai_jobs_health(current_user: models.User = Depends(get_current_user)):
     try:
         depth = queue_depth()
+        retry_depth = retry_queue_depth()
+        dlq_depth = dead_letter_depth()
         redis_available = True
     except Exception:
         depth = None
+        retry_depth = None
+        dlq_depth = None
         redis_available = False
     return {
         "redis_available": redis_available,
         "queue_depth": depth,
+        "retry_queue_depth": retry_depth,
+        "dead_letter_queue_depth": dlq_depth,
         "active_job_limit_per_user": _active_job_limit(),
         "semantic_cache": semantic_cache_status(),
+    }
+
+
+@router.get("/admin/metrics")
+def ai_jobs_admin_metrics(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(_require_ai_jobs_admin),
+):
+    status_rows = (
+        db.query(models.AIJob.status, func.count(models.AIJob.id))
+        .group_by(models.AIJob.status)
+        .all()
+    )
+    type_rows = (
+        db.query(models.AIJob.job_type, func.count(models.AIJob.id))
+        .group_by(models.AIJob.job_type)
+        .all()
+    )
+    completed_jobs = (
+        db.query(models.AIJob)
+        .filter(models.AIJob.status == "completed", models.AIJob.started_at.isnot(None), models.AIJob.completed_at.isnot(None))
+        .all()
+    )
+    queued_jobs = (
+        db.query(models.AIJob)
+        .filter(models.AIJob.status.in_(("queued", "retrying")))
+        .all()
+    )
+    failed_recent = (
+        db.query(models.AIJob)
+        .filter(models.AIJob.status == "failed")
+        .order_by(models.AIJob.completed_at.desc().nullslast(), models.AIJob.updated_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    now = datetime.now(timezone.utc)
+    runtimes = [
+        seconds
+        for job in completed_jobs
+        if (seconds := _seconds_between(job.started_at, job.completed_at)) is not None
+    ]
+    waits = [
+        seconds
+        for job in queued_jobs
+        if (seconds := _seconds_between(job.queued_at, now)) is not None
+    ]
+
+    try:
+        redis_metrics = {
+            "available": True,
+            "queue_depth": queue_depth(),
+            "retry_queue_depth": retry_queue_depth(),
+            "dead_letter_queue_depth": dead_letter_depth(),
+        }
+    except Exception as exc:
+        redis_metrics = {
+            "available": False,
+            "error": str(exc),
+            "queue_depth": None,
+            "retry_queue_depth": None,
+            "dead_letter_queue_depth": None,
+        }
+
+    return {
+        "redis": redis_metrics,
+        "statuses": {status: count for status, count in status_rows},
+        "job_types": {job_type: count for job_type, count in type_rows},
+        "avg_runtime_seconds": round(sum(runtimes) / len(runtimes), 2) if runtimes else None,
+        "avg_wait_seconds": round(sum(waits) / len(waits), 2) if waits else None,
+        "max_wait_seconds": round(max(waits), 2) if waits else None,
+        "failed_recent": [
+            {
+                "id": job.id,
+                "job_type": job.job_type,
+                "attempts": job.attempts,
+                "error": job.error or job.last_error,
+                "completed_at": job.completed_at,
+            }
+            for job in failed_recent
+        ],
     }

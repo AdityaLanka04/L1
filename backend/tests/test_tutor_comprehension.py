@@ -87,5 +87,7 @@ def test_comprehension_answer_task_uses_tutor_feedback_rubric():
 
     assert "answering your previous comprehension check" in task
     assert "direct verdict" in task
-    assert "stronger 2-4 sentence version" in task
+    assert "Every visible line must start with '- '" in task
+    assert "**Better answer**" in task
+    assert "Do not write a paragraph" in task
     assert "generic hint" not in task

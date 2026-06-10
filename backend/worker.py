@@ -5,12 +5,21 @@ import os
 import signal
 import time
 import asyncio
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any
 
 from database import SessionLocal
 import models
-from services.ai_job_queue import AIJobQueueUnavailable, dequeue_ai_job, get_queue_name
+from services.ai_job_queue import (
+    AIJobQueueUnavailable,
+    dead_letter_ai_job,
+    dequeue_ai_job,
+    enqueue_ai_job,
+    get_queue_name,
+    promote_due_retry_jobs,
+    schedule_retry_ai_job,
+)
 from services.ai_semantic_cache import get_semantic_cache, set_semantic_cache
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(levelname)s: %(message)s")
@@ -31,6 +40,72 @@ signal.signal(signal.SIGTERM, _shutdown)
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _as_aware_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _max_attempts() -> int:
+    return int(os.getenv("AI_JOB_MAX_ATTEMPTS", "3"))
+
+
+def _base_retry_delay_seconds() -> int:
+    return int(os.getenv("AI_JOB_RETRY_BASE_DELAY_SECONDS", "10"))
+
+
+def _max_retry_delay_seconds() -> int:
+    return int(os.getenv("AI_JOB_RETRY_MAX_DELAY_SECONDS", "300"))
+
+
+def _retry_delay_seconds(attempts: int, error: Exception) -> int:
+    message = str(error).lower()
+    base = _base_retry_delay_seconds()
+    if any(token in message for token in ("429", "rate limit", "quota", "too many requests")):
+        base = max(base, int(os.getenv("AI_JOB_RATE_LIMIT_RETRY_DELAY_SECONDS", "60")))
+    return min(_max_retry_delay_seconds(), base * max(1, 2 ** max(0, attempts - 1)))
+
+
+def _is_retryable_error(error: Exception) -> bool:
+    message = str(error).lower()
+    retryable_tokens = (
+        "429",
+        "rate limit",
+        "too many requests",
+        "quota",
+        "timeout",
+        "timed out",
+        "temporarily unavailable",
+        "connection reset",
+        "connection aborted",
+        "service unavailable",
+        "bad gateway",
+        "gateway timeout",
+    )
+    return any(token in message for token in retryable_tokens)
+
+
+@contextmanager
+def _job_timeout(seconds: int | None):
+    if not seconds or seconds <= 0 or not hasattr(signal, "SIGALRM"):
+        yield
+        return
+
+    def _raise_timeout(signum, frame):
+        raise TimeoutError(f"AI job exceeded timeout of {seconds}s")
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    signal.signal(signal.SIGALRM, _raise_timeout)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous_handler)
 
 
 def _process_chat_completion(job: models.AIJob, payload: dict[str, Any], db) -> dict[str, Any]:
@@ -55,6 +130,9 @@ def _process_chat_completion(job: models.AIJob, payload: dict[str, Any], db) -> 
             cache_scope=cache_scope,
         )
         if hit:
+            job.progress_percent = 95
+            job.progress_message = "Serving cached response"
+            db.commit()
             return {
                 "answer": hit.response,
                 "cache_status": "semantic_hit",
@@ -67,6 +145,10 @@ def _process_chat_completion(job: models.AIJob, payload: dict[str, Any], db) -> 
         raise ValueError(f"User {job.user_id} not found")
 
     from routes.chat import ask_simple
+
+    job.progress_percent = 35
+    job.progress_message = "Calling AI provider"
+    db.commit()
 
     chat_result = asyncio.run(
         ask_simple(
@@ -232,28 +314,46 @@ def process_job(job_id: int) -> None:
         if job.status in {"completed", "cancelled"}:
             logger.info("AI job %s already %s; skipping", job.id, job.status)
             return
+        retry_after = _as_aware_utc(job.retry_after)
+        if job.status == "retrying" and retry_after and retry_after > _now():
+            schedule_retry_ai_job(job.id, run_at=retry_after.timestamp())
+            logger.info("AI job %s not ready for retry until %s", job.id, retry_after)
+            return
 
         job.status = "running"
         job.started_at = job.started_at or _now()
         job.updated_at = _now()
         job.attempts = (job.attempts or 0) + 1
+        job.progress_percent = max(job.progress_percent or 0, 10)
+        job.progress_message = f"Running attempt {job.attempts} of {_max_attempts()}"
         db.commit()
 
         payload = job.input_json or {}
-        if job.job_type == "chat_completion":
-            result = _process_chat_completion(job, payload, db)
-            if result.get("cached"):
-                _persist_chat_message(db, job, payload, result)
-        elif job.job_type == "legacy_route":
-            result = _process_legacy_route(payload)
-        elif job.job_type == "legacy_file_route":
-            result = _process_legacy_file_route(payload)
-        else:
-            raise ValueError(f"Unsupported AI job type: {job.job_type}")
+        with _job_timeout(job.timeout_seconds):
+            if job.job_type == "chat_completion":
+                result = _process_chat_completion(job, payload, db)
+                if result.get("cached"):
+                    _persist_chat_message(db, job, payload, result)
+            elif job.job_type == "legacy_route":
+                job.progress_percent = 35
+                job.progress_message = "Executing queued AI route"
+                db.commit()
+                result = _process_legacy_route(payload)
+            elif job.job_type == "legacy_file_route":
+                job.progress_percent = 35
+                job.progress_message = "Executing queued AI file route"
+                db.commit()
+                result = _process_legacy_file_route(payload)
+            else:
+                raise ValueError(f"Unsupported AI job type: {job.job_type}")
 
         job.status = "completed"
         job.result_json = result
         job.cache_status = result.get("cache_status")
+        job.error = None
+        job.progress_percent = 100
+        job.progress_message = "Completed"
+        job.retry_after = None
         job.completed_at = _now()
         job.updated_at = _now()
         db.commit()
@@ -264,9 +364,30 @@ def process_job(job_id: int) -> None:
         try:
             job = db.query(models.AIJob).filter(models.AIJob.id == job_id).first()
             if job:
-                job.status = "failed"
-                job.error = str(exc)
-                job.completed_at = _now()
+                attempts = job.attempts or 0
+                error_message = str(exc)
+                job.last_error = error_message
+                job.error = error_message
+                job.updated_at = _now()
+                if attempts < _max_attempts() and _is_retryable_error(exc):
+                    delay = _retry_delay_seconds(attempts, exc)
+                    retry_at = _now().timestamp() + delay
+                    job.status = "retrying"
+                    job.retry_after = datetime.fromtimestamp(retry_at, tz=timezone.utc)
+                    job.progress_percent = min(job.progress_percent or 0, 25)
+                    job.progress_message = f"Retrying after provider/backoff delay ({delay}s)"
+                    job.completed_at = None
+                    schedule_retry_ai_job(job.id, run_at=retry_at)
+                    logger.warning("AI job %s scheduled for retry %s/%s in %ss", job.id, attempts, _max_attempts(), delay)
+                else:
+                    job.status = "failed"
+                    job.progress_percent = 100
+                    job.progress_message = "Failed"
+                    job.completed_at = _now()
+                    try:
+                        dead_letter_ai_job(job.id, error=error_message, attempts=attempts)
+                    except Exception:
+                        logger.exception("Failed to dead-letter AI job %s", job.id)
                 job.updated_at = _now()
                 db.commit()
         except Exception:
@@ -280,6 +401,7 @@ def main() -> None:
     logger.info("AI worker started; queue=%s", get_queue_name())
     while _running:
         try:
+            promote_due_retry_jobs()
             message = dequeue_ai_job(timeout=5)
         except AIJobQueueUnavailable as exc:
             logger.warning("%s; retrying in 5s", exc)

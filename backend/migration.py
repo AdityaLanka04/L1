@@ -295,6 +295,17 @@ def _run_postgres_migration():
     )
 
     add_missing_columns(
+        "ai_jobs",
+        {
+            "last_error": "TEXT",
+            "progress_percent": "INTEGER DEFAULT 0",
+            "progress_message": "TEXT",
+            "timeout_seconds": "INTEGER",
+            "retry_after": "TIMESTAMP",
+        },
+    )
+
+    add_missing_columns(
         "chat_tutor_states",
         {
             "current_step": "INTEGER DEFAULT 1",

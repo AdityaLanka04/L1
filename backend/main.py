@@ -325,33 +325,41 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Neo4j connection failed: {e}")
 
-    try:
-        from sentence_transformers import SentenceTransformer
-        try:
-            _embed_model_inst = SentenceTransformer("BAAI/bge-small-en-v1.5")
-            logger.info("Embedding model loaded: BAAI/bge-small-en-v1.5")
-        except Exception:
-            _embed_model_inst = SentenceTransformer("all-MiniLM-L6-v2")
-            logger.info("Embedding model loaded: all-MiniLM-L6-v2 (fallback)")
+    startup_embeddings_enabled = os.getenv(
+        "ENABLE_STARTUP_EMBEDDINGS",
+        "false" if os.getenv("ENVIRONMENT", "development").strip().lower() == "production" else "true",
+    ).strip().lower() in {"1", "true", "yes", "on"}
 
-        from services import vector_store
-        vector_store.initialize(_embed_model_inst, db_url=DATABASE_URL)
-        logger.info("vector_store (pgvector) initialized")
-
+    if startup_embeddings_enabled:
         try:
-            from services import context_store
-            subjects = context_store.list_hs_subjects()
-            if subjects:
-                logger.info(
-                    f"HS curriculum: {len(subjects)} subject(s) seeded: "
-                    + ", ".join(f"{s['subject']} ({s['doc_count']} docs)" for s in subjects)
-                )
-            else:
-                logger.info("HS curriculum collection is empty")
-        except Exception as se:
-            logger.warning(f"HS curriculum listing failed: {se}")
-    except Exception as e:
-        logger.warning(f"vector_store init failed: {e}")
+            from sentence_transformers import SentenceTransformer
+            try:
+                _embed_model_inst = SentenceTransformer("BAAI/bge-small-en-v1.5")
+                logger.info("Embedding model loaded: BAAI/bge-small-en-v1.5")
+            except Exception:
+                _embed_model_inst = SentenceTransformer("all-MiniLM-L6-v2")
+                logger.info("Embedding model loaded: all-MiniLM-L6-v2 (fallback)")
+
+            from services import vector_store
+            vector_store.initialize(_embed_model_inst, db_url=DATABASE_URL)
+            logger.info("vector_store (pgvector) initialized")
+
+            try:
+                from services import context_store
+                subjects = context_store.list_hs_subjects()
+                if subjects:
+                    logger.info(
+                        f"HS curriculum: {len(subjects)} subject(s) seeded: "
+                        + ", ".join(f"{s['subject']} ({s['doc_count']} docs)" for s in subjects)
+                    )
+                else:
+                    logger.info("HS curriculum collection is empty")
+            except Exception as se:
+                logger.warning(f"HS curriculum listing failed: {se}")
+        except Exception as e:
+            logger.warning(f"vector_store init failed: {e}")
+    else:
+        logger.info("Startup embeddings disabled; skipping vector_store warmup")
 
     try:
         from services import redis_cache
@@ -368,19 +376,22 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Redis cache init failed: {e}")
 
-    try:
-        from services.ml_pipeline import ModelRegistry
-        from services import vector_store as _vs
-        reg = ModelRegistry.get()
-        if _vs.available() and _vs._embed_model and not reg._embed_model:
-            reg._embed_model = _vs._embed_model
-            reg._ready = True
-            logger.info("ML ModelRegistry reused vector_store embedding model")
-        else:
-            reg.load()
-            logger.info("ML ModelRegistry initialized (sentence-transformers)")
-    except Exception as e:
-        logger.warning(f"ModelRegistry init failed: {e}")
+    if startup_embeddings_enabled:
+        try:
+            from services.ml_pipeline import ModelRegistry
+            from services import vector_store as _vs
+            reg = ModelRegistry.get()
+            if _vs.available() and _vs._embed_model and not reg._embed_model:
+                reg._embed_model = _vs._embed_model
+                reg._ready = True
+                logger.info("ML ModelRegistry reused vector_store embedding model")
+            else:
+                reg.load()
+                logger.info("ML ModelRegistry initialized (sentence-transformers)")
+        except Exception as e:
+            logger.warning(f"ModelRegistry init failed: {e}")
+    else:
+        logger.info("Startup embeddings disabled; skipping ModelRegistry warmup")
 
     try:
         from services import vector_store as _vs

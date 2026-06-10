@@ -19,7 +19,7 @@ export async function pollAIJob(jobId, options = {}) {
   const startedAt = Date.now();
   let job = { id: jobId, status: 'queued' };
 
-  while (job.status === 'queued' || job.status === 'running') {
+  while (job.status === 'queued' || job.status === 'running' || job.status === 'retrying') {
     if (Date.now() - startedAt > timeoutMs) {
       throw new Error('AI job timed out while waiting for a result');
     }
@@ -32,6 +32,9 @@ export async function pollAIJob(jobId, options = {}) {
       throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
     job = await response.json();
+    if (typeof options.onProgress === 'function') {
+      options.onProgress(job);
+    }
   }
 
   if (job.status !== 'completed') {

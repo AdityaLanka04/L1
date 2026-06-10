@@ -43,6 +43,15 @@ GET /api/ai/health
 Authorization: Bearer <token>
 ```
 
+Admin queue metrics:
+
+```http
+GET /api/ai/admin/metrics
+Authorization: Bearer <admin token>
+```
+
+Admin access is controlled by `AI_JOB_ADMIN_EMAILS`, falling back to `API_USAGE_ADMIN_EMAILS` or `ADMIN_EMAILS`.
+
 Queue an existing AI-heavy route through the worker pool:
 
 ```http
@@ -64,6 +73,19 @@ Content-Type: application/json
 
 `route-jobs` is whitelist-only. Configure `AI_JOB_ALLOWED_LEGACY_PATHS` to add more existing AI endpoints after reviewing that they are safe to execute in workers.
 
+## Reliability Controls
+
+- Failed retryable jobs move to `retrying` and are scheduled in `AI_JOB_RETRY_QUEUE_NAME`.
+- Jobs that exhaust `AI_JOB_MAX_ATTEMPTS` are marked `failed` and pushed to `AI_JOB_DEAD_LETTER_QUEUE_NAME`.
+- Rate-limit and quota errors use `AI_JOB_RATE_LIMIT_RETRY_DELAY_SECONDS` before retrying.
+- Other retryable transient errors use exponential backoff from `AI_JOB_RETRY_BASE_DELAY_SECONDS` up to `AI_JOB_RETRY_MAX_DELAY_SECONDS`.
+- Job responses include `attempts`, `progress_percent`, `progress_message`, `timeout_seconds`, and `retry_after`.
+- Per-job timeout defaults:
+  - `AI_JOB_CHAT_TIMEOUT_SECONDS=180`
+  - `AI_JOB_ROUTE_TIMEOUT_SECONDS=240`
+  - `AI_JOB_FILE_TIMEOUT_SECONDS=420`
+  - `AI_JOB_MEDIA_TIMEOUT_SECONDS=600`
+
 ## Production Baseline
 
 Start with:
@@ -78,6 +100,7 @@ Scale rules:
 - Increase API replicas when normal API latency rises.
 - Increase AI workers when queue depth or job wait time rises.
 - Increase provider API quota/key pool when workers are idle but jobs are rate-limited.
+- Keep DB pool sizes conservative when using Supabase; many worker replicas can exhaust database connections quickly.
 
 Current frontend queue coverage:
 
@@ -109,13 +132,29 @@ Default cache scope is `user` to avoid leaking personalized responses across acc
 
 The worker only serves direct semantic-cache hits for standalone prompts. Chat-session, tutor-mode, and selected-document requests still go through the full chat pipeline because prior conversation and private context can change the correct answer.
 
+## Supabase/Postgres Pooling
+
+Use Supabase's pooler connection string when running multiple API and worker replicas. Either point `DATABASE_URL` at port `6543` directly or set `SUPABASE_POOLER=true` to rewrite a `:5432` URL to `:6543`.
+
+Recommended starting values:
+
+```bash
+DB_POOL_SIZE=5
+DB_MAX_OVERFLOW=5
+DB_POOL_TIMEOUT=30
+DB_POOL_RECYCLE_SECONDS=1800
+DB_APPLICATION_NAME=brainwave_api
+```
+
+For worker services, use `DB_APPLICATION_NAME=brainwave_ai_worker` so Supabase/Postgres monitoring can separate API traffic from worker traffic.
+
 ## Local Compose
 
 Run the production compose services, then scale workers:
 
 ```bash
 docker compose -f docker-compose.prod.yml up --build
-docker compose -f docker-compose.prod.yml up --scale ai-worker=10 -d
+docker compose -f docker-compose.prod.yml up --scale ai-worker=4 -d
 ```
 
 Managed hosts usually expose the same concept as independent process types or services:

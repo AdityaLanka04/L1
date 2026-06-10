@@ -15,11 +15,6 @@ COPY requirements.txt .
 # CPU-only torch kept slim; extra-index-url in requirements.txt handles this
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY download_model.py .
-
-# Pre-download embedding model so cold starts don't hit HuggingFace
-RUN python download_model.py
-
 COPY . .
 
 RUN mkdir -p uploads attachments exports
