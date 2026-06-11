@@ -2,9 +2,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 import models
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple
+from copy import deepcopy
+import os
 import re
+import time
 from services.suggestion_engine import get_related_topic_recommendations
+
+_ROADMAP_CACHE: Dict[int, Tuple[float, Dict[str, Any]]] = {}
 
 def _topic_from_text(text: str) -> str:
     cleaned = re.sub(r"\s+", " ", text or "").strip()
@@ -28,7 +33,7 @@ def _collect_quiz_topic_signals(db: Session, user_id: int) -> List[str]:
     if hasattr(models, "QuizSession"):
         quiz_sessions = db.query(models.QuizSession).filter(
             models.QuizSession.user_id == user_id
-        ).all()
+        ).order_by(models.QuizSession.id.desc()).limit(50).all()
         for quiz in quiz_sessions:
             topic = getattr(quiz, "topic", None)
             if topic and str(topic).strip():
@@ -37,7 +42,7 @@ def _collect_quiz_topic_signals(db: Session, user_id: int) -> List[str]:
     if hasattr(models, "SoloQuiz"):
         solo_quizzes = db.query(models.SoloQuiz).filter(
             models.SoloQuiz.user_id == user_id
-        ).all()
+        ).order_by(models.SoloQuiz.id.desc()).limit(50).all()
         for quiz in solo_quizzes:
             topic = getattr(quiz, "subject", None)
             if topic and str(topic).strip():
@@ -49,7 +54,7 @@ def _collect_quiz_topic_signals(db: Session, user_id: int) -> List[str]:
             models.QuestionSession.question_set_id == models.QuestionSet.id
         ).filter(
             models.QuestionSession.user_id == user_id
-        ).all()
+        ).order_by(models.QuestionSession.id.desc()).limit(50).all()
         for session in question_sessions:
             question_set = getattr(session, "question_set", None)
             title = getattr(question_set, "title", None) if question_set else None
@@ -89,7 +94,7 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
     
     chat_sessions = db.query(models.ChatSession).filter(
         models.ChatSession.user_id == user_id
-    ).all()
+    ).order_by(models.ChatSession.id.desc()).limit(50).all()
     
     for session in chat_sessions:
         if session.title and session.title.strip():
@@ -113,7 +118,7 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
     
     notes = db.query(models.Note).filter(
         models.Note.user_id == user_id
-    ).all()
+    ).order_by(models.Note.id.desc()).limit(50).all()
     
     for note in notes:
         if note.title and note.title.strip():
@@ -122,7 +127,7 @@ def get_user_study_topics(db: Session, user_id: int, limit: int = 5) -> List[Dic
     
     flashcard_sets = db.query(models.FlashcardSet).filter(
         models.FlashcardSet.user_id == user_id
-    ).all()
+    ).order_by(models.FlashcardSet.id.desc()).limit(50).all()
     
     for fs in flashcard_sets:
         if fs.title and fs.title.strip():
@@ -277,11 +282,22 @@ def get_topic_specific_milestones(db: Session, user_id: int, topic: str) -> List
     
     return milestones
 
-def get_personalized_roadmap(db: Session, user_id: int) -> Dict[str, Any]:
+def get_personalized_roadmap(
+    db: Session,
+    user_id: int,
+    *,
+    force_refresh: bool = False,
+    ttl_seconds: Optional[int] = None,
+) -> Dict[str, Any]:
+    ttl = ttl_seconds if ttl_seconds is not None else int(os.getenv("XP_ROADMAP_CACHE_TTL_SECONDS", "600"))
+    cached = _ROADMAP_CACHE.get(user_id)
+    if not force_refresh and cached and time.time() - cached[0] < ttl:
+        return deepcopy(cached[1])
+
     topics = get_user_study_topics(db, user_id, limit=5)
     seed_topics = [topic_data["topic"] for topic_data in topics]
     recommended_topics = {
-        mode: get_related_topic_recommendations(str(user_id), seed_topics, mode, limit=5)
+        mode: get_related_topic_recommendations(str(user_id), seed_topics, mode, limit=5, allow_ai=False)
         for mode in ("chat", "note", "flashcards", "questions", "quiz", "review", "search")
     }
     
@@ -298,9 +314,11 @@ def get_personalized_roadmap(db: Session, user_id: int) -> Dict[str, Any]:
             'total_count': len(milestones)
         }
     
-    return {
+    roadmap = {
         'topics': topics,
         'recommended_topics': recommended_topics,
         'topic_milestones': topic_milestones,
         'total_topics': len(topics)
     }
+    _ROADMAP_CACHE[user_id] = (time.time(), deepcopy(roadmap))
+    return roadmap

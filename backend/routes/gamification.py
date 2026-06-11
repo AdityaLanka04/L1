@@ -113,24 +113,27 @@ async def get_gamification_stats(
 @router.get("/xp_roadmap/personalized")
 async def get_personalized_xp_roadmap(
     user_id: str = Query(...),
+    include_stats: bool = Query(False),
+    force_refresh: bool = Query(False),
     db: Session = Depends(get_db)
 ):
     try:
         from services.xp_roadmap_system import get_personalized_roadmap
-        from services.gamification_system import get_user_stats
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        user_stats = get_user_stats(db, user.id)
-        roadmap_data = get_personalized_roadmap(db, user.id)
-
-        return {
+        roadmap_data = get_personalized_roadmap(db, user.id, force_refresh=force_refresh)
+        response = {
             "status": "success",
-            "user_stats": user_stats,
             "roadmap": roadmap_data
         }
+        if include_stats:
+            from services.gamification_system import get_user_stats
+            response["user_stats"] = get_user_stats(db, user.id)
+
+        return response
 
     except Exception as e:
         logger.error(f"Error getting personalized roadmap: {str(e)}")

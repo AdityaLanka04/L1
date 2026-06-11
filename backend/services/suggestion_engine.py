@@ -243,6 +243,7 @@ def get_related_topic_recommendations(
     seed_topics: List[str],
     mission_mode: str = "note",
     limit: int = 5,
+    allow_ai: bool = True,
 ) -> List[dict]:
     cleaned_seeds = _dedupe_preserve([
         _topic_from_command(topic)
@@ -274,23 +275,24 @@ def get_related_topic_recommendations(
     }.get(mission_mode, "study topics")
 
     generated: List[str] = []
-    try:
-        from deps import call_ai
-        prompt = (
-            "Generate closely related study topics for a student.\n"
-            f"Seed topics from their context: {json.dumps(cleaned_seeds[:6])}\n"
-            f"Target format: {mode_label}.\n"
-            "Return JSON only: an array of concise topic strings.\n"
-            "Rules: do not repeat the seed titles exactly, do not include commands like /notes, "
-            "do not include content-type prefixes like Flashcards:, and do not include Untitled Note."
-        )
-        raw = call_ai(prompt, max_tokens=220, temperature=0.55).strip()
-        json_match = re.search(r"\[[\s\S]*\]", raw)
-        parsed = json.loads(json_match.group(0) if json_match else raw)
-        if isinstance(parsed, list):
-            generated = [_topic_from_command(str(item)) for item in parsed]
-    except Exception:
-        generated = []
+    if allow_ai:
+        try:
+            from deps import call_ai
+            prompt = (
+                "Generate closely related study topics for a student.\n"
+                f"Seed topics from their context: {json.dumps(cleaned_seeds[:6])}\n"
+                f"Target format: {mode_label}.\n"
+                "Return JSON only: an array of concise topic strings.\n"
+                "Rules: do not repeat the seed titles exactly, do not include commands like /notes, "
+                "do not include content-type prefixes like Flashcards:, and do not include Untitled Note."
+            )
+            raw = call_ai(prompt, max_tokens=220, temperature=0.55).strip()
+            json_match = re.search(r"\[[\s\S]*\]", raw)
+            parsed = json.loads(json_match.group(0) if json_match else raw)
+            if isinstance(parsed, list):
+                generated = [_topic_from_command(str(item)) for item in parsed]
+        except Exception:
+            generated = []
 
     fallback = _fallback_related_topics(cleaned_seeds, limit=limit * 2)
     topics = _dedupe_preserve([

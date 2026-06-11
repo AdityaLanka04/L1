@@ -27,6 +27,9 @@ from graphs.learningpath_graph import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/learning-paths", tags=["learning-paths"])
 
+VALID_PATH_DIFFICULTIES = {"beginner", "intermediate", "advanced"}
+VALID_PATH_LENGTHS = {"short", "medium", "long"}
+
 class GeneratePathRequest(BaseModel):
     topicPrompt: str
     difficulty: Optional[str] = "intermediate"
@@ -100,6 +103,12 @@ def _ensure_graph():
 def _generate_outline(user_id: int, topic: str, difficulty: str, length: str, goals: list[str]) -> dict:
     graph = _ensure_graph()
     topic = _normalize_topic_prompt(topic)
+    difficulty = (difficulty or "intermediate").strip().lower()
+    length = (length or "medium").strip().lower()
+    if difficulty not in VALID_PATH_DIFFICULTIES:
+        difficulty = "intermediate"
+    if length not in VALID_PATH_LENGTHS:
+        length = "medium"
     if graph:
         return graph.invoke(
             user_id=str(user_id),
@@ -402,6 +411,9 @@ def _serialize_node(node, db: Session, user_id: int) -> dict:
     }
 
     topic = _normalize_topic_prompt(getattr(node.path, "topic_prompt", "") or getattr(node.path, "title", ""))
+    path_difficulty = (getattr(node.path, "difficulty", "") or "intermediate").strip().lower()
+    if path_difficulty not in VALID_PATH_DIFFICULTIES:
+        path_difficulty = "intermediate"
     objectives = node.objectives if isinstance(node.objectives, list) else []
     prerequisites = node.prerequisites if isinstance(node.prerequisites, list) else []
     keywords = node.keywords if isinstance(node.keywords, list) else []
@@ -415,6 +427,7 @@ def _serialize_node(node, db: Session, user_id: int) -> dict:
         prerequisites=prerequisites,
         keywords=keywords,
         applications=applications,
+        difficulty=path_difficulty,
     )
 
     return {
@@ -640,8 +653,12 @@ async def generate_learning_path(
         raise HTTPException(status_code=400, detail="Topic prompt is required")
 
     topic_prompt = _normalize_topic_prompt(request.topicPrompt)
-    difficulty = request.difficulty or "intermediate"
-    length = request.length or "medium"
+    difficulty = (request.difficulty or "intermediate").strip().lower()
+    length = (request.length or "medium").strip().lower()
+    if difficulty not in VALID_PATH_DIFFICULTIES:
+        difficulty = "intermediate"
+    if length not in VALID_PATH_LENGTHS:
+        length = "medium"
     goals = request.goals or []
 
     outline = _generate_outline(user.id, topic_prompt, difficulty, length, goals)
@@ -683,6 +700,7 @@ async def generate_learning_path(
                 prerequisites=node_prerequisites if isinstance(node_prerequisites, list) else [],
                 keywords=node_keywords if isinstance(node_keywords, list) else [],
                 applications=node_applications if isinstance(node_applications, list) else [],
+                difficulty=difficulty,
             )
             auto_resources = (
                 _auto_discover_node_resources(topic_prompt, node_data)
