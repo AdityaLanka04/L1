@@ -31,8 +31,89 @@ _LENGTH_TO_COUNT = {
     "long": 10,
 }
 
+_LENGTH_PROFILES = {
+    "short": {
+        "count": 6,
+        "minutes": 25,
+        "description": "compressed path with only the essential sequence",
+        "scope": "cover the minimum viable foundations, one guided practice loop, and one closing project",
+        "flashcards": 4,
+        "quiz": 4,
+    },
+    "medium": {
+        "count": 8,
+        "minutes": 40,
+        "description": "balanced path with foundations, practice, application, and review",
+        "scope": "cover foundations, common techniques, realistic practice, pitfalls, and a capstone",
+        "flashcards": 6,
+        "quiz": 5,
+    },
+    "long": {
+        "count": 10,
+        "minutes": 55,
+        "description": "deep path with extra practice, tradeoffs, projects, and evaluation",
+        "scope": "cover foundations, multiple techniques, failure modes, advanced applications, optimization, and portfolio work",
+        "flashcards": 9,
+        "quiz": 7,
+    },
+}
+
+_DIFFICULTY_PROFILES = {
+    "beginner": {
+        "description": "assume no prior experience; define vocabulary before using it",
+        "objective_style": "recognize, explain in plain language, and complete guided practice",
+        "practice_style": "guided examples, small exercises, and confidence checks",
+        "bloom": "understand",
+        "cognitive_load": "low",
+        "minutes_delta": -5,
+        "xp_base": 35,
+        "quiz_delta": -1,
+        "flashcard_delta": 1,
+    },
+    "intermediate": {
+        "description": "assume basic familiarity; focus on applying concepts to realistic tasks",
+        "objective_style": "apply, compare, debug, and explain tradeoffs",
+        "practice_style": "scenario practice, implementation choices, and short projects",
+        "bloom": "apply",
+        "cognitive_load": "medium",
+        "minutes_delta": 0,
+        "xp_base": 50,
+        "quiz_delta": 0,
+        "flashcard_delta": 0,
+    },
+    "advanced": {
+        "description": "assume strong fundamentals; emphasize edge cases, architecture, and evaluation",
+        "objective_style": "analyze, optimize, critique, and design under constraints",
+        "practice_style": "open-ended projects, failure analysis, benchmarks, and production tradeoffs",
+        "bloom": "analyze",
+        "cognitive_load": "high",
+        "minutes_delta": 10,
+        "xp_base": 70,
+        "quiz_delta": 2,
+        "flashcard_delta": -1,
+    },
+}
+
 def _clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", (value or "").strip())
+
+def _normalize_choice(value: str | None, allowed: dict[str, Any], fallback: str) -> str:
+    cleaned = _clean_text(str(value or "")).lower()
+    return cleaned if cleaned in allowed else fallback
+
+def _target_node_count(length: str) -> int:
+    return _LENGTH_PROFILES[_normalize_choice(length, _LENGTH_PROFILES, "medium")]["count"]
+
+def _target_minutes(length: str, difficulty: str) -> int:
+    length_profile = _LENGTH_PROFILES[_normalize_choice(length, _LENGTH_PROFILES, "medium")]
+    difficulty_profile = _DIFFICULTY_PROFILES[_normalize_choice(difficulty, _DIFFICULTY_PROFILES, "intermediate")]
+    return max(15, length_profile["minutes"] + difficulty_profile["minutes_delta"])
+
+def _difficulty_profile(difficulty: str) -> dict[str, Any]:
+    return _DIFFICULTY_PROFILES[_normalize_choice(difficulty, _DIFFICULTY_PROFILES, "intermediate")]
+
+def _length_profile(length: str) -> dict[str, Any]:
+    return _LENGTH_PROFILES[_normalize_choice(length, _LENGTH_PROFILES, "medium")]
 
 def _normalize_topic_prompt(topic: str) -> str:
     cleaned = _clean_text(topic)
@@ -108,8 +189,170 @@ def _join_focus_items(items: list[str], fallback: str, limit: int = 3) -> str:
         return fallback
     return "; ".join(cleaned[:limit])
 
+def _subject_profile(topic: str, node_title: str) -> dict[str, Any]:
+    subject = f"{topic} {node_title}".lower()
+    if "cloud" in subject and "comput" in subject:
+        return {
+            "definition": (
+                "Cloud computing means renting compute, storage, networking, and managed platform services from a provider "
+                "instead of buying and operating every server yourself."
+            ),
+            "components": [
+                "compute through virtual machines, containers, and serverless functions",
+                "storage through object stores, block volumes, databases, and backup systems",
+                "networking through VPCs, subnets, load balancers, DNS, gateways, and firewalls",
+                "identity and access management for who can create, read, change, or delete resources",
+                "regions and availability zones that shape latency, resilience, and disaster recovery",
+                "monitoring, logging, autoscaling, and billing controls that keep systems reliable and affordable",
+            ],
+            "key_terms": ["compute", "storage", "networking", "IAM", "regions", "autoscaling", "cost control", "shared responsibility"],
+            "practice_goal": "choosing the right services, responsibilities, security boundaries, and reliability tradeoffs",
+            "mechanism": (
+                "Providers pool physical data-center hardware, expose it through APIs and consoles, and let teams assemble "
+                "services on demand. The important foundation is knowing which layer you manage, which layer the provider "
+                "manages, and how those choices affect security, cost, scale, and reliability."
+            ),
+            "pitfalls": [
+                "treating cloud resources as infinite instead of capacity with limits, quotas, latency, and cost",
+                "ignoring IAM, network boundaries, encryption, and the shared-responsibility model",
+                "designing for one region or one instance and discovering reliability problems only after failure",
+                "forgetting egress, idle resources, over-provisioning, logs, and storage lifecycle costs",
+            ],
+            "example": (
+                "For a web app, the cloud foundation is deciding where the API runs, where files and database records live, "
+                "how traffic reaches the app, how credentials are scoped, how the app scales during load, and how failures are detected."
+            ),
+        }
+    if any(term in subject for term in ("neural network", "deep learning", "machine learning")):
+        return {
+            "definition": (
+                "Neural networks are layered function approximators that learn patterns by adjusting weights and biases from data."
+            ),
+            "components": [
+                "input features that represent the data",
+                "neurons, weights, biases, and activation functions that transform signals",
+                "layers that build increasingly useful representations",
+                "loss functions that measure prediction error",
+                "backpropagation and gradient descent that update parameters",
+                "training, validation, and test splits that reveal whether the model generalizes",
+            ],
+            "key_terms": ["weights", "biases", "activations", "loss", "gradients", "backpropagation", "overfitting", "generalization"],
+            "practice_goal": "explaining how a model learns, why it fails, and how to evaluate whether it generalizes",
+            "mechanism": (
+                "A network makes a prediction, compares it with the target through a loss function, then pushes error signals "
+                "backward so each weight changes in the direction that reduces future error."
+            ),
+            "pitfalls": [
+                "memorizing training examples instead of learning general patterns",
+                "using the wrong loss, activation, or data preprocessing for the task",
+                "trusting accuracy without checking validation behavior, class imbalance, or failure cases",
+                "making models larger before fixing data quality, leakage, or baseline comparisons",
+            ],
+            "example": (
+                "For image classification, pixels become input features, hidden layers detect patterns, the output layer estimates "
+                "classes, and training adjusts weights until the loss falls on examples the model has not memorized."
+            ),
+        }
+    if "system design" in subject or "backend" in subject:
+        return {
+            "definition": (
+                "Backend system design is the practice of structuring services, data stores, APIs, queues, caches, and infrastructure "
+                "so an application stays correct, reliable, secure, and maintainable under real traffic."
+            ),
+            "components": [
+                "API contracts and service boundaries",
+                "databases, indexes, transactions, and consistency choices",
+                "caches, queues, background workers, and event streams",
+                "authentication, authorization, rate limits, and abuse controls",
+                "observability through logs, metrics, traces, and alerts",
+                "deployment, scaling, rollback, and failure recovery plans",
+            ],
+            "key_terms": ["APIs", "databases", "caches", "queues", "workers", "observability", "idempotency", "scaling"],
+            "practice_goal": "turning requirements into service boundaries, data flows, bottleneck choices, and failure handling",
+            "mechanism": (
+                "A backend receives requests, validates them, coordinates business logic and data access, performs slow work "
+                "asynchronously where needed, and exposes clear signals when something is slow or broken."
+            ),
+            "pitfalls": [
+                "scaling the API before understanding database and queue bottlenecks",
+                "mixing unrelated responsibilities into one service boundary",
+                "ignoring idempotency, retries, timeouts, and partial failure",
+                "shipping without enough observability to debug production behavior",
+            ],
+            "example": (
+                "For a high-traffic AI app, a backend might accept a request quickly, enqueue model work, cache repeated results, "
+                "stream progress to the client, and retry failed jobs without duplicating user-visible state."
+            ),
+        }
+    return {
+        "definition": (
+            f"{topic} is a subject with concepts, methods, constraints, and applications that need to be understood as a working system, "
+            "not as isolated vocabulary."
+        ),
+        "components": [
+            f"the core definitions that make {topic} precise",
+            "the mechanisms that explain how the subject works",
+            "the constraints and tradeoffs that decide when one approach is better than another",
+            "the examples and practice tasks that reveal whether understanding is usable",
+        ],
+        "key_terms": _topic_keywords(f"{topic} {node_title}"),
+        "practice_goal": f"making practical decisions in {topic} with clear assumptions, tradeoffs, and evidence",
+        "mechanism": (
+            f"A strong foundation in {topic} connects terms to cause and effect: what changes, why it changes, how to measure it, "
+            "and what can go wrong when assumptions are false."
+        ),
+        "pitfalls": [
+            "memorizing labels without understanding the mechanism",
+            "using examples that are too vague to test understanding",
+            "skipping assumptions, constraints, and failure cases",
+            "moving to advanced material before the foundation can explain real decisions",
+        ],
+        "example": f"For {topic}, explain a concrete case by naming the inputs, the process, the output, and the failure checks.",
+    }
+
+def _practical_goal(objectives: list[str], profile: dict[str, Any]) -> str:
+    generic_markers = (
+        "explain the core ideas",
+        "apply ",
+        "identify risks",
+        "quality checks",
+        "focused practice task",
+    )
+    cleaned = [
+        _clean_text(str(item)).rstrip(" .;:,")
+        for item in objectives
+        if _clean_text(str(item))
+    ]
+    useful = [
+        item for item in cleaned
+        if not any(marker in item.lower() for marker in generic_markers)
+    ]
+    return _join_focus_items(useful, profile.get("practice_goal") or "making practical decisions with evidence", limit=2)
+
+def _format_focus_list(items: list[str], limit: int = 4) -> str:
+    cleaned = [_clean_text(str(item)).rstrip(" .;:,") for item in items if _clean_text(str(item))]
+    if not cleaned:
+        return ""
+    visible = cleaned[:limit]
+    if len(visible) == 1:
+        return visible[0]
+    return ", ".join(visible[:-1]) + f", and {visible[-1]}"
+
 def _default_node_titles(topic: str, count: int, difficulty: str) -> list[str]:
-    core = [
+    difficulty = _normalize_choice(difficulty, _DIFFICULTY_PROFILES, "intermediate")
+    beginner = [
+        f"Orientation to {topic}",
+        f"Essential Vocabulary in {topic}",
+        f"Fundamentals of {topic}",
+        f"Guided Practice with {topic}",
+        f"Common Mistakes in {topic}",
+        f"First Complete {topic} Project",
+        f"Review and Confidence Checks for {topic}",
+        f"Next Steps After {topic} Foundations",
+        f"Simple Real-World Uses of {topic}",
+        f"Beginner Portfolio Exercise in {topic}",
+    ]
+    intermediate = [
         f"Foundations of {topic}",
         f"Core Concepts in {topic}",
         f"Essential Techniques for {topic}",
@@ -120,29 +363,37 @@ def _default_node_titles(topic: str, count: int, difficulty: str) -> list[str]:
         f"Capstone and Next Steps in {topic}",
         f"Optimization and Scaling for {topic}",
         f"Real-World Systems with {topic}",
-        f"Evaluation and Improvement in {topic}",
-        f"Portfolio-Ready {topic} Workflows",
     ]
-    if difficulty == "beginner":
-        core[0] = f"Orientation to {topic}"
-        core[1] = f"Fundamentals of {topic}"
-    if difficulty == "advanced":
-        core[0] = f"Advanced Foundations of {topic}"
-    return core[:count]
+    advanced = [
+        f"Advanced Foundations of {topic}",
+        f"Architecture and Tradeoffs in {topic}",
+        f"Deep Techniques for {topic}",
+        f"Failure Modes and Edge Cases in {topic}",
+        f"Performance and Scaling in {topic}",
+        f"Security, Reliability, and Quality in {topic}",
+        f"Production-Grade {topic} Workflows",
+        f"Evaluation and Benchmarking in {topic}",
+        f"Expert Project in {topic}",
+        f"Portfolio-Ready {topic} System Design",
+    ]
+    title_sets = {
+        "beginner": beginner,
+        "intermediate": intermediate,
+        "advanced": advanced,
+    }
+    return title_sets[difficulty][:count]
 
 def _default_content_plan(node_title: str, difficulty: str, length: str) -> list[dict]:
-    flashcard_count = 6
-    quiz_count = 5
-    if length == "long":
-        flashcard_count = 10
-        quiz_count = 8
-    if difficulty == "advanced":
-        quiz_count += 2
+    length_profile = _length_profile(length)
+    difficulty_profile = _difficulty_profile(difficulty)
+    flashcard_count = max(3, length_profile["flashcards"] + difficulty_profile["flashcard_delta"])
+    quiz_count = max(3, length_profile["quiz"] + difficulty_profile["quiz_delta"])
+    practice_style = difficulty_profile["practice_style"]
 
     return [
         {
             "type": "notes",
-            "description": f"Summarize key ideas from {node_title} into structured notes.",
+            "description": f"Build structured notes for {node_title} with the right level of detail for {difficulty}: {difficulty_profile['description']}.",
         },
         {
             "type": "flashcards",
@@ -151,14 +402,47 @@ def _default_content_plan(node_title: str, difficulty: str, length: str) -> list
         },
         {
             "type": "quiz",
-            "description": "Check your understanding with scenario-based questions.",
+            "description": f"Check understanding through {practice_style}.",
             "question_count": quiz_count,
         },
         {
             "type": "chat",
-            "description": "Ask follow-up questions and explore edge cases with the tutor.",
+            "description": "Ask follow-up questions and resolve unclear assumptions before moving on.",
         },
     ]
+
+def _normalize_content_plan(plan: Any, node_title: str, difficulty: str, length: str) -> list[dict]:
+    defaults = _default_content_plan(node_title, difficulty, length)
+    if not isinstance(plan, list):
+        return defaults
+
+    by_type = {
+        _clean_text(str(item.get("type", ""))).lower(): dict(item)
+        for item in plan
+        if isinstance(item, dict) and _clean_text(str(item.get("type", "")))
+    }
+    normalized = []
+    for default in defaults:
+        item_type = default["type"]
+        merged = {**default, **by_type.get(item_type, {})}
+        if item_type == "flashcards":
+            merged["count"] = default["count"]
+        if item_type == "quiz":
+            merged["question_count"] = default["question_count"]
+        normalized.append(merged)
+    return normalized
+
+def _normalize_estimated_minutes(value: Any, difficulty: str, length: str) -> int:
+    target = _target_minutes(length, difficulty)
+    lower = max(15, target - 10)
+    upper = min(90, target + 15)
+    try:
+        minutes = int(value)
+    except (TypeError, ValueError):
+        return target
+    if minutes < lower or minutes > upper:
+        return target
+    return minutes
 
 def _topic_specific_core_sections(
     node_title: str,
@@ -167,57 +451,63 @@ def _topic_specific_core_sections(
     prerequisites: list[str] | None = None,
     keywords: list[str] | None = None,
     applications: list[str] | None = None,
+    difficulty: str = "intermediate",
 ) -> list[dict]:
     objectives = _safe_list(objectives)
     prerequisites = _safe_list(prerequisites)
     keywords = _safe_list(keywords) or _topic_keywords(f"{topic} {node_title}")
     applications = _safe_list(applications)
+    difficulty_profile = _difficulty_profile(difficulty)
 
-    objective_focus = _join_focus_items(objectives, f"understand {node_title} and apply it in {topic}")
-    prerequisite_focus = _join_focus_items(prerequisites, "the concepts introduced earlier in the path", limit=2)
-    keyword_focus = ", ".join(keywords[:4]) if keywords else topic
-    application_focus = _join_focus_items(applications, f"a focused {topic} workflow", limit=2)
+    profile = _subject_profile(topic, node_title)
+    component_focus = _format_focus_list(profile["components"], limit=4)
+    pitfalls_focus = _format_focus_list(profile["pitfalls"], limit=3)
+    objective_focus = _practical_goal(objectives, profile)
+    prerequisite_focus = _join_focus_items(prerequisites, "the earlier concepts in this path", limit=2)
+    keyword_focus = _format_focus_list(profile.get("key_terms") or keywords, limit=6) or topic
+    application_focus = _join_focus_items(applications, profile["example"], limit=1)
 
     return [
         {
             "title": f"Why {node_title} matters",
             "content": (
-                f"In {topic}, {node_title} is the bridge between {prerequisite_focus} and the work you need next: "
-                f"{objective_focus}. Treat this section as the mental model for deciding what to learn, what to ignore, "
-                "and how to tell whether your understanding is usable."
+                f"{profile['definition']} {node_title} matters because it gives you the base model for the rest of the path: "
+                f"how the subject works, which responsibilities or mechanisms matter, and how to reason from {prerequisite_focus} "
+                f"toward {objective_focus}. At the {difficulty} level, this node should {difficulty_profile['objective_style']}."
             ),
             "example": (
-                f"When reviewing {application_focus}, identify where {node_title.lower()} changes a design choice, "
-                "a debugging step, or the way you evaluate results."
+                f"{profile['example']} Use that example to point out the decision {node_title.lower()} helps you make, "
+                f"the evidence you would check, and the tradeoff you would explain through {difficulty_profile['practice_style']}."
             ),
         },
         {
             "title": f"Key ideas in {node_title}",
             "content": (
-                f"Focus on {keyword_focus}. For each idea, write what it means, when it matters in {topic}, "
-                "and one observable signal that shows you are applying it correctly."
+                f"The main ideas to learn are {component_focus}. {profile['mechanism']} In this node, connect those ideas to "
+                f"{keyword_focus} so the terms explain real behavior instead of staying as definitions. Keep the pacing aligned to "
+                f"{difficulty_profile['description']}."
             ),
             "example": (
-                f"Convert the ideas into a checklist for {application_focus}: inputs, assumptions, tradeoffs, "
+                f"Turn {application_focus} into a checklist: inputs, resources or components involved, assumptions, tradeoffs, "
                 "failure modes, and validation steps."
             ),
         },
         {
             "title": f"Common pitfalls in {node_title}",
             "content": (
-                f"The common mistake is treating {node_title.lower()} as vocabulary instead of a working tool. "
-                f"In {topic}, watch for shallow definitions, skipped assumptions, and examples that cannot be "
-                "connected back to a real decision."
+                f"The common mistakes are {pitfalls_focus}. These mistakes happen when {node_title.lower()} is treated as a "
+                f"set of labels instead of an explanation of how {topic} behaves in practice. The expected depth here is "
+                f"{difficulty_profile['cognitive_load']} cognitive load, so examples and checks should match that level."
             ),
             "example": (
-                f"Before moving on, explain how {node_title.lower()} would fail or mislead you in {application_focus}, "
-                "then name the evidence you would check."
+                f"Before moving on, take {application_focus} and describe one wrong design, prediction, or explanation. Then name "
+                "the metric, log, test, diagram, or example that would prove it wrong."
             ),
         },
     ]
 
-def _default_core_sections(node_title: str, topic: str) -> list[dict]:
-    return _topic_specific_core_sections(node_title, topic)
+def _default_core_sections(node_title: str, topic: str, difficulty: str = "intermediate") -> list[dict]:
+    return _topic_specific_core_sections(node_title, topic, difficulty=difficulty)
 
 def _section_text(section: Any) -> str:
     if not isinstance(section, dict):
@@ -238,6 +528,12 @@ def _core_sections_are_generic(sections: Any, node_title: str, topic: str) -> bo
         "usual mistakes early",
         "quick checklist you can apply",
         "where assumptions fail",
+        "the bridge between",
+        "work you need next",
+        "treat this section as the mental model",
+        "one observable signal",
+        "common mistake is treating",
+        "as vocabulary instead of a working tool",
     ]
     marker_hits = sum(1 for marker in generic_markers if marker in text)
     duplicated_example = "example: example:" in text
@@ -254,9 +550,10 @@ def _normalize_core_sections(
     prerequisites: list[str] | None = None,
     keywords: list[str] | None = None,
     applications: list[str] | None = None,
+    difficulty: str = "intermediate",
 ) -> list[dict]:
     if _core_sections_are_generic(sections, node_title, topic):
-        return _topic_specific_core_sections(node_title, topic, objectives, prerequisites, keywords, applications)
+        return _topic_specific_core_sections(node_title, topic, objectives, prerequisites, keywords, applications, difficulty=difficulty)
 
     normalized = []
     for section in sections:
@@ -273,7 +570,7 @@ def _normalize_core_sections(
             "content": content,
             "example": example,
         })
-    return normalized or _topic_specific_core_sections(node_title, topic, objectives, prerequisites, keywords, applications)
+    return normalized or _topic_specific_core_sections(node_title, topic, objectives, prerequisites, keywords, applications, difficulty=difficulty)
 
 def _default_summary(node_title: str) -> list[str]:
     return [
@@ -319,19 +616,21 @@ def _default_concept_map(topic: str) -> dict:
 
 def _default_outline(topic: str, difficulty: str, length: str, goals: list[str] | None) -> dict:
     topic = _normalize_topic_prompt(topic)
-    difficulty = difficulty or "intermediate"
-    length = length or "medium"
+    difficulty = _normalize_choice(difficulty, _DIFFICULTY_PROFILES, "intermediate")
+    length = _normalize_choice(length, _LENGTH_PROFILES, "medium")
     goals = goals or []
 
-    count = _LENGTH_TO_COUNT.get(length, 8)
+    count = _target_node_count(length)
     titles = _default_node_titles(topic, count, difficulty)
+    minutes = _target_minutes(length, difficulty)
+    difficulty_profile = _difficulty_profile(difficulty)
 
     nodes = []
     for idx, title in enumerate(titles):
         objectives = [
-            f"Explain the core ideas in {title}.",
-            f"Apply {title} concepts to a focused practice task.",
-            "Identify risks, pitfalls, and quality checks.",
+            f"{difficulty_profile['objective_style'].capitalize()} in {title}.",
+            f"Use {title} through {difficulty_profile['practice_style']}.",
+            "Identify risks, pitfalls, quality checks, and evidence of mastery.",
         ]
         if goals:
             objectives.append(f"Connect {title} to your goal: {goals[0]}")
@@ -343,12 +642,12 @@ def _default_outline(topic: str, difficulty: str, length: str, goals: list[str] 
         nodes.append(
             {
                 "title": title,
-                "description": f"Build practical intuition for {title} and how it fits into the larger {topic} journey.",
+                "description": f"Build {difficulty} mastery in {title} through {difficulty_profile['practice_style']}.",
                 "objectives": objectives,
                 "prerequisites": prerequisites,
-                "estimated_minutes": 35 if length == "medium" else (30 if length == "short" else 45),
+                "estimated_minutes": minutes,
                 "content_plan": _default_content_plan(title, difficulty, length),
-                "introduction": f"This chapter focuses on {title} so you can move from concepts to confident application.",
+                "introduction": f"This {length} chapter focuses on {title} at a {difficulty} pace: {difficulty_profile['description']}.",
                 "core_sections": _topic_specific_core_sections(
                     title,
                     topic,
@@ -356,11 +655,14 @@ def _default_outline(topic: str, difficulty: str, length: str, goals: list[str] 
                     prerequisites=prerequisites,
                     keywords=_topic_keywords(f"{topic} {title}"),
                     applications=_default_applications(topic),
+                    difficulty=difficulty,
                 ),
                 "summary": _default_summary(title),
                 "real_world_applications": _default_applications(topic),
                 "tags": _topic_keywords(topic),
                 "keywords": _topic_keywords(topic),
+                "bloom_level": difficulty_profile["bloom"],
+                "cognitive_load": difficulty_profile["cognitive_load"],
                 "connection_map": {
                     "builds_on": prerequisites,
                     "leads_to": [titles[idx + 1]] if idx + 1 < len(titles) else [],
@@ -368,7 +670,7 @@ def _default_outline(topic: str, difficulty: str, length: str, goals: list[str] 
                 },
                 "scenarios": _default_scenarios(topic, title),
                 "concept_mapping": _default_concept_map(topic),
-                "reward": {"xp": 50 + idx * 5},
+                "reward": {"xp": difficulty_profile["xp_base"] + idx * 5},
             }
         )
 
@@ -381,19 +683,29 @@ def _default_outline(topic: str, difficulty: str, length: str, goals: list[str] 
     }
 
 def _build_prompt(topic: str, difficulty: str, length: str, goals: list[str]) -> str:
+    difficulty = _normalize_choice(difficulty, _DIFFICULTY_PROFILES, "intermediate")
+    length = _normalize_choice(length, _LENGTH_PROFILES, "medium")
+    difficulty_profile = _difficulty_profile(difficulty)
+    length_profile = _length_profile(length)
+    node_count = _target_node_count(length)
+    minutes = _target_minutes(length, difficulty)
     goals_text = ", ".join(goals) if goals else "(none)"
     return (
-        "You are designing an advanced learning path.\n"
+        "You are designing a personalized learning path.\n"
         "Return ONLY valid JSON.\n"
         "Schema: {title, description, estimated_hours, nodes:[{title, description, objectives, prerequisites, estimated_minutes, "
-        "introduction, core_sections, summary, real_world_applications, content_plan, tags, keywords}]}\n"
+        "introduction, core_sections, summary, real_world_applications, content_plan, tags, keywords, bloom_level, cognitive_load, reward}]}\n"
         "core_sections is a list of objects with {title, content, example}.\n"
         "Every core section must be specific to the node title and the requested topic. Do not use generic headings like "
         "\"Why this matters\", \"Key ideas\", or \"Common pitfalls\" unless the text names the exact techniques, concepts, "
         "failure modes, examples, and decisions for this topic.\n"
         "content_plan is a list of objects with {type, description, count?, question_count?}.\n"
         f"Topic: {topic}\nDifficulty: {difficulty}\nLength: {length}\nGoals: {goals_text}\n"
-        "Ensure 6-10 nodes depending on length."
+        f"Length requirements: create EXACTLY {node_count} nodes. This is a {length_profile['description']}; {length_profile['scope']}. "
+        f"Each node should be about {minutes} minutes.\n"
+        f"Difficulty requirements: {difficulty_profile['description']}. Objectives must {difficulty_profile['objective_style']}. "
+        f"Practice should use {difficulty_profile['practice_style']}. Set bloom_level to {difficulty_profile['bloom']} and "
+        f"cognitive_load to {difficulty_profile['cognitive_load']} unless a later node clearly requires a higher value."
     )
 
 def _parse_json_payload(raw: str) -> Optional[dict]:
@@ -413,8 +725,8 @@ def _parse_json_payload(raw: str) -> Optional[dict]:
 
 def build_outline(state: LearningPathState) -> dict:
     topic = _normalize_topic_prompt(state.get("topic", ""))
-    difficulty = state.get("difficulty", "intermediate")
-    length = state.get("length", "medium")
+    difficulty = _normalize_choice(state.get("difficulty", "intermediate"), _DIFFICULTY_PROFILES, "intermediate")
+    length = _normalize_choice(state.get("length", "medium"), _LENGTH_PROFILES, "medium")
     goals = _safe_list(state.get("goals"))
     ai_client = state.get("_ai_client")
 
@@ -434,9 +746,11 @@ def build_outline(state: LearningPathState) -> dict:
 
 def normalize_outline(state: LearningPathState) -> dict:
     topic = _normalize_topic_prompt(state.get("topic", ""))
-    difficulty = state.get("difficulty", "intermediate")
-    length = state.get("length", "medium")
+    difficulty = _normalize_choice(state.get("difficulty", "intermediate"), _DIFFICULTY_PROFILES, "intermediate")
+    length = _normalize_choice(state.get("length", "medium"), _LENGTH_PROFILES, "medium")
     goals = _safe_list(state.get("goals"))
+    target_count = _target_node_count(length)
+    difficulty_profile = _difficulty_profile(difficulty)
 
     outline = state.get("nodes")
     if outline is None or not isinstance(outline, list):
@@ -453,23 +767,32 @@ def normalize_outline(state: LearningPathState) -> dict:
         outline_data["description"] = f"A structured learning plan to master {topic}."
 
     nodes = []
-    for idx, node in enumerate(outline_data.get("nodes", [])):
+    raw_nodes = outline_data.get("nodes", [])
+    if len(raw_nodes) > target_count:
+        raw_nodes = raw_nodes[:target_count]
+
+    for idx, node in enumerate(raw_nodes):
         if not isinstance(node, dict):
             continue
         title = _normalize_node_title(node.get("title", ""), topic) or f"Chapter {idx + 1}"
         description = _clean_text(node.get("description", ""))
         objectives = _safe_list(node.get("objectives"))
         prerequisites = _safe_list(node.get("prerequisites"))
-        estimated_minutes = node.get("estimated_minutes") or node.get("estimatedMinutes") or 35
-        try:
-            estimated_minutes = int(estimated_minutes)
-        except (TypeError, ValueError):
-            estimated_minutes = 35
+        if not objectives:
+            objectives = [
+                f"{difficulty_profile['objective_style'].capitalize()} in {title}.",
+                f"Practice {title} through {difficulty_profile['practice_style']}.",
+            ]
+        estimated_minutes = _normalize_estimated_minutes(
+            node.get("estimated_minutes") or node.get("estimatedMinutes"),
+            difficulty,
+            length,
+        )
         intro = _clean_text(node.get("introduction", "")) or f"Focus on {title} within {topic}."
 
         summary = _safe_list(node.get("summary")) or _default_summary(title)
         real_world = _safe_list(node.get("real_world_applications")) or _default_applications(topic)
-        content_plan = node.get("content_plan") or _default_content_plan(title, difficulty, length)
+        content_plan = _normalize_content_plan(node.get("content_plan"), title, difficulty, length)
         node_keywords = node.get("keywords") or _topic_keywords(f"{topic} {title}")
         core_sections = _normalize_core_sections(
             node.get("core_sections"),
@@ -479,6 +802,7 @@ def normalize_outline(state: LearningPathState) -> dict:
             prerequisites=prerequisites,
             keywords=node_keywords,
             applications=real_world,
+            difficulty=difficulty,
         )
 
         nodes.append(
@@ -495,6 +819,8 @@ def normalize_outline(state: LearningPathState) -> dict:
                 "real_world_applications": real_world,
                 "tags": node.get("tags") or _topic_keywords(f"{topic} {title}"),
                 "keywords": node_keywords,
+                "bloom_level": node.get("bloom_level") or difficulty_profile["bloom"],
+                "cognitive_load": node.get("cognitive_load") or difficulty_profile["cognitive_load"],
                 "connection_map": node.get("connection_map") or {
                     "builds_on": prerequisites,
                     "leads_to": [],
@@ -502,15 +828,29 @@ def normalize_outline(state: LearningPathState) -> dict:
                 },
                 "scenarios": node.get("scenarios") or _default_scenarios(topic, title),
                 "concept_mapping": node.get("concept_mapping") or _default_concept_map(topic),
-                "reward": node.get("reward") or {"xp": 50 + idx * 5},
+                "reward": {
+                    **(node.get("reward") if isinstance(node.get("reward"), dict) else {}),
+                    "xp": difficulty_profile["xp_base"] + idx * 5,
+                },
                 "primary_resources": node.get("primary_resources") or [],
                 "supplementary_resources": node.get("supplementary_resources") or [],
                 "practice_resources": node.get("practice_resources") or [],
             }
         )
 
+    if len(nodes) < target_count:
+        seen_titles = {_clean_text(node.get("title", "")).lower() for node in nodes}
+        for fallback_node in _default_outline(topic, difficulty, length, goals)["nodes"]:
+            fallback_title = _clean_text(fallback_node.get("title", "")).lower()
+            if fallback_title in seen_titles:
+                continue
+            nodes.append(fallback_node)
+            seen_titles.add(fallback_title)
+            if len(nodes) >= target_count:
+                break
+
     if not nodes:
-        nodes = _default_outline(topic, difficulty, length, goals)["nodes"]
+        nodes = _default_outline(topic, difficulty, length, goals)["nodes"][:target_count]
 
     total_minutes = sum(n.get("estimated_minutes", 30) for n in nodes)
     estimated_hours = outline_data.get("estimated_hours") or round(total_minutes / 60, 1)

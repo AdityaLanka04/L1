@@ -153,6 +153,7 @@ const XPRoadmap = () => {
   const shellRef = useRef(null);
   const pixiRef = useRef(null);
   const [loading, setLoading] = useState(true);
+  const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [stats, setStats] = useState(null);
   const [personalizedRoadmap, setPersonalizedRoadmap] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -183,22 +184,14 @@ const XPRoadmap = () => {
         }
 
         const headers = { Authorization: `Bearer ${token}` };
-        const [statsRes, roadmapRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/get_gamification_stats?user_id=${encodeURIComponent(userName)}`, { headers }),
-          fetch(`${API_BASE_URL}/api/xp_roadmap/personalized?user_id=${encodeURIComponent(userName)}`, { headers })
-        ]);
+        const statsRes = await fetch(`${API_BASE_URL}/api/get_gamification_stats?user_id=${encodeURIComponent(userName)}`, { headers });
 
         if (statsRes.ok) {
           const data = await statsRes.json();
           if (isMounted) setStats(data);
         }
-
-        if (roadmapRes.ok) {
-          const data = await roadmapRes.json();
-          if (isMounted) setPersonalizedRoadmap(data?.roadmap || null);
-        }
       } catch (error) {
-        console.error('XP roadmap load error:', error);
+        console.error('XP roadmap stats load error:', error);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -210,6 +203,34 @@ const XPRoadmap = () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (loading || !userName) return undefined;
+
+    let isMounted = true;
+    const token = localStorage.getItem('token');
+    const headers = { Authorization: `Bearer ${token}` };
+
+    setRoadmapLoading(true);
+    fetch(`${API_BASE_URL}/api/xp_roadmap/personalized?user_id=${encodeURIComponent(userName)}`, { headers })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`XP roadmap request failed (${response.status})`);
+        return response.json();
+      })
+      .then((data) => {
+        if (isMounted) setPersonalizedRoadmap(data?.roadmap || null);
+      })
+      .catch((error) => {
+        console.error('XP roadmap personalization load error:', error);
+      })
+      .finally(() => {
+        if (isMounted) setRoadmapLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [loading, userName]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setDecayLabel(getWeekDecayLabel()), 60000);
@@ -1168,7 +1189,7 @@ const XPRoadmap = () => {
             ))}
           </div>
           <div className="xpv-drawer-recommendations">
-            <span>Recommended topics</span>
+            <span>{roadmapLoading ? 'Updating recommendations...' : 'Recommended topics'}</span>
             <div>
               {missionRecommendations.map((recommendation) => (
                 <button

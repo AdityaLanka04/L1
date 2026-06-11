@@ -584,6 +584,10 @@
   padding: 18px;
   position: relative;
   overflow: hidden;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .lpd-overview-next {
@@ -592,10 +596,6 @@
 
 .lpd-overview-focus {
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-tertiary));
-}
-
-.lpd-overview-plan {
-  border-color: color-mix(in srgb, var(--accent) 20%, var(--border));
 }
 
 .lpd-overview-card::after {
@@ -622,7 +622,7 @@
 }
 
 .lpd-overview-card h4 {
-  margin: 0 0 10px 0;
+  margin: 0;
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 2px;
@@ -635,6 +635,69 @@
   font-size: 12px;
   line-height: 1.6;
   color: var(--text-secondary);
+}
+
+.lpd-overview-foot {
+  min-width: 0;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.lpd-overview-foot span,
+.lpd-overview-foot strong {
+  min-width: 0;
+}
+
+.lpd-overview-foot strong {
+  max-width: 58%;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-weight: 800;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lpd-overview-track {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
+}
+
+.lpd-overview-track span {
+  display: block;
+  min-width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.lpd-pulse-score {
+  display: grid;
+  gap: 2px;
+}
+
+.lpd-pulse-score strong {
+  color: var(--text-primary);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.lpd-pulse-score span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 .lpd-toolkit {
@@ -2382,172 +2445,6 @@ html {
   flex-shrink: 0;
 }
 
-.lpd-scenarios {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.lpd-scenario-item {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.lpd-scenario-item[open] {
-  border-color: var(--accent);
-}
-
-.lpd-scenario-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-  transition: all 0.2s;
-}
-
-.lpd-scenario-header:hover {
-  background: var(--bg-elevated);
-}
-
-.lpd-scenario-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: 2px;
-}
-
-.lpd-scenario-header svg {
-  color: var(--accent);
-  transition: transform 0.2s;
-}
-
-.lpd-scenario-item[open] .lpd-scenario-header svg {
-  transform: rotate(90deg);
-}
-
-.lpd-scenario-content {
-  padding: 0 16px 16px 16px;
-  animation: slideDown 0.3s ease;
-}
-
-.lpd-scenario-description {
-  margin: 0 0 12px 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--text-secondary);
-}
-
-.lpd-scenario-question {
-  margin: 0 0 14px 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--text-primary);
-}
-
-.lpd-scenario-options {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.lpd-scenario-option {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 12px;
-  color: var(--text-primary);
-  transition: all 0.2s;
-}
-
-.lpd-scenario-option.correct {
-  background: color-mix(in srgb, #22c55e 10%, var(--bg-primary));
-  border-color: #22c55e;
-}
-
-.lpd-scenario-explanation {
-  padding: 12px;
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
-  border-left: 3px solid var(--accent);
-  border-radius: 6px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--text-primary);
-}
-
-.lpd-concept-map {
-  padding: 20px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-
-.lpd-concepts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.lpd-concept-bubble {
-  padding: 10px 16px;
-  background: var(--bg-primary);
-  border: 2px solid var(--accent);
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 2px;
-  transition: all 0.2s;
-}
-
-.lpd-concept-bubble:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.lpd-relationships h5 {
-  margin: 0 0 10px 0;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--text-secondary);
-  letter-spacing: 2px;
-}
-
-.lpd-relationships ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.lpd-relationships li {
-  font-size: 12px;
-  color: var(--text-primary);
-  padding-left: 16px;
-  position: relative;
-  line-height: 1.5;
-}
-
-.lpd-relationships li::before {
-  content: '↔';
-  position: absolute;
-  left: 0;
-  color: var(--accent);
-  font-weight: 900;
-}
-
 @media (max-width: 768px) {
   .lpd-difficulty-buttons {
     flex-direction: column;
@@ -2561,9 +2458,6 @@ html {
     grid-template-columns: 1fr;
   }
 
-  .lpd-concepts {
-    justify-content: center;
-  }
 }
 
 /* ===== Persistent collapsible sidebar (Flashcards pattern) ===== */
@@ -2962,7 +2856,10 @@ html {
 }
 
 .lpd-resource-lab {
-  border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 28%),
+    var(--bg-primary);
 }
 
 .lpd-resource-lab-head {
@@ -2970,7 +2867,9 @@ html {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--lpd-line);
 }
 
 .lpd-resource-lab-head .lpd-block-title {
@@ -2980,24 +2879,47 @@ html {
 .lpd-resource-lab-head p {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
 .lpd-resource-lab-head > span {
   flex-shrink: 0;
-  padding: 5px 9px;
+  padding: 7px 11px;
   border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
   border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
   color: var(--accent);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .lpd-resource-tools {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.lpd-resource-tool-card {
+  min-width: 0;
+  display: grid;
   gap: 10px;
-  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--lpd-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--lpd-panel) 82%, var(--bg-primary));
+}
+
+.lpd-resource-tool-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .lpd-resource-input-row,
@@ -3016,7 +2938,7 @@ html {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -3027,7 +2949,7 @@ html {
 .lpd-resource-input input {
   min-width: 0;
   width: 100%;
-  height: 38px;
+  height: 42px;
   border: 0;
   outline: 0;
   background: transparent;
@@ -3036,7 +2958,7 @@ html {
 }
 
 .lpd-resource-search-row select {
-  min-height: 40px;
+  min-height: 44px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg-primary);
@@ -3049,7 +2971,7 @@ html {
 .lpd-resource-search-row > button,
 .lpd-resource-card-actions button,
 .lpd-resource-card-actions a {
-  min-height: 38px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3093,11 +3015,15 @@ html {
 }
 
 .lpd-resource-results {
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .lpd-resource-subhead {
-  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 900;
@@ -3107,23 +3033,39 @@ html {
 
 .lpd-resource-grid {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .lpd-resource-card {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: stretch;
+  min-height: 156px;
+  padding: 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg-primary);
+  background: color-mix(in srgb, var(--bg-primary) 88%, var(--lpd-panel));
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.lpd-resource-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--lpd-line));
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-primary));
+  transform: translateY(-1px);
+}
+
+.lpd-resource-card-main {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
 }
 
 .lpd-resource-card-icon {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3135,28 +3077,20 @@ html {
 
 .lpd-resource-card-body {
   min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 7px;
 }
 
-.lpd-resource-card-title-row {
+.lpd-resource-card-kicker {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 5px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.lpd-resource-card-title-row h4 {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.lpd-resource-card-title-row span {
-  flex-shrink: 0;
+.lpd-resource-card-kicker span,
+.lpd-resource-card-kicker small {
   padding: 2px 7px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--text-secondary) 12%, transparent);
@@ -3166,6 +3100,27 @@ html {
   text-transform: capitalize;
 }
 
+.lpd-resource-card-kicker small {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 16%, transparent);
+}
+
+.lpd-resource-card-body h4 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .lpd-resource-card-body p {
   display: -webkit-box;
   margin: 0;
@@ -3173,8 +3128,12 @@ html {
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.45;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
+}
+
+.lpd-resource-card-body p.lpd-resource-muted {
+  color: color-mix(in srgb, var(--text-secondary) 76%, transparent);
 }
 
 .lpd-resource-card-meta {
@@ -3186,26 +3145,51 @@ html {
   font-size: 11px;
 }
 
+.lpd-resource-card-meta span {
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 13%, transparent);
+  border-radius: 999px;
+}
+
 .lpd-resource-card-actions {
-  display: flex;
-  align-items: center;
+  width: 170px;
+  display: grid;
+  align-content: space-between;
+  justify-items: stretch;
+  gap: 12px;
+  padding-left: 14px;
+  border-left: 1px solid var(--lpd-line);
+}
+
+.lpd-resource-primary-actions {
+  display: grid;
   gap: 8px;
 }
 
 .lpd-resource-card-actions a {
-  width: 36px;
-  min-height: 36px;
-  padding: 0;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+}
+
+.lpd-resource-rating-row {
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .lpd-resource-stars {
   display: flex;
-  gap: 2px;
+  gap: 3px;
 }
 
 .lpd-resource-stars button {
-  width: 24px;
-  min-height: 24px;
+  width: 22px;
+  min-height: 22px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -3219,11 +3203,12 @@ html {
 }
 
 .lpd-resource-done {
-  min-height: 30px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  padding: 0 9px;
+  padding: 0 10px;
   border: 1px solid color-mix(in srgb, #22c55e 38%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, #22c55e 10%, transparent);
@@ -3250,9 +3235,20 @@ html {
     grid-template-columns: 1fr;
   }
 
+  .lpd-resource-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .lpd-resource-grid {
+    grid-template-columns: 1fr;
+  }
+
   .lpd-resource-card-actions {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    width: 100%;
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--lpd-line);
+    padding-top: 12px;
   }
 }
 
@@ -3390,6 +3386,16 @@ html {
   grid-template-columns: minmax(240px, var(--lpd-path-panel-width, 380px)) 18px minmax(0, 1fr);
   gap: 0;
   align-items: start;
+  transition: grid-template-columns 0.18s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.lpd-main--resizing {
+  transition: none;
+}
+
+.lpd-main--resizing .lpd-sidebar,
+.lpd-main--resizing .lpd-details {
+  pointer-events: none;
 }
 
 .lpd-sidebar,
@@ -3540,7 +3546,7 @@ body.lpd-is-resizing * {
 }
 
 .lpd-overview {
-  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 12px;
   margin-bottom: 22px;
 }
@@ -3585,7 +3591,6 @@ body.lpd-is-resizing * {
 }
 
 .lpd-toolkit-card,
-.lpd-resource-card,
 .lpd-objectives li,
 .lpd-prerequisites li,
 .lpd-activity,
@@ -3601,11 +3606,13 @@ body.lpd-is-resizing * {
 }
 
 .lpd-resource-lab {
-  background: color-mix(in srgb, var(--accent) 7%, var(--bg-primary));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 28%),
+    var(--bg-primary);
 }
 
 .lpd-resource-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
 }
 
 .lpd-toolkit {

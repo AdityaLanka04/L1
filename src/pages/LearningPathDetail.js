@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Loader as LoaderIcon,
@@ -127,6 +127,8 @@ const LearningPathDetail = () => {
     return Math.min(PATH_PANEL_MAX_WIDTH, Math.max(PATH_PANEL_MIN_WIDTH, stored));
   });
   const [isResizingPathPanel, setIsResizingPathPanel] = useState(false);
+  const pathMainRef = useRef(null);
+  const resizeFrameRef = useRef(null);
 
   useEffect(() => {
     loadPathDetails();
@@ -136,6 +138,13 @@ const LearningPathDetail = () => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(PATH_PANEL_STORAGE_KEY, String(pathPanelWidth));
   }, [pathPanelWidth]);
+
+  useEffect(() => () => {
+    if (resizeFrameRef.current) {
+      window.cancelAnimationFrame(resizeFrameRef.current);
+    }
+    document.body.classList.remove('lpd-is-resizing');
+  }, []);
 
   useEffect(() => {
     if (selectedNode) {
@@ -187,11 +196,18 @@ const LearningPathDetail = () => {
     Math.min(maxWidth, Math.max(PATH_PANEL_MIN_WIDTH, value))
   );
 
+  const writePathPanelWidth = (width) => {
+    const main = pathMainRef.current;
+    if (main) {
+      main.style.setProperty('--lpd-path-panel-width', `${width}px`);
+    }
+  };
+
   const handlePathPanelResizeStart = (event) => {
     if (window.innerWidth <= 1200) return;
     event.preventDefault();
 
-    const main = event.currentTarget.closest('.lpd-main');
+    const main = pathMainRef.current || event.currentTarget.closest('.lpd-main');
     const mainWidth = main?.getBoundingClientRect().width || 0;
     const maxWidth = mainWidth
       ? Math.min(PATH_PANEL_MAX_WIDTH, Math.max(PATH_PANEL_MIN_WIDTH, Math.round(mainWidth * 0.55)))
@@ -199,16 +215,30 @@ const LearningPathDetail = () => {
     const startX = event.clientX;
     const startWidth = pathPanelWidth;
     let currentWidth = startWidth;
+    let pendingWidth = startWidth;
 
     setIsResizingPathPanel(true);
     document.body.classList.add('lpd-is-resizing');
+    event.currentTarget.setPointerCapture?.(event.pointerId);
 
     const handlePointerMove = (moveEvent) => {
-      currentWidth = clampPathPanelWidth(startWidth + moveEvent.clientX - startX, maxWidth);
-      setPathPanelWidth(currentWidth);
+      pendingWidth = clampPathPanelWidth(startWidth + moveEvent.clientX - startX, maxWidth);
+      if (resizeFrameRef.current) return;
+      resizeFrameRef.current = window.requestAnimationFrame(() => {
+        resizeFrameRef.current = null;
+        currentWidth = pendingWidth;
+        writePathPanelWidth(currentWidth);
+      });
     };
 
     const handlePointerUp = () => {
+      if (resizeFrameRef.current) {
+        window.cancelAnimationFrame(resizeFrameRef.current);
+        resizeFrameRef.current = null;
+      }
+      currentWidth = pendingWidth;
+      writePathPanelWidth(currentWidth);
+      setPathPanelWidth(currentWidth);
       setIsResizingPathPanel(false);
       document.body.classList.remove('lpd-is-resizing');
       window.localStorage.setItem(PATH_PANEL_STORAGE_KEY, String(currentWidth));
@@ -820,41 +850,71 @@ const LearningPathDetail = () => {
   const renderResourceCard = (resource, options = {}) => {
     const rating = resourceRatings[resource.id] || 0;
     const isCompleted = completedResources.includes(resource.id);
+    const sourceLabel = resource.source || 'Saved resource';
+    const resourceTitle = resource.title || sourceLabel;
+    const resourceType = resource.type || 'resource';
+    const durationLabel = resource.duration_seconds
+      ? `${Math.max(1, Math.round(resource.duration_seconds / 60))} min video`
+      : null;
+    const minutesLabel = resource.estimated_minutes ? `${resource.estimated_minutes} min` : null;
     return (
       <div
         key={`${resource.id}-${options.mode || 'saved'}`}
-        className="lpd-resource-card"
-        title={resource.title}
-        aria-label={resource.title}
+        className={`lpd-resource-card ${options.mode === 'result' ? 'lpd-resource-card--result' : ''}`}
+        title={resourceTitle}
+        aria-label={resourceTitle}
       >
-        <div className="lpd-resource-card-icon">
-          {getResourceIcon(resource)}
-        </div>
-        <div className="lpd-resource-card-body">
-          <div className="lpd-resource-card-title-row">
-            <h4 title={resource.title}>{resource.title}</h4>
-            <span>{resource.type || 'resource'}</span>
+        <div className="lpd-resource-card-main">
+          <div className="lpd-resource-card-icon">
+            {getResourceIcon(resource)}
           </div>
-          {resource.description && <p>{resource.description}</p>}
-          <div className="lpd-resource-card-meta">
-            {resource.source && <span>{resource.source}</span>}
-            {resource.estimated_minutes && <span>{resource.estimated_minutes} min</span>}
-            {resource.duration_seconds ? <span>{Math.round(resource.duration_seconds / 60)} min video</span> : null}
+          <div className="lpd-resource-card-body">
+            <div className="lpd-resource-card-kicker">
+              <span>{resourceType}</span>
+              {sourceLabel && <small>{sourceLabel}</small>}
+            </div>
+            <h4 title={resourceTitle}>{resourceTitle}</h4>
+            {resource.description ? (
+              <p>{resource.description}</p>
+            ) : (
+              <p className="lpd-resource-muted">Open the resource to review this material for the current node.</p>
+            )}
+            <div className="lpd-resource-card-meta">
+              {minutesLabel && <span>{minutesLabel}</span>}
+              {durationLabel && <span>{durationLabel}</span>}
+              {resource.auto_discovered && <span>Auto found</span>}
+            </div>
           </div>
         </div>
         <div className="lpd-resource-card-actions">
-          {resource.url && (
-            <a href={resource.url} target="_blank" rel="noreferrer" title="Open resource">
-              <ExternalLink size={15} />
-            </a>
-          )}
-          {options.mode === 'result' ? (
-            <button type="button" onClick={() => handleAddResource(resource)} disabled={resourceLoading}>
-              <Link size={14} />
-              Save
-            </button>
-          ) : (
-            <>
+          <div className="lpd-resource-primary-actions">
+            {resource.url && (
+              <a href={resource.url} target="_blank" rel="noreferrer" title="Open resource" aria-label={`Open ${resourceTitle}`}>
+                <ExternalLink size={15} />
+                <span>Open</span>
+              </a>
+            )}
+            {options.mode === 'result' ? (
+              <button type="button" onClick={() => handleAddResource(resource)} disabled={resourceLoading}>
+                <Link size={14} />
+                Save
+              </button>
+            ) : (
+              <>
+                {isCompleted ? (
+                  <span className="lpd-resource-done"><CheckCircle size={13} /> Done</span>
+                ) : (
+                  <button type="button" onClick={() => handleResourceComplete(resource.id, resource.estimated_minutes || 10)}>
+                    <CheckCircle size={14} />
+                    Done
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+          {options.mode !== 'result' && (
+            <div className="lpd-resource-rating-row">
+              <span>Rate</span>
               <div className="lpd-resource-stars" aria-label="Rate resource">
                 {[1, 2, 3, 4, 5].map((value) => (
                   <button
@@ -868,40 +928,35 @@ const LearningPathDetail = () => {
                   </button>
                 ))}
               </div>
-              {isCompleted ? (
-                <span className="lpd-resource-done"><CheckCircle size={13} /> Done</span>
-              ) : (
-                <button type="button" onClick={() => handleResourceComplete(resource.id, resource.estimated_minutes || 10)}>
-                  <CheckCircle size={14} />
-                  Done
-                </button>
-              )}
-            </>
+            </div>
           )}
         </div>
       </div>
     );
   };
 
-  const rawTags = Array.isArray(selectedNode?.tags)
-    ? selectedNode.tags
-    : selectedNode?.tags
-      ? [selectedNode.tags]
-      : [];
-  const rawKeywords = Array.isArray(selectedNode?.keywords)
-    ? selectedNode.keywords
-    : selectedNode?.keywords
-      ? [selectedNode.keywords]
-      : [];
-  const keyTerms = Array.from(new Set([...rawTags, ...rawKeywords].filter(Boolean))).slice(0, 12);
-
-  const focusBlocks = Math.max(1, Math.ceil((selectedNode?.estimated_minutes || 0) / 25));
+  const nodeProgressPct = selectedNode?.progress?.progress_pct || 0;
+  const estimatedMinutes = selectedNode?.estimated_minutes || 0;
+  const loggedMinutes = Math.max(0, timeSpentMinutes || 0);
+  const remainingMinutes = Math.max(0, estimatedMinutes - loggedMinutes);
+  const focusTargetMinutes = Math.max(5, Math.min(25, remainingMinutes || estimatedMinutes || 25));
+  const focusTargetSeconds = focusTargetMinutes * 60;
+  const focusSessionPct = Math.min(100, Math.round((sessionSeconds / focusTargetSeconds) * 100));
+  const completedActivityCount = activityPlan.filter(
+    (activity) => selectedNode?.progress?.evidence?.[activity.type]?.completed
+  ).length;
+  const plannedActivityCount = activityPlan.length || 0;
+  const activityCompletionPct = plannedActivityCount
+    ? Math.round((completedActivityCount / plannedActivityCount) * 100)
+    : nodeProgressPct;
 
   const nextActivity = selectedNode?.content_plan?.find(
     (activity) => !selectedNode.progress?.evidence?.[activity.type]?.completed
   ) || selectedNode?.content_plan?.[0];
 
-  const nodeProgressPct = selectedNode?.progress?.progress_pct || 0;
+  const nextActivityLabel = nextActivity?.type
+    ? nextActivity.type.replace(/_/g, ' ').toUpperCase()
+    : 'ALL ACTIVITIES COMPLETE';
 
   if (loading) {
     return (
@@ -1035,6 +1090,7 @@ const LearningPathDetail = () => {
       </div>
 
       <div
+        ref={pathMainRef}
         className={`lpd-main ${isResizingPathPanel ? 'lpd-main--resizing' : ''}`}
         style={{ '--lpd-path-panel-width': `${pathPanelWidth}px` }}
       >
@@ -1126,13 +1182,16 @@ const LearningPathDetail = () => {
 
               <div className="lpd-overview">
                 <div className="lpd-overview-card lpd-overview-next">
-                  <div className="lpd-overview-label">Next Up</div>
-                  <h4>{nextActivity ? nextActivity.type.toUpperCase() : 'ALL ACTIVITIES COMPLETE'}</h4>
-                  <p>
-                    {nextActivity
-                      ? nextActivity.description
-                      : 'You have completed all planned activities for this node.'}
-                  </p>
+                  <div className="lpd-overview-label">
+                    {nextActivity ? getActivityIcon(nextActivity.type) : <CheckCircle size={14} />}
+                    Next Task
+                  </div>
+                  <h4>{nextActivityLabel}</h4>
+                  <p>{nextActivity ? nextActivity.description : 'All planned work for this node is complete.'}</p>
+                  <div className="lpd-overview-foot">
+                    <span>{completedActivityCount}/{plannedActivityCount || 1} activities done</span>
+                    <strong>{Math.max(0, plannedActivityCount - completedActivityCount)} left</strong>
+                  </div>
                   <button
                     className="lpd-overview-btn"
                     onClick={() => nextActivity && handleActivityClick(nextActivity)}
@@ -1148,9 +1207,12 @@ const LearningPathDetail = () => {
                     Focus Session
                   </div>
                   <div className="lpd-focus-timer">{formatDuration(sessionSeconds)}</div>
+                  <div className="lpd-overview-track" aria-label="Current focus session progress">
+                    <span style={{ width: `${focusSessionPct}%` }} />
+                  </div>
                   <div className="lpd-focus-meta">
-                    <span>Tracked time</span>
-                    <strong>{timeSpentMinutes} min</strong>
+                    <span>{focusTargetMinutes} min target</span>
+                    <strong>{remainingMinutes} min left</strong>
                   </div>
                   <div className="lpd-focus-actions">
                     <button className="lpd-focus-btn" onClick={handleSessionToggle}>
@@ -1170,39 +1232,37 @@ const LearningPathDetail = () => {
                       +5 min
                     </button>
                   </div>
+                  <div className="lpd-overview-foot">
+                    <span>Total logged</span>
+                    <strong>{loggedMinutes} min</strong>
+                  </div>
                   {sessionLoggedMinutes ? (
                     <div className="lpd-focus-toast">Logged {sessionLoggedMinutes} min</div>
                   ) : null}
                 </div>
                 <div className="lpd-overview-card lpd-overview-progress">
-                  <div className="lpd-overview-label">Node Pulse</div>
-                  <div className="lpd-overview-metric">
-                    <span>Progress</span>
-                    <strong>{nodeProgressPct}%</strong>
+                  <div className="lpd-overview-label">
+                    <BarChart3 size={14} />
+                    Node Pulse
+                  </div>
+                  <div className="lpd-pulse-score">
+                    <strong>{Math.max(nodeProgressPct, activityCompletionPct)}%</strong>
+                    <span>current node progress</span>
+                  </div>
+                  <div className="lpd-overview-track" aria-label="Node progress">
+                    <span style={{ width: `${Math.max(nodeProgressPct, activityCompletionPct)}%` }} />
                   </div>
                   <div className="lpd-overview-metric">
-                    <span>Est. time</span>
-                    <strong>{selectedNode.estimated_minutes || 0} min</strong>
+                    <span>Activities</span>
+                    <strong>{completedActivityCount}/{plannedActivityCount || 1}</strong>
+                  </div>
+                  <div className="lpd-overview-metric">
+                    <span>Time left</span>
+                    <strong>{remainingMinutes} min</strong>
                   </div>
                   <div className="lpd-overview-metric">
                     <span>XP Ready</span>
                     <strong>+{selectedNode.reward?.xp || 50}</strong>
-                  </div>
-                </div>
-                <div className="lpd-overview-card lpd-overview-plan">
-                  <div className="lpd-overview-label">
-                    <Calendar size={14} />
-                    Study Plan
-                  </div>
-                  <h4>{focusBlocks} Focus Blocks</h4>
-                  <p>
-                    {focusBlocks === 1
-                      ? 'One 25-minute sprint to finish this chapter.'
-                      : `Split into ${focusBlocks} x 25-min sessions with short breaks.`}
-                  </p>
-                  <div className="lpd-overview-metric">
-                    <span>Recommended pace</span>
-                    <strong>{Math.max(1, Math.round((selectedNode.estimated_minutes || 0) / 10))} checkpoints</strong>
                   </div>
                 </div>
               </div>
@@ -1253,41 +1313,51 @@ const LearningPathDetail = () => {
                 </div>
 
                 <div className="lpd-resource-tools">
-                  <div className="lpd-resource-input-row">
-                    <div className="lpd-resource-input">
+                  <div className="lpd-resource-tool-card">
+                    <div className="lpd-resource-tool-label">
                       <Link size={15} />
-                      <input
-                        value={resourceUrl}
-                        onChange={(event) => setResourceUrl(event.target.value)}
-                        placeholder="Paste YouTube, article, docs, GitHub, or course URL"
-                        type="url"
-                      />
+                      <span>Add a resource</span>
                     </div>
-                    <button type="button" onClick={() => handleAddResource()} disabled={resourceLoading}>
-                      {resourceLoading ? <Loader className="lpd-spinner" size={14} /> : <CheckCircle size={14} />}
-                      Add
-                    </button>
+                    <div className="lpd-resource-input-row">
+                      <div className="lpd-resource-input">
+                        <input
+                          value={resourceUrl}
+                          onChange={(event) => setResourceUrl(event.target.value)}
+                          placeholder="Paste YouTube, article, docs, GitHub, or course URL"
+                          type="url"
+                        />
+                      </div>
+                      <button type="button" onClick={() => handleAddResource()} disabled={resourceLoading}>
+                        {resourceLoading ? <Loader className="lpd-spinner" size={14} /> : <CheckCircle size={14} />}
+                        Add
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="lpd-resource-search-row">
-                    <div className="lpd-resource-input">
+                  <div className="lpd-resource-tool-card">
+                    <div className="lpd-resource-tool-label">
                       <Search size={15} />
-                      <input
-                        value={resourceSearchQuery}
-                        onChange={(event) => setResourceSearchQuery(event.target.value)}
-                        placeholder="Search for videos, docs, explainers, and practice resources"
-                        type="search"
-                      />
+                      <span>Search for this node</span>
                     </div>
-                    <select value={resourceSearchProvider} onChange={(event) => setResourceSearchProvider(event.target.value)}>
-                      <option value="auto">Auto</option>
-                      <option value="tavily">Tavily</option>
-                      <option value="brave">Brave</option>
-                    </select>
-                    <button type="button" onClick={handleSearchResources} disabled={resourceLoading}>
-                      {resourceLoading ? <Loader className="lpd-spinner" size={14} /> : <Globe2 size={14} />}
-                      Search
-                    </button>
+                    <div className="lpd-resource-search-row">
+                      <div className="lpd-resource-input">
+                        <input
+                          value={resourceSearchQuery}
+                          onChange={(event) => setResourceSearchQuery(event.target.value)}
+                          placeholder="Search for videos, docs, explainers, and practice resources"
+                          type="search"
+                        />
+                      </div>
+                      <select value={resourceSearchProvider} onChange={(event) => setResourceSearchProvider(event.target.value)}>
+                        <option value="auto">Auto</option>
+                        <option value="tavily">Tavily</option>
+                        <option value="brave">Brave</option>
+                      </select>
+                      <button type="button" onClick={handleSearchResources} disabled={resourceLoading}>
+                        {resourceLoading ? <Loader className="lpd-spinner" size={14} /> : <Globe2 size={14} />}
+                        Search
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1316,32 +1386,6 @@ const LearningPathDetail = () => {
                   )}
                 </div>
               </div>
-
-              {keyTerms.length > 0 && (
-                <div className="lpd-block">
-                  <h3 className="lpd-block-title">
-                    <Zap size={16} />
-                    KEY TERMS
-                  </h3>
-                  <div className="lpd-tags">
-                    {keyTerms.map((term) => (
-                      <span key={term} className="lpd-tag">{term}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedNode.introduction && (
-                <div className="lpd-block lpd-introduction-block">
-                  <h3 className="lpd-block-title">
-                    <Lightbulb size={16} />
-                    WHY THIS MATTERS
-                  </h3>
-                  <div className="lpd-introduction-content">
-                    <p>{selectedNode.introduction}</p>
-                  </div>
-                </div>
-              )}
 
               <div className="lpd-block lpd-difficulty-toggle">
                 <h3 className="lpd-block-title">
@@ -1625,78 +1669,6 @@ const LearningPathDetail = () => {
                   </button>
                 </div>
               </div>
-
-              {selectedNode.scenarios && selectedNode.scenarios.length > 0 && (
-                <div className="lpd-block">
-                  <h3 className="lpd-block-title">
-                    <Map size={16} />
-                    PRACTICE SCENARIOS
-                  </h3>
-                  <div className="lpd-scenarios">
-                    {selectedNode.scenarios.map((scenario, idx) => (
-                      <details key={idx} className="lpd-scenario-item">
-                        <summary className="lpd-scenario-header">
-                          <span className="lpd-scenario-title">{scenario.title}</span>
-                          <ChevronRight size={14} />
-                        </summary>
-                        <div className="lpd-scenario-content">
-                          <p className="lpd-scenario-description">{scenario.description}</p>
-                          <p className="lpd-scenario-question"><strong>Question:</strong> {scenario.question}</p>
-                          {scenario.options && (
-                            <div className="lpd-scenario-options">
-                              {scenario.options.map((option, optIdx) => (
-                                <div
-                                  key={optIdx}
-                                  className={`lpd-scenario-option ${optIdx === scenario.correct ? 'correct' : ''}`}
-                                >
-                                  <span className="lpd-option-letter">{String.fromCharCode(65 + optIdx)}</span>
-                                  <span>{option}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {scenario.explanation && (
-                            <div className="lpd-scenario-explanation">
-                              <strong>Explanation:</strong> {scenario.explanation}
-                            </div>
-                          )}
-                        </div>
-                      </details>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedNode.concept_mapping && selectedNode.concept_mapping.concepts && selectedNode.concept_mapping.concepts.length > 0 && (
-                <div className="lpd-block">
-                  <h3 className="lpd-block-title">
-                    <GitBranch size={16} />
-                    CONCEPT MAP
-                  </h3>
-                  <div className="lpd-concept-map">
-                    <div className="lpd-concepts">
-                      {selectedNode.concept_mapping.concepts.map((concept, idx) => (
-                        <div key={idx} className="lpd-concept-bubble">
-                          {concept}
-                        </div>
-                      ))}
-                    </div>
-                    {selectedNode.concept_mapping.relationships && selectedNode.concept_mapping.relationships.length > 0 && (
-                      <div className="lpd-relationships">
-                        <h5>Relationships:</h5>
-                        <ul>
-                          {selectedNode.concept_mapping.relationships.map((rel, idx) => {
-                            const label = typeof rel === 'string'
-                              ? rel
-                              : `${rel.from || ''} ${rel.label || ''} ${rel.to || ''}`.trim();
-                            return <li key={idx}>{label || 'Relationship'}</li>;
-                          })}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               <div className="lpd-actions">
                 {selectedNode.progress.status === 'unlocked' && (
