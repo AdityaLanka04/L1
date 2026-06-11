@@ -7,12 +7,13 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
-import CerbylNavSidebar from './components/CerbylNavSidebar';
+import GlobalSidebar from './components/GlobalSidebar';
 import AIChatDock from './components/AIChatDock';
 import LoadingSpinner from './components/LoadingSpinner';
 import { useGlobalNav } from './hooks/useGlobalNav';
 import GlobalNotifications from './components/GlobalNotifications';
 import RateLimitHandler from './components/RateLimitHandler';
+import './styles/global-sidebar-layout.css';
 
 // Pages are lazy-loaded so each route ships as its own chunk instead of
 // inflating the initial bundle with ~60 page components up front.
@@ -88,13 +89,19 @@ function App() {
     };
   }, [openNav]);
 
+  React.useLayoutEffect(() => {
+    if (hideNav) {
+      document.documentElement.style.setProperty('--gnav-width', '0px');
+    }
+  }, [hideNav]);
+
   return (
     <ThemeProvider>
       <NotificationProvider>
         <ToastProvider>
           <RateLimitHandler />
           <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
-            {!hideNav && <CerbylNavSidebar isOpen={isOpen} onClose={closeNav} />}
+            {!hideNav && <GlobalSidebar isOpen={isOpen} onClose={closeNav} />}
             {!hideNav && (
               <button className="global-nav-btn" onClick={openNav} aria-label="Open navigation">
                 <Menu />
