@@ -1604,7 +1604,8 @@ const Flashcards = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate flashcards');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.error || 'Failed to generate flashcards');
       }
 
       const data = await response.json();
@@ -1640,7 +1641,7 @@ const Flashcards = () => {
       setShuffledCards(shuffledCards);
       setPreviewMode(true);
     } catch (error) {
-      showPopup('Error', 'Failed to generate flashcards. Please try again.');
+      showPopup('Error', error.message || 'Failed to generate flashcards. Please try again.');
     } finally {
       setGenerating(false);
     }

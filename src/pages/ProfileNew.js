@@ -834,11 +834,9 @@ const ProfileNew = () => {
         <div className="pn-topbar-center">profile</div>
         <div className="pn-topbar-actions">
           <button className="pn-top-action" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-            <LayoutDashboard size={14} />
             <span>Dashboard</span>
           </button>
           <button className="pn-top-action" onClick={() => setSidebarCollapsed(prev => !prev)} type="button">
-            <ArrowLeft size={14} />
             <span>{sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}</span>
           </button>
           <div className="pn-save-status">

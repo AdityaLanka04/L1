@@ -187,7 +187,7 @@
 
 .pn-save-status {
   font-size: 11px;
-  min-width: 120px;
+  min-width: max-content;
   text-align: right;
 }
 
@@ -195,38 +195,37 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  min-width: 420px;
+  gap: 26px;
+  min-width: 0;
+}
+
+.pn-save-status {
+  margin-left: 8px;
 }
 
 .pn-top-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--pn-line-soft);
-  background: color-mix(in srgb, var(--pn-accent) 7%, transparent);
-  color: var(--pn-accent);
+  display: inline-block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--pn-text) 58%, transparent);
   font-family: inherit;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
+  line-height: 1;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color 0.15s;
 }
 
 .pn-top-action:hover {
-  color: var(--pn-text);
-  border-color: var(--pn-line-strong);
-  background: color-mix(in srgb, var(--pn-accent) 13%, transparent);
+  color: var(--pn-accent);
 }
 
-.pn-top-action svg {
-  flex-shrink: 0;
+.pn-top-action:focus-visible {
+  outline: 1px solid var(--pn-line-strong);
+  outline-offset: 6px;
 }
 
 .pn-logout-btn {

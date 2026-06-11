@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award, RefreshCw, Users } from 'lucide-react';
+import { Trophy, Clock, Target, TrendingUp, Award, Users } from 'lucide-react';
 import './Leaderboards.css';
 import SocialHubChrome from '../components/SocialHubChrome';
 import { API_URL } from '../config';
@@ -48,13 +48,6 @@ const Leaderboards = () => {
       default:
         return score;
     }
-  };
-
-  const getRankIcon = (rank) => {
-    if (rank === 1) return <Crown size={20} className="rank-icon gold" />;
-    if (rank === 2) return <Medal size={20} className="rank-icon silver" />;
-    if (rank === 3) return <Medal size={20} className="rank-icon bronze" />;
-    return null;
   };
 
   const getMetricIcon = (metricType) => {
@@ -143,7 +136,7 @@ const Leaderboards = () => {
                   className={`leaderboard-entry ${entry.is_current_user ? 'current-user' : ''} ${entry.rank <= 3 ? 'top-three' : ''}`}
                 >
                   <div className="entry-rank">
-                    {getRankIcon(entry.rank) || <span className="rank-number">#{entry.rank}</span>}
+                    <span className="rank-number">#{entry.rank}</span>
                   </div>
 
                   <div className="entry-user">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Download, Zap, BookOpen, MessageSquare,
+  Download, Zap, BookOpen, MessageSquare, Plus,
   Trophy, Target, Flame, Clock, Brain, Cpu, Database,
   Network, Sparkles, TrendingUp, TrendingDown, CheckCircle,
   Layers, GitBranch, Info, AlertCircle, BarChart3, Activity
@@ -10,7 +10,20 @@ import './Analytics.css';
 import { API_URL } from '../config';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 
-const CACHE_TTL = 5 * 60 * 1000; 
+const CACHE_TTL = 5 * 1000;
+const CLIENT_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+
+const SIDE_LINKS = [
+  { label: 'Search Hub', route: '/search-hub' },
+  { label: 'Knowledge Map', route: '/knowledge-map' },
+  { label: 'Questions', route: '/question-bank' },
+  { label: 'Slides', route: '/slide-explorer' },
+  { label: 'Weak Areas', route: '/weaknesses' },
+  { label: 'Social Hub', route: '/social' },
+  { label: 'Activity Timeline', route: '/activity-timeline' },
+  { label: 'Learning Path', route: '/learning-paths' },
+  { label: 'XP Roadmap', route: '/xp-roadmap' }
+];
 
 const readCache = (key) => {
   try {
@@ -37,6 +50,13 @@ const Analytics = () => {
   const navigate = useNavigate();
   const userName = localStorage.getItem('username') || '';
   const chartRef = useRef(null);
+  const profile = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('userProfile') || '{}') || {};
+    } catch {
+      return {};
+    }
+  }, []);
 
   const [loading, setLoading] = useState(() => !readCache(`core_month_${localStorage.getItem('username')}`));
   const [timeRange, setTimeRange] = useState('month');
@@ -86,7 +106,7 @@ const Analytics = () => {
       fetchJson(`${API_URL}/get_gamification_stats?user_id=${userName}`).then(d => {
         setGamStats(d); writeCache(`gam_${userName}`, d);
       }),
-      fetchJson(`${API_URL}/get_analytics_history?user_id=${userName}&period=${timeRange}`).then(d => {
+      fetchJson(`${API_URL}/get_analytics_history?user_id=${userName}&period=${timeRange}&tz=${encodeURIComponent(CLIENT_TIMEZONE)}`).then(d => {
         setHistoricalData(d.history || []);
         setPeriodStats({ totalPoints: d.total_points || 0, totalActivities: d.total_activities || 0, groupBy: d.group_by || 'day' });
         writeCache(`hist_${timeRange}_${userName}`, d);
@@ -104,6 +124,13 @@ const Analytics = () => {
     ]);
     setLoading(false);
   };
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      loadCore(true);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [timeRange, userName]);
 
   const lineSvg = useMemo(() => {
     if (!historicalData.length) return null;
@@ -139,6 +166,21 @@ const Analytics = () => {
 
   const breakdownColors = { ai_chats:'#3b82f6', notes:'#10b981', flashcards:'#f59e0b', quizzes:'#ef4444', battles:'#8b5cf6', other:'#6b7280' };
   const totalBkdn = useMemo(() => Object.values(breakdown).reduce((s, v) => s + (v.count || 0), 0), [breakdown]);
+  const displayName =
+    profile.firstName ||
+    profile.first_name ||
+    localStorage.getItem('cerbyl.displayName') ||
+    (userName ? userName.split('@')[0] : 'Learner');
+  const profilePhoto =
+    profile.customPfp ||
+    profile.picture ||
+    profile.picture_url ||
+    profile.photoURL ||
+    profile.photo_url ||
+    localStorage.getItem('cerbyl.customPfp') ||
+    localStorage.getItem('cerbyl.defaultPfp') ||
+    '';
+  const initial = (displayName[0] || 'A').toUpperCase();
 
   const exportData = () => {
     const csv = [
@@ -170,6 +212,47 @@ const Analytics = () => {
         <div className="an-orb an-orb-3" />
         <div className="an-grid-texture" />
       </div>
+
+      <div className="an-shell">
+        <aside className="an-side" aria-label="Activity navigation">
+          <div className="an-side-brand">cerbyl</div>
+
+          <button className="an-side-avatar" onClick={() => navigate('/profile')} aria-label="Open profile">
+            {profilePhoto ? (
+              <img src={profilePhoto} alt={`${displayName} profile`} referrerPolicy="no-referrer" />
+            ) : (
+              <span>{initial}</span>
+            )}
+          </button>
+
+          <div className="an-side-sections">
+            {[
+              { label: 'AI Chat', route: '/ai-chat' },
+              { label: 'Flashcards', route: '/flashcards' },
+              { label: 'Notes', route: '/notes' }
+            ].map((item) => (
+              <button key={item.label} className="an-side-section" onClick={() => navigate(item.route)}>
+                <span className="an-side-dot" />
+                <span>{item.label}</span>
+                <Plus size={13} strokeWidth={2.4} />
+              </button>
+            ))}
+          </div>
+
+          <nav className="an-side-nav" aria-label="Learning hub links">
+            {SIDE_LINKS.map((link) => (
+              <button key={link.label} className="an-side-link" onClick={() => navigate(link.route)}>
+                <span className="an-side-link-dot" />
+                {link.label}
+              </button>
+            ))}
+          </nav>
+
+          <button className="an-side-user" onClick={() => navigate('/profile')}>
+            <span className="an-side-user-name">{displayName}</span>
+            <span className="an-side-user-sub">Level {level} &middot; {xp.toLocaleString()} XP</span>
+          </button>
+        </aside>
 
       <main className="an-main">
         {}
@@ -737,6 +820,7 @@ const Analytics = () => {
         )}
 
       </main>
+      </div>
     </div>
   );
 };

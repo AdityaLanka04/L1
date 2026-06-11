@@ -313,25 +313,10 @@
 }
 
 .rank-number {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.rank-icon {
-  flex-shrink: 0;
-}
-
-.rank-icon.gold {
-  color: #FFD700;
-}
-
-.rank-icon.silver {
-  color: #C0C0C0;
-}
-
-.rank-icon.bronze {
-  color: #CD7F32;
+  color: var(--accent);
+  letter-spacing: 0.04em;
 }
 
 .entry-user {
