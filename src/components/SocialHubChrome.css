@@ -210,8 +210,21 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 3px;
+  margin-right: -3px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 24%, transparent) transparent;
+}
+
+.shc-side-sections::-webkit-scrollbar { width: 4px; }
+.shc-side-sections::-webkit-scrollbar-track { background: transparent; }
+.shc-side-sections::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: 8px;
 }
 
 /* section block — same as .playlists-page .sidebar-section */
@@ -314,6 +327,8 @@
   gap: 8px;
   flex-shrink: 0;
   margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 /* footer action — same as .pl-sidebar-action */

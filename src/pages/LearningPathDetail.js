@@ -1,13 +1,86 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader, Lock, CheckCircle, Circle, Play, Pause, Award,
-  Clock, Target, BookOpen, MessageCircle, FileText, Brain,
-  ChevronRight, ChevronLeft, Sparkles, Zap, Download, Calendar,
-  Lightbulb, Map, TrendingUp, Image as ImageIcon, Activity,
-  GitBranch, Timer, ArrowLeft, MessageSquare, LayoutDashboard,
-  LogOut, BarChart3 } from 'lucide-react';
+import {
+  Loader as LoaderIcon,
+  Lock as LockIcon,
+  CheckCircle as CheckCircleIcon,
+  Circle as CircleIcon,
+  Play as PlayIcon,
+  Pause as PauseIcon,
+  Award as AwardIcon,
+  Clock as ClockIcon,
+  Target as TargetIcon,
+  BookOpen as BookOpenIcon,
+  MessageCircle as MessageCircleIcon,
+  FileText as FileTextIcon,
+  Brain as BrainIcon,
+  ChevronRight as ChevronRightIcon,
+  ChevronLeft as ChevronLeftIcon,
+  Sparkles as SparklesIcon,
+  Zap as ZapIcon,
+  Download as DownloadIcon,
+  Calendar as CalendarIcon,
+  Lightbulb as LightbulbIcon,
+  Map as MapIcon,
+  TrendingUp as TrendingUpIcon,
+  Image as ImageIconBase,
+  GitBranch as GitBranchIcon,
+  Timer as TimerIcon,
+  MessageSquare as MessageSquareIcon,
+  LayoutDashboard as LayoutDashboardIcon,
+  BarChart3 as BarChart3Icon,
+  ExternalLink as ExternalLinkIcon,
+  Globe2 as Globe2Icon,
+  Link as LinkIcon,
+  Search as SearchIcon,
+  Star as StarIcon,
+  Youtube as YoutubeIcon,
+} from 'lucide-react';
 import learningPathService from '../services/learningPathService';
+import SocialHubChrome from '../components/SocialHubChrome';
 import './LearningPathDetail.css';
+
+const safeIcon = (Icon) => Icon || (() => null);
+
+const Loader = safeIcon(LoaderIcon);
+const Lock = safeIcon(LockIcon);
+const CheckCircle = safeIcon(CheckCircleIcon);
+const Circle = safeIcon(CircleIcon);
+const Play = safeIcon(PlayIcon);
+const Pause = safeIcon(PauseIcon);
+const Award = safeIcon(AwardIcon);
+const Clock = safeIcon(ClockIcon);
+const Target = safeIcon(TargetIcon);
+const BookOpen = safeIcon(BookOpenIcon);
+const MessageCircle = safeIcon(MessageCircleIcon);
+const FileText = safeIcon(FileTextIcon);
+const Brain = safeIcon(BrainIcon);
+const ChevronRight = safeIcon(ChevronRightIcon);
+const ChevronLeft = safeIcon(ChevronLeftIcon);
+const Sparkles = safeIcon(SparklesIcon);
+const Zap = safeIcon(ZapIcon);
+const Download = safeIcon(DownloadIcon);
+const Calendar = safeIcon(CalendarIcon);
+const Lightbulb = safeIcon(LightbulbIcon);
+const Map = safeIcon(MapIcon);
+const TrendingUp = safeIcon(TrendingUpIcon);
+const ImageIcon = safeIcon(ImageIconBase);
+const GitBranch = safeIcon(GitBranchIcon);
+const Timer = safeIcon(TimerIcon);
+const MessageSquare = safeIcon(MessageSquareIcon);
+const LayoutDashboard = safeIcon(LayoutDashboardIcon);
+const BarChart3 = safeIcon(BarChart3Icon);
+const ExternalLink = safeIcon(ExternalLinkIcon);
+const Globe2 = safeIcon(Globe2Icon);
+const Link = safeIcon(LinkIcon);
+const Search = safeIcon(SearchIcon);
+const Star = safeIcon(StarIcon);
+const Youtube = safeIcon(YoutubeIcon);
+
+const PATH_PANEL_MIN_WIDTH = 240;
+const PATH_PANEL_MAX_WIDTH = 560;
+const PATH_PANEL_DEFAULT_WIDTH = 380;
+const PATH_PANEL_STORAGE_KEY = 'learningPathDetailPathPanelWidth';
 
 const LearningPathDetail = () => {
   const navigate = useNavigate();
@@ -41,11 +114,28 @@ const LearningPathDetail = () => {
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const [sessionLoggedMinutes, setSessionLoggedMinutes] = useState(null);
   const [timeSpentMinutes, setTimeSpentMinutes] = useState(0);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [resourceUrl, setResourceUrl] = useState('');
+  const [resourceSearchQuery, setResourceSearchQuery] = useState('');
+  const [resourceSearchProvider, setResourceSearchProvider] = useState('auto');
+  const [resourceSearchResults, setResourceSearchResults] = useState([]);
+  const [resourceLoading, setResourceLoading] = useState(false);
+  const [resourceMessage, setResourceMessage] = useState('');
+  const [pathPanelWidth, setPathPanelWidth] = useState(() => {
+    if (typeof window === 'undefined') return PATH_PANEL_DEFAULT_WIDTH;
+    const stored = Number(window.localStorage.getItem(PATH_PANEL_STORAGE_KEY));
+    if (!Number.isFinite(stored)) return PATH_PANEL_DEFAULT_WIDTH;
+    return Math.min(PATH_PANEL_MAX_WIDTH, Math.max(PATH_PANEL_MIN_WIDTH, stored));
+  });
+  const [isResizingPathPanel, setIsResizingPathPanel] = useState(false);
 
   useEffect(() => {
     loadPathDetails();
   }, [pathId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(PATH_PANEL_STORAGE_KEY, String(pathPanelWidth));
+  }, [pathPanelWidth]);
 
   useEffect(() => {
     if (selectedNode) {
@@ -61,8 +151,12 @@ const LearningPathDetail = () => {
         setResourceRatings(selectedNode.progress.resource_ratings || {});
         setCompletedResources(selectedNode.progress.resources_completed || []);
       }
+      setResourceUrl('');
+      setResourceSearchResults([]);
+      setResourceMessage('');
+      setResourceSearchQuery(`${selectedNode.title} ${path?.topic_prompt || ''}`.trim());
     }
-  }, [selectedNode]);
+  }, [selectedNode, path?.topic_prompt]);
 
   const loadNodeNote = async () => {
     if (!selectedNode) return;
@@ -87,6 +181,62 @@ const LearningPathDetail = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const clampPathPanelWidth = (value, maxWidth = PATH_PANEL_MAX_WIDTH) => (
+    Math.min(maxWidth, Math.max(PATH_PANEL_MIN_WIDTH, value))
+  );
+
+  const handlePathPanelResizeStart = (event) => {
+    if (window.innerWidth <= 1200) return;
+    event.preventDefault();
+
+    const main = event.currentTarget.closest('.lpd-main');
+    const mainWidth = main?.getBoundingClientRect().width || 0;
+    const maxWidth = mainWidth
+      ? Math.min(PATH_PANEL_MAX_WIDTH, Math.max(PATH_PANEL_MIN_WIDTH, Math.round(mainWidth * 0.55)))
+      : PATH_PANEL_MAX_WIDTH;
+    const startX = event.clientX;
+    const startWidth = pathPanelWidth;
+    let currentWidth = startWidth;
+
+    setIsResizingPathPanel(true);
+    document.body.classList.add('lpd-is-resizing');
+
+    const handlePointerMove = (moveEvent) => {
+      currentWidth = clampPathPanelWidth(startWidth + moveEvent.clientX - startX, maxWidth);
+      setPathPanelWidth(currentWidth);
+    };
+
+    const handlePointerUp = () => {
+      setIsResizingPathPanel(false);
+      document.body.classList.remove('lpd-is-resizing');
+      window.localStorage.setItem(PATH_PANEL_STORAGE_KEY, String(currentWidth));
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+  };
+
+  const handlePathPanelResizeKeyDown = (event) => {
+    const step = event.shiftKey ? 48 : 24;
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      setPathPanelWidth((width) => clampPathPanelWidth(width - step));
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      setPathPanelWidth((width) => clampPathPanelWidth(width + step));
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      setPathPanelWidth(PATH_PANEL_MIN_WIDTH);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      setPathPanelWidth(PATH_PANEL_MAX_WIDTH);
+    }
   };
 
   const logTimeSpent = async (minutes) => {
@@ -300,9 +450,73 @@ const LearningPathDetail = () => {
     
     try {
       await learningPathService.markResourceCompleted(pathId, selectedNode.id, resourceId, timeSpent);
-      setCompletedResources([...completedResources, resourceId]);
+      setCompletedResources((prev) => Array.from(new Set([...prev, resourceId])));
     } catch (error) {
       console.error('Error marking resource completed:', error);
+    }
+  };
+
+  const syncNodeResources = (resources) => {
+    setSelectedNode((prev) => prev ? { ...prev, supplementary_resources: resources } : prev);
+    setNodes((prev) => prev.map((node) => (
+      node.id === selectedNode?.id ? { ...node, supplementary_resources: resources } : node
+    )));
+  };
+
+  const handleAddResource = async (resource = null) => {
+    if (!selectedNode || resourceLoading) return;
+    const payload = resource || { url: resourceUrl };
+    if (!payload.url?.trim()) {
+      setResourceMessage('Paste a valid resource URL first.');
+      return;
+    }
+
+    try {
+      setResourceLoading(true);
+      setResourceMessage('');
+      const response = await learningPathService.addResource(pathId, selectedNode.id, payload);
+      syncNodeResources(response.resources || []);
+      setResourceUrl('');
+      setResourceMessage('Resource saved to this node.');
+    } catch (error) {
+      console.error('Error adding resource:', error);
+      setResourceMessage(error.message || 'Failed to add resource.');
+    } finally {
+      setResourceLoading(false);
+    }
+  };
+
+  const handleSearchResources = async () => {
+    if (!selectedNode || resourceLoading) return;
+    const query = resourceSearchQuery.trim();
+    if (!query) {
+      setResourceMessage('Enter a search query first.');
+      return;
+    }
+
+    try {
+      setResourceLoading(true);
+      setResourceMessage('');
+      const response = await learningPathService.searchResources(pathId, selectedNode.id, query, {
+        provider: resourceSearchProvider,
+        includeYoutube: true,
+        maxResults: 8
+      });
+      setResourceSearchResults(response.resources || []);
+      if ((response.resources || []).length === 0) {
+        const configured = response.configured || {};
+        const enabled = Object.entries(configured).filter(([, value]) => value).map(([key]) => key);
+        setResourceMessage(
+          enabled.length
+            ? 'No resources found for that query.'
+            : 'Add BRAVE_SEARCH_API_KEY or TAVILY_API_KEY for web search, and YOUTUBE_API_KEY for YouTube results.'
+        );
+      }
+    } catch (error) {
+      console.error('Error searching resources:', error);
+      setResourceMessage(error.message || 'Resource search failed.');
+    } finally {
+      setResourceLoading(false);
     }
   };
 
@@ -563,6 +777,112 @@ const LearningPathDetail = () => {
     };
   });
 
+  const normalizeResource = (resource, fallbackType = 'resource') => {
+    if (!resource) return null;
+    const url = resource.url || resource.link || resource.href || '';
+    const title = resource.title || resource.name || url || 'Resource';
+    const id = resource.id || url || title;
+    const source = resource.source || resource.provider || resource.site || resource.author || '';
+    return {
+      ...resource,
+      id,
+      url,
+      title,
+      description: resource.description || resource.summary || resource.content || '',
+      type: resource.type || resource.resource_type || fallbackType,
+      source,
+      estimated_minutes: resource.estimated_minutes || resource.time_minutes || resource.duration_minutes,
+    };
+  };
+
+  const resourceCatalog = [
+    ...(Array.isArray(selectedNode?.primary_resources) ? selectedNode.primary_resources.map((resource) => normalizeResource(resource, 'primary')) : []),
+    ...(Array.isArray(selectedNode?.supplementary_resources) ? selectedNode.supplementary_resources.map((resource) => normalizeResource(resource, 'supplementary')) : []),
+    ...(Array.isArray(selectedNode?.practice_resources) ? selectedNode.practice_resources.map((resource) => normalizeResource(resource, 'practice')) : []),
+    ...(Array.isArray(selectedNode?.video_resources) ? selectedNode.video_resources.map((resource) => normalizeResource(resource, 'video')) : []),
+    ...(Array.isArray(selectedNode?.resources) ? selectedNode.resources.map((resource) => normalizeResource(resource, 'resource')) : []),
+  ].filter(Boolean).filter((resource, index, all) => (
+    all.findIndex((candidate) => candidate.url === resource.url && candidate.title === resource.title) === index
+  ));
+
+  const getResourceIcon = (resource) => {
+    const url = (resource?.url || '').toLowerCase();
+    const type = (resource?.type || '').toLowerCase();
+    if (type.includes('video') || url.includes('youtube.com') || url.includes('youtu.be')) {
+      return <Youtube size={18} />;
+    }
+    if (type.includes('reference') || url.includes('docs') || url.includes('github')) {
+      return <FileText size={18} />;
+    }
+    return <Globe2 size={18} />;
+  };
+
+  const renderResourceCard = (resource, options = {}) => {
+    const rating = resourceRatings[resource.id] || 0;
+    const isCompleted = completedResources.includes(resource.id);
+    return (
+      <div
+        key={`${resource.id}-${options.mode || 'saved'}`}
+        className="lpd-resource-card"
+        title={resource.title}
+        aria-label={resource.title}
+      >
+        <div className="lpd-resource-card-icon">
+          {getResourceIcon(resource)}
+        </div>
+        <div className="lpd-resource-card-body">
+          <div className="lpd-resource-card-title-row">
+            <h4 title={resource.title}>{resource.title}</h4>
+            <span>{resource.type || 'resource'}</span>
+          </div>
+          {resource.description && <p>{resource.description}</p>}
+          <div className="lpd-resource-card-meta">
+            {resource.source && <span>{resource.source}</span>}
+            {resource.estimated_minutes && <span>{resource.estimated_minutes} min</span>}
+            {resource.duration_seconds ? <span>{Math.round(resource.duration_seconds / 60)} min video</span> : null}
+          </div>
+        </div>
+        <div className="lpd-resource-card-actions">
+          {resource.url && (
+            <a href={resource.url} target="_blank" rel="noreferrer" title="Open resource">
+              <ExternalLink size={15} />
+            </a>
+          )}
+          {options.mode === 'result' ? (
+            <button type="button" onClick={() => handleAddResource(resource)} disabled={resourceLoading}>
+              <Link size={14} />
+              Save
+            </button>
+          ) : (
+            <>
+              <div className="lpd-resource-stars" aria-label="Rate resource">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={rating >= value ? 'active' : ''}
+                    onClick={() => handleResourceRate(resource.id, value)}
+                    title={`${value} star`}
+                  >
+                    <Star size={13} />
+                  </button>
+                ))}
+              </div>
+              {isCompleted ? (
+                <span className="lpd-resource-done"><CheckCircle size={13} /> Done</span>
+              ) : (
+                <button type="button" onClick={() => handleResourceComplete(resource.id, resource.estimated_minutes || 10)}>
+                  <CheckCircle size={14} />
+                  Done
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const rawTags = Array.isArray(selectedNode?.tags)
     ? selectedNode.tags
     : selectedNode?.tags
@@ -598,8 +918,54 @@ const LearningPathDetail = () => {
     return null;
   }
 
+  const sideSections = [
+    {
+      label: 'Path',
+      items: [
+        { icon: ChevronLeft, label: 'All Learning Paths', onClick: () => navigate('/learning-paths') },
+        { icon: Map, label: 'Knowledge Map', onClick: () => navigate('/knowledge-map') },
+      ],
+    },
+    {
+      label: 'Difficulty View',
+      items: [
+        {
+          icon: TrendingUp,
+          label: 'Beginner',
+          active: difficultyView === 'beginner',
+          onClick: () => handleDifficultyChange('beginner'),
+        },
+        {
+          icon: Target,
+          label: 'Intermediate',
+          active: difficultyView === 'intermediate',
+          onClick: () => handleDifficultyChange('intermediate'),
+        },
+        {
+          icon: Zap,
+          label: 'Advanced',
+          active: difficultyView === 'advanced',
+          onClick: () => handleDifficultyChange('advanced'),
+        },
+      ],
+    },
+    {
+      label: 'Progress',
+      items: [
+        { icon: CheckCircle, label: `${path.completed_nodes}/${path.total_nodes} nodes` },
+        { icon: BarChart3, label: `${Math.round(path.progress.completion_percentage)}% complete` },
+        { icon: Award, label: `${path.progress.total_xp_earned} XP earned` },
+      ],
+    },
+  ];
+
+  const footerItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard-cerbyl' },
+    { icon: MessageSquare, label: 'AI Chat', path: '/ai-chat' },
+  ];
+
   return (
-    <div className="lpd-container">
+    <div className="lpd-container with-social-chrome">
       {actionLoading && (
         <div className="lpd-loading-overlay">
           <div className="lpd-loading-content">
@@ -610,156 +976,20 @@ const LearningPathDetail = () => {
         </div>
       )}
 
-      <div className="lpd-qb-body">
-        <div className={`lpd-qb-shell ${sidebarCollapsed ? 'lpd-qb-shell--collapsed' : ''}`}>
-          <aside className={`lpd-qb-sidebar ${sidebarCollapsed ? 'lpd-qb-sidebar--collapsed' : ''}`} aria-label="Learning path navigation">
-            {sidebarCollapsed ? (
-              <div className="lpd-qb-collapsed-strip">
-                <button className="lpd-qb-strip-btn lpd-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
-                  cb
-                </button>
-                <button className="lpd-qb-strip-btn" data-tip="Back to Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-                  <ChevronLeft size={18} />
-                </button>
-                <button className={`lpd-qb-strip-btn ${difficultyView === 'beginner' ? 'active' : ''}`} data-tip="Beginner View" onClick={() => { setSidebarCollapsed(false); handleDifficultyChange('beginner'); }} type="button">
-                  <TrendingUp size={18} />
-                </button>
-                <button className={`lpd-qb-strip-btn ${difficultyView === 'intermediate' ? 'active' : ''}`} data-tip="Intermediate View" onClick={() => { setSidebarCollapsed(false); handleDifficultyChange('intermediate'); }} type="button">
-                  <Target size={18} />
-                </button>
-                <button className={`lpd-qb-strip-btn ${difficultyView === 'advanced' ? 'active' : ''}`} data-tip="Advanced View" onClick={() => { setSidebarCollapsed(false); handleDifficultyChange('advanced'); }} type="button">
-                  <Zap size={18} />
-                </button>
-                <div className="lpd-qb-strip-spacer" />
-                <button className="lpd-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
-                  <MessageSquare size={18} />
-                </button>
-                <button className="lpd-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-                  <LayoutDashboard size={18} />
-                </button>
-                <button
-                  className="lpd-qb-strip-btn"
-                  data-tip="Logout"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    navigate('/');
-                  }}
-                  type="button"
-                >
-                  <LogOut size={18} />
-                </button>
-              </div>
-            ) : (
-            <>
-              <div className="lpd-qb-side-brand">
-                <div className="lpd-qb-brand-wrap">
-                  <div className="lpd-qb-brand">cerbyl</div>
-                  <div className="lpd-qb-current-title">Learning Path</div>
-                </div>
-                <button
-                  className="lpd-qb-side-close-btn"
-                  onClick={() => setSidebarCollapsed(true)}
-                  title="Close sidebar"
-                  aria-label="Close learning path sidebar"
-                  type="button"
-                >
-                  <ArrowLeft size={14} />
-                </button>
-              </div>
-
-              <div className="lpd-qb-side-block">
-                <div className="lpd-qb-side-label">Path</div>
-                <nav className="lpd-qb-view-nav" aria-label="Learning path overview">
-                  <button className="lpd-qb-view-link" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-                    <ChevronLeft size={16} />
-                    <span>Back to Dashboard</span>
-                  </button>
-                  <button className="lpd-qb-view-link" onClick={() => navigate('/learning-paths')} type="button">
-                    <Map size={16} />
-                    <span>All Learning Paths</span>
-                  </button>
-                </nav>
-              </div>
-
-              <div className="lpd-qb-side-block">
-                <div className="lpd-qb-side-label">Difficulty View</div>
-                <nav className="lpd-qb-view-nav" aria-label="Difficulty level">
-                  <button className={`lpd-qb-view-link ${difficultyView === 'beginner' ? 'lpd-qb-view-link--active' : ''}`} onClick={() => handleDifficultyChange('beginner')} type="button">
-                    <TrendingUp size={16} />
-                    <span>Beginner</span>
-                  </button>
-                  <button className={`lpd-qb-view-link ${difficultyView === 'intermediate' ? 'lpd-qb-view-link--active' : ''}`} onClick={() => handleDifficultyChange('intermediate')} type="button">
-                    <Target size={16} />
-                    <span>Intermediate</span>
-                  </button>
-                  <button className={`lpd-qb-view-link ${difficultyView === 'advanced' ? 'lpd-qb-view-link--active' : ''}`} onClick={() => handleDifficultyChange('advanced')} type="button">
-                    <Zap size={16} />
-                    <span>Advanced</span>
-                  </button>
-                </nav>
-              </div>
-
-              <div className="lpd-qb-side-block lpd-qb-side-block--grow">
-                <div className="lpd-qb-side-label">Path Stats</div>
-                <div className="lpd-qb-stat-grid">
-                  <div className="lpd-qb-stat-card">
-                    <span>{path.completed_nodes}/{path.total_nodes}</span>
-                    <small>Nodes</small>
-                  </div>
-                  <div className="lpd-qb-stat-card">
-                    <span>{Math.round(path.progress.completion_percentage)}%</span>
-                    <small>Progress</small>
-                  </div>
-                  <div className="lpd-qb-stat-card">
-                    <span>{path.progress.total_xp_earned}</span>
-                    <small>XP</small>
-                  </div>
-                </div>
-              </div>
-
-              <div className="lpd-qb-side-actions">
-                <button
-                  className="lpd-qb-action-btn lpd-qb-action-btn--ghost"
-                  onClick={() => navigate('/dashboard-cerbyl')}
-                  type="button"
-                >
-                  <LayoutDashboard size={14} />
-                  <span>Dashboard</span>
-                </button>
-                <button
-                  className="lpd-qb-action-btn lpd-qb-action-btn--ghost"
-                  onClick={() => navigate('/ai-chat')}
-                  type="button"
-                >
-                  <MessageSquare size={14} />
-                  <span>AI Chat</span>
-                </button>
-                <button
-                  className="lpd-qb-action-btn lpd-qb-action-btn--ghost"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    navigate('/');
-                  }}
-                  type="button"
-                >
-                  <LogOut size={14} />
-                  <span>Logout</span>
-                </button>
-              </div>
-            </>
-            )}
-          </aside>
-
-          <main className="lpd-qb-main">
+      <SocialHubChrome
+        brandKicker="Learning Path"
+        footerItems={footerItems}
+        sideSections={sideSections}
+        topbarAction={null}
+      >
+        <div className="lpd-detail-workspace">
       <div className="lpd-header">
         <div className="lpd-header-main">
           <div className="lpd-title-row">
             <h1 className="lpd-title">{path.title.toUpperCase()}</h1>
-            <button className="lpd-back-btn" onClick={() => navigate('/dashboard-cerbyl')}>
+            <button className="lpd-back-btn" onClick={() => navigate('/learning-paths')}>
               <ChevronLeft size={16} />
-              <span>BACK</span>
+              <span>PATHS</span>
             </button>
           </div>
           <p className="lpd-description">{path.description}</p>
@@ -804,7 +1034,10 @@ const LearningPathDetail = () => {
         </div>
       </div>
 
-      <div className="lpd-main">
+      <div
+        className={`lpd-main ${isResizingPathPanel ? 'lpd-main--resizing' : ''}`}
+        style={{ '--lpd-path-panel-width': `${pathPanelWidth}px` }}
+      >
         <div className="lpd-sidebar">
           <h3 className="lpd-sidebar-title">LEARNING PATH</h3>
           <div className="lpd-nodes">
@@ -863,6 +1096,19 @@ const LearningPathDetail = () => {
             ))}
           </div>
         </div>
+
+        <div
+          className="lpd-splitter"
+          role="separator"
+          aria-label="Resize learning path list"
+          aria-orientation="vertical"
+          aria-valuemin={PATH_PANEL_MIN_WIDTH}
+          aria-valuemax={PATH_PANEL_MAX_WIDTH}
+          aria-valuenow={pathPanelWidth}
+          tabIndex={0}
+          onPointerDown={handlePathPanelResizeStart}
+          onKeyDown={handlePathPanelResizeKeyDown}
+        />
 
         <div className="lpd-details">
           {selectedNode ? (
@@ -991,6 +1237,83 @@ const LearningPathDetail = () => {
                       </div>
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div className="lpd-block lpd-resource-lab">
+                <div className="lpd-resource-lab-head">
+                  <div>
+                    <h3 className="lpd-block-title">
+                      <Globe2 size={16} />
+                      RESOURCE LAB
+                    </h3>
+                    <p>Paste a YouTube link, article, docs page, or search the web for material tied to this node.</p>
+                  </div>
+                  <span>{resourceCatalog.length} saved</span>
+                </div>
+
+                <div className="lpd-resource-tools">
+                  <div className="lpd-resource-input-row">
+                    <div className="lpd-resource-input">
+                      <Link size={15} />
+                      <input
+                        value={resourceUrl}
+                        onChange={(event) => setResourceUrl(event.target.value)}
+                        placeholder="Paste YouTube, article, docs, GitHub, or course URL"
+                        type="url"
+                      />
+                    </div>
+                    <button type="button" onClick={() => handleAddResource()} disabled={resourceLoading}>
+                      {resourceLoading ? <Loader className="lpd-spinner" size={14} /> : <CheckCircle size={14} />}
+                      Add
+                    </button>
+                  </div>
+
+                  <div className="lpd-resource-search-row">
+                    <div className="lpd-resource-input">
+                      <Search size={15} />
+                      <input
+                        value={resourceSearchQuery}
+                        onChange={(event) => setResourceSearchQuery(event.target.value)}
+                        placeholder="Search for videos, docs, explainers, and practice resources"
+                        type="search"
+                      />
+                    </div>
+                    <select value={resourceSearchProvider} onChange={(event) => setResourceSearchProvider(event.target.value)}>
+                      <option value="auto">Auto</option>
+                      <option value="tavily">Tavily</option>
+                      <option value="brave">Brave</option>
+                    </select>
+                    <button type="button" onClick={handleSearchResources} disabled={resourceLoading}>
+                      {resourceLoading ? <Loader className="lpd-spinner" size={14} /> : <Globe2 size={14} />}
+                      Search
+                    </button>
+                  </div>
+                </div>
+
+                {resourceMessage && <div className="lpd-resource-message">{resourceMessage}</div>}
+
+                {resourceSearchResults.length > 0 && (
+                  <div className="lpd-resource-results">
+                    <div className="lpd-resource-subhead">Search Results</div>
+                    <div className="lpd-resource-grid">
+                      {resourceSearchResults.map((resource) => renderResourceCard(resource, { mode: 'result' }))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="lpd-resource-results">
+                  <div className="lpd-resource-subhead">Saved Resources</div>
+                  {resourceCatalog.length > 0 ? (
+                    <div className="lpd-resource-grid">
+                      {resourceCatalog.map((resource) => renderResourceCard(resource))}
+                    </div>
+                  ) : (
+                    <div className="lpd-resource-empty">
+                      <Youtube size={22} />
+                      <span>No resources saved for this node yet.</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1426,9 +1749,8 @@ const LearningPathDetail = () => {
           )}
         </div>
       </div>
-          </main>
-        </div>
       </div>
+      </SocialHubChrome>
 
       {showCompletionQuiz && (
         <div className="lpd-quiz-overlay">

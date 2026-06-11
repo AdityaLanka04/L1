@@ -34,6 +34,51 @@ _LENGTH_TO_COUNT = {
 def _clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", (value or "").strip())
 
+def _normalize_topic_prompt(topic: str) -> str:
+    cleaned = _clean_text(topic)
+    if not cleaned:
+        return "Learning Path"
+
+    patterns = [
+        r"^(?:i\s+want\s+to|i\s+need\s+to|i'?d\s+like\s+to|please|can\s+you|help\s+me)\s+learn\s+(?:about\s+)?(.+)$",
+        r"^(?:learn|study|master|understand|teach\s+me)\s+(?:about\s+)?(.+)$",
+        r"^(?:build\s+a\s+path\s+for|create\s+a\s+path\s+for|make\s+a\s+path\s+for)\s+(.+)$",
+    ]
+    for pattern in patterns:
+        match = re.match(pattern, cleaned, flags=re.IGNORECASE)
+        if match:
+            cleaned = _clean_text(match.group(1))
+            break
+
+    cleaned = re.sub(r"\b(from scratch|beginner to advanced|step by step)$", "", cleaned, flags=re.IGNORECASE).strip()
+    if cleaned and cleaned == cleaned.lower():
+        cleaned = cleaned.title()
+    return cleaned or "Learning Path"
+
+def _normalize_node_title(title: str, topic: str) -> str:
+    cleaned = _clean_text(title)
+    normalized_topic = _normalize_topic_prompt(topic)
+    if not cleaned:
+        return normalized_topic
+
+    raw_topic_pattern = re.escape(_clean_text(topic))
+    if raw_topic_pattern:
+        cleaned = re.sub(
+            rf"\blearn\s+{raw_topic_pattern}\b",
+            normalized_topic,
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+    cleaned = re.sub(
+        rf"\blearn\s+{re.escape(normalized_topic)}\b",
+        normalized_topic,
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    if cleaned == cleaned.lower():
+        cleaned = cleaned.title()
+    return cleaned
+
 def _safe_list(value) -> list:
     if not value:
         return []
@@ -52,6 +97,16 @@ def _topic_keywords(topic: str) -> list[str]:
             seen.add(w)
             ordered.append(w)
     return ordered[:8]
+
+def _join_focus_items(items: list[str], fallback: str, limit: int = 3) -> str:
+    cleaned = [
+        _clean_text(str(item)).rstrip(" .;:,")
+        for item in items
+        if _clean_text(str(item))
+    ]
+    if not cleaned:
+        return fallback
+    return "; ".join(cleaned[:limit])
 
 def _default_node_titles(topic: str, count: int, difficulty: str) -> list[str]:
     core = [
@@ -105,24 +160,120 @@ def _default_content_plan(node_title: str, difficulty: str, length: str) -> list
         },
     ]
 
-def _default_core_sections(node_title: str, topic: str) -> list[dict]:
+def _topic_specific_core_sections(
+    node_title: str,
+    topic: str,
+    objectives: list[str] | None = None,
+    prerequisites: list[str] | None = None,
+    keywords: list[str] | None = None,
+    applications: list[str] | None = None,
+) -> list[dict]:
+    objectives = _safe_list(objectives)
+    prerequisites = _safe_list(prerequisites)
+    keywords = _safe_list(keywords) or _topic_keywords(f"{topic} {node_title}")
+    applications = _safe_list(applications)
+
+    objective_focus = _join_focus_items(objectives, f"understand {node_title} and apply it in {topic}")
+    prerequisite_focus = _join_focus_items(prerequisites, "the concepts introduced earlier in the path", limit=2)
+    keyword_focus = ", ".join(keywords[:4]) if keywords else topic
+    application_focus = _join_focus_items(applications, f"a focused {topic} workflow", limit=2)
+
     return [
         {
-            "title": "Why this matters",
-            "content": f"{node_title} anchors your understanding of {topic}. It sets the mental model used in later chapters.",
-            "example": f"Example: identify how {node_title.lower()} appears in a real {topic} workflow.",
+            "title": f"Why {node_title} matters",
+            "content": (
+                f"In {topic}, {node_title} is the bridge between {prerequisite_focus} and the work you need next: "
+                f"{objective_focus}. Treat this section as the mental model for deciding what to learn, what to ignore, "
+                "and how to tell whether your understanding is usable."
+            ),
+            "example": (
+                f"When reviewing {application_focus}, identify where {node_title.lower()} changes a design choice, "
+                "a debugging step, or the way you evaluate results."
+            ),
         },
         {
-            "title": "Key ideas",
-            "content": f"Break {node_title} into 3-5 key ideas and link each to a practical outcome.",
-            "example": f"Example: map each idea to a quick checklist you can apply.",
+            "title": f"Key ideas in {node_title}",
+            "content": (
+                f"Focus on {keyword_focus}. For each idea, write what it means, when it matters in {topic}, "
+                "and one observable signal that shows you are applying it correctly."
+            ),
+            "example": (
+                f"Convert the ideas into a checklist for {application_focus}: inputs, assumptions, tradeoffs, "
+                "failure modes, and validation steps."
+            ),
         },
         {
-            "title": "Common pitfalls",
-            "content": "Spot the usual mistakes early so your practice is efficient and accurate.",
-            "example": "Example: track where assumptions fail and how to validate them.",
+            "title": f"Common pitfalls in {node_title}",
+            "content": (
+                f"The common mistake is treating {node_title.lower()} as vocabulary instead of a working tool. "
+                f"In {topic}, watch for shallow definitions, skipped assumptions, and examples that cannot be "
+                "connected back to a real decision."
+            ),
+            "example": (
+                f"Before moving on, explain how {node_title.lower()} would fail or mislead you in {application_focus}, "
+                "then name the evidence you would check."
+            ),
         },
     ]
+
+def _default_core_sections(node_title: str, topic: str) -> list[dict]:
+    return _topic_specific_core_sections(node_title, topic)
+
+def _section_text(section: Any) -> str:
+    if not isinstance(section, dict):
+        return ""
+    return " ".join(_clean_text(str(section.get(key, ""))).lower() for key in ("title", "content", "example"))
+
+def _core_sections_are_generic(sections: Any, node_title: str, topic: str) -> bool:
+    if not isinstance(sections, list) or not sections:
+        return True
+    text = " ".join(_section_text(section) for section in sections)
+    generic_markers = [
+        "why this matters",
+        "key ideas",
+        "common pitfalls",
+        "anchors your understanding",
+        "sets the mental model used in later chapters",
+        "break ",
+        "usual mistakes early",
+        "quick checklist you can apply",
+        "where assumptions fail",
+    ]
+    marker_hits = sum(1 for marker in generic_markers if marker in text)
+    duplicated_example = "example: example:" in text
+    node_specific_terms = set(_topic_keywords(f"{node_title} {topic}"))
+    specific_hits = sum(1 for term in node_specific_terms if term in text)
+    return duplicated_example or marker_hits >= 2 or (marker_hits >= 1 and specific_hits < min(2, len(node_specific_terms)))
+
+def _normalize_core_sections(
+    sections: Any,
+    *,
+    node_title: str,
+    topic: str,
+    objectives: list[str] | None = None,
+    prerequisites: list[str] | None = None,
+    keywords: list[str] | None = None,
+    applications: list[str] | None = None,
+) -> list[dict]:
+    if _core_sections_are_generic(sections, node_title, topic):
+        return _topic_specific_core_sections(node_title, topic, objectives, prerequisites, keywords, applications)
+
+    normalized = []
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        title = _clean_text(str(section.get("title", ""))) or f"{node_title} focus"
+        content = _clean_text(str(section.get("content", "")))
+        example = _clean_text(str(section.get("example", "")))
+        if example.lower().startswith("example:"):
+            example = _clean_text(example.split(":", 1)[1])
+        normalized.append({
+            **section,
+            "title": title,
+            "content": content,
+            "example": example,
+        })
+    return normalized or _topic_specific_core_sections(node_title, topic, objectives, prerequisites, keywords, applications)
 
 def _default_summary(node_title: str) -> list[str]:
     return [
@@ -167,7 +318,7 @@ def _default_concept_map(topic: str) -> dict:
     }
 
 def _default_outline(topic: str, difficulty: str, length: str, goals: list[str] | None) -> dict:
-    topic = _clean_text(topic) or "Learning Path"
+    topic = _normalize_topic_prompt(topic)
     difficulty = difficulty or "intermediate"
     length = length or "medium"
     goals = goals or []
@@ -198,7 +349,14 @@ def _default_outline(topic: str, difficulty: str, length: str, goals: list[str] 
                 "estimated_minutes": 35 if length == "medium" else (30 if length == "short" else 45),
                 "content_plan": _default_content_plan(title, difficulty, length),
                 "introduction": f"This chapter focuses on {title} so you can move from concepts to confident application.",
-                "core_sections": _default_core_sections(title, topic),
+                "core_sections": _topic_specific_core_sections(
+                    title,
+                    topic,
+                    objectives=objectives,
+                    prerequisites=prerequisites,
+                    keywords=_topic_keywords(f"{topic} {title}"),
+                    applications=_default_applications(topic),
+                ),
                 "summary": _default_summary(title),
                 "real_world_applications": _default_applications(topic),
                 "tags": _topic_keywords(topic),
@@ -230,6 +388,9 @@ def _build_prompt(topic: str, difficulty: str, length: str, goals: list[str]) ->
         "Schema: {title, description, estimated_hours, nodes:[{title, description, objectives, prerequisites, estimated_minutes, "
         "introduction, core_sections, summary, real_world_applications, content_plan, tags, keywords}]}\n"
         "core_sections is a list of objects with {title, content, example}.\n"
+        "Every core section must be specific to the node title and the requested topic. Do not use generic headings like "
+        "\"Why this matters\", \"Key ideas\", or \"Common pitfalls\" unless the text names the exact techniques, concepts, "
+        "failure modes, examples, and decisions for this topic.\n"
         "content_plan is a list of objects with {type, description, count?, question_count?}.\n"
         f"Topic: {topic}\nDifficulty: {difficulty}\nLength: {length}\nGoals: {goals_text}\n"
         "Ensure 6-10 nodes depending on length."
@@ -251,7 +412,7 @@ def _parse_json_payload(raw: str) -> Optional[dict]:
         return None
 
 def build_outline(state: LearningPathState) -> dict:
-    topic = _clean_text(state.get("topic", ""))
+    topic = _normalize_topic_prompt(state.get("topic", ""))
     difficulty = state.get("difficulty", "intermediate")
     length = state.get("length", "medium")
     goals = _safe_list(state.get("goals"))
@@ -272,7 +433,7 @@ def build_outline(state: LearningPathState) -> dict:
     return _default_outline(topic, difficulty, length, goals)
 
 def normalize_outline(state: LearningPathState) -> dict:
-    topic = _clean_text(state.get("topic", ""))
+    topic = _normalize_topic_prompt(state.get("topic", ""))
     difficulty = state.get("difficulty", "intermediate")
     length = state.get("length", "medium")
     goals = _safe_list(state.get("goals"))
@@ -282,7 +443,7 @@ def normalize_outline(state: LearningPathState) -> dict:
         outline_data = _default_outline(topic, difficulty, length, goals)
     else:
         outline_data = {
-            "title": _clean_text(state.get("title", topic)) or topic,
+            "title": _normalize_topic_prompt(state.get("title", topic)) or topic,
             "description": _clean_text(state.get("description", "")),
             "estimated_hours": state.get("estimated_hours"),
             "nodes": outline,
@@ -295,7 +456,7 @@ def normalize_outline(state: LearningPathState) -> dict:
     for idx, node in enumerate(outline_data.get("nodes", [])):
         if not isinstance(node, dict):
             continue
-        title = _clean_text(node.get("title", "")) or f"Chapter {idx + 1}"
+        title = _normalize_node_title(node.get("title", ""), topic) or f"Chapter {idx + 1}"
         description = _clean_text(node.get("description", ""))
         objectives = _safe_list(node.get("objectives"))
         prerequisites = _safe_list(node.get("prerequisites"))
@@ -306,13 +467,19 @@ def normalize_outline(state: LearningPathState) -> dict:
             estimated_minutes = 35
         intro = _clean_text(node.get("introduction", "")) or f"Focus on {title} within {topic}."
 
-        core_sections = node.get("core_sections") or _default_core_sections(title, topic)
-        if not isinstance(core_sections, list):
-            core_sections = _default_core_sections(title, topic)
-
         summary = _safe_list(node.get("summary")) or _default_summary(title)
         real_world = _safe_list(node.get("real_world_applications")) or _default_applications(topic)
         content_plan = node.get("content_plan") or _default_content_plan(title, difficulty, length)
+        node_keywords = node.get("keywords") or _topic_keywords(f"{topic} {title}")
+        core_sections = _normalize_core_sections(
+            node.get("core_sections"),
+            node_title=title,
+            topic=topic,
+            objectives=objectives,
+            prerequisites=prerequisites,
+            keywords=node_keywords,
+            applications=real_world,
+        )
 
         nodes.append(
             {
@@ -326,8 +493,8 @@ def normalize_outline(state: LearningPathState) -> dict:
                 "core_sections": core_sections,
                 "summary": summary,
                 "real_world_applications": real_world,
-                "tags": node.get("tags") or _topic_keywords(topic),
-                "keywords": node.get("keywords") or _topic_keywords(topic),
+                "tags": node.get("tags") or _topic_keywords(f"{topic} {title}"),
+                "keywords": node_keywords,
                 "connection_map": node.get("connection_map") or {
                     "builds_on": prerequisites,
                     "leads_to": [],

@@ -247,7 +247,7 @@ class LearningPathService {
   
   async generateNodeContent(pathId, nodeId, activityType, count = null) {
     try {
-      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/generate-content`, {
+      const response = await queuedAIJsonFetch(`/learning-paths/${pathId}/nodes/${nodeId}/generate-content`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -344,6 +344,53 @@ class LearningPathService {
       return await response.json();
     } catch (error) {
       console.error('Rate resource error:', error);
+      throw error;
+    }
+  }
+
+  
+  async addResource(pathId, nodeId, resource) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/resources/add`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(resource)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to add resource');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Add resource error:', error);
+      throw error;
+    }
+  }
+
+  
+  async searchResources(pathId, nodeId, query, options = {}) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/resources/search`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          query,
+          provider: options.provider || 'auto',
+          include_youtube: options.includeYoutube !== false,
+          max_results: options.maxResults || 8
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to search resources');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Search resources error:', error);
       throw error;
     }
   }

@@ -10,7 +10,7 @@ const StripBtn = ({ icon: Icon, label, onClick, active }) => (
     onClick={onClick}
     data-tip={label}
   >
-    <Icon size={15} />
+    {Icon ? <Icon size={15} /> : null}
   </button>
 );
 
@@ -21,6 +21,9 @@ const FOOTER_ITEMS = [
 
 const SocialHubChrome = ({
   sideSections = [],
+  brandKicker = 'Social',
+  footerItems = FOOTER_ITEMS,
+  topbarAction = { label: 'Dashboard', path: '/dashboard-cerbyl' },
   noSidebar = false,
   children,
 }) => {
@@ -29,14 +32,16 @@ const SocialHubChrome = ({
 
   return (
     <div className="shc-shell">
-      <div className="shc-topbar">
-        <div className="shc-tagline">Learning, <span>Unified</span></div>
-        <div className="shc-topbar-right">
-          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-          </button>
+        <div className="shc-topbar">
+          <div className="shc-tagline">Learning, <span>Unified</span></div>
+          {topbarAction && (
+            <div className="shc-topbar-right">
+              <button className="shc-top-btn" type="button" onClick={() => navigate(topbarAction.path)}>
+                {topbarAction.label}
+              </button>
+            </div>
+          )}
         </div>
-      </div>
 
       <div className={`shc-body ${noSidebar ? 'shc-body--no-sidebar' : collapsed ? 'shc-body--collapsed' : ''}`}>
         {!noSidebar && (
@@ -68,7 +73,7 @@ const SocialHubChrome = ({
                 <div className="shc-strip-spacer" />
                 <div className="shc-strip-rule" />
 
-                {FOOTER_ITEMS.map(fi => (
+                {footerItems.map(fi => (
                   <StripBtn key={fi.label} icon={fi.icon} label={fi.label} onClick={() => navigate(fi.path)} />
                 ))}
               </div>
@@ -76,7 +81,7 @@ const SocialHubChrome = ({
               <>
                 <div className="shc-sidebar-brand">
                   <div className="shc-brand-name">cerbyl</div>
-                  <div className="shc-brand-kicker">Social</div>
+                  <div className="shc-brand-kicker">{brandKicker}</div>
                   <button
                     className="shc-collapse-btn"
                     type="button"
@@ -92,37 +97,43 @@ const SocialHubChrome = ({
                     <div key={section.label} className="shc-side-block">
                       <div className="shc-side-label">{section.label}</div>
                       <nav className="shc-view-nav">
-                        {section.items.map(item => (
-                          <button
-                            key={item.label}
-                            className={`shc-view-link ${item.active ? 'shc-view-link--active' : ''}`}
-                            type="button"
-                            onClick={item.onClick}
-                          >
-                            <item.icon size={15} />
-                            <span>{item.label}</span>
-                            {item.count != null && item.count > 0 && (
-                              <span className="shc-nav-count">{item.count}</span>
-                            )}
-                          </button>
-                        ))}
+                        {section.items.map(item => {
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={item.label}
+                              className={`shc-view-link ${item.active ? 'shc-view-link--active' : ''}`}
+                              type="button"
+                              onClick={item.onClick}
+                            >
+                              {Icon ? <Icon size={15} /> : null}
+                              <span>{item.label}</span>
+                              {item.count != null && item.count > 0 && (
+                                <span className="shc-nav-count">{item.count}</span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </nav>
                     </div>
                   ))}
                 </div>
 
                 <div className="shc-side-footer-nav">
-                  {FOOTER_ITEMS.map(fi => (
-                    <button
-                      key={fi.label}
-                      className="shc-footer-action"
-                      type="button"
-                      onClick={() => navigate(fi.path)}
-                    >
-                      <fi.icon size={15} />
-                      <span>{fi.label}</span>
-                    </button>
-                  ))}
+                  {footerItems.map(fi => {
+                    const Icon = fi.icon;
+                    return (
+                      <button
+                        key={fi.label}
+                        className="shc-footer-action"
+                        type="button"
+                        onClick={() => navigate(fi.path)}
+                      >
+                        {Icon ? <Icon size={15} /> : null}
+                        <span>{fi.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}
