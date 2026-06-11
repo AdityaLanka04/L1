@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut, Trash2, ArrowLeft, MessageSquare, LayoutDashboard, User, CreditCard, Target, Settings, BookOpen, Sparkles } from 'lucide-react';
+import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut, Trash2, ArrowLeft, MessageSquare, LayoutDashboard, User, CreditCard, Target, Settings, BookOpen, Sparkles, Plus } from 'lucide-react';
 import { API_URL } from '../config';
 import './ProfileNew.css';
 
@@ -9,9 +9,12 @@ const PRESET_PFPS = [
   { id: 'woman', label: 'Woman', src: '/pfp/woman.png' }
 ];
 const isPresetPfp = (src) => PRESET_PFPS.some(p => p.src === src);
+const isUploadedPfp = (src) => typeof src === 'string' && src.startsWith('data:image/jpeg;');
+const isAllowedCustomPfp = (src) => isPresetPfp(src) || isUploadedPfp(src);
 const PFP_DEFAULT_KEY = 'cerbyl.defaultPfp';
 const PFP_CUSTOM_KEY = 'cerbyl.customPfp';
 const DISPLAY_NAME_KEY = 'cerbyl.displayName';
+const MAX_CUSTOM_PFP_BYTES = 2 * 1024 * 1024;
 
 const hydrateProfile = (parsed = {}, username = '') => {
   const p = parsed || {};
@@ -21,10 +24,10 @@ const hydrateProfile = (parsed = {}, username = '') => {
   const hasExplicitCustom = Object.prototype.hasOwnProperty.call(p, 'customPfp');
   const hasExplicitDefault = Object.prototype.hasOwnProperty.call(p, 'defaultPfp');
   const picCandidate = p.picture_url || p.picture || p.photoURL || p.photo_url || '';
-  const parsedCustom = p.customPfp && isPresetPfp(p.customPfp) ? p.customPfp : '';
+  const parsedCustom = p.customPfp && isAllowedCustomPfp(p.customPfp) ? p.customPfp : '';
   const customPfp = hasExplicitCustom
     ? parsedCustom
-    : (parsedCustom || (isPresetPfp(storedCustom) ? storedCustom : '') || (isPresetPfp(picCandidate) ? picCandidate : ''));
+    : (parsedCustom || (isAllowedCustomPfp(storedCustom) ? storedCustom : '') || (isAllowedCustomPfp(picCandidate) ? picCandidate : ''));
   const defaultPfp = hasExplicitDefault
     ? (p.defaultPfp || '')
     : (p.defaultPfp || p.googlePicture || storedDefault || (isPresetPfp(picCandidate) ? '' : picCandidate) || '');
@@ -270,6 +273,7 @@ const GeoBackground = () => (
 
 const ProfileNew = () => {
   const navigate = useNavigate();
+  const pfpUploadInputRef = useRef(null);
   const token = localStorage.getItem('token');
   const [userName, setUserName] = useState(() => localStorage.getItem('username') || '');
 
@@ -317,10 +321,17 @@ const ProfileNew = () => {
   const [typedName, setTypedName] = useState('');
   const [nameDone, setNameDone] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const mainScrollRef = useRef(null);
 
   const scrollToSection = (id) => {
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const scroller = mainScrollRef.current;
+    if (!el) return;
+    if (scroller) {
+      scroller.scrollTo({ top: Math.max(el.offsetTop - 16, 0), behavior: 'smooth' });
+      return;
+    }
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const activeBillingCycle = subscriptionData.billingCycle === 'yearly' ? 'yearly' : 'monthly';
@@ -651,7 +662,7 @@ const ProfileNew = () => {
   const selectPreset = (src) => {
     const cur = pfp || {};
     const def = cur.defaultPfp || cur.googlePicture || cur.photoURL || cur.photo_url
-      || (isPresetPfp(cur.picture_url || cur.picture || '') ? '' : (cur.picture_url || cur.picture || '')) || '';
+      || (isAllowedCustomPfp(cur.picture_url || cur.picture || '') ? '' : (cur.picture_url || cur.picture || '')) || '';
     savePfp({ ...cur, defaultPfp: def, customPfp: src, picture: src, picture_url: src });
     setPfpModalOpen(false);
   };
@@ -659,9 +670,45 @@ const ProfileNew = () => {
   const selectDefault = () => {
     const cur = pfp || {};
     const def = cur.defaultPfp || cur.googlePicture || cur.photoURL || cur.photo_url
-      || (isPresetPfp(cur.picture_url || cur.picture || '') ? '' : (cur.picture_url || cur.picture || '')) || '';
+      || (isAllowedCustomPfp(cur.picture_url || cur.picture || '') ? '' : (cur.picture_url || cur.picture || '')) || '';
     savePfp({ ...cur, defaultPfp: def, customPfp: '', picture: def, picture_url: def });
     setPfpModalOpen(false);
+  };
+
+  const selectUploaded = (dataUrl) => {
+    const cur = pfp || {};
+    const def = cur.defaultPfp || cur.googlePicture || cur.photoURL || cur.photo_url
+      || (isAllowedCustomPfp(cur.picture_url || cur.picture || '') ? '' : (cur.picture_url || cur.picture || '')) || '';
+    savePfp({ ...cur, defaultPfp: def, customPfp: dataUrl, picture: dataUrl, picture_url: dataUrl });
+  };
+
+  const handlePfpUpload = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const lowerName = file.name.toLowerCase();
+    const isJpeg = file.type === 'image/jpeg' || lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+    if (!isJpeg) {
+      alert('Please choose a JPG or JPEG image.');
+      return;
+    }
+    if (file.size > MAX_CUSTOM_PFP_BYTES) {
+      alert('Please choose an image under 2 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      if (!isUploadedPfp(dataUrl)) {
+        alert('Could not read this JPG image.');
+        return;
+      }
+      selectUploaded(dataUrl);
+    };
+    reader.onerror = () => alert('Could not read this image.');
+    reader.readAsDataURL(file);
   };
 
   const clearSessionAndNavigate = (targetPath = '/login') => {
@@ -786,6 +833,14 @@ const ProfileNew = () => {
       <div className="pn-topbar">
         <div className="pn-topbar-center">profile</div>
         <div className="pn-topbar-actions">
+          <button className="pn-top-action" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+            <LayoutDashboard size={14} />
+            <span>Dashboard</span>
+          </button>
+          <button className="pn-top-action" onClick={() => setSidebarCollapsed(prev => !prev)} type="button">
+            <ArrowLeft size={14} />
+            <span>{sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}</span>
+          </button>
           <div className="pn-save-status">
             {autoSaving ? (
               <span className="pn-saving">saving<span className="pn-saving-dots"><i/><i/><i/></span></span>
@@ -888,6 +943,10 @@ const ProfileNew = () => {
               <div className="pf-qb-side-block">
                 <div className="pf-qb-side-label">Account</div>
                 <nav className="pf-qb-view-nav" aria-label="Profile account">
+                  <button className="pf-qb-view-link" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                    <LayoutDashboard size={16} />
+                    <span>Dashboard</span>
+                  </button>
                   <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-settings')} type="button">
                     <Settings size={16} />
                     <span>Settings</span>
@@ -951,7 +1010,7 @@ const ProfileNew = () => {
             )}
           </aside>
 
-          <main className="pf-qb-main">
+          <main className="pf-qb-main" ref={mainScrollRef}>
       <div className="pn-wrap">
 
         {}
@@ -1367,8 +1426,15 @@ const ProfileNew = () => {
               </div>
               <button className="pn-modal-close" onClick={() => setPfpModalOpen(false)}><X size={15} /></button>
             </div>
+            <input
+              ref={pfpUploadInputRef}
+              className="pn-pfp-upload-input"
+              type="file"
+              accept=".jpg,.jpeg,image/jpeg"
+              onChange={handlePfpUpload}
+            />
             <div className="pn-pfp-grid">
-              <button className={`pn-pfp-card ${!activeCustomPfp ? 'pn-pfp-card--active' : ''}`} onClick={selectDefault}>
+              <button className={`pn-pfp-card ${!activeCustomPfp ? 'pn-pfp-card--active' : ''}`} onClick={selectDefault} type="button">
                 <div className="pn-pfp-card-media">
                   {defaultUserPfp
                     ? <img src={defaultUserPfp} alt="Default" className="pn-pfp-card-img" referrerPolicy="no-referrer" />
@@ -1378,7 +1444,7 @@ const ProfileNew = () => {
                 {!activeCustomPfp && <span className="pn-pfp-card-check"><Check size={11} /></span>}
               </button>
               {PRESET_PFPS.map(p => (
-                <button key={p.id} className={`pn-pfp-card ${activeCustomPfp === p.src ? 'pn-pfp-card--active' : ''}`} onClick={() => selectPreset(p.src)}>
+                <button key={p.id} className={`pn-pfp-card ${activeCustomPfp === p.src ? 'pn-pfp-card--active' : ''}`} onClick={() => selectPreset(p.src)} type="button">
                   <div className="pn-pfp-card-media">
                     <img src={p.src} alt={p.label} className="pn-pfp-card-img" />
                   </div>
@@ -1386,6 +1452,23 @@ const ProfileNew = () => {
                   {activeCustomPfp === p.src && <span className="pn-pfp-card-check"><Check size={11} /></span>}
                 </button>
               ))}
+              <button
+                className={`pn-pfp-card pn-pfp-card--upload ${isUploadedPfp(activeCustomPfp) ? 'pn-pfp-card--active' : ''}`}
+                onClick={() => pfpUploadInputRef.current?.click()}
+                type="button"
+              >
+                <div className="pn-pfp-card-media">
+                  {isUploadedPfp(activeCustomPfp) ? (
+                    <img src={activeCustomPfp} alt="Custom uploaded profile" className="pn-pfp-card-img" />
+                  ) : (
+                    <div className="pn-pfp-upload-placeholder">
+                      <Plus size={24} />
+                    </div>
+                  )}
+                </div>
+                <div className="pn-pfp-card-label">Custom</div>
+                {isUploadedPfp(activeCustomPfp) && <span className="pn-pfp-card-check"><Check size={11} /></span>}
+              </button>
             </div>
           </div>
         </div>

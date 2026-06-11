@@ -122,9 +122,12 @@ const PRESET_PFPS = [
   { id: 'woman', label: 'Woman', src: '/pfp/woman.png' }
 ];
 const isPresetPfp = (src) => PRESET_PFPS.some((p) => p.src === src);
+const isUploadedPfp = (src) => typeof src === 'string' && src.startsWith('data:image/jpeg;');
+const isAllowedCustomPfp = (src) => isPresetPfp(src) || isUploadedPfp(src);
 const PFP_DEFAULT_KEY = 'cerbyl.defaultPfp';
 const PFP_CUSTOM_KEY = 'cerbyl.customPfp';
 const DISPLAY_NAME_KEY = 'cerbyl.displayName';
+const MAX_CUSTOM_PFP_BYTES = 2 * 1024 * 1024;
 
 const hydrateProfile = (parsedProfile = {}, username = '') => {
   const parsed = parsedProfile || {};
@@ -141,13 +144,13 @@ const hydrateProfile = (parsedProfile = {}, username = '') => {
     parsed.photo_url ||
     '';
 
-  const parsedCustom = parsed.customPfp && isPresetPfp(parsed.customPfp) ? parsed.customPfp : '';
+  const parsedCustom = parsed.customPfp && isAllowedCustomPfp(parsed.customPfp) ? parsed.customPfp : '';
   const customPfp = hasExplicitCustom
     ? parsedCustom
     : (
       parsedCustom ||
-      (isPresetPfp(storedCustom) ? storedCustom : '') ||
-      (isPresetPfp(pictureCandidate) ? pictureCandidate : '')
+      (isAllowedCustomPfp(storedCustom) ? storedCustom : '') ||
+      (isAllowedCustomPfp(pictureCandidate) ? pictureCandidate : '')
     );
 
   const defaultPfp = hasExplicitDefault
@@ -180,6 +183,7 @@ const hydrateProfile = (parsedProfile = {}, username = '') => {
 
 const DashboardCerbyl = () => {
   const navigate = useNavigate();
+  const pfpUploadInputRef = useRef(null);
 
   const [userName, setUserName] = useState(() => localStorage.getItem('username') || '');
   const [profile, setProfile] = useState(() => {
@@ -934,7 +938,7 @@ const DashboardCerbyl = () => {
       current.googlePicture ||
       current.photoURL ||
       current.photo_url ||
-      (isPresetPfp(current.picture_url || current.picture || '') ? '' : (current.picture_url || current.picture || '')) ||
+      (isAllowedCustomPfp(current.picture_url || current.picture || '') ? '' : (current.picture_url || current.picture || '')) ||
       '';
 
     const nextProfile = {
@@ -955,7 +959,7 @@ const DashboardCerbyl = () => {
       current.googlePicture ||
       current.photoURL ||
       current.photo_url ||
-      (isPresetPfp(current.picture_url || current.picture || '') ? '' : (current.picture_url || current.picture || '')) ||
+      (isAllowedCustomPfp(current.picture_url || current.picture || '') ? '' : (current.picture_url || current.picture || '')) ||
       '';
 
     const nextProfile = {
@@ -967,6 +971,54 @@ const DashboardCerbyl = () => {
     };
     saveProfile(nextProfile);
     closePfpModal();
+  };
+
+  const selectUploadedPfp = (dataUrl) => {
+    const current = profile || {};
+    const inferredDefault =
+      current.defaultPfp ||
+      current.googlePicture ||
+      current.photoURL ||
+      current.photo_url ||
+      (isAllowedCustomPfp(current.picture_url || current.picture || '') ? '' : (current.picture_url || current.picture || '')) ||
+      '';
+
+    saveProfile({
+      ...current,
+      defaultPfp: inferredDefault,
+      customPfp: dataUrl,
+      picture: dataUrl,
+      picture_url: dataUrl
+    });
+  };
+
+  const handlePfpUpload = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const lowerName = file.name.toLowerCase();
+    const isJpeg = file.type === 'image/jpeg' || lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+    if (!isJpeg) {
+      alert('Please choose a JPG or JPEG image.');
+      return;
+    }
+    if (file.size > MAX_CUSTOM_PFP_BYTES) {
+      alert('Please choose an image under 2 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      if (!isUploadedPfp(dataUrl)) {
+        alert('Could not read this JPG image.');
+        return;
+      }
+      selectUploadedPfp(dataUrl);
+    };
+    reader.onerror = () => alert('Could not read this image.');
+    reader.readAsDataURL(file);
   };
 
   useEffect(() => {
@@ -1605,10 +1657,19 @@ const DashboardCerbyl = () => {
               </button>
             </div>
 
+            <input
+              ref={pfpUploadInputRef}
+              className="cb-pfp-upload-input"
+              type="file"
+              accept=".jpg,.jpeg,image/jpeg"
+              onChange={handlePfpUpload}
+            />
+
             <div className="cb-pfp-grid">
               <button
                 className={`cb-pfp-card ${activeCustomPfp ? '' : 'cb-pfp-card--active'}`}
                 onClick={selectDefaultPfp}
+                type="button"
               >
                 <div className="cb-pfp-card-media">
                   {defaultUserPfp ? (
@@ -1626,6 +1687,7 @@ const DashboardCerbyl = () => {
                   key={preset.id}
                   className={`cb-pfp-card ${activeCustomPfp === preset.src ? 'cb-pfp-card--active' : ''}`}
                   onClick={() => selectPresetPfp(preset.src)}
+                  type="button"
                 >
                   <div className="cb-pfp-card-media">
                     <img src={preset.src} alt={`${preset.label} avatar`} className="cb-pfp-card-img" />
@@ -1634,6 +1696,24 @@ const DashboardCerbyl = () => {
                   {activeCustomPfp === preset.src && <span className="cb-pfp-card-check"><Check size={12} /></span>}
                 </button>
               ))}
+
+              <button
+                className={`cb-pfp-card cb-pfp-card--upload ${isUploadedPfp(activeCustomPfp) ? 'cb-pfp-card--active' : ''}`}
+                onClick={() => pfpUploadInputRef.current?.click()}
+                type="button"
+              >
+                <div className="cb-pfp-card-media">
+                  {isUploadedPfp(activeCustomPfp) ? (
+                    <img src={activeCustomPfp} alt="Custom uploaded profile" className="cb-pfp-card-img" />
+                  ) : (
+                    <div className="cb-pfp-upload-placeholder">
+                      <Plus size={24} />
+                    </div>
+                  )}
+                </div>
+                <div className="cb-pfp-card-label">Custom</div>
+                {isUploadedPfp(activeCustomPfp) && <span className="cb-pfp-card-check"><Check size={12} /></span>}
+              </button>
             </div>
           </section>
         </div>

@@ -191,7 +191,11 @@ const LearningPaths = () => {
     return (
       <div className="lp-container">
         <div className="lp-loading">
-          <Loader className="lp-spinner" size={40} />
+          <div className="lp-loader-core" aria-hidden="true">
+            <span className="lp-loader-ring lp-loader-ring--outer" />
+            <span className="lp-loader-ring lp-loader-ring--inner" />
+            <span className="lp-loader-pip" />
+          </div>
           <p>Loading learning paths...</p>
         </div>
       </div>

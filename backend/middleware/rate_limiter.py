@@ -127,6 +127,12 @@ _JWT_AUDIENCE = "brainwave-client"
 _JWT_ISSUER = "brainwave-backend"
 
 _TRUSTED_PROXY_CIDRS_RAW = os.getenv("RATE_LIMIT_TRUSTED_PROXY_CIDRS", "127.0.0.1/32,::1/128")
+_UNLIMITED_EMAILS_RAW = os.getenv("RATE_LIMIT_UNLIMITED_EMAILS", "rithvikkumar35@gmail.com")
+_UNLIMITED_EMAILS = {
+    email.strip().lower()
+    for email in _UNLIMITED_EMAILS_RAW.split(",")
+    if email.strip()
+}
 
 _MEM_MAX_KEYS = max(1000, int(os.getenv("RATE_LIMIT_MEMORY_MAX_KEYS", "20000")))
 _MEM_EVICT_BATCH = max(100, _MEM_MAX_KEYS // 4)
@@ -241,9 +247,11 @@ def invalidate_subscription_cache(*subjects: str) -> None:
                 _subscription_cache.pop(subject, None)
 
 def get_subscription_tier(subject: Optional[str]) -> str:
-    normalized_subject = (subject or "").strip()
+    normalized_subject = (subject or "").strip().lower()
     if not normalized_subject:
         return DEFAULT_PLAN_ID
+    if normalized_subject in _UNLIMITED_EMAILS:
+        return "unlimited"
 
     now = time.time()
     with _subscription_lock:
@@ -257,7 +265,7 @@ def get_subscription_tier(subject: Optional[str]) -> str:
             row = conn.execute(
                 text(
                     """
-                    SELECT cp.subscription_tier
+                    SELECT cp.subscription_tier, u.email
                     FROM users u
                     LEFT JOIN comprehensive_user_profiles cp ON cp.user_id = u.id
                     WHERE u.username = :subject OR u.email = :subject
@@ -266,8 +274,12 @@ def get_subscription_tier(subject: Optional[str]) -> str:
                 ),
                 {"subject": normalized_subject},
             ).first()
-        if row and row[0]:
-            tier = normalize_plan_id(str(row[0]))
+        if row:
+            email = (row[1] or "").strip().lower()
+            if email in _UNLIMITED_EMAILS:
+                tier = "unlimited"
+            elif row[0]:
+                tier = normalize_plan_id(str(row[0]))
     except Exception as e:
         logger.debug("Rate limiter subscription lookup failed for %s: %s", normalized_subject, e)
 

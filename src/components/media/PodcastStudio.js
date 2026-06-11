@@ -7,6 +7,7 @@ import {
   Languages,
   List,
   Loader2,
+  Maximize2,
   MessageCircle,
   Mic,
   Minimize2,
@@ -317,7 +318,7 @@ const getPodcastDisplayTitle = (title) => {
   return cleaned || 'Media Podcast';
 };
 
-const PodcastStudio = ({ results, userName, onExit }) => {
+const PodcastStudio = ({ results, userName, onExit, onSettingsDrawerChange }) => {
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -383,6 +384,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
   const [error, setError] = useState('');
 
   const [isFullscreenMode, setIsFullscreenMode] = useState(true);
+  const [subtitlesExpanded, setSubtitlesExpanded] = useState(false);
   const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
   const [speechCharIndex, setSpeechCharIndex] = useState(-1);
   const [activeWordIndex, setActiveWordIndex] = useState(-1);
@@ -393,6 +395,22 @@ const PodcastStudio = ({ results, userName, onExit }) => {
   const keyConcepts = results?.analysis?.key_concepts || [];
   const speechSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
   const recognitionSupported = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  useEffect(() => {
+    onSettingsDrawerChange?.(showSettingsDrawer);
+  }, [onSettingsDrawerChange, showSettingsDrawer]);
+
+  useEffect(() => () => onSettingsDrawerChange?.(false), [onSettingsDrawerChange]);
+
+  const closeSettingsDrawer = () => {
+    setShowSettingsDrawer(false);
+  };
+
+  const handleSettingsCloseInteraction = (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    setShowSettingsDrawer(false);
+  };
 
   const currentChapter = useMemo(
     () => chapters.find((chapter) => chapter.index === currentIndex) || null,
@@ -573,6 +591,12 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       });
       if (res.voice_profile) setVoiceProfile(res.voice_profile);
       if (res.persona_profile) setPersonaProfile(res.persona_profile);
+      if (Array.isArray(res.chapters)) setChapters(res.chapters);
+      if (Array.isArray(res.key_takeaways)) setKeyTakeaways(res.key_takeaways);
+      if (res.current_segment !== undefined) setCurrentSegment(res.current_segment || '');
+      if (res.current_index !== undefined) setCurrentIndex(res.current_index);
+      if (res.total_segments !== undefined) setTotalSegments(res.total_segments);
+      if (res.has_more !== undefined) setHasMore(Boolean(res.has_more));
     } catch (e) {
       setError(e.message || 'Failed to update podcast settings');
     }
@@ -1362,6 +1386,17 @@ const PodcastStudio = ({ results, userName, onExit }) => {
       if (response.voice_profile) {
         setVoiceProfile(response.voice_profile);
       }
+      if (Array.isArray(response.chapters)) setChapters(response.chapters);
+      if (Array.isArray(response.key_takeaways)) setKeyTakeaways(response.key_takeaways);
+      if (response.current_segment !== undefined) {
+        stopSpeaking();
+        setCurrentSegment(response.current_segment || '');
+        appendConversation({ role: 'assistant', type: 'narration', content: response.current_segment || '' });
+        speakIfEnabled(response.current_segment || '', { syncSubtitles: true });
+      }
+      if (response.current_index !== undefined) setCurrentIndex(response.current_index);
+      if (response.total_segments !== undefined) setTotalSegments(response.total_segments);
+      if (response.has_more !== undefined) setHasMore(Boolean(response.has_more));
     } catch (e) {
       setError(e.message || 'Failed to switch voice mode');
     }
@@ -1551,7 +1586,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
         ) : (
 
           
-          <div className="podcast-fullscreen-body">
+          <div className={`podcast-fullscreen-body ${subtitlesExpanded ? 'podcast-fullscreen-body--subtitles-expanded' : ''}`}>
             <aside className="podcast-fullscreen-rail">
               <div className="podcast-fullscreen-panel">
                 <div className="podcast-fullscreen-panel-head">
@@ -1590,7 +1625,7 @@ const PodcastStudio = ({ results, userName, onExit }) => {
               )}
             </aside>
 
-            <section className="podcast-fullscreen-stage">
+            <section className={`podcast-fullscreen-stage ${subtitlesExpanded ? 'podcast-fullscreen-stage--subtitles-expanded' : ''}`}>
               <div className="podcast-fullscreen-stage-card">
                 <div className="podcast-fullscreen-stage-meta">
                   <div className="podcast-fullscreen-orb">
@@ -1654,9 +1689,20 @@ const PodcastStudio = ({ results, userName, onExit }) => {
                     <span className="podcast-fullscreen-meta-kicker">Subtitles</span>
                     <h4>Click any subtitle to jump playback there</h4>
                   </div>
-                  <div className="podcast-fullscreen-subtitle-meta">
-                    <span>{subtitleModel.cues.length} cues</span>
-                    <span>{speechCharIndex >= 0 ? `${currentChapterProgressPercent}% synced` : 'Waiting to play'}</span>
+                  <div className="podcast-fullscreen-subtitle-actions">
+                    <div className="podcast-fullscreen-subtitle-meta">
+                      <span>{subtitleModel.cues.length} cues</span>
+                      <span>{speechCharIndex >= 0 ? `${currentChapterProgressPercent}% synced` : 'Waiting to play'}</span>
+                    </div>
+                    <button
+                      className="podcast-subtitles-expand-btn"
+                      onClick={() => setSubtitlesExpanded((expanded) => !expanded)}
+                      type="button"
+                      aria-pressed={subtitlesExpanded}
+                    >
+                      {subtitlesExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                      <span>{subtitlesExpanded ? 'Mini Mode' : 'Fullscreen'}</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1710,11 +1756,18 @@ const PodcastStudio = ({ results, userName, onExit }) => {
 
       {}
       {showSettingsDrawer && (
-        <div className="podcast-settings-overlay" onClick={() => setShowSettingsDrawer(false)}>
+        <div className="podcast-settings-overlay" onClick={closeSettingsDrawer}>
           <aside className="podcast-settings-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="podcast-settings-drawer-head">
               <span>Settings</span>
-              <button className="podcast-tool-btn" onClick={() => setShowSettingsDrawer(false)}>
+              <button
+                className="podcast-tool-btn podcast-settings-close-btn"
+                onMouseDown={handleSettingsCloseInteraction}
+                onPointerDown={handleSettingsCloseInteraction}
+                onClick={handleSettingsCloseInteraction}
+                aria-label="Close settings"
+                type="button"
+              >
                 <X size={14} />
               </button>
             </div>

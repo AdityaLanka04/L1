@@ -25,6 +25,18 @@ class FlashcardReviewRequest(BaseModel):
     was_correct: bool
     mode: str = "preview"
 
+class FlashcardSetCreateRequest(BaseModel):
+    user_id: str
+    title: str = "New Flashcard Set"
+    description: str = ""
+    is_public: bool = False
+
+class FlashcardCreateRequest(BaseModel):
+    set_id: int
+    question: str
+    answer: str
+    difficulty: Optional[str] = "medium"
+
 @router.get("/get_flashcards")
 def get_flashcards(user_id: str = Query(...), db: Session = Depends(get_db)):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -133,6 +145,63 @@ def get_flashcard_history(
         "has_more": (offset + len(result)) < total_count,
         "offset": offset,
         "limit": limit,
+    }
+
+@router.post("/flashcards/sets/create")
+def create_flashcard_set(
+    payload: FlashcardSetCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    user = get_user_by_username(db, payload.user_id) or get_user_by_email(db, payload.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    flashcard_set = models.FlashcardSet(
+        user_id=user.id,
+        title=payload.title,
+        description=payload.description,
+        is_public=payload.is_public,
+        source_type="media",
+    )
+    db.add(flashcard_set)
+    db.commit()
+    db.refresh(flashcard_set)
+
+    return {
+        "success": True,
+        "set_id": flashcard_set.id,
+        "title": flashcard_set.title,
+    }
+
+@router.post("/flashcards/cards/create")
+def create_flashcard_card(
+    payload: FlashcardCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    flashcard_set = db.query(models.FlashcardSet).filter(
+        models.FlashcardSet.id == payload.set_id,
+        models.FlashcardSet.user_id == current_user.id,
+    ).first()
+    if not flashcard_set:
+        raise HTTPException(status_code=404, detail="Flashcard set not found")
+
+    flashcard = models.Flashcard(
+        set_id=flashcard_set.id,
+        question=payload.question,
+        answer=payload.answer,
+        difficulty=payload.difficulty or "medium",
+    )
+    db.add(flashcard)
+    db.commit()
+    db.refresh(flashcard)
+
+    return {
+        "success": True,
+        "card_id": flashcard.id,
     }
 
 @router.delete("/flashcards/sets/{set_id}")

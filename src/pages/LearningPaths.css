@@ -606,9 +606,68 @@
   color: var(--accent);
 }
 
+.lp-loader-core {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+}
+
+.lp-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.lp-loader-ring--outer {
+  border-top-color: var(--accent);
+  border-right-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  animation: lpOrbit 1.15s linear infinite;
+}
+
+.lp-loader-ring--inner {
+  inset: 14px;
+  border-bottom-color: var(--accent);
+  border-left-color: color-mix(in srgb, var(--accent) 48%, transparent);
+  animation: lpOrbitReverse 1.45s linear infinite;
+}
+
+.lp-loader-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--accent) 70%, transparent),
+    0 0 34px color-mix(in srgb, var(--accent) 24%, transparent);
+  animation: lpPulse 0.9s ease-in-out infinite;
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes lpOrbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes lpOrbitReverse {
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes lpPulse {
+  0%, 100% {
+    transform: scale(0.82);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
 }
 
 .lp-loading p {

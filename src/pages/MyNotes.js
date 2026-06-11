@@ -271,6 +271,35 @@ const MyNotes = () => {
   }
   };
 
+  const deleteFolder = async (folderId, folderName) => {
+    if (!folderId) return;
+    if (!window.confirm(`Delete "${folderName || 'this folder'}"? Notes inside it will stay in your library.`)) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/delete_folder/${folderId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        if (selectedFolder === folderId) {
+          setSelectedFolder(null);
+          setShowFavorites(false);
+          setShowTrash(false);
+        }
+        setFolders(prev => prev.filter(folder => folder.id !== folderId));
+        await loadNotes();
+        await loadFolders();
+      } else {
+        throw new Error(`Failed to delete folder: ${res.status}`);
+      }
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      alert('Failed to delete folder');
+    }
+  };
+
   const importFromChat = async () => {
     if (selectedSessions.length === 0) return;
     
@@ -468,6 +497,29 @@ const MyNotes = () => {
     }
   };
 
+  const permanentlyDeleteNote = async (noteId) => {
+    if (!window.confirm('Permanently delete this note? This cannot be undone.')) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/permanent_delete_note/${noteId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        setTrashedNotes(prev => prev.filter(note => note.id !== noteId));
+        await loadTrash();
+        await loadNotes();
+      } else {
+        throw new Error(`Failed to permanently delete note: ${res.status}`);
+      }
+    } catch (error) {
+      console.error('Error permanently deleting note:', error);
+      alert('Failed to permanently delete note');
+    }
+  };
+
   const handleTemplateSelect = async (template) => {
     try {
       const token = localStorage.getItem('token');
@@ -650,6 +702,10 @@ const MyNotes = () => {
                     <Plus size={16} />
                     <span>New Note</span>
                   </button>
+                  <button className="mn-qb-view-link mn-qb-view-link--accent" onClick={() => setShowConvertModal(true)} type="button">
+                    <Sparkles size={16} />
+                    <span>Convert</span>
+                  </button>
                   <button className="mn-qb-view-link" onClick={() => setShowTemplates(true)} type="button">
                     <Layout size={16} />
                     <span>Templates</span>
@@ -667,10 +723,6 @@ const MyNotes = () => {
                   >
                     <Upload size={16} />
                     <span>From Chat</span>
-                  </button>
-                  <button className="mn-qb-view-link mn-qb-view-link--accent" onClick={() => setShowConvertModal(true)} type="button">
-                    <Sparkles size={16} />
-                    <span>Convert</span>
                   </button>
                   <button className="mn-qb-view-link" onClick={() => navigate('/notes/ai-media')} type="button">
                     <FileText size={16} />
@@ -722,16 +774,29 @@ const MyNotes = () => {
                   {folders.length === 0 ? (
                     <div className="mn-qb-empty-line">No folders yet</div>
                   ) : folders.map(folder => (
-                    <button
+                    <div
                       key={folder.id}
-                      className={`mn-qb-view-link ${selectedFolder === folder.id ? 'mn-qb-view-link--active' : ''}`}
-                      onClick={() => { setSelectedFolder(folder.id); setShowFavorites(false); setShowTrash(false); }}
-                      type="button"
+                      className={`mn-qb-folder-row ${selectedFolder === folder.id ? 'mn-qb-folder-row--active' : ''}`}
                     >
-                      <Folder size={16} />
-                      <span>{folder.name}</span>
-                      <span className="mn-qb-nav-count">{notes.filter(n => noteIsInFolder(n, folder.id)).length}</span>
-                    </button>
+                      <button
+                        className={`mn-qb-view-link mn-qb-folder-main ${selectedFolder === folder.id ? 'mn-qb-view-link--active' : ''}`}
+                        onClick={() => { setSelectedFolder(folder.id); setShowFavorites(false); setShowTrash(false); }}
+                        type="button"
+                      >
+                        <Folder size={16} />
+                        <span>{folder.name}</span>
+                        <span className="mn-qb-nav-count">{notes.filter(n => noteIsInFolder(n, folder.id)).length}</span>
+                      </button>
+                      <button
+                        className="mn-qb-folder-delete-btn"
+                        onClick={() => deleteFolder(folder.id, folder.name)}
+                        title={`Delete ${folder.name}`}
+                        aria-label={`Delete folder ${folder.name}`}
+                        type="button"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   ))}
                 </nav>
               </div>
@@ -852,13 +917,26 @@ const MyNotes = () => {
                         <h3 className="nt-note-title">{note.title || 'Untitled'}</h3>
                         <div className="nt-note-actions">
                           {showTrash ? (
-                            <button
-                              className="nt-note-action-btn restore"
-                              onClick={(e) => { e.stopPropagation(); restoreNote(note.id); }}
-                              title="Restore from trash"
-                            >
-                              <RotateCcw size={14} />
-                            </button>
+                            <>
+                              <button
+                                className="nt-note-action-btn restore"
+                                onClick={(e) => { e.stopPropagation(); restoreNote(note.id); }}
+                                title="Restore from trash"
+                                aria-label="Restore from trash"
+                                type="button"
+                              >
+                                <RotateCcw size={14} />
+                              </button>
+                              <button
+                                className="nt-note-action-btn delete permanent-delete"
+                                onClick={(e) => { e.stopPropagation(); permanentlyDeleteNote(note.id); }}
+                                title="Delete permanently"
+                                aria-label="Delete permanently"
+                                type="button"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
                           ) : (
                             <>
                               <button

@@ -745,7 +745,11 @@ const XPRoadmap = () => {
   if (loading) {
     return (
       <div className="xpv-loading">
-        <div className="xpv-loader-ring" />
+        <div className="xpv-loader-core" aria-hidden="true">
+          <span className="xpv-loader-ring xpv-loader-ring--outer" />
+          <span className="xpv-loader-ring xpv-loader-ring--inner" />
+          <span className="xpv-loader-pip" />
+        </div>
         <p>Booting XP campaign</p>
       </div>
     );

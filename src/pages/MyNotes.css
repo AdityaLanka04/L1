@@ -1006,6 +1006,12 @@
   border-color: var(--nt-danger);
 }
 
+.nt-note-action-btn.permanent-delete:hover {
+  background: color-mix(in srgb, var(--nt-danger) 16%, transparent);
+  color: var(--nt-danger);
+  border-color: var(--nt-danger);
+}
+
 .nt-note-action-btn.remove:hover {
   color: var(--nt-accent);
   border-color: var(--nt-accent);
@@ -2551,6 +2557,70 @@
   color: color-mix(in srgb, var(--text-primary) 72%, transparent);
   font-size: 11px;
   font-weight: 700;
+}
+
+.my-notes-page-full .mn-qb-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.my-notes-page-full .mn-qb-folder-main {
+  flex: 1;
+  min-width: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.my-notes-page-full .mn-qb-folder-main:hover,
+.my-notes-page-full .mn-qb-folder-main.mn-qb-view-link--active {
+  border-color: transparent;
+  background: transparent;
+}
+
+.my-notes-page-full .mn-qb-folder-row:hover,
+.my-notes-page-full .mn-qb-folder-row:focus-within,
+.my-notes-page-full .mn-qb-folder-row--active {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.my-notes-page-full .mn-qb-folder-delete-btn {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 0;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: color-mix(in srgb, var(--danger) 72%, var(--text-primary));
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(-3px);
+  overflow: hidden;
+  transition: opacity 0.15s, transform 0.15s, border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.my-notes-page-full .mn-qb-folder-row:hover .mn-qb-folder-delete-btn,
+.my-notes-page-full .mn-qb-folder-row:focus-within .mn-qb-folder-delete-btn,
+.my-notes-page-full .mn-qb-folder-row--active .mn-qb-folder-delete-btn {
+  flex-basis: 32px;
+  margin-right: 6px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.my-notes-page-full .mn-qb-folder-delete-btn:hover {
+  border-color: color-mix(in srgb, var(--danger) 36%, transparent);
+  background: color-mix(in srgb, var(--danger) 13%, transparent);
+  color: var(--danger);
 }
 
 .my-notes-page-full .mn-qb-empty-line {

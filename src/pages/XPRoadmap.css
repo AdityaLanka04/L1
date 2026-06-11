@@ -88,18 +88,63 @@
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-.xpv-loader-ring {
-  width: 54px;
-  height: 54px;
+.xpv-loader-core {
+  position: relative;
+  width: 68px;
+  height: 68px;
   justify-self: center;
-  border: 1px solid color-mix(in srgb, var(--accent, #ff6b6b) 16%, transparent);
-  border-top-color: var(--accent, #ff6b6b);
-  animation: xpvSpin 0.8s linear infinite;
+  display: grid;
+  place-items: center;
 }
 
-@keyframes xpvSpin {
-  to {
-    transform: rotate(360deg);
+.xpv-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--xpv-accent, var(--accent)) 22%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--xpv-accent, var(--accent)) 12%, transparent);
+}
+
+.xpv-loader-ring--outer {
+  border-top-color: var(--xpv-accent, var(--accent));
+  border-right-color: color-mix(in srgb, var(--xpv-accent, var(--accent)) 55%, transparent);
+  animation: xpvOrbit 1.15s linear infinite;
+}
+
+.xpv-loader-ring--inner {
+  inset: 14px;
+  border-bottom-color: var(--xpv-accent, var(--accent));
+  border-left-color: color-mix(in srgb, var(--xpv-accent, var(--accent)) 48%, transparent);
+  animation: xpvOrbitReverse 1.45s linear infinite;
+}
+
+.xpv-loader-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--xpv-accent, var(--accent));
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--xpv-accent, var(--accent)) 70%, transparent),
+    0 0 34px color-mix(in srgb, var(--xpv-accent, var(--accent)) 24%, transparent);
+  animation: xpvPulse 0.9s ease-in-out infinite;
+}
+
+@keyframes xpvOrbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes xpvOrbitReverse {
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes xpvPulse {
+  0%, 100% {
+    transform: scale(0.82);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
   }
 }
 

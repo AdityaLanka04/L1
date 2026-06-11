@@ -51,11 +51,18 @@ const AIMediaNotes = () => {
   
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState('notes');
+  const [podcastSettingsOpen, setPodcastSettingsOpen] = useState(false);
   const [history, setHistory] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(() => (
     typeof window === 'undefined' ? true : window.innerWidth > 768
   ));
   const [activeNoteId, setActiveNoteId] = useState(null);
+
+  useEffect(() => {
+    if (activeTab !== 'podcast') {
+      setPodcastSettingsOpen(false);
+    }
+  }, [activeTab]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -283,7 +290,7 @@ const AIMediaNotes = () => {
       }
       
       
-      const setResponse = await fetch(`${API_URL}/create_flashcard_set`, {
+      const setResponse = await fetch(`${API_URL}/flashcards/sets/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -292,14 +299,12 @@ const AIMediaNotes = () => {
         body: JSON.stringify({
           user_id: userName,
           title: smartTitle,
-          description: `Flashcards from ${results.source_type === 'youtube' ? 'YouTube video' : 'uploaded media'}`,
-          source_type: 'media',
-          source_id: null
+          description: `Flashcards from ${results.source_type === 'youtube' ? 'YouTube video' : 'uploaded media'}`
         })
       });
 
       if (!setResponse.ok) {
-        const errorData = await setResponse.json();
+        const errorData = await setResponse.json().catch(() => ({}));
         throw new Error(errorData.detail || 'Failed to create flashcard set');
       }
 
@@ -308,7 +313,7 @@ const AIMediaNotes = () => {
 
       
       for (const card of results.flashcards) {
-        const cardResponse = await fetch(`${API_URL}/add_flashcard_to_set`, {
+        const cardResponse = await fetch(`${API_URL}/flashcards/cards/create`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -318,8 +323,7 @@ const AIMediaNotes = () => {
             set_id: setId,
             question: card.question,
             answer: card.answer,
-            difficulty: card.difficulty || 'medium',
-            category: subject || 'general'
+            difficulty: card.difficulty || 'medium'
           })
         });
 
@@ -512,7 +516,7 @@ const AIMediaNotes = () => {
       </svg>
       <div className="amn-qb-topbar">
         <div className="amn-qb-tagline">Learning Unified</div>
-        <div className="amn-qb-topbar-right">
+        <div className={`amn-qb-topbar-right ${podcastSettingsOpen ? 'amn-qb-topbar-right--hidden' : ''}`} aria-hidden={podcastSettingsOpen}>
           <button className="amn-qb-top-btn" onClick={() => navigate('/notes')} type="button">
             Notes Hub
           </button>
@@ -1059,7 +1063,12 @@ const AIMediaNotes = () => {
                   )}
 
                   {activeTab === 'podcast' && (
-                    <PodcastStudio results={results} userName={userName} onExit={() => setActiveTab('notes')} />
+                    <PodcastStudio
+                      results={results}
+                      userName={userName}
+                      onExit={() => setActiveTab('notes')}
+                      onSettingsDrawerChange={setPodcastSettingsOpen}
+                    />
                   )}
 
                   {activeTab === 'quiz' && (

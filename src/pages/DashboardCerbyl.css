@@ -556,7 +556,7 @@
 }
 
 .cb-pfp-modal {
-  width: min(560px, 100%);
+  width: min(760px, 100%);
   background: linear-gradient(
       135deg,
       color-mix(in srgb, var(--accent) 8%, transparent) 0%,
@@ -606,7 +606,7 @@
 
 .cb-pfp-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -618,6 +618,9 @@
   padding: 10px;
   cursor: pointer;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   transition: border-color .15s, transform .15s, background .15s;
 }
 
@@ -633,9 +636,9 @@
 }
 
 .cb-pfp-card-media {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 10px;
+  width: min(132px, 100%);
+  aspect-ratio: 1;
+  border-radius: 999px;
   overflow: hidden;
   background: #0c0c0b;
   display: grid;
@@ -664,6 +667,7 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--cb-text);
+  align-self: flex-start;
 }
 
 .cb-pfp-card-check {
@@ -678,6 +682,25 @@
   background: color-mix(in srgb, var(--accent) 85%, #0a0907);
   color: #1f1503;
   border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.cb-pfp-upload-input {
+  display: none;
+}
+
+.cb-pfp-card--upload .cb-pfp-card-media {
+  border: 1px dashed color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.cb-pfp-upload-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+    color-mix(in srgb, var(--accent) 5%, #0c0c0b);
 }
 
 .cb-logo-img {

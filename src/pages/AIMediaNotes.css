@@ -2347,6 +2347,12 @@
   justify-content: flex-end;
 }
 
+.ai-media-notes-page .amn-qb-topbar-right--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .ai-media-notes-page .amn-qb-top-btn {
   border: none;
   background: transparent;

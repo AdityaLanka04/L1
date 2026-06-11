@@ -18,6 +18,7 @@ VOICE_MODE_PROFILES: Dict[str, Dict[str, Any]] = {
         "label": "Coach",
         "description": "Supportive and clear explanations with practical examples.",
         "ai_style": "Use encouraging language, explain concepts step-by-step, and include practical examples.",
+        "episode_contract": "Create a guided coaching lesson. Each chapter should teach one idea step-by-step, include a practical example, then end with a short confidence-building recap.",
         "speech_rate": 0.98,
         "speech_pitch": 1.0,
     },
@@ -25,6 +26,7 @@ VOICE_MODE_PROFILES: Dict[str, Dict[str, Any]] = {
         "label": "Story Mode",
         "description": "Narrative and memorable delivery.",
         "ai_style": "Explain with mini-stories and analogies while staying technically accurate.",
+        "episode_contract": "Create a narrative podcast. Turn the material into a connected story with scene-setting, analogies, transitions, and memorable hooks. Avoid checklist language.",
         "speech_rate": 0.93,
         "speech_pitch": 1.06,
     },
@@ -32,6 +34,7 @@ VOICE_MODE_PROFILES: Dict[str, Dict[str, Any]] = {
         "label": "Rapid Review",
         "description": "Fast high-yield revision mode.",
         "ai_style": "Prioritize high-yield facts, keep responses concise, and avoid extra filler.",
+        "episode_contract": "Create a fast revision drill. Chapters must be short, high-yield, and punchy, using numbered takeaways, definitions, likely exam points, and no long examples.",
         "speech_rate": 1.08,
         "speech_pitch": 1.0,
     },
@@ -39,6 +42,7 @@ VOICE_MODE_PROFILES: Dict[str, Dict[str, Any]] = {
         "label": "Socratic",
         "description": "Question-led teaching with active recall.",
         "ai_style": "Use guided questioning and reveal answers clearly.",
+        "episode_contract": "Create a question-led active recall session. Each chapter should ask 2-3 guided questions, pause rhetorically, then reveal and explain the answer.",
         "speech_rate": 0.95,
         "speech_pitch": 1.01,
     },
@@ -46,6 +50,7 @@ VOICE_MODE_PROFILES: Dict[str, Dict[str, Any]] = {
         "label": "Exam Prep",
         "description": "Exam-oriented framing and pitfalls.",
         "ai_style": "Focus on test-style framing, common mistakes, and exam-ready phrasing.",
+        "episode_contract": "Create an exam prep briefing. Focus on testable claims, common traps, compare/contrast points, and how a question might be asked.",
         "speech_rate": 1.02,
         "speech_pitch": 0.98,
     },
@@ -430,13 +435,17 @@ Instructions:
         session = self._get_session(db=db, session_id=session_id, user_id=user_id)
         if voice_mode not in VOICE_MODE_PROFILES:
             raise ValueError(f"Unsupported voice mode: {voice_mode}")
+        mode_changed = session.voice_mode != voice_mode
         session.voice_mode = voice_mode
+        if mode_changed:
+            self._rebuild_session_chapters_for_current_style(session)
         session.updated_at = datetime.now(timezone.utc)
         self._persist_session(db, session)
         return {
             "session_id": session.session_id,
             "voice_mode": session.voice_mode,
             "voice_profile": self._voice_profile_payload(session.voice_mode),
+            **self._current_script_payload(session),
         }
 
     def update_settings(
@@ -453,18 +462,25 @@ Instructions:
     ) -> Dict[str, Any]:
         session = self._get_session(db=db, session_id=session_id, user_id=user_id)
 
+        should_rebuild = False
         if difficulty and difficulty in DIFFICULTY_LEVELS:
+            should_rebuild = should_rebuild or session.difficulty != difficulty
             session.difficulty = difficulty
         if answer_language:
             session.answer_language = self._normalize_language(answer_language)
         if voice_persona and voice_persona in VOICE_PERSONAS:
+            should_rebuild = should_rebuild or session.voice_persona != voice_persona
             session.voice_persona = voice_persona
         if voice_mode and voice_mode in VOICE_MODE_PROFILES:
+            should_rebuild = should_rebuild or session.voice_mode != voice_mode
             session.voice_mode = voice_mode
         if session_options:
             merged = dict(session.session_options or {})
             merged.update(session_options)
             session.session_options = merged
+
+        if should_rebuild:
+            self._rebuild_session_chapters_for_current_style(session)
 
         session.updated_at = datetime.now(timezone.utc)
         self._persist_session(db, session)
@@ -478,6 +494,7 @@ Instructions:
             "difficulty": session.difficulty,
             "answer_language": session.answer_language,
             "session_options": session.session_options,
+            **self._current_script_payload(session),
         }
 
     def add_bookmark(
@@ -854,6 +871,47 @@ Rules:
             "speech_pitch": profile["speech_pitch"],
         }
 
+    def _current_script_payload(self, session: PodcastSession) -> Dict[str, Any]:
+        current = {}
+        if 0 <= session.current_index < len(session.chapters):
+            current = self._chapter_payload(session.chapters[session.current_index])
+        return {
+            "current_segment": current.get("content", ""),
+            "current_index": session.current_index,
+            "total_segments": len(session.chapters),
+            "has_more": session.current_index + 1 < len(session.chapters),
+            "current_chapter": current or None,
+            "chapters": self._serialize_chapters(session.chapters),
+            "key_takeaways": session.key_takeaways,
+        }
+
+    def _rebuild_session_chapters_for_current_style(self, session: PodcastSession) -> None:
+        previous_index = max(session.current_index, 0)
+        build_result = self._build_episode_structure(
+            transcript=session.transcript,
+            analysis=session.analysis or {},
+            title=session.title,
+            voice_mode=session.voice_mode,
+            voice_persona=session.voice_persona,
+            difficulty=session.difficulty,
+        )
+        chapters = build_result.get("chapters", [])
+        if not chapters:
+            raise ValueError("Unable to regenerate podcast chapters for selected mode")
+
+        session.chapters = chapters
+        session.key_takeaways = build_result.get("key_takeaways", session.key_takeaways)
+        session.current_index = min(previous_index, len(chapters) - 1)
+        session.ended = False
+        session.conversation.append(
+            {
+                "role": "system",
+                "type": "mode_change",
+                "content": f"Podcast script regenerated for {VOICE_MODE_PROFILES[session.voice_mode]['label']} mode.",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+
     def _persona_profile_payload(self, persona_id: str) -> Dict[str, Any]:
         profile = VOICE_PERSONAS.get(persona_id, VOICE_PERSONAS["mentor"])
         return {
@@ -878,11 +936,15 @@ Rules:
         topic_list = ", ".join(analysis.get("topics", [])[:8])
         summary = self._clean_text(analysis.get("summary", ""))
         transcript_excerpt = self._trim_for_context(transcript, 12000)
+        mode_profile = VOICE_MODE_PROFILES[voice_mode]
+        persona_profile = VOICE_PERSONAS[voice_persona]
 
         prompt = f"""Create a podcast episode structure from learning material.
 
-Voice mode: {VOICE_MODE_PROFILES[voice_mode]['ai_style']}
-Voice persona: {VOICE_PERSONAS[voice_persona]['prompt_style']}
+Selected mode: {mode_profile['label']}
+Voice mode style: {mode_profile['ai_style']}
+Mode-specific episode contract: {mode_profile['episode_contract']}
+Voice persona: {persona_profile['prompt_style']}
 Difficulty: {DIFFICULTY_LEVELS[difficulty]['instruction']}
 Source title: {title or 'Media Notes'}
 Detected concepts: {concept_list or 'Not provided'}
@@ -904,6 +966,8 @@ Output strict JSON only:
 Rules:
 - 5 to 8 chapters.
 - Each chapter must be grounded in transcript content.
+- The chapter titles and narration style must clearly reflect the selected mode.
+- Do not reuse a generic lecture-note narration. Rewrite the same source material into the selected mode's structure.
 - Keep content listenable and coherent.
 - No markdown, no code fences.
 """
@@ -914,7 +978,12 @@ Rules:
         chapters = self._normalize_chapters(parsed)
         if not chapters:
             logger.warning("Podcast chapter parse fallback triggered")
-            chapters = self._fallback_chapters(summary=summary, concepts=analysis.get("key_concepts", []), transcript=transcript_excerpt)
+            chapters = self._fallback_chapters(
+                summary=summary,
+                concepts=analysis.get("key_concepts", []),
+                transcript=transcript_excerpt,
+                voice_mode=voice_mode,
+            )
 
         chapters = self._apply_chapter_timestamps(chapters)
 
@@ -953,7 +1022,7 @@ Rules:
 
         return []
 
-    def _fallback_chapters(self, *, summary: str, concepts: List[str], transcript: str) -> List[Dict[str, Any]]:
+    def _fallback_chapters(self, *, summary: str, concepts: List[str], transcript: str, voice_mode: str = "coach") -> List[Dict[str, Any]]:
         clean_summary = self._clean_text(summary)
         concept_text = ", ".join(concepts[:8]) if concepts else "core ideas"
         words = transcript.split()
@@ -967,12 +1036,43 @@ Rules:
                     break
 
         chapters: List[Dict[str, Any]] = []
-        chapters.append({
-            "title": "Big Picture",
-            "content": f"Welcome. In this session we focus on {concept_text}. {clean_summary or (blocks[0] if blocks else '')}",
-        })
-        for idx, block in enumerate(blocks[:5]):
-            chapters.append({"title": f"Core Topic {idx + 1}", "content": block})
+        first_block = clean_summary or (blocks[0] if blocks else "")
+
+        if voice_mode == "story":
+            chapters.append({
+                "title": "Opening Scene",
+                "content": f"Imagine this topic as a story about {concept_text}. The opening scene is simple: {first_block}",
+            })
+            for idx, block in enumerate(blocks[:5]):
+                chapters.append({"title": f"Story Beat {idx + 1}", "content": f"Here is the next turn in the story. {block}"})
+        elif voice_mode == "rapid":
+            chapters.append({
+                "title": "Rapid Brief",
+                "content": f"High-yield review. Focus on {concept_text}. Core summary: {first_block}",
+            })
+            for idx, block in enumerate(blocks[:5]):
+                chapters.append({"title": f"High-Yield Point {idx + 1}", "content": f"Point {idx + 1}. {block}"})
+        elif voice_mode == "socratic":
+            chapters.append({
+                "title": "Guiding Question",
+                "content": f"What should you understand first about {concept_text}? Start here: {first_block}",
+            })
+            for idx, block in enumerate(blocks[:5]):
+                chapters.append({"title": f"Question Round {idx + 1}", "content": f"Question: what is the key idea here? Answer: {block}"})
+        elif voice_mode == "exam":
+            chapters.append({
+                "title": "Exam Focus",
+                "content": f"Exam lens: the testable ideas are {concept_text}. Start with this core framing: {first_block}",
+            })
+            for idx, block in enumerate(blocks[:5]):
+                chapters.append({"title": f"Testable Area {idx + 1}", "content": f"Watch for this on an exam. {block}"})
+        else:
+            chapters.append({
+                "title": "Coach Overview",
+                "content": f"Welcome. We will work through {concept_text} step by step. {first_block}",
+            })
+            for idx, block in enumerate(blocks[:5]):
+                chapters.append({"title": f"Coached Step {idx + 1}", "content": f"Step {idx + 1}: {block} Now connect that back to the main idea."})
 
         return chapters[:8]
 
