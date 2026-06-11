@@ -4,7 +4,8 @@ import { Loader, Lock, CheckCircle, Circle, Play, Pause, Award,
   Clock, Target, BookOpen, MessageCircle, FileText, Brain,
   ChevronRight, ChevronLeft, Sparkles, Zap, Download, Calendar,
   Lightbulb, Map, TrendingUp, Image as ImageIcon, Activity,
-  GitBranch, Menu, Timer } from 'lucide-react';
+  GitBranch, Timer, ArrowLeft, MessageSquare, LayoutDashboard,
+  LogOut, BarChart3 } from 'lucide-react';
 import learningPathService from '../services/learningPathService';
 import './LearningPathDetail.css';
 
@@ -40,6 +41,7 @@ const LearningPathDetail = () => {
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const [sessionLoggedMinutes, setSessionLoggedMinutes] = useState(null);
   const [timeSpentMinutes, setTimeSpentMinutes] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     loadPathDetails();
@@ -608,12 +610,152 @@ const LearningPathDetail = () => {
         </div>
       )}
 
+      <div className="lpd-qb-body">
+        <div className={`lpd-qb-shell ${sidebarCollapsed ? 'lpd-qb-shell--collapsed' : ''}`}>
+          <aside className={`lpd-qb-sidebar ${sidebarCollapsed ? 'lpd-qb-sidebar--collapsed' : ''}`} aria-label="Learning path navigation">
+            {sidebarCollapsed ? (
+              <div className="lpd-qb-collapsed-strip">
+                <button className="lpd-qb-strip-btn lpd-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                  cb
+                </button>
+                <button className="lpd-qb-strip-btn" data-tip="Back to Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  <ChevronLeft size={18} />
+                </button>
+                <button className={`lpd-qb-strip-btn ${difficultyView === 'beginner' ? 'active' : ''}`} data-tip="Beginner View" onClick={() => { setSidebarCollapsed(false); handleDifficultyChange('beginner'); }} type="button">
+                  <TrendingUp size={18} />
+                </button>
+                <button className={`lpd-qb-strip-btn ${difficultyView === 'intermediate' ? 'active' : ''}`} data-tip="Intermediate View" onClick={() => { setSidebarCollapsed(false); handleDifficultyChange('intermediate'); }} type="button">
+                  <Target size={18} />
+                </button>
+                <button className={`lpd-qb-strip-btn ${difficultyView === 'advanced' ? 'active' : ''}`} data-tip="Advanced View" onClick={() => { setSidebarCollapsed(false); handleDifficultyChange('advanced'); }} type="button">
+                  <Zap size={18} />
+                </button>
+                <div className="lpd-qb-strip-spacer" />
+                <button className="lpd-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
+                  <MessageSquare size={18} />
+                </button>
+                <button className="lpd-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  <LayoutDashboard size={18} />
+                </button>
+                <button
+                  className="lpd-qb-strip-btn"
+                  data-tip="Logout"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+            ) : (
+            <>
+              <div className="lpd-qb-side-brand">
+                <div className="lpd-qb-brand-wrap">
+                  <div className="lpd-qb-brand">cerbyl</div>
+                  <div className="lpd-qb-current-title">Learning Path</div>
+                </div>
+                <button
+                  className="lpd-qb-side-close-btn"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Close sidebar"
+                  aria-label="Close learning path sidebar"
+                  type="button"
+                >
+                  <ArrowLeft size={14} />
+                </button>
+              </div>
+
+              <div className="lpd-qb-side-block">
+                <div className="lpd-qb-side-label">Path</div>
+                <nav className="lpd-qb-view-nav" aria-label="Learning path overview">
+                  <button className="lpd-qb-view-link" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                    <ChevronLeft size={16} />
+                    <span>Back to Dashboard</span>
+                  </button>
+                  <button className="lpd-qb-view-link" onClick={() => navigate('/learning-paths')} type="button">
+                    <Map size={16} />
+                    <span>All Learning Paths</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="lpd-qb-side-block">
+                <div className="lpd-qb-side-label">Difficulty View</div>
+                <nav className="lpd-qb-view-nav" aria-label="Difficulty level">
+                  <button className={`lpd-qb-view-link ${difficultyView === 'beginner' ? 'lpd-qb-view-link--active' : ''}`} onClick={() => handleDifficultyChange('beginner')} type="button">
+                    <TrendingUp size={16} />
+                    <span>Beginner</span>
+                  </button>
+                  <button className={`lpd-qb-view-link ${difficultyView === 'intermediate' ? 'lpd-qb-view-link--active' : ''}`} onClick={() => handleDifficultyChange('intermediate')} type="button">
+                    <Target size={16} />
+                    <span>Intermediate</span>
+                  </button>
+                  <button className={`lpd-qb-view-link ${difficultyView === 'advanced' ? 'lpd-qb-view-link--active' : ''}`} onClick={() => handleDifficultyChange('advanced')} type="button">
+                    <Zap size={16} />
+                    <span>Advanced</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="lpd-qb-side-block lpd-qb-side-block--grow">
+                <div className="lpd-qb-side-label">Path Stats</div>
+                <div className="lpd-qb-stat-grid">
+                  <div className="lpd-qb-stat-card">
+                    <span>{path.completed_nodes}/{path.total_nodes}</span>
+                    <small>Nodes</small>
+                  </div>
+                  <div className="lpd-qb-stat-card">
+                    <span>{Math.round(path.progress.completion_percentage)}%</span>
+                    <small>Progress</small>
+                  </div>
+                  <div className="lpd-qb-stat-card">
+                    <span>{path.progress.total_xp_earned}</span>
+                    <small>XP</small>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lpd-qb-side-actions">
+                <button
+                  className="lpd-qb-action-btn lpd-qb-action-btn--ghost"
+                  onClick={() => navigate('/dashboard-cerbyl')}
+                  type="button"
+                >
+                  <LayoutDashboard size={14} />
+                  <span>Dashboard</span>
+                </button>
+                <button
+                  className="lpd-qb-action-btn lpd-qb-action-btn--ghost"
+                  onClick={() => navigate('/ai-chat')}
+                  type="button"
+                >
+                  <MessageSquare size={14} />
+                  <span>AI Chat</span>
+                </button>
+                <button
+                  className="lpd-qb-action-btn lpd-qb-action-btn--ghost"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  <LogOut size={14} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </>
+            )}
+          </aside>
+
+          <main className="lpd-qb-main">
       <div className="lpd-header">
         <div className="lpd-header-main">
           <div className="lpd-title-row">
-            <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
-              <Menu size={20} />
-            </button>
             <h1 className="lpd-title">{path.title.toUpperCase()}</h1>
             <button className="lpd-back-btn" onClick={() => navigate('/dashboard-cerbyl')}>
               <ChevronLeft size={16} />
@@ -1282,6 +1424,9 @@ const LearningPathDetail = () => {
               <p>SELECT A NODE TO VIEW DETAILS</p>
             </div>
           )}
+        </div>
+      </div>
+          </main>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Plus, Search, Filter, FileText, Layout, Settings} from 'lucide-react';
+import {
+  Plus, Search, Filter, FileText, Layout, Settings, ArrowLeft, MessageSquare, LayoutDashboard, LogOut} from 'lucide-react';
 import './NotesDashboard.css';
 import DatabaseViews from '../components/DatabaseViews';
 import AdvancedSearch from '../components/AdvancedSearch';
@@ -30,6 +30,7 @@ const NotesDashboard = () => {
   const [showTemplates, setShowTemplates] = useState(false);
   const [selectedFont, setSelectedFont] = useState('Inter');
   const [userName, setUserName] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -180,77 +181,169 @@ const NotesDashboard = () => {
     note.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const thisWeekCount = notes.filter(n => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return new Date(n.updated_at) > weekAgo;
+  }).length;
+
   return (
     <div className="notes-dashboard" style={{ fontFamily: selectedFont }}>
-      <div className="dashboard-toolbar">
-        <div className="toolbar-left">
-          <div className="toolbar-search">
-            <Search size={18} className="toolbar-search-icon" />
-            <input
-              type="text"
-              placeholder="Search notes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <button
-            className="toolbar-filter-btn"
-            onClick={() => setShowAdvancedSearch(true)}
-          >
-            <Filter size={16} />
-            Advanced Search
-          </button>
-        </div>
-        <div className="toolbar-right">
-          <select
-            className="font-selector"
-            value={selectedFont}
-            onChange={(e) => handleFontChange(e.target.value)}
-          >
-            {FONTS.map(font => (
-              <option key={font.value} value={font.value}>
-                {font.label}
-              </option>
-            ))}
-          </select>
-          <button
-            className="dashboard-btn"
-            onClick={() => setShowTemplates(true)}
-          >
-            <Layout size={18} />
-            Templates
-          </button>
-          <button
-            className="dashboard-btn primary"
-            onClick={handleCreateNote}
-          >
-            <Plus size={18} />
-            New Note
-          </button>
-        </div>
-      </div>
+      <div className="ndb-qb-body">
+        <div className={`ndb-qb-shell ${sidebarCollapsed ? 'ndb-qb-shell--collapsed' : ''}`}>
+          <aside className={`ndb-qb-sidebar ${sidebarCollapsed ? 'ndb-qb-sidebar--collapsed' : ''}`} aria-label="Notes Dashboard navigation">
+            {sidebarCollapsed ? (
+              <div className="ndb-qb-collapsed-strip">
+                <button className="ndb-qb-strip-btn ndb-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                  cb
+                </button>
+                <button className="ndb-qb-strip-btn" data-tip="New Note" onClick={handleCreateNote} type="button">
+                  <Plus size={18} />
+                </button>
+                <button className="ndb-qb-strip-btn" data-tip="Templates" onClick={() => { setSidebarCollapsed(false); setShowTemplates(true); }} type="button">
+                  <Layout size={18} />
+                </button>
+                <button className="ndb-qb-strip-btn" data-tip="Advanced Search" onClick={() => { setSidebarCollapsed(false); setShowAdvancedSearch(true); }} type="button">
+                  <Filter size={18} />
+                </button>
+                <div className="ndb-qb-strip-spacer" />
+                <button className="ndb-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
+                  <MessageSquare size={18} />
+                </button>
+                <button className="ndb-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  <LayoutDashboard size={18} />
+                </button>
+                <button
+                  className="ndb-qb-strip-btn"
+                  data-tip="Logout"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+            ) : (
+            <>
+              <div className="ndb-qb-side-brand">
+                <div className="ndb-qb-brand-wrap">
+                  <div className="ndb-qb-brand">cerbyl</div>
+                  <div className="ndb-qb-current-title">Notes Dashboard</div>
+                </div>
+                <button
+                  className="ndb-qb-side-close-btn"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Close sidebar"
+                  aria-label="Close notes dashboard sidebar"
+                  type="button"
+                >
+                  <ArrowLeft size={14} />
+                </button>
+              </div>
 
-      <div className="stats-bar">
-        <div className="stat-item">
-          <span className="stat-label">Total Notes</span>
-          <span className="stat-value">{notes.length}</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-label">Folders</span>
-          <span className="stat-value">{folders.length}</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-label">This Week</span>
-          <span className="stat-value">
-            {notes.filter(n => {
-              const weekAgo = new Date();
-              weekAgo.setDate(weekAgo.getDate() - 7);
-              return new Date(n.updated_at) > weekAgo;
-            }).length}
-          </span>
-        </div>
-      </div>
+              <div className="ndb-qb-side-block">
+                <div className="ndb-qb-side-label">Quick Actions</div>
+                <nav className="ndb-qb-view-nav" aria-label="Notes quick actions">
+                  <button className="ndb-qb-view-link ndb-qb-view-link--accent" onClick={handleCreateNote} type="button">
+                    <Plus size={16} />
+                    <span>New Note</span>
+                  </button>
+                  <button className="ndb-qb-view-link" onClick={() => setShowTemplates(true)} type="button">
+                    <Layout size={16} />
+                    <span>Templates</span>
+                  </button>
+                </nav>
+              </div>
 
+              <div className="ndb-qb-side-block">
+                <div className="ndb-qb-side-label">Search & Filter</div>
+                <nav className="ndb-qb-view-nav" aria-label="Notes search and filter">
+                  <div className="ndb-qb-side-search">
+                    <Search size={16} className="ndb-qb-side-search-icon" />
+                    <input
+                      type="text"
+                      placeholder="Search notes..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <button className="ndb-qb-view-link" onClick={() => setShowAdvancedSearch(true)} type="button">
+                    <Filter size={16} />
+                    <span>Advanced Search</span>
+                  </button>
+                  <div className="ndb-qb-side-font">
+                    <Settings size={16} />
+                    <select
+                      className="ndb-qb-font-selector"
+                      value={selectedFont}
+                      onChange={(e) => handleFontChange(e.target.value)}
+                    >
+                      {FONTS.map(font => (
+                        <option key={font.value} value={font.value}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </nav>
+              </div>
+
+              <div className="ndb-qb-side-block">
+                <div className="ndb-qb-side-label">Overview</div>
+                <div className="ndb-qb-stat-grid">
+                  <div className="ndb-qb-stat-card">
+                    <span>{notes.length}</span>
+                    <small>Notes</small>
+                  </div>
+                  <div className="ndb-qb-stat-card">
+                    <span>{folders.length}</span>
+                    <small>Folders</small>
+                  </div>
+                  <div className="ndb-qb-stat-card">
+                    <span>{thisWeekCount}</span>
+                    <small>This Week</small>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ndb-qb-side-actions">
+                <button
+                  className="ndb-qb-action-btn ndb-qb-action-btn--ghost"
+                  onClick={() => navigate('/dashboard-cerbyl')}
+                  type="button"
+                >
+                  <LayoutDashboard size={14} />
+                  <span>Dashboard</span>
+                </button>
+                <button
+                  className="ndb-qb-action-btn ndb-qb-action-btn--ghost"
+                  onClick={() => navigate('/ai-chat')}
+                  type="button"
+                >
+                  <MessageSquare size={14} />
+                  <span>AI Chat</span>
+                </button>
+                <button
+                  className="ndb-qb-action-btn ndb-qb-action-btn--ghost"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  <LogOut size={14} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </>
+            )}
+          </aside>
+
+          <main className="ndb-qb-main">
       <div className="dashboard-content">
         {filteredNotes.length > 0 ? (
           <DatabaseViews
@@ -269,6 +362,9 @@ const NotesDashboard = () => {
             </button>
           </div>
         )}
+      </div>
+          </main>
+        </div>
       </div>
 
       {showAdvancedSearch && (

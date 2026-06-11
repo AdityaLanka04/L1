@@ -1,7 +1,7 @@
 ﻿
 .si-page,.si-page *,.si-page *::before,.si-page *::after{margin:0;padding:0}
 
-.si-page{min-height:100vh;width:100%;background:radial-gradient(circle at 2px 2px,rgba(255,255,255,0.08) 1.5px,transparent 0),linear-gradient(135deg,var(--bg-primary) 0%,color-mix(in srgb,var(--bg-primary) 75%,var(--accent)) 50%,var(--bg-primary) 100%);background-size:30px 30px,100% 100%;background-position:5px 5px,0 0;padding:0;margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;position:relative;overflow-x:hidden;color:var(--text-primary)}
+.si-page{min-height:100vh;width:100%;background:radial-gradient(circle at 2px 2px,rgba(255,255,255,0.08) 1.5px,transparent 0),linear-gradient(135deg,var(--bg-primary) 0%,color-mix(in srgb,var(--bg-primary) 75%,var(--accent)) 50%,var(--bg-primary) 100%);background-size:30px 30px,100% 100%;background-position:5px 5px,0 0;padding:0;margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;position:relative;overflow-x:hidden;color:var(--text-primary);display:flex;flex-direction:column}
 
 .si-header{position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:0 60px !important;height:70px;min-height:70px;max-height:70px;background:color-mix(in srgb,var(--bg-primary,var(--bg-primary)) 80%,transparent);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--accent)}
 .si-header-left{display:flex;align-items:center;gap:16px}
@@ -180,4 +180,393 @@
 
 .nav-menu-btn svg {
   stroke-width: 2;
+}
+
+.si-page .si-qb-body {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+  display: block;
+  padding: 0 !important;
+  overflow: visible;
+}
+
+.si-page .si-qb-shell {
+  --si-qb-line: color-mix(in srgb, var(--accent) 18%, transparent);
+  --si-qb-line-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --si-qb-line-strong: color-mix(in srgb, var(--accent) 45%, transparent);
+
+  position: relative;
+  z-index: 2;
+  width: min(1600px, 100%);
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.si-page .si-qb-shell--collapsed {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.si-page .si-qb-sidebar {
+  align-self: stretch;
+  min-height: 0;
+  height: 100%;
+  border: 1px solid var(--si-qb-line);
+  border-radius: 18px;
+  background: var(--bg-secondary);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent) transparent;
+}
+
+.si-page .si-qb-sidebar--collapsed {
+  width: 64px !important;
+  min-width: 64px !important;
+  padding: 12px 0 !important;
+  overflow: visible !important;
+  z-index: 5;
+}
+
+.si-page .si-qb-collapsed-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  width: 100%;
+}
+
+.si-page .si-qb-strip-spacer {
+  flex: 1;
+}
+
+.si-page .si-qb-strip-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.si-page .si-qb-strip-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.si-page .si-qb-strip-btn.active,
+.si-page .si-qb-strip-btn:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.si-page .si-qb-strip-logo {
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  margin-bottom: 6px;
+}
+
+.si-page .si-qb-strip-btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 7px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s, visibility 0.12s;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.si-page .si-qb-strip-btn:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.si-page .si-qb-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.si-page .si-qb-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.si-page .si-qb-sidebar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
+  border-radius: 999px;
+}
+
+.si-page .si-qb-side-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 4px 2px 10px;
+  border-bottom: 1px solid var(--si-qb-line-soft);
+  flex-shrink: 0;
+}
+
+.si-page .si-qb-brand-wrap {
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+  padding: 0 32px;
+}
+
+.si-page .si-qb-brand {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.si-page .si-qb-current-title {
+  margin-top: 7px;
+  color: color-mix(in srgb, var(--text-primary) 52%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.si-page .si-qb-side-close-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-56%);
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--si-qb-line);
+  background: color-mix(in srgb, var(--bg-primary) 90%, transparent);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.si-page .si-qb-side-close-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.si-page .si-qb-side-close-btn:hover {
+  color: var(--accent);
+  border-color: var(--si-qb-line-strong);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.si-page .si-qb-side-block {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 2px;
+  flex-shrink: 0;
+}
+
+.si-page .si-qb-side-block--grow {
+  flex: 0 0 auto;
+}
+
+.si-page .si-qb-side-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.si-page .si-qb-view-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.si-page .si-qb-view-link {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  width: 100%;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.si-page .si-qb-view-link svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: color-mix(in srgb, var(--accent) 72%, var(--text-primary));
+}
+
+.si-page .si-qb-view-link span:not(.si-qb-nav-count) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.si-page .si-qb-view-link--active,
+.si-page .si-qb-view-link:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.si-page .si-qb-view-link--accent {
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.si-page .si-qb-nav-count {
+  margin-left: auto;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--si-qb-line-soft);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 72%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.si-page .si-qb-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.si-page .si-qb-stat-card {
+  border: 1px solid var(--si-qb-line-soft);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  padding: 9px 6px;
+  text-align: center;
+  min-width: 0;
+}
+
+.si-page .si-qb-stat-card span,
+.si-page .si-qb-stat-card small {
+  display: block;
+}
+
+.si-page .si-qb-stat-card span {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.si-page .si-qb-stat-card small {
+  margin-top: 5px;
+  color: color-mix(in srgb, var(--text-primary) 48%, transparent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.si-page .si-qb-side-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--si-qb-line-soft);
+}
+
+.si-page .si-qb-action-btn {
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--text-primary);
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.si-page .si-qb-action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.si-page .si-qb-action-btn--ghost {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.si-page .si-qb-action-btn:hover {
+  border-color: var(--si-qb-line-strong);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.si-page .si-qb-main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: transparent !important;
 }

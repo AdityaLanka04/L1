@@ -4,6 +4,24 @@ import './StudyInsights.css';
 import { API_URL } from '../config';
 import { queuedAIJsonFetch } from '../services/aiJobService';
 import logo from '../assets/logo.svg';
+import {
+  ArrowLeft, LayoutDashboard, MessageSquare, LogOut, Sparkles,
+  Clock, BarChart3, BookOpen, Brain, FileQuestion, Target
+} from 'lucide-react';
+
+const SI_ICONS = {
+  home: <LayoutDashboard size={18} />,
+  chat: <MessageSquare size={18} />,
+  logout: <LogOut size={18} />,
+  arrowLeft: <ArrowLeft size={14} />,
+  summary: <Sparkles size={18} />,
+  time: <Clock size={18} />,
+  activity: <BarChart3 size={18} />,
+  quiz: <Brain size={18} />,
+  flashcards: <BookOpen size={18} />,
+  qb: <FileQuestion size={18} />,
+  weak: <Target size={18} />,
+};
 
 const StudyInsights = () => {
   const navigate = useNavigate();
@@ -12,6 +30,7 @@ const StudyInsights = () => {
   const [insights, setInsights] = useState(null);
   const [error, setError] = useState(null);
   const [timeRange, setTimeRange] = useState('overall');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const userName = localStorage.getItem('username');
   const token = localStorage.getItem('token');
@@ -57,6 +76,11 @@ const StudyInsights = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const getDisplayName = () => {
@@ -112,14 +136,167 @@ const StudyInsights = () => {
 
   return (
     <div className="si-page">
-      <main className="si-main">
+      <div className="si-qb-body">
+        <div className={`si-qb-shell ${sidebarCollapsed ? 'si-qb-shell--collapsed' : ''}`}>
+          <aside className={`si-qb-sidebar ${sidebarCollapsed ? 'si-qb-sidebar--collapsed' : ''}`} aria-label="Study Insights navigation">
+            {sidebarCollapsed ? (
+              <div className="si-qb-collapsed-strip">
+                <button className="si-qb-strip-btn si-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                  cb
+                </button>
+                <button className="si-qb-strip-btn" data-tip="Summary" onClick={() => { setSidebarCollapsed(false); scrollToSection('si-section-summary'); }} type="button">
+                  {SI_ICONS.summary}
+                </button>
+                <button className="si-qb-strip-btn" data-tip="Study Time" onClick={() => { setSidebarCollapsed(false); scrollToSection('si-section-time'); }} type="button">
+                  {SI_ICONS.time}
+                </button>
+                <button className="si-qb-strip-btn" data-tip="Weekly Activity" onClick={() => { setSidebarCollapsed(false); scrollToSection('si-section-activity'); }} type="button">
+                  {SI_ICONS.activity}
+                </button>
+                <button className="si-qb-strip-btn" data-tip="Quiz Performance" onClick={() => { setSidebarCollapsed(false); scrollToSection('si-section-quiz'); }} type="button">
+                  {SI_ICONS.quiz}
+                </button>
+                <button className="si-qb-strip-btn" data-tip="Flashcard Mastery" onClick={() => { setSidebarCollapsed(false); scrollToSection('si-section-flashcards'); }} type="button">
+                  {SI_ICONS.flashcards}
+                </button>
+                <button className="si-qb-strip-btn" data-tip="Weak Areas" onClick={() => { setSidebarCollapsed(false); scrollToSection('si-section-weak'); }} type="button">
+                  {SI_ICONS.weak}
+                </button>
+                <button className="si-qb-strip-btn" data-tip="Question Bank" onClick={() => { setSidebarCollapsed(false); scrollToSection('si-section-qb'); }} type="button">
+                  {SI_ICONS.qb}
+                </button>
+                <div className="si-qb-strip-spacer" />
+                <button className="si-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
+                  {SI_ICONS.chat}
+                </button>
+                <button className="si-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  {SI_ICONS.home}
+                </button>
+                <button
+                  className="si-qb-strip-btn"
+                  data-tip="Logout"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  {SI_ICONS.logout}
+                </button>
+              </div>
+            ) : (
+            <>
+              <div className="si-qb-side-brand">
+                <div className="si-qb-brand-wrap">
+                  <div className="si-qb-brand">cerbyl</div>
+                  <div className="si-qb-current-title">Study Insights</div>
+                </div>
+                <button
+                  className="si-qb-side-close-btn"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Close sidebar"
+                  aria-label="Close study insights sidebar"
+                  type="button"
+                >
+                  {SI_ICONS.arrowLeft}
+                </button>
+              </div>
+
+              <div className="si-qb-side-block">
+                <div className="si-qb-side-label">Time Range</div>
+                <nav className="si-qb-view-nav" aria-label="Time range filters">
+                  <button className={`si-qb-view-link ${timeRange === 'overall' ? 'si-qb-view-link--active' : ''}`} onClick={() => setTimeRange('overall')} type="button">
+                    {SI_ICONS.time}
+                    <span>Overall</span>
+                  </button>
+                  <button className={`si-qb-view-link ${timeRange === 'weekly' ? 'si-qb-view-link--active' : ''}`} onClick={() => setTimeRange('weekly')} type="button">
+                    {SI_ICONS.time}
+                    <span>This Week</span>
+                  </button>
+                  <button className={`si-qb-view-link ${timeRange === 'monthly' ? 'si-qb-view-link--active' : ''}`} onClick={() => setTimeRange('monthly')} type="button">
+                    {SI_ICONS.time}
+                    <span>This Month</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="si-qb-side-block si-qb-side-block--grow">
+                <div className="si-qb-side-label">Sections</div>
+                <nav className="si-qb-view-nav" aria-label="Insight sections">
+                  <button className="si-qb-view-link" onClick={() => scrollToSection('si-section-summary')} type="button">
+                    {SI_ICONS.summary}
+                    <span>AI Summary</span>
+                  </button>
+                  <button className="si-qb-view-link" onClick={() => scrollToSection('si-section-time')} type="button">
+                    {SI_ICONS.time}
+                    <span>Study Time</span>
+                  </button>
+                  <button className="si-qb-view-link" onClick={() => scrollToSection('si-section-activity')} type="button">
+                    {SI_ICONS.activity}
+                    <span>Weekly Activity</span>
+                  </button>
+                  <button className="si-qb-view-link" onClick={() => scrollToSection('si-section-quiz')} type="button">
+                    {SI_ICONS.quiz}
+                    <span>Quiz Performance</span>
+                  </button>
+                  <button className="si-qb-view-link" onClick={() => scrollToSection('si-section-flashcards')} type="button">
+                    {SI_ICONS.flashcards}
+                    <span>Flashcard Mastery</span>
+                  </button>
+                  <button className="si-qb-view-link" onClick={() => scrollToSection('si-section-weak')} type="button">
+                    {SI_ICONS.weak}
+                    <span>Weak Areas</span>
+                  </button>
+                  <button className="si-qb-view-link" onClick={() => scrollToSection('si-section-qb')} type="button">
+                    {SI_ICONS.qb}
+                    <span>Question Bank</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="si-qb-side-actions">
+                <button
+                  className="si-qb-action-btn si-qb-action-btn--ghost"
+                  onClick={() => navigate('/dashboard-cerbyl')}
+                  type="button"
+                >
+                  {SI_ICONS.home}
+                  <span>Dashboard</span>
+                </button>
+                <button
+                  className="si-qb-action-btn si-qb-action-btn--ghost"
+                  onClick={() => navigate('/ai-chat')}
+                  type="button"
+                >
+                  {SI_ICONS.chat}
+                  <span>AI Chat</span>
+                </button>
+                <button
+                  className="si-qb-action-btn si-qb-action-btn--ghost"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  {SI_ICONS.logout}
+                  <span>Logout</span>
+                </button>
+              </div>
+            </>
+            )}
+          </aside>
+
+          <main className="si-main si-qb-main">
         <div className="si-bento-grid">
-          <div className="si-bento si-summary">
+          <div className="si-bento si-summary" id="si-section-summary">
             <span className="view-kicker si-bento-title">AI SUMMARY</span>
             <p className="si-summary-text">{insights.ai_summary}</p>
           </div>
 
-          <div className="si-bento si-time-stats">
+          <div className="si-bento si-time-stats" id="si-section-time">
             <span className="view-kicker si-bento-title">STUDY TIME</span>
             <div className="si-stats-grid">
               <div className="si-stat">
@@ -137,7 +314,7 @@ const StudyInsights = () => {
             </div>
           </div>
 
-          <div className="si-bento si-activity">
+          <div className="si-bento si-activity" id="si-section-activity">
             <span className="view-kicker si-bento-title">WEEKLY ACTIVITY</span>
             <div className="si-activity-list">
               <div className="si-activity-row">
@@ -163,7 +340,7 @@ const StudyInsights = () => {
             </div>
           </div>
 
-          <div className="si-bento si-quiz">
+          <div className="si-bento si-quiz" id="si-section-quiz">
             <span className="view-kicker si-bento-title">QUIZ PERFORMANCE</span>
             {insights.quizzes?.total_quizzes > 0 ? (
               <>
@@ -200,7 +377,7 @@ const StudyInsights = () => {
             )}
           </div>
 
-          <div className="si-bento si-flashcards">
+          <div className="si-bento si-flashcards" id="si-section-flashcards">
             <span className="view-kicker si-bento-title">FLASHCARD MASTERY</span>
             {insights.flashcards?.total > 0 ? (
               <>
@@ -238,7 +415,7 @@ const StudyInsights = () => {
             )}
           </div>
 
-          <div className="si-bento si-weak">
+          <div className="si-bento si-weak" id="si-section-weak">
             <span className="view-kicker si-bento-title">WEAK AREAS TO IMPROVE</span>
             {insights.weak_areas && insights.weak_areas.length > 0 ? (
               <div className="si-weak-list">
@@ -288,7 +465,7 @@ const StudyInsights = () => {
             </div>
           )}
 
-          <div className="si-bento si-qb">
+          <div className="si-bento si-qb" id="si-section-qb">
             <span className="view-kicker si-bento-title">QUESTION BANK</span>
             {insights.question_bank?.total_questions > 0 ? (
               <div className="si-qb-stats">
@@ -350,7 +527,9 @@ const StudyInsights = () => {
             </div>
           )}
         </div>
-      </main>
+          </main>
+        </div>
+      </div>
     </div>
   );
 };

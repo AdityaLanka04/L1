@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Play, Brain, Target, TrendingUp, Award, Clock, CheckCircle,
-  XCircle, Zap, ArrowRight, RotateCcw, Home, ChevronRight
+  XCircle, Zap, ArrowRight, RotateCcw, Home, ChevronRight,
+  ArrowLeft, MessageSquare, LayoutDashboard, LogOut, BarChart3
 } from 'lucide-react';
 import './WeaknessPractice.css';
 import { API_URL } from '../config';
@@ -29,6 +30,7 @@ const WeaknessPractice = () => {
   });
   const [sessionSummary, setSummary] = useState(null);
   const [timeStarted, setTimeStarted] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   
   const topic = location.state?.topic || 'General Practice';
@@ -256,15 +258,133 @@ const WeaknessPractice = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    navigate('/');
+  };
+
+  const renderSidebar = () => (
+    <aside className={`wp-qb-sidebar ${sidebarCollapsed ? 'wp-qb-sidebar--collapsed' : ''}`} aria-label="Practice navigation">
+      {sidebarCollapsed ? (
+        <div className="wp-qb-collapsed-strip">
+          <button className="wp-qb-strip-btn wp-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+            cb
+          </button>
+          <button className="wp-qb-strip-btn" data-tip="Back to Weaknesses" onClick={() => navigate('/weaknesses')} type="button">
+            <Home size={18} />
+          </button>
+          {sessionSummary && (
+            <button className="wp-qb-strip-btn" data-tip="Practice Again" onClick={() => { setSummary(null); startSession(); }} type="button">
+              <RotateCcw size={18} />
+            </button>
+          )}
+          <div className="wp-qb-strip-spacer" />
+          <button className="wp-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
+            <MessageSquare size={18} />
+          </button>
+          <button className="wp-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+            <LayoutDashboard size={18} />
+          </button>
+          <button className="wp-qb-strip-btn" data-tip="Logout" onClick={handleLogout} type="button">
+            <LogOut size={18} />
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="wp-qb-side-brand">
+            <div className="wp-qb-brand-wrap">
+              <div className="wp-qb-brand">cerbyl</div>
+              <div className="wp-qb-current-title">Practice</div>
+            </div>
+            <button
+              className="wp-qb-side-close-btn"
+              onClick={() => setSidebarCollapsed(true)}
+              title="Close sidebar"
+              aria-label="Close practice sidebar"
+              type="button"
+            >
+              <ArrowLeft size={14} />
+            </button>
+          </div>
+
+          <div className="wp-qb-side-block">
+            <div className="wp-qb-side-label">Navigation</div>
+            <nav className="wp-qb-view-nav" aria-label="Practice navigation links">
+              <button className="wp-qb-view-link" onClick={() => navigate('/weaknesses')} type="button">
+                <Home size={16} />
+                <span>Back to Weaknesses</span>
+              </button>
+              {sessionSummary && (
+                <button className="wp-qb-view-link wp-qb-view-link--accent" onClick={() => { setSummary(null); startSession(); }} type="button">
+                  <RotateCcw size={16} />
+                  <span>Practice Again</span>
+                </button>
+              )}
+            </nav>
+          </div>
+
+          <div className="wp-qb-side-block">
+            <div className="wp-qb-side-label">Session Info</div>
+            <nav className="wp-qb-view-nav" aria-label="Session info">
+              <div className="wp-qb-view-link" style={{ cursor: 'default' }}>
+                <Brain size={16} />
+                <span>Topic: {topic}</span>
+              </div>
+              <div className="wp-qb-view-link" style={{ cursor: 'default' }}>
+                <TrendingUp size={16} />
+                <span>Difficulty: {difficulty}</span>
+              </div>
+            </nav>
+          </div>
+
+          {sessionActive && (
+            <div className="wp-qb-side-block wp-qb-side-block--grow">
+              <div className="wp-qb-side-label">Live Stats</div>
+              <div className="wp-qb-stat-grid">
+                <div className="wp-qb-stat-card">
+                  <span>{sessionStats.questionsAnswered}</span>
+                  <small>Answered</small>
+                </div>
+                <div className="wp-qb-stat-card">
+                  <span>{Math.round(sessionStats.accuracy || 0)}%</span>
+                  <small>Accuracy</small>
+                </div>
+                <div className="wp-qb-stat-card">
+                  <span>{sessionStats.currentStreak}</span>
+                  <small>Streak</small>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="wp-qb-side-actions">
+            <button className="wp-qb-action-btn wp-qb-action-btn--ghost" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+              <LayoutDashboard size={14} />
+              <span>Dashboard</span>
+            </button>
+            <button className="wp-qb-action-btn wp-qb-action-btn--ghost" onClick={() => navigate('/ai-chat')} type="button">
+              <MessageSquare size={14} />
+              <span>AI Chat</span>
+            </button>
+            <button className="wp-qb-action-btn wp-qb-action-btn--ghost" onClick={handleLogout} type="button">
+              <LogOut size={14} />
+              <span>Logout</span>
+            </button>
+          </div>
+        </>
+      )}
+    </aside>
+  );
+
   if (!sessionActive && !sessionSummary) {
     return (
       <div className="weakness-practice-container">
+        <div className={`wp-qb-shell ${sidebarCollapsed ? 'wp-qb-shell--collapsed' : ''}`}>
+          {renderSidebar()}
+          <main className="wp-qb-main">
         <div className="practice-start-screen">
           <div className="start-card">
-            <button className="practice-nav-btn" onClick={() => navigate('/weaknesses')} style={{alignSelf:'flex-start',marginBottom:'12px'}}>
-              <Home size={16} />
-              <span>Back to Weaknesses</span>
-            </button>
             <div className="start-icon">
               <Brain size={64} />
             </div>
@@ -308,6 +428,8 @@ const WeaknessPractice = () => {
             </button>
           </div>
         </div>
+          </main>
+        </div>
       </div>
     );
   }
@@ -315,6 +437,9 @@ const WeaknessPractice = () => {
   if (sessionSummary) {
     return (
       <div className="weakness-practice-container">
+        <div className={`wp-qb-shell ${sidebarCollapsed ? 'wp-qb-shell--collapsed' : ''}`}>
+          {renderSidebar()}
+          <main className="wp-qb-main">
         <div className="practice-summary-screen">
           <div className="summary-card">
             <div className="summary-icon">
@@ -377,12 +502,17 @@ const WeaknessPractice = () => {
             </div>
           </div>
         </div>
+          </main>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="weakness-practice-container">
+      <div className={`wp-qb-shell ${sidebarCollapsed ? 'wp-qb-shell--collapsed' : ''}`}>
+        {renderSidebar()}
+        <main className="wp-qb-main">
       <div className="practice-main">
         {currentQuestion && (
           <div className="question-container">
@@ -493,6 +623,8 @@ const WeaknessPractice = () => {
             </div>
           </div>
         )}
+      </div>
+        </main>
       </div>
     </div>
   );

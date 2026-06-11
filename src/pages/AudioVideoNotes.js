@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader, ArrowLeft , Menu} from 'lucide-react';
+import { Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader, ArrowLeft, MessageSquare, LayoutDashboard, LogOut, Headphones, FolderOpen } from 'lucide-react';
 import './AudioVideoNotes.css';
 import { API_URL } from '../config';
 import { sanitizeHtml } from '../utils/sanitize';
@@ -18,6 +18,7 @@ const AudioVideoNotes = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -144,21 +145,118 @@ const AudioVideoNotes = () => {
 
   return (
     <div className="audio-video-notes-page">
+      <div className="avn-qb-body">
+        <div className={`avn-qb-shell ${sidebarCollapsed ? 'avn-qb-shell--collapsed' : ''}`}>
+          <aside className={`avn-qb-sidebar ${sidebarCollapsed ? 'avn-qb-sidebar--collapsed' : ''}`} aria-label="Audio & Video Notes navigation">
+            {sidebarCollapsed ? (
+              <div className="avn-qb-collapsed-strip">
+                <button className="avn-qb-strip-btn avn-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                  cb
+                </button>
+                <button className="avn-qb-strip-btn" data-tip="AI Media & Podcast" onClick={() => navigate('/notes/ai-media')} type="button">
+                  <Headphones size={18} />
+                </button>
+                <button className="avn-qb-strip-btn" data-tip="Back to Notes" onClick={() => navigate('/notes')} type="button">
+                  <FolderOpen size={18} />
+                </button>
+                <div className="avn-qb-strip-spacer" />
+                <button className="avn-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
+                  <MessageSquare size={18} />
+                </button>
+                <button className="avn-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  <LayoutDashboard size={18} />
+                </button>
+                <button
+                  className="avn-qb-strip-btn"
+                  data-tip="Logout"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+            ) : (
+            <>
+              <div className="avn-qb-side-brand">
+                <div className="avn-qb-brand-wrap">
+                  <div className="avn-qb-brand">cerbyl</div>
+                  <div className="avn-qb-current-title">Audio & Video Notes</div>
+                </div>
+                <button
+                  className="avn-qb-side-close-btn"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Close sidebar"
+                  aria-label="Close audio & video notes sidebar"
+                  type="button"
+                >
+                  <ArrowLeft size={14} />
+                </button>
+              </div>
+
+              <div className="avn-qb-side-block">
+                <div className="avn-qb-side-label">Navigation</div>
+                <nav className="avn-qb-view-nav" aria-label="Audio & video notes navigation">
+                  <button className="avn-qb-view-link avn-qb-view-link--accent" onClick={() => navigate('/notes/ai-media')} type="button">
+                    <Headphones size={16} />
+                    <span>AI Media + Podcast</span>
+                  </button>
+                  <button className="avn-qb-view-link" onClick={() => navigate('/notes')} type="button">
+                    <FolderOpen size={16} />
+                    <span>Back to Notes</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="avn-qb-side-block">
+                <div className="avn-qb-side-label">About</div>
+                <p className="avn-qb-side-note">
+                  Generate notes from uploaded audio/video files or a YouTube URL. New podcast mode is available in AI Media Notes.
+                </p>
+              </div>
+
+              <div className="avn-qb-side-actions">
+                <button
+                  className="avn-qb-action-btn avn-qb-action-btn--ghost"
+                  onClick={() => navigate('/dashboard-cerbyl')}
+                  type="button"
+                >
+                  <LayoutDashboard size={14} />
+                  <span>Dashboard</span>
+                </button>
+                <button
+                  className="avn-qb-action-btn avn-qb-action-btn--ghost"
+                  onClick={() => navigate('/ai-chat')}
+                  type="button"
+                >
+                  <MessageSquare size={14} />
+                  <span>AI Chat</span>
+                </button>
+                <button
+                  className="avn-qb-action-btn avn-qb-action-btn--ghost"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  <LogOut size={14} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </>
+            )}
+          </aside>
+
+          <main className="avn-qb-main">
       <div className="page-header-bar">
         <div className="header-left">
           <h1 className="page-title-main">audio / video notes</h1>
           <p className="page-subtitle-main">generate notes from media files</p>
-          <p className="page-subtitle-main" style={{ marginTop: '6px' }}>
-            New podcast mode is available in AI Media Notes.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => navigate('/notes/ai-media')} className="back-btn">
-            open ai media + podcast
-          </button>
-          <button onClick={() => navigate('/notes')} className="back-btn">
-            back to notes
-          </button>
         </div>
       </div>
 
@@ -256,6 +354,9 @@ const AudioVideoNotes = () => {
             <div className="notes-output" dangerouslySetInnerHTML={{ __html: sanitizeHtml(generatedNotes) }} />
           </div>
         )}
+      </div>
+          </main>
+        </div>
       </div>
     </div>
   );

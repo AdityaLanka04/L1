@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut, Trash2 } from 'lucide-react';
+import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut, Trash2, ArrowLeft, MessageSquare, LayoutDashboard, User, CreditCard, Target, Settings, BookOpen, Sparkles } from 'lucide-react';
 import { API_URL } from '../config';
 import './ProfileNew.css';
 
@@ -316,6 +316,12 @@ const ProfileNew = () => {
 
   const [typedName, setTypedName] = useState('');
   const [nameDone, setNameDone] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const activeBillingCycle = subscriptionData.billingCycle === 'yearly' ? 'yearly' : 'monthly';
   const billingLabel = activeBillingCycle === 'yearly' ? '/yr' : '/mo';
@@ -778,9 +784,6 @@ const ProfileNew = () => {
       <GeoBackground />
 
       <div className="pn-topbar">
-        <button className="pn-back-btn" onClick={() => navigate('/dashboard-cerbyl')}>
-          ← Dashboard
-        </button>
         <div className="pn-topbar-center">profile</div>
         <div className="pn-topbar-actions">
           <div className="pn-save-status">
@@ -792,17 +795,167 @@ const ProfileNew = () => {
               <span className="pn-saved">· saved {lastSaved}</span>
             ) : null}
           </div>
-          <button className="pn-logout-btn" onClick={clearSessionAndGoLogin}>
-            <LogOut size={14} />
-            Logout
-          </button>
         </div>
       </div>
 
+      <div className="pf-qb-body">
+        <div className={`pf-qb-shell ${sidebarCollapsed ? 'pf-qb-shell--collapsed' : ''}`}>
+          <aside className={`pf-qb-sidebar ${sidebarCollapsed ? 'pf-qb-sidebar--collapsed' : ''}`} aria-label="Profile navigation">
+            {sidebarCollapsed ? (
+              <div className="pf-qb-collapsed-strip">
+                <button className="pf-qb-strip-btn pf-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                  cb
+                </button>
+                <button className="pf-qb-strip-btn" data-tip="Overview" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-overview'); }} type="button">
+                  <User size={18} />
+                </button>
+                <button className="pf-qb-strip-btn" data-tip="Subscription" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-subscription'); }} type="button">
+                  <CreditCard size={18} />
+                </button>
+                <button className="pf-qb-strip-btn" data-tip="Personal Info" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-personal'); }} type="button">
+                  <BookOpen size={18} />
+                </button>
+                <button className="pf-qb-strip-btn" data-tip="Learning Goals" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-goals'); }} type="button">
+                  <Target size={18} />
+                </button>
+                <button className="pf-qb-strip-btn" data-tip="Subjects" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-subjects'); }} type="button">
+                  <Sparkles size={18} />
+                </button>
+                <button className="pf-qb-strip-btn" data-tip="Settings" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-settings'); }} type="button">
+                  <Settings size={18} />
+                </button>
+                <button className="pf-qb-strip-btn" data-tip="Account" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-account'); }} type="button">
+                  <Trash2 size={18} />
+                </button>
+                <button className="pf-qb-strip-btn" data-tip="Retake Assessment" onClick={() => navigate('/profile-quiz')} type="button">
+                  <Award size={18} />
+                </button>
+                <div className="pf-qb-strip-spacer" />
+                <button className="pf-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
+                  <MessageSquare size={18} />
+                </button>
+                <button className="pf-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  <LayoutDashboard size={18} />
+                </button>
+                <button className="pf-qb-strip-btn" data-tip="Logout" onClick={clearSessionAndGoLogin} type="button">
+                  <LogOut size={18} />
+                </button>
+              </div>
+            ) : (
+            <>
+              <div className="pf-qb-side-brand">
+                <div className="pf-qb-brand-wrap">
+                  <div className="pf-qb-brand">cerbyl</div>
+                  <div className="pf-qb-current-title">Profile</div>
+                </div>
+                <button
+                  className="pf-qb-side-close-btn"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Close sidebar"
+                  aria-label="Close profile sidebar"
+                  type="button"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+              </div>
+
+              <div className="pf-qb-side-block">
+                <div className="pf-qb-side-label">Sections</div>
+                <nav className="pf-qb-view-nav" aria-label="Profile sections">
+                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-overview')} type="button">
+                    <User size={16} />
+                    <span>Overview</span>
+                  </button>
+                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-subscription')} type="button">
+                    <CreditCard size={16} />
+                    <span>Subscription</span>
+                  </button>
+                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-personal')} type="button">
+                    <BookOpen size={16} />
+                    <span>Personal Info</span>
+                  </button>
+                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-goals')} type="button">
+                    <Target size={16} />
+                    <span>Learning Goals</span>
+                  </button>
+                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-subjects')} type="button">
+                    <Sparkles size={16} />
+                    <span>Subjects</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="pf-qb-side-block">
+                <div className="pf-qb-side-label">Account</div>
+                <nav className="pf-qb-view-nav" aria-label="Profile account">
+                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-settings')} type="button">
+                    <Settings size={16} />
+                    <span>Settings</span>
+                  </button>
+                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-account')} type="button">
+                    <Trash2 size={16} />
+                    <span>Delete Account</span>
+                  </button>
+                  <button className="pf-qb-view-link pf-qb-view-link--accent" onClick={() => navigate('/profile-quiz')} type="button">
+                    <Award size={16} />
+                    <span>Retake Assessment</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="pf-qb-side-block">
+                <div className="pf-qb-side-label">Level</div>
+                <div className="pf-qb-stat-grid">
+                  <div className="pf-qb-stat-card">
+                    <span>{profileLevel}</span>
+                    <small>Level</small>
+                  </div>
+                  <div className="pf-qb-stat-card">
+                    <span>{profileXp.toLocaleString()}</span>
+                    <small>XP</small>
+                  </div>
+                  <div className="pf-qb-stat-card">
+                    <span>{Math.round(levelProgress)}%</span>
+                    <small>Progress</small>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pf-qb-side-actions">
+                <button
+                  className="pf-qb-action-btn pf-qb-action-btn--ghost"
+                  onClick={() => navigate('/dashboard-cerbyl')}
+                  type="button"
+                >
+                  <LayoutDashboard size={14} />
+                  <span>Dashboard</span>
+                </button>
+                <button
+                  className="pf-qb-action-btn pf-qb-action-btn--ghost"
+                  onClick={() => navigate('/ai-chat')}
+                  type="button"
+                >
+                  <MessageSquare size={14} />
+                  <span>AI Chat</span>
+                </button>
+                <button
+                  className="pf-qb-action-btn pf-qb-action-btn--ghost"
+                  onClick={clearSessionAndGoLogin}
+                  type="button"
+                >
+                  <LogOut size={14} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </>
+            )}
+          </aside>
+
+          <main className="pf-qb-main">
       <div className="pn-wrap">
 
         {}
-        <section className="pn-hero">
+        <section className="pn-hero" id="pn-section-overview">
           <div className="pn-hero-text">
             <div className="pn-eyebrow">YOUR PROFILE</div>
             <h1 className="pn-name">
@@ -892,7 +1045,7 @@ const ProfileNew = () => {
           </section>
         )}
 
-        <section className="pn-section">
+        <section className="pn-section" id="pn-section-subscription">
           <div className="pn-section-label">SUBSCRIPTION</div>
           <div className="pn-subscription-header">
             <div className="pn-subscription-current">
@@ -1028,7 +1181,7 @@ const ProfileNew = () => {
 
         {}
         <div className="pn-two-col">
-          <section className="pn-section">
+          <section className="pn-section" id="pn-section-personal">
             <div className="pn-section-label">PERSONAL INFO</div>
             <div className="pn-field-row">
               <div className="pn-field">
@@ -1057,7 +1210,7 @@ const ProfileNew = () => {
             </div>
           </section>
 
-          <section className="pn-section">
+          <section className="pn-section" id="pn-section-goals">
             <div className="pn-section-label">LEARNING GOALS</div>
             <div className="pn-field pn-field--full">
               <label className="pn-field-label">Main Subject</label>
@@ -1079,7 +1232,7 @@ const ProfileNew = () => {
         <div className="pn-divider" />
 
         {}
-        <section className="pn-section">
+        <section className="pn-section" id="pn-section-subjects">
           <div className="pn-section-label">INTERESTED SUBJECTS</div>
           <div className="pn-subjects-grid">
             {ALL_SUBJECTS.map(s => (
@@ -1097,7 +1250,7 @@ const ProfileNew = () => {
         <div className="pn-divider" />
 
         {}
-        <section className="pn-section">
+        <section className="pn-section" id="pn-section-settings">
           <div className="pn-section-label">SETTINGS</div>
           <div className="pn-settings-grid">
             <div className="pn-setting-row">
@@ -1131,7 +1284,7 @@ const ProfileNew = () => {
 
         <div className="pn-divider" />
 
-        <section className="pn-section pn-danger-section">
+        <section className="pn-section pn-danger-section" id="pn-section-account">
           <div className="pn-section-label">ACCOUNT</div>
           <div className="pn-account-actions">
             <div className="pn-account-action-copy">
@@ -1198,6 +1351,9 @@ const ProfileNew = () => {
         )}
 
         <div className="pn-bottom-gap" />
+      </div>
+          </main>
+        </div>
       </div>
 
       {}

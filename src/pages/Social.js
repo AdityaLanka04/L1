@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen } from 'lucide-react';
+import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen, Home, Inbox } from 'lucide-react';
 import ShareModal from './SharedModal';
 import './Social.css';
 import SocialHubChrome from '../components/SocialHubChrome';
@@ -455,7 +455,31 @@ const Social = () => {
         <circle cx="900" cy="600" r="1.5" fill="currentColor" opacity="0.5"/>
       </svg>
 
-      <SocialHubChrome tagline="social hub" noSidebar={true}>
+      <SocialHubChrome
+        tagline="social hub"
+        sideSections={[
+          {
+            label: 'Views',
+            items: [
+              { icon: Home,          label: 'Hub',          onClick: () => setActiveTab('hub'),      active: activeTab === 'hub' },
+              { icon: Search,        label: 'Find People',  onClick: () => setActiveTab('search'),   active: activeTab === 'search' },
+              { icon: Inbox,         label: 'Requests',     onClick: () => setActiveTab('requests'), active: activeTab === 'requests', count: friendRequests.received.length + friendRequests.sent.length },
+              { icon: Users,         label: 'Friends',      onClick: () => setActiveTab('friends'),  active: activeTab === 'friends', count: friends.length },
+              { icon: Share2,        label: 'Shared With Me', onClick: () => setActiveTab('shared'), active: activeTab === 'shared', count: sharedItems.length },
+            ],
+          },
+          {
+            label: 'Quick Access',
+            items: [
+              { icon: Activity,   label: 'Activity Feed',   onClick: () => navigate('/activity-feed') },
+              { icon: TrendingUp, label: 'Leaderboards',    onClick: () => navigate('/leaderboards') },
+              { icon: Gamepad2,   label: 'Games',           onClick: () => navigate('/games') },
+              { icon: MessageSquare, label: 'Quiz',         onClick: () => navigate('/quiz-hub') },
+              { icon: BookOpen,   label: 'Playlists',       onClick: () => navigate('/playlists') },
+            ],
+          },
+        ]}
+      >
         {activeTab === 'hub' ? (
           <div className="bento-container">
             {bentoCards.map(card => {

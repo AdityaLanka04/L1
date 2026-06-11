@@ -1,19 +1,15 @@
 import React, { useState, lazy, Suspense } from 'react';
-import { Menu } from 'lucide-react';
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
-import GlobalSidebar from './components/GlobalSidebar';
 import AIChatDock from './components/AIChatDock';
 import LoadingSpinner from './components/LoadingSpinner';
-import { useGlobalNav } from './hooks/useGlobalNav';
 import GlobalNotifications from './components/GlobalNotifications';
 import RateLimitHandler from './components/RateLimitHandler';
-import './styles/global-sidebar-layout.css';
 
 // Pages are lazy-loaded so each route ships as its own chunk instead of
 // inflating the initial bundle with ~60 page components up front.
@@ -76,24 +72,6 @@ const ContextFileAnalysis = lazy(() => import('./pages/ContextFileAnalysis'));
 
 function App() {
   const [notification, setNotification] = useState(null);
-  const { isOpen, openNav, closeNav } = useGlobalNav();
-  const location = useLocation();
-  const hideNav = ['/', '/login', '/register', '/profile-quiz'].includes(location.pathname)
-    || location.pathname.startsWith('/ai-chat')
-    || location.pathname.startsWith('/shared/chat');
-
-  React.useEffect(() => {
-    window.openGlobalNav = openNav;
-    return () => {
-      delete window.openGlobalNav;
-    };
-  }, [openNav]);
-
-  React.useLayoutEffect(() => {
-    if (hideNav) {
-      document.documentElement.style.setProperty('--gnav-width', '0px');
-    }
-  }, [hideNav]);
 
   return (
     <ThemeProvider>
@@ -101,12 +79,6 @@ function App() {
         <ToastProvider>
           <RateLimitHandler />
           <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
-            {!hideNav && <GlobalSidebar isOpen={isOpen} onClose={closeNav} />}
-            {!hideNav && (
-              <button className="global-nav-btn" onClick={openNav} aria-label="Open navigation">
-                <Menu />
-              </button>
-            )}
             <GlobalNotifications />
             <AIChatDock />
             {notification && (

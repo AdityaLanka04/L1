@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Mic, BookOpen, Zap, ChevronRight
+  Mic, BookOpen, Zap, ChevronRight, ArrowLeft, LayoutDashboard, MessageSquare, LogOut
 } from 'lucide-react';
 import './NotesHub.css';
 import './NotesHubConvert.css';
@@ -11,6 +11,7 @@ const NotesHub = () => {
   const navigate = useNavigate();
   const [showImportExport, setShowImportExport] = useState(false);
   const [hoveredSection, setHoveredSection] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -62,8 +63,120 @@ const NotesHub = () => {
         <div className="nh-ambient-grid"></div>
       </div>
 
-      <div className="nh-layout-body">
-        <main className="nh-main">
+      <div className="nh-layout-body nh-qb-body">
+        <div className={`nh-qb-shell ${sidebarCollapsed ? 'nh-qb-shell--collapsed' : ''}`}>
+          <aside className={`nh-qb-sidebar ${sidebarCollapsed ? 'nh-qb-sidebar--collapsed' : ''}`} aria-label="Notes navigation">
+            {sidebarCollapsed ? (
+              <div className="nh-qb-collapsed-strip">
+                <button className="nh-qb-strip-btn nh-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                  cb
+                </button>
+                <button className="nh-qb-strip-btn" data-tip="AI Media Notes" onClick={() => navigate('/notes/ai-media')} type="button">
+                  <Mic size={18} />
+                </button>
+                <button className="nh-qb-strip-btn" data-tip="My Notes" onClick={() => navigate('/notes/my-notes')} type="button">
+                  <BookOpen size={18} />
+                </button>
+                <button className="nh-qb-strip-btn" data-tip="Convert" onClick={() => setShowImportExport(true)} type="button">
+                  <Zap size={18} />
+                </button>
+                <div className="nh-qb-strip-spacer" />
+                <button className="nh-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
+                  <MessageSquare size={18} />
+                </button>
+                <button className="nh-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  <LayoutDashboard size={18} />
+                </button>
+                <button
+                  className="nh-qb-strip-btn"
+                  data-tip="Logout"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+            ) : (
+            <>
+              <div className="nh-qb-side-brand">
+                <div className="nh-qb-brand-wrap">
+                  <div className="nh-qb-brand">cerbyl</div>
+                  <div className="nh-qb-current-title">Notes</div>
+                </div>
+                <button
+                  className="nh-qb-side-close-btn"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Close sidebar"
+                  aria-label="Close notes sidebar"
+                  type="button"
+                >
+                  <ArrowLeft size={14} />
+                </button>
+              </div>
+
+              <div className="nh-qb-side-block nh-qb-side-block--grow">
+                <div className="nh-qb-side-label">Views</div>
+                <nav className="nh-qb-view-nav" aria-label="Notes views">
+                  <button className="nh-qb-view-link" onClick={() => navigate('/notes/ai-media')} type="button">
+                    <Mic size={16} />
+                    <span>AI Media Notes</span>
+                  </button>
+                  <button className="nh-qb-view-link" onClick={() => navigate('/notes/my-notes')} type="button">
+                    <BookOpen size={16} />
+                    <span>My Notes</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="nh-qb-side-block">
+                <div className="nh-qb-side-label">Actions</div>
+                <nav className="nh-qb-view-nav" aria-label="Notes actions">
+                  <button className="nh-qb-view-link nh-qb-view-link--accent" onClick={() => setShowImportExport(true)} type="button">
+                    <Zap size={16} />
+                    <span>Convert</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="nh-qb-side-actions">
+                <button
+                  className="nh-qb-action-btn nh-qb-action-btn--ghost"
+                  onClick={() => navigate('/dashboard-cerbyl')}
+                  type="button"
+                >
+                  <LayoutDashboard size={14} />
+                  <span>Dashboard</span>
+                </button>
+                <button
+                  className="nh-qb-action-btn nh-qb-action-btn--ghost"
+                  onClick={() => navigate('/ai-chat')}
+                  type="button"
+                >
+                  <MessageSquare size={14} />
+                  <span>AI Chat</span>
+                </button>
+                <button
+                  className="nh-qb-action-btn nh-qb-action-btn--ghost"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    navigate('/');
+                  }}
+                  type="button"
+                >
+                  <LogOut size={14} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </>
+            )}
+          </aside>
+
+          <main className="nh-main nh-qb-main">
           <section
             className={`nh-section nh-section-ai ${hoveredSection === 'ai' ? 'nh-section-hovered' : ''}`}
             onClick={() => navigate('/notes/ai-media')}
@@ -151,20 +264,8 @@ const NotesHub = () => {
             </div>
             <div className="nh-section-line"></div>
           </section>
-        </main>
-      </div>
-
-      <div className="nh-floating-actions">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowImportExport(true);
-          }}
-          className="nh-nav-btn nh-nav-btn-accent"
-        >
-          <Zap size={16} />
-          <span>Convert</span>
-        </button>
+          </main>
+        </div>
       </div>
 
       <ImportExportModal
