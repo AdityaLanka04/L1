@@ -77,7 +77,12 @@
       "Bash(npm ls *)",
       "Bash(.venv\\\\Scripts\\\\python.exe -c \"import sys; print\\(sys.version\\)\")",
       "Bash(.venv\\\\Scripts\\\\python.exe -m pip show google-api-core google-generativeai)",
-      "PowerShell(Measure-Command *)"
+      "PowerShell(Measure-Command *)",
+      "Skill(agent-browser)",
+      "PowerShell(agent-browser *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/notes --max-time 5)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/flashcards --max-time 5)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/notes/ai-media --max-time 5)"
     ]
   }
 }

@@ -8522,17 +8522,28 @@
   align-self: stretch;
   min-height: 0;
   height: 100%;
-  border: 1px solid var(--fc-qb-line);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
   border-radius: 18px;
-  background: var(--bg-secondary);
-  padding: 16px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--bg-secondary) 92%, transparent),
+      color-mix(in srgb, var(--bg-primary) 88%, transparent)
+    ),
+    radial-gradient(
+      circle at 30% 0%,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 46%
+    );
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.28);
+  padding: 28px 22px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--accent) 28%, transparent) transparent;
 }
 
 .flashcards-page .fc-qb-sidebar--collapsed {
@@ -8642,8 +8653,8 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  padding: 4px 2px 10px;
-  border-bottom: 1px solid var(--fc-qb-line-soft);
+  padding: 6px 8px 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
   flex-shrink: 0;
 }
 
@@ -8656,22 +8667,20 @@
 
 .flashcards-page .fc-qb-brand {
   font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 900;
+  letter-spacing: -0.06em;
   color: var(--text-primary);
-  line-height: 1;
+  line-height: 0.95;
+  user-select: none;
 }
 
-.flashcards-page .fc-qb-current-title {
-  margin-top: 7px;
-  color: color-mix(in srgb, var(--text-primary) 52%, transparent);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+.flashcards-page .fc-qb-brand-kicker {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: color-mix(in srgb, var(--accent) 66%, var(--text-secondary));
 }
 
 .flashcards-page .fc-qb-side-close-btn {

@@ -2995,7 +2995,7 @@ const Flashcards = () => {
               <div className="fc-qb-side-brand">
                 <div className="fc-qb-brand-wrap">
                   <div className="fc-qb-brand">cerbyl</div>
-                  <div className="fc-qb-current-title">Flashcards</div>
+                  <div className="fc-qb-brand-kicker">Flashcards</div>
                 </div>
                 <button
                   className="fc-qb-side-close-btn"
