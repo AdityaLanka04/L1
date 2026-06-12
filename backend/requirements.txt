@@ -23,6 +23,9 @@ groq>=0.4.0
 
 # AI/ML - Google Gemini (Primary)
 google-generativeai>=0.3.0
+# Pinned below 2.29.0: that release added a startup check that scans every
+# installed package's file list, causing multi-minute import hangs on Windows.
+google-api-core<2.29.0
 
 # LangGraph Agent Framework
 langgraph>=0.2.0

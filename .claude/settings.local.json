@@ -74,7 +74,10 @@
       "Bash(sed -n '40,50p' \"D:/Brainwave/L1/src/pages/MyNotes.css\")",
       "Bash(sed -n '40,55p' \"D:/Brainwave/L1/src/pages/QuizBattle.css\")",
       "Bash(git checkout *)",
-      "Bash(npm ls *)"
+      "Bash(npm ls *)",
+      "Bash(.venv\\\\Scripts\\\\python.exe -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(.venv\\\\Scripts\\\\python.exe -m pip show google-api-core google-generativeai)",
+      "PowerShell(Measure-Command *)"
     ]
   }
 }
