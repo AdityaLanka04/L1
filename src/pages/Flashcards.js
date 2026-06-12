@@ -3008,10 +3008,15 @@ const Flashcards = () => {
                 </button>
               </div>
 
+              <button className="fc-qb-new-btn" onClick={() => setActivePanel('generator')} type="button">
+                {FC_ICONS.sparkle}
+                <span>Generate Flashcards</span>
+              </button>
+
               <div className="fc-qb-side-block">
                 <div className="fc-qb-side-label">Quick Actions</div>
                 <nav className="fc-qb-view-nav" aria-label="Flashcard quick actions">
-                  <button className={`fc-qb-view-link fc-qb-view-link--accent ${activePanel === 'generator' ? 'fc-qb-view-link--active' : ''}`} onClick={() => setActivePanel('generator')} type="button">
+                  <button className={`fc-qb-view-link ${activePanel === 'generator' ? 'fc-qb-view-link--active' : ''}`} onClick={() => setActivePanel('generator')} type="button">
                     {FC_ICONS.sparkle}
                     <span>Generator</span>
                   </button>
@@ -3019,7 +3024,7 @@ const Flashcards = () => {
                     {FC_ICONS.edit}
                     <span>Create Custom</span>
                   </button>
-                  <button className="fc-qb-view-link fc-qb-view-link--accent" onClick={() => setShowImportExport(true)} type="button">
+                  <button className="fc-qb-view-link" onClick={() => setShowImportExport(true)} type="button">
                     {FC_ICONS.bolt}
                     <span>Convert</span>
                   </button>
@@ -3086,7 +3091,7 @@ const Flashcards = () => {
 
               <div className="fc-qb-side-actions">
                 <button
-                  className="fc-qb-action-btn fc-qb-action-btn--ghost"
+                  className="fc-qb-action-btn"
                   onClick={() => navigate('/dashboard-cerbyl')}
                   type="button"
                 >
@@ -3094,7 +3099,7 @@ const Flashcards = () => {
                   <span>Dashboard</span>
                 </button>
                 <button
-                  className="fc-qb-action-btn fc-qb-action-btn--ghost"
+                  className="fc-qb-action-btn"
                   onClick={() => {
                     localStorage.removeItem('token');
                     localStorage.removeItem('username');

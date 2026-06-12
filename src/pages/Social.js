@@ -457,6 +457,7 @@ const Social = () => {
 
       <SocialHubChrome
         tagline="social hub"
+        noSidebar
         sideSections={[
           {
             label: 'Views',

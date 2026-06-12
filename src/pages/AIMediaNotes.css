@@ -2391,10 +2391,6 @@
 }
 
 .ai-media-notes-page .amn-qb-shell {
-  --amn-qb-line: var(--border);
-  --amn-qb-line-soft: var(--border);
-  --amn-qb-line-strong: color-mix(in srgb, var(--accent) 45%, transparent);
-
   position: relative;
   z-index: 2;
   width: min(1600px, 100%);
@@ -2508,22 +2504,22 @@
   position: absolute;
   right: 0;
   top: 50%;
-  transform: translateY(-56%);
-  width: 28px;
-  height: 28px;
+  transform: translateY(-60%);
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
   border-radius: 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  background: color-mix(in srgb, var(--bg-primary) 90%, transparent);
-  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .ai-media-notes-page .amn-qb-side-close-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   color: var(--accent);
-  border-color: var(--amn-qb-line-strong);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
@@ -2556,7 +2552,13 @@
 }
 
 .ai-media-notes-page .amn-qb-side-block {
-  padding: 4px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-secondary) 58%, transparent);
   flex-shrink: 0;
 }
 
@@ -2569,43 +2571,50 @@
 
 .ai-media-notes-page .amn-qb-side-label {
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
+  margin: 0;
   color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
-  margin-bottom: 8px;
-  font-weight: 700;
 }
 
 .ai-media-notes-page .amn-qb-view-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .ai-media-notes-page .amn-qb-view-link {
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text-secondary);
-  width: 100%;
-  padding: 9px 10px;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  padding: 11px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-secondary);
   font-family: inherit;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
   text-align: left;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
 .ai-media-notes-page .amn-qb-view-link svg {
   flex-shrink: 0;
   color: color-mix(in srgb, var(--accent) 72%, var(--text-primary));
+  transition: none;
 }
 
 .ai-media-notes-page .amn-qb-view-link span:not(.amn-qb-nav-count) {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2613,16 +2622,20 @@
 }
 
 .ai-media-notes-page .amn-qb-view-link:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
   color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 .ai-media-notes-page .amn-qb-view-link--active {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
   color: var(--text-primary);
-  font-weight: 800;
+}
+
+.ai-media-notes-page .amn-qb-view-link--active:hover {
+  transform: none;
 }
 
 .ai-media-notes-page .amn-qb-view-link--active svg {
@@ -2630,14 +2643,9 @@
 }
 
 .ai-media-notes-page .amn-qb-view-link--accent {
-  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 32%, transparent);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--text-primary);
-}
-
-.ai-media-notes-page .amn-qb-view-link--accent:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
 }
 
 .ai-media-notes-page .amn-qb-view-link:disabled {
@@ -2647,18 +2655,11 @@
 
 .ai-media-notes-page .amn-qb-nav-count {
   margin-left: auto;
-  min-width: 24px;
-  height: 22px;
-  padding: 0 7px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  border: 1px solid var(--amn-qb-line-soft);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  color: color-mix(in srgb, var(--text-primary) 72%, transparent);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
+  flex-shrink: 0;
 }
 
 .ai-media-notes-page .amn-qb-history-list {
@@ -2682,7 +2683,7 @@
   gap: 8px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
 .ai-media-notes-page .amn-qb-history-item > svg {
@@ -2691,15 +2692,20 @@
 }
 
 .ai-media-notes-page .amn-qb-history-item:hover {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
   color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 .ai-media-notes-page .amn-qb-history-item--active {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
   color: var(--text-primary);
+}
+
+.ai-media-notes-page .amn-qb-history-item--active:hover {
+  transform: none;
 }
 
 .ai-media-notes-page .amn-qb-history-info {
@@ -2762,40 +2768,43 @@
 }
 
 .ai-media-notes-page .amn-qb-side-actions {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 8px;
+  flex-shrink: 0;
   margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid var(--amn-qb-line-soft);
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .ai-media-notes-page .amn-qb-action-btn {
-  border-radius: 11px;
-  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-  color: var(--text-primary);
-  padding: 10px;
-  display: flex;
+  width: 100%;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
   font-family: inherit;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  font-weight: 700;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
-.ai-media-notes-page .amn-qb-action-btn--ghost {
-  background: transparent;
-  border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+.ai-media-notes-page .amn-qb-action-btn svg {
+  flex-shrink: 0;
 }
 
 .ai-media-notes-page .amn-qb-action-btn:hover {
-  border-color: var(--amn-qb-line-strong);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 32%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  transform: translateY(-1px);
 }
 
 .ai-media-notes-page .amn-qb-main {

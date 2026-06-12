@@ -729,11 +729,11 @@ const AIMediaNotes = () => {
                 <button className="amn-qb-action-btn" onClick={() => navigate('/notes/my-notes')} type="button">
                   My Notes
                 </button>
-                <button className="amn-qb-action-btn amn-qb-action-btn--ghost" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                <button className="amn-qb-action-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
                   <Home size={14} />
                   <span>Dashboard</span>
                 </button>
-                <button className="amn-qb-action-btn amn-qb-action-btn--ghost" onClick={handleLogout} type="button">
+                <button className="amn-qb-action-btn" onClick={handleLogout} type="button">
                   <LogOut size={14} />
                   <span>Logout</span>
                 </button>
