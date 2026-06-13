@@ -70,7 +70,15 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
               {TABS.map((t, i) => {
                 const active = index === i;
                 return (
-                  <HapticTouchable key={t.label} style={[s.tab, s.tabRail, active && s.tabActive]} onPress={() => goTo(i)} activeOpacity={0.78} haptic="selection">
+                  <HapticTouchable
+                    key={t.label}
+                    style={[s.tab, s.tabRail, active && s.tabActive]}
+                    onPress={() => goTo(i)}
+                    activeOpacity={0.78}
+                    haptic="selection"
+                    accessibilityLabel={`${t.label} tab`}
+                    accessibilityState={{ selected: active }}
+                  >
                     <View style={[s.iconWrap, active && s.iconWrapActive]}>
                       <Ionicons name={active ? t.activeIcon : t.icon} size={18} color={active ? selectedTheme.bgPrimary : selectedTheme.textSecondary} />
                     </View>
@@ -104,7 +112,15 @@ function MainTabs({ user, onLogout, onNavigate }: Props & { onNavigate: (screen:
                 {TABS.map((t, i) => {
                   const active = index === i;
                   return (
-                    <HapticTouchable key={t.label} style={[s.tab, active && s.tabActive]} onPress={() => goTo(i)} activeOpacity={0.78} haptic="selection">
+                    <HapticTouchable
+                      key={t.label}
+                      style={[s.tab, active && s.tabActive]}
+                      onPress={() => goTo(i)}
+                      activeOpacity={0.78}
+                      haptic="selection"
+                      accessibilityLabel={`${t.label} tab`}
+                      accessibilityState={{ selected: active }}
+                    >
                       <View style={[s.iconWrap, active && s.iconWrapActive]}>
                         <Ionicons name={active ? t.activeIcon : t.icon} size={18} color={active ? selectedTheme.bgPrimary : selectedTheme.textSecondary} />
                       </View>

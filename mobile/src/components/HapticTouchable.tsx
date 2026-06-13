@@ -9,12 +9,16 @@ export default function HapticTouchable({
   haptic = 'light',
   onPressIn,
   disabled,
+  accessibilityRole,
+  accessibilityState,
   ...props
 }: Props) {
   return (
     <TouchableOpacity
       {...props}
       disabled={disabled}
+      accessibilityRole={accessibilityRole ?? 'button'}
+      accessibilityState={{ ...accessibilityState, disabled }}
       onPressIn={(event) => {
         if (!disabled && haptic !== 'none') {
           triggerHaptic(haptic);

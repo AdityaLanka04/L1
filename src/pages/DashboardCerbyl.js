@@ -58,6 +58,10 @@ const routeForNotification = (notificationType) => {
     case 'streak_broken':
     case 'achievement':
       return '/profile';
+    case 'token_usage_warning':
+    case 'token_usage_critical':
+    case 'token_usage_exhausted':
+      return '/profile?upgrade=1';
     case 'quiz_result':
     case 'quiz_excellent':
     case 'quiz_poor_performance':
@@ -128,6 +132,26 @@ const PFP_DEFAULT_KEY = 'cerbyl.defaultPfp';
 const PFP_CUSTOM_KEY = 'cerbyl.customPfp';
 const DISPLAY_NAME_KEY = 'cerbyl.displayName';
 const MAX_CUSTOM_PFP_BYTES = 2 * 1024 * 1024;
+const PLAN_INCLUDED_TOKENS = {
+  starter: 100000,
+  pro: 2000000,
+  power: 5000000,
+  unlimited: 0
+};
+const PLAN_NAMES = {
+  starter: 'Starter',
+  pro: 'Pro',
+  power: 'Power',
+  unlimited: 'Unlimited'
+};
+
+const formatTokenCount = (value) => {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return '0';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`;
+  return n.toLocaleString();
+};
 
 const hydrateProfile = (parsedProfile = {}, username = '') => {
   const parsed = parsedProfile || {};
@@ -216,6 +240,17 @@ const DashboardCerbyl = () => {
   const [recentNotes, setRecentNotes] = useState([]);
   const [recentMedia, setRecentMedia] = useState([]);
   const [recentSets, setRecentSets] = useState([]);
+  const [subscriptionUsage, setSubscriptionUsage] = useState({
+    loading: true,
+    currentPlanId: 'starter',
+    currentPlanName: 'Starter',
+    includedTokens: 100000,
+    usedTokens: 0,
+    utilizationPct: 0,
+    isAdmin: false,
+    hasUnlimitedAccess: false,
+    error: null
+  });
   const [isPfpModalOpen, setIsPfpModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -373,6 +408,37 @@ const DashboardCerbyl = () => {
           .slice(0, 3);
         setRecentSets(sets);
       } catch (e) { /* silenced */ }
+
+      try {
+        const sub = await fetchJson(`${API_URL}/subscription/overview?user_id=${encodeURIComponent(userName)}`);
+        if (cancelled) return;
+        const rawPlanId = sub.currentPlanId || sub.current_plan_id || sub.plan || 'starter';
+        const normalizedPlanId = String(rawPlanId || 'starter').trim().toLowerCase();
+        const plan = sub.currentPlan || (sub.plans || []).find((p) => String(p.id || '').trim().toLowerCase() === normalizedPlanId) || {};
+        const planId = normalizedPlanId || String(plan.id || 'starter').trim().toLowerCase();
+        const planIncludedTokens = Number(plan.included_tokens_monthly);
+        const fallbackIncludedTokens = Object.prototype.hasOwnProperty.call(PLAN_INCLUDED_TOKENS, planId)
+          ? PLAN_INCLUDED_TOKENS[planId]
+          : PLAN_INCLUDED_TOKENS.starter;
+        const includedTokens = Number.isFinite(planIncludedTokens) && planIncludedTokens > 0
+          ? planIncludedTokens
+          : Number(fallbackIncludedTokens);
+        const usedTokens = Number(sub.usage?.total_tokens || 0);
+        setSubscriptionUsage({
+          loading: false,
+          currentPlanId: planId,
+          currentPlanName: plan.name || PLAN_NAMES[planId] || 'Starter',
+          includedTokens,
+          usedTokens,
+          utilizationPct: includedTokens > 0 ? Math.round((usedTokens / includedTokens) * 1000) / 10 : 0,
+          isAdmin: Boolean(sub.isAdmin),
+          hasUnlimitedAccess: Boolean(sub.hasUnlimitedAccess || plan.unlimited || planId === 'unlimited'),
+          error: null
+        });
+      } catch (e) {
+        if (cancelled) return;
+        setSubscriptionUsage(prev => ({ ...prev, loading: false, error: 'usage-unavailable' }));
+      }
     })();
 
     return () => { cancelled = true; };
@@ -388,6 +454,9 @@ const DashboardCerbyl = () => {
   const profilePhoto = profile?.picture || profile?.picture_url || profile?.photoURL || profile?.photo_url || '';
   const defaultUserPfp = profile?.defaultPfp || '';
   const activeCustomPfp = profile?.customPfp || '';
+  const hasUnlimitedAccess = subscriptionUsage.hasUnlimitedAccess;
+  const isAdminUnlimited = subscriptionUsage.isAdmin && subscriptionUsage.hasUnlimitedAccess;
+  const usagePct = Math.max(0, Math.min(100, Number(subscriptionUsage.utilizationPct || 0)));
 
   useEffect(() => {
     const fullName = String(displayName || '').trim();
@@ -1072,6 +1141,44 @@ const DashboardCerbyl = () => {
       {}
       <div className="cb-topbar">
         <div className="cb-tagline">Learning Unified</div>
+        <div
+          className={`cb-usage-meter ${isAdminUnlimited ? 'cb-usage-meter--admin' : ''}`}
+          aria-label={isAdminUnlimited
+            ? 'Admin unlimited AI access'
+            : hasUnlimitedAccess
+              ? 'Unlimited AI access'
+              : `${subscriptionUsage.currentPlanName} plan, ${formatTokenCount(subscriptionUsage.usedTokens)} of ${formatTokenCount(subscriptionUsage.includedTokens)} monthly tokens used. Upgrade now.`}
+        >
+          <div className="cb-usage-copy">
+            <span className="cb-usage-heading">
+              <span className="cb-usage-label">Token limit</span>
+              <span className="cb-usage-plan">{isAdminUnlimited ? 'Admin' : subscriptionUsage.currentPlanName}</span>
+            </span>
+            {hasUnlimitedAccess ? (
+              <span className="cb-usage-admin-text">Unlimited access</span>
+            ) : (
+              <>
+                <span className="cb-usage-row">
+                  <span className="cb-usage-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(usagePct)}>
+                    <span className="cb-usage-fill" style={{ width: `${usagePct}%` }} />
+                  </span>
+                  <span className="cb-usage-subline">
+                    {subscriptionUsage.loading
+                      ? 'Loading'
+                      : subscriptionUsage.error
+                        ? 'Unavailable'
+                        : `${formatTokenCount(subscriptionUsage.usedTokens)} used / ${formatTokenCount(subscriptionUsage.includedTokens)}`}
+                  </span>
+                </span>
+              </>
+            )}
+          </div>
+          {!hasUnlimitedAccess && (
+            <button className="cb-usage-upgrade" type="button" onClick={() => navigate('/profile?upgrade=1')}>
+              Upgrade
+            </button>
+          )}
+        </div>
         <div className="cb-topbar-right">
           <button
             className="cb-topbar-text-btn"

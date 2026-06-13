@@ -1,9 +1,3 @@
-.notes-dashboard *,
-.notes-dashboard *::before,
-.notes-dashboard *::after {
-  border-radius: 0;
-}
-
 .notes-dashboard {
   width: 100%;
   height: 100vh;
@@ -708,4 +702,3 @@
 .notes-dashboard .ndb-qb-font-selector:focus {
   outline: none;
 }
-

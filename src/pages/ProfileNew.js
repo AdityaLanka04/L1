@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut, Trash2, ArrowLeft, MessageSquare, LayoutDashboard, User, CreditCard, Target, Settings, BookOpen, Sparkles, Plus } from 'lucide-react';
 import { API_URL } from '../config';
 import './ProfileNew.css';
@@ -65,7 +65,32 @@ const ARCHETYPE_INFO = {
 const PLAN_META = {
   starter: { icon: ShieldCheck, theme: 'starter' },
   pro: { icon: Crown, theme: 'pro' },
-  power: { icon: Rocket, theme: 'power' }
+  power: { icon: Rocket, theme: 'power' },
+  unlimited: { icon: ShieldCheck, theme: 'power' }
+};
+
+const PLAN_INCLUDED_TOKENS = {
+  starter: 100000,
+  pro: 2000000,
+  power: 5000000,
+  unlimited: 0
+};
+
+const PLAN_FALLBACKS = {
+  starter: { id: 'starter', name: 'Starter', monthly_price_usd: 0, yearly_price_usd: 0, included_tokens_monthly: 100000 },
+  pro: { id: 'pro', name: 'Pro', monthly_price_usd: 15, yearly_price_usd: 150, included_tokens_monthly: 2000000 },
+  power: { id: 'power', name: 'Power', monthly_price_usd: 25, yearly_price_usd: 249, included_tokens_monthly: 5000000 },
+  unlimited: { id: 'unlimited', name: 'Unlimited', monthly_price_usd: 0, yearly_price_usd: 0, included_tokens_monthly: 0, unlimited: true }
+};
+
+const withCurrentPlanCredits = (plan = {}) => {
+  const planId = String(plan.id || '').trim().toLowerCase();
+  const includedTokens = PLAN_INCLUDED_TOKENS[planId];
+  if (!includedTokens) return plan;
+  return {
+    ...plan,
+    included_tokens_monthly: includedTokens
+  };
 };
 
 const formatUsd = (value) => {
@@ -273,6 +298,7 @@ const GeoBackground = () => (
 
 const ProfileNew = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const pfpUploadInputRef = useRef(null);
   const token = localStorage.getItem('token');
   const [userName, setUserName] = useState(() => localStorage.getItem('username') || '');
@@ -323,7 +349,7 @@ const ProfileNew = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const mainScrollRef = useRef(null);
 
-  const scrollToSection = (id) => {
+  const scrollToSection = useCallback((id) => {
     const el = document.getElementById(id);
     const scroller = mainScrollRef.current;
     if (!el) return;
@@ -332,11 +358,23 @@ const ProfileNew = () => {
       return;
     }
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!dataLoaded) return undefined;
+    const params = new URLSearchParams(location.search || '');
+    if (params.get('upgrade') !== '1') return undefined;
+
+    const timer = setTimeout(() => {
+      scrollToSection('pn-section-subscription');
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [dataLoaded, location.search, scrollToSection]);
 
   const activeBillingCycle = subscriptionData.billingCycle === 'yearly' ? 'yearly' : 'monthly';
   const billingLabel = activeBillingCycle === 'yearly' ? '/yr' : '/mo';
-  const currentPlan = subscriptionData.plans.find(p => p.id === subscriptionData.currentPlanId) || null;
+  const currentPlanId = String(subscriptionData.currentPlanId || 'starter').trim().toLowerCase();
+  const currentPlan = subscriptionData.plans.find(p => String(p.id || '').trim().toLowerCase() === currentPlanId) || PLAN_FALLBACKS[currentPlanId] || null;
   const currentPlanPrice = currentPlan ? getPlanPrice(currentPlan, activeBillingCycle) : 0;
   const currentPlanYearlySavingsPct = currentPlan ? getYearlySavingsPct(currentPlan) : 0;
   const currentPlanYearlySavingsUsd = currentPlan ? getYearlySavingsUsd(currentPlan) : 0;
@@ -399,7 +437,7 @@ const ProfileNew = () => {
         billingCycle: data.billingCycle || 'monthly',
         subscriptionStatus: data.subscriptionStatus || 'active',
         subscriptionStartedAt: data.subscriptionStartedAt || null,
-        plans: Array.isArray(data.plans) ? data.plans : [],
+        plans: Array.isArray(data.plans) ? data.plans.map(withCurrentPlanCredits) : [],
         usage: data.usage || null
       }));
     } catch (e) {
@@ -429,51 +467,27 @@ const ProfileNew = () => {
       error: null
     }));
     try {
-      if (planId === 'starter') {
-        const resp = await fetch(`${API_URL}/subscription/select`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            user_id: userName,
-            tier: 'starter',
-            billingCycle: currentBillingCycle,
-            subscriptionStatus: 'active'
-          })
-        });
-        if (!resp.ok) {
-          throw new Error(await readApiError(resp, 'Unable to switch plan right now.'));
-        }
-        const data = await resp.json().catch(() => ({}));
-        setSubscriptionData(prev => ({
-          ...prev,
-          currentPlanId: data.subscriptionTier || 'starter',
-          billingCycle: data.billingCycle || prev.billingCycle,
-          subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
-        }));
-        void loadSubscriptionOverview({ silent: true });
-        return;
-      }
-
-      const checkoutResp = await fetch(`${API_URL}/subscription/checkout`, {
+      const resp = await fetch(`${API_URL}/subscription/select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           user_id: userName,
           tier: planId,
           billingCycle: currentBillingCycle,
-          success_url: `${window.location.origin}/profile?checkout=success`,
-          cancel_url: `${window.location.origin}/profile?checkout=cancelled`,
+          subscriptionStatus: 'active'
         })
       });
-      if (!checkoutResp.ok) {
-        throw new Error(await readApiError(checkoutResp, 'Unable to start checkout right now.'));
+      if (!resp.ok) {
+        throw new Error(await readApiError(resp, 'Unable to switch plan right now.'));
       }
-      const checkoutData = await checkoutResp.json().catch(() => ({}));
-      const checkoutUrl = checkoutData.checkoutUrl || checkoutData.checkout_url;
-      if (!checkoutUrl) {
-        throw new Error('Checkout session did not return a redirect URL.');
-      }
-      window.location.assign(checkoutUrl);
+      const data = await resp.json().catch(() => ({}));
+      setSubscriptionData(prev => ({
+        ...prev,
+        currentPlanId: data.subscriptionTier || planId,
+        billingCycle: data.billingCycle || prev.billingCycle,
+        subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
+      }));
+      void loadSubscriptionOverview({ silent: true });
     } catch (e) {
       setSubscriptionData(prev => ({
         ...prev,

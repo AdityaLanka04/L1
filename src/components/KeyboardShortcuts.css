@@ -1,9 +1,3 @@
-.shortcuts-overlay *,
-.shortcuts-overlay *::before,
-.shortcuts-overlay *::after {
-  border-radius: 0;
-}
-
 .shortcuts-overlay {
   position: fixed;
   top: 0;

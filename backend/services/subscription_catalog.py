@@ -33,7 +33,7 @@ SUBSCRIPTION_PLANS: dict[str, dict[str, Any]] = {
         "name": "Pro",
         "monthly_price_usd": 15.0,
         "yearly_price_usd": 150.0,
-        "included_tokens_monthly": 500_000,
+        "included_tokens_monthly": 2_000_000,
         "estimated_cost_at_included_usage_usd": 2.13,
         "summary": "Best for students who study regularly each week.",
         "features": [
@@ -56,7 +56,7 @@ SUBSCRIPTION_PLANS: dict[str, dict[str, Any]] = {
         "name": "Power",
         "monthly_price_usd": 25.0,
         "yearly_price_usd": 249.0,
-        "included_tokens_monthly": 3_000_000,
+        "included_tokens_monthly": 5_000_000,
         "estimated_cost_at_included_usage_usd": 6.95,
         "summary": "For intensive learners who rely on AI every day.",
         "features": [

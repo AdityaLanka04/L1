@@ -1,0 +1,114 @@
+/*
+ * Shared UI safety rules for route-level shells and global interaction affordances.
+ * Keep this file narrow: it should correct systemic behavior without replacing
+ * individual page design.
+ */
+
+:root {
+  --z-page-shell: 1;
+  --z-sticky: 20;
+  --z-popover: 900;
+  --z-floating-dock: 1100;
+  --z-modal: 1300;
+  --z-toast: 1400;
+  --z-loader: 1500;
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+* {
+  scrollbar-color: color-mix(in srgb, var(--accent, #6366f1) 34%, transparent) transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent, #6366f1) 28%, transparent);
+}
+
+*:hover::-webkit-scrollbar-thumb,
+*:focus::-webkit-scrollbar-thumb,
+*:active::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent, #6366f1) 62%, transparent);
+}
+
+:where(button, [role="button"], a[href], input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent, #6366f1);
+  outline-offset: 2px;
+}
+
+body :is(
+  .ai-chat-page,
+  .flashcards-page,
+  .notes-redesign,
+  .my-notes-page-full,
+  .qbd-container,
+  .qbd-rb-root.qbd-container,
+  .kr-page,
+  .with-social-chrome,
+  .activity-feed-page,
+  .pn-root,
+  .st-page,
+  .concept-web-page,
+  .quiz-battle-page,
+  .weakness-practice-page,
+  .weakness-tips-page,
+  .notes-hub-page,
+  .playlist-detail-page
+) {
+  z-index: var(--z-page-shell) !important;
+}
+
+body :is(
+  .ai-chat-page,
+  .flashcards-page,
+  .notes-redesign,
+  .my-notes-page-full,
+  .qbd-container,
+  .qbd-rb-root.qbd-container,
+  .kr-page,
+  .with-social-chrome,
+  .activity-feed-page,
+  .pn-root,
+  .st-page,
+  .concept-web-page,
+  .quiz-battle-page,
+  .weakness-practice-page,
+  .weakness-tips-page,
+  .notes-hub-page,
+  .playlist-detail-page
+) {
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+}
+
+body :is(
+  .shc-main,
+  .qbd-rb-main,
+  .qbd-main,
+  .kr-content,
+  .pn-root .pf-qb-body,
+  .an-main,
+  .cfp-main,
+  .vlt-qb-body,
+  .fc-qb-body,
+  .ac-main,
+  .notes-redesign-main
+) {
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  body :is(
+    .qbd-container,
+    .qbd-rb-root.qbd-container,
+    .kr-page,
+    .pn-root,
+    .with-social-chrome,
+    .playlist-detail-page
+  ) {
+    max-height: 100dvh !important;
+  }
+}

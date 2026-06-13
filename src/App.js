@@ -10,6 +10,7 @@ import AIChatDock from './components/AIChatDock';
 import LoadingSpinner from './components/LoadingSpinner';
 import GlobalNotifications from './components/GlobalNotifications';
 import RateLimitHandler from './components/RateLimitHandler';
+import './styles/ui-safety.css';
 
 // Pages are lazy-loaded so each route ships as its own chunk instead of
 // inflating the initial bundle with ~60 page components up front.

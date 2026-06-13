@@ -1062,10 +1062,10 @@ const Vault = () => {
                 ))}
             </select>
             <div className="vlt-folder-edit-actions">
-              <button className="vlt-folder-action-btn" onClick={handleSaveFolderEdit} disabled={savingFolderEdit}>
+              <button className="vlt-folder-action-btn" onClick={handleSaveFolderEdit} disabled={savingFolderEdit} aria-label="Save folder changes" title="Save folder changes">
                 {savingFolderEdit ? <Loader2 size={11} className="vlt-spin" /> : <Save size={11} />}
               </button>
-              <button className="vlt-folder-action-btn" onClick={cancelEditingFolder}><X size={11} /></button>
+              <button className="vlt-folder-action-btn" onClick={cancelEditingFolder} aria-label="Cancel folder editing" title="Cancel folder editing"><X size={11} /></button>
             </div>
           </div>
         ) : (
@@ -1538,7 +1538,7 @@ const Vault = () => {
             </button>
             <button className="vlt-action-btn vlt-action-btn--quiz" onClick={() => openSelectedDocsAction('quiz')}><Brain size={12} /> Quiz</button>
             <button className="vlt-action-btn vlt-action-btn--roadmap" onClick={() => openSelectedDocsAction('roadmap')}><Target size={12} /> Knowledge Map</button>
-            <button className="vlt-bulk-clear" onClick={clearFileSelection}><X size={12} /></button>
+            <button className="vlt-bulk-clear" onClick={clearFileSelection} aria-label="Clear selected files" title="Clear selected files"><X size={12} /></button>
           </div>
         )}
 

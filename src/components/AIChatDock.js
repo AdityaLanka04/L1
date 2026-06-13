@@ -343,10 +343,10 @@ const AIChatDock = () => {
   return createPortal(
     <div className={`acd-wrap ${expanded ? 'acd-wrap-expanded' : ''}`}>
       {expanded && (
-        <div className="acd-panel">
+        <div className="acd-panel" role="dialog" aria-label="AI chat dock">
           <div className="acd-head">
             <div className="acd-head-title">AI chat</div>
-            <button className="acd-head-btn" onClick={() => navigate(`/ai-chat/${chatId}`)} title="Open full chat">
+            <button className="acd-head-btn" onClick={() => navigate(`/ai-chat/${chatId}`)} title="Open full chat" aria-label="Open full chat">
               <Maximize2 size={14} />
             </button>
           </div>
@@ -369,6 +369,7 @@ const AIChatDock = () => {
             <input
               className="acd-input"
               value={input}
+              aria-label="Continue this conversation"
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
@@ -378,14 +379,14 @@ const AIChatDock = () => {
               }}
               placeholder="Continue this conversation..."
             />
-            <button className="acd-send" onClick={sendMessage} disabled={!input.trim() || sending}>
+            <button className="acd-send" onClick={sendMessage} disabled={!input.trim() || sending} aria-label="Send chat message">
               <Send size={12} />
             </button>
           </div>
         </div>
       )}
 
-      <button className="acd-pill" onClick={() => setExpanded((prev) => !prev)} title="Toggle chat dock">
+      <button className="acd-pill" onClick={() => setExpanded((prev) => !prev)} title="Toggle chat dock" aria-label={expanded ? 'Collapse chat dock' : 'Expand chat dock'}>
         <span className="acd-pill-icon"><MessageCircle size={15} /></span>
         <span className="acd-pill-text">Continue Chat</span>
         <span className="acd-pill-actions">
@@ -400,6 +401,7 @@ const AIChatDock = () => {
           setExpanded(false);
         }}
         title="Close chat dock"
+        aria-label="Close chat dock"
       >
         <X size={12} />
       </button>

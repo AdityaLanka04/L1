@@ -414,6 +414,14 @@ def _normalize_subscription_status(raw: Optional[str]) -> str:
     candidate = (raw or "active").strip().lower()
     return candidate if candidate in _VALID_SUBSCRIPTION_STATUSES else "active"
 
+def _is_admin_email(email: Optional[str]) -> bool:
+    admin_emails = {
+        item.strip().lower()
+        for item in os.getenv("ADMIN_EMAILS", "").split(",")
+        if item.strip()
+    }
+    return bool(email and email.strip().lower() in admin_emails)
+
 def _subscription_usage_snapshot(db: Session, user_pk: int, days: int = 30) -> dict:
     snapshot = {
         "window_days": days,
@@ -1408,6 +1416,9 @@ async def get_subscription_overview(user_id: str = Query(...), db: Session = Dep
             "billingCycle": billing_cycle,
             "subscriptionStatus": subscription_status,
             "subscriptionStartedAt": started_at.isoformat() if started_at else None,
+            "currentPlan": current_plan,
+            "isAdmin": _is_admin_email(user.email),
+            "hasUnlimitedAccess": bool(current_plan.get("unlimited")),
             "plans": list_plans(),
             "usage": usage,
             "profitability": {
@@ -1447,13 +1458,6 @@ async def select_subscription_plan(payload: dict = Body(...), db: Session = Depe
 
         previous_tier = normalize_plan_id(comprehensive_profile.subscription_tier)
         requested_tier = normalize_plan_id(payload.get("tier") or payload.get("subscriptionTier"))
-        if previous_tier == "unlimited" and requested_tier == DEFAULT_PLAN_ID:
-            requested_tier = previous_tier
-        if requested_tier not in (DEFAULT_PLAN_ID, "unlimited"):
-            raise HTTPException(
-                status_code=409,
-                detail="Paid plan updates must go through checkout and webhook confirmation.",
-            )
         comprehensive_profile.subscription_tier = requested_tier
         if requested_tier != "unlimited":
             comprehensive_profile.billing_cycle = requested_cycle
@@ -1564,13 +1568,6 @@ async def update_comprehensive_profile(
 
         if "subscriptionTier" in payload:
             next_tier = normalize_plan_id(payload.get("subscriptionTier"))
-            if previous_subscription_tier == "unlimited" and next_tier == DEFAULT_PLAN_ID:
-                next_tier = previous_subscription_tier
-            if next_tier not in (DEFAULT_PLAN_ID, "unlimited"):
-                raise HTTPException(
-                    status_code=409,
-                    detail="Paid plan updates must go through checkout and webhook confirmation.",
-                )
             comprehensive_profile.subscription_tier = next_tier
             if previous_subscription_tier != next_tier or not comprehensive_profile.subscription_started_at:
                 comprehensive_profile.subscription_started_at = datetime.now(timezone.utc)
@@ -1584,11 +1581,6 @@ async def update_comprehensive_profile(
             current_tier = normalize_plan_id(comprehensive_profile.subscription_tier)
             if current_tier == "unlimited":
                 pass
-            elif current_tier != DEFAULT_PLAN_ID:
-                raise HTTPException(
-                    status_code=409,
-                    detail="Billing cycle for paid plans is managed by provider webhooks.",
-                )
             else:
                 comprehensive_profile.billing_cycle = _normalize_billing_cycle(payload.get("billingCycle"))
 

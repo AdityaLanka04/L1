@@ -139,7 +139,7 @@ function UploadModal({ open, onClose, onDone }){
   return (
     <div className="atl-modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="atl-modal">
-        <div className="atl-modal-hd"><span>UPLOAD TO VAULT</span><button className="atl-modal-close" onClick={onClose}><X size={16}/></button></div>
+        <div className="atl-modal-hd"><span>UPLOAD TO VAULT</span><button className="atl-modal-close" onClick={onClose} aria-label="Close upload modal" title="Close upload modal"><X size={16}/></button></div>
         {success?(
           <div className="atl-modal-success"><CheckCircle size={36}/><p>ADDED TO YOUR VAULT</p></div>
         ):(

@@ -1,9 +1,3 @@
-.advanced-search-modal *,
-.advanced-search-modal *::before,
-.advanced-search-modal *::after {
-  border-radius: 0;
-}
-
 .advanced-search-modal {
   position: fixed;
   top: 50%;

@@ -262,8 +262,8 @@ const Analytics = () => {
           ))}
         </div>
         <div className="an-topbar-actions" style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'12px'}}>
-          <button className="an-action-btn" onClick={exportData}><Download size={13}/></button>
-          <button className="an-action-btn" onClick={() => navigate('/xp-roadmap')}><Trophy size={13}/></button>
+          <button className="an-action-btn" onClick={exportData} aria-label="Export analytics data" title="Export analytics data"><Download size={13}/></button>
+          <button className="an-action-btn" onClick={() => navigate('/xp-roadmap')} aria-label="Open XP roadmap" title="Open XP roadmap"><Trophy size={13}/></button>
           <ThemeSwitcher />
         </div>
 

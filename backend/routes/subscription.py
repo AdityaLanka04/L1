@@ -362,10 +362,31 @@ async def create_subscription_checkout(
 
         price_id = _resolve_price_id(requested_tier, requested_cycle)
         if not price_id:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Stripe price is not configured for {requested_tier}/{requested_cycle}.",
-            )
+            previous_tier = normalize_plan_id(profile.subscription_tier)
+            profile.subscription_tier = requested_tier
+            profile.billing_cycle = requested_cycle
+            profile.subscription_status = "active"
+            if previous_tier != requested_tier or not profile.subscription_started_at:
+                profile.subscription_started_at = now
+            profile.stripe_subscription_id = None
+            profile.stripe_price_id = None
+            profile.current_period_end = None
+            profile.cancel_at_period_end = False
+            profile.updated_at = now
+            db.commit()
+            try:
+                from middleware.rate_limiter import invalidate_subscription_cache
+
+                invalidate_subscription_cache(user.username, user.email)
+            except Exception:
+                pass
+            return {
+                "status": "success",
+                "mode": "manual_invoice",
+                "subscriptionTier": profile.subscription_tier,
+                "billingCycle": profile.billing_cycle,
+                "subscriptionStatus": profile.subscription_status,
+            }
 
         stripe_secret_key = _require_stripe_secret_key()
         request_origin = (request.headers.get("origin") or "").strip()

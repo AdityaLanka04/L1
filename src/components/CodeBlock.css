@@ -1,9 +1,3 @@
-.code-block-container *,
-.code-block-container *::before,
-.code-block-container *::after {
-  border-radius: 0;
-}
-
 .code-block-container {
   background: #1e1e1e;
   border: 1px solid var(--border);

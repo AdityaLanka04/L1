@@ -1,9 +1,3 @@
-.page-properties *,
-.page-properties *::before,
-.page-properties *::after {
-  border-radius: 0;
-}
-
 .page-properties {
   background: var(--panel);
   border: 1px solid var(--border);

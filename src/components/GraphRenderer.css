@@ -73,25 +73,27 @@
 
 .agr-svg-scroll {
   overflow: auto;
+  max-width: 100%;
   border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
   border-radius: 10px;
   background: color-mix(in srgb, var(--bg) 56%, var(--panel));
 }
 
 .agr-svg {
-  min-width: 620px;
+  width: 100%;
+  min-width: min(100%, 620px);
   min-height: 160px;
   padding: 12px;
 }
 
 .agr-svg svg {
-  max-width: none;
+  max-width: 100%;
   height: auto;
 }
 
 .agr-data-svg {
-  width: 760px;
-  min-width: 760px;
+  width: min(760px, 100%);
+  min-width: 0;
   height: auto;
   display: block;
 }
@@ -176,13 +178,14 @@
 }
 
 .agr-compact .agr-data-svg {
-  width: 680px;
-  min-width: 680px;
+  width: min(680px, 100%);
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
   .agr-svg,
   .agr-data-svg {
-    min-width: 560px;
+    min-width: 0;
+    width: 100%;
   }
 }
