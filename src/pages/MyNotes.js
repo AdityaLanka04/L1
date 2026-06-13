@@ -721,14 +721,15 @@ const MyNotes = () => {
                 </button>
               </div>
 
+              <button className="mn-qb-new-btn" onClick={createNewNote} type="button">
+                <Plus size={16} />
+                <span>New Note</span>
+              </button>
+
               <div className="mn-qb-side-block">
-                <div className="mn-qb-side-label">Quick Actions</div>
+                <div className="mn-qb-side-label">Create</div>
                 <nav className="mn-qb-view-nav" aria-label="Notes quick actions">
-                  <button className="mn-qb-view-link mn-qb-view-link--accent" onClick={createNewNote} type="button">
-                    <Plus size={16} />
-                    <span>New Note</span>
-                  </button>
-                  <button className="mn-qb-view-link mn-qb-view-link--accent" onClick={() => setShowConvertModal(true)} type="button">
+                  <button className="mn-qb-view-link" onClick={() => setShowConvertModal(true)} type="button">
                     <Sparkles size={16} />
                     <span>Convert</span>
                   </button>
