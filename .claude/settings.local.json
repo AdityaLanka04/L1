@@ -111,7 +111,8 @@
       "Bash(npx --yes agent-browser wait 300)",
       "Bash(npx --yes agent-browser screenshot \"D:/Brainwave/L1/.tmp_flashcards3.png\")",
       "Bash(rm -f .tmp_flashcards.png .tmp_flashcards2.png .tmp_flashcards3.png .tmp_playlists.png)",
-      "Bash(npx --yes agent-browser close --all)"
+      "Bash(npx --yes agent-browser close --all)",
+      "Bash(netstat -ano)"
     ]
   }
 }

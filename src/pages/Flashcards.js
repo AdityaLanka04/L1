@@ -43,6 +43,7 @@ const FC_ICONS = {
   refresh: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
   celebration: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/></svg>,
   chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+  chevronLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
 };
 
 const cleanFlashcardChoiceText = (value) => {
@@ -2932,12 +2933,6 @@ const Flashcards = () => {
       <div className="fc-qb-topbar">
         <div className="fc-qb-tagline">Learning Unified</div>
         <div className="fc-qb-topbar-right">
-          <button className="fc-qb-top-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-            Dashboard
-          </button>
-          <button className="fc-qb-top-btn" onClick={() => setSidebarCollapsed(prev => !prev)} type="button">
-            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
-          </button>
           <div className="fc-qb-context-control">
             <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
           </div>
@@ -2950,7 +2945,7 @@ const Flashcards = () => {
             {sidebarCollapsed ? (
               <div className="fc-qb-collapsed-strip">
                 <button className="fc-qb-strip-btn fc-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
-                  cb
+                  {FC_ICONS.chevronRight}
                 </button>
                 <button className={`fc-qb-strip-btn ${activePanel === 'generator' ? 'active' : ''}`} data-tip="Generator" onClick={() => { setSidebarCollapsed(false); setActivePanel('generator'); }} type="button">
                   {FC_ICONS.sparkle}
@@ -2971,23 +2966,8 @@ const Flashcards = () => {
                   {FC_ICONS.chart}
                 </button>
                 <div className="fc-qb-strip-spacer" />
-                <button className="fc-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
-                  {FC_ICONS.chat}
-                </button>
                 <button className="fc-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
                   {FC_ICONS.home}
-                </button>
-                <button
-                  className="fc-qb-strip-btn"
-                  data-tip="Logout"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    navigate('/');
-                  }}
-                  type="button"
-                >
-                  {FC_ICONS.logout}
                 </button>
               </div>
             ) : (
@@ -3004,32 +2984,14 @@ const Flashcards = () => {
                   aria-label="Close flashcards sidebar"
                   type="button"
                 >
-                  {FC_ICONS.arrowLeft}
+                  {FC_ICONS.chevronLeft}
                 </button>
               </div>
 
               <button className="fc-qb-new-btn" onClick={() => setActivePanel('generator')} type="button">
                 {FC_ICONS.sparkle}
-                <span>Generate Flashcards</span>
+                <span>Generate</span>
               </button>
-
-              <div className="fc-qb-side-block">
-                <div className="fc-qb-side-label">Quick Actions</div>
-                <nav className="fc-qb-view-nav" aria-label="Flashcard quick actions">
-                  <button className={`fc-qb-view-link ${activePanel === 'generator' ? 'fc-qb-view-link--active' : ''}`} onClick={() => setActivePanel('generator')} type="button">
-                    {FC_ICONS.sparkle}
-                    <span>Generator</span>
-                  </button>
-                  <button className="fc-qb-view-link" onClick={enterCustomCreateMode} type="button">
-                    {FC_ICONS.edit}
-                    <span>Create Custom</span>
-                  </button>
-                  <button className="fc-qb-view-link" onClick={() => setShowImportExport(true)} type="button">
-                    {FC_ICONS.bolt}
-                    <span>Convert</span>
-                  </button>
-                </nav>
-              </div>
 
               <div className="fc-qb-side-block fc-qb-side-block--grow">
                 <div className="fc-qb-side-label">Practice</div>
@@ -3037,17 +2999,14 @@ const Flashcards = () => {
                   <button className={`fc-qb-view-link ${activePanel === 'cards' ? 'fc-qb-view-link--active' : ''}`} onClick={() => setActivePanel('cards')} type="button">
                     {FC_ICONS.cards}
                     <span>My Flashcards</span>
-                    <span className="fc-qb-nav-count">{flashcardHistory.length}</span>
                   </button>
                   <button className={`fc-qb-view-link ${activePanel === 'sr_study' ? 'fc-qb-view-link--active' : ''}`} onClick={() => { setActivePanel('sr_study'); loadDueCards(); loadSrStats(); }} type="button">
                     {FC_ICONS.target}
                     <span>Study Queue</span>
-                    <span className="fc-qb-nav-count">{dueCards.due_count || 0}</span>
                   </button>
                   <button className={`fc-qb-view-link ${activePanel === 'review' ? 'fc-qb-view-link--active' : ''}`} onClick={() => setActivePanel('review')} type="button">
                     {FC_ICONS.refresh}
                     <span>Needs Review</span>
-                    <span className="fc-qb-nav-count">{reviewCards.total_cards || 0}</span>
                   </button>
                 </nav>
               </div>
@@ -3058,7 +3017,6 @@ const Flashcards = () => {
                   <button className={`fc-qb-view-link ${activePanel === 'sources' ? 'fc-qb-view-link--active' : ''}`} onClick={() => { setActivePanel('sources'); loadUploadedDocuments(); }} type="button">
                     {FC_ICONS.file}
                     <span>PDF Sources</span>
-                    <span className="fc-qb-nav-count">{uploadedDocuments.length}</span>
                   </button>
                   <button className={`fc-qb-view-link ${activePanel === 'explore' ? 'fc-qb-view-link--active' : ''}`} onClick={() => { setActivePanel('explore'); loadAllPublicFlashcards(); }} type="button">
                     {FC_ICONS.search}
@@ -3071,24 +3029,6 @@ const Flashcards = () => {
                 </nav>
               </div>
 
-              <div className="fc-qb-side-block">
-                <div className="fc-qb-side-label">Session</div>
-                <div className="fc-qb-stat-grid">
-                  <div className="fc-qb-stat-card">
-                    <span>{flashcardStats?.total_sets || flashcardHistory.length || 0}</span>
-                    <small>Sets</small>
-                  </div>
-                  <div className="fc-qb-stat-card">
-                    <span>{flashcardStats?.total_cards || 0}</span>
-                    <small>Cards</small>
-                  </div>
-                  <div className="fc-qb-stat-card">
-                    <span>{currentStreak}</span>
-                    <small>Streak</small>
-                  </div>
-                </div>
-              </div>
-
               <div className="fc-qb-side-actions">
                 <button
                   className="fc-qb-action-btn"
@@ -3097,18 +3037,6 @@ const Flashcards = () => {
                 >
                   {FC_ICONS.home}
                   <span>Dashboard</span>
-                </button>
-                <button
-                  className="fc-qb-action-btn"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    navigate('/');
-                  }}
-                  type="button"
-                >
-                  {FC_ICONS.logout}
-                  <span>Logout</span>
                 </button>
               </div>
             </>

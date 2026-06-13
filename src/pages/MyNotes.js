@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus,
-  Grid, List as ListIcon, Layout, Sparkles, ChevronLeft,
+  Grid, List as ListIcon, Layout, Sparkles, ChevronLeft, ChevronRight,
   Home, LogOut, FileText, RotateCcw, MessageSquare, BookOpen,
   HelpCircle, X
 } from 'lucide-react';
@@ -666,9 +666,6 @@ const MyNotes = () => {
           <button className="mn-qb-top-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
             Dashboard
           </button>
-          <button className="mn-qb-top-btn" onClick={() => setSidebarCollapsed(prev => !prev)} type="button">
-            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
-          </button>
           <button className="mn-qb-top-btn mn-qb-top-btn--accent" onClick={createNewNote} type="button">
             New Note
           </button>
@@ -680,10 +677,39 @@ const MyNotes = () => {
 
       <div className="mn-body mn-qb-body">
         <div className={`mn-qb-shell ${sidebarCollapsed ? 'mn-qb-shell--collapsed' : ''}`}>
-          {!sidebarCollapsed && (
-            <aside className="mn-qb-sidebar" aria-label="Notes navigation">
+          <aside className={`mn-qb-sidebar ${sidebarCollapsed ? 'mn-qb-sidebar--collapsed' : ''}`} aria-label="Notes navigation">
+            {sidebarCollapsed ? (
+              <div className="mn-qb-collapsed-strip">
+                <button className="mn-qb-strip-btn mn-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                  <ChevronRight size={18} />
+                </button>
+                <button className="mn-qb-strip-btn" data-tip="New Note" onClick={() => { setSidebarCollapsed(false); createNewNote(); }} type="button">
+                  <Plus size={18} />
+                </button>
+                <button className="mn-qb-strip-btn" data-tip="Convert" onClick={() => { setSidebarCollapsed(false); setShowConvertModal(true); }} type="button">
+                  <Sparkles size={18} />
+                </button>
+                <button className={`mn-qb-strip-btn ${!showFavorites && !showTrash && !selectedFolder ? 'active' : ''}`} data-tip="All Notes" onClick={() => { setSidebarCollapsed(false); setShowFavorites(false); setShowTrash(false); setSelectedFolder(null); }} type="button">
+                  <Folder size={18} />
+                </button>
+                <button className={`mn-qb-strip-btn ${showFavorites ? 'active' : ''}`} data-tip="Favorites" onClick={() => { setSidebarCollapsed(false); setShowFavorites(true); setShowTrash(false); setSelectedFolder(null); }} type="button">
+                  <Star size={18} />
+                </button>
+                <button className={`mn-qb-strip-btn ${showTrash ? 'active' : ''}`} data-tip="Trash" onClick={() => { setSidebarCollapsed(false); setShowTrash(true); setShowFavorites(false); setSelectedFolder(null); loadTrash(); }} type="button">
+                  <Trash2 size={18} />
+                </button>
+                <div className="mn-qb-strip-spacer" />
+                <button className="mn-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                  <Home size={18} />
+                </button>
+              </div>
+            ) : (
+            <>
               <div className="mn-qb-side-brand">
-                <div className="mn-qb-brand">cerbyl</div>
+                <div className="mn-qb-brand-wrap">
+                  <div className="mn-qb-brand">cerbyl</div>
+                  <div className="mn-qb-brand-kicker">Notes</div>
+                </div>
                 <button
                   className="mn-qb-side-close-btn"
                   onClick={() => setSidebarCollapsed(true)}
@@ -847,8 +873,9 @@ const MyNotes = () => {
                   <span>Logout</span>
                 </button>
               </div>
-            </aside>
-          )}
+            </>
+            )}
+          </aside>
 
           <main className="mn-qb-main">
             <div className="nt-content">
