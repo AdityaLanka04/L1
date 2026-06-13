@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus,
   Grid, List as ListIcon, Layout, Sparkles, ChevronLeft, ChevronRight,
-  Home, LogOut, FileText, RotateCcw, MessageSquare, BookOpen,
+  Home, FileText, RotateCcw, MessageSquare, BookOpen,
   HelpCircle, X
 } from 'lucide-react';
 import './MyNotes.css';
@@ -14,6 +14,9 @@ import { API_URL } from '../config';
 import { sanitizeHtml } from '../utils/sanitize';
 import Templates from '../components/Templates';
 import ImportExportModal from '../components/ImportExportModal';
+import ContextSelector from '../components/ContextSelector';
+import ContextPanel from '../components/ContextPanel';
+import contextService from '../services/contextService';
 
 const asText = (value) => (value === null || value === undefined ? '' : String(value));
 const noteFolderIds = (note) => {
@@ -61,12 +64,26 @@ const MyNotes = () => {
   const [selectedFlashcardSets, setSelectedFlashcardSets] = useState([]);
   const [quizHistory, setQuizHistory] = useState([]);
   const [selectedQuizzes, setSelectedQuizzes] = useState([]);
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
+  const [userDocCount, setUserDocCount] = useState(0);
 
   useEffect(() => {
     loadNotes();
     loadFolders();
     loadChatSessions();
   }, []);
+
+  useEffect(() => {
+    contextService.listDocuments()
+      .then(d => setUserDocCount(d.user_docs?.length || 0))
+      .catch(() => {});
+  }, []);
+
+  const handleHsModeToggle = (val) => {
+    setHsMode(val);
+    localStorage.setItem('hs_mode_enabled', String(val));
+  };
 
   
   useEffect(() => {
@@ -619,11 +636,6 @@ const MyNotes = () => {
     return date.toLocaleDateString();
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    navigate('/');
-  };
 
   const filteredNotes = getFilteredNotes();
   const favoriteCount = notes.filter(n => n.is_favorite).length;
@@ -660,18 +672,9 @@ const MyNotes = () => {
       <div className="mn-qb-topbar">
         <div className="mn-qb-tagline">Learning Unified</div>
         <div className="mn-qb-topbar-right">
-          <button className="mn-qb-top-btn" onClick={() => navigate('/notes')} type="button">
-            Notes Hub
-          </button>
-          <button className="mn-qb-top-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-            Dashboard
-          </button>
-          <button className="mn-qb-top-btn mn-qb-top-btn--accent" onClick={createNewNote} type="button">
-            New Note
-          </button>
-          <button className="mn-qb-top-btn mn-qb-top-btn--accent" onClick={() => setShowConvertModal(true)} type="button">
-            Convert
-          </button>
+          <div className="mn-qb-context-control">
+            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+          </div>
         </div>
       </div>
 
@@ -862,16 +865,9 @@ const MyNotes = () => {
               </div>
 
               <div className="mn-qb-side-actions">
-                <button className="mn-qb-action-btn" onClick={() => navigate('/notes')} type="button">
-                  Notes Hub
-                </button>
-                <button className="mn-qb-action-btn mn-qb-action-btn--ghost" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                <button className="mn-qb-action-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
                   <Home size={14} />
                   <span>Dashboard</span>
-                </button>
-                <button className="mn-qb-action-btn mn-qb-action-btn--ghost" onClick={handleLogout} type="button">
-                  <LogOut size={14} />
-                  <span>Logout</span>
                 </button>
               </div>
             </>
@@ -1255,6 +1251,14 @@ const MyNotes = () => {
           }
           setShowConvertModal(false);
         }}
+      />
+
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        onClose={() => setContextPanelOpen(false)}
+        hsMode={hsMode}
+        onHsModeToggle={handleHsModeToggle}
+        onDocUploaded={() => setUserDocCount(p => p + 1)}
       />
     </div>
   );

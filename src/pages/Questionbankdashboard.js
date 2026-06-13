@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  ArrowLeft, Upload, MessageSquare, Sparkles, FileText, BarChart3, 
-  Plus, Play, Trash2, TrendingUp, Target, Brain, Zap, Award, 
-  CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart, ChevronLeft,
-  Download, FileDown, Eye, Edit3, RefreshCw, Layers, AlertTriangle, 
+import {
+  ArrowLeft, Upload, MessageSquare, Sparkles, FileText, BarChart3,
+  Plus, Play, Trash2, TrendingUp, Target, Brain, Zap, Award,
+  CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart, ChevronLeft, ChevronRight, Home,
+  Download, FileDown, Eye, Edit3, RefreshCw, Layers, AlertTriangle,
   Star, GitMerge, Wand2, List, ChevronDown, ChevronUp, X, Save, Settings
 } from 'lucide-react';
 import './Questionbankdashboard.css';
@@ -128,7 +128,7 @@ const QuestionBankDashboard = () => {
   const location = useLocation();
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [activeView, setActiveView] = useState('question-sets');
   const [questionSets, setQuestionSets] = useState([]);
@@ -2990,34 +2990,62 @@ const QuestionBankDashboard = () => {
           <button className="qbd-rb-top-btn" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard
           </button>
-          <button className="qbd-rb-top-btn" onClick={() => setIsSidebarOpen((prev) => !prev)}>
-            {isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
-          </button>
           <button className="qbd-rb-top-btn qbd-rb-top-btn--accent" onClick={() => setShowImportExport(true)}>
             Convert
           </button>
         </div>
       </div>
 
-      <div className={`qbd-rb-shell ${isSidebarOpen ? '' : 'qbd-rb-shell--collapsed'}`}>
-        {isSidebarOpen && (
-          <aside className="qbd-rb-sidebar">
+      <div className={`qbd-rb-shell ${sidebarCollapsed ? 'qbd-rb-shell--collapsed' : ''}`}>
+        <aside className={`qbd-rb-sidebar ${sidebarCollapsed ? 'qbd-rb-sidebar--collapsed' : ''}`} aria-label="Question bank navigation">
+          {sidebarCollapsed ? (
+            <div className="qbd-rb-collapsed-strip">
+              <button className="qbd-rb-strip-btn qbd-rb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                <ChevronRight size={18} />
+              </button>
+              <button className={`qbd-rb-strip-btn ${activeView === 'custom' ? 'active' : ''}`} data-tip="Generate Custom" onClick={() => { setSidebarCollapsed(false); setActiveView('custom'); }} type="button">
+                <Sparkles size={18} />
+              </button>
+              {QUESTION_VIEWS.filter((view) => view.key !== 'custom').map((view) => {
+                const Icon = view.icon;
+                return (
+                  <button key={view.key} className={`qbd-rb-strip-btn ${activeView === view.key ? 'active' : ''}`} data-tip={view.label} onClick={() => { setSidebarCollapsed(false); setActiveView(view.key); }} type="button">
+                    <Icon size={18} />
+                  </button>
+                );
+              })}
+              <div className="qbd-rb-strip-spacer" />
+              <button className="qbd-rb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                <Home size={18} />
+              </button>
+            </div>
+          ) : (
+          <>
             <div className="qbd-rb-side-brand">
-              <div className="qbd-rb-brand">cerbyl</div>
+              <div className="qbd-rb-brand-wrap">
+                <div className="qbd-rb-brand">cerbyl</div>
+                <div className="qbd-rb-brand-kicker">Question Bank</div>
+              </div>
               <button
                 className="qbd-rb-side-close-btn"
-                onClick={() => setIsSidebarOpen(false)}
+                onClick={() => setSidebarCollapsed(true)}
                 aria-label="Close sidebar"
+                type="button"
               >
                 <ChevronLeft size={14} />
               </button>
             </div>
 
+            <button className="qbd-rb-new-btn" onClick={() => setActiveView('custom')} type="button">
+              <Sparkles size={16} />
+              <span>Generate Custom</span>
+            </button>
+
             <div className="qbd-rb-side-block">
               <div className="qbd-rb-side-label">Quick Access</div>
               <div className="qbd-rb-quick-list">
                 {QUICK_SECTIONS.map((section) => (
-                  <button key={section.label} className="qbd-rb-quick-item" onClick={() => navigate(section.route)}>
+                  <button key={section.label} className="qbd-rb-quick-item" onClick={() => navigate(section.route)} type="button">
                     <span className="qbd-rb-quick-dot" />
                     <span>{section.label}</span>
                     <Plus size={12} />
@@ -3029,13 +3057,14 @@ const QuestionBankDashboard = () => {
             <div className="qbd-rb-side-block qbd-rb-side-block--grow">
               <div className="qbd-rb-side-label">Question Bank</div>
               <nav className="qbd-rb-view-nav">
-                {QUESTION_VIEWS.map((view) => {
+                {QUESTION_VIEWS.filter((view) => view.key !== 'custom').map((view) => {
                   const Icon = view.icon;
                   return (
                     <button
                       key={view.key}
                       className={`qbd-rb-view-link ${activeView === view.key ? 'qbd-rb-view-link--active' : ''}`}
                       onClick={() => setActiveView(view.key)}
+                      type="button"
                     >
                       <Icon size={15} />
                       <span>{view.label}</span>
@@ -3054,6 +3083,7 @@ const QuestionBankDashboard = () => {
                       key={`${group.title}-${item.label}`}
                       className="qbd-rb-side-link"
                       onClick={() => navigate(item.route)}
+                      type="button"
                     >
                       <span className="qbd-rb-side-link-dot" />
                       {item.label}
@@ -3064,11 +3094,14 @@ const QuestionBankDashboard = () => {
             </nav>
 
             <div className="qbd-rb-side-actions">
-              <button className="qbd-rb-action-btn" onClick={() => setShowImportExport(true)}>Convert</button>
-              <button className="qbd-rb-action-btn qbd-rb-action-btn--ghost" onClick={() => navigate('/dashboard-cerbyl')}>Cerbyl Dashboard</button>
+              <button className="qbd-rb-action-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                <Home size={14} />
+                <span>Dashboard</span>
+              </button>
             </div>
-          </aside>
-        )}
+          </>
+          )}
+        </aside>
 
         <main className="qbd-rb-main">
           <div className="qbd-rb-mobile-nav">

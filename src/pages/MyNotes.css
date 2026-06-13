@@ -2324,23 +2324,11 @@
   justify-content: flex-end;
 }
 
-.my-notes-page-full .mn-qb-top-btn {
-  border: none;
-  background: transparent;
-  color: color-mix(in srgb, var(--text-primary) 62%, transparent);
-  padding: 4px 2px;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.my-notes-page-full .mn-qb-top-btn:hover,
-.my-notes-page-full .mn-qb-top-btn--accent {
-  color: var(--accent);
+.my-notes-page-full .mn-qb-context-control {
+  margin-left: 2px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .my-notes-page-full .mn-qb-body {
@@ -2828,10 +2816,6 @@
   flex-shrink: 0;
 }
 
-.my-notes-page-full .mn-qb-action-btn--ghost {
-  justify-content: flex-start;
-}
-
 .my-notes-page-full .mn-qb-action-btn:hover {
   color: var(--text-primary);
   border-color: color-mix(in srgb, var(--accent) 32%, transparent);
@@ -2908,6 +2892,11 @@
   .my-notes-page-full .mn-qb-topbar-right {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .my-notes-page-full .mn-qb-context-control,
+  .my-notes-page-full .mn-qb-context-control > * {
+    width: 100%;
   }
 
   .my-notes-page-full .mn-qb-main .nt-view-header {

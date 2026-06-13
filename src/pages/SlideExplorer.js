@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Loader, FileText, Trash2, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, UploadCloud, MessageSquare, Brain, Zap, Maximize2, Minimize2 } from 'lucide-react';
+import { Upload, Loader, FileText, Trash2, ChevronLeft, ChevronRight, Home, BookOpen, Tag, Lightbulb, UploadCloud, MessageSquare, Brain, Zap, Maximize2, Minimize2 } from 'lucide-react';
 import './SlideExplorer.css';
 import { API_URL } from '../config';
 import slideExplorerAgentService from '../services/slideExplorerAgentService';
@@ -440,80 +440,103 @@ const SlideExplorer = () => {
           <button className="se-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
             Dashboard
           </button>
-          <button className="se-top-btn" type="button" onClick={() => setActiveView('grid')}>
-            My Slides
-          </button>
-          <button className="se-top-btn" type="button" onClick={() => setSidebarCollapsed(prev => !prev)}>
-            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
-          </button>
           <button className="se-top-btn se-top-btn-accent" type="button" onClick={() => setActiveView('upload')} disabled={uploading}>
             Upload New
           </button>
         </div>
       </div>
 
-      <div className={`se-main-layout ${sidebarCollapsed ? 'se-main-layout-collapsed' : ''}`}>
-        {!sidebarCollapsed && (
-        <aside className="se-sidebar">
-          <button
-            className="se-side-collapse-btn"
-            type="button"
-            title="Hide sidebar"
-            aria-label="Hide slides sidebar"
-            onClick={() => setSidebarCollapsed(true)}
-          >
-            <ChevronLeft size={14} />
-          </button>
-          <nav className="se-sidebar-nav">
-            <button
-              className={`se-nav-item se-nav-item--primary ${activeView === 'upload' ? 'active' : ''}`}
-              onClick={() => setActiveView('upload')}
-              disabled={uploading}
-            >
-              <span className="se-nav-icon"><Upload size={18} /></span>
-              <span className="se-nav-text">Upload New</span>
-            </button>
-            <div className="se-nav-divider" />
-            <button
-              className={`se-nav-item ${activeView === 'grid' ? 'active' : ''}`}
-              onClick={() => setActiveView('grid')}
-            >
-              <span className="se-nav-icon"><FileText size={18} /></span>
-              <span className="se-nav-text">My Slides</span>
-              {uploadedSlides.length > 0 && <span className="se-slide-count">{uploadedSlides.length}</span>}
+      <div className="se-main-layout">
+        <aside className={`se-sidebar ${sidebarCollapsed ? 'se-sidebar--collapsed' : ''}`} aria-label="Slides navigation">
+          {sidebarCollapsed ? (
+            <div className="se-collapsed-strip">
+              <button className="se-strip-btn se-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
+                <ChevronRight size={18} />
+              </button>
+              <button className={`se-strip-btn ${activeView === 'upload' ? 'active' : ''}`} data-tip="Upload New" onClick={() => { setSidebarCollapsed(false); setActiveView('upload'); }} type="button" disabled={uploading}>
+                <Upload size={18} />
+              </button>
+              <button className={`se-strip-btn ${activeView === 'grid' ? 'active' : ''}`} data-tip="My Slides" onClick={() => { setSidebarCollapsed(false); setActiveView('grid'); }} type="button">
+                <FileText size={18} />
+              </button>
+              <div className="se-strip-spacer" />
+              <button className="se-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                <Home size={18} />
+              </button>
+              <button className="se-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
+                <MessageSquare size={18} />
+              </button>
+            </div>
+          ) : (
+          <>
+            <div className="se-side-brand">
+              <div className="se-brand-wrap">
+                <div className="se-brand">cerbyl</div>
+                <div className="se-brand-kicker">Slides</div>
+              </div>
+              <button
+                className="se-side-close-btn"
+                onClick={() => setSidebarCollapsed(true)}
+                aria-label="Close slides sidebar"
+                type="button"
+              >
+                <ChevronLeft size={14} />
+              </button>
+            </div>
+
+            <button className="se-new-btn" onClick={() => setActiveView('upload')} type="button" disabled={uploading}>
+              <Upload size={16} />
+              <span>Upload New</span>
             </button>
 
-            {uploadedSlides.length > 0 && (
-              <>
-                <div className="se-nav-section-title">Recents</div>
-                {uploadedSlides.slice(0, 6).map(slide => (
-                  <div key={slide.id} className="se-slide-item" onClick={() => analyzeSlide(slide.id)}>
-                    <span className="se-nav-icon"><FileText size={16} /></span>
-                    <div className="se-slide-info">
-                      <div className="se-slide-title">{slide.filename || 'Untitled'}</div>
-                      <div className="se-slide-meta">{slide.page_count || 0} pages</div>
-                    </div>
-                    <button className="se-slide-delete-btn" onClick={(e) => deleteSlide(slide.id, e)} title="Delete">
-                      <Trash2 size={13} />
-                    </button>
+            <div className="se-side-block se-side-block--grow">
+              <div className="se-side-label">Slide Library</div>
+              <nav className="se-view-nav">
+                <button
+                  className={`se-view-link ${activeView === 'grid' ? 'se-view-link--active' : ''}`}
+                  onClick={() => setActiveView('grid')}
+                  type="button"
+                >
+                  <FileText size={16} />
+                  <span>My Slides</span>
+                  {uploadedSlides.length > 0 && <span className="se-slide-count">{uploadedSlides.length}</span>}
+                </button>
+              </nav>
+
+              {uploadedSlides.length > 0 && (
+                <>
+                  <div className="se-nav-section-title">Recents</div>
+                  <div className="se-slides-list">
+                    {uploadedSlides.slice(0, 6).map(slide => (
+                      <div key={slide.id} className="se-slide-item" onClick={() => analyzeSlide(slide.id)}>
+                        <span className="se-nav-icon"><FileText size={16} /></span>
+                        <div className="se-slide-info">
+                          <div className="se-slide-title">{slide.filename || 'Untitled'}</div>
+                          <div className="se-slide-meta">{slide.page_count || 0} pages</div>
+                        </div>
+                        <button className="se-slide-delete-btn" onClick={(e) => deleteSlide(slide.id, e)} title="Delete">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </>
-            )}
-          </nav>
+                </>
+              )}
+            </div>
 
-          <div className="se-sidebar-footer">
-            <button className="se-nav-item" onClick={() => navigate('/dashboard-cerbyl')}>
-              <span className="se-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-              <span className="se-nav-text">Dashboard</span>
-            </button>
-            <button className="se-nav-item" onClick={() => navigate('/ai-chat')}>
-              <span className="se-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-              <span className="se-nav-text">AI Chat</span>
-            </button>
-          </div>
+            <div className="se-side-actions">
+              <button className="se-side-action-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
+                <Home size={14} />
+                <span>Dashboard</span>
+              </button>
+              <button className="se-side-action-btn" onClick={() => navigate('/ai-chat')} type="button">
+                <MessageSquare size={14} />
+                <span>AI Chat</span>
+              </button>
+            </div>
+          </>
+          )}
         </aside>
-        )}
 
         <main className="se-main-content">
           {activeView === 'upload' ? (
