@@ -56,6 +56,8 @@ const Weaknesses = lazy(() => import('./pages/Weaknesses'));
 const WeaknessPractice = lazy(() => import('./pages/WeaknessPractice'));
 const WeaknessTips = lazy(() => import('./pages/WeaknessTips'));
 const SharedItemViewer = lazy(() => import('./pages/SharedItemViewer'));
+const PublicFlashcardView = lazy(() => import('./pages/PublicFlashcardView'));
+const PublicChatView = lazy(() => import('./pages/PublicChatView'));
 const NotesDashboard = lazy(() => import('./pages/NotesDashboard'));
 const ActivityTimeline = lazy(() => import('./pages/ActivityTimeline'));
 const CustomizeDashboard = lazy(() => import('./pages/CustomizeDashboard'));
@@ -115,6 +117,8 @@ function App() {
                   <Route path="/shared/:contentType/:contentId" element={<SharedItemViewer />} />
                   <Route path="/shared/chat/:chatId" element={<AIChat sharedMode={true} />} />
                   <Route path="/shared/note/:noteId" element={<NotesRedesign sharedMode={true} />} />
+                  <Route path="/flashcards/share/:token" element={<PublicFlashcardView />} />
+                  <Route path="/chat/share/:token" element={<PublicChatView />} />
                   <Route path="/playlists" element={<ProtectedRoute><PlaylistsPage /></ProtectedRoute>} />
                   <Route path="/playlists/:playlistId" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
                   <Route path="/friends" element={<ProtectedRoute><FriendsDashboard /></ProtectedRoute>} />

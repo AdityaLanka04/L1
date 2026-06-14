@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -71,12 +72,20 @@ def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db
     if fs.user_id != current_user.id and not getattr(fs, "is_public", False):
         raise HTTPException(status_code=403, detail="Access denied")
 
+    if fs.user_id == current_user.id and not getattr(fs, "public_token", None):
+        token = secrets.token_urlsafe(12)
+        while db.query(models.FlashcardSet).filter(models.FlashcardSet.public_token == token).first():
+            token = secrets.token_urlsafe(12)
+        fs.public_token = token
+        db.commit()
+
     cards = db.query(models.Flashcard).filter(models.Flashcard.set_id == set_id).all()
 
     return {
         "set_id": fs.id,
         "set_title": fs.title,
         "share_code": getattr(fs, "share_code", None),
+        "public_token": getattr(fs, "public_token", None),
         "description": fs.description or "",
         "flashcards": [
             {

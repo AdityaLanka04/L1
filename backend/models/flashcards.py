@@ -9,6 +9,7 @@ class FlashcardSet(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     share_code = Column(String(6), unique=True, index=True, nullable=True)
+    public_token = Column(String(32), unique=True, index=True, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     title = Column(String(200), default="New Flashcard Set")
     description = Column(Text, default="")

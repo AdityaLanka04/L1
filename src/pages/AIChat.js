@@ -742,6 +742,7 @@ const AIChat = ({ sharedMode = false }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [chatSessions, setChatSessions] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
+  const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -2349,6 +2350,24 @@ const AIChat = ({ sharedMode = false }) => {
           });
   };
 
+  const handleCopyChatShareLink = async () => {
+    if (!activeChatId) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/chat/${activeChatId}/share-link`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      const url = `${window.location.origin}/chat/share/${data.public_token}`;
+      await navigator.clipboard.writeText(url);
+      setShareLinkCopied(true);
+      setTimeout(() => setShareLinkCopied(false), 2000);
+    } catch (error) {
+      // silenced
+    }
+  };
+
   const convertSymbolsToUnicode = (text) => {
     let result = text;
     for (const [symbol, unicode] of Object.entries(SYMBOL_MAP)) {
@@ -2887,6 +2906,7 @@ const AIChat = ({ sharedMode = false }) => {
     check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>,
     x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
     chevronLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>,
+    link: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
     chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
     send: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
     attach: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>,
@@ -2931,6 +2951,16 @@ const AIChat = ({ sharedMode = false }) => {
       <div className="ac-qb-topbar">
         <div className="ac-qb-tagline">Learning Unified</div>
         <div className="ac-qb-topbar-right">
+          <button
+            className="ac-qb-strip-btn ac-share-btn"
+            type="button"
+            onClick={handleCopyChatShareLink}
+            disabled={!activeChatId}
+            title="Copy shareable link to this chat"
+          >
+            {shareLinkCopied ? Icons.check : Icons.link}
+            <span>{shareLinkCopied ? 'Link Copied' : 'Share'}</span>
+          </button>
           <div className="ac-qb-context-action">
             <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
           </div>

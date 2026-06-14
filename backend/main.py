@@ -171,6 +171,22 @@ if "sqlite" in DATABASE_URL:
         _conn.commit()
 
     with engine.connect() as _conn:
+        _fcs_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(flashcard_sets)"))}
+        if "public_token" not in _fcs_cols:
+            _conn.execute(text("ALTER TABLE flashcard_sets ADD COLUMN public_token VARCHAR(32)"))
+            logger.info("Added column flashcard_sets.public_token")
+        _conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_flashcard_sets_public_token ON flashcard_sets(public_token)"))
+        _conn.commit()
+
+    with engine.connect() as _conn:
+        _cs_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(chat_sessions)"))}
+        if "public_token" not in _cs_cols:
+            _conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN public_token VARCHAR(32)"))
+            logger.info("Added column chat_sessions.public_token")
+        _conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_sessions_public_token ON chat_sessions(public_token)"))
+        _conn.commit()
+
+    with engine.connect() as _conn:
         _note_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(notes)"))}
         _note_additions = {
             "is_public": "BOOLEAN DEFAULT FALSE",
@@ -519,6 +535,7 @@ from routes import (
     intelligence,
     rate_limits,
     ai_jobs,
+    public_share,
 )
 
 app.include_router(auth.router)
@@ -550,6 +567,7 @@ app.include_router(knowledge_tracing.router)
 app.include_router(intelligence.router)
 app.include_router(rate_limits.router)
 app.include_router(ai_jobs.router)
+app.include_router(public_share.router)
 
 try:
     from flashcard_api_minimal import register_flashcard_api_minimal

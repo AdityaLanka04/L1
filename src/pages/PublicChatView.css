@@ -1,0 +1,136 @@
+.pcv-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.pcv-center {
+  align-items: center;
+  text-align: center;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pcv-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: pcv-spin 1s linear infinite;
+}
+
+@keyframes pcv-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pcv-container {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pcv-header {
+  text-align: center;
+}
+
+.pcv-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 10px;
+}
+
+.pcv-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pcv-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pcv-message-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pcv-message {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: var(--bg-secondary);
+}
+
+.pcv-message-user {
+  align-self: flex-end;
+  max-width: 85%;
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.pcv-message-ai {
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.pcv-message-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.pcv-message-content {
+  font-size: 15px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.pcv-message-content p {
+  margin: 0 0 10px;
+}
+
+.pcv-message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.pcv-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 40px 0;
+}
+
+.pcv-footer {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.pcv-home-link {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pcv-home-link:hover {
+  text-decoration: underline;
+}

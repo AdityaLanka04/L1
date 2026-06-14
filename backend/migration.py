@@ -248,8 +248,24 @@ def _run_postgres_migration():
         "flashcard_sets",
         {
             "share_code": "VARCHAR(6)",
+            "public_token": "VARCHAR(32)",
         },
     )
+
+    add_missing_columns(
+        "chat_sessions",
+        {
+            "public_token": "VARCHAR(32)",
+        },
+    )
+
+    for _table, _col in (("flashcard_sets", "public_token"), ("chat_sessions", "public_token")):
+        if _table in tables:
+            with engine.connect() as conn:
+                conn.execute(text(
+                    f"CREATE UNIQUE INDEX IF NOT EXISTS idx_{_table}_{_col} ON {_table}({_col})"
+                ))
+                conn.commit()
 
     add_missing_columns(
         "comprehensive_user_profiles",

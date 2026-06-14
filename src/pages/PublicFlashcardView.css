@@ -1,0 +1,177 @@
+.pfv-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.pfv-center {
+  align-items: center;
+  text-align: center;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pfv-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: pfv-spin 1s linear infinite;
+}
+
+@keyframes pfv-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pfv-container {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.pfv-header {
+  text-align: center;
+}
+
+.pfv-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+
+.pfv-description {
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}
+
+.pfv-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pfv-counter {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.pfv-card {
+  width: 100%;
+  max-width: 520px;
+  height: 280px;
+  perspective: 1200px;
+  cursor: pointer;
+}
+
+.pfv-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s;
+  transform-style: preserve-3d;
+}
+
+.pfv-card.pfv-flipped .pfv-card-inner {
+  transform: rotateY(180deg);
+}
+
+.pfv-card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  backface-visibility: hidden;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.pfv-card-back {
+  transform: rotateY(180deg);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.pfv-card-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.pfv-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: -8px 0 0;
+}
+
+.pfv-nav {
+  display: flex;
+  gap: 12px;
+}
+
+.pfv-nav-btn {
+  padding: 10px 24px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pfv-nav-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.pfv-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pfv-empty {
+  color: var(--text-secondary);
+  padding: 40px 0;
+}
+
+.pfv-footer {
+  margin-top: 12px;
+}
+
+.pfv-home-link {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pfv-home-link:hover {
+  text-decoration: underline;
+}

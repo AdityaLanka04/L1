@@ -44,6 +44,7 @@ const FC_ICONS = {
   celebration: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/></svg>,
   chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
   chevronLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+  link: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
 };
 
 const cleanFlashcardChoiceText = (value) => {
@@ -126,6 +127,7 @@ const Flashcards = () => {
   
   const [studyMode, setStudyMode] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const [studySessionStats, setStudySessionStats] = useState({ correct: 0, incorrect: 0, skipped: 0 });
   const gradedCardsRef = useRef(new Set()); 
   const [showStudyResults, setShowStudyResults] = useState(false);
@@ -1716,6 +1718,18 @@ const Flashcards = () => {
     }
   };
 
+  const handleCopyShareLink = () => {
+    const token = currentSetInfo?.publicToken;
+    if (!token) return;
+    const url = `${window.location.origin}/flashcards/share/${token}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setShareLinkCopied(true);
+      setTimeout(() => setShareLinkCopied(false), 2000);
+    }).catch(() => {
+      showPopup('Share Link', url);
+    });
+  };
+
   const loadFlashcardSet = async (setId, mode = 'study') => {
     setLoadingSetId(setId);
     try {
@@ -1734,6 +1748,7 @@ const Flashcards = () => {
           saved: true,
           setId: setId,
           shareCode: data.share_code,
+          publicToken: data.public_token,
           setTitle: data.set_title || 'Flashcard Set',
           cardCount: data.flashcards.length
         });
@@ -2505,6 +2520,16 @@ const Flashcards = () => {
               <span className="fc-card-counter">CARD {currentCard + 1} OF {previewCards.length}</span>
             </div>
             <div className="fc-study-header-actions">
+              <button
+                className="fc-ask-ai-toggle-btn"
+                onClick={handleCopyShareLink}
+                type="button"
+                disabled={!currentSetInfo?.publicToken}
+                title="Copy shareable link to this flashcard set"
+              >
+                {shareLinkCopied ? FC_ICONS.check : FC_ICONS.link}
+                <span>{shareLinkCopied ? 'Link Copied' : 'Share'}</span>
+              </button>
               <button className="fc-ask-ai-toggle-btn" onClick={() => setAskAiOpen(prev => !prev)} type="button">
                 {FC_ICONS.chat}
                 <span>Ask AI</span>
@@ -2849,6 +2874,16 @@ const Flashcards = () => {
                   <span className="fc-card-counter">CARD {currentCard + 1} OF {currentStudyCards.length}</span>
                 </div>
                 <div className="fc-study-header-actions">
+                  <button
+                    className="fc-ask-ai-toggle-btn"
+                    onClick={handleCopyShareLink}
+                    type="button"
+                    disabled={!currentSetInfo?.publicToken}
+                    title="Copy shareable link to this flashcard set"
+                  >
+                    {shareLinkCopied ? FC_ICONS.check : FC_ICONS.link}
+                    <span>{shareLinkCopied ? 'Link Copied' : 'Share'}</span>
+                  </button>
                   <button className="fc-ask-ai-toggle-btn" onClick={() => setAskAiOpen(prev => !prev)} type="button">
                     {FC_ICONS.chat}
                     <span>Ask AI</span>
