@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   Upload, Youtube, FileText, Save, Copy, Mic, Loader,
   Settings, Brain, Zap, Clock, Globe, ChevronLeft, ChevronRight,
-  BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home, LogOut
+  BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home
 } from 'lucide-react';
 import './AIMediaNotes.css';
 import './AIMediaNotesConvert.css';
@@ -12,6 +12,19 @@ import { queueLegacyAIEndpoint, queueLegacyAIFileEndpoint, USE_AI_JOB_QUEUE } fr
 import { sanitizeHtml } from '../utils/sanitize';
 import ImportExportModal from '../components/ImportExportModal';
 import PodcastStudio from '../components/media/PodcastStudio';
+
+const NotesEmojiIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="4" y="2" width="17" height="20" rx="2.5" fill="#FF9F43" />
+    <rect x="7" y="2" width="14" height="20" rx="2.5" fill="#FFF3E0" />
+    <line x1="10" y1="7" x2="18" y2="7" stroke="#FFB36B" strokeWidth="1.6" strokeLinecap="round" />
+    <line x1="10" y1="11" x2="18" y2="11" stroke="#FFB36B" strokeWidth="1.6" strokeLinecap="round" />
+    <line x1="10" y1="15" x2="15" y2="15" stroke="#FFB36B" strokeWidth="1.6" strokeLinecap="round" />
+    <circle cx="5" cy="6" r="1.1" fill="#fff" />
+    <circle cx="5" cy="11" r="1.1" fill="#fff" />
+    <circle cx="5" cy="16" r="1.1" fill="#fff" />
+  </svg>
+);
 
 const asText = (value) => (value === null || value === undefined ? '' : String(value));
 const MEDIA_FILE_ACCEPT = 'audio/*,video/*,.m4a,audio/mp4,audio/x-m4a';
@@ -24,6 +37,8 @@ const formatDate = (value) => {
 const AIMediaNotes = () => {
   const navigate = useNavigate();
   const { noteId } = useParams();
+  const location = useLocation();
+  const isLibraryView = location.pathname.endsWith('/my-notes');
   const userName = localStorage.getItem('username');
   const fileInputRef = useRef(null);
   const contentRef = useRef(null);
@@ -470,12 +485,6 @@ const AIMediaNotes = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    navigate('/');
-  };
-
   const startNewUpload = () => {
     setResults(null);
     setUploadedFile(null);
@@ -484,12 +493,7 @@ const AIMediaNotes = () => {
     setActiveTab('notes');
   };
 
-  const startFileUpload = () => {
-    startNewUpload();
-    window.setTimeout(() => fileInputRef.current?.click(), 0);
-  };
-
-  const currentMediaTitle = results?.filename || (activeNoteId ? history.find(item => item.id === activeNoteId)?.title : null) || 'AI Media Notes';
+  const currentMediaTitle = isLibraryView ? 'My Media Notes' : (results?.filename || (activeNoteId ? history.find(item => item.id === activeNoteId)?.title : null) || 'AI Media Notes');
   const flashcardCount = Array.isArray(results?.flashcards) ? results.flashcards.length : 0;
   const quizCount = Array.isArray(results?.quiz_questions) ? results.quiz_questions.length : 0;
   const momentCount = Array.isArray(results?.key_moments) ? results.key_moments.length : 0;
@@ -516,26 +520,6 @@ const AIMediaNotes = () => {
       </svg>
       <div className="amn-qb-topbar">
         <div className="amn-qb-tagline">Learning Unified</div>
-        <div className={`amn-qb-topbar-right ${podcastSettingsOpen ? 'amn-qb-topbar-right--hidden' : ''}`} aria-hidden={podcastSettingsOpen}>
-          <button className="amn-qb-top-btn" onClick={() => navigate('/notes')} type="button">
-            Notes Hub
-          </button>
-          <button className="amn-qb-top-btn" onClick={() => navigate('/notes/my-notes')} type="button">
-            My Notes
-          </button>
-          <button className="amn-qb-top-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-            Dashboard
-          </button>
-          <button className="amn-qb-top-btn" onClick={() => setSidebarOpen(prev => !prev)} type="button">
-            {sidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
-          </button>
-          <button className="amn-qb-top-btn amn-qb-top-btn--accent" onClick={startNewUpload} type="button">
-            New Upload
-          </button>
-          <button className="amn-qb-top-btn amn-qb-top-btn--accent" onClick={() => setShowImportExport(true)} disabled={!results} type="button">
-            Convert
-          </button>
-        </div>
       </div>
 
       <div className="mn-layout amn-qb-body">
@@ -549,22 +533,11 @@ const AIMediaNotes = () => {
                 <button className="amn-qb-strip-btn" data-tip="New Upload" onClick={startNewUpload} type="button">
                   <Upload size={18} />
                 </button>
-                <button className="amn-qb-strip-btn" data-tip="Upload File" onClick={startFileUpload} type="button">
-                  <FileText size={18} />
-                </button>
-                <button
-                  className={`amn-qb-strip-btn ${showSettings ? 'active' : ''}`}
-                  data-tip="AI Settings"
-                  onClick={() => setShowSettings(prev => !prev)}
-                  type="button"
-                >
-                  <Settings size={18} />
-                </button>
 
                 <div className="amn-qb-strip-divider"></div>
 
                 <button
-                  className={`amn-qb-strip-btn ${activeTab === 'notes' ? 'active' : ''}`}
+                  className={`amn-qb-strip-btn ${!isLibraryView && activeTab === 'notes' ? 'active' : ''}`}
                   data-tip="Notes"
                   onClick={() => setActiveTab('notes')}
                   disabled={!results}
@@ -573,7 +546,7 @@ const AIMediaNotes = () => {
                   <BookOpen size={18} />
                 </button>
                 <button
-                  className={`amn-qb-strip-btn ${activeTab === 'podcast' ? 'active' : ''}`}
+                  className={`amn-qb-strip-btn ${!isLibraryView && activeTab === 'podcast' ? 'active' : ''}`}
                   data-tip="Podcast"
                   onClick={() => setActiveTab('podcast')}
                   disabled={!results}
@@ -582,7 +555,7 @@ const AIMediaNotes = () => {
                   <Mic size={18} />
                 </button>
                 <button
-                  className={`amn-qb-strip-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
+                  className={`amn-qb-strip-btn ${!isLibraryView && activeTab === 'flashcards' ? 'active' : ''}`}
                   data-tip="Flashcards"
                   onClick={() => setActiveTab('flashcards')}
                   disabled={!results}
@@ -591,7 +564,7 @@ const AIMediaNotes = () => {
                   <FileText size={18} />
                 </button>
                 <button
-                  className={`amn-qb-strip-btn ${activeTab === 'quiz' ? 'active' : ''}`}
+                  className={`amn-qb-strip-btn ${!isLibraryView && activeTab === 'quiz' ? 'active' : ''}`}
                   data-tip="Quiz"
                   onClick={() => setActiveTab('quiz')}
                   disabled={!results}
@@ -600,11 +573,14 @@ const AIMediaNotes = () => {
                   <CheckCircle size={18} />
                 </button>
 
+                <div className="amn-qb-strip-divider"></div>
+
+                <button className={`amn-qb-strip-btn ${isLibraryView ? 'active' : ''}`} data-tip="My Notes" onClick={() => navigate('/notes/ai-media/my-notes')} type="button">
+                  <NotesEmojiIcon size={18} />
+                </button>
+
                 <div className="amn-qb-strip-spacer"></div>
 
-                <button className="amn-qb-strip-btn" data-tip="My Notes" onClick={() => navigate('/notes/my-notes')} type="button">
-                  <FileText size={18} />
-                </button>
                 <button className="amn-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
                   <Home size={18} />
                 </button>
@@ -634,57 +610,44 @@ const AIMediaNotes = () => {
               </button>
 
               <div className="amn-qb-side-block">
-                <div className="amn-qb-side-label">Media Workspace</div>
-                <nav className="amn-qb-view-nav" aria-label="Media actions">
-                  <button className="amn-qb-view-link" onClick={startFileUpload} type="button">
+                <div className="amn-qb-side-label">Generated Output</div>
+                <nav className="amn-qb-view-nav" aria-label="Generated output tabs">
+                  <button className={`amn-qb-view-link ${!isLibraryView && activeTab === 'notes' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('notes')} disabled={!results} type="button">
+                    <BookOpen size={16} />
+                    <span>Notes</span>
+                  </button>
+                  <button className={`amn-qb-view-link ${!isLibraryView && activeTab === 'podcast' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('podcast')} disabled={!results} type="button">
+                    <Mic size={16} />
+                    <span>Podcast</span>
+                  </button>
+                  <button className={`amn-qb-view-link ${!isLibraryView && activeTab === 'analysis' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('analysis')} disabled={!results} type="button">
+                    <Zap size={16} />
+                    <span>Analysis</span>
+                  </button>
+                  <button className={`amn-qb-view-link ${!isLibraryView && activeTab === 'flashcards' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('flashcards')} disabled={!results} type="button">
                     <FileText size={16} />
-                    <span>Upload File</span>
+                    <span>Flashcards</span>
+                    <span className="amn-qb-nav-count">{flashcardCount}</span>
                   </button>
-                  <button className={`amn-qb-view-link ${showSettings ? 'amn-qb-view-link--active' : ''}`} onClick={() => setShowSettings(prev => !prev)} type="button">
-                    <Settings size={16} />
-                    <span>AI Settings</span>
+                  <button className={`amn-qb-view-link ${!isLibraryView && activeTab === 'quiz' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('quiz')} disabled={!results} type="button">
+                    <CheckCircle size={16} />
+                    <span>Quiz</span>
+                    <span className="amn-qb-nav-count">{quizCount}</span>
                   </button>
-                  <button
-                    className="amn-qb-view-link amn-qb-view-link--accent"
-                    onClick={processMedia}
-                    disabled={isProcessing || (!uploadedFile && !youtubeUrl)}
-                    type="button"
-                  >
-                    {isProcessing ? <Loader size={16} className="mn-spinner" /> : <Brain size={16} />}
-                    <span>{isProcessing ? 'Processing' : 'Generate Notes'}</span>
+                  <button className={`amn-qb-view-link ${!isLibraryView && activeTab === 'moments' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('moments')} disabled={!results || !momentCount} type="button">
+                    <Play size={16} />
+                    <span>Moments</span>
+                    <span className="amn-qb-nav-count">{momentCount}</span>
                   </button>
                 </nav>
               </div>
 
               <div className="amn-qb-side-block">
-                <div className="amn-qb-side-label">Generated Output</div>
-                <nav className="amn-qb-view-nav" aria-label="Generated output tabs">
-                  <button className={`amn-qb-view-link ${activeTab === 'notes' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('notes')} disabled={!results} type="button">
-                    <BookOpen size={16} />
-                    <span>Notes</span>
-                  </button>
-                  <button className={`amn-qb-view-link ${activeTab === 'podcast' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('podcast')} disabled={!results} type="button">
-                    <Mic size={16} />
-                    <span>Podcast</span>
-                  </button>
-                  <button className={`amn-qb-view-link ${activeTab === 'analysis' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('analysis')} disabled={!results} type="button">
-                    <Zap size={16} />
-                    <span>Analysis</span>
-                  </button>
-                  <button className={`amn-qb-view-link ${activeTab === 'flashcards' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('flashcards')} disabled={!results} type="button">
-                    <FileText size={16} />
-                    <span>Flashcards</span>
-                    <span className="amn-qb-nav-count">{flashcardCount}</span>
-                  </button>
-                  <button className={`amn-qb-view-link ${activeTab === 'quiz' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('quiz')} disabled={!results} type="button">
-                    <CheckCircle size={16} />
-                    <span>Quiz</span>
-                    <span className="amn-qb-nav-count">{quizCount}</span>
-                  </button>
-                  <button className={`amn-qb-view-link ${activeTab === 'moments' ? 'amn-qb-view-link--active' : ''}`} onClick={() => setActiveTab('moments')} disabled={!results || !momentCount} type="button">
-                    <Play size={16} />
-                    <span>Moments</span>
-                    <span className="amn-qb-nav-count">{momentCount}</span>
+                <div className="amn-qb-side-label">Library</div>
+                <nav className="amn-qb-view-nav" aria-label="Media library">
+                  <button className={`amn-qb-view-link ${isLibraryView ? 'amn-qb-view-link--active' : ''}`} onClick={() => navigate('/notes/ai-media/my-notes')} type="button">
+                    <NotesEmojiIcon size={16} />
+                    <span>My Notes</span>
                   </button>
                 </nav>
               </div>
@@ -726,16 +689,9 @@ const AIMediaNotes = () => {
               </div>
 
               <div className="amn-qb-side-actions">
-                <button className="amn-qb-action-btn" onClick={() => navigate('/notes/my-notes')} type="button">
-                  My Notes
-                </button>
                 <button className="amn-qb-action-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
                   <Home size={14} />
                   <span>Dashboard</span>
-                </button>
-                <button className="amn-qb-action-btn" onClick={handleLogout} type="button">
-                  <LogOut size={14} />
-                  <span>Logout</span>
                 </button>
               </div>
             </>
@@ -744,7 +700,53 @@ const AIMediaNotes = () => {
 
           <main className="amn-qb-main">
           <div className="mn-content" ref={contentRef}>
-            {!results ? (
+            {isLibraryView ? (
+              <div className="mn-upload-section">
+                <div className="view-heading mn-view-heading">
+                  <span className="view-kicker">Your Library</span>
+                  <h2 className="view-title">My Media Notes</h2>
+                  <p className="view-sub">Every note generated from your audio, video &amp; YouTube uploads</p>
+                </div>
+
+                {history.length > 0 ? (
+                  <div className="amn-library-grid">
+                    {history.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        className="amn-library-card"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => navigate(`/notes/ai-media/${item.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') navigate(`/notes/ai-media/${item.id}`);
+                        }}
+                      >
+                        <div className="amn-library-card-icon"><FileText size={18} /></div>
+                        <h3 className="amn-library-card-title">{item.title}</h3>
+                        {item.preview && <p className="amn-library-card-preview">{item.preview}</p>}
+                        <div className="amn-library-card-footer">
+                          <span className="amn-library-card-date">{formatDate(item.created_at)}</span>
+                          <button
+                            type="button"
+                            className="amn-library-card-delete"
+                            title="Delete"
+                            onClick={(e) => deleteHistoryItem(e, item)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mn-empty-state">
+                    <AlertCircle size={48} />
+                    <p>No media notes yet</p>
+                    <p className="mn-empty-hint">Generate notes from audio, video, or YouTube to see them here</p>
+                  </div>
+                )}
+              </div>
+            ) : !results ? (
               <div className="mn-upload-section">
                 <div className="view-heading mn-view-heading">
                   <span className="view-kicker">AI-Powered</span>
