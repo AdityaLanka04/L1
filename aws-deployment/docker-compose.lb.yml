@@ -1,0 +1,62 @@
+version: '3.8'
+
+# EC2 Load Balancer Node
+# Runs the backend (port 8000) and frontend (port 3000) locally.
+# Host Nginx (nginx.lb.conf) handles port 80/443 and load balances
+# between this node and the Azure backend.
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../aws-deployment/Dockerfile.production
+    container_name: brainwave-backend-lb
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - ../backend/.env.production
+    environment:
+      - ENV=production
+      - UPLOAD_DIR=/app/uploads
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_exports:/app/exports
+      - backend_attachments:/app/attachments
+      - backend_chroma:/app/chroma_db
+      - backend_cache:/app/cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: ../Dockerfile
+    container_name: brainwave-frontend-lb
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  backend_uploads:
+  backend_exports:
+  backend_attachments:
+  backend_chroma:
+  backend_cache:
