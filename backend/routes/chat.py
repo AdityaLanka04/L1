@@ -31,6 +31,12 @@ _TUTOR_VISIBLE_OPTION_RE = re.compile(r"(?im)^\s*([A-F])[\).:-]\s+(.{2,220})\s*$
 _TUTOR_ANSWER_FIELD_RE = re.compile(r'(?is)"answer"\s*:\s*"(.*?)"\s*,\s*"tutor_state"\s*:')
 _TUTOR_STATE_FIELD_RE = re.compile(r'(?is)"tutor_state"\s*:\s*(\{.*?\})\s*,\s*"options"\s*:')
 _TUTOR_OPTIONS_FIELD_RE = re.compile(r'(?is)"options"\s*:\s*(\[.*?\])')
+_INTERNAL_GRAPH_GUIDANCE_MARKERS = [
+    "if a visual would materially improve understanding,",
+    "prefer ```graphjson for this response",
+    "for `graphjson`, use schema:",
+    "do not include any graph or diagram block unless the user explicitly asks for one.",
+]
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -182,6 +188,20 @@ def _extract_visible_tutor_options(response_text: str) -> list[dict]:
         return _normalize_tutor_options(visible_options)
     return []
 
+def _strip_internal_graph_guidance(text: str) -> str:
+    raw = str(text or "").replace("\r\n", "\n")
+    if not raw:
+        return ""
+    lowered = raw.lower()
+    cut_at = -1
+    for marker in _INTERNAL_GRAPH_GUIDANCE_MARKERS:
+        index = lowered.find(marker)
+        if index >= 0 and (cut_at == -1 or index < cut_at):
+            cut_at = index
+    if cut_at == -1:
+        return raw.strip()
+    return raw[:cut_at].strip()
+
 def _pydantic_to_dict(model: BaseModel | None) -> dict:
     if not model:
         return {}
@@ -200,11 +220,20 @@ def _strip_json_code_fence(text: str) -> str:
             raw = raw.rsplit("```", 1)[0]
     return raw.strip()
 
+def _normalize_tutor_jsonish_text(text: str) -> str:
+    return (
+        str(text or "")
+        .replace("\u201c", '"')
+        .replace("\u201d", '"')
+        .replace("\u2018", "'")
+        .replace("\u2019", "'")
+    )
+
 def _escape_latex_backslashes_for_json(text: str) -> str:
     return re.sub(r"(?<!\\)\\(?=[A-Za-z])", r"\\\\", text or "")
 
 def _json_decode_lenient(value: str):
-    raw = _strip_json_code_fence(value)
+    raw = _normalize_tutor_jsonish_text(_strip_json_code_fence(value))
     escaped = _escape_latex_backslashes_for_json(raw)
     candidates = [escaped]
     if escaped != raw:
@@ -224,6 +253,17 @@ def _decode_jsonish_string(value: str) -> str:
         return str(decoded).strip()
     except Exception:
         return (value or "").replace('\\"', '"').replace("\\\\", "\\").strip()
+
+def _coerce_tutor_answer(value: object) -> str:
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list):
+        return "\n".join(
+            str(item or "").strip()
+            for item in value
+            if str(item or "").strip()
+        ).strip()
+    return ""
 
 def _trim_tutor_text(value: object, fallback: str, max_len: int = 120) -> str:
     text = re.sub(r"\s+", " ", str(value or "").strip())
@@ -374,6 +414,9 @@ def _normalize_tutor_state(
     level = str(data.get("level") or "intermediate").strip().lower()
     phase = str(data.get("phase") or default_phase).strip().lower()
     verdict = str(data.get("verdict") or ("needs_attempt" if tutor_choice else "not_applicable")).strip().lower()
+    level = {"introductory": "beginner"}.get(level, level)
+    phase = {"exploration": "teach"}.get(phase, phase)
+    verdict = {"in_progress": "not_applicable", "pending": "needs_attempt"}.get(verdict, verdict)
 
     try:
         confidence = float(data.get("confidence", 0.65))
@@ -422,7 +465,7 @@ def _normalize_tutor_state(
     }
 
 def _extract_json_object(text: str) -> Optional[dict]:
-    raw = _strip_json_code_fence(text)
+    raw = _normalize_tutor_jsonish_text(_strip_json_code_fence(text))
     escaped = _escape_latex_backslashes_for_json(raw)
     candidates = [escaped]
     if escaped != raw:
@@ -447,12 +490,18 @@ def _extract_tutor_contract_fallback(
     reply_style: str = "guided",
     tutor_choice: Optional[str] = None,
 ) -> Optional[tuple[str, list[dict], dict]]:
-    raw = _strip_json_code_fence(response_text)
+    raw = _normalize_tutor_jsonish_text(_strip_json_code_fence(response_text))
     if '"answer"' not in raw or '"tutor_state"' not in raw:
         return None
 
+    answer_array_match = re.search(r'(?is)"answer"\s*:\s*(\[[\s\S]*?\])\s*,\s*"tutor_state"\s*:', raw)
     answer_match = _TUTOR_ANSWER_FIELD_RE.search(raw)
-    if not answer_match:
+    answer_value = ""
+    if answer_array_match:
+        answer_value = _coerce_tutor_answer(_json_decode_lenient(answer_array_match.group(1)))
+    elif answer_match:
+        answer_value = _decode_jsonish_string(answer_match.group(1))
+    if not answer_value:
         return None
 
     tutor_state = {}
@@ -469,7 +518,7 @@ def _extract_tutor_contract_fallback(
         tutor_options = _normalize_tutor_options(decoded_options)
 
     return (
-        _decode_jsonish_string(answer_match.group(1)),
+        answer_value,
         tutor_options,
         _normalize_tutor_state(tutor_state, reply_style=reply_style, tutor_choice=tutor_choice),
     )
@@ -497,6 +546,17 @@ def _parse_tutor_response(
             return answer, tutor_options, tutor_state
         except Exception as exc:
             logger.warning("TutorResponse JSON validation failed: %s", exc)
+            answer = _coerce_tutor_answer(parsed.get("answer")) if isinstance(parsed, dict) else ""
+            tutor_state = _normalize_tutor_state(
+                parsed.get("tutor_state") if isinstance(parsed, dict) else {},
+                reply_style=reply_style,
+                tutor_choice=tutor_choice,
+            )
+            tutor_options = _normalize_tutor_options(
+                parsed.get("options") if isinstance(parsed, dict) else []
+            )
+            if answer:
+                return answer, tutor_options, tutor_state
 
     contract_fallback = _extract_tutor_contract_fallback(raw, reply_style, tutor_choice)
     if contract_fallback:
@@ -1151,6 +1211,9 @@ async def ask_simple(
         user = current_user
         user_question = (original_question or question or "").strip()
         model_question = question
+        tutor_user_question = _strip_internal_graph_guidance(user_question or model_question)
+        tutor_user_question = _strip_internal_graph_guidance(user_question or model_question)
+        effective_tutor_input = tutor_user_question if tutor_mode else model_question
 
         chat_id_int = int(chat_id) if chat_id else None
 
@@ -1182,7 +1245,7 @@ async def ask_simple(
         if tutor:
             result = await tutor.invoke(
                 user_id=str(user.id),
-                user_input=model_question,
+                user_input=effective_tutor_input,
                 chat_id=chat_id_int,
                 chat_history=chat_history,
                 use_hs_context=bool(use_hs_context),
@@ -1215,7 +1278,7 @@ async def ask_simple(
             except Exception:
                 pass
         else:
-            response_text = _context_only_fallback_answer(str(user.id), model_question, selected_doc_ids, use_hs_context)
+            response_text = _context_only_fallback_answer(str(user.id), effective_tutor_input, selected_doc_ids, use_hs_context)
             tutor_options = []
             tutor_state = _normalize_tutor_state({}, tutor_reply_style, tutor_choice) if tutor_mode else None
 
@@ -1423,7 +1486,7 @@ async def ask_with_files(
                 logger.warning(f"Vision call failed ({e}) — answering text only")
 
         if not response_text:
-            tutor_input = model_question.strip() or "What can you help me with?"
+            tutor_input = (tutor_user_question if tutor_mode else model_question).strip() or "What can you help me with?"
             if text_extracts and not context_only_mode:
                 tutor_input += "\n\n" + "\n\n".join(text_extracts)
             try:

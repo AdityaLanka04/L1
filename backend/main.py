@@ -51,6 +51,61 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
 if os.getenv("ENVIRONMENT", "development") == "production" and "sqlite" in DATABASE_URL:
     raise RuntimeError("DATABASE_URL must be set to PostgreSQL in production. SQLite is not supported for production use.")
 
+_RL_SCHEDULER_LOCK_ID = int(os.getenv("RL_SCHEDULER_ADVISORY_LOCK_ID", "941731"))
+
+
+def _acquire_rl_scheduler_lock():
+    mode = os.getenv("ENABLE_RL_SCHEDULER", "auto").strip().lower()
+    if mode in {"0", "false", "no", "off", "disabled"}:
+        logger.info("RL reward measurement scheduler disabled by env")
+        return None
+
+    if "postgres" in DATABASE_URL.lower():
+        conn = engine.connect()
+        try:
+            acquired = conn.execute(
+                text("SELECT pg_try_advisory_lock(:lock_id)"),
+                {"lock_id": _RL_SCHEDULER_LOCK_ID},
+            ).scalar()
+            if acquired:
+                logger.info("RL scheduler acquired PostgreSQL advisory lock %s", _RL_SCHEDULER_LOCK_ID)
+                return {"kind": "postgres", "handle": conn}
+        except Exception:
+            conn.close()
+            raise
+        conn.close()
+        logger.info("RL scheduler skipped; advisory lock already held by another worker/replica")
+        return None
+
+    if mode == "auto":
+        logger.info("RL scheduler auto mode without PostgreSQL lock support; running in-process")
+        return {"kind": "local", "handle": None}
+
+    logger.info("RL scheduler enabled without PostgreSQL lock support via env override")
+    return {"kind": "local", "handle": None}
+
+
+def _release_rl_scheduler_lock(lock_state) -> None:
+    if not lock_state:
+        return
+    if lock_state.get("kind") != "postgres":
+        return
+    conn = lock_state.get("handle")
+    if conn is None:
+        return
+    try:
+        conn.execute(
+            text("SELECT pg_advisory_unlock(:lock_id)"),
+            {"lock_id": _RL_SCHEDULER_LOCK_ID},
+        )
+    except Exception:
+        pass
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
 models.Base.metadata.create_all(bind=engine)
 
 if "sqlite" in DATABASE_URL:
@@ -435,26 +490,30 @@ async def lifespan(app: FastAPI):
         logger.warning(f"ContextAgent init failed: {e}")
 
     _scheduler = None
+    _scheduler_lock = None
     try:
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
         from services.rl_strategy_agent import get_bandit
 
-        _bandit_instance = get_bandit()
-        _scheduler = AsyncIOScheduler()
+        _scheduler_lock = _acquire_rl_scheduler_lock()
+        if _scheduler_lock:
+            _bandit_instance = get_bandit()
+            _scheduler = AsyncIOScheduler()
+            reward_interval_seconds = int(os.getenv("RL_REWARD_MEASUREMENT_INTERVAL_SECONDS", "300"))
 
-        def _run_reward_measurement():
-            _bandit_instance.measure_pending_rewards(SessionLocal)
+            def _run_reward_measurement():
+                _bandit_instance.measure_pending_rewards(SessionLocal)
 
-        _scheduler.add_job(
-            _run_reward_measurement,
-            "interval",
-            seconds=60,
-            id="rl_reward_measurement",
-            max_instances=1,
-            coalesce=True,
-        )
-        _scheduler.start()
-        logger.info("RL reward measurement scheduler started (60s interval)")
+            _scheduler.add_job(
+                _run_reward_measurement,
+                "interval",
+                seconds=reward_interval_seconds,
+                id="rl_reward_measurement",
+                max_instances=1,
+                coalesce=True,
+            )
+            _scheduler.start()
+            logger.info("RL reward measurement scheduler started (%ss interval)", reward_interval_seconds)
     except ImportError:
         logger.warning("APScheduler not installed — RL reward measurement disabled. Add apscheduler>=3.10.0 to requirements.txt")
     except Exception as e:
@@ -468,6 +527,7 @@ async def lifespan(app: FastAPI):
             _scheduler.shutdown(wait=False)
         except Exception:
             pass
+    _release_rl_scheduler_lock(_scheduler_lock)
 
 app = FastAPI(title="Brainwave Backend API", version="4.0.0", lifespan=lifespan)
 

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import logging
@@ -236,7 +236,7 @@ def check_and_reset_weekly_stats(stats):
         stats.week_start_date = datetime.combine(week_start, datetime.min.time()).replace(tzinfo=timezone.utc)
         logger.info(f"    Weekly stats reset complete")
     else:
-        logger.info(f" Weekly stats current for user {stats.user_id} (week_start: {stats.week_start_date}, current_week: {week_start})")
+        logger.debug(f" Weekly stats current for user {stats.user_id} (week_start: {stats.week_start_date}, current_week: {week_start})")
 
 def award_points(db: Session, user_id: int, activity_type: str, metadata: dict = None):
     if metadata is None:
@@ -621,16 +621,27 @@ def get_user_stats(db: Session, user_id: int):
     _ensure_powerup_baseline(stats)
     check_and_reset_weekly_stats(stats)
     _expire_stale_streak(stats)
-    
-    db.commit()
+
+    if db.new or db.dirty:
+        db.commit()
     
     next_level_xp = get_xp_for_level(stats.level + 1)
     xp_to_next_level = next_level_xp - stats.experience
     
-    all_stats = db.query(models.UserGamificationStats).order_by(
-        models.UserGamificationStats.total_points.desc()
-    ).all()
-    rank = next((i + 1 for i, s in enumerate(all_stats) if s.user_id == user_id), None)
+    rank = (
+        db.query(func.count(models.UserGamificationStats.user_id))
+        .filter(
+            or_(
+                models.UserGamificationStats.total_points > stats.total_points,
+                and_(
+                    models.UserGamificationStats.total_points == stats.total_points,
+                    models.UserGamificationStats.user_id < user_id,
+                ),
+            )
+        )
+        .scalar()
+        or 0
+    ) + 1
     
     total_chat_sessions = db.query(func.count(func.distinct(models.ChatSession.id))).join(
         models.ChatMessage, models.ChatMessage.chat_session_id == models.ChatSession.id
