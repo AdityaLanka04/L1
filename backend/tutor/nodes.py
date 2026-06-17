@@ -997,7 +997,7 @@ def gate_and_retrieve(state: TutorState) -> dict:
     )
     if should_query_context:
         try:
-            import context_store
+            from services import context_store
             if context_store.available():
                 rag_results = context_store.search_context(
                     query=user_input,
@@ -1814,6 +1814,22 @@ def build_prompt_and_respond(state: TutorState) -> dict:
             )
         return {"response": response, "instructional_task": task}
     except Exception as e:
+        main_ai = state.get("_ai_client")
+        if ai_client is hs_ai and main_ai and main_ai is not ai_client:
+            logger.error(f"HS context AI generation failed; falling back to main AI client: {e}")
+            try:
+                response = main_ai.generate(full_prompt, max_tokens=2000, temperature=0.7)
+                if state.get("tutor_mode") and _has_tutor_contract_leak(response):
+                    logger.warning("[TUTOR GEN] Contract/schema leakage detected after fallback; retrying tutor response repair")
+                    response = _repair_tutor_contract_response(
+                        main_ai,
+                        response,
+                        str(state.get("user_input") or ""),
+                    )
+                return {"response": response, "instructional_task": task}
+            except Exception as fallback_error:
+                logger.error(f"Fallback LLM generation failed: {fallback_error}")
+                return {"response": "I'm having trouble responding right now. Please try again.", "error": str(fallback_error)}
         logger.error(f"LLM generation failed: {e}")
         return {"response": "I'm having trouble responding right now. Please try again.", "error": str(e)}
 

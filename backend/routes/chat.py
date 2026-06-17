@@ -1212,7 +1212,6 @@ async def ask_simple(
         user_question = (original_question or question or "").strip()
         model_question = question
         tutor_user_question = _strip_internal_graph_guidance(user_question or model_question)
-        tutor_user_question = _strip_internal_graph_guidance(user_question or model_question)
         effective_tutor_input = tutor_user_question if tutor_mode else model_question
 
         chat_id_int = int(chat_id) if chat_id else None
@@ -1383,6 +1382,7 @@ async def ask_with_files(
         user = current_user
         user_question = (original_question or question or "").strip()
         model_question = question
+        tutor_user_question = _strip_internal_graph_guidance(user_question or model_question)
 
         chat_id_int = int(chat_id) if chat_id else None
         if chat_id_int:

@@ -2428,9 +2428,20 @@ const AIChat = ({ sharedMode = false }) => {
       .join('\n');
   };
 
+  const normalizeMarkdownForRenderer = (text = '') => {
+    return String(text || '')
+      // Some OpenAI-compatible providers escape markdown punctuation in plain text.
+      // Restore only markdown control characters; leave LaTeX delimiters like \( and \[ intact.
+      .replace(/\\([*`>#.!+-])/g, '$1')
+      .replace(/(\*\*)\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
+      .replace(/([.:])\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
+      .replace(/\s+(\*\s+\*\*[^*]+:\*\*)/g, '\n$1');
+  };
+
   const renderMarkdown = (text) => {
     if (!text) return '';
     text = normalizeTutorStepMarkdown(text);
+    text = normalizeMarkdownForRenderer(text);
 
     // ── Step 1: Extract ALL math blocks BEFORE markdown touches them ──────────
     // Markdown mangles \[, \(, and $$  by treating \ as an escape character

@@ -13,19 +13,6 @@ import { sanitizeHtml } from '../utils/sanitize';
 import ImportExportModal from '../components/ImportExportModal';
 import PodcastStudio from '../components/media/PodcastStudio';
 
-const NotesEmojiIcon = ({ size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <rect x="4" y="2" width="17" height="20" rx="2.5" fill="#FF9F43" />
-    <rect x="7" y="2" width="14" height="20" rx="2.5" fill="#FFF3E0" />
-    <line x1="10" y1="7" x2="18" y2="7" stroke="#FFB36B" strokeWidth="1.6" strokeLinecap="round" />
-    <line x1="10" y1="11" x2="18" y2="11" stroke="#FFB36B" strokeWidth="1.6" strokeLinecap="round" />
-    <line x1="10" y1="15" x2="15" y2="15" stroke="#FFB36B" strokeWidth="1.6" strokeLinecap="round" />
-    <circle cx="5" cy="6" r="1.1" fill="#fff" />
-    <circle cx="5" cy="11" r="1.1" fill="#fff" />
-    <circle cx="5" cy="16" r="1.1" fill="#fff" />
-  </svg>
-);
-
 const asText = (value) => (value === null || value === undefined ? '' : String(value));
 const MEDIA_FILE_ACCEPT = 'audio/*,video/*,.m4a,audio/mp4,audio/x-m4a';
 
@@ -576,7 +563,7 @@ const AIMediaNotes = () => {
                 <div className="amn-qb-strip-divider"></div>
 
                 <button className={`amn-qb-strip-btn ${isLibraryView ? 'active' : ''}`} data-tip="My Notes" onClick={() => navigate('/notes/ai-media/my-notes')} type="button">
-                  <NotesEmojiIcon size={18} />
+                  <FileText size={18} />
                 </button>
 
                 <div className="amn-qb-strip-spacer"></div>
@@ -646,7 +633,6 @@ const AIMediaNotes = () => {
                 <div className="amn-qb-side-label">Library</div>
                 <nav className="amn-qb-view-nav" aria-label="Media library">
                   <button className={`amn-qb-view-link ${isLibraryView ? 'amn-qb-view-link--active' : ''}`} onClick={() => navigate('/notes/ai-media/my-notes')} type="button">
-                    <NotesEmojiIcon size={16} />
                     <span>My Notes</span>
                   </button>
                 </nav>
