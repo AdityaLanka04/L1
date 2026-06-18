@@ -4,6 +4,7 @@ import logging
 import os
 import traceback
 from datetime import datetime, timezone, timedelta
+from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query
@@ -1070,6 +1071,59 @@ async def admin_api_key_usage(
 ):
     from services.api_key_pool import get_usage_snapshot
     return get_usage_snapshot()
+
+
+@router.get("/admin/rate-limits/stats")
+async def admin_rl_stats(
+    window: int = Query(300, ge=60, le=86400),
+    _: str = Depends(check_admin),
+):
+    from middleware.request_tracker import get_stats
+    return get_stats(window_seconds=window)
+
+
+@router.get("/admin/rate-limits/recent")
+async def admin_rl_recent(
+    limit: int = Query(250, ge=1, le=1000),
+    tier: Optional[str] = Query(None),
+    user: Optional[str] = Query(None),
+    blocked_only: bool = Query(False),
+    method: Optional[str] = Query(None),
+    _: str = Depends(check_admin),
+):
+    from middleware.request_tracker import get_recent
+    return {"requests": get_recent(
+        limit=limit,
+        tier_filter=tier,
+        user_filter=user,
+        blocked_only=blocked_only,
+        method_filter=method,
+    )}
+
+
+@router.get("/admin/rate-limits/live")
+async def admin_rl_live(
+    _: str = Depends(check_admin),
+):
+    from middleware.request_tracker import get_live_quotas, BACKEND_ID
+    from middleware.rate_limiter import TIERS
+    from services.subscription_catalog import SUBSCRIPTION_PLANS
+    quotas = get_live_quotas()
+    tier_windows = {t: w for t, (_, w) in TIERS.items()}
+    plan_limits = {
+        plan_id: {
+            tier: plan.get("rate_limits", {}).get(tier, limit)
+            for tier, (limit, _) in TIERS.items()
+        }
+        for plan_id, plan in SUBSCRIPTION_PLANS.items()
+        if not plan.get("hidden")
+    }
+    return {
+        "quotas": quotas,
+        "backend_id": BACKEND_ID,
+        "tier_windows": tier_windows,
+        "plan_limits": plan_limits,
+    }
 
 @router.get("/study_insights/comprehensive")
 async def get_comprehensive_insights(

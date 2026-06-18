@@ -69,6 +69,7 @@ const LearningPaths = lazy(() => import('./pages/LearningPaths'));
 const LearningPathDetail = lazy(() => import('./pages/LearningPathDetail'));
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
 const AdminApiUsage = lazy(() => import('./pages/AdminApiUsage'));
+const AdminRateLimits = lazy(() => import('./pages/AdminRateLimits'));
 const CanvasHub = lazy(() => import('./pages/CanvasHub'));
 const Vault = lazy(() => import('./pages/Vault'));
 const ContextFileAnalysis = lazy(() => import('./pages/ContextFileAnalysis'));
@@ -162,6 +163,7 @@ function App() {
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
                   <Route path="/admin/api-usage" element={<ProtectedRoute><AdminApiUsage /></ProtectedRoute>} />
+                  <Route path="/admin/rate-limits" element={<ProtectedRoute><AdminRateLimits /></ProtectedRoute>} />
                   <Route path="/admin/api_usage" element={<Navigate to="/admin/api-usage" replace />} />
                   <Route path="/api-usage" element={<Navigate to="/admin/api-usage" replace />} />
                   <Route path="/api_usage" element={<Navigate to="/admin/api-usage" replace />} />

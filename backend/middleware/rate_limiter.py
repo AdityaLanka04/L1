@@ -380,6 +380,30 @@ def _check(key: str, limit: int, window: int) -> Tuple[bool, int, float]:
             logger.warning(f"Rate limiter Redis error ({e}); falling back to in-memory")
     return _check_memory(key, limit, window)
 
+def _track(
+    path: str,
+    method: str,
+    user_id: Optional[str],
+    ip: str,
+    tier: Optional[str],
+    limit: int,
+    used: int,
+    allowed: bool,
+    status_code: int,
+    duration_ms: float,
+    plan: str,
+) -> None:
+    try:
+        from middleware.request_tracker import record
+        record(
+            path=path, method=method, user_id=user_id, ip=ip,
+            tier=tier, limit=limit, used=used, allowed=allowed,
+            status_code=status_code, duration_ms=duration_ms, plan=plan,
+        )
+    except Exception:
+        pass
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
@@ -389,6 +413,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         method = request.method
         tier_name = _classify(method, path)
+        _t0 = time.time()
 
         if tier_name is None:
             return await call_next(request)
@@ -396,18 +421,23 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         base_limit, window = TIERS[tier_name]
         use_ip = tier_name in _AUTH_TIERS
         identity = _get_identity(request, use_ip=use_ip)
+        jwt_sub = _get_jwt_sub(request)
+        ip = _get_client_ip(request)
         plan_id = DEFAULT_PLAN_ID
         if not use_ip:
-            plan_id = get_subscription_tier(_get_jwt_sub(request))
+            plan_id = get_subscription_tier(jwt_sub)
         limit = get_effective_rate_limit(plan_id, tier_name, base_limit)
         if limit <= 0:
             response = await call_next(request)
+            dur = (time.time() - _t0) * 1000
             response.headers["X-RateLimit-Limit"] = "unlimited"
             response.headers["X-RateLimit-Remaining"] = "unlimited"
             response.headers["X-RateLimit-Reset"] = "0"
             response.headers["X-RateLimit-Window"] = str(window)
             response.headers["X-RateLimit-Tier"] = tier_name
             response.headers["X-RateLimit-Plan"] = plan_id
+            _track(path, method, jwt_sub, ip, tier_name, 0, 0, True,
+                   response.status_code, dur, plan_id)
             return response
 
         rl_key = f"rl:{tier_name}:{identity}"
@@ -417,11 +447,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         remaining = max(0, limit - current)
 
         if not allowed:
+            dur = (time.time() - _t0) * 1000
             retry_after = max(1, int(reset_at - time.time()))
             logger.warning(
                 "Rate limit exceeded | tier=%s identity=%s path=%s method=%s",
                 tier_name, identity, path, method,
             )
+            _track(path, method, jwt_sub, ip, tier_name, limit, current,
+                   False, 429, dur, plan_id)
             return JSONResponse(
                 status_code=429,
                 content={
@@ -446,6 +479,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
 
         response = await call_next(request)
+        dur = (time.time() - _t0) * 1000
+        _track(path, method, jwt_sub, ip, tier_name, limit, current,
+               True, response.status_code, dur, plan_id)
         response.headers["X-RateLimit-Limit"]     = str(limit)
         response.headers["X-RateLimit-Remaining"] = str(remaining)
         response.headers["X-RateLimit-Reset"]     = str(int(reset_at))
