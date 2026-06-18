@@ -127,12 +127,21 @@ _JWT_AUDIENCE = "brainwave-client"
 _JWT_ISSUER = "brainwave-backend"
 
 _TRUSTED_PROXY_CIDRS_RAW = os.getenv("RATE_LIMIT_TRUSTED_PROXY_CIDRS", "127.0.0.1/32,::1/128")
-_UNLIMITED_EMAILS_RAW = os.getenv("RATE_LIMIT_UNLIMITED_EMAILS", "rithvikkumar35@gmail.com")
-_UNLIMITED_EMAILS = {
-    email.strip().lower()
-    for email in _UNLIMITED_EMAILS_RAW.split(",")
-    if email.strip()
-}
+_DEFAULT_UNLIMITED_IDENTIFIERS = "aditya.s.lanka@gmail.com,rithvikkumar35@gmail.com,AL04"
+
+def _identifiers_from_csv(raw: str | None) -> set[str]:
+    return {
+        email.strip().lower()
+        for email in (raw or "").split(",")
+        if email.strip()
+    }
+
+_UNLIMITED_IDENTIFIERS = (
+    _identifiers_from_csv(_DEFAULT_UNLIMITED_IDENTIFIERS)
+    | _identifiers_from_csv(os.getenv("RATE_LIMIT_UNLIMITED_EMAILS"))
+    | _identifiers_from_csv(os.getenv("ADMIN_EMAILS"))
+    | _identifiers_from_csv(os.getenv("API_USAGE_ADMIN_EMAILS"))
+)
 
 _MEM_MAX_KEYS = max(1000, int(os.getenv("RATE_LIMIT_MEMORY_MAX_KEYS", "20000")))
 _MEM_EVICT_BATCH = max(100, _MEM_MAX_KEYS // 4)
@@ -245,12 +254,13 @@ def invalidate_subscription_cache(*subjects: str) -> None:
         for subject in subjects:
             if subject:
                 _subscription_cache.pop(subject, None)
+                _subscription_cache.pop(subject.strip().lower(), None)
 
 def get_subscription_tier(subject: Optional[str]) -> str:
     normalized_subject = (subject or "").strip().lower()
     if not normalized_subject:
         return DEFAULT_PLAN_ID
-    if normalized_subject in _UNLIMITED_EMAILS:
+    if normalized_subject in _UNLIMITED_IDENTIFIERS:
         return "unlimited"
 
     now = time.time()
@@ -268,7 +278,7 @@ def get_subscription_tier(subject: Optional[str]) -> str:
                     SELECT cp.subscription_tier, u.email
                     FROM users u
                     LEFT JOIN comprehensive_user_profiles cp ON cp.user_id = u.id
-                    WHERE u.username = :subject OR u.email = :subject
+                    WHERE lower(u.username) = :subject OR lower(u.email) = :subject
                     LIMIT 1
                     """
                 ),
@@ -276,7 +286,7 @@ def get_subscription_tier(subject: Optional[str]) -> str:
             ).first()
         if row:
             email = (row[1] or "").strip().lower()
-            if email in _UNLIMITED_EMAILS:
+            if email in _UNLIMITED_IDENTIFIERS:
                 tier = "unlimited"
             elif row[0]:
                 tier = normalize_plan_id(str(row[0]))

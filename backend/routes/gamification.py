@@ -2,7 +2,14 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
+
+try:
+    from services.redis_cache import get_analytics as _cache_get, set_analytics as _cache_set
+except Exception:
+    def _cache_get(key): return None
+    def _cache_set(key, value, ttl=60): pass
 
 import models
 from deps import (
@@ -21,6 +28,96 @@ router = APIRouter(
     tags=["gamification"],
     dependencies=[Depends(enforce_request_user_scope)],
 )
+
+
+def _recent_note_summaries(db: Session, user_id: int, limit: int = 3) -> list[dict]:
+    notes = (
+        db.query(models.Note)
+        .filter(
+            models.Note.user_id == user_id,
+            models.Note.is_deleted == False,
+        )
+        .order_by(models.Note.updated_at.desc(), models.Note.id.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": note.id,
+            "title": note.title,
+            "updated_at": note.updated_at.isoformat() + "Z" if note.updated_at else None,
+            "created_at": note.created_at.isoformat() + "Z" if note.created_at else None,
+        }
+        for note in notes
+    ]
+
+
+def _recent_flashcard_set_summaries(db: Session, user_id: int, limit: int = 3) -> list[dict]:
+    card_counts = (
+        db.query(
+            models.Flashcard.set_id.label("set_id"),
+            func.count(models.Flashcard.id).label("card_count"),
+        )
+        .group_by(models.Flashcard.set_id)
+        .subquery()
+    )
+    sets = (
+        db.query(
+            models.FlashcardSet.id,
+            models.FlashcardSet.title,
+            models.FlashcardSet.created_at,
+            func.coalesce(card_counts.c.card_count, 0).label("card_count"),
+        )
+        .outerjoin(card_counts, card_counts.c.set_id == models.FlashcardSet.id)
+        .filter(models.FlashcardSet.user_id == user_id)
+        .order_by(models.FlashcardSet.created_at.desc(), models.FlashcardSet.id.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "set_id": row.id,
+            "title": row.title,
+            "created_at": row.created_at.isoformat() + "Z" if row.created_at else None,
+            "count": int(row.card_count or 0),
+        }
+        for row in sets
+    ]
+
+
+def _build_daily_challenge(stats) -> dict:
+    challenges = [
+        {"id": 1, "title": "Knowledge Sprint", "description": "Answer 15 questions correctly", "target": 15, "type": "questions_answered", "reward": 100, "icon": "target"},
+        {"id": 2, "title": "Chat Master", "description": "Have 25 AI conversations", "target": 25, "type": "ai_chats", "reward": 75, "icon": "chat"},
+        {"id": 3, "title": "Note Taker", "description": "Create 5 new notes", "target": 5, "type": "notes_created", "reward": 150, "icon": "note"},
+        {"id": 4, "title": "Study Marathon", "description": "Study for 2 hours", "target": 120, "type": "study_minutes", "reward": 200, "icon": "clock"},
+        {"id": 5, "title": "Quiz Champion", "description": "Complete 3 quizzes with 80%+", "target": 3, "type": "quizzes_completed", "reward": 175, "icon": "trophy"},
+        {"id": 6, "title": "Flashcard Creator", "description": "Create 20 flashcards", "target": 20, "type": "flashcards_created", "reward": 125, "icon": "cards"},
+        {"id": 7, "title": "Perfect Score", "description": "Get 100% on any quiz", "target": 1, "type": "perfect_quizzes", "reward": 250, "icon": "star"},
+    ]
+
+    day_of_year = datetime.now(timezone.utc).timetuple().tm_yday
+    daily_challenge = challenges[day_of_year % len(challenges)]
+
+    progress = 0
+    if stats:
+        if daily_challenge["type"] == "questions_answered":
+            progress = stats.weekly_questions_answered
+        elif daily_challenge["type"] == "ai_chats":
+            progress = stats.weekly_ai_chats
+        elif daily_challenge["type"] == "notes_created":
+            progress = stats.weekly_notes_created
+        elif daily_challenge["type"] == "study_minutes":
+            progress = stats.weekly_study_minutes
+        elif daily_challenge["type"] == "quizzes_completed":
+            progress = stats.weekly_quizzes_completed
+        elif daily_challenge["type"] == "flashcards_created":
+            progress = stats.weekly_flashcards_created
+
+    return {
+        "challenge": daily_challenge,
+        "progress": progress,
+    }
 
 @router.get("/get_user_achievements")
 def get_user_achievements(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -203,8 +300,13 @@ async def set_weekly_goals(
 @router.get("/get_dashboard_data")
 async def get_dashboard_data(
     user_id: str = Query(...),
+    include_recent_summaries: bool = Query(False),
     db: Session = Depends(get_db)
 ):
+    cache_key = f"dashboard:v2:{user_id}:{int(include_recent_summaries)}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     try:
         from services.gamification_system import get_user_stats
 
@@ -222,7 +324,7 @@ async def get_dashboard_data(
 
         streak = calculate_day_streak(db, user.id)
 
-        return {
+        result = {
             "status": "success",
             "gamification": gamification_stats,
             "daily_metrics": {
@@ -230,8 +332,18 @@ async def get_dashboard_data(
                 "time_spent_minutes": daily_metrics.time_spent_minutes if daily_metrics else 0,
                 "accuracy_rate": daily_metrics.accuracy_rate if daily_metrics else 0
             },
-            "streak": streak
+            "streak": streak,
+            "daily_challenge": _build_daily_challenge(
+                db.query(models.UserGamificationStats).filter(
+                    models.UserGamificationStats.user_id == user.id
+                ).first()
+            ),
         }
+        if include_recent_summaries:
+            result["recent_notes"] = _recent_note_summaries(db, user.id)
+            result["recent_flashcard_sets"] = _recent_flashcard_set_summaries(db, user.id)
+        _cache_set(cache_key, result, ttl=60)
+        return result
 
     except Exception as e:
         logger.error(f"Error getting dashboard data: {str(e)}")
@@ -413,39 +525,7 @@ async def get_daily_challenge(
             models.UserGamificationStats.user_id == user.id
         ).first()
 
-        challenges = [
-            {"id": 1, "title": "Knowledge Sprint", "description": "Answer 15 questions correctly", "target": 15, "type": "questions_answered", "reward": 100, "icon": "target"},
-            {"id": 2, "title": "Chat Master", "description": "Have 25 AI conversations", "target": 25, "type": "ai_chats", "reward": 75, "icon": "chat"},
-            {"id": 3, "title": "Note Taker", "description": "Create 5 new notes", "target": 5, "type": "notes_created", "reward": 150, "icon": "note"},
-            {"id": 4, "title": "Study Marathon", "description": "Study for 2 hours", "target": 120, "type": "study_minutes", "reward": 200, "icon": "clock"},
-            {"id": 5, "title": "Quiz Champion", "description": "Complete 3 quizzes with 80%+", "target": 3, "type": "quizzes_completed", "reward": 175, "icon": "trophy"},
-            {"id": 6, "title": "Flashcard Creator", "description": "Create 20 flashcards", "target": 20, "type": "flashcards_created", "reward": 125, "icon": "cards"},
-            {"id": 7, "title": "Perfect Score", "description": "Get 100% on any quiz", "target": 1, "type": "perfect_quizzes", "reward": 250, "icon": "star"}
-        ]
-
-        day_of_year = datetime.now(timezone.utc).timetuple().tm_yday
-        challenge_index = day_of_year % len(challenges)
-        daily_challenge = challenges[challenge_index]
-
-        progress = 0
-        if stats:
-            if daily_challenge["type"] == "questions_answered":
-                progress = stats.weekly_questions_answered
-            elif daily_challenge["type"] == "ai_chats":
-                progress = stats.weekly_ai_chats
-            elif daily_challenge["type"] == "notes_created":
-                progress = stats.weekly_notes_created
-            elif daily_challenge["type"] == "study_minutes":
-                progress = stats.weekly_study_minutes
-            elif daily_challenge["type"] == "quizzes_completed":
-                progress = stats.weekly_quizzes_completed
-            elif daily_challenge["type"] == "flashcards_created":
-                progress = stats.weekly_flashcards_created
-
-        return {
-            "challenge": daily_challenge,
-            "progress": progress
-        }
+        return _build_daily_challenge(stats)
 
     except Exception as e:
         logger.error(f"Error getting daily challenge: {str(e)}")

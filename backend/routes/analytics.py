@@ -59,6 +59,55 @@ def _as_utc_datetime(value):
     return value.astimezone(timezone.utc)
 
 
+def _coerce_date_value(value):
+    if value is None:
+        return None
+    if hasattr(value, "date") and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value).date()
+        except ValueError:
+            return None
+    return None
+
+
+def _group_daily_counts(
+    db: Session,
+    model,
+    timestamp_attr: str,
+    *,
+    user_id: int,
+    start_datetime,
+    user_attr: str = "user_id",
+    extra_filters=None,
+):
+    if not hasattr(model, timestamp_attr) or not hasattr(model, user_attr):
+        return {}
+    timestamp_col = getattr(model, timestamp_attr)
+    user_col = getattr(model, user_attr)
+    query = db.query(
+        func.date(timestamp_col).label("activity_date"),
+        func.count().label("activity_count"),
+    ).filter(
+        user_col == user_id,
+        timestamp_col.isnot(None),
+        timestamp_col >= start_datetime,
+    )
+    if extra_filters:
+        query = query.filter(*extra_filters)
+    rows = query.group_by(func.date(timestamp_col)).all()
+    grouped = {}
+    for date_value, count_value in rows:
+        date_obj = _coerce_date_value(date_value)
+        if date_obj is None:
+            continue
+        grouped[date_obj.isoformat()] = int(count_value or 0)
+    return grouped
+
+
 def check_api_usage_admin(current_user: models.User = Depends(get_current_user)) -> str:
     allowed = {
         email.strip()
@@ -140,34 +189,25 @@ def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db
 
         activity_dict = {}
 
-        def add_timestamp(value):
-            if not value:
-                return
-            if hasattr(value, "date"):
-                date_value = value.date()
-            else:
-                return
-            if start_date <= date_value <= end_date:
-                date_str = date_value.isoformat()
-                activity_dict[date_str] = activity_dict.get(date_str, 0) + 1
+        def merge_grouped_counts(grouped_counts):
+            for date_str, count in grouped_counts.items():
+                if count <= 0:
+                    continue
+                activity_dict[date_str] = activity_dict.get(date_str, 0) + count
 
         def collect_from(model, timestamp_attr, user_attr="user_id", extra_filters=None):
             try:
-                if not hasattr(model, timestamp_attr) or not hasattr(model, user_attr):
-                    return 0
-                timestamp_col = getattr(model, timestamp_attr)
-                user_col = getattr(model, user_attr)
-                query = db.query(timestamp_col).filter(
-                    user_col == user.id,
-                    timestamp_col.isnot(None),
-                    timestamp_col >= start_datetime,
+                grouped_counts = _group_daily_counts(
+                    db,
+                    model,
+                    timestamp_attr,
+                    user_id=user.id,
+                    start_datetime=start_datetime,
+                    user_attr=user_attr,
+                    extra_filters=extra_filters,
                 )
-                if extra_filters:
-                    query = query.filter(*extra_filters)
-                rows = query.all()
-                for (timestamp_value,) in rows:
-                    add_timestamp(timestamp_value)
-                return len(rows)
+                merge_grouped_counts(grouped_counts)
+                return sum(grouped_counts.values())
             except Exception as exc:
                 logger.warning(
                     "Skipping heatmap source %s.%s for user %s: %s",
@@ -239,7 +279,7 @@ def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db
                 "end": end_date.isoformat() + 'Z'
             }
         }
-        _cache_set(cache_key, result, 60)
+        _cache_set(cache_key, result, 300)
         return result
     except Exception as e:
         logger.error(f"Error getting heatmap: {str(e)}")
@@ -359,10 +399,11 @@ def get_analytics_history(
     user_id: str = Query(...),
     period: str = Query("week"),
     tz: str = Query(DEFAULT_ANALYTICS_TZ),
+    reconcile_sources: bool = Query(True),
     db: Session = Depends(get_db)
 ):
     client_tz = _analytics_timezone(tz)
-    cache_key = f"history:v3:{user_id}:{period}:{getattr(client_tz, 'key', DEFAULT_ANALYTICS_TZ)}"
+    cache_key = f"history:v4:{user_id}:{period}:{getattr(client_tz, 'key', DEFAULT_ANALYTICS_TZ)}:{int(reconcile_sources)}"
     cached = _cache_get(cache_key)
     if cached is not None:
         return cached
@@ -513,56 +554,54 @@ def get_analytics_history(
                 except Exception:
                     pass
 
-        def collect_source_counts(model, timestamp_attr, category, point_estimate=0, user_attr="user_id"):
-            if not hasattr(model, timestamp_attr) or not hasattr(model, user_attr):
-                return
-            try:
-                timestamp_col = getattr(model, timestamp_attr)
-                user_col = getattr(model, user_attr)
-                rows = db.query(timestamp_col).filter(
-                    user_col == user.id,
-                    timestamp_col.isnot(None),
-                    timestamp_col >= start_datetime,
-                ).all()
-            except Exception as exc:
-                logger.warning(
-                    "Skipping analytics history source %s.%s for user %s: %s",
-                    getattr(model, "__name__", str(model)),
-                    timestamp_attr,
-                    user.id,
-                    exc,
-                )
-                return
+        if reconcile_sources:
+            def collect_source_counts(model, timestamp_attr, category, point_estimate=0, user_attr="user_id"):
+                try:
+                    grouped_counts = _group_daily_counts(
+                        db,
+                        model,
+                        timestamp_attr,
+                        user_id=user.id,
+                        start_datetime=start_datetime,
+                        user_attr=user_attr,
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "Skipping analytics history source %s.%s for user %s: %s",
+                        getattr(model, "__name__", str(model)),
+                        timestamp_attr,
+                        user.id,
+                        exc,
+                    )
+                    return
 
-            source_counts = {}
-            for (timestamp_value,) in rows:
-                timestamp_utc = _as_utc_datetime(timestamp_value)
-                if not timestamp_utc:
-                    continue
-                key = key_for_date(timestamp_utc.astimezone(client_tz).date())
-                if key in data_points:
-                    source_counts[key] = source_counts.get(key, 0) + 1
+                for date_str, source_count in grouped_counts.items():
+                    try:
+                        timestamp_utc = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+                    except ValueError:
+                        continue
+                    key = key_for_date(timestamp_utc.astimezone(client_tz).date())
+                    if key not in data_points:
+                        continue
+                    existing_count = data_points[key].get(category, 0)
+                    missing_count = max(0, source_count - existing_count)
+                    if missing_count <= 0:
+                        continue
+                    data_points[key][category] = existing_count + missing_count
+                    data_points[key]["points"] += missing_count * point_estimate
 
-            for key, source_count in source_counts.items():
-                existing_count = data_points[key].get(category, 0)
-                missing_count = max(0, source_count - existing_count)
-                if missing_count <= 0:
-                    continue
-                data_points[key][category] = existing_count + missing_count
-                data_points[key]["points"] += missing_count * point_estimate
-
-        collect_source_counts(models.ChatMessage, "timestamp", "ai_chats", 1)
-        collect_source_counts(models.Activity, "timestamp", "quizzes", 0)
-        collect_source_counts(models.Note, "created_at", "notes", 20)
-        collect_source_counts(models.NoteActivity, "created_at", "notes", 0)
-        collect_source_counts(models.FlashcardSet, "created_at", "flashcards", 10)
-        collect_source_counts(models.FlashcardStudySession, "session_date", "flashcards", 0)
-        collect_source_counts(models.QuestionSet, "created_at", "quizzes", 0)
-        collect_source_counts(models.QuestionSession, "completed_at", "quizzes", 15)
-        collect_source_counts(models.LearningPath, "created_at", "quizzes", 0)
-        collect_source_counts(models.LearningNodeProgress, "completed_at", "quizzes", 0)
-        collect_source_counts(models.MediaFile, "created_at", "notes", 0)
-        collect_source_counts(models.PodcastSessionMemory, "created_at", "ai_chats", 0)
+            collect_source_counts(models.ChatMessage, "timestamp", "ai_chats", 1)
+            collect_source_counts(models.Activity, "timestamp", "quizzes", 0)
+            collect_source_counts(models.Note, "created_at", "notes", 20)
+            collect_source_counts(models.NoteActivity, "created_at", "notes", 0)
+            collect_source_counts(models.FlashcardSet, "created_at", "flashcards", 10)
+            collect_source_counts(models.FlashcardStudySession, "session_date", "flashcards", 0)
+            collect_source_counts(models.QuestionSet, "created_at", "quizzes", 0)
+            collect_source_counts(models.QuestionSession, "completed_at", "quizzes", 15)
+            collect_source_counts(models.LearningPath, "created_at", "quizzes", 0)
+            collect_source_counts(models.LearningNodeProgress, "completed_at", "quizzes", 0)
+            collect_source_counts(models.MediaFile, "created_at", "notes", 0)
+            collect_source_counts(models.PodcastSessionMemory, "created_at", "ai_chats", 0)
 
         history = []
         for key in sorted(data_points.keys()):
@@ -586,7 +625,7 @@ def get_analytics_history(
             "total_activities": total_activities,
             "data_points_count": len(history)
         }
-        _cache_set(cache_key, result, 5)
+        _cache_set(cache_key, result, 300 if not reconcile_sources else 60)
         return result
 
     except Exception as e:

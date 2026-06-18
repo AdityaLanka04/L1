@@ -15,6 +15,14 @@ logger = logging.getLogger(__name__)
 
 _dkt_vocab: dict | None = None
 _lang_embedding_cache: dict = {}
+_TUTOR_CONTRACT_LEAK_MARKERS = [
+    "visible markdown answer with numbered step sections and latex",
+    "json schema:",
+    "[tutor mode active]",
+    "return only valid json",
+    "\"tutor_state\"",
+    "\"options\"",
+]
 
 def _get_vocab() -> dict | None:
     global _dkt_vocab
@@ -192,6 +200,36 @@ def _looks_like_comprehension_answer(text: str) -> bool:
         return True
 
     return bool(re.search(r"\b(it|this|that|they|wave|particle|means?)\b", lower))
+
+def _has_tutor_contract_leak(text: str) -> bool:
+    lowered = str(text or "").strip().lower()
+    if not lowered:
+        return False
+    return any(marker in lowered for marker in _TUTOR_CONTRACT_LEAK_MARKERS)
+
+def _repair_tutor_contract_response(ai_client, broken_response: str, user_input: str) -> str:
+    repair_prompt = f"""
+You are repairing a broken tutor response.
+
+Student request:
+{user_input}
+
+Broken tutor output:
+{broken_response[:2500]}
+
+Rewrite it as valid TutorResponse JSON only.
+
+Rules:
+- Do not repeat schema text, placeholder text, meta instructions, or internal labels.
+- The answer field must contain only short student-facing markdown bullet points.
+- Use 2-4 bullets maximum.
+- The final bullet must be one concrete student action.
+- Keep tutor_state concise and realistic.
+- Use an empty options array unless an MCQ is genuinely helpful.
+
+Return only JSON with keys: answer, tutor_state, options.
+""".strip()
+    return ai_client.generate(repair_prompt, max_tokens=900, temperature=0.2)
 
 def _detect_query_domain(text: str) -> list[str]:
     text_lower = text.lower()
@@ -959,7 +997,7 @@ def gate_and_retrieve(state: TutorState) -> dict:
     )
     if should_query_context:
         try:
-            import context_store
+            from services import context_store
             if context_store.available():
                 rag_results = context_store.search_context(
                     query=user_input,
@@ -1492,12 +1530,12 @@ def evaluate_tutor_attempt(state: TutorState) -> dict:
     if not state.get("tutor_mode"):
         return {"attempt_evaluation": AttemptEvaluation()}
 
+    if state.get("intent") != "comprehension_answer":
+        return {"attempt_evaluation": AttemptEvaluation()}
+
     user_answer = (state.get("tutor_choice") or state.get("user_input") or "").strip()
     if not user_answer:
         return {"attempt_evaluation": AttemptEvaluation(verdict="needs_attempt", confidence=0.8)}
-
-    if state.get("intent") != "comprehension_answer" and not _looks_like_comprehension_answer(user_answer):
-        return {"attempt_evaluation": AttemptEvaluation()}
 
     chat_history = state.get("chat_history", [])
     last_tutor_message = _last_ai_message(chat_history)
@@ -1767,8 +1805,31 @@ def build_prompt_and_respond(state: TutorState) -> dict:
 
     try:
         response = ai_client.generate(full_prompt, max_tokens=2000, temperature=0.7)
+        if state.get("tutor_mode") and _has_tutor_contract_leak(response):
+            logger.warning("[TUTOR GEN] Contract/schema leakage detected; retrying tutor response repair")
+            response = _repair_tutor_contract_response(
+                ai_client,
+                response,
+                str(state.get("user_input") or ""),
+            )
         return {"response": response, "instructional_task": task}
     except Exception as e:
+        main_ai = state.get("_ai_client")
+        if ai_client is hs_ai and main_ai and main_ai is not ai_client:
+            logger.error(f"HS context AI generation failed; falling back to main AI client: {e}")
+            try:
+                response = main_ai.generate(full_prompt, max_tokens=2000, temperature=0.7)
+                if state.get("tutor_mode") and _has_tutor_contract_leak(response):
+                    logger.warning("[TUTOR GEN] Contract/schema leakage detected after fallback; retrying tutor response repair")
+                    response = _repair_tutor_contract_response(
+                        main_ai,
+                        response,
+                        str(state.get("user_input") or ""),
+                    )
+                return {"response": response, "instructional_task": task}
+            except Exception as fallback_error:
+                logger.error(f"Fallback LLM generation failed: {fallback_error}")
+                return {"response": "I'm having trouble responding right now. Please try again.", "error": str(fallback_error)}
         logger.error(f"LLM generation failed: {e}")
         return {"response": "I'm having trouble responding right now. Please try again.", "error": str(e)}
 

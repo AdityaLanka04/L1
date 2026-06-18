@@ -109,7 +109,11 @@ function renderMarkdownWithMath(text) {
   const mathStore = [];
   const placeholder = (i) => `ZMATH${i}Z`;
 
-  let processed = text;
+  let processed = String(text || '')
+    .replace(/\\([*`>#.!+-])/g, '$1')
+    .replace(/(\*\*)\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
+    .replace(/([.:])\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
+    .replace(/\s+(\*\s+\*\*[^*]+:\*\*)/g, '\n$1');
   processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_, m) => {
     mathStore.push({ tex: m.trim(), display: true });
     return placeholder(mathStore.length - 1);

@@ -1,6 +1,8 @@
-import sqlite3
 import os
+import sqlite3
+
 from sqlalchemy import inspect, text
+from sqlalchemy.schema import CreateColumn
 from sqlalchemy.engine import make_url
 from models import engine, Base, User, ChatSession, ChatMessage, ChatTutorState, \
     Flashcard, FlashcardSet, Note, LearningReview, UserStats, \
@@ -199,196 +201,242 @@ def _run_postgres_migration():
     except Exception as e:
         print(f" SQLAlchemy table creation warning: {e}")
 
-    inspector = inspect(engine)
-    tables = set(inspector.get_table_names())
+    with engine.connect() as migration_conn:
+        def get_inspector():
+            return inspect(migration_conn)
 
-    def add_missing_columns(table_name, columns):
-        if table_name not in tables:
-            return
-        existing = {c["name"] for c in inspector.get_columns(table_name)}
-        with engine.connect() as conn:
+        def get_tables():
+            return set(get_inspector().get_table_names())
+
+        tables = get_tables()
+
+        def add_missing_columns(table_name, columns):
+            if table_name not in tables:
+                return
+            existing = {c["name"] for c in get_inspector().get_columns(table_name)}
             for column_name, column_def in columns.items():
                 if column_name in existing:
                     continue
-                conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}"))
+                migration_conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}"))
                 print(f" Added column {table_name}.{column_name}")
-            conn.commit()
+            migration_conn.commit()
 
-    def widen_column_to_text(table_name, column_name):
-        if table_name not in tables:
-            return
-        columns = {c["name"]: c for c in inspector.get_columns(table_name)}
-        column = columns.get(column_name)
-        if not column:
-            return
-        if column["type"].__class__.__name__.upper() == "TEXT":
-            return
-        with engine.connect() as conn:
-            conn.execute(text(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE TEXT"))
-            conn.commit()
+        def add_missing_model_columns():
+            """Add any model-defined columns that the hand-maintained list missed.
+
+            This is additive only. For existing populated tables, non-nullable columns
+            without defaults are introduced as nullable first so the migration can
+            succeed without backfilling legacy rows.
+            """
+            skipped = []
+            for table in Base.metadata.sorted_tables:
+                if table.name not in tables:
+                    continue
+
+                existing = {c["name"] for c in get_inspector().get_columns(table.name)}
+                missing_columns = [
+                    column for column in table.columns
+                    if column.name not in existing and not column.primary_key
+                ]
+                if not missing_columns:
+                    continue
+
+                for column in missing_columns:
+                    original_nullable = column.nullable
+                    downgraded_nullable = False
+                    if not column.nullable and column.default is None and column.server_default is None:
+                        column.nullable = True
+                        downgraded_nullable = True
+                    try:
+                        compiled = CreateColumn(column).compile(dialect=engine.dialect)
+                        migration_conn.execute(text(f'ALTER TABLE "{table.name}" ADD COLUMN {compiled}'))
+                        if downgraded_nullable:
+                            skipped.append(f'{table.name}.{column.name} added as NULLABLE; backfill before NOT NULL')
+                        print(f" Added model column {table.name}.{column.name}")
+                    finally:
+                        column.nullable = original_nullable
+                migration_conn.commit()
+
+            if skipped:
+                print(" Deferred NOT NULL enforcement for:")
+                for item in skipped:
+                    print(f"  - {item}")
+
+        def widen_column_to_text(table_name, column_name):
+            if table_name not in tables:
+                return
+            columns = {c["name"]: c for c in get_inspector().get_columns(table_name)}
+            column = columns.get(column_name)
+            if not column:
+                return
+            if column["type"].__class__.__name__.upper() == "TEXT":
+                return
+            migration_conn.execute(text(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE TEXT"))
+            migration_conn.commit()
             print(f" Widened {table_name}.{column_name} to TEXT")
 
-    widen_column_to_text("users", "picture_url")
+        widen_column_to_text("users", "picture_url")
 
-    add_missing_columns(
-        "flashcards",
-        {
-            "ease_factor": "DOUBLE PRECISION DEFAULT 2.5",
-            "interval": "DOUBLE PRECISION DEFAULT 0",
-            "repetitions": "INTEGER DEFAULT 0",
-            "next_review_date": "TIMESTAMP",
-            "lapses": "INTEGER DEFAULT 0",
-            "sr_state": "VARCHAR(20) DEFAULT 'new'",
-            "learning_step": "INTEGER DEFAULT 0",
-            "fsrs_stability": "DOUBLE PRECISION DEFAULT 0.0",
-        },
-    )
+        add_missing_columns(
+            "flashcards",
+            {
+                "ease_factor": "DOUBLE PRECISION DEFAULT 2.5",
+                "interval": "DOUBLE PRECISION DEFAULT 0",
+                "repetitions": "INTEGER DEFAULT 0",
+                "next_review_date": "TIMESTAMP",
+                "lapses": "INTEGER DEFAULT 0",
+                "sr_state": "VARCHAR(20) DEFAULT 'new'",
+                "learning_step": "INTEGER DEFAULT 0",
+                "fsrs_stability": "DOUBLE PRECISION DEFAULT 0.0",
+            },
+        )
 
-    add_missing_columns(
-        "flashcard_sets",
-        {
-            "share_code": "VARCHAR(6)",
-            "public_token": "VARCHAR(32)",
-        },
-    )
+        add_missing_columns(
+            "flashcard_sets",
+            {
+                "share_code": "VARCHAR(6)",
+                "public_token": "VARCHAR(32)",
+            },
+        )
 
-    add_missing_columns(
-        "chat_sessions",
-        {
-            "public_token": "VARCHAR(32)",
-        },
-    )
+        add_missing_columns(
+            "chat_sessions",
+            {
+                "public_token": "VARCHAR(32)",
+            },
+        )
 
-    for _table, _col in (("flashcard_sets", "public_token"), ("chat_sessions", "public_token")):
-        if _table in tables:
-            with engine.connect() as conn:
-                conn.execute(text(
+        for _table, _col in (("flashcard_sets", "public_token"), ("chat_sessions", "public_token")):
+            if _table in tables:
+                migration_conn.execute(text(
                     f"CREATE UNIQUE INDEX IF NOT EXISTS idx_{_table}_{_col} ON {_table}({_col})"
                 ))
-                conn.commit()
+                migration_conn.commit()
 
-    add_missing_columns(
-        "comprehensive_user_profiles",
-        {
-            "show_study_insights": "BOOLEAN DEFAULT TRUE",
-            "notifications_enabled": "BOOLEAN DEFAULT TRUE",
-            "subscription_tier": "VARCHAR(30) DEFAULT 'starter'",
-            "billing_cycle": "VARCHAR(20) DEFAULT 'monthly'",
-            "subscription_status": "VARCHAR(20) DEFAULT 'active'",
-            "subscription_started_at": "TIMESTAMP",
-            "stripe_customer_id": "VARCHAR(120)",
-            "stripe_subscription_id": "VARCHAR(120)",
-            "stripe_price_id": "VARCHAR(120)",
-            "stripe_checkout_session_id": "VARCHAR(120)",
-            "billing_currency": "VARCHAR(12)",
-            "current_period_end": "TIMESTAMP",
-            "cancel_at_period_end": "BOOLEAN DEFAULT FALSE",
-        },
-    )
+        add_missing_columns(
+            "comprehensive_user_profiles",
+            {
+                "show_study_insights": "BOOLEAN DEFAULT TRUE",
+                "notifications_enabled": "BOOLEAN DEFAULT TRUE",
+                "subscription_tier": "VARCHAR(30) DEFAULT 'starter'",
+                "billing_cycle": "VARCHAR(20) DEFAULT 'monthly'",
+                "subscription_status": "VARCHAR(20) DEFAULT 'active'",
+                "subscription_started_at": "TIMESTAMP",
+                "stripe_customer_id": "VARCHAR(120)",
+                "stripe_subscription_id": "VARCHAR(120)",
+                "stripe_price_id": "VARCHAR(120)",
+                "stripe_checkout_session_id": "VARCHAR(120)",
+                "billing_currency": "VARCHAR(12)",
+                "current_period_end": "TIMESTAMP",
+                "cancel_at_period_end": "BOOLEAN DEFAULT FALSE",
+            },
+        )
 
-    add_missing_columns(
-        "notes",
-        {
-            "is_public": "BOOLEAN DEFAULT FALSE",
-            "is_deleted": "BOOLEAN DEFAULT FALSE",
-            "deleted_at": "TIMESTAMP",
-            "is_favorite": "BOOLEAN DEFAULT FALSE",
-            "custom_font": "VARCHAR(50) DEFAULT 'Inter'",
-            "transcript": "TEXT",
-            "analysis": "TEXT",
-            "flashcards": "TEXT",
-            "quiz_questions": "TEXT",
-            "key_moments": "TEXT",
-            "media_file_id": "INTEGER",
-        },
-    )
+        add_missing_columns(
+            "notes",
+            {
+                "is_public": "BOOLEAN DEFAULT FALSE",
+                "is_deleted": "BOOLEAN DEFAULT FALSE",
+                "deleted_at": "TIMESTAMP",
+                "is_favorite": "BOOLEAN DEFAULT FALSE",
+                "custom_font": "VARCHAR(50) DEFAULT 'Inter'",
+                "canvas_data": "TEXT",
+                "transcript": "TEXT",
+                "analysis": "TEXT",
+                "flashcards": "TEXT",
+                "quiz_questions": "TEXT",
+                "key_moments": "TEXT",
+                "media_file_id": "INTEGER",
+            },
+        )
 
-    add_missing_columns(
-        "chat_messages",
-        {
-            "image_metadata": "TEXT",
-        },
-    )
+        add_missing_columns(
+            "chat_messages",
+            {
+                "image_metadata": "TEXT",
+            },
+        )
 
-    add_missing_columns(
-        "ai_jobs",
-        {
-            "last_error": "TEXT",
-            "progress_percent": "INTEGER DEFAULT 0",
-            "progress_message": "TEXT",
-            "timeout_seconds": "INTEGER",
-            "retry_after": "TIMESTAMP",
-        },
-    )
+        add_missing_columns(
+            "ai_jobs",
+            {
+                "last_error": "TEXT",
+                "progress_percent": "INTEGER DEFAULT 0",
+                "progress_message": "TEXT",
+                "timeout_seconds": "INTEGER",
+                "retry_after": "TIMESTAMP",
+            },
+        )
 
-    add_missing_columns(
-        "chat_tutor_states",
-        {
-            "current_step": "INTEGER DEFAULT 1",
-            "total_steps": "INTEGER DEFAULT 0",
-            "expected_step_answer": "TEXT",
-            "final_answer": "TEXT",
-            "skills_used": "JSONB",
-            "misconceptions": "JSONB",
-            "mastery_score": "DOUBLE PRECISION DEFAULT 0.0",
-            "correct_streak": "INTEGER DEFAULT 0",
-            "wrong_streak": "INTEGER DEFAULT 0",
-            "lesson_plan": "JSONB",
-        },
-    )
+        add_missing_columns(
+            "chat_tutor_states",
+            {
+                "current_step": "INTEGER DEFAULT 1",
+                "total_steps": "INTEGER DEFAULT 0",
+                "expected_step_answer": "TEXT",
+                "final_answer": "TEXT",
+                "skills_used": "JSONB",
+                "misconceptions": "JSONB",
+                "mastery_score": "DOUBLE PRECISION DEFAULT 0.0",
+                "correct_streak": "INTEGER DEFAULT 0",
+                "wrong_streak": "INTEGER DEFAULT 0",
+                "lesson_plan": "JSONB",
+            },
+        )
 
-    add_missing_columns(
-        "context_documents",
-        {
-            "source_name": "VARCHAR(200)",
-            "license": "VARCHAR(80)",
-            "curriculum": "VARCHAR(20)",
-            "source_type": "VARCHAR(40)",
-            "folder_id": "INTEGER",
-            "ai_summary": "TEXT",
-            "key_concepts": "TEXT",
-            "topic_tags": "TEXT",
-        },
-    )
+        add_missing_columns(
+            "context_documents",
+            {
+                "source_name": "VARCHAR(200)",
+                "license": "VARCHAR(80)",
+                "curriculum": "VARCHAR(20)",
+                "source_type": "VARCHAR(40)",
+                "folder_id": "INTEGER",
+                "ai_summary": "TEXT",
+                "key_concepts": "TEXT",
+                "topic_tags": "TEXT",
+            },
+        )
 
-    add_missing_columns(
-        "podcast_sessions",
-        {
-            "voice_persona": "VARCHAR(50) DEFAULT 'mentor'",
-            "difficulty": "VARCHAR(20) DEFAULT 'intermediate'",
-            "answer_language": "VARCHAR(20) DEFAULT 'en'",
-            "session_options": "TEXT DEFAULT '{}'",
-        },
-    )
+        add_missing_columns(
+            "podcast_sessions",
+            {
+                "voice_persona": "VARCHAR(50) DEFAULT 'mentor'",
+                "difficulty": "VARCHAR(20) DEFAULT 'intermediate'",
+                "answer_language": "VARCHAR(20) DEFAULT 'en'",
+                "session_options": "TEXT DEFAULT '{}'",
+            },
+        )
 
-    add_missing_columns(
-        "student_style_models",
-        {
-            "student_classifier_state": "TEXT",
-        },
-    )
+        add_missing_columns(
+            "student_style_models",
+            {
+                "student_classifier_state": "TEXT",
+            },
+        )
 
-    add_missing_columns(
-        "user_gamification_stats",
-        {
-            "weekly_chat_goal": "INTEGER DEFAULT 10",
-            "weekly_note_goal": "INTEGER DEFAULT 5",
-            "weekly_flashcard_goal": "INTEGER DEFAULT 20",
-            "weekly_quiz_goal": "INTEGER DEFAULT 5",
-            "freeze_charges": "INTEGER DEFAULT 0",
-            "revive_charges": "INTEGER DEFAULT 0",
-            "xp_boost_until": "DATETIME",
-            "xp_boost_multiplier": "FLOAT DEFAULT 1.0",
-            "xp_boost_uses": "INTEGER DEFAULT 0",
-            "vault_rewards_claimed": "INTEGER DEFAULT 0",
-            "powerups_initialized": "BOOLEAN DEFAULT FALSE",
-        },
-    )
+        add_missing_columns(
+            "user_gamification_stats",
+            {
+                "weekly_chat_goal": "INTEGER DEFAULT 10",
+                "weekly_note_goal": "INTEGER DEFAULT 5",
+                "weekly_flashcard_goal": "INTEGER DEFAULT 20",
+                "weekly_quiz_goal": "INTEGER DEFAULT 5",
+                "freeze_charges": "INTEGER DEFAULT 0",
+                "revive_charges": "INTEGER DEFAULT 0",
+                "xp_boost_until": "TIMESTAMP",
+                "xp_boost_multiplier": "FLOAT DEFAULT 1.0",
+                "xp_boost_uses": "INTEGER DEFAULT 0",
+                "vault_rewards_claimed": "INTEGER DEFAULT 0",
+                "powerups_initialized": "BOOLEAN DEFAULT FALSE",
+            },
+        )
 
-    for otp_table in ("password_reset_otps", "registration_otps", "account_deletion_otps"):
-        if otp_table not in tables:
-            continue
-        with engine.connect() as conn:
+        add_missing_model_columns()
+
+        for otp_table in ("password_reset_otps", "registration_otps", "account_deletion_otps"):
+            if otp_table not in tables:
+                continue
             for idx_name, column_name in (
                 (f"ix_{otp_table}_email", "email"),
                 (f"ix_{otp_table}_username", "username"),
@@ -396,75 +444,73 @@ def _run_postgres_migration():
                 if column_name == "username" and otp_table in ("password_reset_otps", "account_deletion_otps"):
                     continue
                 try:
-                    conn.execute(text(
+                    migration_conn.execute(text(
                         f"CREATE INDEX IF NOT EXISTS {idx_name} ON {otp_table}({column_name})"
                     ))
                 except Exception:
                     pass
             if otp_table in ("password_reset_otps", "account_deletion_otps"):
                 try:
-                    conn.execute(text(
+                    migration_conn.execute(text(
                         f"CREATE INDEX IF NOT EXISTS ix_{otp_table}_user_id ON {otp_table}(user_id)"
                     ))
                 except Exception:
                     pass
             try:
-                conn.commit()
+                migration_conn.commit()
                 print(f" {otp_table} indexes created/verified")
             except Exception as e:
                 print(f" {otp_table} index commit error: {e}")
 
-    if "flashcard_sets" in tables:
-        with engine.connect() as conn:
+        if "flashcard_sets" in tables:
             try:
-                conn.execute(
+                migration_conn.execute(
                     text(
                         "CREATE UNIQUE INDEX IF NOT EXISTS idx_flashcard_sets_share_code "
                         "ON flashcard_sets(share_code)"
                     )
                 )
-                conn.commit()
+                migration_conn.commit()
                 print(" Created index for flashcard_sets.share_code")
             except Exception as e:
                 print(f" share_code index: {e}")
 
-    _user_id_indexes = [
-        ("ix_activities_user_id",              "activities",             "user_id"),
-        ("ix_chat_sessions_user_id",           "chat_sessions",          "user_id"),
-        ("ix_chat_messages_user_id",           "chat_messages",          "user_id"),
-        ("ix_chat_tutor_states_user_id",       "chat_tutor_states",      "user_id"),
-        ("ix_notes_user_id",                   "notes",                  "user_id"),
-        ("ix_flashcard_sets_user_id",          "flashcard_sets",         "user_id"),
-        ("ix_flashcards_user_id",              "flashcards",             "user_id"),
-        ("ix_question_sets_user_id",           "question_sets",          "user_id"),
-        ("ix_uploaded_slides_user_id",         "uploaded_slides",        "user_id"),
-        ("ix_solo_quizzes_user_id",            "solo_quizzes",           "user_id"),
-        ("ix_daily_learning_metrics_user_id",  "daily_learning_metrics", "user_id"),
-        ("ix_folders_user_id",                 "folders",                "user_id"),
-        ("ix_playlists_user_id",               "playlists",              "user_id"),
-        ("ix_reminders_user_id",               "reminders",              "user_id"),
-        ("ix_learning_reviews_user_id",        "learning_reviews",       "user_id"),
-        ("ix_roadmaps_user_id",                "roadmaps",               "user_id"),
-        ("ix_learning_paths_user_id",          "learning_paths",         "user_id"),
-        ("ix_notifications_user_id",           "notifications",          "user_id"),
-        ("ix_friendships_user_id",             "friendships",            "user_id"),
-        ("ix_friendships_friend_id",           "friendships",            "friend_id"),
-        ("ix_friend_requests_sender_id",       "friend_requests",        "sender_id"),
-        ("ix_friend_requests_receiver_id",     "friend_requests",        "receiver_id"),
-        ("ix_student_knowledge_states_uid",    "student_knowledge_states", "user_id"),
-    ]
-    with engine.connect() as conn:
+        _user_id_indexes = [
+            ("ix_activities_user_id",              "activities",             "user_id"),
+            ("ix_chat_sessions_user_id",           "chat_sessions",          "user_id"),
+            ("ix_chat_messages_user_id",           "chat_messages",          "user_id"),
+            ("ix_chat_tutor_states_user_id",       "chat_tutor_states",      "user_id"),
+            ("ix_notes_user_id",                   "notes",                  "user_id"),
+            ("ix_flashcard_sets_user_id",          "flashcard_sets",         "user_id"),
+            ("ix_flashcards_user_id",              "flashcards",             "user_id"),
+            ("ix_question_sets_user_id",           "question_sets",          "user_id"),
+            ("ix_uploaded_slides_user_id",         "uploaded_slides",        "user_id"),
+            ("ix_solo_quizzes_user_id",            "solo_quizzes",           "user_id"),
+            ("ix_daily_learning_metrics_user_id",  "daily_learning_metrics", "user_id"),
+            ("ix_folders_user_id",                 "folders",                "user_id"),
+            ("ix_playlists_user_id",               "playlists",              "user_id"),
+            ("ix_reminders_user_id",               "reminders",              "user_id"),
+            ("ix_learning_reviews_user_id",        "learning_reviews",       "user_id"),
+            ("ix_roadmaps_user_id",                "roadmaps",               "user_id"),
+            ("ix_learning_paths_user_id",          "learning_paths",         "user_id"),
+            ("ix_notifications_user_id",           "notifications",          "user_id"),
+            ("ix_friendships_user_id",             "friendships",            "user_id"),
+            ("ix_friendships_friend_id",           "friendships",            "friend_id"),
+            ("ix_friend_requests_sender_id",       "friend_requests",        "sender_id"),
+            ("ix_friend_requests_receiver_id",     "friend_requests",        "receiver_id"),
+            ("ix_student_knowledge_states_uid",    "student_knowledge_states", "user_id"),
+        ]
         for idx_name, tbl, col in _user_id_indexes:
             if tbl not in tables:
                 continue
             try:
-                conn.execute(text(
+                migration_conn.execute(text(
                     f"CREATE INDEX IF NOT EXISTS {idx_name} ON {tbl}({col})"
                 ))
             except Exception:
                 pass
         try:
-            conn.commit()
+            migration_conn.commit()
             print(" user_id performance indexes created/verified")
         except Exception as e:
             print(f" user_id index commit error: {e}")

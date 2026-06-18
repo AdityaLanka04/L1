@@ -752,7 +752,7 @@ def process_upload(
         chapters = extract_chapter_headings(text)
         if not subject:
             try:
-                import context_store
+                from services import context_store
                 detected_subject = context_store.infer_subject(f"{filename} {text[:4000]}", default="")
                 subject = detected_subject or subject
             except Exception:

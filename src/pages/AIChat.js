@@ -258,8 +258,25 @@ function escapeLatexBackslashesForJson(text = '') {
   return output;
 }
 
+function normalizeTutorJsonishText(text = '') {
+  return String(text || '')
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'");
+}
+
+function coerceTutorAnswer(answer) {
+  if (typeof answer === 'string') return answer.trim();
+  if (Array.isArray(answer)) {
+    return answer
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)
+      .join('\n');
+  }
+  return '';
+}
+
 function parseTutorJsonLenient(text = '') {
-  const raw = stripTutorJsonFence(text);
+  const raw = normalizeTutorJsonishText(stripTutorJsonFence(text));
   const escaped = escapeLatexBackslashesForJson(raw);
   const candidates = escaped === raw ? [raw] : [escaped, raw];
   for (const candidate of candidates) {
@@ -282,20 +299,26 @@ function decodeJsonishTutorString(value = '') {
 }
 
 function parseTutorResponseContract(text = '') {
-  const raw = stripTutorJsonFence(text);
+  const raw = normalizeTutorJsonishText(stripTutorJsonFence(text));
   if (!/"answer"\s*:/.test(raw) || !/"tutor_state"\s*:/.test(raw)) return null;
 
   const parsed = parseTutorJsonLenient(raw);
-  if (parsed && typeof parsed === 'object' && typeof parsed.answer === 'string') {
+  if (parsed && typeof parsed === 'object') {
+    const answer = coerceTutorAnswer(parsed.answer);
+    if (!answer) return null;
     return {
-      answer: parsed.answer.trim(),
+      answer,
       tutorState: parsed.tutor_state || null,
       tutorOptions: normalizeTutorOptions(parsed.options || []),
     };
   }
 
+  const answerArrayMatch = raw.match(/"answer"\s*:\s*(\[[\s\S]*?\])\s*,\s*"tutor_state"\s*:/i);
   const answerMatch = raw.match(/"answer"\s*:\s*"([\s\S]*?)"\s*,\s*"tutor_state"\s*:/i);
-  if (!answerMatch) return null;
+  const parsedAnswer = answerArrayMatch
+    ? coerceTutorAnswer(parseTutorJsonLenient(answerArrayMatch[1]))
+    : (answerMatch ? decodeJsonishTutorString(answerMatch[1]) : '');
+  if (!parsedAnswer) return null;
 
   const stateMatch = raw.match(/"tutor_state"\s*:\s*(\{[\s\S]*?\})\s*,\s*"options"\s*:/i);
   const optionsMatch = raw.match(/"options"\s*:\s*(\[[\s\S]*?\])/i);
@@ -303,7 +326,7 @@ function parseTutorResponseContract(text = '') {
   const tutorOptions = optionsMatch ? normalizeTutorOptions(parseTutorJsonLenient(optionsMatch[1]) || []) : [];
 
   return {
-    answer: decodeJsonishTutorString(answerMatch[1]),
+    answer: parsedAnswer,
     tutorState,
     tutorOptions,
   };
@@ -375,14 +398,21 @@ function normalizeTutorLessonPlan(rawPlan = null) {
 function normalizeTutorState(rawState = null, replyMode = 'guided') {
   if (!rawState || typeof rawState !== 'object') return null;
 
-  const level = ['beginner', 'intermediate', 'advanced'].includes(rawState.level)
-    ? rawState.level
+  const normalizedLevel = String(rawState.level || '').trim().toLowerCase();
+  const normalizedPhase = String(rawState.phase || '').trim().toLowerCase();
+  const normalizedVerdict = String(rawState.verdict || '').trim().toLowerCase();
+  const levelAliases = { introductory: 'beginner' };
+  const phaseAliases = { exploration: 'teach' };
+  const verdictAliases = { in_progress: 'not_applicable', pending: 'needs_attempt' };
+
+  const level = ['beginner', 'intermediate', 'advanced'].includes(levelAliases[normalizedLevel] || normalizedLevel)
+    ? (levelAliases[normalizedLevel] || normalizedLevel)
     : 'intermediate';
-  const phase = ['diagnose', 'teach', 'practice', 'check', 'review'].includes(rawState.phase)
-    ? rawState.phase
+  const phase = ['diagnose', 'teach', 'practice', 'check', 'review'].includes(phaseAliases[normalizedPhase] || normalizedPhase)
+    ? (phaseAliases[normalizedPhase] || normalizedPhase)
     : (replyMode === 'quiz' ? 'practice' : replyMode === 'check' ? 'check' : 'teach');
-  const verdict = ['correct', 'partly_correct', 'not_yet', 'needs_attempt', 'not_applicable'].includes(rawState.verdict)
-    ? rawState.verdict
+  const verdict = ['correct', 'partly_correct', 'not_yet', 'needs_attempt', 'not_applicable'].includes(verdictAliases[normalizedVerdict] || normalizedVerdict)
+    ? (verdictAliases[normalizedVerdict] || normalizedVerdict)
     : 'not_applicable';
   const confidence = Number.isFinite(Number(rawState.confidence))
     ? Math.max(0, Math.min(1, Number(rawState.confidence)))
@@ -1475,7 +1505,8 @@ const AIChat = ({ sharedMode = false }) => {
     const effectiveTutorMode = tutorMode || useOverride;
     const answeringComprehensionCheck = isAnsweringPreviousComprehensionCheck(messageText, messages);
     const answeringTutorStep = effectiveTutorMode && isAnsweringTutorStep(messageText, messages);
-    const messageForModel = (answeringComprehensionCheck || answeringTutorStep) ? messageText : buildGraphAwarePrompt(messageText);
+    const shouldUseGraphPrompt = !effectiveTutorMode && !answeringComprehensionCheck && !answeringTutorStep;
+    const messageForModel = shouldUseGraphPrompt ? buildGraphAwarePrompt(messageText) : messageText;
     const messagedFiles = useOverride ? [] : [...selectedFiles];
     
     if (!useOverride) {
@@ -2397,9 +2428,20 @@ const AIChat = ({ sharedMode = false }) => {
       .join('\n');
   };
 
+  const normalizeMarkdownForRenderer = (text = '') => {
+    return String(text || '')
+      // Some OpenAI-compatible providers escape markdown punctuation in plain text.
+      // Restore only markdown control characters; leave LaTeX delimiters like \( and \[ intact.
+      .replace(/\\([*`>#.!+-])/g, '$1')
+      .replace(/(\*\*)\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
+      .replace(/([.:])\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
+      .replace(/\s+(\*\s+\*\*[^*]+:\*\*)/g, '\n$1');
+  };
+
   const renderMarkdown = (text) => {
     if (!text) return '';
     text = normalizeTutorStepMarkdown(text);
+    text = normalizeMarkdownForRenderer(text);
 
     // ── Step 1: Extract ALL math blocks BEFORE markdown touches them ──────────
     // Markdown mangles \[, \(, and $$  by treating \ as an escape character
@@ -2687,7 +2729,8 @@ const AIChat = ({ sharedMode = false }) => {
           const token = localStorage.getItem('token');
           const formData = new FormData();
           formData.append('user_id', userName);
-          formData.append('question', buildGraphAwarePrompt(initialMsg));
+          const initialMessageForModel = tutorMode ? initialMsg : buildGraphAwarePrompt(initialMsg);
+          formData.append('question', initialMessageForModel);
           formData.append('original_question', initialMsg);
           formData.append('chat_id', newChatId.toString());
           formData.append('use_hs_context', hsMode.toString());
@@ -2696,7 +2739,7 @@ const AIChat = ({ sharedMode = false }) => {
           
           const data = USE_AI_JOB_QUEUE
             ? await queueChatCompletion({
-                prompt: buildGraphAwarePrompt(initialMsg),
+                prompt: initialMessageForModel,
                 user_message: initialMsg,
                 chat_session_id: newChatId,
                 use_hs_context: hsMode,
