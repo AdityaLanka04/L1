@@ -945,7 +945,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
     setLoadingResources(true);
     try {
       if (itemType === 'note') {
-        const response = await fetch(`${API_URL}/get_notes?user_id=${userName}`, {
+        const response = await fetch(`${API_URL}/get_notes?user_id=${encodeURIComponent(userName)}&summary=true&limit=100`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -953,7 +953,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
           setUserNotes(Array.isArray(data) ? data : (data.notes || []));
         }
       } else if (itemType === 'chat') {
-        const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${userName}`, {
+        const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${encodeURIComponent(userName)}&limit=100`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {

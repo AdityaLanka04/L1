@@ -93,6 +93,8 @@ const withCurrentPlanCredits = (plan = {}) => {
   };
 };
 
+const FALLBACK_PLANS = Object.values(PLAN_FALLBACKS).map(withCurrentPlanCredits);
+
 const formatUsd = (value) => {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return '$0';
@@ -103,6 +105,47 @@ const formatTokens = (value) => {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return '0';
   return n.toLocaleString();
+};
+
+const toProfileFormData = (profile = {}, username = '') => ({
+  username: profile.username || username || '',
+  firstName: profile.firstName || profile.first_name || '',
+  lastName: profile.lastName || profile.last_name || '',
+  email: profile.email || '',
+  googleUser: profile.googleUser === true || profile.google_user === true,
+  fieldOfStudy: profile.fieldOfStudy || profile.field_of_study || '',
+  brainwaveGoal: profile.brainwaveGoal || profile.brainwave_goal || '',
+  preferredSubjects: profile.preferredSubjects || profile.preferred_subjects || [],
+  primaryArchetype: profile.primaryArchetype || profile.primary_archetype || '',
+  secondaryArchetype: profile.secondaryArchetype || profile.secondary_archetype || '',
+  archetypeDescription: profile.archetypeDescription || profile.archetype_description || '',
+  archetypeScores: (() => {
+    try {
+      return typeof profile.archetypeScores === 'string'
+        ? JSON.parse(profile.archetypeScores)
+        : (profile.archetypeScores || {});
+    } catch (e) {
+      return {};
+    }
+  })(),
+  showStudyInsights: profile.showStudyInsights !== false,
+  notificationsEnabled: profile.notificationsEnabled !== false,
+});
+
+const scheduleProfileIdle = (callback) => {
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    return window.requestIdleCallback(callback, { timeout: 1800 });
+  }
+  return window.setTimeout(callback, 450);
+};
+
+const cancelProfileIdle = (handle) => {
+  if (!handle) return;
+  if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+    window.cancelIdleCallback(handle);
+    return;
+  }
+  window.clearTimeout(handle);
 };
 
 const getPlanPrice = (plan, billingCycle) => {
@@ -324,17 +367,15 @@ const ProfileNew = () => {
     if (!raw) return hydrateProfile({}, userName);
     try { return hydrateProfile(JSON.parse(raw), userName); } catch (e) { return hydrateProfile({}, userName); }
   });
+  const [cachedProfile] = useState(() => {
+    const raw = localStorage.getItem('userProfile');
+    if (!raw) return {};
+    try { return JSON.parse(raw); } catch (e) { return {}; }
+  });
   const [pfpModalOpen, setPfpModalOpen] = useState(false);
   const [gamificationStats, setGamificationStats] = useState(null);
 
-  const [profileData, setProfileData] = useState({
-    username: '', firstName: '', lastName: '', email: '',
-    fieldOfStudy: '', brainwaveGoal: '',
-    preferredSubjects: [],
-    primaryArchetype: '', secondaryArchetype: '',
-    archetypeDescription: '', archetypeScores: {},
-    showStudyInsights: true, notificationsEnabled: true
-  });
+  const [profileData, setProfileData] = useState(() => toProfileFormData(cachedProfile, userName));
   const [quizAnswers, setQuizAnswers] = useState({});
   const [dataLoaded, setDataLoaded] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
@@ -348,14 +389,14 @@ const ProfileNew = () => {
   const saveTimerRef = useRef(null);
   const isSavingRef = useRef(false);
   const [subscriptionData, setSubscriptionData] = useState({
-    loading: true,
+    loading: false,
     saving: false,
     saveAction: null,
-    currentPlanId: 'starter',
-    billingCycle: 'monthly',
-    subscriptionStatus: 'active',
-    subscriptionStartedAt: null,
-    plans: [],
+    currentPlanId: cachedProfile.subscriptionTier || cachedProfile.subscription_tier || 'starter',
+    billingCycle: cachedProfile.billingCycle || cachedProfile.billing_cycle || 'monthly',
+    subscriptionStatus: cachedProfile.subscriptionStatus || cachedProfile.subscription_status || 'active',
+    subscriptionStartedAt: cachedProfile.subscriptionStartedAt || cachedProfile.subscription_started_at || null,
+    plans: FALLBACK_PLANS,
     usage: null,
     error: null
   });
@@ -402,10 +443,14 @@ const ProfileNew = () => {
     if (!token) { navigate('/login'); return; }
     if (userName) {
       loadProfile();
-      loadGamificationStats();
-      loadSubscriptionOverview();
-      loadRateLimitStatus();
+      const idleHandles = [
+        scheduleProfileIdle(() => loadSubscriptionOverview({ silent: true, includeUsage: false })),
+        scheduleProfileIdle(() => loadGamificationStats()),
+        scheduleProfileIdle(() => loadRateLimitStatus())
+      ];
+      return () => idleHandles.forEach(cancelProfileIdle);
     }
+    return undefined;
   }, []);
 
   const displayName = profileData.firstName || pfp?.firstName || pfp?.first_name
@@ -434,13 +479,13 @@ const ProfileNew = () => {
     return () => clearInterval(t);
   }, [displayName]);
 
-  const loadSubscriptionOverview = useCallback(async ({ silent = false } = {}) => {
+  const loadSubscriptionOverview = useCallback(async ({ silent = false, includeUsage = false } = {}) => {
     if (!userName) return;
     if (!silent) {
       setSubscriptionData(prev => ({ ...prev, loading: true, error: null }));
     }
     try {
-      const resp = await fetch(`${API_URL}/subscription/overview?user_id=${encodeURIComponent(userName)}`, {
+      const resp = await fetch(`${API_URL}/subscription/overview?user_id=${encodeURIComponent(userName)}&include_usage=${includeUsage ? 'true' : 'false'}`, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
       if (!resp.ok) {
@@ -455,8 +500,8 @@ const ProfileNew = () => {
         billingCycle: data.billingCycle || 'monthly',
         subscriptionStatus: data.subscriptionStatus || 'active',
         subscriptionStartedAt: data.subscriptionStartedAt || null,
-        plans: Array.isArray(data.plans) ? data.plans.map(withCurrentPlanCredits) : [],
-        usage: data.usage || null
+        plans: Array.isArray(data.plans) && data.plans.length ? data.plans.map(withCurrentPlanCredits) : FALLBACK_PLANS,
+        usage: data.usage || prev.usage || null
       }));
     } catch (e) {
       setSubscriptionData(prev => ({
@@ -515,7 +560,7 @@ const ProfileNew = () => {
         billingCycle: data.billingCycle || prev.billingCycle,
         subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
       }));
-      void loadSubscriptionOverview({ silent: true });
+      void loadSubscriptionOverview({ silent: true, includeUsage: false });
     } catch (e) {
       setSubscriptionData(prev => ({
         ...prev,
@@ -561,7 +606,7 @@ const ProfileNew = () => {
         billingCycle: data.billingCycle || nextCycle,
         subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
       }));
-      void loadSubscriptionOverview({ silent: true });
+      void loadSubscriptionOverview({ silent: true, includeUsage: false });
     } catch (e) {
       setSubscriptionData(prev => ({
         ...prev,
@@ -580,25 +625,7 @@ const ProfileNew = () => {
       });
       if (resp.ok) {
         const data = await resp.json();
-        const newData = {
-          username: data.username || userName || '',
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          email: data.email || '',
-          googleUser: data.googleUser === true,
-          fieldOfStudy: data.fieldOfStudy || '',
-          brainwaveGoal: data.brainwaveGoal || '',
-          preferredSubjects: data.preferredSubjects || [],
-          primaryArchetype: data.primaryArchetype || '',
-          secondaryArchetype: data.secondaryArchetype || '',
-          archetypeDescription: data.archetypeDescription || '',
-          archetypeScores: (() => {
-            try { return typeof data.archetypeScores === 'string' ? JSON.parse(data.archetypeScores) : (data.archetypeScores || {}); }
-            catch (e) { return {}; }
-          })(),
-          showStudyInsights: data.showStudyInsights !== false,
-          notificationsEnabled: data.notificationsEnabled !== false,
-        };
+        const newData = toProfileFormData(data, userName);
         setProfileData(newData);
         lastSavedRef.current = JSON.stringify(newData);
         if (data.quizResponses) {
@@ -856,17 +883,6 @@ const ProfileNew = () => {
     detailed: 'Detailed Analysis', encouraging: 'Encouraging',
     constructive: 'Constructive', direct: 'Direct & Concise'
   };
-
-  if (!dataLoaded) {
-    return (
-      <div className="pn-root">
-        <GeoBackground />
-        <div className="pn-loading">
-          <span className="pn-loading-dot" /><span className="pn-loading-dot" /><span className="pn-loading-dot" />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="pn-root">

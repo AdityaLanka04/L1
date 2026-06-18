@@ -147,7 +147,7 @@ const ActivityTimeline = () => {
     };
 
     try {
-      const notesRes = await fetch(`${API_URL}/get_notes?user_id=${encodeURIComponent(userName)}`, { headers: authHeaders });
+      const notesRes = await fetch(`${API_URL}/get_notes?user_id=${encodeURIComponent(userName)}&summary=true&limit=200`, { headers: authHeaders });
       if (notesRes.ok) {
         const notes = await notesRes.json();
         (Array.isArray(notes) ? notes : []).forEach((note) => {
@@ -156,7 +156,7 @@ const ActivityTimeline = () => {
             id: `note-${note.id}`,
             type: 'note',
             title: note.title || 'Untitled Note',
-            content: stripHtml(note.content || '').slice(0, 140),
+            content: note.preview || stripHtml(note.content || '').slice(0, 140),
             timestamp: parseDateSafe(note.updated_at || note.created_at),
             data: note,
           });
@@ -167,33 +167,17 @@ const ActivityTimeline = () => {
     }
 
     try {
-      const flashcardsRes = await fetch(`${API_URL}/get_flashcards?user_id=${encodeURIComponent(userName)}`, { headers: authHeaders });
+      const flashcardsRes = await fetch(`${API_URL}/get_flashcard_history?user_id=${encodeURIComponent(userName)}&limit=200`, { headers: authHeaders });
       if (flashcardsRes.ok) {
         const payload = await flashcardsRes.json();
-        const cards = Array.isArray(payload) ? payload : [];
-        const grouped = {};
-        cards.forEach((card) => {
-          const setId = card.set_id || 'default';
-          if (!grouped[setId]) {
-            grouped[setId] = {
-              setId,
-              title: card.set_title || 'Flashcard Set',
-              count: 0,
-              timestamp: parseDateSafe(card.updated_at || card.created_at),
-            };
-          }
-          grouped[setId].count += 1;
-          const dateCandidate = parseDateSafe(card.updated_at || card.created_at);
-          if (dateCandidate > grouped[setId].timestamp) grouped[setId].timestamp = dateCandidate;
-        });
-
-        Object.values(grouped).forEach((setInfo) => {
+        const sets = Array.isArray(payload?.flashcard_history) ? payload.flashcard_history : [];
+        sets.forEach((setInfo) => {
           addActivity({
-            id: `flashcard-${setInfo.setId}`,
+            id: `flashcard-${setInfo.id}`,
             type: 'flashcard',
-            title: setInfo.title,
-            content: `${setInfo.count} flashcard${setInfo.count === 1 ? '' : 's'}`,
-            timestamp: setInfo.timestamp,
+            title: setInfo.title || 'Flashcard Set',
+            content: `${setInfo.card_count || 0} flashcard${setInfo.card_count === 1 ? '' : 's'}`,
+            timestamp: parseDateSafe(setInfo.updated_at || setInfo.created_at),
             data: setInfo,
           });
         });
@@ -203,7 +187,7 @@ const ActivityTimeline = () => {
     }
 
     try {
-      const chatRes = await fetch(`${API_URL}/get_chat_sessions?user_id=${encodeURIComponent(userName)}`, { headers: authHeaders });
+      const chatRes = await fetch(`${API_URL}/get_chat_sessions?user_id=${encodeURIComponent(userName)}&limit=200`, { headers: authHeaders });
       if (chatRes.ok) {
         const chats = await chatRes.json();
         (chats?.sessions || []).forEach((session) => {

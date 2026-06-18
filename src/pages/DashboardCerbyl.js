@@ -315,103 +315,64 @@ const DashboardCerbyl = () => {
     let cancelled = false;
 
     (async () => {
-      try {
-        const g = await fetchJson(`${API_URL}/get_gamification_stats?user_id=${userName}`);
-        if (cancelled) return;
-        setStats(prev => ({
-          ...prev,
-          streak: g.current_streak ?? prev.streak,
-          level: g.level ?? prev.level,
-          xp: g.experience ?? g.current_xp ?? prev.xp,
-          nextXp: g.next_level_xp ?? prev.nextXp,
-          chats: g.total_chat_sessions ?? prev.chats,
-          notes: g.total_notes_created ?? prev.notes,
-          cards: g.total_flashcards_created ?? prev.cards,
-          quizzes: g.total_quizzes_completed ?? g.total_quizzes ?? prev.quizzes,
-          questions: g.total_questions_answered ?? prev.questions,
-          rank: g.rank ?? g.global_rank ?? prev.rank,
-          weeklyPoints: g.weekly_points ?? prev.weeklyPoints
-        }));
-      } catch (e) { /* silenced */ }
+      const encodedUser = encodeURIComponent(userName);
+      const [
+        dashboardResult,
+        heatmapResult,
+        analyticsResult,
+        mediaResult,
+        subscriptionResult,
+      ] = await Promise.allSettled([
+        fetchJson(`${API_URL}/get_dashboard_data?user_id=${encodedUser}&include_recent_summaries=true`),
+        fetchJson(`${API_URL}/get_activity_heatmap?user_id=${encodedUser}`),
+        fetchJson(`${API_URL}/get_analytics_history?user_id=${encodedUser}&period=week`),
+        fetchJson(`${API_URL}/media/history?user_id=${encodedUser}&limit=2`),
+        fetchJson(`${API_URL}/subscription/overview?user_id=${encodedUser}`),
+      ]);
 
-      try {
-        const d = await fetchJson(`${API_URL}/get_dashboard_data?user_id=${userName}`);
-        if (cancelled) return;
+      if (cancelled) return;
+
+      if (dashboardResult.status === 'fulfilled') {
+        const d = dashboardResult.value || {};
         const gf = d.gamification || {};
         setStats(prev => ({
           ...prev,
           streak: gf.current_streak ?? prev.streak,
           level: gf.level ?? prev.level,
-          xp: gf.experience ?? prev.xp,
+          xp: gf.experience ?? gf.current_xp ?? prev.xp,
           nextXp: gf.next_level_xp ?? prev.nextXp,
           chats: gf.total_chat_sessions ?? prev.chats,
           notes: gf.total_notes_created ?? prev.notes,
           cards: gf.total_flashcards_created ?? prev.cards,
-          quizzes: gf.total_quizzes_completed ?? prev.quizzes,
-          questions: gf.total_ai_chats ?? prev.questions,
-          rank: gf.rank ?? prev.rank,
+          quizzes: gf.total_quizzes_completed ?? gf.total_quizzes ?? prev.quizzes,
+          questions: gf.total_ai_chats ?? gf.total_questions_answered ?? prev.questions,
+          rank: gf.rank ?? gf.global_rank ?? prev.rank,
           weeklyPoints: gf.weekly_points ?? prev.weeklyPoints
         }));
-      } catch (e) { /* silenced */ }
+        setRecentNotes(Array.isArray(d.recent_notes) ? d.recent_notes.slice(0, 3) : []);
+        setRecentSets(Array.isArray(d.recent_flashcard_sets) ? d.recent_flashcard_sets.slice(0, 3) : []);
+      }
 
-      try {
-        const h = await fetchJson(`${API_URL}/get_activity_heatmap?user_id=${userName}`);
-        if (cancelled) return;
-        setHeatmap(h.heatmap_data || []);
-      } catch (e) { /* silenced */ }
+      if (heatmapResult.status === 'fulfilled') {
+        setHeatmap(heatmapResult.value?.heatmap_data || []);
+      }
 
-      try {
-        const a = await fetchJson(`${API_URL}/get_analytics_history?user_id=${userName}&period=week`);
-        if (cancelled) return;
-        const arr = (a.history || []).map(x => ({
+      if (analyticsResult.status === 'fulfilled') {
+        const arr = (analyticsResult.value?.history || []).map(x => ({
           total: (x.ai_chats || 0) + (x.flashcards || 0) + (x.notes || 0) + (x.quizzes || 0),
           date: x.date
         }));
-        const filled = arr.length === 7 ? arr :
-          [...Array(7)].map((_, i) => arr[i] || { total: 0, date: '' });
-        setWeekly(filled);
-      } catch (e) {
+        setWeekly(arr.length === 7 ? arr : [...Array(7)].map((_, i) => arr[i] || { total: 0, date: '' }));
+      } else {
         setWeekly([...Array(7)].map(() => ({ total: 0, date: '' })));
       }
 
-      try {
-        const n = await fetchJson(`${API_URL}/get_notes?user_id=${userName}`);
-        if (cancelled) return;
-        const list = Array.isArray(n) ? n : (n.notes || []);
-        setRecentNotes(list.slice(0, 3));
-      } catch (e) { /* silenced */ }
+      if (mediaResult.status === 'fulfilled') {
+        setRecentMedia((mediaResult.value?.history || []).slice(0, 2));
+      }
 
-      try {
-        const m = await fetchJson(`${API_URL}/media/history?user_id=${userName}`);
-        if (cancelled) return;
-        setRecentMedia((m.history || []).slice(0, 2));
-      } catch (e) { /* silenced */ }
-
-      try {
-        const fc = await fetchJson(`${API_URL}/get_flashcards?user_id=${userName}`);
-        if (cancelled) return;
-        const seen = new Map();
-        for (const card of (Array.isArray(fc) ? fc : [])) {
-          if (!card.set_id) continue;
-          if (!seen.has(card.set_id)) {
-            seen.set(card.set_id, {
-              set_id: card.set_id,
-              title: card.set_title || 'Untitled set',
-              created_at: card.created_at,
-              count: 0
-            });
-          }
-          seen.get(card.set_id).count++;
-        }
-        const sets = Array.from(seen.values())
-          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-          .slice(0, 3);
-        setRecentSets(sets);
-      } catch (e) { /* silenced */ }
-
-      try {
-        const sub = await fetchJson(`${API_URL}/subscription/overview?user_id=${encodeURIComponent(userName)}`);
-        if (cancelled) return;
+      if (subscriptionResult.status === 'fulfilled') {
+        const sub = subscriptionResult.value || {};
         const rawPlanId = sub.currentPlanId || sub.current_plan_id || sub.plan || 'starter';
         const normalizedPlanId = String(rawPlanId || 'starter').trim().toLowerCase();
         const plan = sub.currentPlan || (sub.plans || []).find((p) => String(p.id || '').trim().toLowerCase() === normalizedPlanId) || {};
@@ -435,8 +396,7 @@ const DashboardCerbyl = () => {
           hasUnlimitedAccess: Boolean(sub.hasUnlimitedAccess || plan.unlimited || planId === 'unlimited'),
           error: null
         });
-      } catch (e) {
-        if (cancelled) return;
+      } else {
         setSubscriptionUsage(prev => ({ ...prev, loading: false, error: 'usage-unavailable' }));
       }
     })();

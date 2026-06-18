@@ -389,7 +389,7 @@ const Vault = () => {
       const h     = { Authorization: `Bearer ${token}` };
       const items = [];
       try {
-        const r = await fetch(`${API_URL}/get_notes?user_id=${uid}`, { headers: h });
+        const r = await fetch(`${API_URL}/get_notes?user_id=${encodeURIComponent(uid)}&summary=true&limit=8`, { headers: h });
         if (r.ok) {
           const d = await r.json();
           const notes = Array.isArray(d) ? d : (d.notes || []);
@@ -415,7 +415,7 @@ const Vault = () => {
         }
       } catch {  }
       try {
-        const r = await fetch(`${API_URL}/get_chat_sessions?user_id=${uid}`, { headers: h });
+        const r = await fetch(`${API_URL}/get_chat_sessions?user_id=${encodeURIComponent(uid)}&limit=6`, { headers: h });
         if (r.ok) {
           const d = await r.json();
           (d.sessions || []).slice(0, 6).forEach(s => items.push({

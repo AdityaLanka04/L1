@@ -543,7 +543,7 @@ const SearchHub = () => {
     const titleTopic = extractTopicName(title);
     if (titleTopic && titleTopic.toLowerCase() !== 'new note') return titleTopic;
 
-    const content = stripHtml(note.content || '');
+    const content = stripHtml(note.content || note.preview || '');
     const headingMatch = content.match(/^\s*#+\s+(.+)$/m);
     if (headingMatch && headingMatch[1]) {
       const headingTopic = extractTopicFromFreeText(headingMatch[1]);
@@ -813,7 +813,7 @@ const SearchHub = () => {
 
         const fetchNoteTopics = async () => {
           try {
-            const response = await fetch(`${API_URL}/get_notes?user_id=${username}`, {
+            const response = await fetch(`${API_URL}/get_notes?user_id=${encodeURIComponent(username)}&summary=true&limit=50`, {
               headers: { Authorization: `Bearer ${token}` },
               cache: 'no-store'
             });
@@ -929,7 +929,7 @@ const SearchHub = () => {
 
         const fetchChatTopics = async () => {
           try {
-            const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${username}`, {
+            const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${encodeURIComponent(username)}&limit=50`, {
               headers: { Authorization: `Bearer ${token}` },
               cache: 'no-store'
             });

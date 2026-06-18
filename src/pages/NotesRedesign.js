@@ -1138,7 +1138,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const loadChatSessions = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/get_chat_sessions?user_id=${userName}`, {
+      const res = await fetch(`${API_URL}/get_chat_sessions?user_id=${encodeURIComponent(userName)}&limit=200`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {

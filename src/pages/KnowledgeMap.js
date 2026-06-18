@@ -262,7 +262,7 @@ const [selectedChatId, setSelectedChatId] = useState(null);
 
 const fetchChatSessions = async () => {
   try {
-    const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${userId}`, {
+    const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${encodeURIComponent(userId)}&limit=100`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (response.ok) {

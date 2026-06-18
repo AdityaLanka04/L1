@@ -1708,15 +1708,21 @@ def rename_chat_session(
 
 @router.get("/get_chat_sessions")
 def get_chat_sessions(
+    limit: Optional[int] = Query(None, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    sessions = (
+    query = (
         db.query(models.ChatSession)
         .filter(models.ChatSession.user_id == current_user.id)
         .order_by(models.ChatSession.updated_at.desc())
-        .all()
     )
+    if offset:
+        query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
+    sessions = query.all()
 
     return {
         "sessions": [

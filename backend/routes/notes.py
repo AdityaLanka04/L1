@@ -435,17 +435,43 @@ def _generate_notes_from_context(docs: list[models.ContextDocument], doc_chunks:
     return merged or "\n\n".join(per_doc_notes)
 
 @router.get("/get_notes")
-def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
+def get_notes(
+    user_id: str = Query(...),
+    limit: Optional[int] = Query(None, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    summary: bool = Query(False),
+    db: Session = Depends(get_db),
+):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    notes = (
+    query = (
         db.query(models.Note)
         .filter(models.Note.user_id == user.id, models.Note.is_deleted == False)
         .order_by(models.Note.updated_at.desc())
-        .all()
     )
+    if offset:
+        query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
+    notes = query.all()
+
+    if summary:
+        return [
+            {
+                "id": n.id,
+                "title": n.title,
+                "preview": re.sub(r"<[^>]+>", " ", n.content or "").strip()[:240],
+                "created_at": n.created_at.isoformat() + "Z" if n.created_at else None,
+                "updated_at": n.updated_at.isoformat() + "Z" if n.updated_at else None,
+                "is_favorite": getattr(n, "is_favorite", False),
+                "folder_id": getattr(n, "folder_id", None),
+                "is_deleted": False,
+            }
+            for n in notes
+            if not n.is_deleted
+        ]
 
     return [
         {

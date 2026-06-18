@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
 
 import models
@@ -40,28 +40,38 @@ class FlashcardCreateRequest(BaseModel):
     difficulty: Optional[str] = "medium"
 
 @router.get("/get_flashcards")
-def get_flashcards(user_id: str = Query(...), db: Session = Depends(get_db)):
+def get_flashcards(
+    user_id: str = Query(...),
+    limit: Optional[int] = Query(None, ge=1, le=2000),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    sets = db.query(models.FlashcardSet).filter(
-        models.FlashcardSet.user_id == user.id
-    ).order_by(models.FlashcardSet.created_at.desc()).all()
+    query = (
+        db.query(models.Flashcard, models.FlashcardSet)
+        .join(models.FlashcardSet, models.Flashcard.set_id == models.FlashcardSet.id)
+        .filter(models.FlashcardSet.user_id == user.id)
+        .order_by(models.FlashcardSet.created_at.desc(), models.Flashcard.created_at.desc())
+    )
+    if offset:
+        query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
 
     result = []
-    for fs in sets:
-        cards = db.query(models.Flashcard).filter(models.Flashcard.set_id == fs.id).all()
-        for card in cards:
-            result.append({
-                "id": card.id,
-                "set_id": fs.id,
-                "set_title": fs.title,
-                "question": card.question,
-                "answer": card.answer,
-                "difficulty": card.difficulty,
-                "created_at": (card.created_at or fs.created_at).isoformat() + "Z",
-            })
+    for card, fs in query.all():
+        result.append({
+            "id": card.id,
+            "set_id": fs.id,
+            "set_title": fs.title,
+            "question": card.question,
+            "answer": card.answer,
+            "difficulty": card.difficulty,
+            "created_at": (card.created_at or fs.created_at).isoformat() + "Z",
+        })
     return result
 
 @router.get("/get_flashcards_in_set")
@@ -117,8 +127,28 @@ def get_flashcard_history(
         models.FlashcardSet.user_id == user.id
     ).scalar() or 0
 
+    card_counts = (
+        db.query(
+            models.Flashcard.set_id.label("set_id"),
+            func.count(models.Flashcard.id).label("card_count"),
+            func.sum(
+                case(
+                    (models.Flashcard.correct_count > 0, case((models.Flashcard.marked_for_review == True, 5), else_=10)),
+                    else_=0,
+                )
+            ).label("mastery_sum"),
+        )
+        .group_by(models.Flashcard.set_id)
+        .subquery()
+    )
+
     sets = (
-        db.query(models.FlashcardSet)
+        db.query(
+            models.FlashcardSet,
+            func.coalesce(card_counts.c.card_count, 0).label("card_count"),
+            func.coalesce(card_counts.c.mastery_sum, 0).label("mastery_sum"),
+        )
+        .outerjoin(card_counts, card_counts.c.set_id == models.FlashcardSet.id)
         .filter(models.FlashcardSet.user_id == user.id)
         .order_by(models.FlashcardSet.created_at.desc())
         .limit(limit)
@@ -127,14 +157,8 @@ def get_flashcard_history(
     )
 
     result = []
-    for fs in sets:
-        cards = db.query(models.Flashcard).filter(models.Flashcard.set_id == fs.id).all()
-        total_cards = len(cards)
-        mastery_sum = 0
-        for c in cards:
-            if (c.correct_count or 0) > 0:
-                mastery_sum += 10 if not c.marked_for_review else 5
-        mastery = min(mastery_sum, 100)
+    for fs, total_cards, mastery_sum in sets:
+        mastery = min(int(mastery_sum or 0), 100)
 
         result.append({
             "id": fs.id,

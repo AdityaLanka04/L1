@@ -1,78 +1,229 @@
-import React, { useState, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect, useState, lazy, Suspense } from 'react';
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
-import AIChatDock from './components/AIChatDock';
 import LoadingSpinner from './components/LoadingSpinner';
 import GlobalNotifications from './components/GlobalNotifications';
 import RateLimitHandler from './components/RateLimitHandler';
+import { getChatDockState, listenChatDockUpdates } from './utils/chatDock';
 import './styles/ui-safety.css';
 
 // Pages are lazy-loaded so each route ships as its own chunk instead of
 // inflating the initial bundle with ~60 page components up front.
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const DashboardCerbyl = lazy(() => import('./pages/DashboardCerbyl'));
-const AIChat = lazy(() => import('./pages/AIChat'));
-const Homepage = lazy(() => import('./pages/Homepage'));
-const LearningReviewHub = lazy(() => import('./pages/LearningReviewHub'));
-const Social = lazy(() => import('./pages/Social'));
-const SharedPage = lazy(() => import('./pages/SharedPage'));
-const FriendsDashboard = lazy(() => import('./pages/FriendsDashboard'));
-const ActivityFeed = lazy(() => import('./pages/ActivityFeed'));
-const Leaderboards = lazy(() => import('./pages/Leaderboards'));
-const QuizHub = lazy(() => import('./pages/QuizHub'));
-const QuizBattle = lazy(() => import('./pages/QuizBattle'));
-const QuizBattleSession = lazy(() => import('./pages/QuizBattleSession'));
-const SoloQuiz = lazy(() => import('./pages/SoloQuiz'));
-const SoloQuizSession = lazy(() => import('./pages/SoloQuizSession'));
-const SoloQuizReview = lazy(() => import('./pages/SoloQuizReview'));
-const Analytics = lazy(() => import('./pages/Analytics'));
-const ChallengeSession = lazy(() => import('./pages/ChallengeSession'));
-const Challenges = lazy(() => import('./pages/Challenges'));
-const KnowledgeMap = lazy(() => import('./pages/KnowledgeMap'));
-const ConceptWeb = lazy(() => import('./pages/ConceptWeb'));
-const QuestionBank = lazy(() => import('./pages/Questionbankdashboard'));
-const SlideExplorer = lazy(() => import('./pages/SlideExplorer'));
-const Statistics = lazy(() => import('./pages/Statistics'));
-const Flashcards = lazy(() => import('./pages/Flashcards'));
-const NotesRedesign = lazy(() => import('./pages/NotesRedesign'));
-const NotesHub = lazy(() => import('./pages/NotesHub'));
-const AudioVideoNotes = lazy(() => import('./pages/AudioVideoNotes'));
-const AIMediaNotes = lazy(() => import('./pages/AIMediaNotes'));
-const MyNotes = lazy(() => import('./pages/MyNotes'));
-const NotesPodcastMode = lazy(() => import('./pages/NotesPodcastMode'));
-const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
-const Profile = lazy(() => import('./pages/ProfileNew'));
-const ProfileQuiz = lazy(() => import('./pages/ProfileQuiz'));
-const SearchHub = lazy(() => import('./pages/SearchHub'));
-const Landing = lazy(() => import('./pages/Landing'));
-const StudyInsights = lazy(() => import('./pages/StudyInsights'));
-const Weaknesses = lazy(() => import('./pages/Weaknesses'));
-const WeaknessPractice = lazy(() => import('./pages/WeaknessPractice'));
-const WeaknessTips = lazy(() => import('./pages/WeaknessTips'));
-const SharedItemViewer = lazy(() => import('./pages/SharedItemViewer'));
-const PublicFlashcardView = lazy(() => import('./pages/PublicFlashcardView'));
-const PublicChatView = lazy(() => import('./pages/PublicChatView'));
-const NotesDashboard = lazy(() => import('./pages/NotesDashboard'));
-const ActivityTimeline = lazy(() => import('./pages/ActivityTimeline'));
-const CustomizeDashboard = lazy(() => import('./pages/CustomizeDashboard'));
-const Games = lazy(() => import('./pages/Games'));
-const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage'));
-const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage'));
-const XPRoadmap = lazy(() => import('./pages/XPRoadmap'));
-const LearningPaths = lazy(() => import('./pages/LearningPaths'));
-const LearningPathDetail = lazy(() => import('./pages/LearningPathDetail'));
-const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
-const AdminApiUsage = lazy(() => import('./pages/AdminApiUsage'));
-const AdminRateLimits = lazy(() => import('./pages/AdminRateLimits'));
-const CanvasHub = lazy(() => import('./pages/CanvasHub'));
-const Vault = lazy(() => import('./pages/Vault'));
-const ContextFileAnalysis = lazy(() => import('./pages/ContextFileAnalysis'));
+const lazyRoute = (loader) => {
+  const Component = lazy(loader);
+  Component.preload = loader;
+  return Component;
+};
+
+const DashboardCerbyl = lazyRoute(() => import('./pages/DashboardCerbyl'));
+const AIChat = lazyRoute(() => import('./pages/AIChat'));
+const Homepage = lazyRoute(() => import('./pages/Homepage'));
+const LearningReviewHub = lazyRoute(() => import('./pages/LearningReviewHub'));
+const Social = lazyRoute(() => import('./pages/Social'));
+const SharedPage = lazyRoute(() => import('./pages/SharedPage'));
+const FriendsDashboard = lazyRoute(() => import('./pages/FriendsDashboard'));
+const ActivityFeed = lazyRoute(() => import('./pages/ActivityFeed'));
+const Leaderboards = lazyRoute(() => import('./pages/Leaderboards'));
+const QuizHub = lazyRoute(() => import('./pages/QuizHub'));
+const QuizBattle = lazyRoute(() => import('./pages/QuizBattle'));
+const QuizBattleSession = lazyRoute(() => import('./pages/QuizBattleSession'));
+const SoloQuiz = lazyRoute(() => import('./pages/SoloQuiz'));
+const SoloQuizSession = lazyRoute(() => import('./pages/SoloQuizSession'));
+const SoloQuizReview = lazyRoute(() => import('./pages/SoloQuizReview'));
+const Analytics = lazyRoute(() => import('./pages/Analytics'));
+const ChallengeSession = lazyRoute(() => import('./pages/ChallengeSession'));
+const Challenges = lazyRoute(() => import('./pages/Challenges'));
+const KnowledgeMap = lazyRoute(() => import('./pages/KnowledgeMap'));
+const ConceptWeb = lazyRoute(() => import('./pages/ConceptWeb'));
+const QuestionBank = lazyRoute(() => import('./pages/Questionbankdashboard'));
+const SlideExplorer = lazyRoute(() => import('./pages/SlideExplorer'));
+const Statistics = lazyRoute(() => import('./pages/Statistics'));
+const Flashcards = lazyRoute(() => import('./pages/Flashcards'));
+const NotesRedesign = lazyRoute(() => import('./pages/NotesRedesign'));
+const NotesHub = lazyRoute(() => import('./pages/NotesHub'));
+const AudioVideoNotes = lazyRoute(() => import('./pages/AudioVideoNotes'));
+const AIMediaNotes = lazyRoute(() => import('./pages/AIMediaNotes'));
+const MyNotes = lazyRoute(() => import('./pages/MyNotes'));
+const NotesPodcastMode = lazyRoute(() => import('./pages/NotesPodcastMode'));
+const Login = lazyRoute(() => import('./pages/Login'));
+const Register = lazyRoute(() => import('./pages/Register'));
+const Profile = lazyRoute(() => import('./pages/ProfileNew'));
+const ProfileQuiz = lazyRoute(() => import('./pages/ProfileQuiz'));
+const SearchHub = lazyRoute(() => import('./pages/SearchHub'));
+const Landing = lazyRoute(() => import('./pages/Landing'));
+const StudyInsights = lazyRoute(() => import('./pages/StudyInsights'));
+const Weaknesses = lazyRoute(() => import('./pages/Weaknesses'));
+const WeaknessPractice = lazyRoute(() => import('./pages/WeaknessPractice'));
+const WeaknessTips = lazyRoute(() => import('./pages/WeaknessTips'));
+const SharedItemViewer = lazyRoute(() => import('./pages/SharedItemViewer'));
+const PublicFlashcardView = lazyRoute(() => import('./pages/PublicFlashcardView'));
+const PublicChatView = lazyRoute(() => import('./pages/PublicChatView'));
+const NotesDashboard = lazyRoute(() => import('./pages/NotesDashboard'));
+const ActivityTimeline = lazyRoute(() => import('./pages/ActivityTimeline'));
+const CustomizeDashboard = lazyRoute(() => import('./pages/CustomizeDashboard'));
+const Games = lazyRoute(() => import('./pages/Games'));
+const PlaylistDetailPage = lazyRoute(() => import('./pages/PlaylistDetailPage'));
+const PlaylistsPage = lazyRoute(() => import('./pages/PlaylistsPage'));
+const XPRoadmap = lazyRoute(() => import('./pages/XPRoadmap'));
+const LearningPaths = lazyRoute(() => import('./pages/LearningPaths'));
+const LearningPathDetail = lazyRoute(() => import('./pages/LearningPathDetail'));
+const AdminAnalytics = lazyRoute(() => import('./pages/AdminAnalytics'));
+const AdminApiUsage = lazyRoute(() => import('./pages/AdminApiUsage'));
+const AdminRateLimits = lazyRoute(() => import('./pages/AdminRateLimits'));
+const CanvasHub = lazyRoute(() => import('./pages/CanvasHub'));
+const Vault = lazyRoute(() => import('./pages/Vault'));
+const ContextFileAnalysis = lazyRoute(() => import('./pages/ContextFileAnalysis'));
+const AIChatDock = lazyRoute(() => import('./components/AIChatDock'));
+
+const ROUTE_PRELOAD_ORDER = [
+  DashboardCerbyl,
+  SearchHub,
+  AIChat,
+  NotesHub,
+  NotesRedesign,
+  Flashcards,
+  QuestionBank,
+  KnowledgeMap,
+  LearningPaths,
+  ActivityTimeline,
+  Social,
+  QuizHub,
+  SoloQuiz,
+  Analytics,
+  Profile,
+  Vault,
+  AIMediaNotes,
+  SlideExplorer,
+  Weaknesses,
+  ConceptWeb,
+  PlaylistsPage,
+  Games,
+  XPRoadmap,
+  LearningReviewHub,
+  FriendsDashboard,
+  ActivityFeed,
+  Leaderboards,
+  QuizBattle,
+  QuizBattleSession,
+  SoloQuizSession,
+  SoloQuizReview,
+  ChallengeSession,
+  Challenges,
+  Statistics,
+  AudioVideoNotes,
+  MyNotes,
+  NotesPodcastMode,
+  ProfileQuiz,
+  StudyInsights,
+  WeaknessPractice,
+  WeaknessTips,
+  NotesDashboard,
+  CustomizeDashboard,
+  PlaylistDetailPage,
+  LearningPathDetail,
+  CanvasHub,
+  ContextFileAnalysis,
+  SharedPage,
+  SharedItemViewer,
+  PublicFlashcardView,
+  PublicChatView,
+];
+
+const scheduleIdle = (callback) => {
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    return window.requestIdleCallback(callback, { timeout: 2500 });
+  }
+  return window.setTimeout(callback, 900);
+};
+
+const cancelIdle = (handle) => {
+  if (!handle) return;
+  if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+    window.cancelIdleCallback(handle);
+    return;
+  }
+  window.clearTimeout(handle);
+};
+
+const routeWarmupCache = new Set();
+
+function RouteWarmup() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!localStorage.getItem('token')) return undefined;
+
+    let cancelled = false;
+    let idleHandle = null;
+    let index = 0;
+
+    const warmNext = () => {
+      if (cancelled || index >= ROUTE_PRELOAD_ORDER.length) return;
+      const Component = ROUTE_PRELOAD_ORDER[index];
+      index += 1;
+
+      if (!Component?.preload || routeWarmupCache.has(Component)) {
+        idleHandle = scheduleIdle(warmNext);
+        return;
+      }
+
+      routeWarmupCache.add(Component);
+      Promise.resolve(Component.preload())
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) idleHandle = scheduleIdle(warmNext);
+        });
+    };
+
+    idleHandle = scheduleIdle(warmNext);
+
+    return () => {
+      cancelled = true;
+      cancelIdle(idleHandle);
+    };
+  }, [location.pathname]);
+
+  return null;
+}
+
+function AIChatDockMount() {
+  const location = useLocation();
+  const [dock, setDock] = useState(() => getChatDockState());
+
+  useEffect(() => {
+    const offCustom = listenChatDockUpdates((next) => setDock(next));
+    const onStorage = (event) => {
+      if (event.key === 'cerbyl.chatDock') {
+        setDock(getChatDockState());
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      offCustom();
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
+  const token = localStorage.getItem('token');
+  const hiddenRoutes = ['/ai-chat', '/login', '/register'];
+  const shouldLoad =
+    Boolean(token && dock?.enabled && dock?.chatId) &&
+    !hiddenRoutes.some((prefix) => location.pathname.startsWith(prefix));
+
+  if (!shouldLoad) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <AIChatDock />
+    </Suspense>
+  );
+}
 
 function App() {
   const [notification, setNotification] = useState(null);
@@ -83,8 +234,9 @@ function App() {
         <ToastProvider>
           <RateLimitHandler />
           <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
+            <RouteWarmup />
             <GlobalNotifications />
-            <AIChatDock />
+            <AIChatDockMount />
             {notification && (
               <ProactiveNotification
                 message={notification.message}
@@ -104,7 +256,7 @@ function App() {
                   <Route path="/profile-quiz" element={<ProtectedRoute><ProfileQuiz /></ProtectedRoute>} />
                   <Route path="/dashboard-cerbyl" element={<ProtectedRoute><DashboardCerbyl /></ProtectedRoute>} />
                   <Route path="/dashboard" element={<Navigate to="/dashboard-cerbyl" replace />} />
-                  <Route path="/dashboard-classic" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/dashboard-classic" element={<Navigate to="/dashboard-cerbyl" replace />} />
                   <Route path="/study-insights" element={<ProtectedRoute><StudyInsights /></ProtectedRoute>} />
                   <Route path="/weaknesses" element={<ProtectedRoute><Weaknesses /></ProtectedRoute>} />
                   <Route path="/weakness-practice" element={<ProtectedRoute><WeaknessPractice /></ProtectedRoute>} />

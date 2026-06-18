@@ -77,7 +77,7 @@ const SharedPage = () => {
 
   const fetchMyContent = async () => {
     try {
-      const notesResponse = await fetch(`${API_URL}/get_notes?user_id=${userId}`, {
+      const notesResponse = await fetch(`${API_URL}/get_notes?user_id=${encodeURIComponent(userId)}&summary=true&limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (notesResponse.ok) {
@@ -85,7 +85,7 @@ const SharedPage = () => {
         setMyNotes(notesData);
       }
 
-      const chatsResponse = await fetch(`${API_URL}/get_chat_sessions?user_id=${userId}`, {
+      const chatsResponse = await fetch(`${API_URL}/get_chat_sessions?user_id=${encodeURIComponent(userId)}&limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (chatsResponse.ok) {

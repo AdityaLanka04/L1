@@ -75,6 +75,7 @@ def _reminder_due_at_marker(reminder_dt: datetime) -> str:
 async def get_notifications(
     user_id: str = Query(...),
     timezone_offset: int = Query(0),
+    limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -140,7 +141,7 @@ async def get_notifications(
 
         notifications = db.query(models.Notification).filter(
             models.Notification.user_id == user.id
-        ).order_by(models.Notification.created_at.desc()).all()
+        ).order_by(models.Notification.created_at.desc()).limit(limit).all()
 
         return {
             "notifications": [

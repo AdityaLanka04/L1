@@ -1200,7 +1200,7 @@ const AIChat = ({ sharedMode = false }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${userName}`, {
+      const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${encodeURIComponent(userName)}&limit=200`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       

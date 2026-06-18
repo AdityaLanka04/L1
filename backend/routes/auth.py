@@ -1383,7 +1383,11 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
         raise HTTPException(status_code=500, detail="Failed to load profile. Please try again.")
 
 @router.get("/subscription/overview")
-async def get_subscription_overview(user_id: str = Query(...), db: Session = Depends(get_db)):
+async def get_subscription_overview(
+    user_id: str = Query(...),
+    include_usage: bool = Query(True),
+    db: Session = Depends(get_db),
+):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -1400,7 +1404,12 @@ async def get_subscription_overview(user_id: str = Query(...), db: Session = Dep
         )
         started_at = comprehensive_profile.subscription_started_at if comprehensive_profile else None
 
-        usage = _subscription_usage_snapshot(db, user.id, days=30)
+        usage = _subscription_usage_snapshot(db, user.id, days=30) if include_usage else {
+            "window_days": 30,
+            "total_tokens": 0,
+            "ai_requests": 0,
+            "top_tools": [],
+        }
         current_plan = get_plan(plan_id)
         monthly_price = float(current_plan.get("monthly_price_usd") or 0.0)
         current_usage_cost = estimate_usage_cost_usd(plan_id, usage.get("total_tokens") or 0)

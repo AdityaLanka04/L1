@@ -612,6 +612,8 @@ async def get_single_note(
 @router.get("/media/history")
 async def get_media_history(
     user_id: str = Query(...),
+    limit: int = Query(50, ge=1, le=100),
+    scan_limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -627,7 +629,7 @@ async def get_media_history(
                 models.Note.is_deleted == False,
             )
             .order_by(models.Note.created_at.desc())
-            .limit(50)
+            .limit(scan_limit)
             .all()
         )
 
@@ -654,6 +656,8 @@ async def get_media_history(
                     "created_at": note.created_at.isoformat(),
                     "preview": note.content[:200] if note.content else "",
                 })
+                if len(history) >= limit:
+                    break
 
         logger.info(f"Found {len(history)} media-generated notes for user {user_id}")
         return {"history": history}

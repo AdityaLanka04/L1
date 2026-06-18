@@ -23,6 +23,7 @@ _configure_langsmith_tracing()
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import text
@@ -107,6 +108,29 @@ def _release_rl_scheduler_lock(lock_state) -> None:
             pass
 
 models.Base.metadata.create_all(bind=engine)
+
+def _ensure_perf_indexes() -> None:
+    statements = [
+        "CREATE INDEX IF NOT EXISTS ix_notes_user_deleted_updated ON notes (user_id, is_deleted, updated_at)",
+        "CREATE INDEX IF NOT EXISTS ix_flashcard_sets_user_created ON flashcard_sets (user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_flashcards_set_created ON flashcards (set_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_chat_sessions_user_updated ON chat_sessions (user_id, updated_at)",
+        "CREATE INDEX IF NOT EXISTS ix_chat_messages_session_timestamp ON chat_messages (chat_session_id, timestamp)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_user_created ON notifications (user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_point_transactions_user_created ON point_transactions (user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_daily_learning_metrics_user_date ON daily_learning_metrics (user_id, date)",
+        "CREATE INDEX IF NOT EXISTS ix_reminders_user_completed_date ON reminders (user_id, is_completed, reminder_date)",
+        "CREATE INDEX IF NOT EXISTS ix_context_documents_user_created ON context_documents (user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_question_sets_user_created ON question_sets (user_id, created_at)",
+    ]
+    try:
+        with engine.begin() as conn:
+            for statement in statements:
+                conn.execute(text(statement))
+    except Exception as exc:
+        logger.warning("Performance index setup skipped: %s", exc)
+
+_ensure_perf_indexes()
 
 if "sqlite" in DATABASE_URL:
     _SR_COLUMNS = {
@@ -559,6 +583,7 @@ from middleware.body_limit import BodySizeLimitMiddleware
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 try:
     from activity_middleware import log_request_activity

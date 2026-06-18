@@ -77,7 +77,7 @@ const ImportExportModal = ({
       
       switch (resolvedSourceType) {
         case 'notes':
-          endpoint = `${API_URL}/get_notes?user_id=${userName}`;
+          endpoint = `${API_URL}/get_notes?user_id=${encodeURIComponent(userName)}&summary=true&limit=200`;
           break;
         case 'flashcards':
           endpoint = `${API_URL}/get_flashcard_history?user_id=${userName}&limit=100`;
@@ -86,7 +86,7 @@ const ImportExportModal = ({
           endpoint = `${API_URL}/get_generated_questions?user_id=${userName}`;
           break;
         case 'media':
-          endpoint = `${API_URL}/media/history?user_id=${userName}`;
+          endpoint = `${API_URL}/media/history?user_id=${encodeURIComponent(userName)}&limit=100`;
           break;
         case 'playlist':
           endpoint = `${API_URL}/playlists?my_playlists=true`;
