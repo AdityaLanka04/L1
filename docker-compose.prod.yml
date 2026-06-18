@@ -46,6 +46,7 @@ services:
     env_file:
       - backend/.env.production
     environment:
+      - BACKEND_ID=azure-primary
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - AI_MAX_ACTIVE_JOBS_PER_USER=4

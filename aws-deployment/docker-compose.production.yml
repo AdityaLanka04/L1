@@ -11,6 +11,7 @@ services:
     env_file:
       - ../backend/.env.production
     environment:
+      - BACKEND_ID=ec2-production
       - ENV=production
       - UPLOAD_DIR=/app/uploads
       - PYTHONUNBUFFERED=1

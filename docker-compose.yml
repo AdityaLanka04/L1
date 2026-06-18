@@ -11,6 +11,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
+      - BACKEND_ID=local-dev
       - UPLOAD_DIR=/app/uploads
     volumes:
       - backend_uploads:/app/uploads
