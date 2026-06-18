@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { sanitizeHtml } from '../utils/sanitize';
+import { sanitizeHtml, sanitizeUrl } from '../utils/sanitize';
 import { createPortal } from 'react-dom';
 import {
   Type, Heading1, Heading2, Heading3, List, ListOrdered,
@@ -65,13 +65,6 @@ const BLOCK_TYPES = [
   { type: 'embed', label: 'Embed', icon: ExternalLink, description: 'Embed external content', category: 'Embeds' },
   { type: 'mermaid', label: 'Mermaid', icon: GitBranch, description: 'Flowchart diagram', category: 'Advanced' },
 ];
-
-const escapeInsertedText = (value) => String(value)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
 
 const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
   const [showPreview, setShowPreview] = React.useState(false);
@@ -253,7 +246,16 @@ const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
   );
 };
 
-const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = false, onOpenCanvas, focusBlockId, activeTextColor = null }) => {
+const SimpleBlockEditor = ({
+  blocks,
+  onChange,
+  readOnly = false,
+  darkMode = false,
+  onOpenCanvas,
+  focusBlockId,
+  typingFontFamily = "'Inter', sans-serif",
+  typingTextColor = null
+}) => {
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
   const [showBlockMenu, setShowBlockMenu] = useState(null);
   const [blockMenuPosition, setBlockMenuPosition] = useState({ top: 0, left: 0 });
@@ -296,32 +298,6 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     onChange(newBlocks);
   }, [blocks, onChange]);
 
-  const handleBeforeInput = useCallback((e, blockId) => {
-    const inputType = e.nativeEvent?.inputType || e.inputType;
-    const inputData = e.data ?? e.nativeEvent?.data;
-    if (readOnly || !activeTextColor || !inputData) return;
-    if (inputType && inputType !== 'insertText') return;
-
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-
-    const range = selection.getRangeAt(0);
-    if (!range.collapsed) return;
-
-    const editable = e.currentTarget;
-    if (!editable.contains(range.commonAncestorContainer) && editable !== range.commonAncestorContainer) return;
-
-    e.preventDefault();
-    document.execCommand('styleWithCSS', false, true);
-    document.execCommand(
-      'insertHTML',
-      false,
-      `<span style="color: ${activeTextColor};">${escapeInsertedText(inputData)}</span>`
-    );
-
-    updateBlock(blockId, { content: editable.innerHTML || '' });
-  }, [activeTextColor, readOnly, updateBlock]);
-
   const handleFileUpload = async (blockId, file) => {
     if (!file) return;
     
@@ -357,14 +333,18 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       id: Date.now() + Math.random(),
       type: 'paragraph',
       content: '',
-      properties: {},
+      properties: {
+        style: {
+          fontFamily: typingFontFamily
+        }
+      },
       parent_block_id: parentId
     };
     const newBlocks = [...blocks];
     newBlocks.splice(index + 1, 0, newBlock);
     onChange(newBlocks);
     setTimeout(() => blockRefs.current[newBlock.id]?.focus(), 0);
-  }, [blocks, onChange]);
+  }, [blocks, onChange, typingFontFamily]);
 
   const handleCanvasAction = useCallback((targetBlock) => {
     if (!targetBlock) return;
@@ -431,6 +411,87 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     [newBlocks[index], newBlocks[targetIndex]] = [newBlocks[targetIndex], newBlocks[index]];
     onChange(newBlocks);
   }, [blocks, onChange]);
+
+  const handleEditableLinkClick = useCallback((event) => {
+    const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+    const anchor = target?.closest?.('a[href]');
+    if (!anchor || !event.currentTarget.contains(anchor)) return;
+
+    const safeHref = sanitizeUrl(anchor.getAttribute('href'));
+    if (!safeHref) {
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    window.open(safeHref, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  const insertTextWithTypingFont = useCallback((editable, text) => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !editable) return false;
+
+    const range = selection.getRangeAt(0);
+    if (!editable.contains(range.commonAncestorContainer)) return false;
+
+    range.deleteContents();
+    const currentTextNode = range.collapsed && range.startContainer.nodeType === Node.TEXT_NODE
+      ? range.startContainer
+      : null;
+    const currentFontRun = currentTextNode?.parentElement;
+    const runColor = typingTextColor || '';
+
+    if (
+      currentFontRun?.dataset?.noteFont === typingFontFamily &&
+      (currentFontRun?.dataset?.noteColor || '') === runColor &&
+      editable.contains(currentFontRun)
+    ) {
+      const nextOffset = range.startOffset + text.length;
+      currentTextNode.insertData(range.startOffset, text);
+      range.setStart(currentTextNode, nextOffset);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      editable.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
+
+    const fontSpan = document.createElement('span');
+    fontSpan.style.fontFamily = typingFontFamily;
+    fontSpan.dataset.noteFont = typingFontFamily;
+    if (typingTextColor) {
+      fontSpan.style.color = typingTextColor;
+      fontSpan.dataset.noteColor = typingTextColor;
+    }
+    const textNode = document.createTextNode(text);
+    fontSpan.appendChild(textNode);
+    range.insertNode(fontSpan);
+
+    range.setStart(textNode, textNode.data.length);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    editable.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  }, [typingFontFamily, typingTextColor]);
+
+  const handleNativeBeforeInput = useCallback((event, editable) => {
+    if (
+      readOnly ||
+      event.isComposing ||
+      event.inputType !== 'insertText' ||
+      event.data === null ||
+      event.data === undefined
+    ) {
+      return;
+    }
+
+    if (insertTextWithTypingFont(editable, event.data)) {
+      event.preventDefault();
+    }
+  }, [insertTextWithTypingFont, readOnly]);
 
   const handleKeyDown = (e, blockId, index) => {
     
@@ -533,14 +594,23 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       }
     }
 
-    
-    if (e.key === 'Enter') {
-      if (e.shiftKey) {
-        
+    if (
+      e.key === ' ' &&
+      !e.isComposing &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey
+    ) {
+      const editable = blockRefs.current[blockId];
+      if (insertTextWithTypingFont(editable, ' ')) {
         e.preventDefault();
-        addBlock(index);
+        return;
       }
-      
+    }
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      addBlock(index);
     } else if (e.key === 'Backspace') {
       const el = blockRefs.current[blockId];
       if (el && el.textContent === '') {
@@ -551,18 +621,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   };
 
   const handleInput = (e, blockId) => {
-    const content = (e.currentTarget.innerHTML || '').replace(/\u200B/g, '');
-    if (content !== e.currentTarget.innerHTML) {
-      e.currentTarget.innerHTML = content;
-      const range = document.createRange();
-      const selection = window.getSelection();
-      range.selectNodeContents(e.currentTarget);
-      range.collapse(false);
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }
+    const content = e.currentTarget.innerHTML || '';
     
     
     const trimmedContent = content.trim();
@@ -931,15 +990,16 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     }
 
     const handleContentInput = (e) => {
-      
       const selection = window.getSelection();
-      const range = selection.getRangeAt(0);
-      const cursorOffset = range.startOffset;
-      const cursorNode = range.startContainer;
+      const hasSelection = selection && selection.rangeCount > 0;
+      const range = hasSelection ? selection.getRangeAt(0) : null;
+      const cursorOffset = range?.startOffset;
+      const cursorNode = range?.startContainer;
       
       handleInput(e, block.id);
       
-      
+      if (!cursorNode || cursorOffset === undefined) return;
+
       requestAnimationFrame(() => {
         try {
           const newRange = document.createRange();
@@ -959,6 +1019,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       color: darkMode ? '#ffffff' : (blockStyle.color || 'inherit'),
       textAlign: blockStyle.textAlign || 'left',
       padding: blockStyle.spacing === 'compact' ? '2px' : blockStyle.spacing === 'relaxed' ? '8px' : '4px',
+      fontFamily: blockStyle.fontFamily || 'inherit',
     };
     
     
@@ -968,13 +1029,16 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       ref: (el) => { 
         blockRefs.current[block.id] = el;
         
-        if (el && el.innerHTML !== block.content) {
-          el.innerHTML = sanitizeHtml(block.content);
+        if (el) {
+          el.onbeforeinput = (event) => handleNativeBeforeInput(event, el);
+          if (el.innerHTML !== block.content) {
+            el.innerHTML = sanitizeHtml(block.content);
+          }
         }
       },
       contentEditable: !readOnly && block.type !== 'divider',
       suppressContentEditableWarning: true,
-      onBeforeInput: (e) => handleBeforeInput(e, block.id),
+      onClick: handleEditableLinkClick,
       onInput: handleContentInput,
       onBlur: (e) => {
         const content = (e.currentTarget.innerHTML || '').replace(/\u200B/g, '');
@@ -1001,7 +1065,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           style={customStyle}
           contentEditable={!readOnly && block.type !== 'divider'}
           suppressContentEditableWarning={true}
-          onBeforeInput={(e) => handleBeforeInput(e, block.id)}
+          onClick={handleEditableLinkClick}
           onInput={handleContentInput}
           onBlur={(e) => {
             const content = (e.currentTarget.innerHTML || '').replace(/\u200B/g, '');
@@ -1012,6 +1076,9 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           onKeyDown={(e) => handleKeyDown(e, block.id, blocks.findIndex(b => b.id === block.id))}
           ref={(el) => { 
             blockRefs.current[block.id] = el;
+            if (el) {
+              el.onbeforeinput = (event) => handleNativeBeforeInput(event, el);
+            }
           }}
         >
           <MathRenderer content={block.content} />

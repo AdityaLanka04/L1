@@ -800,6 +800,17 @@
   color: var(--nr-accent);
 }
 
+.title-action-btn.title-action-btn--fullscreen {
+  width: auto;
+  padding: 0 12px;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .title-collapse-btn svg {
   transition: transform 0.2s ease;
 }
@@ -6382,7 +6393,7 @@ h1.note-title ::-moz-selection,
 }
 
 .notes-redesign .nr-qb-main .editor-content.sidebar-closed .title-section {
-  padding-left: 0 !important;
+  padding-left: clamp(24px, 2.5vw, 36px) !important;
 }
 
 .notes-redesign.fullscreen-mode {
@@ -6400,6 +6411,10 @@ h1.note-title ::-moz-selection,
   height: 100%;
   border: none;
   border-radius: 0;
+}
+
+.notes-redesign.fullscreen-mode .nr-qb-main .editor-content.sidebar-closed .title-section {
+  padding-left: clamp(24px, 2.5vw, 36px) !important;
 }
 
 @media (max-width: 1100px) {

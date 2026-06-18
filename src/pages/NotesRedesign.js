@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { API_URL } from '../config';
 import { sanitizeHtml, escapeHtml } from '../utils/sanitize';
+import { clearInlineFontFamilies, clearInlineTextColors } from '../utils/editorFormatting';
 import gamificationService from '../services/gamificationService';
 import noteAgentService from '../services/noteAgentService';
 import ImportExportModal from '../components/ImportExportModal';
@@ -418,7 +419,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [canvasData, setCanvasData] = useState("");
   const [canvasBlockId, setCanvasBlockId] = useState(null);
   const [pendingFocusBlockId, setPendingFocusBlockId] = useState(null);
-  const [activeTextColor, setActiveTextColor] = useState(null);
+  const [typingTextColor, setTypingTextColor] = useState(null);
+  const [colorPickerValue, setColorPickerValue] = useState("#000000");
   const [searchTerm, setSearchTerm] = useState("");
   const savedSelectionRef = useRef(null);
   
@@ -467,8 +469,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
   
   const FONTS = [
-    'Inter', 'Arial', 'Georgia', 'Times New Roman', 'Courier New', 
-    'Monaco', 'Roboto', 'Open Sans', 'Lato', 'Montserrat'
+    { label: 'Inter', family: "'Inter', sans-serif" },
+    { label: 'Arial', family: "Arial, Helvetica, sans-serif" },
+    { label: 'Georgia', family: "Georgia, 'Times New Roman', serif" },
+    { label: 'Times New Roman', family: "'Times New Roman', Times, serif" },
+    { label: 'Courier New', family: "'Courier New', Courier, monospace" },
+    { label: 'Monaco', family: "Monaco, Consolas, 'Courier New', monospace" },
+    { label: 'Roboto', family: "'Roboto', Arial, sans-serif" },
+    { label: 'Open Sans', family: "'Open Sans', Arial, sans-serif" },
+    { label: 'Lato', family: "'Lato', Arial, sans-serif" },
+    { label: 'Montserrat', family: "'Montserrat', Arial, sans-serif" }
   ];
   
   
@@ -690,7 +700,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
     
     if (savedFont) {
-      setCustomFont(savedFont);
+      const savedFontOption = FONTS.find(
+        (font) => font.family === savedFont || font.label === savedFont
+      );
+      if (savedFontOption) setCustomFont(savedFontOption.label);
     }
     
     if (sharedMode && noteId) {
@@ -1698,7 +1711,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const container = range.commonAncestorContainer;
     const element = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
     if (element && element.closest('.block-editor-container')) {
-      savedSelectionRef.current = range;
+      savedSelectionRef.current = range.cloneRange();
     }
   }, []);
 
@@ -1711,6 +1724,70 @@ const NotesRedesign = ({ sharedMode = false }) => {
     selection.addRange(range);
   }, []);
 
+  const applyEditorFont = useCallback((fontFamily) => {
+    const savedRange = savedSelectionRef.current?.cloneRange();
+    if (!savedRange) return;
+
+    const container = savedRange.commonAncestorContainer;
+    const element = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
+    const editable = element?.closest?.('[contenteditable="true"]');
+    if (!editable) return;
+
+    editable.focus({ preventScroll: true });
+    const selection = window.getSelection();
+    if (!selection) return;
+    selection.removeAllRanges();
+    selection.addRange(savedRange);
+
+    if (!savedRange.collapsed) {
+      const selectedContent = clearInlineFontFamilies(savedRange.extractContents());
+      const fontSpan = document.createElement('span');
+      fontSpan.style.fontFamily = fontFamily;
+      fontSpan.dataset.noteFont = fontFamily;
+      fontSpan.appendChild(selectedContent);
+      savedRange.insertNode(fontSpan);
+      savedRange.selectNodeContents(fontSpan);
+      editable.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    selection.removeAllRanges();
+    selection.addRange(savedRange);
+    savedSelectionRef.current = savedRange.cloneRange();
+  }, []);
+
+  const applyEditorColor = useCallback((color) => {
+    setTypingTextColor(color);
+    setColorPickerValue(color);
+
+    const savedRange = savedSelectionRef.current?.cloneRange();
+    if (!savedRange || savedRange.collapsed) return;
+
+    const container = savedRange.commonAncestorContainer;
+    const element = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
+    const editable = element?.closest?.('[contenteditable="true"]');
+    if (!editable) return;
+
+    editable.focus({ preventScroll: true });
+    const selection = window.getSelection();
+    if (!selection) return;
+    selection.removeAllRanges();
+    selection.addRange(savedRange);
+
+    const selectedContent = clearInlineTextColors(savedRange.extractContents());
+
+    const colorSpan = document.createElement('span');
+    colorSpan.style.color = color;
+    colorSpan.dataset.noteColor = color;
+    colorSpan.appendChild(selectedContent);
+    savedRange.insertNode(colorSpan);
+    savedRange.selectNodeContents(colorSpan);
+    editable.dispatchEvent(new Event('input', { bubbles: true }));
+
+    selection.removeAllRanges();
+    selection.addRange(savedRange);
+    savedSelectionRef.current = savedRange.cloneRange();
+  }, []);
+
   const applyEditorCommand = useCallback((command, value = null) => {
     restoreEditorSelection();
     const selection = window.getSelection();
@@ -1721,14 +1798,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const editable = element?.closest?.('[contenteditable="true"]');
     if (editable) editable.focus();
     document.execCommand('styleWithCSS', false, true);
-    if (command === 'foreColor' && value) {
-      setActiveTextColor(value);
-      if (!range.collapsed) {
-        document.execCommand(command, false, value);
-      }
-    } else {
-      document.execCommand(command, false, value);
-    }
+    document.execCommand(command, false, value);
     saveEditorSelection();
   }, [restoreEditorSelection, saveEditorSelection]);
 
@@ -2524,7 +2594,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const styles = `
       <style>
         body {
-          font-family: ${customFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           padding: 40px;
           max-width: 800px;
           margin: 0 auto;
@@ -2841,18 +2911,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         </div>
       )}
 
-      {isFullscreen && (
-        <button
-          className="nr-fullscreen-exit"
-          type="button"
-          onClick={() => setIsFullscreen(false)}
-          title="Exit fullscreen"
-        >
-          <Minimize2 size={16} />
-          <span>Exit Fullscreen</span>
-        </button>
-      )}
-
       {/* Body - Sidebar + Content */}
       <div className="nr-body">
         {selectedNote ? (
@@ -3063,7 +3121,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
                     placeholder="Untitled Note"
-                    style={{ fontFamily: customFont }}
                     disabled={isSharedContent && !canEdit}
                   />
                   <div className="title-meta">
@@ -3074,12 +3131,19 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </div>
                 <div className="title-actions">
                   <button
-                    className="title-action-btn"
+                    className={`title-action-btn ${isFullscreen ? 'title-action-btn--fullscreen' : ''}`}
                     type="button"
                     onClick={toggleFullscreen}
                     title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                   >
-                    {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    {isFullscreen ? (
+                      <>
+                        <Minimize2 size={16} />
+                        <span>Exit Fullscreen</span>
+                      </>
+                    ) : (
+                      <Maximize2 size={16} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -3113,20 +3177,21 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Font Family */}
                     <select 
                       className="format-select"
-                      defaultValue=""
+                      value={customFont}
                       onMouseDown={saveEditorSelection}
                       onChange={(e) => {
-                        const value = e.target.value;
-                        if (value) {
-                          applyEditorCommand('fontName', value);
+                        const font = FONTS.find((option) => option.label === e.target.value);
+                        if (font) {
+                          setCustomFont(font.label);
+                          localStorage.setItem("preferredFont", font.label);
+                          applyEditorFont(font.family);
                         }
-                        e.target.value = '';
                       }}
                       title="Font Family"
                     >
-                      <option value="" disabled>Font</option>
+                      <option value="">Font</option>
                       {FONTS.map(font => (
-                        <option key={font} value={font}>{font}</option>
+                        <option key={font.label} value={font.label}>{font.label}</option>
                       ))}
                     </select>
                     
@@ -3187,8 +3252,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <input
                       type="color"
                       className="format-color"
+                      value={colorPickerValue}
                       onMouseDown={saveEditorSelection}
-                      onChange={(e) => applyEditorCommand('foreColor', e.target.value)}
+                      onChange={(e) => applyEditorColor(e.target.value)}
                       title="Text Color"
                     />
                     
@@ -3318,10 +3384,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </button>
               )}
 
-              <div 
-                className={`block-editor-container ${editorDarkMode ? 'dark-mode' : ''}`} 
-                style={{ fontFamily: customFont }}
-              >
+              <div className={`block-editor-container ${editorDarkMode ? 'dark-mode' : ''}`}>
                 <SimpleBlockEditor
                   blocks={noteBlocks}
                   onChange={handleBlocksChange}
@@ -3329,7 +3392,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   focusBlockId={pendingFocusBlockId}
                   readOnly={viewMode === "preview" || (isSharedContent && !canEdit)}
                   darkMode={editorDarkMode}
-                  activeTextColor={activeTextColor}
+                  typingFontFamily={
+                    FONTS.find((font) => font.label === customFont)?.family || "'Inter', sans-serif"
+                  }
+                  typingTextColor={typingTextColor}
                 />
               </div>
 

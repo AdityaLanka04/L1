@@ -428,6 +428,7 @@
   outline: none;
   position: relative;
   line-height: 1.6;
+  white-space: pre-wrap;
   color: #000000 !important;
   background: transparent !important;
   width: 100%;
