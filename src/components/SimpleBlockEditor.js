@@ -254,7 +254,8 @@ const SimpleBlockEditor = ({
   onOpenCanvas,
   focusBlockId,
   typingFontFamily = "'Inter', sans-serif",
-  typingTextColor = null
+  typingTextColor = null,
+  typingFontSize = null
 }) => {
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
   const [showBlockMenu, setShowBlockMenu] = useState(null);
@@ -441,10 +442,12 @@ const SimpleBlockEditor = ({
       : null;
     const currentFontRun = currentTextNode?.parentElement;
     const runColor = typingTextColor || '';
+    const runSize = typingFontSize || '';
 
     if (
       currentFontRun?.dataset?.noteFont === typingFontFamily &&
       (currentFontRun?.dataset?.noteColor || '') === runColor &&
+      (currentFontRun?.dataset?.noteSize || '') === runSize &&
       editable.contains(currentFontRun)
     ) {
       const nextOffset = range.startOffset + text.length;
@@ -464,6 +467,10 @@ const SimpleBlockEditor = ({
       fontSpan.style.color = typingTextColor;
       fontSpan.dataset.noteColor = typingTextColor;
     }
+    if (typingFontSize) {
+      fontSpan.style.fontSize = typingFontSize;
+      fontSpan.dataset.noteSize = typingFontSize;
+    }
     const textNode = document.createTextNode(text);
     fontSpan.appendChild(textNode);
     range.insertNode(fontSpan);
@@ -475,7 +482,7 @@ const SimpleBlockEditor = ({
 
     editable.dispatchEvent(new Event('input', { bubbles: true }));
     return true;
-  }, [typingFontFamily, typingTextColor]);
+  }, [typingFontFamily, typingTextColor, typingFontSize]);
 
   const handleNativeBeforeInput = useCallback((event, editable) => {
     if (

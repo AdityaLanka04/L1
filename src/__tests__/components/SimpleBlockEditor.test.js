@@ -196,6 +196,107 @@ describe('SimpleBlockEditor typing', () => {
     expect(savedContent).toContain('color: rgb(225, 29, 72)');
   });
 
+  test('applies the selected size only to newly typed text', () => {
+    const onChange = jest.fn();
+    const initialBlocks = [{
+      id: 1,
+      type: 'paragraph',
+      content: 'Old text ',
+      properties: {}
+    }];
+    const ControlledEditor = () => {
+      const [blocks, setBlocks] = React.useState(initialBlocks);
+      return (
+        <SimpleBlockEditor
+          blocks={blocks}
+          onChange={(nextBlocks) => {
+            onChange(nextBlocks);
+            setBlocks(nextBlocks);
+          }}
+          typingFontSize="28px"
+        />
+      );
+    };
+    const { container } = render(<ControlledEditor />);
+    const editable = container.querySelector('[contenteditable="true"]');
+    editable.focus();
+
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(editable);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    act(() => {
+      editable.onbeforeinput(new InputEvent('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+        inputType: 'insertText',
+        data: 'H'
+      }));
+    });
+
+    expect(editable.textContent).toBe('Old text H');
+    expect(editable.innerHTML).toContain('font-size: 28px');
+    expect(editable.innerHTML.startsWith('Old text ')).toBe(true);
+
+    const savedContent = onChange.mock.calls.at(-1)[0][0].content;
+    expect(savedContent).toContain('Old text ');
+    expect(savedContent).toContain('font-size: 28px');
+  });
+
+  test('changes font size while continuing to type on the same line', () => {
+    const blocks = [{
+      id: 1,
+      type: 'paragraph',
+      content: 'same line ',
+      properties: {}
+    }];
+    const onChange = jest.fn();
+    const { container, rerender } = render(
+      <SimpleBlockEditor
+        blocks={blocks}
+        onChange={onChange}
+        typingFontSize="16px"
+      />
+    );
+    const editable = container.querySelector('[contenteditable="true"]');
+    editable.focus();
+
+    const selection = window.getSelection();
+    const moveCaretToEnd = () => {
+      const range = document.createRange();
+      range.selectNodeContents(editable);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    };
+    moveCaretToEnd();
+
+    rerender(
+      <SimpleBlockEditor
+        blocks={blocks}
+        onChange={onChange}
+        typingFontSize="32px"
+      />
+    );
+    moveCaretToEnd();
+
+    act(() => {
+      editable.onbeforeinput(new InputEvent('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+        inputType: 'insertText',
+        data: 'H'
+      }));
+    });
+
+    expect(editable.textContent).toBe('same line H');
+    expect(editable.innerHTML).toContain('font-size: 32px');
+    expect(onChange.mock.calls.at(-1)[0][0].content).toContain('font-size: 32px');
+  });
+
   test('opens a clicked note link in a new tab', () => {
     const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
     const blocks = [{

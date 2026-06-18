@@ -128,6 +128,25 @@ def _trim(text: Optional[str], limit: int) -> str:
         return ""
     return text[:limit]
 
+def _clean_grammar_result(text: str) -> str:
+    cleaned = (text or "").strip()
+    cleaned = re.sub(r"^```(?:text|markdown)?\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    cleaned = re.sub(
+        r"^\s*(?:corrected(?:\s+(?:sentence|text|version))?|correction|answer)\s*:\s*",
+        "",
+        cleaned,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.split(
+        r"\n\s*\n?\s*(?:note|explanation|reasoning|changes?|context)\s*:",
+        cleaned,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    return cleaned.strip()
+
 def _build_note_agent_prompt(req: NoteAgentRequest) -> str:
     content = req.content or ""
     topic = req.topic or ""
@@ -142,7 +161,14 @@ def _build_note_agent_prompt(req: NoteAgentRequest) -> str:
         "explain": f"Explain this clearly and concisely:\n\n{_trim(content, 2000)}",
         "key_points": f"Extract 5-8 key points from:\n\n{_trim(content, 2000)}",
         "summarize": f"Summarize this:\n\n{_trim(content, 2000)}",
-        "grammar": f"Fix grammar and spelling while preserving meaning:\n\n{_trim(content, 2000)}",
+        "grammar": (
+            "Correct only the grammar, spelling, capitalization, and punctuation of the text below.\n"
+            "Return only the corrected text. Do not add a label, note, explanation, commentary, "
+            "suggestion, parenthetical instruction, or quotation marks.\n"
+            "Preserve the original meaning and level of detail. Do not complete an unfinished thought "
+            "or add information that was not provided.\n\n"
+            f"{_trim(content, 2000)}"
+        ),
         "improve": f"Improve clarity and style:\n\n{_trim(content, 2000)}",
         "simplify": f"Simplify this for easier understanding:\n\n{_trim(content, 2000)}",
         "expand": f"Expand with more detail and examples:\n\n{_trim(content, 2000)}",
@@ -154,7 +180,7 @@ def _build_note_agent_prompt(req: NoteAgentRequest) -> str:
 
     prompt = action_prompts.get(req.action, f"Help with this request:\n\n{_trim(content or topic, 2000)}")
 
-    if context:
+    if context and req.action != "grammar":
         prompt += f"\n\nContext:\n{_trim(context, 2000)}"
 
     return prompt
@@ -1085,8 +1111,10 @@ async def notes_agent(
 
     try:
         prompt = _build_note_agent_prompt(request)
-        result = call_ai(prompt, max_tokens=1500, temperature=0.7)
-        return {"success": True, "content": result.strip(), "action": request.action}
+        temperature = 0.2 if request.action == "grammar" else 0.7
+        result = call_ai(prompt, max_tokens=1500, temperature=temperature)
+        content = _clean_grammar_result(result) if request.action == "grammar" else result.strip()
+        return {"success": True, "content": content, "action": request.action}
     except Exception as e:
         logger.error("note agent error: %s", e, exc_info=True)
         return {"success": False, "error": "AI generation failed"}

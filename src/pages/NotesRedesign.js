@@ -20,7 +20,13 @@ import {
 } from 'lucide-react';
 import { API_URL } from '../config';
 import { sanitizeHtml, escapeHtml } from '../utils/sanitize';
-import { clearInlineFontFamilies, clearInlineTextColors } from '../utils/editorFormatting';
+import {
+  applyInlineFontSize,
+  clearInlineFontFamilies,
+  clearInlineTextColors,
+  getRangeBlockFormat,
+  getRangeFontSize
+} from '../utils/editorFormatting';
 import gamificationService from '../services/gamificationService';
 import noteAgentService from '../services/noteAgentService';
 import ImportExportModal from '../components/ImportExportModal';
@@ -40,6 +46,22 @@ import KeyboardShortcuts from '../components/KeyboardShortcuts';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 
 const asText = (value) => (value === null || value === undefined ? '' : String(value));
+const NOTE_FONT_SIZES = [
+  { label: 'Small', value: '12px' },
+  { label: 'Normal', value: '16px' },
+  { label: 'Large', value: '24px' },
+  { label: 'Huge', value: '32px' }
+];
+const DEFAULT_NOTE_FONT_SIZE = '16px';
+const NOTE_FONT_SIZE_VALUES = NOTE_FONT_SIZES.map((size) => size.value);
+const rangesHaveSameCaret = (firstRange, secondRange) => Boolean(
+  firstRange &&
+  secondRange &&
+  firstRange.collapsed &&
+  secondRange.collapsed &&
+  firstRange.startContainer === secondRange.startContainer &&
+  firstRange.startOffset === secondRange.startOffset
+);
 const noteFolderIds = (note) => {
   const ids = Array.isArray(note?.folder_ids) ? note.folder_ids : [];
   if (note?.folder_id !== null && note?.folder_id !== undefined && !ids.includes(note.folder_id)) {
@@ -420,9 +442,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [canvasBlockId, setCanvasBlockId] = useState(null);
   const [pendingFocusBlockId, setPendingFocusBlockId] = useState(null);
   const [typingTextColor, setTypingTextColor] = useState(null);
+  const [typingFontSize, setTypingFontSize] = useState(DEFAULT_NOTE_FONT_SIZE);
+  const [editorBlockFormat, setEditorBlockFormat] = useState('p');
   const [colorPickerValue, setColorPickerValue] = useState("#000000");
   const [searchTerm, setSearchTerm] = useState("");
   const savedSelectionRef = useRef(null);
+  const pendingTypingFontSizeRef = useRef(null);
   
   
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1711,7 +1736,26 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const container = range.commonAncestorContainer;
     const element = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
     if (element && element.closest('.block-editor-container')) {
+      const pendingFontSize = pendingTypingFontSizeRef.current;
+      const preservePendingSize = pendingFontSize && rangesHaveSameCaret(
+        range,
+        savedSelectionRef.current
+      );
+
       savedSelectionRef.current = range.cloneRange();
+      setEditorBlockFormat(getRangeBlockFormat(range));
+
+      if (preservePendingSize) {
+        setTypingFontSize(pendingFontSize);
+        return;
+      }
+
+      pendingTypingFontSizeRef.current = null;
+      setTypingFontSize(getRangeFontSize(
+        range,
+        NOTE_FONT_SIZE_VALUES,
+        DEFAULT_NOTE_FONT_SIZE
+      ));
     }
   }, []);
 
@@ -1786,6 +1830,35 @@ const NotesRedesign = ({ sharedMode = false }) => {
     selection.removeAllRanges();
     selection.addRange(savedRange);
     savedSelectionRef.current = savedRange.cloneRange();
+  }, []);
+
+  const applyEditorFontSize = useCallback((fontSize) => {
+    setTypingFontSize(fontSize);
+
+    const savedRange = savedSelectionRef.current?.cloneRange();
+    if (!savedRange) return;
+
+    const container = savedRange.commonAncestorContainer;
+    const element = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
+    const editable = element?.closest?.('[contenteditable="true"]');
+    if (!editable) return;
+
+    editable.focus({ preventScroll: true });
+    const selection = window.getSelection();
+    if (!selection) return;
+    selection.removeAllRanges();
+    selection.addRange(savedRange);
+
+    if (!savedRange.collapsed) {
+      applyInlineFontSize(savedRange, fontSize);
+      editable.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    selection.removeAllRanges();
+    selection.addRange(savedRange);
+    savedSelectionRef.current = savedRange.cloneRange();
+    pendingTypingFontSizeRef.current = savedRange.collapsed ? fontSize : null;
+    setTypingFontSize(fontSize);
   }, []);
 
   const applyEditorCommand = useCallback((command, value = null) => {
@@ -2432,6 +2505,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       };
       
       const agentAction = actionMap[action] || action;
+      const shouldIncludeNoteContext = agentAction !== 'grammar';
       
       // Use the note agent service
       const result = await noteAgentService.invoke(agentAction, {
@@ -2439,7 +2513,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
         content: textToProcess || selectedText,
         topic: textToProcess || selectedText,
         tone: aiAssistTone,
-        context: noteBlocks.map(b => b.content).join('\n')
+        context: shouldIncludeNoteContext
+          ? noteBlocks.map(b => b.content).join('\n')
+          : null
       });
 
       if (!isAgentSuccess(result)) throw new Error("AI assist failed");
@@ -3156,16 +3232,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Headers */}
                     <select 
                       className="format-select"
+                      value={editorBlockFormat}
+                      onMouseDown={saveEditorSelection}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value) {
-                          applyEditorCommand('formatBlock', value);
-                          e.target.value = '';
-                        }
+                        setEditorBlockFormat(value);
+                        applyEditorCommand('formatBlock', value);
                       }}
-                      defaultValue=""
+                      title="Text Style"
                     >
-                      <option value="">Normal</option>
+                      <option value="p">Normal</option>
                       <option value="h1">Heading 1</option>
                       <option value="h2">Heading 2</option>
                       <option value="h3">Heading 3</option>
@@ -3189,7 +3265,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       }}
                       title="Font Family"
                     >
-                      <option value="">Font</option>
                       {FONTS.map(font => (
                         <option key={font.label} value={font.label}>{font.label}</option>
                       ))}
@@ -3198,20 +3273,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Font Size */}
                     <select 
                       className="format-select"
+                      value={typingFontSize}
+                      onMouseDown={saveEditorSelection}
                       onChange={(e) => {
-                        const value = e.target.value;
-                        if (value) {
-                          applyEditorCommand('fontSize', value);
-                          e.target.value = '';
-                        }
+                        applyEditorFontSize(e.target.value);
                       }}
-                      defaultValue=""
+                      title="Font Size"
                     >
-                      <option value="">Size</option>
-                      <option value="1">Small</option>
-                      <option value="3">Normal</option>
-                      <option value="5">Large</option>
-                      <option value="7">Huge</option>
+                      {NOTE_FONT_SIZES.map((size) => (
+                        <option key={size.value} value={size.value}>{size.label}</option>
+                      ))}
                     </select>
                     
                     <div className="toolbar-divider"></div>
@@ -3396,6 +3467,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     FONTS.find((font) => font.label === customFont)?.family || "'Inter', sans-serif"
                   }
                   typingTextColor={typingTextColor}
+                  typingFontSize={typingFontSize}
                 />
               </div>
 
