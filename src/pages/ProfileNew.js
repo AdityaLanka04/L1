@@ -137,6 +137,22 @@ const getYearlyEquivalentMonthly = (plan) => {
   return yearly / 12;
 };
 
+const USAGE_TIER_LABELS = {
+  ai_heavy: 'AI Generation',
+  ai_light: 'AI Search',
+  file_upload: 'File Uploads',
+};
+
+const formatReset = (resetAt) => {
+  const ms = Math.max(0, resetAt * 1000 - Date.now());
+  const totalSecs = Math.floor(ms / 1000);
+  if (totalSecs <= 0) return 'soon';
+  const hours = Math.floor(totalSecs / 3600);
+  const mins = Math.floor((totalSecs % 3600) / 60);
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+};
+
 const PRICE_TICKER_MS = 340;
 
 const PriceTicker = ({ amount }) => {
@@ -344,6 +360,7 @@ const ProfileNew = () => {
     error: null
   });
 
+  const [rateLimits, setRateLimits] = useState(null);
   const [typedName, setTypedName] = useState('');
   const [nameDone, setNameDone] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -387,6 +404,7 @@ const ProfileNew = () => {
       loadProfile();
       loadGamificationStats();
       loadSubscriptionOverview();
+      loadRateLimitStatus();
     }
   }, []);
 
@@ -448,6 +466,16 @@ const ProfileNew = () => {
       }));
     }
   }, [API_URL, token, userName]);
+
+  const loadRateLimitStatus = useCallback(async () => {
+    if (!token) return;
+    try {
+      const resp = await fetch(`${API_URL}/rate-limits/status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (resp.ok) setRateLimits(await resp.json());
+    } catch (e) { /* silenced */ }
+  }, [API_URL, token]);
 
   const readApiError = async (resp, fallbackMessage) => {
     try {
@@ -1246,6 +1274,39 @@ const ProfileNew = () => {
             </>
           )}
           {subscriptionData.error && <div className="pn-subscription-error">{subscriptionData.error}</div>}
+
+          {rateLimits && (
+            <div className="pn-usage-card">
+              <div className="pn-usage-header">
+                <span className="pn-usage-title">Session Usage</span>
+                <span className="pn-usage-subtitle">4-hour rolling window · resets automatically</span>
+              </div>
+              {['ai_heavy', 'ai_light', 'file_upload'].map(tier => {
+                const t = rateLimits.tiers?.[tier];
+                if (!t || t.limit === 'unlimited') return null;
+                const pct = Math.min(100, Math.round((t.used / t.limit) * 100));
+                const resetStr = t.reset_at > 0 ? formatReset(t.reset_at) : '—';
+                return (
+                  <div key={tier} className="pn-usage-row">
+                    <div className="pn-usage-meta">
+                      <span className="pn-usage-label">{USAGE_TIER_LABELS[tier]}</span>
+                      <span className="pn-usage-count">{t.used} / {t.limit}</span>
+                    </div>
+                    <div className="pn-usage-track">
+                      <div
+                        className={`pn-usage-fill${pct >= 90 ? ' pn-usage-fill--danger' : pct >= 70 ? ' pn-usage-fill--warn' : ''}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="pn-usage-footer">
+                      <span className="pn-usage-pct">{pct}%</span>
+                      <span className="pn-usage-reset">Resets in {resetStr}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <div className="pn-divider" />

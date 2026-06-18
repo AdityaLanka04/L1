@@ -25,7 +25,7 @@ TIERS: dict[str, tuple[int, int]] = {
     "auth_login":    (5,    60),
     "auth_register": (3,    3600),
     "auth_social":   (10,   60),
-    "ai_heavy":      (20,   3600),
+    "ai_heavy":      (30,   14400),   # 4-hour rolling window (like ChatGPT)
     "ai_light":      (100,  3600),
     "file_upload":   (20,   3600),
     "write":         (300,  3600),

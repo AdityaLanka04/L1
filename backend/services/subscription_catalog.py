@@ -21,8 +21,8 @@ SUBSCRIPTION_PLANS: dict[str, dict[str, Any]] = {
             "Best for light and occasional study sessions",
         ],
         "rate_limits": {
-            "ai_heavy": 12,
-            "ai_light": 70,
+            "ai_heavy": 25,        # per 4 hours
+            "ai_light": 80,
             "file_upload": 10,
             "write": 200,
             "read": 700,
@@ -44,8 +44,8 @@ SUBSCRIPTION_PLANS: dict[str, dict[str, Any]] = {
             "Ideal for consistent daily learners",
         ],
         "rate_limits": {
-            "ai_heavy": 45,
-            "ai_light": 250,
+            "ai_heavy": 100,       # per 4 hours
+            "ai_light": 300,
             "file_upload": 45,
             "write": 650,
             "read": 2_500,
@@ -67,8 +67,8 @@ SUBSCRIPTION_PLANS: dict[str, dict[str, Any]] = {
             "Built for power users and exam crunch periods",
         ],
         "rate_limits": {
-            "ai_heavy": 120,
-            "ai_light": 650,
+            "ai_heavy": 250,       # per 4 hours
+            "ai_light": 800,
             "file_upload": 120,
             "write": 1_800,
             "read": 7_000,
