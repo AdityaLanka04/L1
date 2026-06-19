@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut, Trash2, ArrowLeft, MessageSquare, LayoutDashboard, User, CreditCard, Target, Settings, BookOpen, Sparkles, Plus } from 'lucide-react';
+import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut, Trash2, ArrowLeft, MessageSquare, LayoutDashboard, User, CreditCard, Target, Settings, BookOpen, Sparkles, Plus, Gauge } from 'lucide-react';
 import { API_URL } from '../config';
 import './ProfileNew.css';
 
@@ -62,7 +62,7 @@ const ARCHETYPE_INFO = {
   Resonant: { tagline: 'The Adaptive Mind', desc: 'You\'re highly flexible and tune into different learning environments effortlessly.' }
 };
 
-const PLAN_META = {
+export const PLAN_META = {
   starter: { icon: ShieldCheck, theme: 'starter' },
   pro: { icon: Crown, theme: 'pro' },
   power: { icon: Rocket, theme: 'power' },
@@ -76,14 +76,14 @@ const PLAN_INCLUDED_TOKENS = {
   unlimited: 0
 };
 
-const PLAN_FALLBACKS = {
+export const PLAN_FALLBACKS = {
   starter: { id: 'starter', name: 'Starter', monthly_price_usd: 0, yearly_price_usd: 0, included_tokens_monthly: 100000 },
   pro: { id: 'pro', name: 'Pro', monthly_price_usd: 15, yearly_price_usd: 150, included_tokens_monthly: 2000000 },
   power: { id: 'power', name: 'Power', monthly_price_usd: 25, yearly_price_usd: 249, included_tokens_monthly: 5000000 },
   unlimited: { id: 'unlimited', name: 'Unlimited', monthly_price_usd: 0, yearly_price_usd: 0, included_tokens_monthly: 0, unlimited: true }
 };
 
-const withCurrentPlanCredits = (plan = {}) => {
+export const withCurrentPlanCredits = (plan = {}) => {
   const planId = String(plan.id || '').trim().toLowerCase();
   const includedTokens = PLAN_INCLUDED_TOKENS[planId];
   if (!includedTokens) return plan;
@@ -93,15 +93,15 @@ const withCurrentPlanCredits = (plan = {}) => {
   };
 };
 
-const FALLBACK_PLANS = Object.values(PLAN_FALLBACKS).map(withCurrentPlanCredits);
+export const FALLBACK_PLANS = Object.values(PLAN_FALLBACKS).map(withCurrentPlanCredits);
 
-const formatUsd = (value) => {
+export const formatUsd = (value) => {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return '$0';
   return `$${n.toFixed(n % 1 === 0 ? 0 : 2)}`;
 };
 
-const formatTokens = (value) => {
+export const formatTokens = (value) => {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return '0';
   return n.toLocaleString();
@@ -148,7 +148,7 @@ const cancelProfileIdle = (handle) => {
   window.clearTimeout(handle);
 };
 
-const getPlanPrice = (plan, billingCycle) => {
+export const getPlanPrice = (plan, billingCycle) => {
   const isYearly = billingCycle === 'yearly';
   const raw = isYearly
     ? (plan?.yearly_price_usd ?? ((Number(plan?.monthly_price_usd || 0)) * 12))
@@ -157,7 +157,7 @@ const getPlanPrice = (plan, billingCycle) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const getYearlySavingsPct = (plan) => {
+export const getYearlySavingsPct = (plan) => {
   const monthly = Number(plan?.monthly_price_usd || 0);
   const yearly = Number(plan?.yearly_price_usd || 0);
   if (!Number.isFinite(monthly) || !Number.isFinite(yearly) || monthly <= 0 || yearly <= 0) return 0;
@@ -166,7 +166,7 @@ const getYearlySavingsPct = (plan) => {
   return Math.round(((yearlyFromMonthly - yearly) / yearlyFromMonthly) * 100);
 };
 
-const getYearlySavingsUsd = (plan) => {
+export const getYearlySavingsUsd = (plan) => {
   const monthly = Number(plan?.monthly_price_usd || 0);
   const yearly = Number(plan?.yearly_price_usd || 0);
   if (!Number.isFinite(monthly) || !Number.isFinite(yearly) || monthly <= 0 || yearly <= 0) return 0;
@@ -174,19 +174,19 @@ const getYearlySavingsUsd = (plan) => {
   return savings > 0 ? savings : 0;
 };
 
-const getYearlyEquivalentMonthly = (plan) => {
+export const getYearlyEquivalentMonthly = (plan) => {
   const yearly = Number(plan?.yearly_price_usd || 0);
   if (!Number.isFinite(yearly) || yearly <= 0) return 0;
   return yearly / 12;
 };
 
-const USAGE_TIER_LABELS = {
+export const USAGE_TIER_LABELS = {
   ai_heavy: 'AI Generation',
   ai_light: 'AI Search',
   file_upload: 'File Uploads',
 };
 
-const formatReset = (resetAt) => {
+export const formatReset = (resetAt) => {
   const ms = Math.max(0, resetAt * 1000 - Date.now());
   const totalSecs = Math.floor(ms / 1000);
   if (totalSecs <= 0) return 'soon';
@@ -198,7 +198,7 @@ const formatReset = (resetAt) => {
 
 const PRICE_TICKER_MS = 340;
 
-const PriceTicker = ({ amount }) => {
+export const PriceTicker = ({ amount }) => {
   const [displayAmount, setDisplayAmount] = useState(Number(amount || 0));
   const [nextAmount, setNextAmount] = useState(null);
   const [direction, setDirection] = useState('up');
@@ -253,7 +253,7 @@ const PriceTicker = ({ amount }) => {
   );
 };
 
-const GeoBackground = () => (
+export const GeoBackground = () => (
   <div className="pn-bg" aria-hidden="true">
     <div className="pn-orb pn-orb-1" />
     <div className="pn-orb pn-orb-2" />
@@ -923,6 +923,9 @@ const ProfileNew = () => {
                 <button className="pf-qb-strip-btn" data-tip="Subscription" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-subscription'); }} type="button">
                   <CreditCard size={18} />
                 </button>
+                <button className="pf-qb-strip-btn" data-tip="Usage" onClick={() => navigate('/profile/usage')} type="button">
+                  <Gauge size={18} />
+                </button>
                 <button className="pf-qb-strip-btn" data-tip="Personal Info" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-personal'); }} type="button">
                   <BookOpen size={18} />
                 </button>
@@ -980,6 +983,10 @@ const ProfileNew = () => {
                   <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-subscription')} type="button">
                     <CreditCard size={16} />
                     <span>Subscription</span>
+                  </button>
+                  <button className="pf-qb-view-link" onClick={() => navigate('/profile/usage')} type="button">
+                    <Gauge size={16} />
+                    <span>Usage</span>
                   </button>
                   <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-personal')} type="button">
                     <BookOpen size={16} />

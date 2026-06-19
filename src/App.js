@@ -53,6 +53,7 @@ const NotesPodcastMode = lazyRoute(() => import('./pages/NotesPodcastMode'));
 const Login = lazyRoute(() => import('./pages/Login'));
 const Register = lazyRoute(() => import('./pages/Register'));
 const Profile = lazyRoute(() => import('./pages/ProfileNew'));
+const UsageStats = lazyRoute(() => import('./pages/UsageStats'));
 const ProfileQuiz = lazyRoute(() => import('./pages/ProfileQuiz'));
 const SearchHub = lazyRoute(() => import('./pages/SearchHub'));
 const Landing = lazyRoute(() => import('./pages/Landing'));
@@ -313,6 +314,7 @@ function App() {
                   <Route path="/activity-timeline" element={<ProtectedRoute><ActivityTimeline /></ProtectedRoute>} />
                   <Route path="/customize-dashboard" element={<ProtectedRoute><CustomizeDashboard /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/profile/usage" element={<ProtectedRoute><UsageStats /></ProtectedRoute>} />
                   <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
                   <Route path="/admin/api-usage" element={<ProtectedRoute><AdminApiUsage /></ProtectedRoute>} />
                   <Route path="/admin/rate-limits" element={<ProtectedRoute><AdminRateLimits /></ProtectedRoute>} />

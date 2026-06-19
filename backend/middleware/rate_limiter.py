@@ -129,11 +129,10 @@ _JWT_ISSUER = "brainwave-backend"
 _TRUSTED_PROXY_CIDRS_RAW = os.getenv("RATE_LIMIT_TRUSTED_PROXY_CIDRS", "127.0.0.1/32,::1/128")
 _DEFAULT_UNLIMITED_IDENTIFIERS = "aditya.s.lanka@gmail.com,rithvikkumar35@gmail.com,AL04"
 
-# Temporary: grant every logged-in user the "power" (advanced) tier's rate limits
-# regardless of their actual subscription, while keeping the starter/pro/power
-# catalog and per-user DB tier intact underneath. Remove or set
-# RATE_LIMIT_FORCE_TIER="" to go back to enforcing each user's real tier.
-_FORCE_TIER_RAW = os.getenv("RATE_LIMIT_FORCE_TIER", "power").strip().lower()
+# Optional override to force every user's effective rate limit tier (e.g. "power"),
+# regardless of their actual stored subscription. Off by default so per-user tiers
+# (starter/pro/power), set via /api/subscription/select, take effect normally.
+_FORCE_TIER_RAW = os.getenv("RATE_LIMIT_FORCE_TIER", "").strip().lower()
 FORCE_TIER: Optional[str] = (
     normalize_plan_id(_FORCE_TIER_RAW) if _FORCE_TIER_RAW not in ("", "off", "none", "false") else None
 )
