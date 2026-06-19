@@ -21,6 +21,7 @@ import models
 from services import context_store
 from deps import get_db, get_current_user, call_ai
 from services.document_processor import process_upload, CHUNK_SIZE, CHUNK_OVERLAP
+from services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,25 @@ router = APIRouter(prefix="/api/context", tags=["context"])
 
 MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
 _context_schema_checked = False
+
+def _safe_storage_filename(filename: str) -> str:
+    return re.sub(r"[^\w.\-]", "_", filename or "upload")[:180] or "upload"
+
+def _store_context_original(file_bytes: bytes, *, user_id: int, doc_id: str, filename: str, content_type: str = "") -> dict:
+    storage = StorageService.get_storage()
+    safe_name = _safe_storage_filename(filename)
+    storage_key = f"context_documents/{user_id}/{doc_id}/{safe_name}"
+    result = storage.upload_bytes(file_bytes, storage_key, content_type or "application/octet-stream")
+    storage_path = result.get("storage_path") or storage_key
+    return {
+        "storage_path": (
+            storage.uri_for_path(storage_path)
+            if hasattr(storage, "uri_for_path") and getattr(storage, "storage_type", "local") != "local"
+            else storage_path
+        ),
+        "storage_type": result.get("storage_type") or getattr(storage, "storage_type", "local"),
+        "storage_url": result.get("url") or "",
+    }
 
 class RelatedTopicsRequest(BaseModel):
     topics: list[str]
@@ -496,11 +516,37 @@ def _ensure_context_schema(db: Session) -> None:
             cols = {r[1] for r in conn.execute(text("PRAGMA table_info(context_documents)"))}
             if "folder_id" not in cols:
                 conn.execute(text("ALTER TABLE context_documents ADD COLUMN folder_id INTEGER"))
+            if "storage_path" not in cols:
+                conn.execute(text("ALTER TABLE context_documents ADD COLUMN storage_path VARCHAR(500)"))
+            if "storage_type" not in cols:
+                conn.execute(text("ALTER TABLE context_documents ADD COLUMN storage_type VARCHAR(30)"))
+            if "storage_url" not in cols:
+                conn.execute(text("ALTER TABLE context_documents ADD COLUMN storage_url VARCHAR(1000)"))
             conn.commit()
         finally:
             conn.close()
     else:
         models.Base.metadata.create_all(bind=bind)
+        conn = bind.connect()
+        try:
+            existing = {
+                row[0]
+                for row in conn.execute(text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'context_documents'"
+                ))
+            }
+            column_defs = {
+                "storage_path": "ALTER TABLE context_documents ADD COLUMN storage_path VARCHAR(500)",
+                "storage_type": "ALTER TABLE context_documents ADD COLUMN storage_type VARCHAR(30)",
+                "storage_url": "ALTER TABLE context_documents ADD COLUMN storage_url VARCHAR(1000)",
+            }
+            for column, ddl in column_defs.items():
+                if column not in existing:
+                    conn.execute(text(ddl))
+            conn.commit()
+        finally:
+            conn.close()
     _context_schema_checked = True
 
 def _generate_doc_summary(doc_id: str, chunks: list[str], filename: str, subject: str, db_session_factory):
@@ -695,6 +741,16 @@ async def upload_document(
         doc_record.chunk_count = stored
         doc_record.subject = final_subject[:100] if final_subject else ""
         doc_record.grade_level = final_grade[:20] if final_grade else ""
+        storage_info = _store_context_original(
+            file_bytes,
+            user_id=current_user.id,
+            doc_id=doc_id,
+            filename=file.filename or "upload",
+            content_type=file.content_type or "",
+        )
+        doc_record.storage_path = storage_info["storage_path"]
+        doc_record.storage_type = storage_info["storage_type"]
+        doc_record.storage_url = storage_info["storage_url"][:1000] if storage_info["storage_url"] else ""
         doc_record.status = "ready"
         db.commit()
 
@@ -841,6 +897,16 @@ def import_document_url(
         doc_record.chunk_count = stored
         doc_record.subject = final_subject[:100] if final_subject else ""
         doc_record.grade_level = final_grade[:20] if final_grade else ""
+        storage_info = _store_context_original(
+            file_bytes,
+            user_id=current_user.id,
+            doc_id=doc_id,
+            filename=filename,
+            content_type=content_type or "",
+        )
+        doc_record.storage_path = storage_info["storage_path"]
+        doc_record.storage_type = storage_info["storage_type"]
+        doc_record.storage_url = storage_info["storage_url"][:1000] if storage_info["storage_url"] else ""
         doc_record.status = "ready"
         db.commit()
 
