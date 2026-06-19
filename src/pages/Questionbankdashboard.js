@@ -58,6 +58,36 @@ const normalizeQuestionText = (value) => (
   String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
 );
 
+const normalizeQuestionForStudy = (question = {}) => {
+  const options = Array.isArray(question.options)
+    ? question.options.filter(option => String(option || '').trim())
+    : [];
+  let questionType = question.question_type;
+
+  if (!questionType && options.length > 0) {
+    const normalizedOptions = options.map(option => normalizeQuestionText(option));
+    questionType = normalizedOptions.length === 2
+      && normalizedOptions.includes('true')
+      && normalizedOptions.includes('false')
+      ? 'true_false'
+      : 'multiple_choice';
+  }
+
+  let correctAnswer = String(question.correct_answer || '').trim();
+  const letterMatch = correctAnswer.match(/^(?:option\s*)?([a-d])(?:[).:-])?$/i);
+  if (questionType === 'multiple_choice' && letterMatch) {
+    const optionIndex = letterMatch[1].toUpperCase().charCodeAt(0) - 65;
+    correctAnswer = options[optionIndex] || correctAnswer;
+  }
+
+  return {
+    ...question,
+    question_type: questionType || 'short_answer',
+    options,
+    correct_answer: correctAnswer
+  };
+};
+
 const getQuestionSignature = (question) => {
   const options = Array.isArray(question?.options)
     ? question.options.map(normalizeQuestionText).join('|')
@@ -84,7 +114,11 @@ const dedupeQuestions = (questions = []) => {
 };
 
 const withDedupedQuestions = (questionSet) => {
-  const questions = dedupeQuestions(questionSet?.questions);
+  const questions = dedupeQuestions(
+    Array.isArray(questionSet?.questions)
+      ? questionSet.questions.map(normalizeQuestionForStudy)
+      : []
+  );
   return {
     ...questionSet,
     questions,

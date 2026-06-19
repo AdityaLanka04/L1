@@ -108,6 +108,42 @@ class ImportExportService:
             "topics": key_concepts[:8],
             "source": "notes_conversion",
         }
+
+    def _normalize_multiple_choice_question(self, question_data: Dict[str, Any]) -> Dict[str, Any]:
+        raw_options = question_data.get("options") or []
+        if not isinstance(raw_options, list):
+            raw_options = []
+
+        options = []
+        for option in raw_options:
+            text = re.sub(r"^\s*[A-Da-d][).:-]\s*", "", str(option or "")).strip()
+            if text and text not in options:
+                options.append(text)
+
+        if len(options) != 4:
+            raise ValueError("AI returned a multiple-choice question without exactly 4 distinct options")
+
+        raw_answer = str(question_data.get("correct_answer") or "").strip()
+        answer_match = re.fullmatch(r"(?:option\s*)?([A-Da-d])(?:[).:-])?", raw_answer, re.IGNORECASE)
+        if answer_match:
+            correct_answer = options[ord(answer_match.group(1).upper()) - ord("A")]
+        else:
+            cleaned_answer = re.sub(r"^\s*[A-Da-d][).:-]\s*", "", raw_answer).strip()
+            correct_answer = next(
+                (option for option in options if option.casefold() == cleaned_answer.casefold()),
+                cleaned_answer,
+            )
+
+        if not correct_answer or correct_answer not in options:
+            raise ValueError("AI returned a correct answer that does not match any MCQ option")
+
+        return {
+            **question_data,
+            "question": str(question_data.get("question") or question_data.get("question_text") or "").strip(),
+            "question_type": "multiple_choice",
+            "options": options,
+            "correct_answer": correct_answer,
+        }
         
     
     async def notes_to_flashcards(
@@ -244,7 +280,16 @@ Return ONLY a JSON array with this exact format:
             elif "```" in content:
                 content = content.split("```")[1].split("```")[0].strip()
             
-            questions_data = json.loads(content)
+            raw_questions_data = json.loads(content)
+            if not isinstance(raw_questions_data, list):
+                raise ValueError("AI response must be a JSON array of questions")
+            questions_data = [
+                self._normalize_multiple_choice_question(question_data)
+                for question_data in raw_questions_data
+                if isinstance(question_data, dict)
+            ]
+            if not questions_data:
+                raise ValueError("AI did not return any valid multiple-choice questions")
             
             set_title = self._combine_titles([note.title for note in notes], fallback="Practice Questions")
             question_set = QuestionSet(
@@ -261,6 +306,8 @@ Return ONLY a JSON array with this exact format:
                 question = Question(
                     question_set_id=question_set.id,
                     question_text=q_data["question"],
+                    question_type="multiple_choice",
+                    topic=set_title,
                     options=json.dumps(q_data["options"]),
                     correct_answer=q_data["correct_answer"],
                     explanation=q_data.get("explanation", ""),

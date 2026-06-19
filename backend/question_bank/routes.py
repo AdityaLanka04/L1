@@ -139,6 +139,22 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             repair_text_spacing_artifacts(option)
             for option in options
         ] if isinstance(options, list) else []
+
+        if not cleaned.get("question_type") and cleaned["options"]:
+            cleaned["question_type"] = (
+                "true_false"
+                if len(cleaned["options"]) == 2
+                and {str(option).strip().lower() for option in cleaned["options"]} == {"true", "false"}
+                else "multiple_choice"
+            )
+
+        answer = str(cleaned.get("correct_answer") or "").strip()
+        if cleaned.get("question_type") == "multiple_choice":
+            answer_match = re.fullmatch(r"(?:option\s*)?([A-Da-d])(?:[).:-])?", answer, re.IGNORECASE)
+            if answer_match:
+                answer_index = ord(answer_match.group(1).upper()) - ord("A")
+                if answer_index < len(cleaned["options"]):
+                    cleaned["correct_answer"] = cleaned["options"][answer_index]
         return cleaned
 
     @app.post("/api/qb/upload_pdf")
@@ -1489,7 +1505,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     "correct_answer": question.correct_answer,
                     "is_correct": is_correct,
                     "difficulty": question.difficulty,
-                    "topic": question.topic,
+                    "topic": str(question.topic or question_set.title or "General").strip() or "General",
                     "explanation": question.explanation,
                     "points": question.points
                 })

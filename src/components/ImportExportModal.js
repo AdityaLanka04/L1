@@ -70,6 +70,19 @@ const ImportExportModal = ({
     }
   }, [isOpen, sourceType, step]);
 
+  useEffect(() => {
+    if (isOpen) return;
+
+    // The parent can close this modal without calling handleClose (for example
+    // during navigation). Clear any completed conversion so a later open never
+    // reveals a stale Step 3 result.
+    setStep(1);
+    setSelectedItems([]);
+    setDestinationType('');
+    setProcessing(false);
+    setResult(null);
+  }, [isOpen]);
+
   const loadAvailableItems = async () => {
     setLoading(true);
     try {

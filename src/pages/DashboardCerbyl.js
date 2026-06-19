@@ -678,21 +678,33 @@ const DashboardCerbyl = () => {
   };
 
   const runFlashcardsCardHoverAnimation = () => {
-    if (!recentSets.length) return;
+    if (flashAnimFrameRef.current) {
+      cancelAnimationFrame(flashAnimFrameRef.current);
+      flashAnimFrameRef.current = null;
+    }
+    if (flashResetTimerRef.current) {
+      clearTimeout(flashResetTimerRef.current);
+      flashResetTimerRef.current = null;
+    }
+
+    // The flip/fan preview should animate even before the user has created
+    // their first flashcard set. Recent-set counters are an optional extra.
+    setIsFlashAnimating(true);
+
+    if (!recentSets.length) {
+      flashResetTimerRef.current = setTimeout(() => {
+        setIsFlashAnimating(false);
+        flashResetTimerRef.current = null;
+      }, 900);
+      return;
+    }
+
     const durationPerSetMs = 680;
     const durationMs = durationPerSetMs * recentSets.length;
     const startedAt = performance.now();
     const targets = {};
     recentSets.forEach((s) => { targets[s.set_id] = s.count || 0; });
 
-    if (flashAnimFrameRef.current) {
-      cancelAnimationFrame(flashAnimFrameRef.current);
-    }
-    if (flashResetTimerRef.current) {
-      clearTimeout(flashResetTimerRef.current);
-    }
-
-    setIsFlashAnimating(true);
     setFlashCountsDisplay(Object.fromEntries(recentSets.map((s) => [s.set_id, s.count || 0])));
     setFlashActiveSetId(recentSets[0]?.set_id || '');
 

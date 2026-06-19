@@ -1249,7 +1249,6 @@ const MyNotes = () => {
           } else {
             loadNotes();
           }
-          setShowConvertModal(false);
         }}
       />
 

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], models):
     try:
         for result in results:
-            topic = result.get("topic", "General")
+            topic = str(result.get("topic") or "General").strip() or "General"
             is_correct = result.get("is_correct", False)
             question_id = result.get("question_id")
 
@@ -93,6 +93,7 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
         logger.info(f"Updated weak areas for user {user_id}")
 
     except Exception as e:
+        db.rollback()
         logger.error(f"Error updating weak areas: {e}")
 
 

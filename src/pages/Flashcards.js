@@ -41,7 +41,27 @@ const FC_ICONS = {
   arrowRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
   arrowLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
   refresh: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
-  celebration: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/></svg>,
+  celebration: (
+    <svg
+      className="fc-confetti-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path className="fc-confetti-popper" d="m3 21 4.15-10.2 6.05 6.05L3 21Z" />
+      <path className="fc-confetti-fold" d="m5.15 15.7 2.15 2.15" />
+      <path className="fc-confetti-streamer fc-confetti-streamer--one" d="M9.2 10.4c.55-2.1-.85-3.05.15-4.8.72-1.27 2.1-1.22 2.35-3.1" />
+      <path className="fc-confetti-streamer fc-confetti-streamer--two" d="M11.7 12.25c1.7-1.18 1.05-3.2 2.75-4.05 1.38-.7 2.42.2 3.45-1.35" />
+      <path className="fc-confetti-streamer fc-confetti-streamer--three" d="M13.45 14.75c2.08-.55 2.22-2.17 4.05-2.17 1.58 0 2.15 1.15 3.7.42" />
+      <path className="fc-confetti-piece" d="m16.45 2.25.25 1.45" />
+      <path className="fc-confetti-piece" d="m21.15 5.3-1.25.75" />
+      <path className="fc-confetti-piece" d="m20.75 17.55-1.4-.35" />
+    </svg>
+  ),
   chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
   chevronLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
   link: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
@@ -2428,14 +2448,17 @@ const Flashcards = () => {
                 </div>
 
                 <div className="fc-results-score-section">
-                  <div className="fc-results-ring-wrap">
+                  <div
+                    className="fc-results-ring-wrap"
+                    style={{ '--ring-color': ringColor }}
+                  >
                     <svg className="fc-results-ring" viewBox="0 0 120 120">
                       <circle className="fc-ring-track" cx="60" cy="60" r={ringRadius} />
                       <circle
                         className="fc-ring-fill"
                         cx="60" cy="60" r={ringRadius}
                         strokeDasharray={ringCircumference}
-                        style={{ strokeDashoffset: ringOffset, '--dash-offset': ringOffset, stroke: ringColor }}
+                        style={{ strokeDashoffset: ringOffset, '--dash-offset': ringOffset }}
                       />
                     </svg>
                     <div className="fc-ring-center">
