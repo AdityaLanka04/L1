@@ -21,6 +21,7 @@ from deps import (
     get_current_user,
     get_db,
 )
+from services.storage_service import StorageService
 from tutor.contract import tutor_contract_instruction
 
 CHAT_UPLOAD_DIR = Path("uploads/chat_images")
@@ -1401,6 +1402,7 @@ async def ask_with_files(
         image_payloads: list[dict] = []
         text_extracts: list[str] = []
         saved_metadata: list[dict] = []
+        storage = StorageService.get_storage()
 
         for upload in files[:_MAX_IMAGES_PER_MESSAGE]:
             raw = await upload.read()
@@ -1414,14 +1416,24 @@ async def ask_with_files(
                 if len(raw) > _MAX_IMAGE_BYTES:
                     continue
                 safe_name = _safe_filename(user.id, fname)
-                dest = CHAT_UPLOAD_DIR / safe_name
-                dest.write_bytes(raw)
+                if getattr(storage, "storage_type", "local") == "local":
+                    dest = CHAT_UPLOAD_DIR / safe_name
+                    dest.write_bytes(raw)
+                    storage_path = str(dest)
+                else:
+                    storage_key = f"chat_images/{user.id}/{safe_name}"
+                    storage.upload_bytes(raw, storage_key, mime)
+                    storage_path = (
+                        storage.uri_for_path(storage_key)
+                        if hasattr(storage, "uri_for_path")
+                        else storage_key
+                    )
                 image_payloads.append({"data": raw, "mime_type": mime, "filename": fname})
                 saved_metadata.append({
                     "filename": fname,
                     "mime_type": mime,
                     "size": len(raw),
-                    "storage_path": str(dest),
+                    "storage_path": storage_path,
                     "is_image": True,
                 })
 
@@ -1430,13 +1442,23 @@ async def ask_with_files(
                 if extracted:
                     text_extracts.append(f"[PDF: {fname}]\n{extracted[:6000]}")
                 safe_name = _safe_filename(user.id, fname)
-                dest = CHAT_UPLOAD_DIR / safe_name
-                dest.write_bytes(raw)
+                if getattr(storage, "storage_type", "local") == "local":
+                    dest = CHAT_UPLOAD_DIR / safe_name
+                    dest.write_bytes(raw)
+                    storage_path = str(dest)
+                else:
+                    storage_key = f"chat_files/{user.id}/{safe_name}"
+                    storage.upload_bytes(raw, storage_key, "application/pdf")
+                    storage_path = (
+                        storage.uri_for_path(storage_key)
+                        if hasattr(storage, "uri_for_path")
+                        else storage_key
+                    )
                 saved_metadata.append({
                     "filename": fname,
                     "mime_type": "application/pdf",
                     "size": len(raw),
-                    "storage_path": str(dest),
+                    "storage_path": storage_path,
                     "is_image": False,
                 })
 

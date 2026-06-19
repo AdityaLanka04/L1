@@ -5,9 +5,12 @@ import os
 import signal
 import time
 import asyncio
+import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from database import SessionLocal
 import models
@@ -21,6 +24,7 @@ from services.ai_job_queue import (
     schedule_retry_ai_job,
 )
 from services.ai_semantic_cache import get_semantic_cache, set_semantic_cache
+from services.storage_service import StorageService
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(levelname)s: %(message)s")
 logger = logging.getLogger("ai_worker")
@@ -265,27 +269,34 @@ def _process_legacy_file_route(payload: dict[str, Any]) -> dict[str, Any]:
     client = TestClient(app)
     opened_files = []
     try:
-        files = []
-        for file_info in payload.get("files") or []:
-            handle = open(file_info["path"], "rb")
-            opened_files.append(handle)
-            files.append(
-                (
-                    file_info.get("field_name") or "files",
+        with tempfile.TemporaryDirectory() as temp_dir:
+            files = []
+            for file_info in payload.get("files") or []:
+                source_path = file_info["path"]
+                parsed = urlparse(source_path or "")
+                if parsed.scheme in {"s3", "r2"}:
+                    local_path = Path(temp_dir) / (file_info.get("filename") or Path(parsed.path).name or "upload")
+                    StorageService.get_storage().download_file(parsed.path.lstrip("/"), local_path)
+                    source_path = str(local_path)
+                handle = open(source_path, "rb")
+                opened_files.append(handle)
+                files.append(
                     (
-                        file_info.get("filename") or "upload",
-                        handle,
-                        file_info.get("content_type") or "application/octet-stream",
-                    ),
+                        file_info.get("field_name") or "files",
+                        (
+                            file_info.get("filename") or "upload",
+                            handle,
+                            file_info.get("content_type") or "application/octet-stream",
+                        ),
+                    )
                 )
-            )
 
-        response = client.post(
-            path,
-            data=payload.get("form_body") or {},
-            files=files,
-            headers=headers,
-        )
+            response = client.post(
+                path,
+                data=payload.get("form_body") or {},
+                files=files,
+                headers=headers,
+            )
     finally:
         for handle in opened_files:
             handle.close()

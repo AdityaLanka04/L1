@@ -5,13 +5,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
 from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username
 from services.import_export_service import ImportExportService
+from services.storage_service import StorageService
 
 try:
     import PyPDF2
@@ -134,21 +135,26 @@ async def upload_attachment(
         if len(content) > _MAX_IMPORT_SIZE:
             raise HTTPException(status_code=413, detail="File too large. Maximum 20 MB.")
 
-        attachments_dir = Path("backend/attachments").resolve()
-        attachments_dir.mkdir(exist_ok=True)
-
         import secrets as _sec
         safe_stem = "".join(c for c in (filename.rsplit('.', 1)[0] if '.' in filename else filename) if c.isalnum() or c in ('_', '-'))[:60]
         unique_filename = f"{current_user.id}_{_sec.token_hex(8)}_{safe_stem}.{file_extension}"
-        file_path = attachments_dir / unique_filename
+        storage = StorageService.get_storage()
 
-        with open(file_path, "wb") as f:
-            f.write(content)
+        if getattr(storage, "storage_type", "local") == "local":
+            attachments_dir = Path("backend/attachments").resolve()
+            attachments_dir.mkdir(exist_ok=True)
+            file_path = attachments_dir / unique_filename
+            with open(file_path, "wb") as f:
+                f.write(content)
+            storage_path = unique_filename
+        else:
+            storage_path = f"attachments/{current_user.id}/{unique_filename}"
+            storage.upload_bytes(content, storage_path, file.content_type)
 
         file_size = len(content)
-        file_url = f"/api/attachments/{unique_filename}"
+        file_url = f"/api/attachments/{storage_path}"
 
-        logger.info(f"Uploaded attachment: {unique_filename} ({file_size} bytes)")
+        logger.info(f"Uploaded attachment: {storage_path} ({file_size} bytes)")
 
         return {
             "status": "success",
@@ -170,6 +176,16 @@ async def get_attachment(
     current_user: models.User = Depends(get_current_user),
 ):
     try:
+        file_extension = Path(filename).suffix.lstrip('.').lower()
+        if file_extension not in _ALLOWED_IMPORT_EXTENSIONS:
+            raise HTTPException(status_code=400, detail="File type not allowed")
+
+        storage = StorageService.get_storage()
+        if getattr(storage, "storage_type", "local") != "local" and filename.startswith("attachments/"):
+            if f"attachments/{current_user.id}/" not in filename:
+                raise HTTPException(status_code=403, detail="Attachment access denied")
+            return RedirectResponse(storage.get_private_file_url(filename))
+
         attachments_dir = Path("backend/attachments").resolve()
         requested = (attachments_dir / filename).resolve()
 
@@ -178,10 +194,6 @@ async def get_attachment(
 
         if not requested.exists() or not requested.is_file():
             raise HTTPException(status_code=404, detail="File not found")
-
-        file_extension = requested.suffix.lstrip('.').lower()
-        if file_extension not in _ALLOWED_IMPORT_EXTENSIONS:
-            raise HTTPException(status_code=400, detail="File type not allowed")
 
         content_types = {
             'pdf': 'application/pdf',

@@ -9,6 +9,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import urlparse
 
 import PyPDF2
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, UploadFile
@@ -19,6 +20,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import call_ai, call_ai_async, get_current_user, get_user_by_email, get_user_by_username
+from services.storage_service import StorageService
 
 try:
     from services.ai_media_processor import ai_media_processor
@@ -39,8 +41,41 @@ logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = Path("uploads/slides")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+SLIDE_CACHE_DIR = Path(os.getenv("SLIDE_CACHE_DIR", "uploads/slide_cache"))
+SLIDE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(prefix="/api", tags=["media"])
+
+def _is_remote_storage_path(file_path: str | None) -> bool:
+    return bool(file_path and urlparse(file_path).scheme in {"s3", "r2"})
+
+def _storage_key_from_uri(file_path: str) -> str:
+    parsed = urlparse(file_path)
+    if parsed.scheme in {"s3", "r2"}:
+        return parsed.path.lstrip("/")
+    return file_path
+
+def _local_slide_cache_path(slide) -> Path:
+    safe_name = "".join(c for c in (slide.filename or f"slide_{slide.id}") if c.isalnum() or c in (".", "_", "-"))
+    return SLIDE_CACHE_DIR / f"{slide.id}_{safe_name}"
+
+def _ensure_local_slide_file(slide) -> Path:
+    file_path = slide.file_path or ""
+    if not _is_remote_storage_path(file_path):
+        local_path = Path(file_path)
+        if not local_path.exists():
+            raise HTTPException(status_code=404, detail="Slide file not found")
+        return local_path
+
+    cache_path = _local_slide_cache_path(slide)
+    if cache_path.exists() and cache_path.stat().st_size > 0:
+        return cache_path
+
+    storage = StorageService.get_storage()
+    if getattr(storage, "storage_type", "local") == "local":
+        raise HTTPException(status_code=500, detail="Remote storage is not configured")
+    storage.download_file(_storage_key_from_uri(file_path), cache_path)
+    return cache_path
 
 class PodcastStartRequest(BaseModel):
     user_id: str
@@ -701,10 +736,21 @@ async def upload_slides(
             timestamp = int(datetime.now(timezone.utc).timestamp())
             clean_name = "".join(c for c in (file.filename or "upload") if c.isalnum() or c in (".", "_", "-"))
             safe_filename = f"{user.id}_{timestamp}_{clean_name}"
-            file_path = UPLOAD_DIR / safe_filename
+            local_file_path = UPLOAD_DIR / safe_filename
 
-            with open(file_path, "wb") as f:
+            with open(local_file_path, "wb") as f:
                 f.write(file_content)
+
+            storage = StorageService.get_storage()
+            stored_file_path = str(local_file_path)
+            if getattr(storage, "storage_type", "local") != "local":
+                storage_key = f"slides/{user.id}/{safe_filename}"
+                storage.upload_bytes(file_content, storage_key, file.content_type or "application/octet-stream")
+                stored_file_path = (
+                    storage.uri_for_path(storage_key)
+                    if hasattr(storage, "uri_for_path")
+                    else storage_key
+                )
 
             page_count = 0
             extracted_text = ""
@@ -744,7 +790,7 @@ async def upload_slides(
                 user_id=user.id,
                 filename=safe_filename,
                 original_filename=file.filename,
-                file_path=str(file_path),
+                file_path=stored_file_path,
                 file_size=file_size,
                 file_type=file.content_type or "application/pdf",
                 page_count=page_count,
@@ -829,7 +875,8 @@ def delete_slide(
         if not slide:
             raise HTTPException(status_code=404, detail="Slide not found")
 
-        file_path = Path(slide.file_path).resolve()
+        stored_file_path = slide.file_path
+        file_path = Path(stored_file_path).resolve() if stored_file_path and not _is_remote_storage_path(stored_file_path) else None
         allowed_dir = Path("uploads/slides").resolve()
 
         db.query(models.SlideAnalysis).filter(
@@ -845,7 +892,14 @@ def delete_slide(
         db.commit()
 
         try:
-            if str(file_path).startswith(str(allowed_dir)) and file_path.exists():
+            if _is_remote_storage_path(stored_file_path):
+                storage = StorageService.get_storage()
+                if getattr(storage, "storage_type", "local") != "local":
+                    storage.delete_file(_storage_key_from_uri(stored_file_path))
+                cache_path = _local_slide_cache_path(slide)
+                if cache_path.exists():
+                    cache_path.unlink()
+            elif file_path and str(file_path).startswith(str(allowed_dir)) and file_path.exists():
                 file_path.unlink()
         except Exception as cleanup_error:
             logger.warning(f"Deleted slide {slide_id}, but failed to remove file: {cleanup_error}")
@@ -880,9 +934,7 @@ async def analyze_slide(
         if not slide:
             raise HTTPException(status_code=404, detail="Slide not found")
 
-        file_path = Path(slide.file_path)
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail="Slide file not found")
+        file_path = _ensure_local_slide_file(slide)
 
         file_ext = slide.original_filename.lower().split(".")[-1]
         if file_ext not in ["pdf", "ppt", "pptx"]:
@@ -959,9 +1011,7 @@ async def get_slide_file(
         if not slide:
             raise HTTPException(status_code=404, detail="Slide not found")
 
-        file_path = Path(slide.file_path)
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail="Slide file not found")
+        file_path = _ensure_local_slide_file(slide)
 
         filename = slide.original_filename.lower()
         if filename.endswith(".pdf"):
@@ -1006,9 +1056,7 @@ async def get_slide_image(
         if not slide:
             raise HTTPException(status_code=404, detail="Slide not found")
 
-        file_path = Path(slide.file_path)
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail="Slide file not found")
+        file_path = _ensure_local_slide_file(slide)
 
         if slide.original_filename.lower().endswith(".pdf"):
             try:

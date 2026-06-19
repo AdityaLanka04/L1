@@ -22,6 +22,7 @@ from services.ai_job_queue import (
     retry_queue_depth,
 )
 from services.ai_semantic_cache import semantic_cache_status
+from services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/ai", tags=["ai-jobs"])
@@ -364,26 +365,41 @@ async def create_legacy_file_route_job(
     db.refresh(job)
 
     job_dir = AI_JOB_UPLOAD_DIR / str(job.id)
-    job_dir.mkdir(parents=True, exist_ok=True)
     saved_files: list[dict[str, Any]] = []
+    storage = StorageService.get_storage()
+    use_remote_storage = getattr(storage, "storage_type", "local") != "local"
+    if not use_remote_storage:
+        job_dir.mkdir(parents=True, exist_ok=True)
+
     for index, upload in enumerate(files):
         filename = upload.filename or "upload"
         safe_name = re.sub(r"[^\w.\-]", "_", filename)
-        file_path = job_dir / safe_name
-        counter = 1
-        while file_path.exists():
-            stem = Path(safe_name).stem
-            suffix = Path(safe_name).suffix
-            file_path = job_dir / f"{stem}_{counter}{suffix}"
-            counter += 1
         raw = await upload.read()
-        file_path.write_bytes(raw)
+        if use_remote_storage:
+            storage_key = f"ai_jobs/{job.id}/{index}_{safe_name}"
+            storage.upload_bytes(raw, storage_key, upload.content_type or "application/octet-stream")
+            file_path_value = (
+                storage.uri_for_path(storage_key)
+                if hasattr(storage, "uri_for_path")
+                else storage_key
+            )
+        else:
+            file_path = job_dir / safe_name
+            counter = 1
+            while file_path.exists():
+                stem = Path(safe_name).stem
+                suffix = Path(safe_name).suffix
+                file_path = job_dir / f"{stem}_{counter}{suffix}"
+                counter += 1
+            file_path.write_bytes(raw)
+            file_path_value = str(file_path)
+
         saved_files.append(
             {
                 "field_name": file_field_names[index] if index < len(file_field_names) else "files",
                 "filename": filename,
                 "content_type": upload.content_type or "application/octet-stream",
-                "path": str(file_path),
+                "path": file_path_value,
             }
         )
 
