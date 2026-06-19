@@ -13,6 +13,9 @@ def create_question_bank_models(Base):
         document_type = Column(String(50))
         content = Column(Text)
         document_metadata = Column(Text)
+        storage_path = Column(String(500), nullable=True)
+        storage_type = Column(String(30), nullable=True)
+        storage_url = Column(String(1000), nullable=True)
         created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
         
         user = relationship("User", back_populates="uploaded_documents")
