@@ -6,6 +6,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from starlette.concurrency import run_in_threadpool
+
 from tutor.state import TutorState, StudentState, Neo4jInsights, EvalResult, AttemptEvaluation, TutorPlan
 from tutor import neo4j_store, chroma_store
 from tutor.prompt import build_tutor_prompt
@@ -23,6 +25,14 @@ _TUTOR_CONTRACT_LEAK_MARKERS = [
     "\"tutor_state\"",
     "\"options\"",
 ]
+
+async def _agenerate(ai_client, prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
+    return await run_in_threadpool(
+        ai_client.generate,
+        prompt,
+        max_tokens,
+        temperature,
+    )
 
 def _get_vocab() -> dict | None:
     global _dkt_vocab
@@ -207,7 +217,7 @@ def _has_tutor_contract_leak(text: str) -> bool:
         return False
     return any(marker in lowered for marker in _TUTOR_CONTRACT_LEAK_MARKERS)
 
-def _repair_tutor_contract_response(ai_client, broken_response: str, user_input: str) -> str:
+async def _repair_tutor_contract_response(ai_client, broken_response: str, user_input: str) -> str:
     repair_prompt = f"""
 You are repairing a broken tutor response.
 
@@ -229,7 +239,7 @@ Rules:
 
 Return only JSON with keys: answer, tutor_state, options.
 """.strip()
-    return ai_client.generate(repair_prompt, max_tokens=900, temperature=0.2)
+    return await _agenerate(ai_client, repair_prompt, max_tokens=900, temperature=0.2)
 
 def _detect_query_domain(text: str) -> list[str]:
     text_lower = text.lower()
@@ -1472,7 +1482,7 @@ def _plan_from_session_state(session_state: dict) -> TutorPlan | None:
         return _normalize_tutor_plan(session_state)
     return None
 
-def plan_tutor_steps(state: TutorState) -> dict:
+async def plan_tutor_steps(state: TutorState) -> dict:
     if not state.get("tutor_mode"):
         return {"tutor_plan": TutorPlan()}
 
@@ -1520,14 +1530,14 @@ Return only JSON:
 """.strip()
 
     try:
-        raw = ai_client.generate(prompt, max_tokens=900, temperature=0.1)
+        raw = await _agenerate(ai_client, prompt, max_tokens=900, temperature=0.1)
         parsed = _extract_json_dict(raw)
         return {"tutor_plan": _normalize_tutor_plan(parsed, fallback_goal=user_input)}
     except Exception as exc:
         logger.warning(f"[TUTOR PLAN] planning skipped: {exc}")
         return {"tutor_plan": existing_plan or _normalize_tutor_plan({"goal": user_input[:140]})}
 
-def evaluate_tutor_attempt(state: TutorState) -> dict:
+async def evaluate_tutor_attempt(state: TutorState) -> dict:
     if not state.get("tutor_mode"):
         return {"attempt_evaluation": AttemptEvaluation()}
 
@@ -1642,7 +1652,7 @@ Return JSON with this exact shape:
 """.strip()
 
     try:
-        raw = ai_client.generate(prompt, max_tokens=550, temperature=0.0)
+        raw = await _agenerate(ai_client, prompt, max_tokens=550, temperature=0.0)
         parsed = _extract_json_dict(raw)
         evaluation = _attempt_evaluation_from_dict(parsed)
         if evaluation.verdict == "not_applicable" and parsed:
@@ -1686,7 +1696,7 @@ def update_tutor_plan_progress(state: TutorState) -> dict:
     plan.misconceptions = plan.misconceptions[-12:]
     return {"tutor_plan": plan}
 
-def build_prompt_and_respond(state: TutorState) -> dict:
+async def build_prompt_and_respond(state: TutorState) -> dict:
     rag_active = bool(state.get("rag_context"))
     context_only = bool(state.get("context_only"))
     context_only_no_match = bool(state.get("context_only_no_match"))
@@ -1805,10 +1815,10 @@ def build_prompt_and_respond(state: TutorState) -> dict:
     full_prompt = f"{system}\n\n{prompt}"
 
     try:
-        response = ai_client.generate(full_prompt, max_tokens=2000, temperature=0.7)
+        response = await _agenerate(ai_client, full_prompt, max_tokens=2000, temperature=0.7)
         if state.get("tutor_mode") and _has_tutor_contract_leak(response):
             logger.warning("[TUTOR GEN] Contract/schema leakage detected; retrying tutor response repair")
-            response = _repair_tutor_contract_response(
+            response = await _repair_tutor_contract_response(
                 ai_client,
                 response,
                 str(state.get("user_input") or ""),
@@ -1819,10 +1829,10 @@ def build_prompt_and_respond(state: TutorState) -> dict:
         if ai_client is hs_ai and main_ai and main_ai is not ai_client:
             logger.error(f"HS context AI generation failed; falling back to main AI client: {e}")
             try:
-                response = main_ai.generate(full_prompt, max_tokens=2000, temperature=0.7)
+                response = await _agenerate(main_ai, full_prompt, max_tokens=2000, temperature=0.7)
                 if state.get("tutor_mode") and _has_tutor_contract_leak(response):
                     logger.warning("[TUTOR GEN] Contract/schema leakage detected after fallback; retrying tutor response repair")
-                    response = _repair_tutor_contract_response(
+                    response = await _repair_tutor_contract_response(
                         main_ai,
                         response,
                         str(state.get("user_input") or ""),
@@ -1834,12 +1844,13 @@ def build_prompt_and_respond(state: TutorState) -> dict:
         logger.error(f"LLM generation failed: {e}")
         return {"response": "I'm having trouble responding right now. Please try again.", "error": str(e)}
 
-def evaluate_response(state: TutorState) -> dict:
+async def evaluate_response(state: TutorState) -> dict:
     ai_client = state.get("_ai_client")
     if not ai_client or state.get("intent") in ("greeting", "returning_greeting", "off_topic", "repetitive"):
         return {"evaluation": EvalResult()}
 
-    result = evaluate(
+    result = await run_in_threadpool(
+        evaluate,
         ai_client=ai_client,
         user_input=state.get("user_input", ""),
         response=state.get("response", ""),

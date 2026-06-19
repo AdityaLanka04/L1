@@ -12,10 +12,12 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, text
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 import models
 from deps import (
     call_ai,
+    call_ai_async,
     get_current_user,
     get_db,
 )
@@ -1475,11 +1477,12 @@ async def ask_with_files(
 
         if ai_client and image_payloads and not context_only_mode:
             try:
-                response_text = ai_client.generate_with_images(
-                    prompt=enriched_question,
-                    images=image_payloads,
-                    max_tokens=2000,
-                    temperature=0.7,
+                response_text = await run_in_threadpool(
+                    ai_client.generate_with_images,
+                    enriched_question,
+                    image_payloads,
+                    2000,
+                    0.7,
                 )
                 ai_provider = "vision"
             except NoVisionProviderError:
@@ -1660,7 +1663,7 @@ async def test_ai_simple(
     current_user: models.User = Depends(get_current_user),
 ):
     try:
-        response = call_ai(f"Answer this question in one sentence: {question}", max_tokens=200)
+        response = await call_ai_async(f"Answer this question in one sentence: {question}", max_tokens=200)
         return {"answer": response, "status": "success"}
     except Exception:
         return {"answer": "Error generating response", "status": "error"}
@@ -2013,7 +2016,7 @@ async def generate_chat_title(
     )
 
     try:
-        title = call_ai(prompt, max_tokens=30, temperature=0.7).strip().strip('"').strip("'")
+        title = (await call_ai_async(prompt, max_tokens=30, temperature=0.7)).strip().strip('"').strip("'")
         if len(title) > 50:
             title = title[:47] + "..."
 
@@ -2059,7 +2062,7 @@ async def generate_chat_summary(
     )
 
     try:
-        summary = call_ai(prompt, max_tokens=200, temperature=0.5)
+        summary = await call_ai_async(prompt, max_tokens=200, temperature=0.5)
         return {"summary": summary.strip(), "status": "success"}
     except Exception as e:
         return {"summary": f"Could not generate summary: {e}", "status": "error"}
@@ -2231,7 +2234,7 @@ async def convert_chat_to_note_content(
     )
 
     try:
-        notes_content = call_ai(prompt, max_tokens=2000, temperature=0.5)
+        notes_content = await call_ai_async(prompt, max_tokens=2000, temperature=0.5)
         return {"content": notes_content.strip(), "status": "success"}
     except Exception as e:
         return {"content": conversation, "status": "fallback"}
@@ -2262,7 +2265,7 @@ async def ai_group_notes(
     )
 
     try:
-        result = call_ai(prompt, max_tokens=500, temperature=0.5)
+        result = await call_ai_async(prompt, max_tokens=500, temperature=0.5)
         import json
         groups = json.loads(result.strip().strip("```json").strip("```"))
         return {"groups": groups, "status": "success"}

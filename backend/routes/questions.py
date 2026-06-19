@@ -12,6 +12,7 @@ import models
 from database import get_db
 from deps import (
     call_ai,
+    call_ai_async,
     enforce_request_user_scope,
     get_current_user,
     get_user_by_email,
@@ -347,7 +348,7 @@ async def generate_practice_questions(
 
 Generate exactly {question_count} high-quality questions:"""
 
-            response_text = call_ai(fallback_prompt, max_tokens=4000, temperature=0.7)
+            response_text = await call_ai_async(fallback_prompt, max_tokens=4000, temperature=0.7)
             response_text = process_math_in_response(response_text)
             questions_data = parse_json_array_response(response_text)
             if not questions_data:
@@ -530,7 +531,7 @@ async def generate_questions(
 
 Generate exactly {question_count} questions:"""
 
-        response_text = call_ai(prompt, max_tokens=3000, temperature=0.7)
+        response_text = await call_ai_async(prompt, max_tokens=3000, temperature=0.7)
         response_text = process_math_in_response(response_text)
 
         questions_data = parse_json_array_response(response_text)
@@ -989,7 +990,7 @@ async def submit_learning_response(
   "next_steps": "Actionable advice"
 }}"""
 
-        response_text = call_ai(evaluation_prompt, max_tokens=2048, temperature=0.3)
+        response_text = await call_ai_async(evaluation_prompt, max_tokens=2048, temperature=0.3)
 
         try:
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)

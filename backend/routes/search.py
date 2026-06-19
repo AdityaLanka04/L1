@@ -11,7 +11,7 @@ from sqlalchemy import func, and_, or_
 
 import models
 from database import get_db
-from deps import call_ai, get_current_user, get_user_by_username, get_user_by_email
+from deps import call_ai, call_ai_async, get_current_user, get_user_by_username, get_user_by_email
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["search"])
@@ -44,7 +44,7 @@ Query: "World War 2"
 NOW GENERATE RELATED TERMS FOR: "{query}"
 Return ONLY the JSON array:"""
 
-        ai_response = call_ai(ai_prompt, max_tokens=200, temperature=0.3)
+        ai_response = await call_ai_async(ai_prompt, max_tokens=200, temperature=0.3)
         ai_response_clean = ai_response.strip()
 
         if ai_response_clean.startswith('```'):
@@ -120,7 +120,7 @@ Query: "xyz123", Titles: ["Math", "Science"]
 {{"suggestion": null, "confidence": 0.0}}
 """
 
-        ai_response = call_ai(ai_prompt, max_tokens=100, temperature=0.1)
+        ai_response = await call_ai_async(ai_prompt, max_tokens=100, temperature=0.1)
         ai_response_clean = ai_response.strip()
 
         if ai_response_clean.startswith('```'):
@@ -163,7 +163,7 @@ Query: "Irish history"
 NOW GENERATE RELATED SEARCHES FOR: "{query}"
 Return ONLY the JSON array:"""
 
-        ai_response = call_ai(ai_prompt, max_tokens=150, temperature=0.5)
+        ai_response = await call_ai_async(ai_prompt, max_tokens=150, temperature=0.5)
         ai_response_clean = ai_response.strip()
 
         if ai_response_clean.startswith('```'):
@@ -783,7 +783,7 @@ Query: "easy flashcards on math that need review"
 NOW PARSE: "{query}"
 """
 
-        ai_response = call_ai(ai_prompt, max_tokens=200, temperature=0.1)
+        ai_response = await call_ai_async(ai_prompt, max_tokens=200, temperature=0.1)
         ai_response_clean = ai_response.strip()
 
         if ai_response_clean.startswith('```'):
@@ -1401,7 +1401,7 @@ NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
 """
 
         logger.info(f"Calling AI for intent detection: '{query}'")
-        ai_response = call_ai(ai_prompt, max_tokens=500, temperature=0.1)
+        ai_response = await call_ai_async(ai_prompt, max_tokens=500, temperature=0.1)
         logger.info(f"AI response: {ai_response[:200]}...")
 
         ai_response_clean = ai_response.strip()
@@ -1519,7 +1519,7 @@ Now generate a description for: "{topic}"
 
 Return ONLY the description text, no labels or extra formatting."""
 
-        description = call_ai(ai_prompt, max_tokens=300, temperature=0.7)
+        description = await call_ai_async(ai_prompt, max_tokens=300, temperature=0.7)
         description = description.strip()
 
         if description.lower().startswith("description:"):
@@ -1906,7 +1906,7 @@ async def summarize_notes(
 
         combined_content = "\n\n".join([f"# {note.title}\n{note.content}" for note in notes])
         prompt = f"Summarize these notes:\n\n{combined_content[:4000]}"
-        summary = call_ai(prompt, max_tokens=1000, temperature=0.7)
+        summary = await call_ai_async(prompt, max_tokens=1000, temperature=0.7)
 
         return {"summary": summary.strip(), "notes_count": len(notes)}
     except Exception as e:
@@ -1922,7 +1922,7 @@ async def create_study_plan(
 ):
     try:
         prompt = f"Create a {duration} day study plan for {topic}"
-        plan = call_ai(prompt, max_tokens=2000, temperature=0.7)
+        plan = await call_ai_async(prompt, max_tokens=2000, temperature=0.7)
         return {"plan": plan.strip()}
     except Exception as e:
         return {"plan": f"Error: {str(e)}"}
@@ -1970,7 +1970,7 @@ Provide a helpful, encouraging response that:
 
 Keep it brief, friendly, and actionable. 2-3 sentences max."""
 
-        suggestion = call_ai(prompt, max_tokens=200, temperature=0.7)
+        suggestion = await call_ai_async(prompt, max_tokens=200, temperature=0.7)
 
         return {
             "description": suggestion.strip(),

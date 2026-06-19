@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username
+from deps import call_ai, call_ai_async, get_current_user, get_user_by_email, get_user_by_username
 
 try:
     from services.ai_media_processor import ai_media_processor
@@ -530,7 +530,7 @@ Content: {transcript[:500]}
 
 Return ONLY the title, nothing else. Make it descriptive and catchy."""
 
-        title = call_ai(prompt, max_tokens=20, temperature=0.7)
+        title = await call_ai_async(prompt, max_tokens=20, temperature=0.7)
         title = title.strip().strip('"').strip("'")
         words = title.split()
         if len(words) > 4:

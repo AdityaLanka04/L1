@@ -18,3 +18,25 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+  ai-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python worker.py
+    env_file:
+      - .env.production
+    environment:
+      - BACKEND_ID=ec2-ai-worker
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - backend
+    restart: always
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"from services.ai_job_queue import get_redis_client; get_redis_client().ping()\"",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3

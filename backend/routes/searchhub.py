@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 import models
-from deps import call_ai, get_db, get_user_by_email, get_user_by_username
+from deps import call_ai, call_ai_async, get_db, get_user_by_email, get_user_by_username
 from services.topic_utils import is_valid_topic as _is_valid_topic
 
 logger = logging.getLogger(__name__)
@@ -314,7 +314,7 @@ async def _create_note_with_ai(
                 f"Format with markdown headers and bullet points."
             )
             try:
-                content = call_ai(prompt, max_tokens=2000, temperature=0.7).strip()
+                content = (await call_ai_async(prompt, max_tokens=2000, temperature=0.7)).strip()
             except Exception:
                 content = f"# {note_title}\n\n- Key ideas\n- Definitions\n- Examples"
 
@@ -579,7 +579,7 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
             f"Use simple language and 2-4 short paragraphs."
         )
         try:
-            explanation = call_ai(prompt, max_tokens=400, temperature=0.6).strip()
+            explanation = (await call_ai_async(prompt, max_tokens=400, temperature=0.6)).strip()
         except Exception:
             explanation = f"Here is a concise overview of {topic}. I can also create flashcards or notes if you'd like."
 
@@ -707,7 +707,7 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
         ai_response = None
         if not search_result.get("results"):
             try:
-                ai_response = call_ai(
+                ai_response = await call_ai_async(
                     f"Provide a short, friendly description of '{topic}' in 2-3 sentences.",
                     max_tokens=200,
                     temperature=0.6,
@@ -835,7 +835,7 @@ async def explain_endpoint(request: ExplainRequest, db: Session = Depends(get_db
         f"Use simple language and 2-4 short paragraphs."
     )
     try:
-        explanation = call_ai(prompt, max_tokens=400, temperature=0.6).strip()
+        explanation = (await call_ai_async(prompt, max_tokens=400, temperature=0.6)).strip()
     except Exception:
         explanation = f"Here is a concise overview of {topic}. I can also create flashcards or notes if you'd like."
 

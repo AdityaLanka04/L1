@@ -12,6 +12,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
@@ -98,6 +99,17 @@ def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7,
     except ImportError:
         pass
     return response
+
+async def call_ai_async(prompt: str, max_tokens: int = 2000, temperature: float = 0.7,
+                        use_cache: bool = False, conversation_id: str = None) -> str:
+    return await run_in_threadpool(
+        call_ai,
+        prompt,
+        max_tokens,
+        temperature,
+        use_cache,
+        conversation_id,
+    )
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:

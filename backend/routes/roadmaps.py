@@ -12,6 +12,7 @@ import models
 from database import get_db
 from deps import (
     call_ai,
+    call_ai_async,
     enforce_request_user_scope,
     get_current_user,
     get_user_by_email,
@@ -155,7 +156,7 @@ def _extract_text_from_docs_for_topic(user_id: int, doc_ids: list[str], max_char
         blocks.append(joined)
     return "\n\n".join(blocks)
 
-def _infer_root_topic_from_docs(docs: list[models.ContextDocument], extracted_text: str) -> tuple[str, str]:
+async def _infer_root_topic_from_docs(docs: list[models.ContextDocument], extracted_text: str) -> tuple[str, str]:
     doc_lines = [
         f"- {d.filename or d.doc_id} | subject: {d.subject or 'General'} | summary: {(d.ai_summary or '')[:220]}"
         for d in docs[:40]
@@ -171,7 +172,7 @@ def _infer_root_topic_from_docs(docs: list[models.ContextDocument], extracted_te
     root_topic = ""
     title = ""
     try:
-        ai_text = call_ai(prompt, max_tokens=220, temperature=0.2)
+        ai_text = await call_ai_async(prompt, max_tokens=220, temperature=0.2)
         json_match = re.search(r"\{.*\}", ai_text or "", re.DOTALL)
         if json_match:
             parsed = json.loads(json_match.group())
@@ -522,7 +523,7 @@ async def create_roadmap_from_context_docs(
         docs.sort(key=lambda d: doc_index.get(d.doc_id, 10**6))
 
         extracted_text = _extract_text_from_docs_for_topic(user.id, doc_ids)
-        root_topic, inferred_title = _infer_root_topic_from_docs(docs, extracted_text)
+        root_topic, inferred_title = await _infer_root_topic_from_docs(docs, extracted_text)
         final_title = (title_hint or inferred_title or f"Exploring {root_topic}")[:255]
 
         roadmap, root_node = _create_roadmap_record(
@@ -589,7 +590,7 @@ Conversation:
 
 Topic:"""
 
-        root_topic = call_ai(prompt, max_tokens=50, temperature=0.3).strip()
+        root_topic = (await call_ai_async(prompt, max_tokens=50, temperature=0.3)).strip()
         root_topic = root_topic.replace('"', "").replace("'", "")
 
         return {
@@ -694,7 +695,7 @@ Do not repeat, rename, or closely overlap with any existing immediate child topi
   ]
 }}"""
 
-        response_text = call_ai(expansion_prompt, max_tokens=1000, temperature=0.8)
+        response_text = await call_ai_async(expansion_prompt, max_tokens=1000, temperature=0.8)
 
         try:
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
@@ -910,7 +911,7 @@ JSON schema:
 }}"""
 
         try:
-            response_text = call_ai(explanation_prompt, max_tokens=2048, temperature=0.55)
+            response_text = await call_ai_async(explanation_prompt, max_tokens=2048, temperature=0.55)
             ai_data = _normalize_exploration_payload(
                 _parse_json_object(response_text),
                 topic=node.topic_name,
@@ -926,7 +927,7 @@ Avoid all generic placeholders. Make every value specific to "{node.topic_name}"
 
 JSON keys required: explanation, key_concepts, why_important, real_world_examples, learning_tips."""
             try:
-                response_text = call_ai(repair_prompt, max_tokens=1800, temperature=0.35)
+                response_text = await call_ai_async(repair_prompt, max_tokens=1800, temperature=0.35)
                 ai_data = _normalize_exploration_payload(
                     _parse_json_object(response_text),
                     topic=node.topic_name,
@@ -1435,7 +1436,7 @@ async def get_learning_hints(
 
 Generate hint now:"""
 
-            response_text = call_ai(hint_prompt, max_tokens=512, temperature=0.7)
+            response_text = await call_ai_async(hint_prompt, max_tokens=512, temperature=0.7)
 
             try:
                 json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
@@ -1984,7 +1985,7 @@ Generate detailed notes covering:
 
 Format as clear, organized study notes."""
 
-        content = call_ai(prompt, max_tokens=1500, temperature=0.7)
+        content = await call_ai_async(prompt, max_tokens=1500, temperature=0.7)
 
         note = models.Note(
             user_id=user.id,
@@ -2059,7 +2060,7 @@ Return ONLY a JSON array with this format:
 
 Make questions clear and answers concise."""
 
-        content = call_ai(prompt, max_tokens=1500, temperature=0.7).strip()
+        content = (await call_ai_async(prompt, max_tokens=1500, temperature=0.7)).strip()
 
         json_match = re.search(r'\[[\s\S]*\]', content)
         if json_match:
@@ -2152,7 +2153,7 @@ Return ONLY a JSON array:
   }}
 ]"""
 
-        content = call_ai(prompt, max_tokens=1500, temperature=0.7).strip()
+        content = (await call_ai_async(prompt, max_tokens=1500, temperature=0.7)).strip()
 
         json_match = re.search(r'\[[\s\S]*\]', content)
         if json_match:

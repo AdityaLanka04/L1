@@ -3,7 +3,7 @@ import { API_URL, getAuthToken } from '../config';
 export const USE_AI_JOB_QUEUE = process.env.REACT_APP_USE_AI_JOB_QUEUE === 'true';
 
 const DEFAULT_TIMEOUT_MS = 180000;
-const DEFAULT_POLL_INTERVAL_MS = 1500;
+const DEFAULT_POLL_INTERVAL_MS = 750;
 
 const authHeaders = (extra = {}) => {
   const token = getAuthToken();
@@ -23,7 +23,6 @@ export async function pollAIJob(jobId, options = {}) {
     if (Date.now() - startedAt > timeoutMs) {
       throw new Error('AI job timed out while waiting for a result');
     }
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     const response = await fetch(`${API_URL}/ai/jobs/${jobId}`, {
       headers: authHeaders(),
     });
@@ -34,6 +33,9 @@ export async function pollAIJob(jobId, options = {}) {
     job = await response.json();
     if (typeof options.onProgress === 'function') {
       options.onProgress(job);
+    }
+    if (job.status === 'queued' || job.status === 'running' || job.status === 'retrying') {
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
   }
 

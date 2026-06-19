@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 import models
 from deps import (
     call_ai,
+    call_ai_async,
     enforce_request_user_scope,
     get_current_user,
     get_db,
@@ -306,7 +307,7 @@ def _build_chunk_batches(
         batches.append(current)
     return batches
 
-def _merge_markdown_parts(parts: list[str], merge_prompt_prefix: str, max_chars: int = 22000) -> str:
+async def _merge_markdown_parts(parts: list[str], merge_prompt_prefix: str, max_chars: int = 22000) -> str:
     if not parts:
         return ""
     working = [p for p in parts if p and p.strip()]
@@ -325,7 +326,7 @@ def _merge_markdown_parts(parts: list[str], merge_prompt_prefix: str, max_chars:
                     "Draft note parts to merge:\n\n"
                     + "\n\n---\n\n".join(batch)
                 )
-                merged = call_ai(prompt, max_tokens=4500, temperature=0.35).strip()
+                merged = (await call_ai_async(prompt, max_tokens=4500, temperature=0.35)).strip()
                 next_round.append(merged or "\n\n".join(batch))
                 batch = [part]
                 batch_len = part_len
@@ -341,12 +342,12 @@ def _merge_markdown_parts(parts: list[str], merge_prompt_prefix: str, max_chars:
                     "Draft note parts to merge:\n\n"
                     + "\n\n---\n\n".join(batch)
                 )
-                merged = call_ai(prompt, max_tokens=4500, temperature=0.35).strip()
+                merged = (await call_ai_async(prompt, max_tokens=4500, temperature=0.35)).strip()
                 next_round.append(merged or "\n\n".join(batch))
         working = next_round
     return working[0]
 
-def _generate_doc_level_notes(doc: models.ContextDocument, chunks: list[str], depth: str, tone: str) -> str:
+async def _generate_doc_level_notes(doc: models.ContextDocument, chunks: list[str], depth: str, tone: str) -> str:
     if not chunks:
         fallback = (doc.ai_summary or "").strip()
         if fallback:
@@ -384,7 +385,7 @@ def _generate_doc_level_notes(doc: models.ContextDocument, chunks: list[str], de
             "Raw chunks:\n"
             f"{chunk_block}"
         )
-        segment = call_ai(segment_prompt, max_tokens=3600, temperature=0.2).strip()
+        segment = (await call_ai_async(segment_prompt, max_tokens=3600, temperature=0.2)).strip()
         if segment:
             intermediate_notes.append(segment)
 
@@ -405,12 +406,12 @@ def _generate_doc_level_notes(doc: models.ContextDocument, chunks: list[str], de
         "- Quick Revision Checklist\n"
         "Return markdown only."
     )
-    merged = _merge_markdown_parts(intermediate_notes, merge_prompt, max_chars=20000)
+    merged = await _merge_markdown_parts(intermediate_notes, merge_prompt, max_chars=20000)
     if not merged:
         merged = "\n\n".join(intermediate_notes)
     return f"## {doc.filename or doc.doc_id}\n\n{merged}".strip()
 
-def _generate_notes_from_context(docs: list[models.ContextDocument], doc_chunks: dict[str, list[str]], depth: str, tone: str) -> str:
+async def _generate_notes_from_context(docs: list[models.ContextDocument], doc_chunks: dict[str, list[str]], depth: str, tone: str) -> str:
     depth_key = (depth or "standard").lower()
     tone_key = (tone or "professional").lower()
 
@@ -428,7 +429,7 @@ def _generate_notes_from_context(docs: list[models.ContextDocument], doc_chunks:
     per_doc_notes: list[str] = []
     for doc in docs[:20]:
         chunks = doc_chunks.get(doc.doc_id, [])
-        doc_note = _generate_doc_level_notes(doc, chunks, depth_key, tone_key)
+        doc_note = await _generate_doc_level_notes(doc, chunks, depth_key, tone_key)
         if doc_note:
             per_doc_notes.append(doc_note)
 
@@ -457,7 +458,7 @@ def _generate_notes_from_context(docs: list[models.ContextDocument], doc_chunks:
         "- Final Master Revision Checklist\n"
         "Return markdown only."
     )
-    merged = _merge_markdown_parts(per_doc_notes, final_merge_prompt, max_chars=22000)
+    merged = await _merge_markdown_parts(per_doc_notes, final_merge_prompt, max_chars=22000)
     return merged or "\n\n".join(per_doc_notes)
 
 @router.get("/get_notes")
@@ -624,7 +625,7 @@ async def create_note_from_context_docs(
                 if chunks:
                     doc_chunks[doc_id] = chunks
     try:
-        content = _generate_notes_from_context(
+        content = await _generate_notes_from_context(
             docs=docs,
             doc_chunks=doc_chunks,
             depth=request.depth or "deep",
@@ -1029,7 +1030,7 @@ async def generate_note_content(
         f"Include examples where helpful."
     )
     try:
-        content = call_ai(prompt, max_tokens=2000, temperature=0.7)
+        content = await call_ai_async(prompt, max_tokens=2000, temperature=0.7)
         return {"content": content.strip(), "status": "success"}
     except Exception as e:
         logger.error("note generation error: %s", e, exc_info=True)
@@ -1057,7 +1058,7 @@ async def generate_note_summary(
         )
 
     try:
-        content = call_ai(prompt, max_tokens=2000, temperature=0.5)
+        content = await call_ai_async(prompt, max_tokens=2000, temperature=0.5)
         return {"content": content.strip(), "title": session_titles, "status": "success"}
     except Exception as e:
         return {"content": conversation_data[:500], "title": session_titles, "status": "fallback"}
@@ -1073,7 +1074,7 @@ async def expand_note_content(
         f"{content[:3000]}\n\nExpanded notes:"
     )
     try:
-        expanded = call_ai(prompt, max_tokens=2000, temperature=0.7)
+        expanded = await call_ai_async(prompt, max_tokens=2000, temperature=0.7)
         return {"content": expanded.strip(), "status": "success"}
     except Exception as e:
         return {"content": content, "status": "error"}
@@ -1094,7 +1095,7 @@ async def ai_writing_assistant(
     prompt = action_prompts.get(request.action, f"Help with this text:\n\n{request.content[:2000]}")
 
     try:
-        result = call_ai(prompt, max_tokens=1500, temperature=0.7)
+        result = await call_ai_async(prompt, max_tokens=1500, temperature=0.7)
         return {"content": result.strip(), "status": "success", "action": request.action}
     except Exception as e:
         logger.error("note generation error: %s", e, exc_info=True)
@@ -1112,7 +1113,7 @@ async def notes_agent(
     try:
         prompt = _build_note_agent_prompt(request)
         temperature = 0.2 if request.action == "grammar" else 0.7
-        result = call_ai(prompt, max_tokens=1500, temperature=temperature)
+        result = await call_ai_async(prompt, max_tokens=1500, temperature=temperature)
         content = _clean_grammar_result(result) if request.action == "grammar" else result.strip()
         return {"success": True, "content": content, "action": request.action}
     except Exception as e:
