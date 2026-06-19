@@ -1320,7 +1320,8 @@ def _build_instructional_task(state: TutorState) -> str:
         f"Answer the student's question clearly at a {difficulty} level. "
         f"Use a {style} explanation style. "
         "If the topic has common mistakes listed above, proactively address them. "
-        "End with a brief check or follow-up question to confirm understanding."
+        "Follow explicit user instructions about length and format. "
+        "Only ask a follow-up question when the user asks for tutoring, practice, or next steps."
     )
 
 def _normalize_attempt_verdict(value: Any) -> str:

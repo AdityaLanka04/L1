@@ -511,6 +511,7 @@ class MessageMLPipeline:
         out: MLOutput,
         profile: Optional[Dict] = None,
         session_brief: str = "",
+        require_follow_up: bool = True,
     ) -> str:
         lines: List[str] = []
 
@@ -543,7 +544,7 @@ class MessageMLPipeline:
         lines.append("[CONSTRAINTS]")
         lines.append("- Never mention the system, strategy, or memory to the student.")
         lines.append("- Max 150 words unless strategy is WORKED_EXAMPLE.")
-        if out.intent not in ("off_topic", "emotional", "exploration") and out.frustration_score < 0.5:
+        if require_follow_up and out.intent not in ("off_topic", "emotional", "exploration") and out.frustration_score < 0.5:
             lines.append("- End with ONE short follow-up question directly related to the student's topic.")
         lines.append("- NEVER introduce unrelated problems or examples unless explicitly asked.")
 

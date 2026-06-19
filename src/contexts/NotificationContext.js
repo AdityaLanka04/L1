@@ -2,6 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { API_URL } from '../config';
 
 const NotificationContext = createContext(null);
+const NOTIFICATION_FETCH_LIMIT = 12;
+const INITIAL_NOTIFICATION_DELAY_MS = 3500;
+const NOTIFICATION_POLL_INTERVAL_MS = 30000;
 
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
@@ -130,7 +133,7 @@ export const NotificationProvider = ({ children }) => {
       lastCheckRef.current = now;
 
       const timezoneOffset = new Date().getTimezoneOffset();
-      const response = await fetch(`${API_URL}/get_notifications?user_id=${encodeURIComponent(userName)}&timezone_offset=${timezoneOffset}`, {
+      const response = await fetch(`${API_URL}/get_notifications?user_id=${encodeURIComponent(userName)}&timezone_offset=${timezoneOffset}&limit=${NOTIFICATION_FETCH_LIMIT}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -231,8 +234,10 @@ export const NotificationProvider = ({ children }) => {
     if (pollRef.current) {
       clearInterval(pollRef.current);
     }
-    pollNotifications(true);
-    pollRef.current = setInterval(() => pollNotifications(false), 10000);
+    pollRef.current = setTimeout(() => {
+      pollNotifications(true);
+      pollRef.current = setInterval(() => pollNotifications(false), NOTIFICATION_POLL_INTERVAL_MS);
+    }, INITIAL_NOTIFICATION_DELAY_MS);
   }, [pollNotifications]);
 
   useEffect(() => {

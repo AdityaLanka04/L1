@@ -998,7 +998,10 @@ async def ask_ai(
 
             pipeline = MessageMLPipeline(None, get_memory_service())
             ml_output = await pipeline.process(question, str(user.id), ctx, db)
-            ml_addendum = pipeline.build_system_prompt_addendum(ml_output)
+            ml_addendum = pipeline.build_system_prompt_addendum(
+                ml_output,
+                require_follow_up=bool(tutor_mode),
+            )
 
             if session_state and ml_output:
                 session_state.message_count += 1

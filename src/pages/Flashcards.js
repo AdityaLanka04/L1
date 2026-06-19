@@ -15,6 +15,9 @@ import AbstractFx from '../components/AbstractFx';
 import GeoBackground from '../components/GeoBackground';
 
 const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
+const FLASHCARD_HISTORY_LIMIT = 100;
+const FLASHCARD_DEFERRED_LOAD_MS = 3500;
+const FLASHCARD_CONTEXT_COUNT_DELAY_MS = 5000;
 
 const FC_ICONS = {
   menu: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>,
@@ -378,7 +381,7 @@ const Flashcards = () => {
       const token = localStorage.getItem('token');
       
       const response = await fetch(
-        `${API_URL}/get_flashcard_history?user_id=${userName}&limit=1000&offset=0`, 
+        `${API_URL}/get_flashcard_history?user_id=${userName}&limit=${FLASHCARD_HISTORY_LIMIT}&offset=0`, 
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -1192,9 +1195,12 @@ const Flashcards = () => {
   }, [navigate]);
 
   useEffect(() => {
-    contextService.listDocuments()
-      .then(d => setUserDocCount(d.user_docs?.length || 0))
-      .catch(() => {});
+    const timer = window.setTimeout(() => {
+      contextService.listDocuments()
+        .then(d => setUserDocCount(d.user_docs?.length || 0))
+        .catch(() => {});
+    }, FLASHCARD_CONTEXT_COUNT_DELAY_MS);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleHsModeToggle = (val) => {
@@ -1258,12 +1264,12 @@ const Flashcards = () => {
 
   useEffect(() => {
     if (userName) {
-      loadChatSessions();
       loadFlashcardHistory(true); 
-      loadFlashcardStats();
-      loadReviewCards();
-      loadDueCards();
-      loadUploadedDocuments();
+      const deferredLoad = window.setTimeout(() => {
+        loadFlashcardStats();
+        loadChatSessions();
+        loadReviewCards();
+      }, FLASHCARD_DEFERRED_LOAD_MS);
       
       
       const params = new URLSearchParams(location.search);
@@ -1278,8 +1284,15 @@ const Flashcards = () => {
                 loadFlashcardSet(parseInt(setId), mode);
         setActivePanel('cards');
       }
+      return () => window.clearTimeout(deferredLoad);
     }
-  }, [userName, location.search, loadChatSessions, loadFlashcardStats, loadReviewCards, loadUploadedDocuments, loadFlashcardSetByCode]);
+    return undefined;
+  }, [userName, location.search, loadChatSessions, loadFlashcardStats, loadReviewCards, loadFlashcardSetByCode]);
+
+  useEffect(() => {
+    if (activePanel !== 'sources' || !userName || loadingDocuments || uploadedDocuments.length > 0) return;
+    loadUploadedDocuments();
+  }, [activePanel, userName, loadingDocuments, uploadedDocuments.length, loadUploadedDocuments]);
 
   useEffect(() => {
     const openPanel = location.state?.openPanel;
