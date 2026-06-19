@@ -129,6 +129,15 @@ _JWT_ISSUER = "brainwave-backend"
 _TRUSTED_PROXY_CIDRS_RAW = os.getenv("RATE_LIMIT_TRUSTED_PROXY_CIDRS", "127.0.0.1/32,::1/128")
 _DEFAULT_UNLIMITED_IDENTIFIERS = "aditya.s.lanka@gmail.com,rithvikkumar35@gmail.com,AL04"
 
+# Temporary: grant every logged-in user the "power" (advanced) tier's rate limits
+# regardless of their actual subscription, while keeping the starter/pro/power
+# catalog and per-user DB tier intact underneath. Remove or set
+# RATE_LIMIT_FORCE_TIER="" to go back to enforcing each user's real tier.
+_FORCE_TIER_RAW = os.getenv("RATE_LIMIT_FORCE_TIER", "power").strip().lower()
+FORCE_TIER: Optional[str] = (
+    normalize_plan_id(_FORCE_TIER_RAW) if _FORCE_TIER_RAW not in ("", "off", "none", "false") else None
+)
+
 def _identifiers_from_csv(raw: str | None) -> set[str]:
     return {
         email.strip().lower()
@@ -257,6 +266,12 @@ def invalidate_subscription_cache(*subjects: str) -> None:
                 _subscription_cache.pop(subject.strip().lower(), None)
 
 def get_subscription_tier(subject: Optional[str]) -> str:
+    tier = _resolve_subscription_tier(subject)
+    if tier != "unlimited" and FORCE_TIER:
+        return FORCE_TIER
+    return tier
+
+def _resolve_subscription_tier(subject: Optional[str]) -> str:
     normalized_subject = (subject or "").strip().lower()
     if not normalized_subject:
         return DEFAULT_PLAN_ID

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 from middleware.rate_limiter import TIERS, _AUTH_TIERS, _get_client_ip, _get_jwt_sub, get_subscription_tier
-from services.subscription_catalog import DEFAULT_PLAN_ID, get_effective_rate_limit, list_plans
+from services.subscription_catalog import get_effective_rate_limit, list_plans
 
 router = APIRouter(prefix="/api", tags=["rate-limits"])
 
@@ -27,7 +27,7 @@ def get_rate_limit_tiers():
 @router.get("/rate-limits/status")
 def get_rate_limit_status(request: Request):
     sub = _get_jwt_sub(request)
-    plan_id = get_subscription_tier(sub) if sub else DEFAULT_PLAN_ID
+    plan_id = get_subscription_tier(sub)
     ip = _get_client_ip(request)
     identity_user = sub or ip
     identity_ip = ip
