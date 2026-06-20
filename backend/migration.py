@@ -4,13 +4,11 @@ import sqlite3
 from sqlalchemy import inspect, text
 from sqlalchemy.schema import CreateColumn
 from sqlalchemy.engine import make_url
-from models import engine, Base, User, ChatSession, ChatMessage, ChatTutorState, \
-    Flashcard, FlashcardSet, Note, LearningReview, UserStats, \
-    ComprehensiveUserProfile, PasswordResetOTP, RegistrationOTP, AccountDeletionOTP, Friendship, FriendRequest, \
-    Notification, Achievement, UserAchievement, Leaderboard, Challenge, \
-    ChallengeParticipation, ConceptNode, ConceptConnection, KnowledgeRoadmap, AIJob, \
-    Reminder, ReminderList, UserGamificationStats, PointTransaction
+from models import engine, Base
 from database import DATABASE_URL
+
+def get_all_models():
+    return [mapper.class_ for mapper in Base.registry.mappers]
 
 def get_model_columns(model):
     columns = {}
@@ -55,7 +53,7 @@ def get_db_columns(cursor, table_name):
 
 def sync_table(cursor, model):
     table_name = model.__tablename__
-    print(f"\n📋 Checking table: {table_name}")
+    print(f"\nChecking table: {table_name}")
     
     model_columns = get_model_columns(model)
     db_columns = get_db_columns(cursor, table_name)
@@ -108,55 +106,47 @@ def run_migration():
 
     if not db_path:
         db_path = possible_paths[0]
-        print(f"📁 Creating new database: {db_path}")
+        print(f"Creating new database: {db_path}")
         open(db_path, 'a').close()
     
-    print(f" Syncing database schema: {db_path}")
+    print(f"Syncing database schema: {db_path}")
     
-    print("\n🏗️  Creating all tables using SQLAlchemy...")
+    print("\nCreating all tables using SQLAlchemy...")
     try:
         Base.metadata.create_all(bind=engine)
-        print(" All tables created/verified by SQLAlchemy")
+        print("All tables created/verified by SQLAlchemy")
     except Exception as e:
-        print(f" SQLAlchemy table creation warning: {e}")
+        print(f"SQLAlchemy table creation warning: {e}")
     
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    models = [
-        User, ChatSession, ChatMessage, ChatTutorState, AIJob,
-        Flashcard, FlashcardSet, Note, LearningReview, UserStats,
-        ComprehensiveUserProfile, PasswordResetOTP, RegistrationOTP, AccountDeletionOTP, Friendship, FriendRequest,
-        Notification, Achievement, UserAchievement,
-        Leaderboard, Challenge, ChallengeParticipation, ConceptNode,
-        ConceptConnection, KnowledgeRoadmap, Reminder, ReminderList,
-        UserGamificationStats, PointTransaction
-    ]
+    models = get_all_models()
     
     try:
         cursor.execute("ALTER TABLE flashcard_sets ADD COLUMN share_code TEXT")
-        print(" Added share_code column to flashcard_sets")
+        print("Added share_code column to flashcard_sets")
     except sqlite3.OperationalError as e:
         if "duplicate column" in str(e).lower():
             pass
         else:
-            print(f" share_code column: {e}")
+            print(f"share_code column: {e}")
     
     try:
         cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_flashcard_sets_share_code ON flashcard_sets(share_code)")
-        print(" Created index for share_code")
+        print("Created index for share_code")
     except Exception as e:
         if "already exists" not in str(e).lower():
-            print(f" share_code index: {e}")
+            print(f"share_code index: {e}")
     
     try:
         cursor.execute("ALTER TABLE comprehensive_user_profiles ADD COLUMN show_study_insights BOOLEAN DEFAULT 1")
-        print(" Added show_study_insights column to comprehensive_user_profiles")
+        print("Added show_study_insights column to comprehensive_user_profiles")
     except sqlite3.OperationalError as e:
         if "duplicate column" in str(e).lower():
             pass
         else:
-            print(f" show_study_insights column: {e}")
+            print(f"show_study_insights column: {e}")
     
     try:
         import random
@@ -166,7 +156,7 @@ def run_migration():
         sets_without_code = cursor.fetchall()
         
         if sets_without_code:
-            print(f" Generating share codes for {len(sets_without_code)} flashcard sets...")
+            print(f"Generating share codes for {len(sets_without_code)} flashcard sets...")
             for (set_id,) in sets_without_code:
                 while True:
                     code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -174,19 +164,19 @@ def run_migration():
                     if not cursor.fetchone():
                         break
                 cursor.execute("UPDATE flashcard_sets SET share_code = ? WHERE id = ?", (code, set_id))
-            print(f" Generated share codes for {len(sets_without_code)} flashcard sets")
+            print(f"Generated share codes for {len(sets_without_code)} flashcard sets")
     except Exception as e:
-        print(f" share code generation: {e}")
+        print(f"share code generation: {e}")
     
     try:
         for model in models:
             sync_table(cursor, model)
         
         conn.commit()
-        print("\n Schema sync completed successfully!")
+        print("\nSchema sync completed successfully!")
         
     except Exception as e:
-        print(f"\n Migration failed: {e}")
+        print(f"\nMigration failed: {e}")
         conn.rollback()
         import traceback
         traceback.print_exc()
@@ -194,12 +184,12 @@ def run_migration():
         conn.close()
 
 def _run_postgres_migration():
-    print(" Syncing PostgreSQL schema")
+    print("Syncing PostgreSQL schema")
     try:
         Base.metadata.create_all(bind=engine)
-        print(" All tables created/verified by SQLAlchemy")
+        print("All tables created/verified by SQLAlchemy")
     except Exception as e:
-        print(f" SQLAlchemy table creation warning: {e}")
+        print(f"SQLAlchemy table creation warning: {e}")
 
     with engine.connect() as migration_conn:
         def get_inspector():
@@ -218,7 +208,7 @@ def _run_postgres_migration():
                 if column_name in existing:
                     continue
                 migration_conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}"))
-                print(f" Added column {table_name}.{column_name}")
+                print(f"Added column {table_name}.{column_name}")
             migration_conn.commit()
 
         def add_missing_model_columns():
@@ -252,13 +242,13 @@ def _run_postgres_migration():
                         migration_conn.execute(text(f'ALTER TABLE "{table.name}" ADD COLUMN {compiled}'))
                         if downgraded_nullable:
                             skipped.append(f'{table.name}.{column.name} added as NULLABLE; backfill before NOT NULL')
-                        print(f" Added model column {table.name}.{column.name}")
+                        print(f"Added model column {table.name}.{column.name}")
                     finally:
                         column.nullable = original_nullable
                 migration_conn.commit()
 
             if skipped:
-                print(" Deferred NOT NULL enforcement for:")
+                print("Deferred NOT NULL enforcement for:")
                 for item in skipped:
                     print(f"  - {item}")
 
@@ -273,7 +263,7 @@ def _run_postgres_migration():
                 return
             migration_conn.execute(text(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE TEXT"))
             migration_conn.commit()
-            print(f" Widened {table_name}.{column_name} to TEXT")
+            print(f"Widened {table_name}.{column_name} to TEXT")
 
         widen_column_to_text("users", "picture_url")
 
@@ -458,9 +448,9 @@ def _run_postgres_migration():
                     pass
             try:
                 migration_conn.commit()
-                print(f" {otp_table} indexes created/verified")
+                print(f"{otp_table} indexes created/verified")
             except Exception as e:
-                print(f" {otp_table} index commit error: {e}")
+                print(f"{otp_table} index commit error: {e}")
 
         if "flashcard_sets" in tables:
             try:
@@ -471,9 +461,9 @@ def _run_postgres_migration():
                     )
                 )
                 migration_conn.commit()
-                print(" Created index for flashcard_sets.share_code")
+                print("Created index for flashcard_sets.share_code")
             except Exception as e:
-                print(f" share_code index: {e}")
+                print(f"share_code index: {e}")
 
         _user_id_indexes = [
             ("ix_activities_user_id",              "activities",             "user_id"),
@@ -511,9 +501,9 @@ def _run_postgres_migration():
                 pass
         try:
             migration_conn.commit()
-            print(" user_id performance indexes created/verified")
+            print("user_id performance indexes created/verified")
         except Exception as e:
-            print(f" user_id index commit error: {e}")
+            print(f"user_id index commit error: {e}")
 
 if __name__ == '__main__':
     run_migration()

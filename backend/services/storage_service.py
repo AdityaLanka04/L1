@@ -153,7 +153,7 @@ class SupabaseStorage:
         try:
             self.supabase.storage.from_(self.bucket_name).get_public_url(storage_path)
             return True
-        except:
+        except Exception:
             return False
 
 class S3Storage:
@@ -361,7 +361,7 @@ class R2Storage:
         try:
             self.s3.head_object(Bucket=self.bucket, Key=storage_path)
             return True
-        except:
+        except Exception:
             return False
 
     def uri_for_path(self, storage_path):

@@ -40,3 +40,15 @@ src/pages/AdminAnalytics.js
 start.log
 .env.aws
 backend/Miniforge3-*.sh
+
+# Secrets
+*.pem
+*.key
+
+# Large binaries / scratch files committed by mistake
+*.pdf
+--full-page
+fix_catch.mjs
+fix_css.mjs
+fix_css_vars.mjs
+QUIZ_FIXES_SUMMARY.md
