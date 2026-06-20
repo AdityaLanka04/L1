@@ -153,8 +153,8 @@ For worker services, use `DB_APPLICATION_NAME=brainwave_ai_worker` so Supabase/P
 Run the production compose services, then scale workers:
 
 ```bash
-docker compose -f docker-compose.prod.yml up --build
-docker compose -f docker-compose.prod.yml up --scale ai-worker=4 -d
+docker compose -f aws-deployment/docker-compose.prod.yml up --build
+docker compose -f aws-deployment/docker-compose.prod.yml up --scale ai-worker=4 -d
 ```
 
 Managed hosts usually expose the same concept as independent process types or services:

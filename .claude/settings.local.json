@@ -113,7 +113,23 @@
       "Bash(rm -f .tmp_flashcards.png .tmp_flashcards2.png .tmp_flashcards3.png .tmp_playlists.png)",
       "Bash(npx --yes agent-browser close --all)",
       "Bash(netstat -ano)",
-      "Bash(echo \"EXIT_CODE=$?\")"
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(python -m uvicorn main:app --host 127.0.0.1 --port 8000)",
+      "Bash(echo \"started pid $!\")",
+      "Bash(disown)",
+      "Bash(timeout 40 bash -c 'until curl -sf http://127.0.0.1:8000/api/health >/dev/null 2>&1; do sleep 2; done')",
+      "Bash(npm start *)",
+      "Bash(tasklist //FI \"PID eq 22288\")",
+      "Bash(taskkill //PID 22288 //F)",
+      "Bash(timeout 60 bash -c 'until curl -sf http://127.0.0.1:8000/api/health >/dev/null 2>&1; do sleep 2; done')",
+      "Bash(agent-browser install *)",
+      "Bash(taskkill *)",
+      "Bash(ls backend/Dockerfile*)",
+      "Bash(grep -n \"docker-compose\\\\|Dockerfile.production\" aws-deployment/deploy.sh aws-deployment/setup-lb.sh aws-deployment/update.sh aws-deployment/pre-deploy-check.sh aws-deployment/README.md aws-deployment/DEPLOYMENT_CHECKLIST.md)",
+      "Bash(git mv *)"
     ]
   }
 }

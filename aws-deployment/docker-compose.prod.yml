@@ -1,0 +1,128 @@
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ../certbot/conf:/etc/letsencrypt:ro
+      - ../certbot/www:/var/www/certbot:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+    networks:
+      - brainwave-network
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ../certbot/conf:/etc/letsencrypt
+      - ../certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - brainwave-network
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    environment:
+      - REACT_APP_API_URL=https://yourdomain.com/api
+      - REACT_APP_USE_AI_JOB_QUEUE=true
+    restart: always
+    networks:
+      - brainwave-network
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    env_file:
+      - ../backend/.env.production
+    environment:
+      - BACKEND_ID=azure-primary
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AI_MAX_ACTIVE_JOBS_PER_USER=4
+      - AI_JOB_MAX_ATTEMPTS=3
+      - AI_JOB_RATE_LIMIT_RETRY_DELAY_SECONDS=60
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+      - DB_POOL_TIMEOUT=30
+      - DB_APPLICATION_NAME=brainwave_api
+      - AI_JOB_REDIS_SOCKET_TIMEOUT_SECONDS=30
+      - ENABLE_STARTUP_EMBEDDINGS=false
+    volumes:
+      - chroma_data:/app/.chroma_data
+      - backend_uploads:/app/uploads
+      - backend_exports:/app/exports
+      - backend_attachments:/app/attachments
+    depends_on:
+      - redis
+    restart: always
+    networks:
+      - brainwave-network
+
+  ai-worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    command: ["python", "worker.py"]
+    env_file:
+      - ../backend/.env.production
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AI_MAX_ACTIVE_JOBS_PER_USER=4
+      - AI_JOB_MAX_ATTEMPTS=3
+      - AI_JOB_RATE_LIMIT_RETRY_DELAY_SECONDS=60
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=5
+      - DB_POOL_TIMEOUT=30
+      - DB_APPLICATION_NAME=brainwave_ai_worker
+      - AI_JOB_REDIS_SOCKET_TIMEOUT_SECONDS=30
+      - ENABLE_STARTUP_EMBEDDINGS=false
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'from services.ai_job_queue import queue_depth; queue_depth()'"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    volumes:
+      - chroma_data:/app/.chroma_data
+      - backend_uploads:/app/uploads
+      - backend_exports:/app/exports
+      - backend_attachments:/app/attachments
+    depends_on:
+      - backend
+      - redis
+    restart: always
+    networks:
+      - brainwave-network
+
+  redis:
+    image: redis/redis-stack-server:latest
+    environment:
+      - REDIS_ARGS=--appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: always
+    networks:
+      - brainwave-network
+
+networks:
+  brainwave-network:
+    driver: bridge
+
+volumes:
+  chroma_data:
+  backend_uploads:
+  backend_exports:
+  backend_attachments:
+  redis_data:
