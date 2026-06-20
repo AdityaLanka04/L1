@@ -38,6 +38,7 @@ from .agents import (
     resolve_document_type,
 )
 from .pdf_utils import generate_question_set_pdf
+from services.storage_service import StorageService
 from .utils import (
     _update_weak_areas,
     _compute_topic_performance_from_sessions,
@@ -48,6 +49,54 @@ from .utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+def _safe_storage_filename(filename: str) -> str:
+    return re.sub(r"[^\w.\-]", "_", filename or "upload")[:180] or "upload"
+
+def _store_question_bank_original(file_bytes: bytes, *, user_id: int, document_id: int, filename: str, content_type: str = "") -> dict:
+    storage = StorageService.get_storage()
+    safe_name = _safe_storage_filename(filename)
+    storage_key = f"question_bank_documents/{user_id}/{document_id}/{safe_name}"
+    result = storage.upload_bytes(file_bytes, storage_key, content_type or "application/pdf")
+    storage_path = result.get("storage_path") or storage_key
+    return {
+        "storage_path": (
+            storage.uri_for_path(storage_path)
+            if hasattr(storage, "uri_for_path") and getattr(storage, "storage_type", "local") != "local"
+            else storage_path
+        ),
+        "storage_type": result.get("storage_type") or getattr(storage, "storage_type", "local"),
+        "storage_url": result.get("url") or "",
+    }
+
+def _ensure_uploaded_document_storage_schema(db: Session) -> None:
+    bind = db.get_bind()
+    if bind is None:
+        return
+    dialect = getattr(bind.dialect, "name", "")
+    conn = bind.connect()
+    try:
+        if dialect == "sqlite":
+            existing = {r[1] for r in conn.execute(text("PRAGMA table_info(uploaded_documents)"))}
+        else:
+            existing = {
+                row[0]
+                for row in conn.execute(text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'uploaded_documents'"
+                ))
+            }
+        column_defs = {
+            "storage_path": "ALTER TABLE uploaded_documents ADD COLUMN storage_path VARCHAR(500)",
+            "storage_type": "ALTER TABLE uploaded_documents ADD COLUMN storage_type VARCHAR(30)",
+            "storage_url": "ALTER TABLE uploaded_documents ADD COLUMN storage_url VARCHAR(1000)",
+        }
+        for column, ddl in column_defs.items():
+            if column not in existing:
+                conn.execute(text(ddl))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def register_question_bank_api(app, unified_ai, get_db_func):
@@ -165,6 +214,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
     ):
         try:
             import models
+            _ensure_uploaded_document_storage_schema(db)
 
             logger.info(f"Starting PDF upload for user: {user_id}, file: {file.filename}")
 
@@ -214,6 +264,19 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             )
 
             db.add(document)
+            db.commit()
+            db.refresh(document)
+
+            storage_info = _store_question_bank_original(
+                pdf_content,
+                user_id=user.id,
+                document_id=document.id,
+                filename=file.filename,
+                content_type=file.content_type or "application/pdf",
+            )
+            document.storage_path = storage_info["storage_path"]
+            document.storage_type = storage_info["storage_type"]
+            document.storage_url = storage_info["storage_url"][:1000] if storage_info["storage_url"] else ""
             db.commit()
             db.refresh(document)
 
