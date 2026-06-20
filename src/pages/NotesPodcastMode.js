@@ -87,6 +87,13 @@ const NotesPodcastMode = () => {
     };
   }, [statePayload, noteIdsFromQuery]);
 
+  useEffect(() => {
+    document.body.classList.add('notes-podcast-page-open');
+    return () => {
+      document.body.classList.remove('notes-podcast-page-open');
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="npm-shell">

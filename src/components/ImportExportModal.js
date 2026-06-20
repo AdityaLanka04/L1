@@ -223,6 +223,18 @@ const ImportExportModal = ({
       const conversionDetails = conversionResult.result || conversionResult;
 
       if (conversionResult.success) {
+        if (destinationType === 'podcast') {
+          const podcastDetails = {
+            ...conversionDetails,
+            destinationType: 'podcast',
+            shouldNavigate: true,
+          };
+
+          setProcessing(false);
+          handleClose();
+          onSuccess?.(podcastDetails);
+          return;
+        }
         
         if (destinationType === 'csv' || destinationType === 'pdf') {
           const exportResult = conversionDetails;
@@ -413,7 +425,7 @@ const ImportExportModal = ({
                 ))}
               </div>
 
-              {destinationType && (
+              {destinationType && destinationType !== 'podcast' && (
                 <div className="iem-settings">
                   <h4>Settings</h4>
                   
@@ -509,68 +521,6 @@ const ImportExportModal = ({
                     </div>
                   )}
 
-                  {destinationType === 'podcast' && (
-                    <>
-                      <div className="iem-setting-group">
-                        <label>Voice Mode</label>
-                        <select
-                          className="iem-select"
-                          value={options.voiceMode}
-                          onChange={(e) => setOptions(prev => ({ ...prev, voiceMode: e.target.value }))}
-                        >
-                          <option value="coach">Coach</option>
-                          <option value="story">Story Mode</option>
-                          <option value="rapid">Rapid Review</option>
-                          <option value="socratic">Socratic</option>
-                          <option value="exam">Exam Prep</option>
-                        </select>
-                      </div>
-
-                      <div className="iem-setting-group">
-                        <label>Voice Persona</label>
-                        <select
-                          className="iem-select"
-                          value={options.voicePersona}
-                          onChange={(e) => setOptions(prev => ({ ...prev, voicePersona: e.target.value }))}
-                        >
-                          <option value="mentor">Mentor</option>
-                          <option value="professor">Professor</option>
-                          <option value="friend">Study Friend</option>
-                          <option value="host">Podcast Host</option>
-                          <option value="minimal">Minimal</option>
-                        </select>
-                      </div>
-
-                      <div className="iem-setting-group">
-                        <label>Difficulty</label>
-                        <select
-                          className="iem-select"
-                          value={options.difficulty}
-                          onChange={(e) => setOptions(prev => ({ ...prev, difficulty: e.target.value }))}
-                        >
-                          <option value="basic">Basic</option>
-                          <option value="intermediate">Intermediate</option>
-                          <option value="advanced">Advanced</option>
-                        </select>
-                      </div>
-
-                      <div className="iem-setting-group">
-                        <label>Answer Language</label>
-                        <select
-                          className="iem-select"
-                          value={options.answerLanguage}
-                          onChange={(e) => setOptions(prev => ({ ...prev, answerLanguage: e.target.value }))}
-                        >
-                          <option value="en">English</option>
-                          <option value="hi">Hindi</option>
-                          <option value="es">Spanish</option>
-                          <option value="fr">French</option>
-                          <option value="de">German</option>
-                          <option value="te">Telugu</option>
-                        </select>
-                      </div>
-                    </>
-                  )}
                 </div>
               )}
 

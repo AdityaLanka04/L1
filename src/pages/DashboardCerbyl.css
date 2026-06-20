@@ -1550,15 +1550,16 @@
   border-radius: 999px;
   background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 72%, transparent), transparent);
   width: 0;
-  opacity: .9;
+  opacity: 0;
+  transition: width .3s ease, opacity .22s ease;
 }
 
 .cb-notes-ink.is-animating span {
-  animation: cb-notes-line-write .48s ease forwards;
+  animation: cb-notes-line-write 3.8s cubic-bezier(.22, .72, .25, 1) infinite;
 }
 
-.cb-notes-ink.is-animating span:nth-child(2) { animation-delay: .14s; }
-.cb-notes-ink.is-animating span:nth-child(3) { animation-delay: .28s; }
+.cb-notes-ink.is-animating span:nth-child(2) { animation-delay: .22s; }
+.cb-notes-ink.is-animating span:nth-child(3) { animation-delay: .44s; }
 
 .cb-notes-caret {
   position: absolute;
@@ -1570,24 +1571,38 @@
   background: var(--accent);
   box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 65%, transparent);
   opacity: 0;
+  transition: opacity .18s ease;
 }
 
 .cb-notes-ink.is-animating .cb-notes-caret {
-  animation: cb-notes-caret-pass .86s linear forwards;
+  animation: cb-notes-caret-pass 3.8s cubic-bezier(.22, .72, .25, 1) infinite;
 }
 
 @keyframes cb-notes-line-write {
-  0% { width: 0; opacity: 0; }
-  100% { width: 88%; opacity: 1; }
+  0%,
+  4% {
+    width: 0;
+    opacity: 0;
+  }
+  24%,
+  72% {
+    width: 88%;
+    opacity: 1;
+  }
+  88%,
+  100% {
+    width: 88%;
+    opacity: 0;
+  }
 }
 
 .cb-feat--notes.is-animating .cb-recent-item {
-  animation: cb-notes-row-rise .54s ease both;
+  animation: cb-notes-row-rise .72s cubic-bezier(.22, .72, .25, 1) both;
 }
 
-.cb-feat--notes.is-animating .cb-recent-item:nth-child(2) { animation-delay: .1s; }
-.cb-feat--notes.is-animating .cb-recent-item:nth-child(3) { animation-delay: .2s; }
-.cb-feat--notes.is-animating .cb-recent-item:nth-child(4) { animation-delay: .3s; }
+.cb-feat--notes.is-animating .cb-recent-item:nth-child(2) { animation-delay: .14s; }
+.cb-feat--notes.is-animating .cb-recent-item:nth-child(3) { animation-delay: .28s; }
+.cb-feat--notes.is-animating .cb-recent-item:nth-child(4) { animation-delay: .42s; }
 
 @keyframes cb-notes-row-rise {
   0% {
@@ -1605,24 +1620,33 @@
 @keyframes cb-notes-caret-pass {
   0% {
     transform: translate(0, 0);
+    opacity: 0;
+  }
+  4% {
+    transform: translate(0, 0);
     opacity: 1;
   }
-  33% {
+  18% {
     transform: translate(72px, 0);
     opacity: 1;
   }
-  34% {
+  19% {
     transform: translate(0, 7px);
     opacity: 1;
   }
-  66% {
+  34% {
     transform: translate(80px, 7px);
     opacity: 1;
   }
-  67% {
+  35% {
     transform: translate(0, 14px);
     opacity: 1;
   }
+  51% {
+    transform: translate(88px, 14px);
+    opacity: 1;
+  }
+  62%,
   100% {
     transform: translate(88px, 14px);
     opacity: 0;
@@ -1703,27 +1727,28 @@
 .cb-marquee {
   position: relative;
   overflow: hidden;
-  
   padding-top: 6px;
   margin-top: -6px;
   mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
+  cursor: grab;
+  overscroll-behavior-x: contain;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cb-marquee.is-dragging {
+  cursor: grabbing;
 }
 
 .cb-marquee-track {
   display: flex;
   gap: 12px;
   width: max-content;
-  animation: cb-marquee 40s linear infinite;
-}
-
-.cb-marquee:hover .cb-marquee-track {
-  animation-play-state: paused;
-}
-
-@keyframes cb-marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
 }
 
 .cb-mod {
@@ -1753,6 +1778,15 @@
     linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent) 0%, color-mix(in srgb, var(--accent) 12%, transparent) 100%),
     var(--cb-panel);
   box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.cb-marquee.is-dragging .cb-mod {
+  pointer-events: none;
+}
+
+.cb-marquee.is-dragging .cb-mod:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .cb-mod-num {

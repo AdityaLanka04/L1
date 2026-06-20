@@ -1,6 +1,70 @@
 .npm-page {
+  --mn-accent: var(--accent, #d7b38c);
+  --mn-text-primary: var(--text-primary, #f7f2ea);
+  --mn-text-secondary: var(--text-secondary, #b8afa4);
+  --mn-bg: var(--bg-primary, #070706);
+  --mn-panel: var(--bg-secondary, #11100e);
+
   min-height: 100vh;
-  background: #04070d;
+  overflow: visible;
+  color: var(--mn-text-primary);
+  background:
+    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--mn-accent) 8%, transparent), transparent 42%),
+    var(--mn-bg);
+}
+
+body.notes-podcast-page-open,
+body.notes-podcast-page-open.podcast-fullscreen-open {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.npm-page .podcast-fullscreen-shell {
+  position: relative;
+  inset: auto;
+  min-height: 100vh;
+  display: block;
+}
+
+.npm-page .podcast-fullscreen-backdrop {
+  position: fixed;
+}
+
+.npm-page .podcast-fullscreen {
+  width: min(100%, 1680px);
+  height: auto;
+  min-height: 100vh;
+  padding-top: 12px;
+  overflow: visible;
+}
+
+.npm-page .podcast-prelaunch {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.npm-page .podcast-fullscreen-body {
+  flex: 0 0 auto;
+  min-height: auto;
+  overflow: visible;
+  align-items: start;
+}
+
+.npm-page .podcast-fullscreen-stage {
+  grid-template-rows: auto auto;
+  align-self: start;
+}
+
+.npm-page .podcast-fullscreen-stage--subtitles-expanded {
+  grid-template-rows: auto;
+}
+
+.npm-page .podcast-fullscreen-stage-card,
+.npm-page .podcast-fullscreen-subtitles,
+.npm-page .podcast-fullscreen-subtitle-list {
+  min-height: auto;
+  height: auto;
+  overflow: visible;
 }
 
 .npm-shell {

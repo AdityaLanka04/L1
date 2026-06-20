@@ -289,6 +289,38 @@ const DashboardCerbyl = () => {
   const progressAnimFrameRef = useRef(null);
   const weeklyAnimTimerRef = useRef(null);
   const rankAnimFrameRef = useRef(null);
+  const moduleMarqueeRef = useRef(null);
+  const moduleTrackRef = useRef(null);
+  const moduleAnimFrameRef = useRef(null);
+  const moduleLastFrameRef = useRef(0);
+  const moduleOffsetRef = useRef(0);
+  const moduleSegmentWidthRef = useRef(0);
+  const moduleHoverPausedRef = useRef(false);
+  const moduleCooldownRef = useRef(false);
+  const moduleResumeTimerRef = useRef(null);
+  const moduleDragRef = useRef({
+    active: false,
+    pointerId: null,
+    startX: 0,
+    startOffset: 0
+  });
+  const moduleDragMovedRef = useRef(false);
+  const [isModuleDragging, setIsModuleDragging] = useState(false);
+
+  const normalizeModuleOffset = (offset) => {
+    const segmentWidth = moduleSegmentWidthRef.current;
+    if (!segmentWidth) return offset;
+
+    while (offset < segmentWidth * 0.5) offset += segmentWidth;
+    while (offset >= segmentWidth * 2.5) offset -= segmentWidth;
+    return offset;
+  };
+
+  const renderModuleOffset = () => {
+    const track = moduleTrackRef.current;
+    if (!track) return;
+    track.style.transform = `translate3d(${-moduleOffsetRef.current}px, 0, 0)`;
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -308,6 +340,68 @@ const DashboardCerbyl = () => {
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const marquee = moduleMarqueeRef.current;
+    const track = moduleTrackRef.current;
+    if (!marquee || !track) return undefined;
+
+    const measureTrack = () => {
+      const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
+      const nextWidth = (track.scrollWidth + gap) / 3;
+      if (!nextWidth) return;
+
+      const previousWidth = moduleSegmentWidthRef.current;
+      if (!previousWidth) {
+        moduleOffsetRef.current = nextWidth;
+      } else if (Math.abs(nextWidth - previousWidth) > 0.5) {
+        const phase = (
+          (moduleOffsetRef.current - previousWidth) % previousWidth + previousWidth
+        ) % previousWidth;
+        moduleOffsetRef.current = nextWidth + (phase / previousWidth) * nextWidth;
+      }
+
+      moduleSegmentWidthRef.current = nextWidth;
+      renderModuleOffset();
+    };
+
+    measureTrack();
+    const resizeObserver = new ResizeObserver(measureTrack);
+    resizeObserver.observe(marquee);
+    resizeObserver.observe(track);
+
+    const animateModules = (now) => {
+      const previous = moduleLastFrameRef.current || now;
+      const elapsed = Math.min(now - previous, 40);
+      moduleLastFrameRef.current = now;
+
+      if (
+        moduleSegmentWidthRef.current > 0 &&
+        !moduleHoverPausedRef.current &&
+        !moduleDragRef.current.active &&
+        !moduleCooldownRef.current
+      ) {
+        moduleOffsetRef.current = normalizeModuleOffset(
+          moduleOffsetRef.current + elapsed * 0.035
+        );
+        renderModuleOffset();
+      }
+
+      moduleAnimFrameRef.current = requestAnimationFrame(animateModules);
+    };
+
+    moduleAnimFrameRef.current = requestAnimationFrame(animateModules);
+
+    return () => {
+      if (moduleAnimFrameRef.current) {
+        cancelAnimationFrame(moduleAnimFrameRef.current);
+      }
+      if (moduleResumeTimerRef.current) {
+        clearTimeout(moduleResumeTimerRef.current);
+      }
+      resizeObserver.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -577,6 +671,111 @@ const DashboardCerbyl = () => {
     }
   }, []);
 
+  const pauseModuleMarquee = () => {
+    moduleHoverPausedRef.current = true;
+  };
+
+  const resumeModuleMarquee = () => {
+    moduleHoverPausedRef.current = false;
+    moduleLastFrameRef.current = performance.now();
+  };
+
+  const handleModulePointerDown = (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    const marquee = moduleMarqueeRef.current;
+    if (!marquee) return;
+
+    if (moduleResumeTimerRef.current) {
+      clearTimeout(moduleResumeTimerRef.current);
+      moduleResumeTimerRef.current = null;
+    }
+
+    moduleCooldownRef.current = false;
+    moduleDragMovedRef.current = false;
+    moduleDragRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startOffset: moduleOffsetRef.current
+    };
+    marquee.setPointerCapture?.(event.pointerId);
+  };
+
+  const handleModulePointerMove = (event) => {
+    const marquee = moduleMarqueeRef.current;
+    const drag = moduleDragRef.current;
+    if (!marquee) return;
+
+    // A stationary cursor can end up over the rail while the page scrolls.
+    // Only deliberate mouse movement inside the rail should pause auto-scroll.
+    if (!drag.active) {
+      if (event.pointerType === 'mouse') pauseModuleMarquee();
+      return;
+    }
+    if (drag.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - drag.startX;
+    if (!moduleDragMovedRef.current && Math.abs(deltaX) > 5) {
+      moduleDragMovedRef.current = true;
+      setIsModuleDragging(true);
+    }
+    if (!moduleDragMovedRef.current) return;
+
+    moduleOffsetRef.current = normalizeModuleOffset(drag.startOffset - deltaX);
+    renderModuleOffset();
+  };
+
+  const handleModuleWheel = (event) => {
+    const horizontalDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+      ? event.deltaX
+      : (event.shiftKey ? event.deltaY : 0);
+    if (!horizontalDelta) return;
+
+    event.preventDefault();
+    moduleOffsetRef.current = normalizeModuleOffset(
+      moduleOffsetRef.current + horizontalDelta
+    );
+    renderModuleOffset();
+
+    moduleCooldownRef.current = true;
+    if (moduleResumeTimerRef.current) clearTimeout(moduleResumeTimerRef.current);
+    moduleResumeTimerRef.current = setTimeout(() => {
+      moduleCooldownRef.current = false;
+      moduleResumeTimerRef.current = null;
+      moduleLastFrameRef.current = performance.now();
+    }, 650);
+  };
+
+  const finishModuleDrag = (event) => {
+    const marquee = moduleMarqueeRef.current;
+    const drag = moduleDragRef.current;
+    if (!drag.active || drag.pointerId !== event.pointerId) return;
+
+    marquee?.releasePointerCapture?.(event.pointerId);
+    moduleDragRef.current.active = false;
+    moduleDragRef.current.pointerId = null;
+    setIsModuleDragging(false);
+
+    if (moduleDragMovedRef.current) {
+      moduleCooldownRef.current = true;
+      moduleResumeTimerRef.current = setTimeout(() => {
+        moduleCooldownRef.current = false;
+        moduleResumeTimerRef.current = null;
+      }, 1200);
+    }
+  };
+
+  const openModule = (event, route) => {
+    if (moduleDragMovedRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      moduleDragMovedRef.current = false;
+      return;
+    }
+    navigate(route);
+  };
+
   const runProgressHoverAnimation = () => {
     const targets = {
       chats: stats.chats || 0,
@@ -777,16 +976,21 @@ const DashboardCerbyl = () => {
       }))
     ];
 
-    if (!entries.length) return;
-
     if (notesAnimTimerRef.current) {
       clearTimeout(notesAnimTimerRef.current);
+      notesAnimTimerRef.current = null;
     }
     if (notesTypeTimerRef.current) {
       clearInterval(notesTypeTimerRef.current);
+      notesTypeTimerRef.current = null;
     }
 
     setIsNotesAnimating(true);
+
+    // Keep the ink animation available even when the user has not created
+    // a note yet. The CSS loop remains active until the pointer leaves.
+    if (!entries.length) return;
+
     setNotesActiveKey(entries[0].key);
     setNotesTitleProgress(Object.fromEntries(entries.map((e) => [e.key, 0])));
 
@@ -799,9 +1003,11 @@ const DashboardCerbyl = () => {
       if (!current) {
         clearInterval(notesTypeTimerRef.current);
         notesTypeTimerRef.current = null;
-        setNotesActiveKey('');
-        setIsNotesAnimating(false);
         setNotesTitleProgress(Object.fromEntries(entries.map((e) => [e.key, e.title.length])));
+        notesAnimTimerRef.current = setTimeout(() => {
+          setNotesActiveKey('');
+          notesAnimTimerRef.current = null;
+        }, 420);
         return;
       }
 
@@ -812,7 +1018,7 @@ const DashboardCerbyl = () => {
         return;
       }
 
-      if (holdTicks < 3) {
+      if (holdTicks < 8) {
         holdTicks += 1;
         return;
       }
@@ -820,7 +1026,7 @@ const DashboardCerbyl = () => {
       entryIndex += 1;
       charIndex = 0;
       holdTicks = 0;
-    }, 34);
+    }, 48);
   };
 
   const stopNotesCardHoverAnimation = () => {
@@ -1533,15 +1739,25 @@ const DashboardCerbyl = () => {
           {}
           <section className="cb-strip">
             <div className="cb-strip-eyebrow">
-              ALL MODULES — HOVER TO PAUSE
+              ALL MODULES — HOVER TO PAUSE · DRAG TO BROWSE
             </div>
-            <div className="cb-marquee">
-              <div className="cb-marquee-track">
-                {[...MODULES, ...MODULES].map((m, i) => (
+            <div
+              ref={moduleMarqueeRef}
+              className={`cb-marquee ${isModuleDragging ? 'is-dragging' : ''}`}
+              onMouseLeave={resumeModuleMarquee}
+              onPointerDown={handleModulePointerDown}
+              onPointerMove={handleModulePointerMove}
+              onPointerUp={finishModuleDrag}
+              onPointerCancel={finishModuleDrag}
+              onWheel={handleModuleWheel}
+            >
+              <div ref={moduleTrackRef} className="cb-marquee-track">
+                {[...MODULES, ...MODULES, ...MODULES].map((m, i) => (
                   <button
                     key={`${m.num}-${i}`}
                     className="cb-mod"
-                    onClick={() => navigate(m.route)}
+                    draggable={false}
+                    onClick={(event) => openModule(event, m.route)}
                   >
                     <div className="cb-mod-num">{m.num}</div>
                     <div className="cb-mod-label">{m.label}</div>

@@ -308,6 +308,14 @@ const difficultyFromIndex = (index) => {
   return 'intermediate';
 };
 
+const FALLBACK_VOICE_MODES = [
+  { id: 'coach', label: 'Coach', description: 'Supportive, clear explanations with practical examples.' },
+  { id: 'story', label: 'Story Mode', description: 'Narrative, memorable delivery with helpful analogies.' },
+  { id: 'rapid', label: 'Rapid Review', description: 'Fast, high-yield revision focused on key facts.' },
+  { id: 'socratic', label: 'Socratic', description: 'Question-led teaching designed for active recall.' },
+  { id: 'exam', label: 'Exam Prep', description: 'Test-focused framing, common traps, and key contrasts.' },
+];
+
 const getPodcastDisplayTitle = (title) => {
   if (!title) return 'Media Podcast';
   const cleaned = String(title)
@@ -329,7 +337,7 @@ const PodcastStudio = ({ results, userName, onExit, onSettingsDrawerChange }) =>
   const subtitleRefs = useRef({});
   const speechCancelRef = useRef(false);
 
-  const [voiceModes, setVoiceModes] = useState([]);
+  const [voiceModes, setVoiceModes] = useState(FALLBACK_VOICE_MODES);
   const [selectedVoiceMode, setSelectedVoiceMode] = useState('coach');
   const [voiceProfile, setVoiceProfile] = useState(null);
 
@@ -689,7 +697,11 @@ const PodcastStudio = ({ results, userName, onExit, onSettingsDrawerChange }) =>
 
         if (ignore) return;
 
-        setVoiceModes(modeRes?.voice_modes || []);
+        setVoiceModes(
+          Array.isArray(modeRes?.voice_modes) && modeRes.voice_modes.length
+            ? modeRes.voice_modes
+            : FALLBACK_VOICE_MODES
+        );
         setVoicePersonas(personaRes?.voice_personas || []);
         setLanguages(languageRes?.languages || []);
         setDifficulties(difficultyRes?.difficulties || []);
@@ -1555,7 +1567,9 @@ const PodcastStudio = ({ results, userName, onExit, onSettingsDrawerChange }) =>
                   {voiceModes.map((mode) => (
                     <button
                       key={mode.id}
+                      type="button"
                       className={`podcast-prelaunch-mode ${selectedVoiceMode === mode.id ? 'active' : ''}`}
+                      aria-pressed={selectedVoiceMode === mode.id}
                       onClick={() => setSelectedVoiceMode(mode.id)}
                     >
                       <strong>{mode.label}</strong>
@@ -1565,9 +1579,10 @@ const PodcastStudio = ({ results, userName, onExit, onSettingsDrawerChange }) =>
                 </div>
 
                 <button
+                  type="button"
                   className="podcast-prelaunch-cta"
                   onClick={startSession}
-                  disabled={!transcript || transcript.length < 100}
+                  disabled={isStarting || !transcript || transcript.length < 100}
                 >
                   <Play size={22} />
                   <span>Start Session</span>
