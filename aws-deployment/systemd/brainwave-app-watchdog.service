@@ -1,0 +1,10 @@
+[Unit]
+Description=BrainwaveAI application health watchdog
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Environment=APP_DIR=/home/ubuntu/brainwave-backend
+ExecStart=/home/ubuntu/brainwave-backend/aws-deployment/app-health-watchdog.sh
