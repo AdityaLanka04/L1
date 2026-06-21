@@ -283,23 +283,17 @@ def get_usage_snapshot() -> dict:
 
 
 def _ensure_usage_table() -> None:
-    with engine.begin() as conn:
-        conn.execute(
-            text(
-                """
-                CREATE TABLE IF NOT EXISTS api_key_pool_usage (
-                    provider VARCHAR(64) NOT NULL,
-                    key_fingerprint VARCHAR(64) NOT NULL,
-                    usage_day VARCHAR(10) NOT NULL,
-                    daily_limit INTEGER NOT NULL,
-                    used_tokens INTEGER NOT NULL DEFAULT 0,
-                    exhausted_until VARCHAR(40),
-                    updated_at VARCHAR(40) NOT NULL,
-                    PRIMARY KEY (provider, key_fingerprint, usage_day)
-                )
-                """
-            )
-        )
+    """Verify api_key_pool_usage exists. Schema is owned by Alembic
+    (alembic/versions/8daf5b6d92ed_raw_analytics_tables_activity_log_and_.py),
+    not created here. Non-fatal: this runs at import time (via build_key_pool),
+    which can happen before the startup migration has run on a brand-new
+    database — by the time any request actually uses the pool, migrations
+    have completed and the table exists."""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1 FROM api_key_pool_usage LIMIT 1"))
+    except Exception as e:
+        logger.warning("api_key_pool_usage not yet available (%s) — will exist after migrations run", e)
 
 
 def _format_usage_item(
