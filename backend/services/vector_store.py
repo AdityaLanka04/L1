@@ -174,7 +174,7 @@ def initialize(embed_model, db_url: str | None = None) -> None:
         _engine = create_engine(sync_url, pool_size=5, max_overflow=10, pool_pre_ping=True)
     _embed_model = embed_model
     try:
-        _ensure_schema()
+        _verify_schema()
     except Exception:
         _engine = None
         _embed_model = None
@@ -187,75 +187,19 @@ def initialize(embed_model, db_url: str | None = None) -> None:
 def available() -> bool:
     return _engine is not None and _embed_model is not None
 
-def _ensure_schema() -> None:
-    with _engine.begin() as conn:
-        if _is_sqlite():
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS embeddings (
-                    id          TEXT        NOT NULL,
-                    collection  TEXT        NOT NULL,
-                    user_id     TEXT,
-                    content     TEXT        NOT NULL,
-                    embedding   TEXT,
-                    metadata    TEXT        DEFAULT '{}',
-                    created_at  DATETIME    DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (collection, id)
-                )
-            """))
-            existing = {r[1] for r in conn.execute(text("PRAGMA table_info(embeddings)"))}
-            additions = {
-                "user_id": "TEXT",
-                "content": "TEXT",
-                "embedding": "TEXT",
-                "metadata": "TEXT DEFAULT '{}'",
-                "created_at": "DATETIME DEFAULT CURRENT_TIMESTAMP",
-            }
-            for col, col_type in additions.items():
-                if col not in existing:
-                    conn.execute(text(f"ALTER TABLE embeddings ADD COLUMN {col} {col_type}"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_emb_col_user ON embeddings (collection, user_id)"))
-            return
-
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS embeddings (
-                id          TEXT        NOT NULL,
-                collection  TEXT        NOT NULL,
-                user_id     TEXT,
-                content     TEXT        NOT NULL,
-                embedding   vector(384),
-                metadata    JSONB       DEFAULT '{}',
-                created_at  TIMESTAMPTZ DEFAULT NOW(),
-                PRIMARY KEY (collection, id)
-            )
-        """))
-        conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS user_id TEXT"))
-        conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS content TEXT"))
-        conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS embedding vector(384)"))
-        conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb"))
-        conn.execute(text("ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()"))
-        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_embeddings_collection_id ON embeddings (collection, id)"))
-        conn.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_emb_col_user
-                ON embeddings (collection, user_id)
-        """))
-        conn.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_emb_metadata
-                ON embeddings USING GIN (metadata)
-        """))
-
-    try:
-        with _engine.begin() as conn:
-            conn.execute(text("""
-                CREATE INDEX IF NOT EXISTS idx_emb_hnsw
-                    ON embeddings USING hnsw (embedding vector_cosine_ops)
-                    WITH (m=16, ef_construction=64)
-            """))
-    except Exception as _hnsw_err:
-        logger.warning(
-            "HNSW index creation skipped (pgvector < 0.5.0 or index already exists "
-            "with different params): %s", _hnsw_err
-        )
+def _verify_schema() -> None:
+    """Confirm the `embeddings` table exists. Schema is owned by Alembic
+    (see alembic/versions/461b429293bf_vector_store_embeddings_table.py),
+    not created here, so this just fails fast with a clear message if
+    migrations haven't been run yet."""
+    with _engine.connect() as conn:
+        try:
+            conn.execute(text("SELECT 1 FROM embeddings LIMIT 1"))
+        except Exception as e:
+            raise RuntimeError(
+                "embeddings table not found — run `alembic upgrade head` before "
+                "initializing vector_store"
+            ) from e
 
 def embed(text_: str) -> list[float]:
     if _embed_model is None:
