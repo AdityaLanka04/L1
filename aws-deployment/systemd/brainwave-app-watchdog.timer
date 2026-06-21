@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the BrainwaveAI application health watchdog every 30 seconds
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=30s
+AccuracySec=5s
+Unit=brainwave-app-watchdog.service
+
+[Install]
+WantedBy=timers.target

@@ -668,19 +668,17 @@ try:
 except ImportError:
     pass
 
-@app.get("/api/health")
-def health_check():
+def _application_health() -> tuple[dict[str, str], bool]:
     checks: dict[str, str] = {}
-    overall = "healthy"
+    ready = True
 
     try:
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.close()
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
         checks["database"] = "ok"
     except Exception as _db_err:
         checks["database"] = "error"
-        overall = "degraded"
+        ready = False
         logger.error("Health check: DB error: %s", _db_err)
 
     try:
@@ -697,8 +695,40 @@ def health_check():
     _has_gemini = bool(os.getenv("GOOGLE_GENERATIVE_AI_KEY") or os.getenv("GEMINI_API_KEY"))
     checks["ai_groq"]   = "ok" if _has_groq   else "missing"
     checks["ai_gemini"] = "ok" if _has_gemini else "missing"
-    if not _has_groq and not _has_gemini:
-        overall = "degraded"
+    return checks, ready
+
+
+@app.get("/api/health/live")
+def liveness_check():
+    """Process-level check. It intentionally does not call external services."""
+    return {
+        "status": "alive",
+        "version": "4.0.0",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/api/health/ready")
+def readiness_check():
+    """Traffic check used by Docker and the AWS target group."""
+    checks, ready = _application_health()
+    return JSONResponse(
+        status_code=200 if ready else 503,
+        content={
+            "status": "ready" if ready else "not_ready",
+            "version": "4.0.0",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "checks": checks,
+        },
+    )
+
+
+@app.get("/api/health")
+def health_check():
+    """Detailed diagnostic endpoint retained for operators and dashboards."""
+    checks, ready = _application_health()
+    has_ai_provider = checks["ai_groq"] == "ok" or checks["ai_gemini"] == "ok"
+    overall = "healthy" if ready and has_ai_provider else "degraded"
 
     status_code = 200 if overall == "healthy" else 207
     return JSONResponse(
