@@ -28,7 +28,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/context", tags=["context"])
 
 MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
-_context_schema_checked = False
 
 def _safe_storage_filename(filename: str) -> str:
     return re.sub(r"[^\w.\-]", "_", filename or "upload")[:180] or "upload"
@@ -492,63 +491,6 @@ def _would_create_folder_cycle(db: Session, user_id: int, folder_id: int, candid
         current = parent.parent_id
     return False
 
-def _ensure_context_schema(db: Session) -> None:
-    global _context_schema_checked
-    if _context_schema_checked:
-        return
-    bind = db.get_bind()
-    if bind is None:
-        return
-    dialect = getattr(bind.dialect, "name", "")
-    if dialect == "sqlite":
-        conn = bind.connect()
-        try:
-            conn.execute(text(
-                "CREATE TABLE IF NOT EXISTS context_folders ("
-                "id INTEGER PRIMARY KEY, "
-                "user_id INTEGER NOT NULL, "
-                "name VARCHAR(255) NOT NULL, "
-                "color VARCHAR(50), "
-                "parent_id INTEGER, "
-                "created_at DATETIME, "
-                "updated_at DATETIME)"
-            ))
-            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(context_documents)"))}
-            if "folder_id" not in cols:
-                conn.execute(text("ALTER TABLE context_documents ADD COLUMN folder_id INTEGER"))
-            if "storage_path" not in cols:
-                conn.execute(text("ALTER TABLE context_documents ADD COLUMN storage_path VARCHAR(500)"))
-            if "storage_type" not in cols:
-                conn.execute(text("ALTER TABLE context_documents ADD COLUMN storage_type VARCHAR(30)"))
-            if "storage_url" not in cols:
-                conn.execute(text("ALTER TABLE context_documents ADD COLUMN storage_url VARCHAR(1000)"))
-            conn.commit()
-        finally:
-            conn.close()
-    else:
-        models.Base.metadata.create_all(bind=bind)
-        conn = bind.connect()
-        try:
-            existing = {
-                row[0]
-                for row in conn.execute(text(
-                    "SELECT column_name FROM information_schema.columns "
-                    "WHERE table_name = 'context_documents'"
-                ))
-            }
-            column_defs = {
-                "storage_path": "ALTER TABLE context_documents ADD COLUMN storage_path VARCHAR(500)",
-                "storage_type": "ALTER TABLE context_documents ADD COLUMN storage_type VARCHAR(30)",
-                "storage_url": "ALTER TABLE context_documents ADD COLUMN storage_url VARCHAR(1000)",
-            }
-            for column, ddl in column_defs.items():
-                if column not in existing:
-                    conn.execute(text(ddl))
-            conn.commit()
-        finally:
-            conn.close()
-    _context_schema_checked = True
-
 def _generate_doc_summary(doc_id: str, chunks: list[str], filename: str, subject: str, db_session_factory):
     try:
         sample = "\n\n".join(chunks[:8])[:4000]
@@ -642,7 +584,6 @@ async def upload_document(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_context_schema(db)
     scope = _normalize_scope(scope)
     folder = _get_context_folder_or_404(db, current_user.id, folder_id)
 
@@ -801,7 +742,6 @@ def import_document_url(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_context_schema(db)
     normalized_scope = _normalize_scope(payload.scope)
 
     url = (payload.url or "").strip()
@@ -951,7 +891,6 @@ def list_documents(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_context_schema(db)
     """
     List user's uploaded documents and the HS curriculum summary.
 
@@ -1066,7 +1005,6 @@ def list_context_folders(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_context_schema(db)
     folders = (
         db.query(models.ContextFolder)
         .filter(models.ContextFolder.user_id == current_user.id)
@@ -1100,7 +1038,6 @@ def create_context_folder(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_context_schema(db)
     name = (payload.name or "").strip()
     if not name:
         raise HTTPException(status_code=400, detail="Folder name is required")
@@ -1132,7 +1069,6 @@ def update_context_folder(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_context_schema(db)
     folder = _get_context_folder_or_404(db, current_user.id, folder_id)
     fields_set = getattr(payload, "__fields_set__", set())
 
@@ -1173,7 +1109,6 @@ def delete_context_folder(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_context_schema(db)
     folder = _get_context_folder_or_404(db, current_user.id, folder_id)
     if move_to_folder_id == folder.id:
         raise HTTPException(status_code=400, detail="Cannot move contents into the same folder")
@@ -1204,7 +1139,6 @@ def move_document_to_folder(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_context_schema(db)
     doc = (
         db.query(models.ContextDocument)
         .filter(
@@ -1226,7 +1160,6 @@ def get_context_progress(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_context_schema(db)
     return _build_doc_progress_payload(db, current_user.id)
 
 @router.delete("/documents/{doc_id}")

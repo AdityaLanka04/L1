@@ -7,16 +7,18 @@ from typing import Optional
 from threading import Lock
 from sqlalchemy import text
 from activity_context import get_activity_context
-from database import DATABASE_URL, engine
+from database import engine
 from services.subscription_catalog import get_plan, normalize_plan_id
 
 _ACTIVITY_TABLE_READY = False
 _ACTIVITY_TABLE_LOCK = Lock()
-_IS_POSTGRES = "postgresql" in DATABASE_URL or "postgres" in DATABASE_URL
 _TOKEN_WARNING_MIN_REMAINING = 25_000
 _TOKEN_CRITICAL_REMAINING = 10_000
 
 def ensure_activity_log_table() -> bool:
+    """Verify user_activity_log exists. Schema is owned by Alembic
+    (alembic/versions/8daf5b6d92ed_raw_analytics_tables_activity_log_and_.py),
+    not created here."""
     global _ACTIVITY_TABLE_READY
     if _ACTIVITY_TABLE_READY:
         return True
@@ -25,52 +27,12 @@ def ensure_activity_log_table() -> bool:
         if _ACTIVITY_TABLE_READY:
             return True
         try:
-            with engine.begin() as conn:
-                if _IS_POSTGRES:
-                    conn.execute(text("""
-                        CREATE TABLE IF NOT EXISTS user_activity_log (
-                            id BIGSERIAL PRIMARY KEY,
-                            user_id INTEGER NOT NULL,
-                            tool_name TEXT NOT NULL,
-                            action TEXT,
-                            tokens_used INTEGER DEFAULT 0,
-                            timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                            metadata TEXT,
-                            session_id TEXT,
-                            duration_seconds DOUBLE PRECISION
-                        )
-                    """))
-                else:
-                    conn.execute(text("""
-                        CREATE TABLE IF NOT EXISTS user_activity_log (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            user_id INTEGER NOT NULL,
-                            tool_name TEXT NOT NULL,
-                            action TEXT,
-                            tokens_used INTEGER DEFAULT 0,
-                            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                            metadata TEXT,
-                            session_id TEXT,
-                            duration_seconds REAL,
-                            FOREIGN KEY (user_id) REFERENCES users(id)
-                        )
-                    """))
-                conn.execute(text("""
-                    CREATE INDEX IF NOT EXISTS idx_activity_user
-                    ON user_activity_log(user_id)
-                """))
-                conn.execute(text("""
-                    CREATE INDEX IF NOT EXISTS idx_activity_timestamp
-                    ON user_activity_log(timestamp)
-                """))
-                conn.execute(text("""
-                    CREATE INDEX IF NOT EXISTS idx_activity_session
-                    ON user_activity_log(session_id)
-                """))
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1 FROM user_activity_log LIMIT 1"))
             _ACTIVITY_TABLE_READY = True
             return True
         except Exception as e:
-            logger.error(f"Failed to ensure activity log table: {e}")
+            logger.error(f"user_activity_log table not found — run `alembic upgrade head`: {e}")
             return False
 
 def resolve_user_id(user_id) -> Optional[int]:

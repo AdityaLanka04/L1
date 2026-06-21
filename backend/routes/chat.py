@@ -44,83 +44,6 @@ _INTERNAL_GRAPH_GUIDANCE_MARKERS = [
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
 
-_CHAT_TUTOR_STATE_SCHEMA_CHECKED = False
-_CHAT_TUTOR_STATE_COLUMNS = {
-    "current_step": {
-        "sqlite": "INTEGER DEFAULT 1",
-        "postgresql": "INTEGER DEFAULT 1",
-    },
-    "total_steps": {
-        "sqlite": "INTEGER DEFAULT 0",
-        "postgresql": "INTEGER DEFAULT 0",
-    },
-    "expected_step_answer": {
-        "sqlite": "TEXT",
-        "postgresql": "TEXT",
-    },
-    "final_answer": {
-        "sqlite": "TEXT",
-        "postgresql": "TEXT",
-    },
-    "skills_used": {
-        "sqlite": "TEXT",
-        "postgresql": "JSONB",
-    },
-    "misconceptions": {
-        "sqlite": "TEXT",
-        "postgresql": "JSONB",
-    },
-    "mastery_score": {
-        "sqlite": "REAL DEFAULT 0.0",
-        "postgresql": "DOUBLE PRECISION DEFAULT 0.0",
-    },
-    "correct_streak": {
-        "sqlite": "INTEGER DEFAULT 0",
-        "postgresql": "INTEGER DEFAULT 0",
-    },
-    "wrong_streak": {
-        "sqlite": "INTEGER DEFAULT 0",
-        "postgresql": "INTEGER DEFAULT 0",
-    },
-    "lesson_plan": {
-        "sqlite": "TEXT",
-        "postgresql": "JSONB",
-    },
-}
-
-def _ensure_chat_tutor_state_schema(db: Session) -> None:
-    global _CHAT_TUTOR_STATE_SCHEMA_CHECKED
-    if _CHAT_TUTOR_STATE_SCHEMA_CHECKED:
-        return
-
-    bind = db.get_bind()
-    dialect = bind.dialect.name
-    if dialect not in {"sqlite", "postgresql"}:
-        _CHAT_TUTOR_STATE_SCHEMA_CHECKED = True
-        return
-
-    try:
-        if dialect == "sqlite":
-            existing_rows = db.execute(text("PRAGMA table_info(chat_tutor_states)")).fetchall()
-            existing = {row[1] for row in existing_rows}
-        else:
-            existing_rows = db.execute(text(
-                "SELECT column_name FROM information_schema.columns "
-                "WHERE table_name = 'chat_tutor_states'"
-            )).fetchall()
-            existing = {row[0] for row in existing_rows}
-
-        for column_name, column_defs in _CHAT_TUTOR_STATE_COLUMNS.items():
-            if column_name in existing:
-                continue
-            column_def = column_defs[dialect]
-            db.execute(text(f"ALTER TABLE chat_tutor_states ADD COLUMN {column_name} {column_def}"))
-        db.commit()
-        _CHAT_TUTOR_STATE_SCHEMA_CHECKED = True
-    except Exception as exc:
-        db.rollback()
-        logger.warning("Tutor state schema self-heal failed: %s", exc)
-
 class TutorOptionPayload(BaseModel):
     label: Optional[str] = None
     text: str
@@ -700,7 +623,6 @@ def _tutor_state_row_to_payload(row: models.ChatTutorState | None) -> Optional[d
 def _get_tutor_session_state(db: Session, chat_id: Optional[int], user_id: int) -> Optional[dict]:
     if not chat_id:
         return None
-    _ensure_chat_tutor_state_schema(db)
     with db.no_autoflush:
         row = (
             db.query(models.ChatTutorState)
@@ -723,7 +645,6 @@ def _persist_tutor_session_state(
 ) -> Optional[dict]:
     if not chat_id or not tutor_state:
         return tutor_state
-    _ensure_chat_tutor_state_schema(db)
 
     with db.no_autoflush:
         session_exists = (
@@ -1784,7 +1705,6 @@ def get_chat_messages(
         .order_by(models.ChatMessage.timestamp.asc())
         .all()
     )
-    _ensure_chat_tutor_state_schema(db)
     tutor_state_row = (
         db.query(models.ChatTutorState)
         .filter(
@@ -1933,7 +1853,6 @@ def delete_chat_session(
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
 
-    _ensure_chat_tutor_state_schema(db)
     db.query(models.MessageMLLog).filter(
         models.MessageMLLog.session_id == session_id
     ).delete(synchronize_session=False)
