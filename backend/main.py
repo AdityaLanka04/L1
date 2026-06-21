@@ -107,197 +107,40 @@ def _release_rl_scheduler_lock(lock_state) -> None:
         except Exception:
             pass
 
-models.Base.metadata.create_all(bind=engine)
+_DB_MIGRATION_LOCK_ID = int(os.getenv("DB_MIGRATION_ADVISORY_LOCK_ID", "941732"))
 
-def _ensure_perf_indexes() -> None:
-    statements = [
-        "CREATE INDEX IF NOT EXISTS ix_notes_user_deleted_updated ON notes (user_id, is_deleted, updated_at)",
-        "CREATE INDEX IF NOT EXISTS ix_flashcard_sets_user_created ON flashcard_sets (user_id, created_at)",
-        "CREATE INDEX IF NOT EXISTS ix_flashcards_set_created ON flashcards (set_id, created_at)",
-        "CREATE INDEX IF NOT EXISTS ix_chat_sessions_user_updated ON chat_sessions (user_id, updated_at)",
-        "CREATE INDEX IF NOT EXISTS ix_chat_messages_session_timestamp ON chat_messages (chat_session_id, timestamp)",
-        "CREATE INDEX IF NOT EXISTS ix_notifications_user_created ON notifications (user_id, created_at)",
-        "CREATE INDEX IF NOT EXISTS ix_point_transactions_user_created ON point_transactions (user_id, created_at)",
-        "CREATE INDEX IF NOT EXISTS ix_daily_learning_metrics_user_date ON daily_learning_metrics (user_id, date)",
-        "CREATE INDEX IF NOT EXISTS ix_reminders_user_completed_date ON reminders (user_id, is_completed, reminder_date)",
-        "CREATE INDEX IF NOT EXISTS ix_context_documents_user_created ON context_documents (user_id, created_at)",
-        "CREATE INDEX IF NOT EXISTS ix_question_sets_user_created ON question_sets (user_id, created_at)",
-    ]
+
+def _run_db_migrations() -> None:
+    """Bring the schema to head via Alembic (see backend/alembic/versions/).
+    Runs at import time, before routers/deps are imported below, so every
+    request handler can assume the schema is already current.
+
+    Postgres + gunicorn run 4 worker processes that each import this module
+    and would otherwise race to run the same migration; a blocking advisory
+    lock serializes them so only one worker does the work while the rest
+    wait, then no-op once they see alembic_version is already at head.
+    """
+    from alembic import command
+    from alembic.config import Config
+
+    cfg = Config(os.path.join(os.path.dirname(os.path.abspath(__file__)), "alembic.ini"))
+
+    if "postgres" not in DATABASE_URL.lower():
+        command.upgrade(cfg, "head")
+        return
+
+    conn = engine.connect()
     try:
-        with engine.begin() as conn:
-            for statement in statements:
-                conn.execute(text(statement))
-    except Exception as exc:
-        logger.warning("Performance index setup skipped: %s", exc)
+        conn.execute(text("SELECT pg_advisory_lock(:lock_id)"), {"lock_id": _DB_MIGRATION_LOCK_ID})
+        try:
+            command.upgrade(cfg, "head")
+        finally:
+            conn.execute(text("SELECT pg_advisory_unlock(:lock_id)"), {"lock_id": _DB_MIGRATION_LOCK_ID})
+    finally:
+        conn.close()
 
-_ensure_perf_indexes()
 
-if "sqlite" in DATABASE_URL:
-    _SR_COLUMNS = {
-        "ease_factor": "FLOAT DEFAULT 2.5",
-        "interval": "FLOAT DEFAULT 0",
-        "repetitions": "INTEGER DEFAULT 0",
-        "next_review_date": "DATETIME",
-        "lapses": "INTEGER DEFAULT 0",
-        "sr_state": "VARCHAR(20) DEFAULT 'new'",
-        "learning_step": "INTEGER DEFAULT 0",
-        "fsrs_stability": "FLOAT DEFAULT 0.0",
-    }
-    with engine.connect() as _conn:
-        _existing = {r[1] for r in _conn.execute(text("PRAGMA table_info(flashcards)"))}
-        for _col, _typ in _SR_COLUMNS.items():
-            if _col not in _existing:
-                _conn.execute(text(f"ALTER TABLE flashcards ADD COLUMN {_col} {_typ}"))
-                logger.info("Added column flashcards.%s", _col)
-        _conn.commit()
-
-    with engine.connect() as _conn:
-        _profile_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(comprehensive_user_profiles)"))}
-        _profile_additions = {
-            "show_study_insights": "BOOLEAN DEFAULT 1",
-            "notifications_enabled": "BOOLEAN DEFAULT 1",
-            "subscription_tier": "VARCHAR(30) DEFAULT 'starter'",
-            "billing_cycle": "VARCHAR(20) DEFAULT 'monthly'",
-            "subscription_status": "VARCHAR(20) DEFAULT 'active'",
-            "subscription_started_at": "DATETIME",
-            "stripe_customer_id": "VARCHAR(120)",
-            "stripe_subscription_id": "VARCHAR(120)",
-            "stripe_price_id": "VARCHAR(120)",
-            "stripe_checkout_session_id": "VARCHAR(120)",
-            "billing_currency": "VARCHAR(12)",
-            "current_period_end": "DATETIME",
-            "cancel_at_period_end": "BOOLEAN DEFAULT FALSE",
-        }
-        for _col, _typ in _profile_additions.items():
-            if _col not in _profile_cols:
-                _conn.execute(text(f"ALTER TABLE comprehensive_user_profiles ADD COLUMN {_col} {_typ}"))
-                logger.info("Added column comprehensive_user_profiles.%s", _col)
-        _conn.commit()
-
-    with engine.connect() as _conn:
-        _gamification_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(user_gamification_stats)"))}
-        _gamification_additions = {
-            "weekly_chat_goal": "INTEGER DEFAULT 10",
-            "weekly_note_goal": "INTEGER DEFAULT 5",
-            "weekly_flashcard_goal": "INTEGER DEFAULT 20",
-            "weekly_quiz_goal": "INTEGER DEFAULT 5",
-            "freeze_charges": "INTEGER DEFAULT 0",
-            "revive_charges": "INTEGER DEFAULT 0",
-            "xp_boost_until": "DATETIME",
-            "xp_boost_multiplier": "FLOAT DEFAULT 1.0",
-            "xp_boost_uses": "INTEGER DEFAULT 0",
-            "vault_rewards_claimed": "INTEGER DEFAULT 0",
-            "powerups_initialized": "BOOLEAN DEFAULT FALSE",
-        }
-        for _col, _typ in _gamification_additions.items():
-            if _col not in _gamification_cols:
-                _conn.execute(text(f"ALTER TABLE user_gamification_stats ADD COLUMN {_col} {_typ}"))
-                logger.info("Added column user_gamification_stats.%s", _col)
-        _conn.commit()
-
-    with engine.connect() as _conn:
-        _ctx_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(context_documents)"))}
-        _ctx_additions = {
-            "folder_id": "INTEGER",
-            "source_name": "VARCHAR(200)",
-            "license": "VARCHAR(80)",
-            "curriculum": "VARCHAR(20)",
-            "source_type": "VARCHAR(40)",
-            "ai_summary": "TEXT",
-            "key_concepts": "TEXT",
-            "topic_tags": "TEXT",
-        }
-        for _col, _typ in _ctx_additions.items():
-            if _col not in _ctx_cols:
-                _conn.execute(text(f"ALTER TABLE context_documents ADD COLUMN {_col} {_typ}"))
-                logger.info("Added column context_documents.%s", _col)
-        _conn.commit()
-
-    with engine.connect() as _conn:
-        _has_podcast_table = _conn.execute(
-            text("SELECT name FROM sqlite_master WHERE type='table' AND name='podcast_sessions'")
-        ).fetchone()
-        if _has_podcast_table:
-            _podcast_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(podcast_sessions)"))}
-            _podcast_additions = {
-                "voice_persona": "VARCHAR(50) DEFAULT 'mentor'",
-                "difficulty": "VARCHAR(20) DEFAULT 'intermediate'",
-                "answer_language": "VARCHAR(20) DEFAULT 'en'",
-                "session_options": "TEXT DEFAULT '{}'",
-            }
-            for _col, _typ in _podcast_additions.items():
-                if _col not in _podcast_cols:
-                    _conn.execute(text(f"ALTER TABLE podcast_sessions ADD COLUMN {_col} {_typ}"))
-                    logger.info("Added column podcast_sessions.%s", _col)
-            _conn.commit()
-
-    with engine.connect() as _conn:
-        _has_style_table = _conn.execute(
-            text("SELECT name FROM sqlite_master WHERE type='table' AND name='student_style_models'")
-        ).fetchone()
-        if _has_style_table:
-            _style_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(student_style_models)"))}
-            if "student_classifier_state" not in _style_cols:
-                _conn.execute(text("ALTER TABLE student_style_models ADD COLUMN student_classifier_state TEXT"))
-                logger.info("Added column student_style_models.student_classifier_state")
-            _conn.commit()
-
-    with engine.connect() as _conn:
-        _chat_msg_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(chat_messages)"))}
-        if "image_metadata" not in _chat_msg_cols:
-            _conn.execute(text("ALTER TABLE chat_messages ADD COLUMN image_metadata TEXT"))
-            logger.info("Added column chat_messages.image_metadata")
-        _conn.commit()
-
-    with engine.connect() as _conn:
-        _fcs_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(flashcard_sets)"))}
-        if "public_token" not in _fcs_cols:
-            _conn.execute(text("ALTER TABLE flashcard_sets ADD COLUMN public_token VARCHAR(32)"))
-            logger.info("Added column flashcard_sets.public_token")
-        _conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_flashcard_sets_public_token ON flashcard_sets(public_token)"))
-        _conn.commit()
-
-    with engine.connect() as _conn:
-        _cs_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(chat_sessions)"))}
-        if "public_token" not in _cs_cols:
-            _conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN public_token VARCHAR(32)"))
-            logger.info("Added column chat_sessions.public_token")
-        _conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_sessions_public_token ON chat_sessions(public_token)"))
-        _conn.commit()
-
-    with engine.connect() as _conn:
-        _note_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(notes)"))}
-        _note_additions = {
-            "is_public": "BOOLEAN DEFAULT FALSE",
-            "is_deleted": "BOOLEAN DEFAULT FALSE",
-            "deleted_at": "DATETIME",
-            "is_favorite": "BOOLEAN DEFAULT FALSE",
-            "custom_font": "VARCHAR(50) DEFAULT 'Inter'",
-            "transcript": "TEXT",
-            "analysis": "TEXT",
-            "flashcards": "TEXT",
-            "quiz_questions": "TEXT",
-            "key_moments": "TEXT",
-            "media_file_id": "INTEGER",
-            "canvas_data": "TEXT",
-        }
-        for _col, _typ in _note_additions.items():
-            if _col not in _note_cols:
-                _conn.execute(text(f"ALTER TABLE notes ADD COLUMN {_col} {_typ}"))
-                logger.info("Added column notes.%s", _col)
-        _conn.commit()
-
-    with engine.connect() as _conn:
-        for _new_table in ("student_knowledge_states", "student_memories", "message_ml_logs",
-                           "cerbyl_session_states", "agent_events",
-                           "bandit_state", "bandit_reward_queue", "bandit_episode_log"):
-            _exists = _conn.execute(
-                text("SELECT name FROM sqlite_master WHERE type='table' AND name=:tbl"),
-                {"tbl": _new_table},
-            ).fetchone()
-            if not _exists:
-                logger.info(f"Table {_new_table} will be created by SQLAlchemy metadata")
-        _conn.commit()
+_run_db_migrations()
 
 def _sync_sequences():
     if "postgres" not in DATABASE_URL.lower():
@@ -338,12 +181,6 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Activity log table init failed: {e}")
 
     if "postgres" in DATABASE_URL:
-        try:
-            from migration import run_migration
-            run_migration()
-        except Exception as e:
-            logger.warning(f"Migration error: {e}")
-
         try:
             db = SessionLocal()
             tables = [
