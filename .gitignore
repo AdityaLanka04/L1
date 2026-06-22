@@ -46,6 +46,7 @@ backend/Miniforge3-*.sh
 *.key
 
 # Large binaries / scratch files committed by mistake
+backend/backend/
 *.pdf
 --full-page
 fix_catch.mjs

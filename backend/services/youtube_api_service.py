@@ -42,7 +42,7 @@ except ImportError:
 
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
-CACHE_DIR = Path("backend/cache/transcripts")
+CACHE_DIR = Path(__file__).resolve().parent.parent / "cache" / "transcripts"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 class YouTubeAPIService:

@@ -303,7 +303,7 @@ async def process_media(
         elif file:
             logger.info(f"Processing uploaded file: {file.filename}")
 
-            upload_dir = "backend/uploads/media"
+            upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", "media")
             os.makedirs(upload_dir, exist_ok=True)
 
             safe_name = "".join(c for c in (file.filename or "upload") if c.isalnum() or c in (".", "_", "-"))
