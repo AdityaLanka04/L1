@@ -18,6 +18,7 @@ from deps import (
     get_user_by_email,
     get_user_by_username,
 )
+from uid_utils import resolve_by_id_or_uid
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
@@ -35,7 +36,7 @@ class NoteCreate(BaseModel):
     canvas_data: Optional[str] = None
 
 class NoteUpdate(BaseModel):
-    note_id: int
+    note_id: str
     title: str
     content: str
     custom_font: Optional[str] = None
@@ -48,11 +49,11 @@ class FolderCreate(BaseModel):
     parent_id: Optional[int] = None
 
 class NoteUpdateFolder(BaseModel):
-    note_id: int
+    note_id: str
     folder_id: Optional[int] = None
 
 class NoteFavorite(BaseModel):
-    note_id: int
+    note_id: str
     is_favorite: bool
 
 class AIWritingAssistRequest(BaseModel):
@@ -488,6 +489,7 @@ def get_notes(
         return [
             {
                 "id": n.id,
+                "uid": n.uid,
                 "title": n.title,
                 "preview": re.sub(r"<[^>]+>", " ", n.content or "").strip()[:240],
                 "created_at": n.created_at.isoformat() + "Z" if n.created_at else None,
@@ -503,6 +505,7 @@ def get_notes(
     return [
         {
             "id": n.id,
+            "uid": n.uid,
             "title": n.title,
             "content": n.content,
             "created_at": n.created_at.isoformat() + "Z" if n.created_at else None,
@@ -573,6 +576,7 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
 
     return {
         "id": new_note.id,
+        "uid": new_note.uid,
         "title": new_note.title,
         "content": new_note.content,
         "custom_font": getattr(new_note, "custom_font", "Inter"),
@@ -664,6 +668,7 @@ async def create_note_from_context_docs(
     return {
         "status": "success",
         "id": new_note.id,
+        "uid": new_note.uid,
         "title": new_note.title,
         "content": new_note.content,
         "source_doc_count": len(docs),
@@ -671,7 +676,7 @@ async def create_note_from_context_docs(
 
 @router.put("/update_note")
 def update_note(note_data: NoteUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    note = db.query(models.Note).filter(models.Note.id == note_data.note_id).first()
+    note = resolve_by_id_or_uid(db.query(models.Note), models.Note, note_data.note_id, uid_field="uid").first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
     if note.user_id != current_user.id:
@@ -716,6 +721,7 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db), current_us
 
     return {
         "id": note.id,
+        "uid": note.uid,
         "title": note.title,
         "content": note.content,
         "updated_at": note.updated_at.isoformat() + "Z",
@@ -725,8 +731,8 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db), current_us
     }
 
 @router.delete("/delete_note/{note_id}")
-def delete_note(note_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    note = db.query(models.Note).filter(models.Note.id == note_id).first()
+def delete_note(note_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    note = resolve_by_id_or_uid(db.query(models.Note), models.Note, note_id, uid_field="uid").first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
     if note.user_id != current_user.id:
@@ -736,8 +742,8 @@ def delete_note(note_id: int, db: Session = Depends(get_db), current_user: model
     return {"message": "Note deleted successfully"}
 
 @router.get("/get_note/{note_id}")
-def get_single_note(note_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    note = db.query(models.Note).filter(models.Note.id == note_id).first()
+def get_single_note(note_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    note = resolve_by_id_or_uid(db.query(models.Note), models.Note, note_id, uid_field="uid").first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
 
@@ -745,7 +751,7 @@ def get_single_note(note_id: int, db: Session = Depends(get_db), current_user: m
     if not can_access:
         shared = db.query(models.SharedContent).filter(
             models.SharedContent.content_type == "note",
-            models.SharedContent.content_id == note_id,
+            models.SharedContent.content_id == note.id,
             models.SharedContent.shared_with_id == current_user.id,
         ).first()
         can_access = shared is not None
@@ -765,6 +771,7 @@ def get_single_note(note_id: int, db: Session = Depends(get_db), current_user: m
 
     return {
         "id": note.id,
+        "uid": note.uid,
         "title": note.title,
         "content": note.content,
         "created_at": note.created_at.isoformat() + "Z" if note.created_at else None,
@@ -782,8 +789,8 @@ def get_single_note(note_id: int, db: Session = Depends(get_db), current_user: m
     }
 
 @router.put("/soft_delete_note/{note_id}")
-def soft_delete_note(note_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    note = db.query(models.Note).filter(models.Note.id == note_id).first()
+def soft_delete_note(note_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    note = resolve_by_id_or_uid(db.query(models.Note), models.Note, note_id, uid_field="uid").first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
     if note.user_id != current_user.id:
@@ -796,8 +803,8 @@ def soft_delete_note(note_id: int, db: Session = Depends(get_db), current_user: 
     return {"message": "Note moved to trash", "note_id": note.id, "status": "success"}
 
 @router.put("/restore_note/{note_id}")
-def restore_note(note_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    note = db.query(models.Note).filter(models.Note.id == note_id).first()
+def restore_note(note_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    note = resolve_by_id_or_uid(db.query(models.Note), models.Note, note_id, uid_field="uid").first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
     if note.user_id != current_user.id:
@@ -810,8 +817,8 @@ def restore_note(note_id: int, db: Session = Depends(get_db), current_user: mode
     return {"message": "Note restored", "note_id": note.id, "status": "success"}
 
 @router.delete("/permanent_delete_note/{note_id}")
-def permanent_delete_note(note_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    note = db.query(models.Note).filter(models.Note.id == note_id).first()
+def permanent_delete_note(note_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    note = resolve_by_id_or_uid(db.query(models.Note), models.Note, note_id, uid_field="uid").first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
     if note.user_id != current_user.id:
@@ -918,7 +925,7 @@ def delete_folder(folder_id: int, db: Session = Depends(get_db), current_user: m
 
 @router.put("/move_note_to_folder")
 def move_note_to_folder(data: NoteUpdateFolder, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    note = db.query(models.Note).filter(models.Note.id == data.note_id).first()
+    note = resolve_by_id_or_uid(db.query(models.Note), models.Note, data.note_id, uid_field="uid").first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
     if note.user_id != current_user.id:
@@ -945,7 +952,7 @@ def remove_note_from_folder(data: NoteUpdateFolder, db: Session = Depends(get_db
     if data.folder_id is None:
         raise HTTPException(status_code=400, detail="folder_id is required")
 
-    note = db.query(models.Note).filter(models.Note.id == data.note_id).first()
+    note = resolve_by_id_or_uid(db.query(models.Note), models.Note, data.note_id, uid_field="uid").first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
     if note.user_id != current_user.id:
@@ -976,7 +983,7 @@ def remove_note_from_folder(data: NoteUpdateFolder, db: Session = Depends(get_db
 
 @router.put("/toggle_favorite")
 def toggle_favorite(data: NoteFavorite, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    note = db.query(models.Note).filter(models.Note.id == data.note_id).first()
+    note = resolve_by_id_or_uid(db.query(models.Note), models.Note, data.note_id, uid_field="uid").first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
     if note.user_id != current_user.id:
@@ -1122,12 +1129,12 @@ async def notes_agent(
 
 @router.put("/update_shared_note/{note_id}")
 def update_shared_note(
-    note_id: int,
+    note_id: str,
     data: dict,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    note = db.query(models.Note).filter(models.Note.id == note_id).first()
+    note = resolve_by_id_or_uid(db.query(models.Note), models.Note, note_id, uid_field="uid").first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
 
@@ -1135,7 +1142,7 @@ def update_shared_note(
     if not can_edit:
         shared = db.query(models.SharedContent).filter(
             models.SharedContent.content_type == "note",
-            models.SharedContent.content_id == note_id,
+            models.SharedContent.content_id == note.id,
             models.SharedContent.shared_with_id == current_user.id,
             models.SharedContent.permission == "edit",
         ).first()

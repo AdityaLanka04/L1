@@ -169,7 +169,12 @@
       "Bash(cp brainwave_tutor.db _cutover_test3.db)",
       "Bash(DATABASE_URL=\"sqlite:///./_cutover_test3.db\" .venv/Scripts/python.exe -m alembic stamp 8daf5b6d92ed)",
       "Bash(.venv/Scripts/python.exe -m alembic stamp 1f7b7b570da8)",
-      "Bash(.venv/Scripts/python.exe -m alembic upgrade head)"
+      "Bash(.venv/Scripts/python.exe -m alembic upgrade head)",
+      "Bash(grep -n \"DATABASE_URL\" .env)",
+      "Bash(grep -n \"ENVIRONMENT\" .env)",
+      "Bash(grep -n \"ENABLE_STARTUP_EMBEDDINGS\" .env)",
+      "Bash(powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\\\"Name='python.exe'\\\\\" | Select-Object ProcessId,CommandLine | Format-List\")",
+      "Bash(powershell *)"
     ]
   }
 }

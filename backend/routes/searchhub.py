@@ -355,6 +355,7 @@ async def _create_note_with_ai(
 
     return {
         "id": new_note.id,
+        "uid": new_note.uid,
         "title": new_note.title,
         "content": new_note.content,
     }

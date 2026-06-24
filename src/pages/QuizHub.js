@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Swords, ChevronRight, Zap } from 'lucide-react';
+import { User, Swords, ChevronRight, Zap, Trophy, Target, MessageSquare, LayoutDashboard, LogOut } from 'lucide-react';
 import './QuizHub.css';
 import ImportExportModal from '../components/ImportExportModal';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
+import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider } from '../components/Sidebar';
 
 const QuizHub = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const QuizHub = () => {
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
   const [userDocCount, setUserDocCount] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -77,6 +79,62 @@ const QuizHub = () => {
       </div>
 
       <div className="qh-layout-body">
+        <SidebarShell
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+          brandKicker="QUIZ HUB"
+          ariaLabel="Quiz Hub navigation"
+          collapsedContent={(
+            <>
+              <SidebarStripButton icon={<User size={18} />} tip="Solo Practice" onClick={() => navigate('/solo-quiz')} />
+              <SidebarStripButton icon={<Swords size={18} />} tip="1v1 Battles" onClick={() => navigate('/quiz-battles')} />
+              <SidebarStripDivider />
+              <SidebarStripButton icon={<Trophy size={18} />} tip="Leaderboards" onClick={() => navigate('/leaderboards')} />
+              <SidebarStripButton icon={<Target size={18} />} tip="Challenges" onClick={() => navigate('/challenges')} />
+              <SidebarStripButton icon={<Zap size={18} />} tip="Convert" onClick={() => setShowImportExport(true)} />
+              <SidebarStripDivider />
+              <SidebarStripButton icon={<MessageSquare size={18} />} tip="AI Chat" onClick={() => navigate('/ai-chat')} />
+              <SidebarStripButton icon={<LayoutDashboard size={18} />} tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+              <SidebarStripButton
+                icon={<LogOut size={18} />}
+                tip="Logout"
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('username');
+                  navigate('/');
+                }}
+              />
+            </>
+          )}
+        >
+          <SidebarSection heading="Play">
+            <SidebarMenuItem icon={<User size={16} />} label="Solo Practice" onClick={() => navigate('/solo-quiz')} />
+            <SidebarMenuItem icon={<Swords size={16} />} label="1v1 Battles" onClick={() => navigate('/quiz-battles')} />
+          </SidebarSection>
+
+          <SidebarSection heading="Social">
+            <SidebarMenuItem icon={<Trophy size={16} />} label="Leaderboards" onClick={() => navigate('/leaderboards')} />
+            <SidebarMenuItem icon={<Target size={16} />} label="Challenges" onClick={() => navigate('/challenges')} />
+          </SidebarSection>
+
+          <SidebarSection heading="Tools">
+            <SidebarMenuItem icon={<Zap size={16} />} label="Convert Questions" onClick={() => setShowImportExport(true)} />
+          </SidebarSection>
+
+          <SidebarActions>
+            <SidebarAction icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+            <SidebarAction icon={<MessageSquare size={14} />} label="AI Chat" onClick={() => navigate('/ai-chat')} />
+            <SidebarAction
+              icon={<LogOut size={14} />}
+              label="Logout"
+              onClick={() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                navigate('/');
+              }}
+            />
+          </SidebarActions>
+        </SidebarShell>
         <main className="qh-main">
         <section 
           className={`qh-section qh-section-solo ${hoveredSection === 'solo' ? 'qh-section-hovered' : ''}`}

@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Bool
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database import Base
+from uid_utils import generate_uid
 
 
 class FlashcardSet(Base):
@@ -9,7 +10,7 @@ class FlashcardSet(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     share_code = Column(String(6), unique=True, index=True, nullable=True)
-    public_token = Column(String(32), unique=True, index=True, nullable=True)
+    public_token = Column(String(32), unique=True, index=True, nullable=True, default=generate_uid)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     title = Column(String(200), default="New Flashcard Set")
     description = Column(Text, default="")

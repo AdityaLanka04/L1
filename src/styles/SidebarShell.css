@@ -216,32 +216,43 @@
   margin-top: auto;
   padding-top: 0;
   border-top: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
 }
 
 .sb-stat-box {
-  padding: 16px 14px;
+  padding: 10px 6px;
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   text-align: center;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sb-stat-value {
-  font-size: 36px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--text-primary);
-  line-height: 1;
-  margin-bottom: 8px;
+  line-height: 1.2;
+  margin-bottom: 4px;
   font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sb-stat-label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Bottom actions */

@@ -13,6 +13,7 @@ import {
   Tag, ArrowRight, CheckSquare, Square, Filter, Target
 } from 'lucide-react';
 import contextService from '../services/contextService';
+import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider } from '../components/Sidebar';
 import './ContextHub.css';
 
 const FlagUK = ({ size = 28 }) => (
@@ -1043,78 +1044,74 @@ export default function ContextHub() {
 
   // ─── SIDEBAR ──────────────────────────────────────────────────────────────
   const Sidebar = () => (
-    <aside className={`ch-sidebar ${sidebarOpen ? '' : 'ch-sidebar--collapsed'}`}>
-      <div className="ch-sidebar-inner">
-        <nav className="ch-sidebar-nav ch-sidebar-nav--main">
+    <SidebarShell
+      collapsed={!sidebarOpen}
+      onToggleCollapse={() => setSidebarOpen((prev) => !prev)}
+      brandKicker="CONTEXT HUB"
+      ariaLabel="Context Hub navigation"
+      collapsedContent={(
+        <>
+          <SidebarStripButton icon={<Upload size={18} />} tip="Upload" active={view === 'upload'} onClick={() => setSearchParams({ view: 'upload' })} />
+          <SidebarStripButton icon={<FolderOpen size={18} />} tip="My Documents" active={view === 'library'} onClick={() => { setSearchParams({ view: 'library' }); loadDocs(); }} />
+          <SidebarStripDivider />
+          <SidebarStripButton icon={<Library size={18} />} tip="Curriculum" active={view === 'landing'} onClick={goLanding} />
+          <SidebarStripButton icon={<FlagUK size={18} />} tip="UK High School" active={selectedCurriculum === 'uk'} onClick={() => goCurriculum('uk')} />
+          <SidebarStripButton icon={<FlagUS size={18} />} tip="US High School" active={selectedCurriculum === 'us'} onClick={() => goCurriculum('us')} />
+          <SidebarStripDivider />
+          <SidebarStripButton icon={<MessageCircle size={18} />} tip="Ask Your Notes" active={urlViewParam === 'ask'} onClick={() => setSearchParams({ view: 'ask' })} />
+        </>
+      )}
+    >
+      <SidebarSection>
+        <SidebarMenuItem
+          icon={<Upload size={16} />}
+          label="Upload"
+          active={view === 'upload'}
+          onClick={() => setSearchParams({ view: 'upload' })}
+        />
+        <SidebarMenuItem
+          icon={<FolderOpen size={16} />}
+          label="My Documents"
+          active={view === 'library'}
+          badge={stats.myDocs > 0 ? <span className="ch-sidebar-count">{stats.myDocs}</span> : null}
+          onClick={() => { setSearchParams({ view: 'library' }); loadDocs(); }}
+        />
+      </SidebarSection>
 
-          <button className={`ch-sidebar-nav-item ch-sidebar-upload-btn ${view === 'upload' ? 'ch-sidebar-nav-item--active' : ''}`}
-            onClick={() => setSearchParams({ view: 'upload' })}>
-            <Upload size={14} /><span>Upload</span>
-          </button>
+      <SidebarSection heading="Curriculum">
+        <SidebarMenuItem icon={<Library size={16} />} label="Curriculum" active={view === 'landing'} onClick={goLanding} />
+        <SidebarMenuItem icon={<FlagUK size={18} />} label="UK High School" active={selectedCurriculum === 'uk'} onClick={() => goCurriculum('uk')} />
+        {selectedCurriculum === 'uk' && Object.entries(CURRICULA.uk.grades).map(([g, info], idx) => (
+          <div key={g} style={{ paddingLeft: '20px' }}>
+            <SidebarMenuItem
+              icon={<span className="ch-sidebar-nav-grade-dot" style={{ background: GRADE_COLORS[idx] }} />}
+              label={info.label}
+              active={selectedGrade === Number(g)}
+              onClick={() => goGrade(Number(g))}
+            />
+          </div>
+        ))}
+        <SidebarMenuItem icon={<FlagUS size={18} />} label="US High School" active={selectedCurriculum === 'us'} onClick={() => goCurriculum('us')} />
+        {selectedCurriculum === 'us' && Object.entries(CURRICULA.us.grades).map(([g, info], idx) => (
+          <div key={g} style={{ paddingLeft: '20px' }}>
+            <SidebarMenuItem
+              icon={<span className="ch-sidebar-nav-grade-dot" style={{ background: GRADE_COLORS[idx] }} />}
+              label={info.label}
+              active={selectedGrade === Number(g)}
+              onClick={() => goGrade(Number(g))}
+            />
+          </div>
+        ))}
+      </SidebarSection>
 
-          <button className={`ch-sidebar-nav-item ${view === 'library' ? 'ch-sidebar-nav-item--active' : ''}`}
-            onClick={() => { setSearchParams({ view: 'library' }); loadDocs(); }}>
-            <FolderOpen size={14} />
-            <span>My Documents</span>
-            {stats.myDocs > 0 && <span className="ch-sidebar-count">{stats.myDocs}</span>}
-          </button>
+      <SidebarSection>
+        <SidebarMenuItem icon={<MessageCircle size={16} />} label="Ask Your Notes" active={urlViewParam === 'ask'} onClick={() => setSearchParams({ view: 'ask' })} />
+      </SidebarSection>
 
-          <div className="ch-sidebar-divider" />
-
-          <button className={`ch-sidebar-nav-item ${view === 'landing' ? 'ch-sidebar-nav-item--active' : ''}`}
-            onClick={goLanding}>
-            <Library size={14} /><span>Curriculum</span>
-          </button>
-
-          <button className={`ch-sidebar-nav-item ${selectedCurriculum === 'uk' ? 'ch-sidebar-nav-item--active' : ''}`}
-            onClick={() => goCurriculum('uk')}>
-            <FlagUK size={18} /><span>UK High School</span>
-          </button>
-          {selectedCurriculum === 'uk' && (
-            <div className="ch-sidebar-nav-children">
-              {Object.entries(CURRICULA.uk.grades).map(([g, info], idx) => (
-                <button key={g}
-                  className={`ch-sidebar-nav-item ch-sidebar-nav-item--child ${selectedGrade === Number(g) ? 'ch-sidebar-nav-item--active' : ''}`}
-                  onClick={() => goGrade(Number(g))}>
-                  <span className="ch-sidebar-nav-grade-dot" style={{ background: GRADE_COLORS[idx] }} />
-                  <span>{info.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <button className={`ch-sidebar-nav-item ${selectedCurriculum === 'us' ? 'ch-sidebar-nav-item--active' : ''}`}
-            onClick={() => goCurriculum('us')}>
-            <FlagUS size={18} /><span>US High School</span>
-          </button>
-          {selectedCurriculum === 'us' && (
-            <div className="ch-sidebar-nav-children">
-              {Object.entries(CURRICULA.us.grades).map(([g, info], idx) => (
-                <button key={g}
-                  className={`ch-sidebar-nav-item ch-sidebar-nav-item--child ${selectedGrade === Number(g) ? 'ch-sidebar-nav-item--active' : ''}`}
-                  onClick={() => goGrade(Number(g))}>
-                  <span className="ch-sidebar-nav-grade-dot" style={{ background: GRADE_COLORS[idx] }} />
-                  <span>{info.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="ch-sidebar-divider" />
-
-          <button className={`ch-sidebar-nav-item ${urlViewParam === 'ask' ? 'ch-sidebar-nav-item--active' : ''}`}
-            onClick={() => setSearchParams({ view: 'ask' })}>
-            <MessageCircle size={14} /><span>Ask Your Notes</span>
-          </button>
-        </nav>
-
-        <div className="ch-sidebar-footer">
-          <button className="ch-sidebar-footer-btn" onClick={() => navigate('/dashboard-cerbyl')}>
-            <Home size={14} /><span>Dashboard</span>
-          </button>
-        </div>
-      </div>
-    </aside>
+      <SidebarActions>
+        <SidebarAction icon={<Home size={14} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+      </SidebarActions>
+    </SidebarShell>
   );
 
   // ─── LANDING ──────────────────────────────────────────────────────────────
@@ -1824,10 +1821,6 @@ export default function ContextHub() {
             <div className="ch-main-dots" />
             <div className="ch-main-vignette" />
           </div>
-          <button className="ch-sidebar-toggle" onClick={() => setSidebarOpen(o => !o)}>
-            {sidebarOpen ? <X size={16} /> : <Library size={16} />}
-          </button>
-
           {view !== 'landing' && view !== 'upload' && view !== 'library' && view !== 'ask' && (
             <Breadcrumb
               curriculum={selectedCurriculum}

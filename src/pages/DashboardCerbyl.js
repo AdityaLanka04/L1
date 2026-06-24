@@ -22,6 +22,40 @@ const MODULES = [
   { num: '15', label: 'Playlists',     sub: 'COLLECTIONS',  route: '/playlists' }
 ];
 
+const ALL_FEATURES = [
+  { label: 'Dashboard', route: '/dashboard-cerbyl', keywords: 'home overview' },
+  { label: 'Search Hub', route: '/search-hub', keywords: 'atlas explore command center' },
+  { label: 'AI Chat', route: '/ai-chat', keywords: 'tutor chat assistant' },
+  { label: 'Context Hub', route: '/contexthub', keywords: 'documents vault textbooks curriculum' },
+  { label: 'Notes', route: '/notes', keywords: 'notebook write' },
+  { label: 'Media Notes', route: '/notes/ai-media', keywords: 'audio video transcript' },
+  { label: 'Flashcards', route: '/flashcards', keywords: 'cards study deck' },
+  { label: 'Quiz Hub', route: '/quiz-hub', keywords: 'quizzes challenge' },
+  { label: 'Solo Quiz', route: '/solo-quiz', keywords: 'practice quiz' },
+  { label: 'Quiz Battle', route: '/quiz-battles', keywords: '1v1 battle challenge friend' },
+  { label: 'Question Bank', route: '/question-bank', keywords: 'questions practice' },
+  { label: 'Slide Explorer', route: '/slide-explorer', keywords: 'slides presentation' },
+  { label: 'Weak Areas', route: '/weaknesses', keywords: 'weaknesses improve' },
+  { label: 'Weakness Practice', route: '/weakness-practice', keywords: 'practice improve' },
+  { label: 'Challenges', route: '/challenges', keywords: 'daily challenge' },
+  { label: 'Analytics', route: '/analytics', keywords: 'stats insights' },
+  { label: 'Study Insights', route: '/study-insights', keywords: 'analytics insights' },
+  { label: 'XP Roadmap', route: '/xp-roadmap', keywords: 'milestones level' },
+  { label: 'Knowledge Map', route: '/knowledge-map', keywords: 'concepts network' },
+  { label: 'Activity Timeline', route: '/activity-timeline', keywords: 'history log activity' },
+  { label: 'Learning Paths', route: '/learning-paths', keywords: 'curriculum progression' },
+  { label: 'Playlists', route: '/playlists', keywords: 'collections' },
+  { label: 'Concept Web', route: '/concept-web', keywords: 'learning path network' },
+  { label: 'Review Hub', route: '/learning-review-hub', keywords: 'review spaced repetition' },
+  { label: 'Social Hub', route: '/social', keywords: 'friends community' },
+  { label: 'Friends', route: '/friends-dashboard', keywords: 'social friends' },
+  { label: 'Leaderboards', route: '/leaderboards', keywords: 'rank ranking competition' },
+  { label: 'Games', route: '/games', keywords: 'gamification points bingo' },
+  { label: 'Shared Content', route: '/shared-content', keywords: 'shared sharing' },
+  { label: 'Profile', route: '/profile', keywords: 'account settings archetype' },
+  { label: 'Customize Dashboard', route: '/customize-dashboard', keywords: 'settings personalize' },
+];
+
 const SIDE_LINKS = [
   { label: 'Search Hub',        route: '/search-hub' },
   { label: 'Knowledge Map',     route: '/knowledge-map' },
@@ -253,6 +287,52 @@ const DashboardCerbyl = () => {
   });
   const [isPfpModalOpen, setIsPfpModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [featureQuery, setFeatureQuery] = useState('');
+  const [showFeatureResults, setShowFeatureResults] = useState(false);
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(-1);
+  const featureSearchRef = useRef(null);
+
+  const featureResults = useMemo(() => {
+    const q = featureQuery.trim().toLowerCase();
+    if (!q) return [];
+    return ALL_FEATURES
+      .filter((f) => f.label.toLowerCase().includes(q) || f.keywords?.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [featureQuery]);
+
+  useEffect(() => {
+    const onClickOutside = (e) => {
+      if (featureSearchRef.current && !featureSearchRef.current.contains(e.target)) {
+        setShowFeatureResults(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  const goToFeature = (feature) => {
+    if (!feature) return;
+    navigate(feature.route);
+    setFeatureQuery('');
+    setShowFeatureResults(false);
+    setActiveFeatureIndex(-1);
+  };
+
+  const onFeatureSearchKeyDown = (e) => {
+    if (!showFeatureResults || featureResults.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveFeatureIndex((i) => (i + 1) % featureResults.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveFeatureIndex((i) => (i <= 0 ? featureResults.length - 1 : i - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      goToFeature(featureResults[activeFeatureIndex] || featureResults[0]);
+    } else if (e.key === 'Escape') {
+      setShowFeatureResults(false);
+    }
+  };
   const [showNotifications, setShowNotifications] = useState(false);
   const [chatPromptDisplay, setChatPromptDisplay] = useState(QUICK_ASK_PROMPT);
   const [chatReplyDisplay, setChatReplyDisplay] = useState('');
@@ -1544,6 +1624,57 @@ const DashboardCerbyl = () => {
                   <span className="cb-period">.</span>
                 )}
               </h1>
+            </div>
+
+            <div className="cb-feature-search" ref={featureSearchRef}>
+              <Search size={16} className="cb-feature-search-icon" />
+              <input
+                type="text"
+                className="cb-feature-search-input"
+                placeholder="Search for a feature... (e.g. flashcards, quiz battle, notes)"
+                value={featureQuery}
+                onChange={(e) => {
+                  setFeatureQuery(e.target.value);
+                  setShowFeatureResults(true);
+                  setActiveFeatureIndex(-1);
+                }}
+                onFocus={() => setShowFeatureResults(true)}
+                onKeyDown={onFeatureSearchKeyDown}
+              />
+              {featureQuery && (
+                <button
+                  className="cb-feature-search-clear"
+                  onClick={() => { setFeatureQuery(''); setActiveFeatureIndex(-1); }}
+                  aria-label="Clear search"
+                  type="button"
+                >
+                  <X size={14} />
+                </button>
+              )}
+
+              {showFeatureResults && featureQuery && (
+                <div className="cb-feature-results" role="listbox">
+                  {featureResults.length > 0 ? (
+                    featureResults.map((f, idx) => (
+                      <button
+                        key={f.route}
+                        className={`cb-feature-result ${idx === activeFeatureIndex ? 'active' : ''}`}
+                        onMouseEnter={() => setActiveFeatureIndex(idx)}
+                        onClick={() => goToFeature(f)}
+                        type="button"
+                        role="option"
+                        aria-selected={idx === activeFeatureIndex}
+                      >
+                        <Search size={13} />
+                        <span>{f.label}</span>
+                        <ChevronRight size={13} className="cb-feature-result-arrow" />
+                      </button>
+                    ))
+                  ) : (
+                    <div className="cb-feature-no-results">No features match "{featureQuery}"</div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="cb-stat-row">

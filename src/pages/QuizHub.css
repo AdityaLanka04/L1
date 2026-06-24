@@ -196,6 +196,15 @@
   min-height: 0;
   position: relative;
   z-index: 1;
+  gap: 20px;
+  padding: 20px 0 20px 20px;
+}
+
+.qh-layout-body .sb-sidebar {
+  flex: 0 0 280px;
+  width: 280px;
+  height: 100%;
+  min-height: 0;
 }
 
 .qh-main {

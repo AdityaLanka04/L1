@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Bool
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database import Base
+from uid_utils import generate_uid
 
 
 class ChatSession(Base):
@@ -11,7 +12,7 @@ class ChatSession(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(255), default="New Chat")
     folder_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=True)
-    public_token = Column(String(32), unique=True, index=True, nullable=True)
+    public_token = Column(String(32), unique=True, index=True, nullable=True, default=generate_uid)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

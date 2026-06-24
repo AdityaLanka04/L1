@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Bool
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database import Base
+from uid_utils import generate_uid
 
 
 class Friendship(Base):
@@ -243,6 +244,7 @@ class SoloQuiz(Base):
     __tablename__ = "solo_quizzes"
 
     id = Column(Integer, primary_key=True, index=True)
+    uid = Column(String(32), unique=True, index=True, nullable=True, default=generate_uid)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     subject = Column(String(100), nullable=False)
     difficulty = Column(String(20), default="intermediate")

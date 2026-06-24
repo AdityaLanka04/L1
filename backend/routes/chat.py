@@ -23,6 +23,7 @@ from deps import (
 )
 from services.storage_service import StorageService
 from tutor.contract import tutor_contract_instruction
+from uid_utils import resolve_by_id_or_uid
 
 CHAT_UPLOAD_DIR = Path("uploads/chat_images")
 CHAT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -747,6 +748,18 @@ def _assert_user_matches_request(user_id: Optional[str], current_user: models.Us
     if requested and requested not in allowed:
         raise HTTPException(status_code=403, detail="Access denied")
 
+def _resolve_chat_session_id(db: Session, chat_id: Optional[str], user_id: int) -> Optional[int]:
+    if not chat_id:
+        return None
+    identifier = str(chat_id).strip()
+    if identifier.isdigit():
+        return int(identifier)
+    session = db.query(models.ChatSession).filter(
+        models.ChatSession.public_token == identifier,
+        models.ChatSession.user_id == user_id,
+    ).first()
+    return session.id if session else None
+
 def _context_only_fallback_answer(user_id: str, question: str, context_doc_ids: list[str], use_hs_context: bool = True) -> str:
     selected_ids = [str(d).strip() for d in (context_doc_ids or []) if str(d).strip()]
     if not selected_ids or not use_hs_context:
@@ -799,7 +812,7 @@ class ChatMessageSave(BaseModel):
     ai_response: str
 
 class GenerateChatTitleRequest(BaseModel):
-    chat_id: int
+    chat_id: str
     user_id: str
 
 class ChatFolderCreate(BaseModel):
@@ -809,7 +822,7 @@ class ChatFolderCreate(BaseModel):
     parent_id: Optional[int] = None
 
 class ChatUpdateFolder(BaseModel):
-    chat_id: int
+    chat_id: str
     folder_id: Optional[int] = None
 
 @router.post("/ask/")
@@ -827,7 +840,7 @@ async def ask_ai(
 ):
     try:
         selected_doc_ids = [x.strip() for x in (context_doc_ids or "").split(",") if x.strip()][:200]
-        chat_id_int = int(chat_id) if chat_id else None
+        chat_id_int = _resolve_chat_session_id(db, chat_id, current_user.id)
 
         _assert_user_matches_request(user_id, current_user)
         user = current_user
@@ -1141,7 +1154,7 @@ async def ask_simple(
         tutor_user_question = _strip_internal_graph_guidance(user_question or model_question)
         effective_tutor_input = tutor_user_question if tutor_mode else model_question
 
-        chat_id_int = int(chat_id) if chat_id else None
+        chat_id_int = _resolve_chat_session_id(db, chat_id, current_user.id)
 
         chat_history = []
         if chat_id_int:
@@ -1311,7 +1324,7 @@ async def ask_with_files(
         model_question = question
         tutor_user_question = _strip_internal_graph_guidance(user_question or model_question)
 
-        chat_id_int = int(chat_id) if chat_id else None
+        chat_id_int = _resolve_chat_session_id(db, chat_id, current_user.id)
         if chat_id_int:
             chat_session = db.query(models.ChatSession).filter(
                 models.ChatSession.id == chat_id_int,
@@ -1624,6 +1637,7 @@ def create_chat_session(
 
     return {
         "id": chat_session.id,
+        "uid": chat_session.public_token,
         "session_id": chat_session.id,
         "title": chat_session.title,
         "created_at": chat_session.created_at.isoformat() + "Z",
@@ -1642,9 +1656,10 @@ def rename_chat_session(
     if not chat_id or not new_title:
         raise HTTPException(status_code=400, detail="chat_id and new_title are required")
 
-    chat_session = db.query(models.ChatSession).filter(
-        models.ChatSession.id == chat_id,
-        models.ChatSession.user_id == current_user.id,
+    chat_session = resolve_by_id_or_uid(
+        db.query(models.ChatSession).filter(models.ChatSession.user_id == current_user.id),
+        models.ChatSession,
+        chat_id,
     ).first()
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
@@ -1677,6 +1692,7 @@ def get_chat_sessions(
         "sessions": [
             {
                 "id": s.id,
+                "uid": s.public_token,
                 "title": s.title,
                 "folder_id": s.folder_id,
                 "created_at": s.created_at.isoformat() + "Z" if s.created_at else None,
@@ -1688,27 +1704,28 @@ def get_chat_sessions(
 
 @router.get("/get_chat_messages")
 def get_chat_messages(
-    chat_id: int = Query(...),
+    chat_id: str = Query(...),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    session = db.query(models.ChatSession).filter(
-        models.ChatSession.id == chat_id,
-        models.ChatSession.user_id == current_user.id,
+    session = resolve_by_id_or_uid(
+        db.query(models.ChatSession).filter(models.ChatSession.user_id == current_user.id),
+        models.ChatSession,
+        chat_id,
     ).first()
     if not session:
         raise HTTPException(status_code=404, detail="Chat session not found")
 
     messages = (
         db.query(models.ChatMessage)
-        .filter(models.ChatMessage.chat_session_id == chat_id)
+        .filter(models.ChatMessage.chat_session_id == session.id)
         .order_by(models.ChatMessage.timestamp.asc())
         .all()
     )
     tutor_state_row = (
         db.query(models.ChatTutorState)
         .filter(
-            models.ChatTutorState.chat_session_id == chat_id,
+            models.ChatTutorState.chat_session_id == session.id,
             models.ChatTutorState.user_id == current_user.id,
         )
         .first()
@@ -1746,21 +1763,17 @@ async def get_chat_history(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    try:
-        session_id_int = int(session_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid session ID")
-
-    chat_session = db.query(models.ChatSession).filter(
-        models.ChatSession.id == session_id_int,
-        models.ChatSession.user_id == current_user.id,
+    chat_session = resolve_by_id_or_uid(
+        db.query(models.ChatSession).filter(models.ChatSession.user_id == current_user.id),
+        models.ChatSession,
+        session_id,
     ).first()
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
 
     messages = (
         db.query(models.ChatMessage)
-        .filter(models.ChatMessage.chat_session_id == session_id_int)
+        .filter(models.ChatMessage.chat_session_id == chat_session.id)
         .order_by(models.ChatMessage.timestamp.asc())
         .all()
     )
@@ -1842,31 +1855,33 @@ def save_chat_message(
 
 @router.delete("/delete_chat_session/{session_id}")
 def delete_chat_session(
-    session_id: int,
+    session_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    chat_session = db.query(models.ChatSession).filter(
-        models.ChatSession.id == session_id,
-        models.ChatSession.user_id == current_user.id,
+    chat_session = resolve_by_id_or_uid(
+        db.query(models.ChatSession).filter(models.ChatSession.user_id == current_user.id),
+        models.ChatSession,
+        session_id,
     ).first()
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
 
+    session_pk = chat_session.id
     db.query(models.MessageMLLog).filter(
-        models.MessageMLLog.session_id == session_id
+        models.MessageMLLog.session_id == session_pk
     ).delete(synchronize_session=False)
     db.query(models.CerbylSessionState).filter(
-        models.CerbylSessionState.session_id == session_id
+        models.CerbylSessionState.session_id == session_pk
     ).delete(synchronize_session=False)
     db.query(models.ChatConceptSignal).filter(
-        models.ChatConceptSignal.chat_session_id == session_id
+        models.ChatConceptSignal.chat_session_id == session_pk
     ).delete(synchronize_session=False)
     db.query(models.ChatTutorState).filter(
-        models.ChatTutorState.chat_session_id == session_id
+        models.ChatTutorState.chat_session_id == session_pk
     ).delete(synchronize_session=False)
     db.query(models.ChatMessage).filter(
-        models.ChatMessage.chat_session_id == session_id
+        models.ChatMessage.chat_session_id == session_pk
     ).delete(synchronize_session=False)
     db.delete(chat_session)
     db.commit()
@@ -1929,9 +1944,10 @@ async def generate_chat_title(
     current_user: models.User = Depends(get_current_user),
 ):
     _assert_user_matches_request(request.user_id, current_user)
-    chat_session = db.query(models.ChatSession).filter(
-        models.ChatSession.id == request.chat_id,
-        models.ChatSession.user_id == current_user.id,
+    chat_session = resolve_by_id_or_uid(
+        db.query(models.ChatSession).filter(models.ChatSession.user_id == current_user.id),
+        models.ChatSession,
+        request.chat_id,
     ).first()
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
@@ -1971,15 +1987,16 @@ async def generate_chat_title(
 
 @router.post("/generate_chat_summary")
 async def generate_chat_summary(
-    chat_id: int = Form(...),
+    chat_id: str = Form(...),
     user_id: str = Form(...),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     _assert_user_matches_request(user_id, current_user)
-    chat_session = db.query(models.ChatSession).filter(
-        models.ChatSession.id == chat_id,
-        models.ChatSession.user_id == current_user.id,
+    chat_session = resolve_by_id_or_uid(
+        db.query(models.ChatSession).filter(models.ChatSession.user_id == current_user.id),
+        models.ChatSession,
+        chat_id,
     ).first()
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
@@ -2120,9 +2137,10 @@ def move_chat_to_folder(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    chat = db.query(models.ChatSession).filter(
-        models.ChatSession.id == data.chat_id,
-        models.ChatSession.user_id == current_user.id,
+    chat = resolve_by_id_or_uid(
+        db.query(models.ChatSession).filter(models.ChatSession.user_id == current_user.id),
+        models.ChatSession,
+        data.chat_id,
     ).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat session not found")
@@ -2142,15 +2160,16 @@ def move_chat_to_folder(
 
 @router.post("/convert_chat_to_note_content/")
 async def convert_chat_to_note_content(
-    chat_id: int = Form(...),
+    chat_id: str = Form(...),
     user_id: str = Form(...),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     _assert_user_matches_request(user_id, current_user)
-    chat_session = db.query(models.ChatSession).filter(
-        models.ChatSession.id == chat_id,
-        models.ChatSession.user_id == current_user.id,
+    chat_session = resolve_by_id_or_uid(
+        db.query(models.ChatSession).filter(models.ChatSession.user_id == current_user.id),
+        models.ChatSession,
+        chat_id,
     ).first()
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")

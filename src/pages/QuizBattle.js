@@ -17,7 +17,7 @@ const QuizBattle = () => {
   const [battles, setBattles] = useState([]);
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [activeView, setActiveView] = useState('battles');
   const [statusFilter, setStatusFilter] = useState('active');
   const [pendingBattle, setPendingBattle] = useState(null);
   const [showNotification, setShowNotification] = useState(false);
@@ -137,7 +137,7 @@ const QuizBattle = () => {
       });
       
       if (response.ok) {
-        setShowCreateModal(false);
+        setActiveView('battles');
         setSelectedFriend('');
         setSubject('');
         setDifficulty('intermediate');
@@ -264,7 +264,7 @@ const QuizBattle = () => {
 
           <div className="qb-sidebar-section">
             <div className="qb-sidebar-label">Battle Workspace</div>
-            <button className="qb-sidebar-create" onClick={() => setShowCreateModal(true)}>
+            <button className={`qb-sidebar-create ${activeView === 'create' ? 'active' : ''}`} onClick={() => setActiveView('create')}>
               <Swords size={16} />
               <span>Create Battle</span>
             </button>
@@ -276,8 +276,8 @@ const QuizBattle = () => {
               {filters.map((filter) => (
                 <button
                   key={filter}
-                  className={`qb-sidebar-link ${statusFilter === filter ? 'active' : ''}`}
-                  onClick={() => setStatusFilter(filter)}
+                  className={`qb-sidebar-link ${activeView === 'battles' && statusFilter === filter ? 'active' : ''}`}
+                  onClick={() => { setActiveView('battles'); setStatusFilter(filter); }}
                 >
                   {filter === 'pending' && <Clock size={16} />}
                   {filter === 'active' && <Flame size={16} />}
@@ -326,12 +326,106 @@ const QuizBattle = () => {
                   CLIMB THE LEADERBOARD, AND PROVE YOUR MASTERY ACROSS ANY SUBJECT.
                 </p>
               </div>
-              <button className="qb-create-btn" onClick={() => setShowCreateModal(true)}>
-                CREATE BATTLE
+              <button className="qb-create-btn" onClick={() => setActiveView(activeView === 'create' ? 'battles' : 'create')}>
+                {activeView === 'create' ? 'VIEW BATTLES' : 'CREATE BATTLE'}
               </button>
             </section>
 
-          {loading ? (
+          {activeView === 'create' ? (
+            <div className="qb-create-section">
+              <div className="qb-create-card">
+                <div className="qb-modal-header">
+                  <h3 className="qb-modal-title">
+                    <Swords size={28} />
+                    Create Quiz Battle
+                  </h3>
+                </div>
+
+                <form onSubmit={handleCreateBattle} className="qb-form">
+                  <div className="qb-form-group">
+                    <label className="qb-form-label">
+                      <Users size={14} className="qb-form-label-icon" />
+                      Choose Opponent
+                    </label>
+                    <select
+                      className="qb-form-select"
+                      value={selectedFriend}
+                      onChange={(e) => setSelectedFriend(e.target.value)}
+                      required
+                    >
+                      <option value="">Select a friend...</option>
+                      {friends.map(friend => (
+                        <option key={friend.id} value={friend.id}>
+                          {friend.first_name && friend.last_name
+                            ? `${friend.first_name} ${friend.last_name}`
+                            : friend.username}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="qb-form-group">
+                    <label className="qb-form-label">
+                      <BookOpen size={14} className="qb-form-label-icon" />
+                      Subject
+                    </label>
+                    <input
+                      type="text"
+                      className="qb-form-input"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="e.g., Mathematics, Physics, History..."
+                      required
+                    />
+                  </div>
+
+                  <div className="qb-form-group">
+                    <label className="qb-form-label">
+                      <Gauge size={14} className="qb-form-label-icon" />
+                      Difficulty
+                    </label>
+                    <select
+                      className="qb-form-select"
+                      value={difficulty}
+                      onChange={(e) => setDifficulty(e.target.value)}
+                    >
+                      <option value="beginner">Beginner</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </div>
+
+                  <div className="qb-form-group">
+                    <label className="qb-form-label">
+                      <Database size={14} className="qb-form-label-icon" />
+                      Number of Questions
+                    </label>
+                    <input
+                      type="number"
+                      className="qb-form-input"
+                      value={questionCount}
+                      onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                      min="5"
+                      max="20"
+                      required
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="qb-form-error">
+                      <AlertCircle size={16} />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <button type="submit" className="qb-submit-btn">
+                    <Swords size={20} />
+                    <span>Challenge Friend</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          ) : loading ? (
             <div className="qb-loading">
               <div className="qb-spinner"></div>
               <p className="qb-loading-text">Loading battles...</p>
@@ -488,98 +582,6 @@ const QuizBattle = () => {
           </div>
         </main>
       </div>
-
-      {showCreateModal && (
-        <div className="qb-modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="qb-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="qb-modal-header">
-              <h3 className="qb-modal-title">
-                <Swords size={28} />
-                Create Quiz Battle
-              </h3>
-              <button className="qb-modal-close" onClick={() => setShowCreateModal(false)}>
-                <X size={22} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleCreateBattle} className="qb-form">
-              <div className="qb-form-group">
-                <label className="qb-form-label">
-                  <Users size={14} className="qb-form-label-icon" />
-                  Choose Opponent
-                </label>
-                <select 
-                  className="qb-form-select"
-                  value={selectedFriend} 
-                  onChange={(e) => setSelectedFriend(e.target.value)} 
-                  required
-                >
-                  <option value="">Select a friend...</option>
-                  {friends.map(friend => (
-                    <option key={friend.id} value={friend.id}>
-                      {friend.first_name && friend.last_name 
-                        ? `${friend.first_name} ${friend.last_name}` 
-                        : friend.username}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="qb-form-group">
-                <label className="qb-form-label">
-                  <BookOpen size={14} className="qb-form-label-icon" />
-                  Subject
-                </label>
-                <input 
-                  type="text"
-                  className="qb-form-input"
-                  value={subject} 
-                  onChange={(e) => setSubject(e.target.value)} 
-                  placeholder="e.g., Mathematics, Physics, History..." 
-                  required 
-                />
-              </div>
-              
-              <div className="qb-form-group">
-                <label className="qb-form-label">
-                  <Gauge size={14} className="qb-form-label-icon" />
-                  Difficulty
-                </label>
-                <select 
-                  className="qb-form-select"
-                  value={difficulty} 
-                  onChange={(e) => setDifficulty(e.target.value)}
-                >
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                </select>
-              </div>
-              
-              <div className="qb-form-group">
-                <label className="qb-form-label">
-                  <Database size={14} className="qb-form-label-icon" />
-                  Number of Questions
-                </label>
-                <input 
-                  type="number"
-                  className="qb-form-input"
-                  value={questionCount} 
-                  onChange={(e) => setQuestionCount(parseInt(e.target.value))} 
-                  min="5" 
-                  max="20" 
-                  required 
-                />
-              </div>
-              
-              <button type="submit" className="qb-submit-btn">
-                <Swords size={20} />
-                <span>Challenge Friend</span>
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {showNotification && pendingBattle && (
         <BattleNotification 

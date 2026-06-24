@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus, Plus } from 'lucide-react';
+import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus, Plus, LayoutDashboard, Compass, Film, Trophy, Share2, Gamepad2, User, Settings, Shield, LogOut } from 'lucide-react';
+import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider } from '../components/Sidebar';
 import { useTheme } from '../contexts/ThemeContext';
 import './SearchHub.css';
 import { API_URL } from '../config/api';
@@ -2677,86 +2678,94 @@ const SearchHub = () => {
     );
   };
 
-  const sideSections = [
-    { label: 'AI Chat', route: '/ai-chat' },
-    { label: 'Flashcards', route: '/flashcards' },
-    { label: 'Notes', route: '/notes' }
-  ];
-
   const userEmail = localStorage.getItem('email');
   const sideNavGroups = [
     {
       title: 'Main',
       items: [
-        { label: 'Dashboard', route: '/dashboard-cerbyl' },
-        { label: 'Atlas', route: '/search-hub' }
+        { label: 'Dashboard', route: '/dashboard-cerbyl', icon: LayoutDashboard },
+        { label: 'Atlas', route: '/search-hub', icon: Compass }
       ]
     },
     {
       title: 'Learning Tools',
       items: [
-        { label: 'AI Chat', route: '/ai-chat' },
-        { label: 'Context Hub', route: '/context' },
-        { label: 'Notes', route: '/notes' },
-        { label: 'Flashcards', route: '/flashcards' },
-        { label: 'Quiz Hub', route: '/quiz-hub' },
-        { label: 'Slide Explorer', route: '/slide-explorer' },
-        { label: 'Media Notes', route: '/notes/ai-media' }
+        { label: 'AI Chat', route: '/ai-chat', icon: MessageCircle },
+        { label: 'Notes', route: '/notes', icon: FileText },
+        { label: 'Flashcards', route: '/flashcards', icon: Layers },
+        { label: 'Quiz Hub', route: '/quiz-hub', icon: HelpCircle },
+        { label: 'Slide Explorer', route: '/slide-explorer', icon: Play },
+        { label: 'Media Notes', route: '/notes/ai-media', icon: Film }
       ]
     },
     {
       title: 'Practice & Assessment',
       items: [
-        { label: 'Question Bank', route: '/question-bank' },
-        { label: 'Solo Quiz', route: '/solo-quiz' },
-        { label: 'Quiz Battle', route: '/quiz-battle' },
-        { label: 'Weak Areas', route: '/weaknesses' },
-        { label: 'Weakness Practice', route: '/weakness-practice' },
-        { label: 'Challenges', route: '/challenges' }
+        { label: 'Question Bank', route: '/question-bank', icon: BookOpen },
+        { label: 'Solo Quiz', route: '/solo-quiz', icon: Edit },
+        { label: 'Quiz Battle', route: '/quiz-battle', icon: Zap },
+        { label: 'Weak Areas', route: '/weaknesses', icon: Target },
+        { label: 'Weakness Practice', route: '/weakness-practice', icon: RefreshCw },
+        { label: 'Challenges', route: '/challenges', icon: Trophy }
       ]
     },
     {
       title: 'Progress & Analytics',
       items: [
-        { label: 'Analytics', route: '/analytics' },
-        { label: 'Study Insights', route: '/study-insights' },
-        { label: 'XP Roadmap', route: '/xp-roadmap' },
-        { label: 'Knowledge Map', route: '/knowledge-map' },
-        { label: 'Activity Timeline', route: '/activity-timeline' }
+        { label: 'Analytics', route: '/analytics', icon: BarChart3 },
+        { label: 'Study Insights', route: '/study-insights', icon: Brain },
+        { label: 'XP Roadmap', route: '/xp-roadmap', icon: TrendingUp },
+        { label: 'Knowledge Map', route: '/knowledge-map', icon: Share2 },
+        { label: 'Activity Timeline', route: '/activity-timeline', icon: Clock }
       ]
     },
     {
       title: 'Learning Paths',
       items: [
-        { label: 'All Paths', route: '/learning-paths' },
-        { label: 'Playlists', route: '/playlists' },
-        { label: 'Learning Path', route: '/concept-web' },
-        { label: 'Review Hub', route: '/learning-review-hub' }
+        { label: 'All Paths', route: '/learning-paths', icon: BookOpen },
+        { label: 'Playlists', route: '/playlists', icon: Layers },
+        { label: 'Learning Path', route: '/concept-web', icon: Brain },
+        { label: 'Review Hub', route: '/learning-review-hub', icon: RefreshCw }
       ]
     },
     {
       title: 'Social & Gamification',
       items: [
-        { label: 'Social Hub', route: '/social' },
-        { label: 'Friends', route: '/friends-dashboard' },
-        { label: 'Leaderboards', route: '/leaderboards' },
-        { label: 'Games', route: '/games' },
-        { label: 'Shared Content', route: '/shared-content' }
+        { label: 'Social Hub', route: '/social', icon: Users },
+        { label: 'Friends', route: '/friends-dashboard', icon: Users },
+        { label: 'Leaderboards', route: '/leaderboards', icon: TrendingUp },
+        { label: 'Games', route: '/games', icon: Gamepad2 },
+        { label: 'Shared Content', route: '/shared-content', icon: FileText }
       ]
     },
     {
       title: 'Profile & Settings',
       items: [
-        { label: 'Profile', route: '/profile' },
-        { label: 'Customize', route: '/customize-dashboard' }
+        { label: 'Profile', route: '/profile', icon: User },
+        { label: 'Customize', route: '/customize-dashboard', icon: Settings }
       ]
     },
     ...(['aditya.s.lanka@gmail.com', 'asphar057@gmail.com'].includes(userEmail) ? [{
       title: 'Admin',
       items: [
-        { label: 'Analytics Dashboard', route: '/admin/analytics' }
+        { label: 'Analytics Dashboard', route: '/admin/analytics', icon: Shield }
       ]
     }] : [])
+  ];
+
+  const stripItems = [
+    { label: 'Dashboard', route: '/dashboard-cerbyl', icon: LayoutDashboard },
+    { label: 'AI Chat', route: '/ai-chat', icon: MessageCircle },
+    { label: 'Notes', route: '/notes', icon: FileText },
+    { label: 'Flashcards', route: '/flashcards', icon: Layers },
+    { label: 'Quiz Hub', route: '/quiz-hub', icon: HelpCircle },
+    { divider: true },
+    { label: 'Weak Areas', route: '/weaknesses', icon: Target },
+    { label: 'Analytics', route: '/analytics', icon: BarChart3 },
+    { label: 'Social Hub', route: '/social', icon: Users },
+    { label: 'Games', route: '/games', icon: Gamepad2 },
+    { divider: true },
+    { label: 'Profile', route: '/profile', icon: User },
   ];
 
   return (
@@ -2771,14 +2780,6 @@ const SearchHub = () => {
 
       {/* Floating top-right controls */}
       <div style={{position:'fixed',top:'10px',right:'16px',zIndex:8000,display:'flex',alignItems:'center',gap:'8px'}}>
-        <button
-          className="sh-side-toggle-btn"
-          onClick={() => setIsSidebarOpen(prev => !prev)}
-          aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-        >
-          {isSidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-          {isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
-        </button>
         <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
       </div>
 
@@ -2787,68 +2788,57 @@ const SearchHub = () => {
       )}
 
       <div className={`sh-shell ${isSidebarOpen ? '' : 'sh-shell--collapsed'}`}>
-        {isSidebarOpen && (
-        <aside className="sh-side">
-          <div className="sh-side-brand">
-            <span className="sh-side-brand-name">cerbyl</span>
-            <button
-              className="sh-side-close-btn"
-              onClick={() => setIsSidebarOpen(false)}
-              aria-label="Close sidebar"
-            >
-              <ChevronLeft size={14} />
-            </button>
-          </div>
-
-          <div className="sh-side-sections">
-            {sideSections.map((section) => (
-              <div key={section.label} className="sh-side-section" onClick={() => navigate(section.route)}>
-                <span className="sh-side-dot" />
-                <span className="sh-side-label">{section.label}</span>
-                <button
-                  className="sh-side-plus"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(section.route);
-                  }}
-                  aria-label={`Open ${section.label}`}
-                >
-                  <Plus size={11} strokeWidth={2.4} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <nav className="sh-side-nav">
+        <SidebarShell
+          collapsed={!isSidebarOpen}
+          onToggleCollapse={() => setIsSidebarOpen((prev) => !prev)}
+          brandKicker="SEARCH HUB"
+          ariaLabel="Search Hub navigation"
+          collapsedContent={(
+            <>
+              {stripItems.map((item, index) => (
+                item.divider
+                  ? <SidebarStripDivider key={`div-${index}`} />
+                  : (
+                    <SidebarStripButton
+                      key={item.route}
+                      icon={<item.icon size={18} />}
+                      tip={item.label}
+                      onClick={() => navigate(item.route)}
+                    />
+                  )
+              ))}
+            </>
+          )}
+        >
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '18px', overflowY: 'auto' }}>
             {sideNavGroups.map((group) => (
-              <div key={group.title} className="sh-side-group">
-                <div className="sh-side-group-title">{group.title}</div>
+              <SidebarSection key={group.title} heading={group.title}>
                 {group.items.map((link) => (
-                  <button key={`${group.title}-${link.label}`} className="sh-side-link" onClick={() => navigate(link.route)}>
-                    <span className="sh-side-link-dot" />
-                    {link.label}
-                  </button>
+                  <SidebarMenuItem
+                    key={`${group.title}-${link.label}`}
+                    icon={<link.icon size={16} />}
+                    label={link.label}
+                    onClick={() => navigate(link.route)}
+                  />
                 ))}
-              </div>
+              </SidebarSection>
             ))}
           </nav>
 
-          <div className="sh-side-footer">
+          <SidebarActions>
             {!userName ? (
-              <div className="sh-side-auth">
-                <button className="sh-nav-btn" onClick={() => navigate('/login')}>Login</button>
-                <button className="sh-nav-btn sh-nav-btn--accent" onClick={() => navigate('/register')}>Sign Up</button>
-              </div>
+              <>
+                <SidebarAction icon={<LogIn size={16} />} label="Login" onClick={() => navigate('/login')} />
+                <SidebarAction icon={<UserPlus size={16} />} label="Sign Up" onClick={() => navigate('/register')} />
+              </>
             ) : (
-              <div className="sh-side-auth">
-                <button className="sh-nav-btn" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
-                <button className="sh-nav-btn" onClick={handleLogout}>Logout</button>
-              </div>
+              <>
+                <SidebarAction icon={<LayoutDashboard size={16} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+                <SidebarAction icon={<LogOut size={16} />} label="Logout" onClick={handleLogout} />
+              </>
             )}
-            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-          </div>
-        </aside>
-        )}
+          </SidebarActions>
+        </SidebarShell>
 
         <main className="sh-main">
         {!searchResults && !isSearching && !isCreating ? (

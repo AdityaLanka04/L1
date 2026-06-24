@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 import models
 from deps import call_ai, enforce_request_user_scope, get_current_user, get_db, get_user_by_email, get_user_by_username, unified_ai
 from services.ai_json_parser import parse_json_array_response
+from uid_utils import resolve_by_id_or_uid
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
@@ -75,8 +76,8 @@ def get_flashcards(
     return result
 
 @router.get("/get_flashcards_in_set")
-def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    fs = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == set_id).first()
+def get_flashcards_in_set(set_id: str = Query(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    fs = resolve_by_id_or_uid(db.query(models.FlashcardSet), models.FlashcardSet, set_id).first()
     if not fs:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     if fs.user_id != current_user.id and not getattr(fs, "is_public", False):
@@ -89,10 +90,11 @@ def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db
         fs.public_token = token
         db.commit()
 
-    cards = db.query(models.Flashcard).filter(models.Flashcard.set_id == set_id).all()
+    cards = db.query(models.Flashcard).filter(models.Flashcard.set_id == fs.id).all()
 
     return {
         "set_id": fs.id,
+        "uid": getattr(fs, "public_token", None),
         "set_title": fs.title,
         "share_code": getattr(fs, "share_code", None),
         "public_token": getattr(fs, "public_token", None),
@@ -207,6 +209,7 @@ def create_flashcard_set(
     return {
         "success": True,
         "set_id": flashcard_set.id,
+        "uid": flashcard_set.public_token,
         "title": flashcard_set.title,
     }
 
@@ -240,24 +243,26 @@ def create_flashcard_card(
 
 @router.delete("/flashcards/sets/{set_id}")
 def delete_flashcard_set(
-    set_id: int,
+    set_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    flashcard_set = db.query(models.FlashcardSet).filter(
-        models.FlashcardSet.id == set_id,
-        models.FlashcardSet.user_id == current_user.id,
+    flashcard_set = resolve_by_id_or_uid(
+        db.query(models.FlashcardSet).filter(models.FlashcardSet.user_id == current_user.id),
+        models.FlashcardSet,
+        set_id,
     ).first()
 
     if not flashcard_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
 
+    set_pk = flashcard_set.id
     try:
         db.query(models.FlashcardStudySession).filter(
-            models.FlashcardStudySession.set_id == set_id
+            models.FlashcardStudySession.set_id == set_pk
         ).delete(synchronize_session=False)
         db.query(models.Flashcard).filter(
-            models.Flashcard.set_id == set_id
+            models.Flashcard.set_id == set_pk
         ).delete(synchronize_session=False)
         db.delete(flashcard_set)
         db.commit()

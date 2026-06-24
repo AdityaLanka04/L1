@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Bool
 from sqlalchemy.orm import relationship, backref
 from datetime import datetime, timezone
 from database import Base
+from uid_utils import generate_uid
 
 
 class MediaFile(Base):
@@ -50,6 +51,7 @@ class Note(Base):
     __tablename__ = "notes"
 
     id = Column(Integer, primary_key=True, index=True)
+    uid = Column(String(32), unique=True, index=True, nullable=True, default=generate_uid)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     media_file_id = Column(Integer, ForeignKey("media_files.id"), nullable=True)
     title = Column(String(255), default="Untitled Note")

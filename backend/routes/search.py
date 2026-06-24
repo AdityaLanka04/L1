@@ -341,6 +341,7 @@ async def search_content(
 
                     results.append({
                         "id": fset.id,
+                        "uid": fset.public_token,
                         "type": "flashcard_set",
                         "title": fset.title or "Untitled Set",
                         "description": fset.description or "",
@@ -396,6 +397,7 @@ async def search_content(
                         "created_at": card.created_at.isoformat() if card.created_at else None,
                         "set_name": fset.title if fset else None,
                         "set_id": card.set_id,
+                        "set_uid": fset.public_token if fset else None,
                         "difficulty": card.difficulty,
                         "author": author_name,
                         "author_id": fset.user_id if fset else None,
@@ -435,6 +437,7 @@ async def search_content(
 
                     results.append({
                         "id": note.id,
+                        "uid": note.uid,
                         "type": "note",
                         "title": note.title if note.title else "Untitled Note",
                         "description": note.content[:200] if note.content else "",
@@ -475,6 +478,7 @@ async def search_content(
 
                     results.append({
                         "id": chat.id,
+                        "uid": chat.public_token,
                         "type": "chat",
                         "title": chat.title or "Untitled Chat",
                         "description": f"{message_count} messages",
@@ -681,7 +685,8 @@ async def autocomplete(
                     "subtext": f"Flashcard Set â€¢ {card_count} cards",
                     "type": "content",
                     "contentType": "flashcard_set",
-                    "id": fset.id
+                    "id": fset.id,
+                    "uid": fset.public_token
                 })
 
             notes = db.query(models.Note).filter(
@@ -696,7 +701,8 @@ async def autocomplete(
                     "subtext": "Note",
                     "type": "content",
                     "contentType": "note",
-                    "id": note.id
+                    "id": note.id,
+                    "uid": note.uid
                 })
 
             chats = db.query(models.ChatSession).filter(
@@ -711,7 +717,8 @@ async def autocomplete(
                         "subtext": "Chat Session",
                         "type": "content",
                         "contentType": "chat",
-                        "id": chat.id
+                        "id": chat.id,
+                        "uid": chat.public_token
                     })
 
         if len(suggestions) < 3 and len(query) >= 2:

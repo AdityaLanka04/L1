@@ -282,6 +282,15 @@ function decodeJsonishTutorString(value = '') {
   }
 }
 
+function coercePseudoArrayLines(bracketed = '') {
+  const inner = String(bracketed || '').trim().replace(/^\[/, '').replace(/\]$/, '');
+  const lines = inner
+    .split('\n')
+    .map((line) => line.trim().replace(/^[*\-]\s*/, '').replace(/^"|",?$|,$/g, '').trim())
+    .filter(Boolean);
+  return lines.join('\n').trim();
+}
+
 function parseTutorResponseContract(text = '') {
   const raw = normalizeTutorJsonishText(stripTutorJsonFence(text));
   if (!/"answer"\s*:/.test(raw) || !/"tutor_state"\s*:/.test(raw)) return null;
@@ -300,7 +309,7 @@ function parseTutorResponseContract(text = '') {
   const answerArrayMatch = raw.match(/"answer"\s*:\s*(\[[\s\S]*?\])\s*,\s*"tutor_state"\s*:/i);
   const answerMatch = raw.match(/"answer"\s*:\s*"([\s\S]*?)"\s*,\s*"tutor_state"\s*:/i);
   const parsedAnswer = answerArrayMatch
-    ? coerceTutorAnswer(parseTutorJsonLenient(answerArrayMatch[1]))
+    ? (coerceTutorAnswer(parseTutorJsonLenient(answerArrayMatch[1])) || coercePseudoArrayLines(answerArrayMatch[1]))
     : (answerMatch ? decodeJsonishTutorString(answerMatch[1]) : '');
   if (!parsedAnswer) return null;
 
@@ -1199,15 +1208,16 @@ const AIChat = ({ sharedMode = false }) => {
 
       if (response.ok) {
         const newChat = await response.json();
-        
+
         const sessionData = {
           id: newChat.session_id || newChat.id,
+          uid: newChat.uid || null,
           title: newChat.title,
           created_at: newChat.created_at,
           updated_at: newChat.updated_at || newChat.created_at
         };
-        
-        
+
+
         setChatSessions(prev => [sessionData, ...prev]);
         return sessionData.id;
       } else {
@@ -1474,10 +1484,6 @@ const AIChat = ({ sharedMode = false }) => {
         type: 'ai',
         content: aiAnswerContent,
         timestamp: new Date().toISOString(),
-        ...(data.ai_confidence !== null && data.ai_confidence !== undefined && {
-          aiConfidence: data.ai_confidence,
-          shouldRequestFeedback: data.should_request_feedback || false
-        }),
         topics: data.topics_discussed || [],
         misconceptionDetected: data.misconception_detected || false,
         filesProcessed: data.files_processed || 0,
@@ -1535,8 +1541,6 @@ const AIChat = ({ sharedMode = false }) => {
         type: 'ai',
         content: `Sorry, I encountered an error: ${error.message}. Please try again.`,
         timestamp: new Date().toISOString(),
-        aiConfidence: 0.3,
-        shouldRequestFeedback: true
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -2113,12 +2117,6 @@ const AIChat = ({ sharedMode = false }) => {
   }
   };
 
-  const getConfidenceClass = (confidence) => {
-    if (confidence < 0.5) return 'low';
-    if (confidence < 0.8) return 'medium';
-    return 'high';
-  };
-
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -2574,8 +2572,6 @@ const AIChat = ({ sharedMode = false }) => {
             type: 'ai',
             content: aiAnswerContent,
             timestamp: new Date().toISOString(),
-            aiConfidence: data.ai_confidence || 0.9,
-            shouldRequestFeedback: data.should_request_feedback || false,
             topics: data.topics_discussed || [],
             tutorMode: data.tutor_mode || tutorMode,
             tutorReplyMode: data.tutor_reply_style || tutorReplyMode,
@@ -3484,18 +3480,12 @@ const AIChat = ({ sharedMode = false }) => {
                     <div className="ac-message-meta" style={{ maxWidth: '85%' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span className="ac-message-time">
-                          {new Date(message.timestamp).toLocaleTimeString('en-US', { 
-                            hour: 'numeric', 
+                          {new Date(message.timestamp).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
                             minute: '2-digit',
                             hour12: true
                           })}
                         </span>
-                        
-                        {message.type === 'ai' && message.aiConfidence !== undefined && (
-                          <span className={`ac-confidence ${getConfidenceClass(message.aiConfidence)}`}>
-                            {Math.round(message.aiConfidence * 100)}%
-                          </span>
-                        )}
                       </div>
                     </div>
 

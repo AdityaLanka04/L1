@@ -23,6 +23,7 @@ from deps import (
 )
 from services.ai_json_parser import parse_json_array_response
 from services.websocket_manager import manager
+from uid_utils import resolve_by_id_or_uid
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,8 @@ async def create_solo_quiz(
 
         return {
             "status": "success",
-            "quiz_id": quiz.id
+            "quiz_id": quiz.id,
+            "uid": quiz.uid
         }
 
     except Exception as e:
@@ -106,7 +108,7 @@ async def create_solo_quiz(
 
 @router.get("/solo_quiz/{quiz_id}")
 async def get_solo_quiz(
-    quiz_id: int,
+    quiz_id: str,
     username: str = Depends(verify_token),
     db: Session = Depends(get_db)
 ):
@@ -115,21 +117,24 @@ async def get_solo_quiz(
         if not current_user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        quiz = db.query(models.SoloQuiz).filter(
-            models.SoloQuiz.id == quiz_id,
-            models.SoloQuiz.user_id == current_user.id
+        quiz = resolve_by_id_or_uid(
+            db.query(models.SoloQuiz).filter(models.SoloQuiz.user_id == current_user.id),
+            models.SoloQuiz,
+            quiz_id,
+            uid_field="uid",
         ).first()
 
         if not quiz:
             raise HTTPException(status_code=404, detail="Quiz not found")
 
         questions = db.query(models.SoloQuizQuestion).filter(
-            models.SoloQuizQuestion.quiz_id == quiz_id
+            models.SoloQuizQuestion.quiz_id == quiz.id
         ).all()
 
         return {
             "quiz": {
                 "id": quiz.id,
+                "uid": quiz.uid,
                 "subject": quiz.subject,
                 "difficulty": quiz.difficulty,
                 "question_count": quiz.question_count,
@@ -164,9 +169,11 @@ async def complete_solo_quiz(
         score = payload.get("score")
         answers = payload.get("answers", [])
 
-        quiz = db.query(models.SoloQuiz).filter(
-            models.SoloQuiz.id == quiz_id,
-            models.SoloQuiz.user_id == current_user.id
+        quiz = resolve_by_id_or_uid(
+            db.query(models.SoloQuiz).filter(models.SoloQuiz.user_id == current_user.id),
+            models.SoloQuiz,
+            quiz_id,
+            uid_field="uid",
         ).first()
 
         if not quiz:

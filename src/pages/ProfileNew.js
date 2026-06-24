@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut, Trash2, ArrowLeft, MessageSquare, LayoutDashboard, User, CreditCard, Target, Settings, BookOpen, Sparkles, Plus, Gauge } from 'lucide-react';
+import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut, Trash2, MessageSquare, LayoutDashboard, User, CreditCard, Target, Settings, BookOpen, Sparkles, Plus, Gauge } from 'lucide-react';
+import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarStats, SidebarStatBox, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider, SidebarStripSpacer } from '../components/Sidebar';
 import { API_URL } from '../config';
 import './ProfileNew.css';
 
@@ -894,9 +895,6 @@ const ProfileNew = () => {
           <button className="pn-top-action" onClick={() => navigate('/dashboard-cerbyl')} type="button">
             <span>Dashboard</span>
           </button>
-          <button className="pn-top-action" onClick={() => setSidebarCollapsed(prev => !prev)} type="button">
-            <span>{sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}</span>
-          </button>
           <div className="pn-save-status">
             {autoSaving ? (
               <span className="pn-saving">saving<span className="pn-saving-dots"><i/><i/><i/></span></span>
@@ -911,167 +909,58 @@ const ProfileNew = () => {
 
       <div className="pf-qb-body">
         <div className={`pf-qb-shell ${sidebarCollapsed ? 'pf-qb-shell--collapsed' : ''}`}>
-          <aside className={`pf-qb-sidebar ${sidebarCollapsed ? 'pf-qb-sidebar--collapsed' : ''}`} aria-label="Profile navigation">
-            {sidebarCollapsed ? (
-              <div className="pf-qb-collapsed-strip">
-                <button className="pf-qb-strip-btn pf-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
-                  cb
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Overview" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-overview'); }} type="button">
-                  <User size={18} />
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Subscription" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-subscription'); }} type="button">
-                  <CreditCard size={18} />
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Usage" onClick={() => navigate('/profile/usage')} type="button">
-                  <Gauge size={18} />
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Personal Info" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-personal'); }} type="button">
-                  <BookOpen size={18} />
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Learning Goals" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-goals'); }} type="button">
-                  <Target size={18} />
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Subjects" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-subjects'); }} type="button">
-                  <Sparkles size={18} />
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Settings" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-settings'); }} type="button">
-                  <Settings size={18} />
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Account" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-account'); }} type="button">
-                  <Trash2 size={18} />
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Retake Assessment" onClick={() => navigate('/profile-quiz')} type="button">
-                  <Award size={18} />
-                </button>
-                <div className="pf-qb-strip-spacer" />
-                <button className="pf-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
-                  <MessageSquare size={18} />
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-                  <LayoutDashboard size={18} />
-                </button>
-                <button className="pf-qb-strip-btn" data-tip="Logout" onClick={clearSessionAndGoLogin} type="button">
-                  <LogOut size={18} />
-                </button>
-              </div>
-            ) : (
-            <>
-              <div className="pf-qb-side-brand">
-                <div className="pf-qb-brand-wrap">
-                  <div className="pf-qb-brand">cerbyl</div>
-                  <div className="pf-qb-current-title">Profile</div>
-                </div>
-                <button
-                  className="pf-qb-side-close-btn"
-                  onClick={() => setSidebarCollapsed(true)}
-                  title="Close sidebar"
-                  aria-label="Close profile sidebar"
-                  type="button"
-                >
-                  <ArrowLeft size={16} />
-                </button>
-              </div>
-
-              <div className="pf-qb-side-block">
-                <div className="pf-qb-side-label">Sections</div>
-                <nav className="pf-qb-view-nav" aria-label="Profile sections">
-                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-overview')} type="button">
-                    <User size={16} />
-                    <span>Overview</span>
-                  </button>
-                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-subscription')} type="button">
-                    <CreditCard size={16} />
-                    <span>Subscription</span>
-                  </button>
-                  <button className="pf-qb-view-link" onClick={() => navigate('/profile/usage')} type="button">
-                    <Gauge size={16} />
-                    <span>Usage</span>
-                  </button>
-                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-personal')} type="button">
-                    <BookOpen size={16} />
-                    <span>Personal Info</span>
-                  </button>
-                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-goals')} type="button">
-                    <Target size={16} />
-                    <span>Learning Goals</span>
-                  </button>
-                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-subjects')} type="button">
-                    <Sparkles size={16} />
-                    <span>Subjects</span>
-                  </button>
-                </nav>
-              </div>
-
-              <div className="pf-qb-side-block">
-                <div className="pf-qb-side-label">Account</div>
-                <nav className="pf-qb-view-nav" aria-label="Profile account">
-                  <button className="pf-qb-view-link" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-                    <LayoutDashboard size={16} />
-                    <span>Dashboard</span>
-                  </button>
-                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-settings')} type="button">
-                    <Settings size={16} />
-                    <span>Settings</span>
-                  </button>
-                  <button className="pf-qb-view-link" onClick={() => scrollToSection('pn-section-account')} type="button">
-                    <Trash2 size={16} />
-                    <span>Delete Account</span>
-                  </button>
-                  <button className="pf-qb-view-link pf-qb-view-link--accent" onClick={() => navigate('/profile-quiz')} type="button">
-                    <Award size={16} />
-                    <span>Retake Assessment</span>
-                  </button>
-                </nav>
-              </div>
-
-              <div className="pf-qb-side-block">
-                <div className="pf-qb-side-label">Level</div>
-                <div className="pf-qb-stat-grid">
-                  <div className="pf-qb-stat-card">
-                    <span>{profileLevel}</span>
-                    <small>Level</small>
-                  </div>
-                  <div className="pf-qb-stat-card">
-                    <span>{profileXp.toLocaleString()}</span>
-                    <small>XP</small>
-                  </div>
-                  <div className="pf-qb-stat-card">
-                    <span>{Math.round(levelProgress)}%</span>
-                    <small>Progress</small>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pf-qb-side-actions">
-                <button
-                  className="pf-qb-action-btn pf-qb-action-btn--ghost"
-                  onClick={() => navigate('/dashboard-cerbyl')}
-                  type="button"
-                >
-                  <LayoutDashboard size={14} />
-                  <span>Dashboard</span>
-                </button>
-                <button
-                  className="pf-qb-action-btn pf-qb-action-btn--ghost"
-                  onClick={() => navigate('/ai-chat')}
-                  type="button"
-                >
-                  <MessageSquare size={14} />
-                  <span>AI Chat</span>
-                </button>
-                <button
-                  className="pf-qb-action-btn pf-qb-action-btn--ghost"
-                  onClick={clearSessionAndGoLogin}
-                  type="button"
-                >
-                  <LogOut size={14} />
-                  <span>Logout</span>
-                </button>
-              </div>
-            </>
+          <SidebarShell
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+            brandKicker="PROFILE"
+            ariaLabel="Profile navigation"
+            collapsedContent={(
+              <>
+                <SidebarStripButton icon={<User size={18} />} tip="Overview" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-overview'); }} />
+                <SidebarStripButton icon={<CreditCard size={18} />} tip="Subscription" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-subscription'); }} />
+                <SidebarStripButton icon={<Gauge size={18} />} tip="Usage" onClick={() => navigate('/profile/usage')} />
+                <SidebarStripButton icon={<BookOpen size={18} />} tip="Personal Info" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-personal'); }} />
+                <SidebarStripButton icon={<Target size={18} />} tip="Learning Goals" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-goals'); }} />
+                <SidebarStripButton icon={<Sparkles size={18} />} tip="Subjects" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-subjects'); }} />
+                <SidebarStripDivider />
+                <SidebarStripButton icon={<Settings size={18} />} tip="Settings" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-settings'); }} />
+                <SidebarStripButton icon={<Trash2 size={18} />} tip="Account" onClick={() => { setSidebarCollapsed(false); scrollToSection('pn-section-account'); }} />
+                <SidebarStripButton icon={<Award size={18} />} tip="Retake Assessment" onClick={() => navigate('/profile-quiz')} />
+                <SidebarStripSpacer />
+                <SidebarStripButton icon={<MessageSquare size={18} />} tip="AI Chat" onClick={() => navigate('/ai-chat')} />
+                <SidebarStripButton icon={<LayoutDashboard size={18} />} tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+                <SidebarStripButton icon={<LogOut size={18} />} tip="Logout" onClick={clearSessionAndGoLogin} />
+              </>
             )}
-          </aside>
+          >
+            <SidebarSection heading="Sections">
+              <SidebarMenuItem icon={<User size={16} />} label="Overview" onClick={() => scrollToSection('pn-section-overview')} />
+              <SidebarMenuItem icon={<CreditCard size={16} />} label="Subscription" onClick={() => scrollToSection('pn-section-subscription')} />
+              <SidebarMenuItem icon={<Gauge size={16} />} label="Usage" onClick={() => navigate('/profile/usage')} />
+              <SidebarMenuItem icon={<BookOpen size={16} />} label="Personal Info" onClick={() => scrollToSection('pn-section-personal')} />
+              <SidebarMenuItem icon={<Target size={16} />} label="Learning Goals" onClick={() => scrollToSection('pn-section-goals')} />
+              <SidebarMenuItem icon={<Sparkles size={16} />} label="Subjects" onClick={() => scrollToSection('pn-section-subjects')} />
+            </SidebarSection>
+
+            <SidebarSection heading="Account">
+              <SidebarMenuItem icon={<LayoutDashboard size={16} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+              <SidebarMenuItem icon={<Settings size={16} />} label="Settings" onClick={() => scrollToSection('pn-section-settings')} />
+              <SidebarMenuItem icon={<Trash2 size={16} />} label="Delete Account" onClick={() => scrollToSection('pn-section-account')} />
+              <SidebarMenuItem icon={<Award size={16} />} label="Retake Assessment" onClick={() => navigate('/profile-quiz')} />
+            </SidebarSection>
+
+            <SidebarStats>
+              <SidebarStatBox value={profileLevel} label="Level" />
+              <SidebarStatBox value={profileXp.toLocaleString()} label="XP" />
+              <SidebarStatBox value={`${Math.round(levelProgress)}%`} label="Progress" />
+            </SidebarStats>
+
+            <SidebarActions>
+              <SidebarAction icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+              <SidebarAction icon={<MessageSquare size={14} />} label="AI Chat" onClick={() => navigate('/ai-chat')} />
+              <SidebarAction icon={<LogOut size={14} />} label="Logout" onClick={clearSessionAndGoLogin} />
+            </SidebarActions>
+          </SidebarShell>
 
           <main className="pf-qb-main" ref={mainScrollRef}>
       <div className="pn-wrap">
@@ -1135,7 +1024,7 @@ const ProfileNew = () => {
                   </div>
                 )}
                 <button className="pn-retake-btn" onClick={() => navigate('/profile-quiz')}>
-                  Retake Assessment →
+                  Retake Assessment
                 </button>
               </div>
               {Object.keys(profileData.archetypeScores).length > 0 && (
@@ -1162,7 +1051,7 @@ const ProfileNew = () => {
             <div className="pn-section-label">LEARNING ARCHETYPE</div>
             <button className="pn-discover-btn" onClick={() => navigate('/profile-quiz')}>
               <span className="pn-discover-title">Discover Your Learning Archetype</span>
-              <span className="pn-discover-sub">Take our assessment to unlock personalized AI tutoring tailored to your style →</span>
+              <span className="pn-discover-sub">Take our assessment to unlock personalized AI tutoring tailored to your style</span>
             </button>
           </section>
         )}

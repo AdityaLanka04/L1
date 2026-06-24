@@ -11,6 +11,7 @@ import contextService from '../services/contextService';
 import { API_URL } from '../config/api';
 import { queuedAIJsonFetch } from '../services/aiJobService';
 import AbstractFx from '../components/AbstractFx';
+import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarStats, SidebarStatBox, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripSpacer } from '../components/Sidebar';
 import './Vault.css';
 
 const DECK_SIZE = 8;
@@ -1755,136 +1756,76 @@ const Vault = () => {
 
       <div className="vlt-qb-body">
         <div className={`vlt-qb-shell ${sidebarCollapsed ? 'vlt-qb-shell--collapsed' : ''}`}>
-          <aside className={`vlt-qb-sidebar ${sidebarCollapsed ? 'vlt-qb-sidebar--collapsed' : ''}`} aria-label="ContextHub navigation">
-            {sidebarCollapsed ? (
-              <div className="vlt-qb-collapsed-strip">
-                <button className="vlt-qb-strip-btn vlt-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
-                  cb
-                </button>
-                <button className={`vlt-qb-strip-btn ${activeTab === 'deck' ? 'active' : ''}`} data-tip="Context Deck" onClick={() => { setSidebarCollapsed(false); setActiveTab('deck'); }} type="button">
-                  <Package size={18} />
-                </button>
-                <button className={`vlt-qb-strip-btn ${activeTab === 'mydocs' ? 'active' : ''}`} data-tip="Your Docs" onClick={() => { setSidebarCollapsed(false); setActiveTab('mydocs'); }} type="button">
-                  <Lock size={18} />
-                </button>
-                <button className={`vlt-qb-strip-btn ${activeTab === 'upload' ? 'active' : ''}`} data-tip="Upload" onClick={() => { setSidebarCollapsed(false); setActiveTab('upload'); }} type="button">
-                  <Upload size={18} />
-                </button>
-                <button className={`vlt-qb-strip-btn ${activeTab === 'curriculum' ? 'active' : ''}`} data-tip="Curriculum" onClick={() => { setSidebarCollapsed(false); setActiveTab('curriculum'); }} type="button">
-                  <GraduationCap size={18} />
-                </button>
-                <div className="vlt-qb-strip-spacer" />
-                <button className="vlt-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
-                  <MessageSquare size={18} />
-                </button>
-                <button className="vlt-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-                  <LayoutDashboard size={18} />
-                </button>
-                <button
-                  className="vlt-qb-strip-btn"
-                  data-tip="Logout"
+          <SidebarShell
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+            brandKicker="CONTEXT HUB"
+            ariaLabel="ContextHub navigation"
+            collapsedContent={(
+              <>
+                {TABS.map((t) => {
+                  const Icon = t.icon;
+                  return (
+                    <SidebarStripButton
+                      key={t.id}
+                      icon={<Icon size={18} />}
+                      tip={t.label}
+                      active={activeTab === t.id}
+                      onClick={() => { setSidebarCollapsed(false); setActiveTab(t.id); }}
+                    />
+                  );
+                })}
+                <SidebarStripSpacer />
+                <SidebarStripButton icon={<MessageSquare size={18} />} tip="AI Chat" onClick={() => navigate('/ai-chat')} />
+                <SidebarStripButton icon={<LayoutDashboard size={18} />} tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+                <SidebarStripButton
+                  icon={<LogOut size={18} />}
+                  tip="Logout"
                   onClick={() => {
                     localStorage.removeItem('token');
                     localStorage.removeItem('username');
                     navigate('/');
                   }}
-                  type="button"
-                >
-                  <LogOut size={18} />
-                </button>
-              </div>
-            ) : (
-            <>
-              <div className="vlt-qb-side-brand">
-                <div className="vlt-qb-brand-wrap">
-                  <div className="vlt-qb-brand">cerbyl</div>
-                  <div className="vlt-qb-current-title">ContextHub</div>
-                </div>
-                <button
-                  className="vlt-qb-side-close-btn"
-                  onClick={() => setSidebarCollapsed(true)}
-                  title="Close sidebar"
-                  aria-label="Close ContextHub sidebar"
-                  type="button"
-                >
-                  <ArrowLeft size={14} />
-                </button>
-              </div>
-
-              <div className="vlt-qb-side-block">
-                <div className="vlt-qb-side-label">Views</div>
-                <nav className="vlt-qb-view-nav" aria-label="ContextHub views">
-                  {TABS.map(t => {
-                    const Icon = t.icon;
-                    return (
-                      <button
-                        key={t.id}
-                        className={`vlt-qb-view-link ${activeTab === t.id ? 'vlt-qb-view-link--active' : ''}`}
-                        onClick={() => setActiveTab(t.id)}
-                        type="button"
-                      >
-                        <Icon size={16} />
-                        <span>{t.label}</span>
-                        {t.id === 'deck' && deckIds.length > 0 && (
-                          <span className="vlt-qb-nav-count">{deckIds.length}</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-
-              <div className="vlt-qb-side-block">
-                <div className="vlt-qb-side-label">Overview</div>
-                <div className="vlt-qb-stat-grid">
-                  <div className="vlt-qb-stat-card">
-                    <span>{stats.deck}/{DECK_SIZE}</span>
-                    <small>Deck</small>
-                  </div>
-                  <div className="vlt-qb-stat-card">
-                    <span>{stats.myDocs}</span>
-                    <small>Your Docs</small>
-                  </div>
-                  <div className="vlt-qb-stat-card">
-                    <span>{stats.books}</span>
-                    <small>Books</small>
-                  </div>
-                </div>
-              </div>
-
-              <div className="vlt-qb-side-actions">
-                <button
-                  className="vlt-qb-action-btn vlt-qb-action-btn--ghost"
-                  onClick={() => navigate('/dashboard-cerbyl')}
-                  type="button"
-                >
-                  <LayoutDashboard size={14} />
-                  <span>Dashboard</span>
-                </button>
-                <button
-                  className="vlt-qb-action-btn vlt-qb-action-btn--ghost"
-                  onClick={() => navigate('/ai-chat')}
-                  type="button"
-                >
-                  <MessageSquare size={14} />
-                  <span>AI Chat</span>
-                </button>
-                <button
-                  className="vlt-qb-action-btn vlt-qb-action-btn--ghost"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    navigate('/');
-                  }}
-                  type="button"
-                >
-                  <LogOut size={14} />
-                  <span>Logout</span>
-                </button>
-              </div>
-            </>
+                />
+              </>
             )}
-          </aside>
+          >
+            <SidebarSection heading="Views">
+              {TABS.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <SidebarMenuItem
+                    key={t.id}
+                    icon={<Icon size={16} />}
+                    label={t.label}
+                    active={activeTab === t.id}
+                    onClick={() => setActiveTab(t.id)}
+                    badge={t.id === 'deck' && deckIds.length > 0 ? <span className="vlt-qb-nav-count">{deckIds.length}</span> : null}
+                  />
+                );
+              })}
+            </SidebarSection>
+
+            <SidebarStats>
+              <SidebarStatBox value={`${stats.deck}/${DECK_SIZE}`} label="Deck" />
+              <SidebarStatBox value={stats.myDocs} label="Your Docs" />
+              <SidebarStatBox value={stats.books} label="Books" />
+            </SidebarStats>
+
+            <SidebarActions>
+              <SidebarAction icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+              <SidebarAction icon={<MessageSquare size={14} />} label="AI Chat" onClick={() => navigate('/ai-chat')} />
+              <SidebarAction
+                icon={<LogOut size={14} />}
+                label="Logout"
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('username');
+                  navigate('/');
+                }}
+              />
+            </SidebarActions>
+          </SidebarShell>
 
           <main className="vlt-main vlt-qb-main">
         {}

@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Trophy, Target, Activity as ActivityIcon, Swords, Award, BarChart3,
-  ArrowLeft, MessageSquare, LayoutDashboard, LogOut, Zap
+  MessageSquare, LayoutDashboard, LogOut, Zap
 } from 'lucide-react';
+import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarStats, SidebarStatBox, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider, SidebarStripSpacer } from '../components/Sidebar';
+import AbstractFx from '../components/AbstractFx';
 import './Games.css';
 import { API_URL } from '../config';
 
@@ -316,175 +318,94 @@ const Games = () => {
 
   return (
     <div className="games-page">
+      <div className="gm-bg-fx" aria-hidden>
+        <div className="gm-bg-orb gm-bg-orb-1" />
+        <div className="gm-bg-orb gm-bg-orb-2" />
+        <div className="gm-bg-orb gm-bg-orb-3" />
+        <AbstractFx variant="circles" />
+        <div className="gm-bg-vignette" />
+      </div>
       <div className="gm-qb-body">
         <div className={`gm-qb-shell ${sidebarCollapsed ? 'gm-qb-shell--collapsed' : ''}`}>
-          <aside className={`gm-qb-sidebar ${sidebarCollapsed ? 'gm-qb-sidebar--collapsed' : ''}`} aria-label="Games navigation">
-            {sidebarCollapsed ? (
-              <div className="gm-qb-collapsed-strip">
-                <button className="gm-qb-strip-btn gm-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarCollapsed(false)} type="button">
-                  cb
-                </button>
-                <button className="gm-qb-strip-btn" data-tip="Daily Challenge" onClick={() => { setSidebarCollapsed(false); setShowDailyChallengeModal(true); }} type="button">
-                  <Zap size={18} />
-                </button>
-                <button className="gm-qb-strip-btn" data-tip="Leaderboards" onClick={() => navigate('/leaderboards')} type="button">
-                  <Trophy size={18} />
-                </button>
-                <button className="gm-qb-strip-btn" data-tip="Challenges" onClick={() => navigate('/challenges')} type="button">
-                  <Target size={18} />
-                </button>
-                <button className="gm-qb-strip-btn" data-tip="Friends" onClick={() => navigate('/friends')} type="button">
-                  <Users size={18} />
-                </button>
-                <button className="gm-qb-strip-btn" data-tip="Activity Feed" onClick={() => navigate('/activity-feed')} type="button">
-                  <ActivityIcon size={18} />
-                </button>
-                <button className="gm-qb-strip-btn" data-tip="Social Hub" onClick={() => navigate('/social')} type="button">
-                  <Swords size={18} />
-                </button>
-                <div className="gm-qb-strip-spacer" />
-                <button className="gm-qb-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
-                  <MessageSquare size={18} />
-                </button>
-                <button className="gm-qb-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
-                  <LayoutDashboard size={18} />
-                </button>
-                <button
-                  className="gm-qb-strip-btn"
-                  data-tip="Logout"
+          <SidebarShell
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+            brandKicker="GAMES"
+            ariaLabel="Games navigation"
+            collapsedContent={(
+              <>
+                <SidebarStripButton icon={<Zap size={18} />} tip="Daily Challenge" onClick={() => { setSidebarCollapsed(false); setShowDailyChallengeModal(true); }} />
+                <SidebarStripButton icon={<Trophy size={18} />} tip="Leaderboards" onClick={() => navigate('/leaderboards')} />
+                <SidebarStripButton icon={<Target size={18} />} tip="Challenges" onClick={() => navigate('/challenges')} />
+                <SidebarStripButton icon={<Users size={18} />} tip="Friends" onClick={() => navigate('/friends')} />
+                <SidebarStripButton icon={<ActivityIcon size={18} />} tip="Activity Feed" onClick={() => navigate('/activity-feed')} />
+                <SidebarStripButton icon={<Swords size={18} />} tip="Social Hub" onClick={() => navigate('/social')} />
+                <SidebarStripSpacer />
+                <SidebarStripButton icon={<MessageSquare size={18} />} tip="AI Chat" onClick={() => navigate('/ai-chat')} />
+                <SidebarStripButton icon={<LayoutDashboard size={18} />} tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+                <SidebarStripButton
+                  icon={<LogOut size={18} />}
+                  tip="Logout"
                   onClick={() => {
                     localStorage.removeItem('token');
                     localStorage.removeItem('username');
                     navigate('/');
                   }}
-                  type="button"
-                >
-                  <LogOut size={18} />
-                </button>
-              </div>
-            ) : (
-            <>
-              <div className="gm-qb-side-brand">
-                <div className="gm-qb-brand-wrap">
-                  <div className="gm-qb-brand">cerbyl</div>
-                  <div className="gm-qb-current-title">Games</div>
-                </div>
-                <button
-                  className="gm-qb-side-close-btn"
-                  onClick={() => setSidebarCollapsed(true)}
-                  title="Close sidebar"
-                  aria-label="Close games sidebar"
-                  type="button"
-                >
-                  <ArrowLeft size={14} />
-                </button>
-              </div>
-
-              <div className="gm-qb-side-block">
-                <div className="gm-qb-side-label">Overview</div>
-                <div className="gm-qb-stat-grid">
-                  <div className="gm-qb-stat-card">
-                    <span>{gamificationStats.level}</span>
-                    <small>Level</small>
-                  </div>
-                  <div className="gm-qb-stat-card">
-                    <span>{gamificationStats.total_points.toLocaleString()}</span>
-                    <small>Points</small>
-                  </div>
-                  <div className="gm-qb-stat-card">
-                    <span>{gamificationStats.weekly_points}</span>
-                    <small>This Week</small>
-                  </div>
-                </div>
-              </div>
-
-              <div className="gm-qb-side-block">
-                <div className="gm-qb-side-label">Quick Actions</div>
-                <nav className="gm-qb-view-nav" aria-label="Games quick actions">
-                  <button className="gm-qb-view-link gm-qb-view-link--accent" onClick={() => setShowDailyChallengeModal(true)} type="button">
-                    <Zap size={16} />
-                    <span>Daily Challenge</span>
-                    {dailyChallenge && !isDailyChallengeComplete() && (
-                      <span className="gm-qb-nav-count">{Math.round(getDailyChallengeProgress())}%</span>
-                    )}
-                  </button>
-                </nav>
-              </div>
-
-              <div className="gm-qb-side-block gm-qb-side-block--grow">
-                <div className="gm-qb-side-label">Social</div>
-                <nav className="gm-qb-view-nav" aria-label="Social navigation">
-                  <button className="gm-qb-view-link" onClick={() => navigate('/leaderboards')} type="button">
-                    <Trophy size={16} />
-                    <span>Leaderboards</span>
-                  </button>
-                  <button className="gm-qb-view-link" onClick={() => navigate('/challenges')} type="button">
-                    <Target size={16} />
-                    <span>Challenges</span>
-                  </button>
-                  <button className="gm-qb-view-link" onClick={() => navigate('/friends')} type="button">
-                    <Users size={16} />
-                    <span>Friends</span>
-                  </button>
-                  <button className="gm-qb-view-link" onClick={() => navigate('/activity-feed')} type="button">
-                    <ActivityIcon size={16} />
-                    <span>Activity Feed</span>
-                  </button>
-                  <button className="gm-qb-view-link" onClick={() => navigate('/social')} type="button">
-                    <Swords size={16} />
-                    <span>Social Hub</span>
-                  </button>
-                </nav>
-              </div>
-
-              <div className="gm-qb-side-block">
-                <div className="gm-qb-side-label">Stats</div>
-                <nav className="gm-qb-view-nav" aria-label="Stats navigation">
-                  <button className="gm-qb-view-link" onClick={() => { document.querySelector('.bingo-card')?.scrollIntoView({ behavior: 'smooth' }); }} type="button">
-                    <BarChart3 size={16} />
-                    <span>Weekly Challenges</span>
-                    <span className="gm-qb-nav-count">{completedCount}/{totalTasks}</span>
-                  </button>
-                  <button className="gm-qb-view-link" onClick={() => { document.querySelector('.recent-card')?.scrollIntoView({ behavior: 'smooth' }); }} type="button">
-                    <Award size={16} />
-                    <span>Recent Activity</span>
-                  </button>
-                </nav>
-              </div>
-
-              <div className="gm-qb-side-actions">
-                <button
-                  className="gm-qb-action-btn gm-qb-action-btn--ghost"
-                  onClick={() => navigate('/dashboard-cerbyl')}
-                  type="button"
-                >
-                  <LayoutDashboard size={14} />
-                  <span>Dashboard</span>
-                </button>
-                <button
-                  className="gm-qb-action-btn gm-qb-action-btn--ghost"
-                  onClick={() => navigate('/ai-chat')}
-                  type="button"
-                >
-                  <MessageSquare size={14} />
-                  <span>AI Chat</span>
-                </button>
-                <button
-                  className="gm-qb-action-btn gm-qb-action-btn--ghost"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    navigate('/');
-                  }}
-                  type="button"
-                >
-                  <LogOut size={14} />
-                  <span>Logout</span>
-                </button>
-              </div>
-            </>
+                />
+              </>
             )}
-          </aside>
+          >
+            <SidebarSection heading="Quick Actions">
+              <SidebarMenuItem
+                icon={<Zap size={16} />}
+                label="Daily Challenge"
+                onClick={() => setShowDailyChallengeModal(true)}
+                badge={dailyChallenge && !isDailyChallengeComplete() ? <span className="gm-qb-nav-count">{Math.round(getDailyChallengeProgress())}%</span> : null}
+              />
+            </SidebarSection>
+
+            <SidebarSection heading="Social">
+              <SidebarMenuItem icon={<Trophy size={16} />} label="Leaderboards" onClick={() => navigate('/leaderboards')} />
+              <SidebarMenuItem icon={<Target size={16} />} label="Challenges" onClick={() => navigate('/challenges')} />
+              <SidebarMenuItem icon={<Users size={16} />} label="Friends" onClick={() => navigate('/friends')} />
+              <SidebarMenuItem icon={<ActivityIcon size={16} />} label="Activity Feed" onClick={() => navigate('/activity-feed')} />
+              <SidebarMenuItem icon={<Swords size={16} />} label="Social Hub" onClick={() => navigate('/social')} />
+            </SidebarSection>
+
+            <SidebarSection heading="Stats">
+              <SidebarMenuItem
+                icon={<BarChart3 size={16} />}
+                label="Weekly Challenges"
+                onClick={() => { document.querySelector('.bingo-card')?.scrollIntoView({ behavior: 'smooth' }); }}
+                badge={<span className="gm-qb-nav-count">{completedCount}/{totalTasks}</span>}
+              />
+              <SidebarMenuItem
+                icon={<Award size={16} />}
+                label="Recent Activity"
+                onClick={() => { document.querySelector('.recent-card')?.scrollIntoView({ behavior: 'smooth' }); }}
+              />
+            </SidebarSection>
+
+            <SidebarStats>
+              <SidebarStatBox value={gamificationStats.level} label="Level" />
+              <SidebarStatBox value={gamificationStats.total_points.toLocaleString()} label="Points" />
+              <SidebarStatBox value={gamificationStats.weekly_points} label="This Week" />
+            </SidebarStats>
+
+            <SidebarActions>
+              <SidebarAction icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+              <SidebarAction icon={<MessageSquare size={14} />} label="AI Chat" onClick={() => navigate('/ai-chat')} />
+              <SidebarAction
+                icon={<LogOut size={14} />}
+                label="Logout"
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('username');
+                  navigate('/');
+                }}
+              />
+            </SidebarActions>
+          </SidebarShell>
 
           <main className="gm-qb-main">
       <div className="games-container">

@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Play, Brain, Sparkles, Loader, AlertCircle, BarChart3,
-  BookOpen, Gauge, Cpu, Database, ArrowRight, History, TrendingUp, Zap, ChevronRight
+  BookOpen, Gauge, Cpu, Database, ArrowRight, History, TrendingUp, Zap, ChevronRight,
+  MessageSquare, LayoutDashboard, LogOut
 } from 'lucide-react';
 import './SoloQuiz.css';
 import quizAgentService from '../services/quizAgentService';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
+import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarStats, SidebarStatBox, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider } from '../components/Sidebar';
 
 const SoloQuiz = () => {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ const SoloQuiz = () => {
   const username = localStorage.getItem('username');
 
   const [activeTab, setActiveTab] = useState('generator');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [subject, setSubject] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
@@ -120,78 +123,60 @@ const SoloQuiz = () => {
 
   return (
     <div className="sq-page">
-      <div className="sq-body">
-        <aside className="sq-sidebar">
-          <div className="sq-sidebar-brand">
-            <div className="sq-sidebar-logo">cerbyl</div>
-            <div className="sq-sidebar-kicker">SOLO QUIZ</div>
-          </div>
+      <div className={`sq-body ${sidebarCollapsed ? 'sq-body--collapsed' : ''}`}>
+        <SidebarShell
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+          brandKicker="SOLO QUIZ"
+          ariaLabel="Solo Quiz navigation"
+          collapsedContent={(
+            <>
+              <SidebarStripButton icon={<Sparkles size={18} />} tip="Generator" active={activeTab === 'generator'} onClick={() => { setSidebarCollapsed(false); setActiveTab('generator'); }} />
+              <SidebarStripButton icon={<History size={18} />} tip="Completed" active={activeTab === 'completed'} onClick={() => { setSidebarCollapsed(false); setActiveTab('completed'); }} />
+              <SidebarStripButton icon={<TrendingUp size={18} />} tip="Statistics" active={activeTab === 'statistics'} onClick={() => { setSidebarCollapsed(false); setActiveTab('statistics'); }} />
+              <SidebarStripDivider />
+              <SidebarStripButton icon={<BookOpen size={18} />} tip="Quiz Hub" onClick={() => navigate('/quiz-hub')} />
+              <SidebarStripButton icon={<MessageSquare size={18} />} tip="AI Chat" onClick={() => navigate('/ai-chat')} />
+              <SidebarStripButton icon={<LayoutDashboard size={18} />} tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+              <SidebarStripButton
+                icon={<LogOut size={18} />}
+                tip="Logout"
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('username');
+                  navigate('/');
+                }}
+              />
+            </>
+          )}
+        >
+          <SidebarSection heading="Quiz Workspace">
+            <SidebarMenuItem icon={<Sparkles size={16} />} label="Generator" active={activeTab === 'generator'} onClick={() => setActiveTab('generator')} />
+            <SidebarMenuItem icon={<History size={16} />} label="Completed" active={activeTab === 'completed'} onClick={() => setActiveTab('completed')} />
+            <SidebarMenuItem icon={<TrendingUp size={16} />} label="Statistics" active={activeTab === 'statistics'} onClick={() => setActiveTab('statistics')} />
+          </SidebarSection>
 
-          <div className="sq-sidebar-section">
-            <h3 className="sq-sidebar-heading">Quiz Workspace</h3>
-            <nav className="sq-sidebar-menu">
-              <button 
-                className={`sq-menu-item ${activeTab === 'generator' ? 'active' : ''}`}
-                onClick={() => setActiveTab('generator')}
-              >
-                <Sparkles size={18} />
-                <span>Generator</span>
-                {activeTab === 'generator' && <div className="sq-active-indicator"></div>}
-              </button>
-              
-              <button 
-                className={`sq-menu-item ${activeTab === 'completed' ? 'active' : ''}`}
-                onClick={() => setActiveTab('completed')}
-              >
-                <History size={18} />
-                <span>Completed</span>
-                {activeTab === 'completed' && <div className="sq-active-indicator"></div>}
-              </button>
-              
-              <button 
-                className={`sq-menu-item ${activeTab === 'statistics' ? 'active' : ''}`}
-                onClick={() => setActiveTab('statistics')}
-              >
-                <TrendingUp size={18} />
-                <span>Statistics</span>
-                {activeTab === 'statistics' && <div className="sq-active-indicator"></div>}
-              </button>
-            </nav>
-          </div>
+          <SidebarStats>
+            <SidebarStatBox value={difficulty} label="Difficulty" />
+            <SidebarStatBox value={questionCount} label="Questions" />
+            <SidebarStatBox value={timingMode === 'none' ? 'No Timer' : timingMode} label="Timing" />
+          </SidebarStats>
 
-          <div className="sq-sidebar-section sq-sidebar-config">
-            <h3 className="sq-sidebar-heading">Current Setup</h3>
-            <div className="sq-config-grid">
-              <div className="sq-config-tile">
-                <span>{difficulty}</span>
-                <small>Difficulty</small>
-              </div>
-              <div className="sq-config-tile">
-                <span>{questionCount}</span>
-                <small>Questions</small>
-              </div>
-              <div className="sq-config-tile sq-config-wide">
-                <span>{timingMode === 'none' ? 'No Timer' : timingMode}</span>
-                <small>Timing</small>
-              </div>
-            </div>
-          </div>
-
-          <div className="sq-sidebar-section sq-sidebar-actions">
-            <button className="sq-sidebar-action primary" onClick={() => setActiveTab('generator')}>
-              <Play size={16} />
-              <span>Start Quiz</span>
-            </button>
-            <button className="sq-sidebar-action" onClick={() => navigate('/quiz-hub')}>
-              <BookOpen size={16} />
-              <span>Quiz Hub</span>
-            </button>
-            <button className="sq-sidebar-action" onClick={() => navigate('/dashboard-cerbyl')}>
-              <ChevronRight size={16} />
-              <span>Dashboard</span>
-            </button>
-          </div>
-        </aside>
+          <SidebarActions>
+            <SidebarAction icon={<Play size={14} />} label="Start Quiz" onClick={() => setActiveTab('generator')} />
+            <SidebarAction icon={<BookOpen size={14} />} label="Quiz Hub" onClick={() => navigate('/quiz-hub')} />
+            <SidebarAction icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+            <SidebarAction
+              icon={<LogOut size={14} />}
+              label="Logout"
+              onClick={() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                navigate('/');
+              }}
+            />
+          </SidebarActions>
+        </SidebarShell>
 
         <main className="sq-main">
           {activeTab === 'generator' && (
