@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
-import { safeInternalPath } from '../utils/sanitize';
+import { escapeHtml, safeInternalPath } from '../utils/sanitize';
 import gamificationService from '../services/gamificationService';
 import MathRenderer from '../components/MathRenderer';
 import GraphRenderer, { detectGraphLanguage } from '../components/GraphRenderer';
@@ -2295,19 +2295,79 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const normalizeMarkdownForRenderer = (text = '') => {
+    const splitInlineHeadingBodies = (src) => {
+      const bodyStartRe = /(?:[A-Z][a-z][\w'-]*\s+[a-z][\w'-]*\s+(?:is|are|was|were|can|will|would|does|involves|refers|means|works|learns?|helps|uses|allows|includes|contains|provides|appears|starts|begins|processes|generates)|To\s+[a-z]|This\s+[a-z]|These\s+[a-z]|There\s+(?:is|are)|Let's\s+[a-z]|We\s+[a-z]|You\s+[a-z])/;
+
+      return src.replace(/^(#{1,6}\s+)([^\n]+)$/gm, (full, marker, rest) => {
+        const match = rest.match(new RegExp(`^(.{3,120}?)\\s+(${bodyStartRe.source}.*)$`));
+        if (!match) return full;
+
+        const title = match[1].trim();
+        const body = match[2].trim();
+        const titleWords = title.split(/\s+/).filter(Boolean);
+        const allowsShortTitle = /^(answer|applications?|examples?|explanation|overview|summary)$/i.test(title);
+        if ((titleWords.length < 2 && !allowsShortTitle) || /[.!?]$/.test(title)) {
+          return full;
+        }
+
+        return `${marker}${title}\n\n${body}`;
+      });
+    };
+
     let normalized = String(text || '')
       // Some OpenAI-compatible providers escape markdown punctuation in plain text.
       // Restore only markdown control characters; leave LaTeX delimiters like \( and \[ intact.
       .replace(/\\([*`>#.!+\-])/g, '$1')
       .replace(/\\#/g, '#')
-      .replace(/([^\n])\s+(#{1,6}\s+)/g, '$1\n\n$2')
-      .replace(/^(#{1,6}\s+(?:Analysis of (?:the )?Uploaded Files|Breakdown of (?:the )?Information|Key Observations|Comprehension Check|Summary|Key Points|Overview|Explanation|Answer))\s+/gim, '$1\n\n')
-      .replace(/([^\n])\s+(#{1,6}\s+(?:Analysis of (?:the )?Uploaded Files|Breakdown of (?:the )?Information|Key Observations|Comprehension Check|Summary|Key Points|Overview|Explanation|Answer)\b)/gim, '$1\n\n$2')
-      .replace(/\s+-\s+(?=(?:\*\*)?[A-Z0-9])/g, '\n- ')
+      .replace(/(?:&num;|&#35;|&#x23;)/gi, '#')
+      .replace(/\r\n/g, '\n')
+      .replace(/([^\n])\s+(#{1,6}\s+)/g, '$1\n\n$2');
+
+    const sectionHeadings = [
+      'Analysis of the Uploaded Files',
+      'Analysis of Uploaded Files',
+      'Breakdown of the Information',
+      'Breakdown of Information',
+      'Key Concepts',
+      'Core Concepts',
+      'Main Concepts',
+      'Key Observations',
+      'Comprehension Check',
+      'Introduction to Neural Networks',
+      'Basic Components',
+      'How Neural Networks Learn',
+      'Importance of Avoiding Overfitting and Underfitting',
+      'Summary',
+      'Key Points',
+      'Overview',
+      'Explanation',
+      'Answer',
+    ];
+
+    const headingPattern = sectionHeadings
+      .map((heading) => heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|');
+    const headingRe = new RegExp(`(^|\\s)(#{1,6}\\s+(?:${headingPattern})\\b)\\s*`, 'gim');
+
+    normalized = normalized
+      .replace(headingRe, (_, prefix, heading) => `${prefix && prefix.trim() ? '\n\n' : ''}${heading}\n\n`)
+      .replace(/(^|\n)(#{1,6}\s+Introduction to\s+[A-Z][\w/-]*(?:\s+(?:and|or|of|the|to|in|for|with|[A-Z][\w/-]*)){0,8})\s+(?=[A-Z][a-z][\w'-]*\s+[a-z][\w'-]*\s+(?:is|are|can|will|would|involves|refers|means|works|learns?|helps|uses|allows|includes|contains|provides|appears|starts|begins|processes))/gm, '$1$2\n\n')
+      .replace(/(^|\n)(#{1,6}\s+How\s+[A-Z][\w/-]*(?:\s+(?:and|or|of|the|to|in|for|with|[A-Z][\w/-]*)){0,8})\s+(?=[A-Z][a-z][\w'-]*\s+[a-z][\w'-]*\s+(?:is|are|can|will|would|involves|refers|means|works|learns?|helps|uses|allows|includes|contains|provides|appears|starts|begins|processes))/gm, '$1$2\n\n')
+      .replace(/(^|\n)(#{1,6}\s+(?:What|Why|When|Where)\s+[A-Z][\w/-]*(?:\s+(?:and|or|of|the|to|in|for|with|[A-Z][\w/-]*)){0,8})\s+(?=[A-Z][a-z][\w'-]*\s+[a-z][\w'-]*\s+(?:is|are|can|will|would|involves|refers|means|works|learns?|helps|uses|allows|includes|contains|provides|appears|starts|begins|processes))/gm, '$1$2\n\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/([^\n])\s+[*+-]\s+(?=(?:\*\*)?[A-Z0-9])/g, '$1\n- ')
       .replace(/(:\*\*)\s+-\s+/g, '$1\n  - ')
       .replace(/(\*\*)\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
       .replace(/([.:])\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
-      .replace(/\s+(\*\s+\*\*[^*]+:\*\*)/g, '\n$1');
+      .replace(/([^\n])\s+(\d+\.\s+(?=(?:\*\*)?[A-Z0-9]))/g, '$1\n$2')
+      .replace(/([^\n])\s+(\d+\.\s+\*\*[^*]+:\*\*)/g, '$1\n\n$2')
+      .replace(/\s+([*-]\s+\*\*[^*]+:\*\*)/g, '\n$1');
+
+    normalized = splitInlineHeadingBodies(normalized)
+      .replace(/([^\n])\n(#{1,6}\s+)/g, '$1\n\n$2')
+      .replace(/^(#{1,6}[^\n]+)\n(?=[^\n])/gm, '$1\n\n')
+      .replace(/([^\n])\n(-\s+(?:\*\*)?[A-Z0-9])/g, '$1\n\n$2')
+      .replace(/([^\n])\n(\d+\.\s+(?:\*\*)?[A-Z0-9])/g, '$1\n\n$2');
 
     return normalized.replace(/\n{3,}/g, '\n\n');
   };
@@ -2374,14 +2434,7 @@ const AIChat = ({ sharedMode = false }) => {
       `<strong class="md-bold-inline">${t}</strong>`;
     renderer.codespan = ({ text: t }) =>
       `<code class="md-inline-code">${t}</code>`;
-    renderer.list = function list(token) {
-      const body = (token.items || []).map((item) => this.listitem(item)).join('');
-      const isTutorStepList = /class="ac-tutor-step-item"/.test(body);
-      const tag = token.ordered ? 'ol' : 'ul';
-      const className = isTutorStepList ? 'ac-tutor-step-list' : (token.ordered ? 'md-ol' : 'md-ul');
-      return `<${tag} class="${className}">${body}</${tag}>`;
-    };
-    renderer.listitem = function listitem(token) {
+    const renderListItem = function renderListItem(token) {
       const t = this.parser.parseInline(token.tokens || []);
       const stepMatch = String(t || '').match(/^(?:<p>)?\s*(?:<strong[^>]*>)?\s*(Step\s+\d+\s*[—–-]\s*[^:<]+:?)(?:<\/strong>)?\s*([\s\S]*?)(?:<\/p>)?$/i);
       if (stepMatch) {
@@ -2389,13 +2442,23 @@ const AIChat = ({ sharedMode = false }) => {
       }
       return `<li>${t}</li>`;
     };
-
-    marked.use({ renderer, breaks: true, gfm: true });
+    renderer.list = function list(token) {
+      const body = (token.items || []).map((item) => renderListItem.call(this, item)).join('');
+      const isTutorStepList = /class="ac-tutor-step-item"/.test(body);
+      const tag = token.ordered ? 'ol' : 'ul';
+      const className = isTutorStepList ? 'ac-tutor-step-list' : (token.ordered ? 'md-ol' : 'md-ul');
+      return `<${tag} class="${className}">${body}</${tag}>`;
+    };
+    renderer.listitem = renderListItem;
 
     try {
-      text = marked.parse(text);
+      text = marked.parse(text, { renderer, breaks: true, gfm: true });
     } catch {
-      text = `<p>${text}</p>`;
+      try {
+        text = marked.parse(text, { breaks: true, gfm: true });
+      } catch {
+        text = `<p>${escapeHtml(text).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br />')}</p>`;
+      }
     }
 
     // ── Step 3: Restore math delimiters ──────────────────────────────────────

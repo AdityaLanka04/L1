@@ -1,5 +1,6 @@
 import os
 import logging
+from contextvars import copy_context
 from datetime import datetime, timezone, timedelta
 import json
 from typing import Any, Iterable
@@ -102,7 +103,9 @@ def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7,
 
 async def call_ai_async(prompt: str, max_tokens: int = 2000, temperature: float = 0.7,
                         use_cache: bool = False, conversation_id: str = None) -> str:
+    context = copy_context()
     return await run_in_threadpool(
+        context.run,
         call_ai,
         prompt,
         max_tokens,

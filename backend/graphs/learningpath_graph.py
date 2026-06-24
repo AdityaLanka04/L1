@@ -5,6 +5,8 @@ import logging
 import re
 from typing import Any, Optional, TypedDict
 
+from activity_context import clear_activity_context, set_activity_context
+
 try:
     from langgraph.graph import StateGraph, END
 except Exception:
@@ -893,6 +895,13 @@ class LearningPathGraph:
             "goals": goals or [],
             "_ai_client": self.ai_client,
         }
+        activity_token = set_activity_context({
+            "user_id": str(user_id),
+            "tool_name": "learning_path_ai",
+            "action": "generate",
+            "endpoint": "/api/learning-paths/generate",
+            "method": "POST",
+        })
         try:
             if self._graph:
                 result = self._graph.invoke(state)
@@ -913,6 +922,8 @@ class LearningPathGraph:
                 "estimated_hours": fallback.get("estimated_hours", 0.0),
                 "nodes": fallback.get("nodes", []),
             }
+        finally:
+            clear_activity_context(activity_token)
 
 _learningpath_graph: Optional[LearningPathGraph] = None
 
