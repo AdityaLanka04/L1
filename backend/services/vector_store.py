@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import math
+import threading
 from typing import Optional
 
 from sqlalchemy import create_engine, text
@@ -13,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 _engine = None
 _embed_model = None
+_lazy_init_lock = threading.Lock()
+_lazy_init_attempted = False
 
 _UPSERT_SQL_PG = text("""
     INSERT INTO embeddings (id, collection, user_id, content, embedding, metadata)
@@ -184,7 +187,34 @@ def initialize(embed_model, db_url: str | None = None) -> None:
     else:
         logger.info("vector_store initialized (pgvector)")
 
+def _lazy_init() -> None:
+    """Initialize on first real use if startup didn't already do it.
+
+    Startup skips eager loading in production (ENABLE_STARTUP_EMBEDDINGS=false,
+    see main.py) to keep boot fast, which otherwise leaves uploads/RAG permanently
+    disabled. This loads the embedding model + DB engine once, on demand, instead.
+    """
+    global _engine, _embed_model, _lazy_init_attempted
+    with _lazy_init_lock:
+        if _engine is not None and _embed_model is not None:
+            return
+        if _lazy_init_attempted:
+            return
+        _lazy_init_attempted = True
+        try:
+            from sentence_transformers import SentenceTransformer
+            try:
+                embed_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
+            except Exception:
+                embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+            initialize(embed_model)
+            logger.info("vector_store lazily initialized on first use")
+        except Exception as e:
+            logger.warning(f"vector_store lazy init failed: {e}")
+
 def available() -> bool:
+    if _engine is None or _embed_model is None:
+        _lazy_init()
     return _engine is not None and _embed_model is not None
 
 def _verify_schema() -> None:
