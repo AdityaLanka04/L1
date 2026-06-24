@@ -177,6 +177,41 @@ def _is_pdf_upload(file: UploadFile, content: bytes) -> bool:
         or content.startswith(b"%PDF")
     )
 
+def _safe_upload_name(filename: Optional[str]) -> str:
+    return "".join(c for c in (filename or "upload") if c.isalnum() or c in (".", "_", "-")) or "upload"
+
+def _storage_uri_for_path(storage, storage_path: str) -> str:
+    if getattr(storage, "storage_type", "local") != "local" and hasattr(storage, "uri_for_path"):
+        return storage.uri_for_path(storage_path)
+    return storage_path
+
+def _store_media_source(storage, content: bytes, *, user_id: int, filename: Optional[str], content_type: Optional[str]) -> str:
+    safe_name = _safe_upload_name(filename)
+    timestamp = int(datetime.now(timezone.utc).timestamp())
+    if getattr(storage, "storage_type", "local") == "local":
+        upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", "media")
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, f"{user_id}_{timestamp}_{safe_name}")
+        with open(file_path, "wb") as f:
+            f.write(content)
+        return file_path
+
+    storage_key = f"media_uploads/{user_id}/{timestamp}_{safe_name}"
+    result = storage.upload_bytes(content, storage_key, content_type or "application/octet-stream")
+    stored_path = result.get("storage_path") or storage_key
+    return _storage_uri_for_path(storage, stored_path)
+
+def _read_media_source_bytes(storage, file_path: str, fallback: bytes) -> bytes:
+    if getattr(storage, "storage_type", "local") == "local":
+        return fallback
+    if not hasattr(storage, "download_bytes"):
+        raise HTTPException(status_code=500, detail="Configured storage does not support file readback")
+    try:
+        return storage.download_bytes(_storage_key_from_uri(file_path))
+    except Exception as exc:
+        logger.error("Failed to read media upload from storage: %s", exc, exc_info=True)
+        raise HTTPException(status_code=502, detail="Uploaded media was stored but could not be read back from S3")
+
 @router.post("/transcribe_audio/")
 async def transcribe_audio(
     audio_file: UploadFile = File(...),
@@ -299,6 +334,7 @@ async def process_media(
         source_type = None
         filename = None
         file_path = None
+        source_storage_type = None
 
         logger.info(f"Received - File: {file.filename if file else None}, YouTube URL: '{youtube_url}'")
 
@@ -321,21 +357,20 @@ async def process_media(
             if len(content) > MEDIA_UPLOAD_MAX_BYTES:
                 raise HTTPException(status_code=413, detail="File is too large. Maximum upload size is 10MB")
 
-            upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", "media")
-            os.makedirs(upload_dir, exist_ok=True)
-
-            safe_name = "".join(c for c in (file.filename or "upload") if c.isalnum() or c in (".", "_", "-"))
-            file_path = os.path.join(
-                upload_dir,
-                f"{user.id}_{int(datetime.now(timezone.utc).timestamp())}_{safe_name}",
+            storage = StorageService.get_storage()
+            source_storage_type = getattr(storage, "storage_type", "local")
+            file_path = _store_media_source(
+                storage,
+                content,
+                user_id=user.id,
+                filename=file.filename,
+                content_type=file.content_type,
             )
-
-            with open(file_path, "wb") as f:
-                f.write(content)
 
             if _is_pdf_upload(file, content):
                 logger.info("Extracting text from uploaded PDF")
-                extraction = await asyncio.to_thread(extract_text_from_pdf_detailed, content)
+                source_bytes = _read_media_source_bytes(storage, file_path, content)
+                extraction = await asyncio.to_thread(extract_text_from_pdf_detailed, source_bytes)
                 extracted_text = (extraction.get("text") or "").strip()
                 if not extracted_text:
                     raise HTTPException(
@@ -360,7 +395,22 @@ async def process_media(
                 }
                 source_type = "pdf"
             else:
-                result = await ai_media_processor.transcribe_audio_groq(file_path)
+                transcription_path = file_path
+                temp_media_path = None
+                if getattr(storage, "storage_type", "local") != "local":
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=_safe_audio_suffix(file.filename), mode="wb") as temp_file:
+                        temp_file.write(_read_media_source_bytes(storage, file_path, content))
+                        temp_media_path = temp_file.name
+                    transcription_path = temp_media_path
+
+                try:
+                    result = await ai_media_processor.transcribe_audio_groq(transcription_path)
+                finally:
+                    if temp_media_path and os.path.exists(temp_media_path):
+                        try:
+                            os.remove(temp_media_path)
+                        except Exception as cleanup_error:
+                            logger.warning(f"Failed to cleanup temp media file: {cleanup_error}")
 
                 if not result.get("success"):
                     raise HTTPException(status_code=400, detail=result.get("error", "Failed to transcribe audio"))
@@ -452,6 +502,8 @@ async def process_media(
             "has_timestamps": transcript_data.get("has_timestamps", False),
             "segments": transcript_data.get("segments", [])[:50],
             "pdf_info": transcript_data.get("pdf_info") if source_type == "pdf" else None,
+            "source_storage_path": file_path,
+            "source_storage_type": source_storage_type if file_path else None,
             "analysis": analysis_data,
             "notes": {
                 "content": notes_result["content"],

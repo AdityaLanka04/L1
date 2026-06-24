@@ -48,6 +48,24 @@ def _store_context_original(file_bytes: bytes, *, user_id: int, doc_id: str, fil
         "storage_url": result.get("url") or "",
     }
 
+def _storage_key_from_uri(file_path: str) -> str:
+    parsed = urlparse(file_path or "")
+    if parsed.scheme in {"s3", "r2"}:
+        return parsed.path.lstrip("/")
+    return file_path
+
+def _read_context_original(storage_info: dict, fallback: bytes) -> bytes:
+    if (storage_info.get("storage_type") or "local") == "local":
+        return fallback
+    storage = StorageService.get_storage()
+    if not hasattr(storage, "download_bytes"):
+        raise HTTPException(status_code=500, detail="Configured storage does not support file readback")
+    try:
+        return storage.download_bytes(_storage_key_from_uri(storage_info.get("storage_path") or ""))
+    except Exception as exc:
+        logger.error("Failed to read context document from storage: %s", exc, exc_info=True)
+        raise HTTPException(status_code=502, detail="Context document was stored but could not be read back from S3")
+
 class RelatedTopicsRequest(BaseModel):
     topics: list[str]
     use_hs: bool = True
@@ -629,8 +647,17 @@ async def upload_document(
     db.commit()
 
     try:
+        storage_info = _store_context_original(
+            file_bytes,
+            user_id=current_user.id,
+            doc_id=doc_id,
+            filename=file.filename or "upload",
+            content_type=file.content_type or "",
+        )
+        source_bytes = _read_context_original(storage_info, file_bytes)
+
         result = process_upload(
-            file_bytes=file_bytes,
+            file_bytes=source_bytes,
             filename=file.filename or "upload",
             subject=clean_subject,
             grade_level=clean_grade,
@@ -682,13 +709,6 @@ async def upload_document(
         doc_record.chunk_count = stored
         doc_record.subject = final_subject[:100] if final_subject else ""
         doc_record.grade_level = final_grade[:20] if final_grade else ""
-        storage_info = _store_context_original(
-            file_bytes,
-            user_id=current_user.id,
-            doc_id=doc_id,
-            filename=file.filename or "upload",
-            content_type=file.content_type or "",
-        )
         doc_record.storage_path = storage_info["storage_path"]
         doc_record.storage_type = storage_info["storage_type"]
         doc_record.storage_url = storage_info["storage_url"][:1000] if storage_info["storage_url"] else ""
@@ -790,8 +810,17 @@ def import_document_url(
     db.commit()
 
     try:
+        storage_info = _store_context_original(
+            file_bytes,
+            user_id=current_user.id,
+            doc_id=doc_id,
+            filename=filename,
+            content_type=content_type or "",
+        )
+        source_bytes = _read_context_original(storage_info, file_bytes)
+
         result = process_upload(
-            file_bytes=file_bytes,
+            file_bytes=source_bytes,
             filename=filename,
             subject=clean_subject,
             grade_level=clean_grade,
@@ -837,13 +866,6 @@ def import_document_url(
         doc_record.chunk_count = stored
         doc_record.subject = final_subject[:100] if final_subject else ""
         doc_record.grade_level = final_grade[:20] if final_grade else ""
-        storage_info = _store_context_original(
-            file_bytes,
-            user_id=current_user.id,
-            doc_id=doc_id,
-            filename=filename,
-            content_type=content_type or "",
-        )
         doc_record.storage_path = storage_info["storage_path"]
         doc_record.storage_type = storage_info["storage_type"]
         doc_record.storage_url = storage_info["storage_url"][:1000] if storage_info["storage_url"] else ""

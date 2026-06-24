@@ -7,6 +7,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
@@ -21,6 +22,7 @@ from deps import (
     get_current_user,
     get_db,
 )
+from services.document_processor import extract_text_from_pdf_detailed
 from services.storage_service import StorageService
 from tutor.contract import tutor_contract_instruction
 from uid_utils import resolve_by_id_or_uid
@@ -1380,8 +1382,10 @@ async def ask_with_files(
 
         image_payloads: list[dict] = []
         text_extracts: list[str] = []
+        extraction_errors: list[str] = []
         saved_metadata: list[dict] = []
         storage = StorageService.get_storage()
+        storage_type = getattr(storage, "storage_type", "local")
 
         for upload in files[:_MAX_IMAGES_PER_MESSAGE]:
             raw = await upload.read()
@@ -1396,18 +1400,7 @@ async def ask_with_files(
                 if len(raw) > _MAX_IMAGE_BYTES:
                     continue
                 safe_name = _safe_filename(user.id, fname)
-                if getattr(storage, "storage_type", "local") == "local":
-                    dest = CHAT_UPLOAD_DIR / safe_name
-                    dest.write_bytes(raw)
-                    storage_path = str(dest)
-                else:
-                    storage_key = f"chat_images/{user.id}/{safe_name}"
-                    storage.upload_bytes(raw, storage_key, mime)
-                    storage_path = (
-                        storage.uri_for_path(storage_key)
-                        if hasattr(storage, "uri_for_path")
-                        else storage_key
-                    )
+                storage_path = _store_chat_upload(storage, raw, f"chat_images/{user.id}/{safe_name}", safe_name, mime)
                 image_payloads.append({"data": raw, "mime_type": mime, "filename": fname})
                 saved_metadata.append({
                     "filename": fname,
@@ -1418,21 +1411,20 @@ async def ask_with_files(
                 })
 
             elif mime == "application/pdf" or fname.lower().endswith(".pdf"):
-                extracted = _extract_pdf_text(raw)
-                if extracted:
-                    text_extracts.append(f"[PDF: {fname}]\n{extracted[:6000]}")
                 safe_name = _safe_filename(user.id, fname)
-                if getattr(storage, "storage_type", "local") == "local":
-                    dest = CHAT_UPLOAD_DIR / safe_name
-                    dest.write_bytes(raw)
-                    storage_path = str(dest)
+                storage_path = _store_chat_upload(storage, raw, f"chat_files/{user.id}/{safe_name}", safe_name, "application/pdf")
+                analysis_bytes = _read_uploaded_bytes(storage, storage_path, raw)
+                extraction = _extract_pdf_text_details(analysis_bytes)
+                extracted = (extraction.get("text") or "").strip()
+                if extracted:
+                    parser = extraction.get("parser") or "pdf"
+                    pages = extraction.get("page_count") or 0
+                    text_extracts.append(f"[PDF: {fname} | parser: {parser} | pages: {pages}]\n{extracted[:12000]}")
                 else:
-                    storage_key = f"chat_files/{user.id}/{safe_name}"
-                    storage.upload_bytes(raw, storage_key, "application/pdf")
-                    storage_path = (
-                        storage.uri_for_path(storage_key)
-                        if hasattr(storage, "uri_for_path")
-                        else storage_key
+                    warnings = "; ".join(extraction.get("warnings") or [])
+                    extraction_errors.append(
+                        f"{fname}: no readable PDF text was extracted"
+                        + (f" ({warnings})" if warnings else "")
                     )
                 saved_metadata.append({
                     "filename": fname,
@@ -1443,23 +1435,15 @@ async def ask_with_files(
                 })
 
             elif mime in _SUPPORTED_DOCX_TYPES or lower_fname.endswith(".docx"):
-                extracted = _extract_docx_text(raw)
-                if extracted:
-                    text_extracts.append(f"[DOCX: {fname}]\n{extracted[:6000]}")
                 safe_name = _safe_filename(user.id, fname)
                 content_type = mime or "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                if getattr(storage, "storage_type", "local") == "local":
-                    dest = CHAT_UPLOAD_DIR / safe_name
-                    dest.write_bytes(raw)
-                    storage_path = str(dest)
+                storage_path = _store_chat_upload(storage, raw, f"chat_files/{user.id}/{safe_name}", safe_name, content_type)
+                analysis_bytes = _read_uploaded_bytes(storage, storage_path, raw)
+                extracted = _extract_docx_text(analysis_bytes)
+                if extracted:
+                    text_extracts.append(f"[DOCX: {fname}]\n{extracted[:12000]}")
                 else:
-                    storage_key = f"chat_files/{user.id}/{safe_name}"
-                    storage.upload_bytes(raw, storage_key, content_type)
-                    storage_path = (
-                        storage.uri_for_path(storage_key)
-                        if hasattr(storage, "uri_for_path")
-                        else storage_key
-                    )
+                    extraction_errors.append(f"{fname}: no readable DOCX text was extracted")
                 saved_metadata.append({
                     "filename": fname,
                     "mime_type": content_type,
@@ -1469,23 +1453,15 @@ async def ask_with_files(
                 })
 
             elif mime in _SUPPORTED_TEXT_TYPES or lower_fname.endswith(_SUPPORTED_TEXT_EXTENSIONS):
-                extracted = raw.decode("utf-8", errors="replace").strip()
-                if extracted:
-                    text_extracts.append(f"[File: {fname}]\n{extracted[:6000]}")
                 safe_name = _safe_filename(user.id, fname)
                 content_type = mime or "text/plain"
-                if getattr(storage, "storage_type", "local") == "local":
-                    dest = CHAT_UPLOAD_DIR / safe_name
-                    dest.write_bytes(raw)
-                    storage_path = str(dest)
+                storage_path = _store_chat_upload(storage, raw, f"chat_files/{user.id}/{safe_name}", safe_name, content_type)
+                analysis_bytes = _read_uploaded_bytes(storage, storage_path, raw)
+                extracted = analysis_bytes.decode("utf-8", errors="replace").strip()
+                if extracted:
+                    text_extracts.append(f"[File: {fname}]\n{extracted[:12000]}")
                 else:
-                    storage_key = f"chat_files/{user.id}/{safe_name}"
-                    storage.upload_bytes(raw, storage_key, content_type)
-                    storage_path = (
-                        storage.uri_for_path(storage_key)
-                        if hasattr(storage, "uri_for_path")
-                        else storage_key
-                    )
+                    extraction_errors.append(f"{fname}: no readable text was extracted")
                 saved_metadata.append({
                     "filename": fname,
                     "mime_type": content_type,
@@ -1494,11 +1470,23 @@ async def ask_with_files(
                     "is_image": False,
                 })
 
+        if extraction_errors and not text_extracts and not image_payloads:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "I could not extract readable content from the uploaded file(s): "
+                    + "; ".join(extraction_errors)
+                    + ". If this is a scanned PDF, upload a text-based PDF or run OCR first."
+                ),
+            )
+
         enriched_question = model_question.strip() or "Please analyze the attached content."
         if tutor_mode:
             enriched_question = _tutor_mode_prompt_prefix(tutor_reply_style) + enriched_question
         if text_extracts:
             enriched_question += "\n\n" + "\n\n".join(text_extracts)
+        if extraction_errors:
+            enriched_question += "\n\n[Attachment extraction warnings]\n" + "\n".join(extraction_errors)
         if image_payloads:
             img_count = len(image_payloads)
             enriched_question = (
@@ -1547,8 +1535,10 @@ async def ask_with_files(
 
         if not response_text:
             tutor_input = (tutor_user_question if tutor_mode else model_question).strip() or "What can you help me with?"
-            if text_extracts and not context_only_mode:
+            if text_extracts:
                 tutor_input += "\n\n" + "\n\n".join(text_extracts)
+            if extraction_errors:
+                tutor_input += "\n\n[Attachment extraction warnings]\n" + "\n".join(extraction_errors)
             try:
                 from tutor.graph import get_tutor
                 tutor = get_tutor()
@@ -1672,6 +1662,7 @@ async def ask_with_files(
             "file_summaries":  file_summaries,
             "has_file_context": bool(saved_metadata),
             "ai_provider":     ai_provider,
+            "storage_type":     storage_type,
             "tutor_mode":      bool(tutor_mode),
             "tutor_reply_style": tutor_reply_style,
             "tutor_options":   tutor_options,
@@ -1695,25 +1686,46 @@ def _safe_filename(user_id: int, original: str) -> str:
     clean = re.sub(r"[^\w.\-]", "_", original)
     return f"{user_id}_{ts}_{clean}"
 
-def _extract_pdf_text(raw: bytes) -> str:
+def _store_chat_upload(storage, raw: bytes, storage_key: str, safe_name: str, content_type: str) -> str:
+    if getattr(storage, "storage_type", "local") == "local":
+        dest = CHAT_UPLOAD_DIR / safe_name
+        dest.write_bytes(raw)
+        return str(dest)
+
+    storage.upload_bytes(raw, storage_key, content_type)
+    if hasattr(storage, "uri_for_path"):
+        return storage.uri_for_path(storage_key)
+    return storage_key
+
+def _storage_key_from_uri(storage_path: str) -> str:
+    parsed = urlparse(storage_path or "")
+    if parsed.scheme in {"s3", "r2"}:
+        return parsed.path.lstrip("/")
+    return storage_path
+
+def _read_uploaded_bytes(storage, storage_path: str, fallback: bytes) -> bytes:
+    if getattr(storage, "storage_type", "local") == "local":
+        return fallback
+    if not hasattr(storage, "download_bytes"):
+        raise HTTPException(status_code=500, detail="Configured storage does not support file readback")
     try:
-        import PyPDF2
-        reader = PyPDF2.PdfReader(io.BytesIO(raw))
-        pages = []
-        for page in reader.pages[:20]:
-            t = page.extract_text()
-            if t:
-                pages.append(t.strip())
-        return "\n\n".join(pages)
-    except Exception:
-        pass
+        return storage.download_bytes(_storage_key_from_uri(storage_path))
+    except Exception as exc:
+        logger.error("Failed to read uploaded chat file from storage: %s", exc, exc_info=True)
+        raise HTTPException(status_code=502, detail="Uploaded file was stored but could not be read back from S3")
+
+def _extract_pdf_text_details(raw: bytes) -> dict:
     try:
-        import fitz
-        doc = fitz.open(stream=raw, filetype="pdf")
-        pages = [doc[i].get_text() for i in range(min(20, doc.page_count))]
-        return "\n\n".join(p.strip() for p in pages if p.strip())
-    except Exception:
-        return ""
+        return extract_text_from_pdf_detailed(raw)
+    except Exception as exc:
+        logger.warning("PDF extraction failed in chat upload: %s", exc)
+        return {
+            "text": "",
+            "parser": "",
+            "page_count": 0,
+            "non_empty_pages": 0,
+            "warnings": [str(exc)],
+        }
 
 def _extract_docx_text(raw: bytes) -> str:
     try:

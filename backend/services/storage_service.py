@@ -14,11 +14,7 @@ class StorageService:
         storage_type = os.getenv("STORAGE_TYPE", "local").lower()
         
         if storage_type == "s3":
-            try:
-                return S3Storage()
-            except Exception as e:
-                logger.warning(f"S3 not configured: {e}, falling back to local")
-                return LocalStorage()
+            return S3Storage()
         elif storage_type == "r2":
             try:
                 return R2Storage()
@@ -79,6 +75,12 @@ class LocalStorage:
 
     def get_private_file_url(self, storage_path, expires_in=None):
         return self.get_file_url(storage_path)
+
+    def download_bytes(self, storage_path):
+        src = self.base_path / storage_path
+        if not src.exists():
+            raise FileNotFoundError(storage_path)
+        return src.read_bytes()
     
     def delete_file(self, storage_path):
         file_path = self.base_path / storage_path
@@ -144,6 +146,20 @@ class SupabaseStorage:
         expires = expires_in or int(os.getenv("STORAGE_PRESIGNED_URL_TTL", "900"))
         signed = self.supabase.storage.from_(self.bucket_name).create_signed_url(storage_path, expires)
         return signed.get("signedURL") or signed.get("signed_url") or self.get_file_url(storage_path)
+
+    def download_bytes(self, storage_path):
+        data = self.supabase.storage.from_(self.bucket_name).download(storage_path)
+        if isinstance(data, bytes):
+            return data
+        if hasattr(data, "content"):
+            return data.content
+        return bytes(data)
+
+    def download_file(self, storage_path, destination_path):
+        destination = Path(destination_path)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(self.download_bytes(storage_path))
+        return destination
     
     def delete_file(self, storage_path):
         self.supabase.storage.from_(self.bucket_name).remove([storage_path])
@@ -170,14 +186,24 @@ class S3Storage:
             if not bucket:
                 raise ValueError("AWS_S3_BUCKET or S3_BUCKET_NAME must be set")
 
-            client_kwargs = {"region_name": region}
+            session_kwargs = {"region_name": region}
+            if os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"):
+                session_kwargs["aws_access_key_id"] = os.getenv("AWS_ACCESS_KEY_ID")
+                session_kwargs["aws_secret_access_key"] = os.getenv("AWS_SECRET_ACCESS_KEY")
+
+            session = boto3.session.Session(**session_kwargs)
+            credentials = session.get_credentials()
+            if credentials is None:
+                raise ValueError(
+                    "AWS credentials not available. Set AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY "
+                    "or attach an IAM role to this host/container."
+                )
+
+            client_kwargs = {}
             if endpoint_url:
                 client_kwargs["endpoint_url"] = endpoint_url
-            if os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"):
-                client_kwargs["aws_access_key_id"] = os.getenv("AWS_ACCESS_KEY_ID")
-                client_kwargs["aws_secret_access_key"] = os.getenv("AWS_SECRET_ACCESS_KEY")
 
-            self.s3 = boto3.client("s3", **client_kwargs)
+            self.s3 = session.client("s3", **client_kwargs)
             self.bucket = bucket
             self.region = region
             self.public_url = (os.getenv("AWS_S3_PUBLIC_URL") or "").rstrip("/")
@@ -248,12 +274,17 @@ class S3Storage:
     def download_file(self, storage_path, destination_path):
         destination = Path(destination_path)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        self.s3.download_file(self.bucket, storage_path, str(destination))
+        self.s3.download_file(self.bucket, self.path_from_uri(storage_path), str(destination))
         return destination
+
+    def download_bytes(self, storage_path):
+        key = self.path_from_uri(storage_path)
+        response = self.s3.get_object(Bucket=self.bucket, Key=key)
+        return response["Body"].read()
 
     def file_exists(self, storage_path):
         try:
-            self.s3.head_object(Bucket=self.bucket, Key=storage_path)
+            self.s3.head_object(Bucket=self.bucket, Key=self.path_from_uri(storage_path))
             return True
         except Exception:
             return False
@@ -354,15 +385,26 @@ class R2Storage:
     def download_file(self, storage_path, destination_path):
         destination = Path(destination_path)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        self.s3.download_file(self.bucket, storage_path, str(destination))
+        self.s3.download_file(self.bucket, self.path_from_uri(storage_path), str(destination))
         return destination
+
+    def download_bytes(self, storage_path):
+        key = self.path_from_uri(storage_path)
+        response = self.s3.get_object(Bucket=self.bucket, Key=key)
+        return response["Body"].read()
     
     def file_exists(self, storage_path):
         try:
-            self.s3.head_object(Bucket=self.bucket, Key=storage_path)
+            self.s3.head_object(Bucket=self.bucket, Key=self.path_from_uri(storage_path))
             return True
         except Exception:
             return False
 
     def uri_for_path(self, storage_path):
         return f"r2://{self.bucket}/{storage_path}"
+
+    def path_from_uri(self, uri):
+        parsed = urlparse(uri)
+        if parsed.scheme != "r2":
+            return uri
+        return parsed.path.lstrip("/")
