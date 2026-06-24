@@ -421,7 +421,7 @@ const DashboardCerbyl = () => {
         fetchJson(`${API_URL}/get_activity_heatmap?user_id=${encodedUser}`),
         fetchJson(`${API_URL}/get_analytics_history?user_id=${encodedUser}&period=week`),
         fetchJson(`${API_URL}/media/history?user_id=${encodedUser}&limit=2`),
-        fetchJson(`${API_URL}/subscription/overview?user_id=${encodedUser}&include_usage=false`),
+        fetchJson(`${API_URL}/subscription/overview?user_id=${encodedUser}&include_usage=true`),
       ]);
 
       if (cancelled) return;

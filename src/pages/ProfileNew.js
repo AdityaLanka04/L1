@@ -444,7 +444,7 @@ const ProfileNew = () => {
     if (userName) {
       loadProfile();
       const idleHandles = [
-        scheduleProfileIdle(() => loadSubscriptionOverview({ silent: true, includeUsage: false })),
+        scheduleProfileIdle(() => loadSubscriptionOverview({ silent: true, includeUsage: true })),
         scheduleProfileIdle(() => loadGamificationStats()),
         scheduleProfileIdle(() => loadRateLimitStatus())
       ];
@@ -560,7 +560,7 @@ const ProfileNew = () => {
         billingCycle: data.billingCycle || prev.billingCycle,
         subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
       }));
-      void loadSubscriptionOverview({ silent: true, includeUsage: false });
+      void loadSubscriptionOverview({ silent: true, includeUsage: true });
     } catch (e) {
       setSubscriptionData(prev => ({
         ...prev,
@@ -606,7 +606,7 @@ const ProfileNew = () => {
         billingCycle: data.billingCycle || nextCycle,
         subscriptionStatus: data.subscriptionStatus || prev.subscriptionStatus
       }));
-      void loadSubscriptionOverview({ silent: true, includeUsage: false });
+      void loadSubscriptionOverview({ silent: true, includeUsage: true });
     } catch (e) {
       setSubscriptionData(prev => ({
         ...prev,
