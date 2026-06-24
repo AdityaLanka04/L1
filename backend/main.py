@@ -110,6 +110,34 @@ def _release_rl_scheduler_lock(lock_state) -> None:
 _DB_MIGRATION_LOCK_ID = int(os.getenv("DB_MIGRATION_ADVISORY_LOCK_ID", "941732"))
 
 
+def _import_alembic_runtime():
+    """Import Alembic's package, not backend/alembic migration scripts.
+
+    Running `python main.py` from backend/ puts backend/ first on sys.path, so
+    `import alembic` can resolve to the local migration directory.
+    """
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    original_path = list(sys.path)
+    existing_alembic = sys.modules.get("alembic")
+
+    if existing_alembic is not None:
+        locations = getattr(existing_alembic, "__path__", [])
+        if any(os.path.abspath(str(path)) == os.path.join(backend_dir, "alembic") for path in locations):
+            sys.modules.pop("alembic", None)
+
+    try:
+        sys.path = [
+            path for path in sys.path
+            if os.path.abspath(path or os.getcwd()) != backend_dir
+        ]
+        from alembic import command
+        from alembic.config import Config
+    finally:
+        sys.path = original_path
+
+    return command, Config
+
+
 def _run_db_migrations() -> None:
     """Bring the schema to head via Alembic (see backend/alembic/versions/).
     Runs at import time, before routers/deps are imported below, so every
@@ -120,8 +148,7 @@ def _run_db_migrations() -> None:
     lock serializes them so only one worker does the work while the rest
     wait, then no-op once they see alembic_version is already at head.
     """
-    from alembic import command
-    from alembic.config import Config
+    command, Config = _import_alembic_runtime()
 
     cfg = Config(os.path.join(os.path.dirname(os.path.abspath(__file__)), "alembic.ini"))
 

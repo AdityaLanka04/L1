@@ -29,6 +29,9 @@ CHAT_UPLOAD_DIR = Path("uploads/chat_images")
 CHAT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 _SUPPORTED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+_SUPPORTED_DOCX_TYPES = {"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+_SUPPORTED_TEXT_EXTENSIONS = (".txt", ".md", ".markdown")
+_SUPPORTED_TEXT_TYPES = {"text/plain", "text/markdown", "text/x-markdown"}
 _MAX_IMAGE_BYTES = 20 * 1024 * 1024
 _MAX_IMAGES_PER_MESSAGE = 10
 _TUTOR_VISIBLE_OPTION_RE = re.compile(r"(?im)^\s*([A-F])[\).:-]\s+(.{2,220})\s*$")
@@ -129,6 +132,26 @@ def _strip_internal_graph_guidance(text: str) -> str:
         return raw.strip()
     return raw[:cut_at].strip()
 
+def _fallback_chat_title(text: str) -> str:
+    raw = _strip_internal_graph_guidance(text or "")
+    raw = re.sub(r"```.*?```", " ", raw, flags=re.S)
+    raw = re.sub(r"https?://\S+", " ", raw)
+    raw = re.sub(r"[*_`#>\[\]{}()|]", " ", raw)
+    raw = re.sub(r"\s+", " ", raw).strip(" .,:;!?")
+    words = raw.split()
+    if not words:
+        return "New Chat"
+    title = " ".join(words[:6])
+    if len(words) > 6:
+        title += "..."
+    return title[:50]
+
+def _apply_fallback_chat_title(chat_session, prompt_text: str) -> None:
+    if chat_session and chat_session.title == "New Chat":
+        title = _fallback_chat_title(prompt_text)
+        if title != "New Chat":
+            chat_session.title = title
+
 def _pydantic_to_dict(model: BaseModel | None) -> dict:
     if not model:
         return {}
@@ -191,6 +214,20 @@ def _coerce_tutor_answer(value: object) -> str:
             if str(item or "").strip()
         ).strip()
     return ""
+
+def _coerce_pseudo_tutor_answer_array(value: str) -> str:
+    inner = re.sub(r"^\s*\[|\]\s*$", "", value or "").strip()
+    lines = []
+    for raw_line in inner.splitlines():
+        line = raw_line.strip().rstrip(",").strip()
+        if not line:
+            continue
+        had_bullet = bool(re.match(r"^[*\-]\s+", line))
+        line = re.sub(r"^[*\-]\s+", "", line).strip().strip('"').strip("'").strip()
+        if not line:
+            continue
+        lines.append(f"- {line}" if had_bullet else line)
+    return "\n".join(lines).strip()
 
 def _trim_tutor_text(value: object, fallback: str, max_len: int = 120) -> str:
     text = re.sub(r"\s+", " ", str(value or "").strip())
@@ -425,7 +462,10 @@ def _extract_tutor_contract_fallback(
     answer_match = _TUTOR_ANSWER_FIELD_RE.search(raw)
     answer_value = ""
     if answer_array_match:
-        answer_value = _coerce_tutor_answer(_json_decode_lenient(answer_array_match.group(1)))
+        answer_value = (
+            _coerce_tutor_answer(_json_decode_lenient(answer_array_match.group(1)))
+            or _coerce_pseudo_tutor_answer_array(answer_array_match.group(1))
+        )
     elif answer_match:
         answer_value = _decode_jsonish_string(answer_match.group(1))
     if not answer_value:
@@ -1059,6 +1099,7 @@ async def ask_ai(
             ).first()
             if session:
                 session.updated_at = datetime.now(timezone.utc)
+                _apply_fallback_chat_title(session, user_question or model_question)
 
             if tutor_mode:
                 tutor_state = _persist_tutor_session_state(
@@ -1237,6 +1278,10 @@ async def ask_simple(
             ).first()
             if session:
                 session.updated_at = datetime.now(timezone.utc)
+                _apply_fallback_chat_title(
+                    session,
+                    user_question or model_question or "Uploaded files",
+                )
 
             if tutor_mode:
                 tutor_state = _persist_tutor_session_state(
@@ -1345,6 +1390,7 @@ async def ask_with_files(
 
             mime = (upload.content_type or "").lower()
             fname = upload.filename or "upload"
+            lower_fname = fname.lower()
 
             if mime in _SUPPORTED_IMAGE_TYPES:
                 if len(raw) > _MAX_IMAGE_BYTES:
@@ -1391,6 +1437,58 @@ async def ask_with_files(
                 saved_metadata.append({
                     "filename": fname,
                     "mime_type": "application/pdf",
+                    "size": len(raw),
+                    "storage_path": storage_path,
+                    "is_image": False,
+                })
+
+            elif mime in _SUPPORTED_DOCX_TYPES or lower_fname.endswith(".docx"):
+                extracted = _extract_docx_text(raw)
+                if extracted:
+                    text_extracts.append(f"[DOCX: {fname}]\n{extracted[:6000]}")
+                safe_name = _safe_filename(user.id, fname)
+                content_type = mime or "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                if getattr(storage, "storage_type", "local") == "local":
+                    dest = CHAT_UPLOAD_DIR / safe_name
+                    dest.write_bytes(raw)
+                    storage_path = str(dest)
+                else:
+                    storage_key = f"chat_files/{user.id}/{safe_name}"
+                    storage.upload_bytes(raw, storage_key, content_type)
+                    storage_path = (
+                        storage.uri_for_path(storage_key)
+                        if hasattr(storage, "uri_for_path")
+                        else storage_key
+                    )
+                saved_metadata.append({
+                    "filename": fname,
+                    "mime_type": content_type,
+                    "size": len(raw),
+                    "storage_path": storage_path,
+                    "is_image": False,
+                })
+
+            elif mime in _SUPPORTED_TEXT_TYPES or lower_fname.endswith(_SUPPORTED_TEXT_EXTENSIONS):
+                extracted = raw.decode("utf-8", errors="replace").strip()
+                if extracted:
+                    text_extracts.append(f"[File: {fname}]\n{extracted[:6000]}")
+                safe_name = _safe_filename(user.id, fname)
+                content_type = mime or "text/plain"
+                if getattr(storage, "storage_type", "local") == "local":
+                    dest = CHAT_UPLOAD_DIR / safe_name
+                    dest.write_bytes(raw)
+                    storage_path = str(dest)
+                else:
+                    storage_key = f"chat_files/{user.id}/{safe_name}"
+                    storage.upload_bytes(raw, storage_key, content_type)
+                    storage_path = (
+                        storage.uri_for_path(storage_key)
+                        if hasattr(storage, "uri_for_path")
+                        else storage_key
+                    )
+                saved_metadata.append({
+                    "filename": fname,
+                    "mime_type": content_type,
                     "size": len(raw),
                     "storage_path": storage_path,
                     "is_image": False,
@@ -1522,6 +1620,10 @@ async def ask_with_files(
             ).first()
             if session:
                 session.updated_at = datetime.now(timezone.utc)
+                _apply_fallback_chat_title(
+                    session,
+                    user_question or model_question or "Uploaded files",
+                )
 
             if tutor_mode:
                 tutor_state = _persist_tutor_session_state(
@@ -1613,6 +1715,20 @@ def _extract_pdf_text(raw: bytes) -> str:
     except Exception:
         return ""
 
+def _extract_docx_text(raw: bytes) -> str:
+    try:
+        from docx import Document
+        doc = Document(io.BytesIO(raw))
+        paragraphs = [p.text.strip() for p in doc.paragraphs if p.text and p.text.strip()]
+        for table in doc.tables:
+            for row in table.rows:
+                cells = [cell.text.strip() for cell in row.cells if cell.text and cell.text.strip()]
+                if cells:
+                    paragraphs.append(" | ".join(cells))
+        return "\n\n".join(paragraphs)
+    except Exception:
+        return ""
+
 @router.post("/test_ai_simple")
 async def test_ai_simple(
     question: str = Form(...),
@@ -1640,6 +1756,7 @@ def create_chat_session(
         "uid": chat_session.public_token,
         "session_id": chat_session.id,
         "title": chat_session.title,
+        "folder_id": chat_session.folder_id,
         "created_at": chat_session.created_at.isoformat() + "Z",
         "updated_at": chat_session.updated_at.isoformat() + "Z",
         "status": "success",
@@ -1827,10 +1944,8 @@ def save_chat_message(
         models.ChatMessage.chat_session_id == message_data.chat_id
     ).count()
 
-    if chat_session.title == "New Chat" and message_count == 0:
-        words = message_data.user_message.strip().split()
-        new_title = " ".join(words[:4]) + ("..." if len(words) > 4 else "")
-        chat_session.title = new_title[:50] if new_title else "New Chat"
+    if chat_session.title == "New Chat" and message_count <= 1:
+        _apply_fallback_chat_title(chat_session, message_data.user_message)
 
     try:
         from services.gamification_system import award_points
@@ -1963,6 +2078,8 @@ async def generate_chat_title(
     if not messages:
         return {"title": "New Chat", "status": "no_messages"}
 
+    fallback_title = _fallback_chat_title(messages[0].user_message)
+
     conversation = "\n".join(
         [f"Student: {m.user_message}\nTutor: {m.ai_response}" for m in messages[:3]]
     )
@@ -1974,6 +2091,9 @@ async def generate_chat_title(
 
     try:
         title = (await call_ai_async(prompt, max_tokens=30, temperature=0.7)).strip().strip('"').strip("'")
+        title = re.sub(r"\s+", " ", title).strip(" .,:;!?")
+        if not title or title.lower() in {"new chat", "chat session", "untitled chat"}:
+            title = fallback_title
         if len(title) > 50:
             title = title[:47] + "..."
 
@@ -1983,7 +2103,10 @@ async def generate_chat_title(
         return {"title": title, "status": "success"}
     except Exception as e:
         logger.error(f"Error generating title: {e}")
-        return {"title": "Chat Session", "status": "error"}
+        if fallback_title != "New Chat":
+            chat_session.title = fallback_title
+            db.commit()
+        return {"title": fallback_title, "status": "fallback"}
 
 @router.post("/generate_chat_summary")
 async def generate_chat_summary(

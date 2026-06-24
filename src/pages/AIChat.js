@@ -286,7 +286,12 @@ function coercePseudoArrayLines(bracketed = '') {
   const inner = String(bracketed || '').trim().replace(/^\[/, '').replace(/\]$/, '');
   const lines = inner
     .split('\n')
-    .map((line) => line.trim().replace(/^[*\-]\s*/, '').replace(/^"|",?$|,$/g, '').trim())
+    .map((line) => {
+      const trimmed = line.trim();
+      const hadBullet = /^[*\-]\s*/.test(trimmed);
+      const cleaned = trimmed.replace(/^[*\-]\s*/, '').replace(/^"|",?$|,$/g, '').trim();
+      return cleaned && hadBullet ? `- ${cleaned}` : cleaned;
+    })
     .filter(Boolean);
   return lines.join('\n').trim();
 }
@@ -861,6 +866,7 @@ const AIChat = ({ sharedMode = false }) => {
   const justSentMessageRef = useRef(false);
   const chatLoadRequestRef = useRef(0);
   const chatLoadAbortRef = useRef(null);
+  const creatingChatRef = useRef(false);
 
   const [showFolderCreation, setShowFolderCreation] = useState(false);
   const [showFolderDialog, setShowFolderDialog] = useState(false);
@@ -876,24 +882,6 @@ const AIChat = ({ sharedMode = false }) => {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [chatMessageCounts, setChatMessageCounts] = useState({});
-
-  
-  const shouldDisplayChat = (session) => {
-    
-    if (session.title !== 'New Chat') return true;
-    
-    
-    if (session.id === activeChatId) return true;
-    
-    
-    if (chatMessageCounts[session.id] !== undefined) {
-      return chatMessageCounts[session.id] > 0;
-    }
-    
-    
-    return false;
-  };
 
   const greetings = CHAT_GREETINGS;
 
@@ -1011,6 +999,9 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const SUPPORTED_DOCX_TYPES = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  const SUPPORTED_TEXT_TYPES = ['text/plain', 'text/markdown', 'text/x-markdown'];
+  const SUPPORTED_TEXT_EXTENSIONS = ['.txt', '.md', '.markdown'];
   const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
   const attachPreviewUrl = (file) => {
@@ -1026,8 +1017,11 @@ const AIChat = ({ sharedMode = false }) => {
     for (const file of incoming) {
       const isImage = SUPPORTED_IMAGE_TYPES.includes(file.type);
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-      if (!isImage && !isPdf) {
-        alert(`"${file.name}" is not supported. Upload images (JPEG, PNG, GIF, WebP) or PDFs.`);
+      const lowerName = file.name.toLowerCase();
+      const isDocx = SUPPORTED_DOCX_TYPES.includes(file.type) || lowerName.endsWith('.docx');
+      const isText = SUPPORTED_TEXT_TYPES.includes(file.type) || SUPPORTED_TEXT_EXTENSIONS.some(ext => lowerName.endsWith(ext));
+      if (!isImage && !isPdf && !isDocx && !isText) {
+        alert(`"${file.name}" is not supported. Upload images, PDFs, DOCX, TXT, or Markdown files.`);
         continue;
       }
       if (file.size > MAX_FILE_SIZE) {
@@ -1090,6 +1084,50 @@ const AIChat = ({ sharedMode = false }) => {
     selectedFiles.forEach(f => { if (f._previewUrl) URL.revokeObjectURL(f._previewUrl); });
     setSelectedFiles([]);
     setProcessedFiles([]);
+  };
+
+  const renderSelectedFilePreview = () => {
+    if (selectedFiles.length === 0) return null;
+
+    return (
+      <div className="ac-file-preview">
+        {selectedFiles.map((file, index) => (
+          file.type.startsWith('image/') && file._previewUrl ? (
+            <div key={`${file.name}-${index}`} className="ac-img-thumb-wrap">
+              <img
+                src={file._previewUrl}
+                alt={file.name}
+                className="ac-img-thumb"
+              />
+              <button
+                type="button"
+                className="ac-img-thumb-remove"
+                onClick={() => removeFile(index)}
+                title="Remove"
+              >
+                {Icons.x}
+              </button>
+            </div>
+          ) : (
+            <div key={`${file.name}-${index}`} className="ac-file-tag">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span>{file.name}</span>
+              <button type="button" className="ac-file-remove" onClick={() => removeFile(index)}>
+                {Icons.x}
+              </button>
+            </div>
+          )
+        ))}
+        {selectedFiles.length > 1 && (
+          <button type="button" className="ac-file-clear-btn" onClick={clearAllFiles}>
+            Clear all
+          </button>
+        )}
+      </div>
+    );
   };
 
   const loadChatFolders = async () => {
@@ -1213,6 +1251,7 @@ const AIChat = ({ sharedMode = false }) => {
           id: newChat.session_id || newChat.id,
           uid: newChat.uid || null,
           title: newChat.title,
+          folder_id: newChat.folder_id || null,
           created_at: newChat.created_at,
           updated_at: newChat.updated_at || newChat.created_at
         };
@@ -1276,31 +1315,52 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const handleNewChat = async () => {
-    if (sidebarNavRef.current) {
-      sidebarNavRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    scrollToTop();
+    if (loading || creatingChatRef.current) return;
+    creatingChatRef.current = true;
 
-    const existingNewChat = chatSessions.find(chat => chat.title === 'New Chat');
+    try {
+      if (sidebarNavRef.current) {
+        sidebarNavRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      scrollToTop();
 
-    if (existingNewChat) {
-      setMessages([]);
-      setActiveChatId(existingNewChat.id);
+      if (chatLoadAbortRef.current) {
+        chatLoadAbortRef.current.abort();
+        chatLoadAbortRef.current = null;
+      }
+      chatLoadRequestRef.current += 1;
+      justSentMessageRef.current = false;
       isLoadingRef.current = false;
-      navigate(`/ai-chat/${existingNewChat.id}`);
-    } else {
+
+      setMessages([]);
+      setInputMessage('');
+      clearAllFiles();
+      setSelectedFolder(null);
+      setSearchQuery('');
+      setShowSearchDialog(false);
+      setActiveChatId(null);
+
       const newChatId = await createNewChat();
       if (newChatId) {
+        chatLoadRequestRef.current += 1;
         setMessages([]);
         setActiveChatId(newChatId);
         isLoadingRef.current = false;
         navigate(`/ai-chat/${newChatId}`);
       }
+    } finally {
+      creatingChatRef.current = false;
     }
   };
 
   const selectChat = (chatSessionId) => {
-    
+    if (chatLoadAbortRef.current) {
+      chatLoadAbortRef.current.abort();
+      chatLoadAbortRef.current = null;
+    }
+    chatLoadRequestRef.current += 1;
+    setMessages([]);
+    clearAllFiles();
     isLoadingRef.current = false;
     navigate(`/ai-chat/${chatSessionId}`);
   };
@@ -1933,15 +1993,19 @@ const AIChat = ({ sharedMode = false }) => {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.status === 'success' && result.title) {
+        if (result.title && result.title !== 'New Chat') {
           setChatSessions(prev => prev.map(chat =>
-            chat.id === chatId ? { ...chat, title: result.title } : chat
+            chat.id === chatId
+              ? { ...chat, title: result.title, updated_at: new Date().toISOString() }
+              : chat
           ));
+          return result.title;
         }
       }
     } catch (error) {
     // silenced
   }
+    return null;
   };
 
   const confirmDeleteChat = async () => {
@@ -2232,6 +2296,10 @@ const AIChat = ({ sharedMode = false }) => {
       // Some OpenAI-compatible providers escape markdown punctuation in plain text.
       // Restore only markdown control characters; leave LaTeX delimiters like \( and \[ intact.
       .replace(/\\([*`>#.!+-])/g, '$1')
+      .replace(/([^\n])\s+(#{1,6}\s+)/g, '$1\n\n$2')
+      .replace(/^(#{1,6}\s+(?:Analysis of (?:the )?Uploaded Files|Comprehension Check|Summary|Key Points|Overview|Explanation|Answer))\s+/gim, '$1\n\n')
+      .replace(/\s+-\s+(?=(?:\*\*)?[A-Z0-9])/g, '\n- ')
+      .replace(/(:\*\*)\s+-\s+/g, '$1\n  - ')
       .replace(/(\*\*)\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
       .replace(/([.:])\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
       .replace(/\s+(\*\s+\*\*[^*]+:\*\*)/g, '\n$1');
@@ -2239,6 +2307,10 @@ const AIChat = ({ sharedMode = false }) => {
 
   const renderMarkdown = (text) => {
     if (!text) return '';
+    const tutorContract = parseTutorResponseContract(text);
+    if (tutorContract?.answer) {
+      text = tutorContract.answer;
+    }
     text = normalizeTutorStepMarkdown(text);
     text = normalizeMarkdownForRenderer(text);
 
@@ -2650,18 +2722,7 @@ const AIChat = ({ sharedMode = false }) => {
   useEffect(() => {
     // Scroll to show latest message at top of viewport
     scrollToLatestMessage();
-    
-    // Update message count for current chat if it's "New Chat"
-    if (activeChatId) {
-      const currentChat = chatSessions.find(chat => chat.id === activeChatId);
-      if (currentChat && currentChat.title === 'New Chat') {
-        setChatMessageCounts(prev => ({
-          ...prev,
-          [activeChatId]: messages.length
-        }));
-      }
-    }
-  }, [messages, activeChatId, chatSessions]);
+  }, [messages]);
 
   useEffect(() => {
     if (selectedTheme && selectedTheme.tokens) {
@@ -2696,43 +2757,6 @@ const AIChat = ({ sharedMode = false }) => {
       }
     };
   }, []);
-
-  // Fetch message counts for "New Chat" sessions to determine visibility
-  useEffect(() => {
-    const fetchMessageCounts = async () => {
-      const newChatSessions = chatSessions.filter(chat => chat.title === 'New Chat');
-      
-      if (newChatSessions.length === 0) return;
-      
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      
-      const counts = {};
-      
-      for (const chat of newChatSessions) {
-        try {
-          const response = await fetch(`${API_URL}/get_chat_messages?chat_id=${chat.id}`, {
-            method: 'GET',
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            const msgs = await response.json();
-            counts[chat.id] = msgs.length;
-          }
-        } catch (error) {
-          // Silently fail for individual chats
-        }
-      }
-      
-      setChatMessageCounts(prev => ({ ...prev, ...counts }));
-    };
-    
-    fetchMessageCounts();
-  }, [chatSessions]);
 
   // Icons matching Flashcards
   const Icons = {
@@ -2949,7 +2973,6 @@ const AIChat = ({ sharedMode = false }) => {
                       searchQuery.trim() === '' ||
                       session.title.toLowerCase().includes(searchQuery.toLowerCase())
                     )
-                    .filter(session => shouldDisplayChat(session))
                     .map(session => (
                       <div
                         key={session.id}
@@ -3038,7 +3061,6 @@ const AIChat = ({ sharedMode = false }) => {
                 )}
                 {chatSessions
                   .filter(s => searchQuery ? s.title.toLowerCase().includes(searchQuery.toLowerCase()) : true)
-                  .filter(s => shouldDisplayChat(s))
                   .slice(0, 20)
                   .map(session => (
                     <button
@@ -3165,17 +3187,18 @@ const AIChat = ({ sharedMode = false }) => {
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    accept=".pdf,image/*"
+                    accept=".pdf,.docx,.txt,.md,.markdown,image/*"
                     onChange={handleFileInputChange}
                     style={{ display: 'none' }}
                   />
+                  {renderSelectedFilePreview()}
                   {renderTutorControls()}
                   <div className="ac-input-row">
                     <button
                       className="ac-input-btn"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={loading}
-                      title="Attach files"
+                      title="Attach image, PDF, DOCX, TXT, or Markdown"
                     >
                       {Icons.attach}
                     </button>
@@ -3184,7 +3207,8 @@ const AIChat = ({ sharedMode = false }) => {
                       value={inputMessage}
                       onChange={handleInputChange}
                       onKeyDown={handleKeyDown}
-                      placeholder="Type your message or drag files here..."
+                      onPaste={handlePaste}
+                      placeholder={selectedFiles.length > 0 ? 'Add a message or send as-is...' : 'Type your message or drag files here...'}
                       className="ac-textarea"
                       disabled={loading}
                       rows="1"
@@ -3571,50 +3595,12 @@ const AIChat = ({ sharedMode = false }) => {
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept=".pdf,image/*"
+                accept=".pdf,.docx,.txt,.md,.markdown,image/*"
                 onChange={handleFileInputChange}
                 style={{ display: 'none' }}
               />
 
-              {/* Staged attachment strip — lives inside the box */}
-              {selectedFiles.length > 0 && (
-                <div className="ac-file-preview">
-                  {selectedFiles.map((file, index) => (
-                    file.type.startsWith('image/') && file._previewUrl ? (
-                      <div key={index} className="ac-img-thumb-wrap">
-                        <img
-                          src={file._previewUrl}
-                          alt={file.name}
-                          className="ac-img-thumb"
-                        />
-                        <button
-                          className="ac-img-thumb-remove"
-                          onClick={() => removeFile(index)}
-                          title="Remove"
-                        >
-                          {Icons.x}
-                        </button>
-                      </div>
-                    ) : (
-                      <div key={index} className="ac-file-tag">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                          <polyline points="14 2 14 8 20 8"/>
-                        </svg>
-                        <span>{file.name}</span>
-                        <button className="ac-file-remove" onClick={() => removeFile(index)}>
-                          {Icons.x}
-                        </button>
-                      </div>
-                    )
-                  ))}
-                  {selectedFiles.length > 1 && (
-                    <button className="ac-file-clear-btn" onClick={clearAllFiles}>
-                      Clear all
-                    </button>
-                  )}
-                </div>
-              )}
+              {renderSelectedFilePreview()}
               {renderTutorControls()}
               
               <div className="ac-input-row">
@@ -3622,7 +3608,7 @@ const AIChat = ({ sharedMode = false }) => {
                   className="ac-input-btn"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading}
-                  title="Attach image or PDF"
+                  title="Attach image, PDF, DOCX, TXT, or Markdown"
                 >
                   {Icons.attach}
                 </button>

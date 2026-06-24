@@ -5518,7 +5518,7 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  overflow-y: auto;
+  overflow: hidden;
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--accent) 28%, transparent) transparent;
@@ -5626,10 +5626,11 @@ button:focus-visible {
 }
 
 .ai-chat-page.ac-qb-page .ac-qb-side-block--grow {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .ai-chat-page.ac-qb-page .ac-qb-side-label,
@@ -5713,7 +5714,7 @@ button:focus-visible {
 }
 
 .ai-chat-page.ac-qb-page .ac-sidebar-nav {
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0;
   padding: 0 !important;
   display: flex;
@@ -5723,6 +5724,7 @@ button:focus-visible {
 }
 
 .ai-chat-page.ac-qb-page .ac-folders-section {
+  flex: 0 0 auto;
   max-height: 150px;
   overflow-y: auto;
 }
@@ -5769,11 +5771,30 @@ button:focus-visible {
 }
 
 .ai-chat-page.ac-qb-page .ac-sessions-list {
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 2px;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 38%, transparent) transparent;
+}
+
+.ai-chat-page.ac-qb-page .ac-sessions-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-chat-page.ac-qb-page .ac-sessions-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-chat-page.ac-qb-page .ac-sessions-list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
+  border-radius: 999px;
+}
+
+.ai-chat-page.ac-qb-page .ac-sessions-list::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 .ai-chat-page.ac-qb-page .ac-empty {
@@ -5783,6 +5804,7 @@ button:focus-visible {
 
 .ai-chat-page.ac-qb-page .ac-qb-side-actions {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   gap: 8px;
   margin-top: auto;

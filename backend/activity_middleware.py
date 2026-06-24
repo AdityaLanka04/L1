@@ -4,7 +4,8 @@ import os
 import re
 from fastapi import Request
 from jose import jwt, JWTError
-from activity_logger import log_activity, resolve_user_id
+from starlette.background import BackgroundTasks
+from activity_logger import log_activity
 from activity_context import set_activity_context, clear_activity_context
 from deps import SECRET_KEY, ALGORITHM
 
@@ -92,6 +93,34 @@ def is_ai_tool(tool_name: str) -> bool:
         return False
     return tool_name.startswith('ai_') or tool_name.endswith('_ai') or 'ai' in tool_name
 
+def _add_activity_log_task(response, *, user_id, tool_name, action, metadata):
+    if response.background is None:
+        response.background = BackgroundTasks()
+
+    if hasattr(response.background, "add_task"):
+        response.background.add_task(
+            log_activity,
+            user_id=user_id,
+            tool_name=tool_name,
+            action=action,
+            tokens_used=0,
+            metadata=metadata,
+        )
+        return
+
+    existing_background = response.background
+    tasks = BackgroundTasks()
+    tasks.add_task(existing_background)
+    tasks.add_task(
+        log_activity,
+        user_id=user_id,
+        tool_name=tool_name,
+        action=action,
+        tokens_used=0,
+        metadata=metadata,
+    )
+    response.background = tasks
+
 async def log_request_activity(request: Request, call_next):
     start_time = time.time()
     should_log_activity = (
@@ -123,19 +152,16 @@ async def log_request_activity(request: Request, call_next):
                 user_id = None
 
     context_token = None
-    resolved_user_id = None
     if user_id and user_id != 'null' and user_id.strip() and should_log_activity:
-        resolved_user_id = resolve_user_id(user_id)
-        if resolved_user_id:
-            tool_name = get_tool_name(request.url.path)
-            action = get_action(request.method, request.url.path)
-            context_token = set_activity_context({
-                'user_id': resolved_user_id,
-                'tool_name': tool_name,
-                'action': action,
-                'endpoint': request.url.path,
-                'method': request.method
-            })
+        tool_name = get_tool_name(request.url.path)
+        action = get_action(request.method, request.url.path)
+        context_token = set_activity_context({
+            'user_id': user_id,
+            'tool_name': tool_name,
+            'action': action,
+            'endpoint': request.url.path,
+            'method': request.method
+        })
 
     try:
         response = await call_next(request)
@@ -144,6 +170,14 @@ async def log_request_activity(request: Request, call_next):
             clear_activity_context(context_token)
 
     duration = time.time() - start_time
+    if request.url.path.startswith('/api/') and duration >= 1.0:
+        logger.warning(
+            "Slow API request: %s %s status=%s duration=%.2fs",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration,
+        )
 
     if user_id and user_id != 'null' and user_id.strip() and should_log_activity:
         tool_name = get_tool_name(request.url.path)
@@ -161,15 +195,12 @@ async def log_request_activity(request: Request, call_next):
         if is_ai_tool(tool_name):
             metadata['token_source'] = 'none'
 
-        try:
-            log_activity(
-                user_id=resolved_user_id or user_id,
-                tool_name=tool_name,
-                action=action,
-                tokens_used=0,
-                metadata=metadata
-            )
-        except Exception as e:
-            logger.error(f"Failed to log activity: {e}")
+        _add_activity_log_task(
+            response,
+            user_id=user_id,
+            tool_name=tool_name,
+            action=action,
+            metadata=metadata,
+        )
 
     return response
