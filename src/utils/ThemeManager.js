@@ -274,15 +274,16 @@ export function setCustomTheme(primaryColor, accentColor, mode = 'dark') {
 
 function buildCustomThemeTokens(customTheme) {
   if (!customTheme) return null;
-  
+
   const primaryColor = customTheme.primary || (customTheme.mode === 'dark' ? '#0b0b0c' : '#fefefe');
   const accentColor = customTheme.accent || '#D7B38C';
   const accentHover = customTheme.accentHover || lightenColor(accentColor, 15);
-  
-  
-  const luminance = getRelativeLuminance(primaryColor);
-  const isLightBackground = luminance > 0.5;
-  
+
+
+  const isLightBackground = customTheme.mode
+    ? customTheme.mode === 'light'
+    : getRelativeLuminance(primaryColor) > 0.5;
+
   
   const bgSecondary = isLightBackground
     ? darkenColor(primaryColor, 3) 

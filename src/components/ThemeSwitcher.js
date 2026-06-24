@@ -5,7 +5,9 @@ import { Palette, X, Sun, Moon, Check, Sparkles, Copy } from 'lucide-react';
 import logo from '../assets/logo.svg';
 import './ThemeSwitcher.css';
 
-const ColorPicker = ({ color, onChange, label }) => {
+const clampLightness = (value, min, max) => Math.max(min, Math.min(max, value));
+
+const ColorPicker = ({ color, onChange, label, minLightness = 0, maxLightness = 100 }) => {
   const [hue, setHue] = useState(0);
   const [saturation, setSaturation] = useState(100);
   const [lightness, setLightness] = useState(50);
@@ -40,10 +42,10 @@ const ColorPicker = ({ color, onChange, label }) => {
       const hsl = hexToHSL(color);
       setHue(hsl.h);
       setSaturation(hsl.s);
-      setLightness(hsl.l);
+      setLightness(clampLightness(hsl.l, minLightness, maxLightness));
       setHexInput(color);
     }
-  }, [color, hexToHSL]);
+  }, [color, hexToHSL, minLightness, maxLightness]);
 
   const hslToHex = (h, s, l) => {
     s /= 100;
@@ -58,24 +60,26 @@ const ColorPicker = ({ color, onChange, label }) => {
   };
 
   const updateColor = useCallback((newHue, newSat, newLight) => {
-    const newHex = hslToHex(newHue, newSat, newLight);
+    const clampedLight = clampLightness(newLight, minLightness, maxLightness);
+    const newHex = hslToHex(newHue, newSat, clampedLight);
     setHexInput(newHex);
     onChange(newHex);
-  }, [onChange]);
+  }, [onChange, minLightness, maxLightness]);
 
   const handleGradientInteraction = useCallback((e) => {
     if (!gradientRef.current) return;
     const rect = gradientRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    
+
     const newSaturation = Math.round(x * 100);
-    const newLightness = Math.round((1 - y) * 100);
-    
+    const rawLightness = Math.round((1 - y) * 100);
+    const newLightness = clampLightness(rawLightness, minLightness, maxLightness);
+
     setSaturation(newSaturation);
     setLightness(newLightness);
     updateColor(hue, newSaturation, newLightness);
-  }, [hue, updateColor]);
+  }, [hue, updateColor, minLightness, maxLightness]);
 
   const handleMouseDown = (e) => {
     setIsDragging(true);
@@ -109,11 +113,14 @@ const ColorPicker = ({ color, onChange, label }) => {
     const value = e.target.value;
     setHexInput(value);
     if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-      onChange(value);
       const hsl = hexToHSL(value);
+      const clampedLight = clampLightness(hsl.l, minLightness, maxLightness);
+      const clampedHex = clampedLight === hsl.l ? value : hslToHex(hsl.h, hsl.s, clampedLight);
       setHue(hsl.h);
       setSaturation(hsl.s);
-      setLightness(hsl.l);
+      setLightness(clampedLight);
+      setHexInput(clampedHex);
+      onChange(clampedHex);
     }
   };
 
@@ -126,18 +133,24 @@ const ColorPicker = ({ color, onChange, label }) => {
     <div className="ts-picker-container">
       <label className="ts-label">{label}</label>
       
-      <div 
+      <div
         className="ts-gradient-box"
         ref={gradientRef}
         onMouseDown={handleMouseDown}
-        style={{ 
+        style={{
           background: `
             linear-gradient(to top, #000, transparent),
             linear-gradient(to right, #fff, hsl(${hue}, 100%, 50%))
           `
         }}
       >
-        <div 
+        {maxLightness < 100 && (
+          <div className="ts-gradient-disabled" style={{ top: 0, height: `${100 - maxLightness}%` }} />
+        )}
+        {minLightness > 0 && (
+          <div className="ts-gradient-disabled" style={{ bottom: 0, height: `${minLightness}%` }} />
+        )}
+        <div
           className="ts-gradient-cursor"
           style={{ 
             left: `${cursorX}%`, 
@@ -180,53 +193,94 @@ const ColorPicker = ({ color, onChange, label }) => {
   );
 };
 
+const DARK_PRIMARY_RANGE = { min: 2, max: 20 };
+const DARK_ACCENT_RANGE = { min: 42, max: 85 };
+const LIGHT_PRIMARY_RANGE = { min: 90, max: 100 };
+const LIGHT_ACCENT_RANGE = { min: 20, max: 55 };
+
+const DEFAULT_DARK_PRIMARY = '#0b0b0c';
+const DEFAULT_DARK_ACCENT = '#D7B38C';
+const DEFAULT_LIGHT_PRIMARY = '#fefefe';
+const DEFAULT_LIGHT_ACCENT = '#B8860B';
+
 const ThemeSwitcher = () => {
   const { selectedThemeId, customTheme, changeTheme, applyCustomColors, selectedTheme } = useTheme();
   const [showThemePanel, setShowThemePanel] = useState(false);
   const [activeTab, setActiveTab] = useState('presets');
-  
-  
+
+
   const [pendingPresetId, setPendingPresetId] = useState(null);
-  const [primaryColor, setPrimaryColor] = useState('#0b0b0c');
-  const [accentColor, setAccentColor] = useState('#D7B38C');
-  const [originalPrimary, setOriginalPrimary] = useState('#0b0b0c');
-  const [originalAccent, setOriginalAccent] = useState('#D7B38C');
-  
+  const [originalThemeId, setOriginalThemeId] = useState(null);
+  const [customMode, setCustomMode] = useState('dark');
+  const [primaryColor, setPrimaryColor] = useState(DEFAULT_DARK_PRIMARY);
+  const [accentColor, setAccentColor] = useState(DEFAULT_DARK_ACCENT);
+  const [originalMode, setOriginalMode] = useState('dark');
+  const [originalPrimary, setOriginalPrimary] = useState(DEFAULT_DARK_PRIMARY);
+  const [originalAccent, setOriginalAccent] = useState(DEFAULT_DARK_ACCENT);
+
   const panelRef = useRef(null);
 
-  
+
   useEffect(() => {
     if (showThemePanel) {
+      setOriginalThemeId(selectedThemeId);
       setPendingPresetId(selectedThemeId);
-      const primary = customTheme?.primary || '#0b0b0c';
-      const accent = customTheme?.accent || '#D7B38C';
+      const mode = customTheme?.mode || selectedTheme?.mode || 'dark';
+      const primary = customTheme?.primary || (mode === 'dark' ? DEFAULT_DARK_PRIMARY : DEFAULT_LIGHT_PRIMARY);
+      const accent = customTheme?.accent || (mode === 'dark' ? DEFAULT_DARK_ACCENT : DEFAULT_LIGHT_ACCENT);
+      setCustomMode(mode);
+      setOriginalMode(mode);
       setPrimaryColor(primary);
       setAccentColor(accent);
       setOriginalPrimary(primary);
       setOriginalAccent(accent);
     }
-  }, [showThemePanel, selectedThemeId, customTheme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showThemePanel]);
 
-  const handlePresetSelect = (themeId) => setPendingPresetId(themeId);
+  const handlePresetSelect = (themeId) => {
+    setPendingPresetId(themeId);
+    changeTheme(themeId);
+  };
 
   const handleApplyPreset = () => {
-    if (pendingPresetId) changeTheme(pendingPresetId);
     setShowThemePanel(false);
   };
 
-  const handleCancelPreset = () => {
-    setPendingPresetId(selectedThemeId);
+  const handleRevertAndClose = () => {
+    if (originalThemeId === 'custom') {
+      applyCustomColors(originalPrimary, originalAccent, originalMode);
+    } else if (originalThemeId) {
+      changeTheme(originalThemeId);
+    }
+    setPendingPresetId(originalThemeId);
+    setCustomMode(originalMode);
+    setPrimaryColor(originalPrimary);
+    setAccentColor(originalAccent);
     setShowThemePanel(false);
+  };
+
+  const handleModeToggle = (mode) => {
+    if (mode === customMode) return;
+    const defaultPrimary = mode === 'dark' ? DEFAULT_DARK_PRIMARY : DEFAULT_LIGHT_PRIMARY;
+    const defaultAccent = mode === 'dark' ? DEFAULT_DARK_ACCENT : DEFAULT_LIGHT_ACCENT;
+    setCustomMode(mode);
+    setPrimaryColor(defaultPrimary);
+    setAccentColor(defaultAccent);
+    applyCustomColors(defaultPrimary, defaultAccent, mode);
+  };
+
+  const handlePrimaryChange = (hex) => {
+    setPrimaryColor(hex);
+    applyCustomColors(hex, accentColor, customMode);
+  };
+
+  const handleAccentChange = (hex) => {
+    setAccentColor(hex);
+    applyCustomColors(primaryColor, hex, customMode);
   };
 
   const handleApplyCustomTheme = () => {
-    applyCustomColors(primaryColor, accentColor, 'dark');
-    setShowThemePanel(false);
-  };
-
-  const handleCancelCustom = () => {
-    setPrimaryColor(originalPrimary);
-    setAccentColor(originalAccent);
     setShowThemePanel(false);
   };
 
@@ -292,12 +346,12 @@ const ThemeSwitcher = () => {
 
   
   const getPreviewBgColor = () => {
-    return isColorDark(primaryColor) ? lightenColor(primaryColor, 8) : primaryColor;
+    return customMode === 'dark' ? lightenColor(primaryColor, 8) : primaryColor;
   };
 
-  
+
   const getPreviewTextColor = () => {
-    return isColorDark(primaryColor) ? '#EAECEF' : '#1a1a1a';
+    return customMode === 'dark' ? '#EAECEF' : '#1a1a1a';
   };
 
   return (
@@ -401,22 +455,45 @@ const ThemeSwitcher = () => {
                 </div>
 
                 <div className="ts-actions">
-                  <button className="ts-cancel-btn" onClick={handleCancelPreset}>CANCEL</button>
-                  <button className="ts-ok-btn" onClick={handleApplyPreset}>OK</button>
+                  <button className="ts-cancel-btn" onClick={handleRevertAndClose}>CANCEL</button>
+                  <button className="ts-ok-btn" onClick={handleApplyPreset}>DONE</button>
                 </div>
               </div>
             ) : (
               <div className="ts-custom">
+                <div className="ts-mode-toggle">
+                  <button
+                    type="button"
+                    className={`ts-mode-btn ${customMode === 'dark' ? 'active' : ''}`}
+                    onClick={() => handleModeToggle('dark')}
+                  >
+                    <Moon size={14} />
+                    DARK
+                  </button>
+                  <button
+                    type="button"
+                    className={`ts-mode-btn ${customMode === 'light' ? 'active' : ''}`}
+                    onClick={() => handleModeToggle('light')}
+                  >
+                    <Sun size={14} />
+                    LIGHT
+                  </button>
+                </div>
+
                 <div className="ts-pickers-row">
-                  <ColorPicker 
+                  <ColorPicker
                     color={primaryColor}
-                    onChange={setPrimaryColor}
+                    onChange={handlePrimaryChange}
                     label="PRIMARY"
+                    minLightness={customMode === 'dark' ? DARK_PRIMARY_RANGE.min : LIGHT_PRIMARY_RANGE.min}
+                    maxLightness={customMode === 'dark' ? DARK_PRIMARY_RANGE.max : LIGHT_PRIMARY_RANGE.max}
                   />
-                  <ColorPicker 
+                  <ColorPicker
                     color={accentColor}
-                    onChange={setAccentColor}
+                    onChange={handleAccentChange}
                     label="ACCENT"
+                    minLightness={customMode === 'dark' ? DARK_ACCENT_RANGE.min : LIGHT_ACCENT_RANGE.min}
+                    maxLightness={customMode === 'dark' ? DARK_ACCENT_RANGE.max : LIGHT_ACCENT_RANGE.max}
                   />
                 </div>
 
@@ -447,7 +524,7 @@ const ThemeSwitcher = () => {
                           src={logo} 
                           alt="Cerbyl" 
                           className="ts-preview-logo"
-                          style={{ filter: isColorDark(primaryColor) ? 'brightness(0) invert(1)' : 'brightness(0)' }}
+                          style={{ filter: customMode === 'dark' ? 'brightness(0) invert(1)' : 'brightness(0)' }}
                         />
                         <div className="ts-preview-brand">
                           <span 
@@ -488,13 +565,13 @@ const ThemeSwitcher = () => {
                 </div>
 
                 <div className="ts-actions">
-                  <button className="ts-cancel-btn" onClick={handleCancelCustom}>CANCEL</button>
-                  <button 
+                  <button className="ts-cancel-btn" onClick={handleRevertAndClose}>CANCEL</button>
+                  <button
                     className="ts-ok-btn"
                     onClick={handleApplyCustomTheme}
                     style={{ background: accentColor, color: primaryColor }}
                   >
-                    OK
+                    DONE
                   </button>
                 </div>
               </div>
