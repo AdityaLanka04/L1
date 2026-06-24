@@ -14,7 +14,27 @@ import ImportExportModal from '../components/ImportExportModal';
 import PodcastStudio from '../components/media/PodcastStudio';
 
 const asText = (value) => (value === null || value === undefined ? '' : String(value));
-const MEDIA_FILE_ACCEPT = 'audio/*,video/*,.m4a,audio/mp4,audio/x-m4a';
+const MEDIA_FILE_ACCEPT = 'audio/*,video/*,application/pdf,.pdf,.m4a,audio/mp4,audio/x-m4a';
+const MAX_MEDIA_FILE_SIZE = 10 * 1024 * 1024;
+const MEDIA_FILE_EXTENSIONS = new Set([
+  'mp3', 'wav', 'm4a', 'webm', 'ogg', 'opus', 'mp4', 'mpeg', 'mpga',
+  'mov', 'avi', 'mkv', 'pdf'
+]);
+
+const getFileExtension = (file) => file?.name?.toLowerCase().split('.').pop() || '';
+
+const isPdfFile = (file) => (
+  file?.type === 'application/pdf' || file?.name?.toLowerCase().endsWith('.pdf')
+);
+
+const isSupportedMediaFile = (file) => (
+  Boolean(file) && (
+    file.type?.startsWith('audio/')
+    || file.type?.startsWith('video/')
+    || isPdfFile(file)
+    || MEDIA_FILE_EXTENSIONS.has(getFileExtension(file))
+  )
+);
 
 const formatDate = (value) => {
   const date = new Date(value);
@@ -66,12 +86,24 @@ const AIMediaNotes = () => {
     }
   }, [activeTab]);
 
+  const selectUploadFile = (file) => {
+    if (!file) return;
+    if (!isSupportedMediaFile(file)) {
+      alert('Unsupported file type. Please upload an audio, video, or PDF file.');
+      return;
+    }
+    if (file.size > MAX_MEDIA_FILE_SIZE) {
+      alert('File is too large. The maximum upload size is 10MB.');
+      return;
+    }
+    setUploadedFile(file);
+    setYoutubeUrl('');
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setUploadedFile(file);
-      setYoutubeUrl('');
-    }
+    selectUploadFile(file);
+    e.target.value = '';
   };
 
   const handleDragOver = (e) => {
@@ -87,10 +119,7 @@ const AIMediaNotes = () => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) {
-      setUploadedFile(file);
-      setYoutubeUrl('');
-    }
+    selectUploadFile(file);
   };
 
   const processMedia = async () => {
@@ -129,7 +158,7 @@ const AIMediaNotes = () => {
         setProgress(prev => prev < 90 ? prev + 5 : prev);
       }, 500);
 
-      setProcessingStage('Transcribing audio...');
+      setProcessingStage(isPdfFile(uploadedFile) ? 'Extracting PDF text...' : 'Transcribing audio...');
       
       const token = localStorage.getItem('token');
       let data;
@@ -301,7 +330,13 @@ const AIMediaNotes = () => {
         body: JSON.stringify({
           user_id: userName,
           title: smartTitle,
-          description: `Flashcards from ${results.source_type === 'youtube' ? 'YouTube video' : 'uploaded media'}`
+          description: `Flashcards from ${
+            results.source_type === 'youtube'
+              ? 'YouTube video'
+              : results.source_type === 'pdf'
+                ? 'uploaded PDF'
+                : 'uploaded media'
+          }`
         })
       });
 
@@ -691,7 +726,7 @@ const AIMediaNotes = () => {
                 <div className="view-heading mn-view-heading">
                   <span className="view-kicker">Your Library</span>
                   <h2 className="view-title">My Media Notes</h2>
-                  <p className="view-sub">Every note generated from your audio, video &amp; YouTube uploads</p>
+                  <p className="view-sub">Every note generated from your audio, video, PDF &amp; YouTube uploads</p>
                 </div>
 
                 {history.length > 0 ? (
@@ -728,7 +763,7 @@ const AIMediaNotes = () => {
                   <div className="mn-empty-state">
                     <AlertCircle size={48} />
                     <p>No media notes yet</p>
-                    <p className="mn-empty-hint">Generate notes from audio, video, or YouTube to see them here</p>
+                    <p className="mn-empty-hint">Generate notes from audio, video, PDF, or YouTube to see them here</p>
                   </div>
                 )}
               </div>
@@ -737,7 +772,7 @@ const AIMediaNotes = () => {
                 <div className="view-heading mn-view-heading">
                   <span className="view-kicker">AI-Powered</span>
                   <h2 className="view-title">AI Media Notes</h2>
-                  <p className="view-sub">Transform audio, video &amp; YouTube into smart study notes</p>
+                  <p className="view-sub">Transform audio, video, PDF &amp; YouTube into smart study notes</p>
                 </div>
 
                 <div
@@ -756,7 +791,7 @@ const AIMediaNotes = () => {
                   />
                   <Upload size={48} />
                   <p>Drag & drop or click to upload</p>
-                  <span>Audio & Video files supported (Max 10MB)</span>
+                  <span>Audio, Video &amp; PDF files supported (Max 10MB)</span>
                 </div>
 
                 {uploadedFile && (
@@ -900,6 +935,12 @@ const AIMediaNotes = () => {
                       <span className="mn-meta-badge">
                         <Clock size={13} />
                         {formatTime(results.duration)}
+                      </span>
+                    )}
+                    {results.pdf_info?.page_count > 0 && (
+                      <span className="mn-meta-badge">
+                        <FileText size={13} />
+                        {results.pdf_info.page_count} {results.pdf_info.page_count === 1 ? 'page' : 'pages'}
                       </span>
                     )}
                     {results.analysis?.difficulty_level && (

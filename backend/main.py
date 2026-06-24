@@ -108,6 +108,39 @@ def _release_rl_scheduler_lock(lock_state) -> None:
             pass
 
 _DB_MIGRATION_LOCK_ID = int(os.getenv("DB_MIGRATION_ADVISORY_LOCK_ID", "941732"))
+_ALEMBIC_BASELINE_REVISION = "1f7b7b570da8"
+
+
+def _upgrade_db_to_head(cfg, command) -> None:
+    """Upgrade a fresh or legacy database to the latest Alembic revision.
+
+    Databases created before Alembic already contain the baseline tables but
+    have no recorded revision. Running the baseline migration against one of
+    those databases fails on its first CREATE TABLE. Mark the existing schema
+    as the baseline first, then replay every migration added after it.
+
+    ``create_all`` is intentionally limited to this one-time legacy bootstrap:
+    it fills in any mapped tables that an older installation did not have,
+    while the subsequent Alembic revisions remain responsible for data
+    backfills, raw SQL tables, indexes, and newer columns.
+    """
+    from alembic.runtime.migration import MigrationContext
+    from sqlalchemy import inspect
+
+    with engine.connect() as conn:
+        current_revision = MigrationContext.configure(conn).get_current_revision()
+        existing_tables = set(inspect(conn).get_table_names()) - {"alembic_version"}
+
+    if current_revision is None and existing_tables:
+        logger.warning(
+            "Detected an existing database without an Alembic revision; "
+            "bootstrapping it at baseline %s before upgrading",
+            _ALEMBIC_BASELINE_REVISION,
+        )
+        models.Base.metadata.create_all(bind=engine)
+        command.stamp(cfg, _ALEMBIC_BASELINE_REVISION)
+
+    command.upgrade(cfg, "head")
 
 
 def _import_alembic_runtime():
@@ -153,14 +186,14 @@ def _run_db_migrations() -> None:
     cfg = Config(os.path.join(os.path.dirname(os.path.abspath(__file__)), "alembic.ini"))
 
     if "postgres" not in DATABASE_URL.lower():
-        command.upgrade(cfg, "head")
+        _upgrade_db_to_head(cfg, command)
         return
 
     conn = engine.connect()
     try:
         conn.execute(text("SELECT pg_advisory_lock(:lock_id)"), {"lock_id": _DB_MIGRATION_LOCK_ID})
         try:
-            command.upgrade(cfg, "head")
+            _upgrade_db_to_head(cfg, command)
         finally:
             conn.execute(text("SELECT pg_advisory_unlock(:lock_id)"), {"lock_id": _DB_MIGRATION_LOCK_ID})
     finally:

@@ -546,8 +546,7 @@ async def get_leaderboard(
             models.User.id == models.UserGamificationStats.user_id
         ).order_by(
             models.UserGamificationStats.total_points.desc(),
-            models.UserGamificationStats.level.desc(),
-            models.UserGamificationStats.experience.desc()
+            models.UserGamificationStats.user_id.asc(),
         ).limit(limit)
 
         results = leaderboard_query.all()

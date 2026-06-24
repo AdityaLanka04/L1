@@ -1293,6 +1293,11 @@
   gap: 4px;
 }
 
+.save-error-indicator {
+  color: var(--nr-danger);
+  font-weight: 500;
+}
+
 .unsaved-indicator {
   color: var(--nr-text-muted);
   font-weight: 500;

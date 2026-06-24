@@ -1206,6 +1206,9 @@ html:has(.ai-chat-page) {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
   gap: 10px;
   padding: 4px 0 10px;
   border-bottom: 1px solid var(--ac-border-subtle);
@@ -6478,4 +6481,90 @@ button:focus-visible {
 
 .ai-chat-page.ac-qb-page .ac-qb-side-block .ac-new-chat-btn {
   margin-bottom: 0 !important;
+}
+
+/* Keep chat rows readable and scroll the conversation list instead of
+   shrinking every row until the title/date text overlaps. */
+.ai-chat-page.ac-qb-page .ac-qb-sidebar {
+  overflow: hidden !important;
+}
+
+.ai-chat-page.ac-qb-page .ac-qb-side-brand,
+.ai-chat-page.ac-qb-page .ac-qb-sidebar > .ac-qb-side-block,
+.ai-chat-page.ac-qb-page .ac-sidebar-footer {
+  flex: 0 0 auto;
+}
+
+.ai-chat-page.ac-qb-page .ac-sidebar-nav {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden !important;
+}
+
+.ai-chat-page.ac-qb-page .ac-qb-side-block--grow {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ai-chat-page.ac-qb-page .ac-sessions-list {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 5px 12px 0;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 40%, transparent) transparent;
+  overscroll-behavior: contain;
+}
+
+.ai-chat-page.ac-qb-page .ac-sessions-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-chat-page.ac-qb-page .ac-sessions-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-chat-page.ac-qb-page .ac-sessions-list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 999px;
+}
+
+.ai-chat-page.ac-qb-page .ac-sessions-list::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.ai-chat-page.ac-qb-page .ac-session-item {
+  flex: 0 0 auto !important;
+  min-height: 58px;
+  margin: 0 !important;
+  padding: 10px 9px !important;
+  align-items: center;
+}
+
+.ai-chat-page.ac-qb-page .ac-session-info {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  align-content: center;
+}
+
+.ai-chat-page.ac-qb-page .ac-session-title {
+  display: block;
+  line-height: 1.25 !important;
+}
+
+.ai-chat-page.ac-qb-page .ac-session-date {
+  display: block;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap;
+}
+
+.ai-chat-page.ac-qb-page .ac-session-actions {
+  flex: 0 0 auto;
 }

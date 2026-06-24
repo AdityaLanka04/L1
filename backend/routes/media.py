@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import call_ai, call_ai_async, get_current_user, get_user_by_email, get_user_by_username
+from services.document_processor import extract_text_from_pdf_detailed
 from services.storage_service import StorageService
 
 try:
@@ -45,6 +46,7 @@ UPLOAD_DIR = Path("uploads/slides")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 SLIDE_CACHE_DIR = Path(os.getenv("SLIDE_CACHE_DIR", "uploads/slide_cache"))
 SLIDE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+MEDIA_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
 
 router = APIRouter(prefix="/api", tags=["media"])
 
@@ -165,6 +167,15 @@ def _verify_user_access(requested_user, current_user: models.User):
 def _safe_audio_suffix(filename: Optional[str]) -> str:
     suffix = Path(filename or "").suffix.lower()
     return suffix if suffix in {".m4a", ".mp3", ".wav", ".webm", ".ogg", ".opus", ".mp4", ".mpeg", ".mpga"} else ".webm"
+
+def _is_pdf_upload(file: UploadFile, content: bytes) -> bool:
+    filename = (file.filename or "").lower()
+    content_type = (file.content_type or "").lower()
+    return (
+        filename.endswith(".pdf")
+        or content_type == "application/pdf"
+        or content.startswith(b"%PDF")
+    )
 
 @router.post("/transcribe_audio/")
 async def transcribe_audio(
@@ -304,6 +315,11 @@ async def process_media(
 
         elif file:
             logger.info(f"Processing uploaded file: {file.filename}")
+            content = await file.read()
+            if not content:
+                raise HTTPException(status_code=400, detail="The uploaded file is empty")
+            if len(content) > MEDIA_UPLOAD_MAX_BYTES:
+                raise HTTPException(status_code=413, detail="File is too large. Maximum upload size is 10MB")
 
             upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", "media")
             os.makedirs(upload_dir, exist_ok=True)
@@ -315,16 +331,42 @@ async def process_media(
             )
 
             with open(file_path, "wb") as f:
-                content = await file.read()
                 f.write(content)
 
-            result = await ai_media_processor.transcribe_audio_groq(file_path)
+            if _is_pdf_upload(file, content):
+                logger.info("Extracting text from uploaded PDF")
+                extraction = await asyncio.to_thread(extract_text_from_pdf_detailed, content)
+                extracted_text = (extraction.get("text") or "").strip()
+                if not extracted_text:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            "No readable text was found in this PDF. "
+                            "Scanned or image-only PDFs are not currently supported."
+                        ),
+                    )
+                transcript_data = {
+                    "success": True,
+                    "transcript": extracted_text,
+                    "language": "en",
+                    "duration": 0,
+                    "has_timestamps": False,
+                    "segments": [],
+                    "pdf_info": {
+                        "page_count": extraction.get("page_count", 0),
+                        "parser": extraction.get("parser", ""),
+                        "warnings": extraction.get("warnings", []),
+                    },
+                }
+                source_type = "pdf"
+            else:
+                result = await ai_media_processor.transcribe_audio_groq(file_path)
 
-            if not result.get("success"):
-                raise HTTPException(status_code=400, detail=result.get("error", "Failed to transcribe audio"))
+                if not result.get("success"):
+                    raise HTTPException(status_code=400, detail=result.get("error", "Failed to transcribe audio"))
 
-            transcript_data = result
-            source_type = "upload"
+                transcript_data = result
+                source_type = "upload"
             filename = file.filename
 
         else:
@@ -409,6 +451,7 @@ async def process_media(
             "duration": transcript_data.get("duration", 0),
             "has_timestamps": transcript_data.get("has_timestamps", False),
             "segments": transcript_data.get("segments", [])[:50],
+            "pdf_info": transcript_data.get("pdf_info") if source_type == "pdf" else None,
             "analysis": analysis_data,
             "notes": {
                 "content": notes_result["content"],

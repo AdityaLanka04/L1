@@ -1090,32 +1090,35 @@ const AIChat = ({ sharedMode = false }) => {
     if (selectedFiles.length === 0) return null;
 
     return (
-      <div className="ac-file-preview">
+      <div className="ac-file-preview" aria-label="Files ready to send">
         {selectedFiles.map((file, index) => (
           file.type.startsWith('image/') && file._previewUrl ? (
-            <div key={`${file.name}-${index}`} className="ac-img-thumb-wrap">
-              <img
-                src={file._previewUrl}
-                alt={file.name}
-                className="ac-img-thumb"
-              />
+            <div key={`${file.name}-${file.size}-${index}`} className="ac-img-thumb-wrap">
+              <img src={file._previewUrl} alt={file.name} className="ac-img-thumb" />
               <button
                 type="button"
                 className="ac-img-thumb-remove"
                 onClick={() => removeFile(index)}
-                title="Remove"
+                title={`Remove ${file.name}`}
+                aria-label={`Remove ${file.name}`}
               >
                 {Icons.x}
               </button>
             </div>
           ) : (
-            <div key={`${file.name}-${index}`} className="ac-file-tag">
+            <div key={`${file.name}-${file.size}-${index}`} className="ac-file-tag">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
               <span>{file.name}</span>
-              <button type="button" className="ac-file-remove" onClick={() => removeFile(index)}>
+              <button
+                type="button"
+                className="ac-file-remove"
+                onClick={() => removeFile(index)}
+                title={`Remove ${file.name}`}
+                aria-label={`Remove ${file.name}`}
+              >
                 {Icons.x}
               </button>
             </div>
@@ -3178,7 +3181,7 @@ const AIChat = ({ sharedMode = false }) => {
                 </div>
 
                 <div
-                  className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
+                  className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''} ${selectedFiles.length > 0 ? 'has-attachments' : ''}`}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -3195,6 +3198,7 @@ const AIChat = ({ sharedMode = false }) => {
                   {renderTutorControls()}
                   <div className="ac-input-row">
                     <button
+                      type="button"
                       className="ac-input-btn"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={loading}
@@ -3214,6 +3218,7 @@ const AIChat = ({ sharedMode = false }) => {
                       rows="1"
                     />
                     <button
+                      type="button"
                       onClick={sendMessage}
                       disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
                       className="ac-send-btn"

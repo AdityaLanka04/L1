@@ -400,6 +400,13 @@ const useSlashCommands = (quillRef) => ({
 
 const parsePageLinks = (content) => [];
 
+const buildSaveSnapshot = (noteId, title, content, canvasData) => JSON.stringify([
+  String(noteId ?? ''),
+  title || '',
+  content || '',
+  canvasData || '',
+]);
+
 let QuillTableUI;
 try {
   QuillTableUI = require('quill-table-ui');
@@ -453,6 +460,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const titleSectionCollapsed = false;
@@ -566,6 +574,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const audioChunksRef = useRef([]);
   const quillRef = useRef(null);
   const saveTimeout = useRef(null);
+  const notesRef = useRef([]);
+  const lastSavedSnapshotRef = useRef('');
   const aiInputRef = useRef(null);
 
   
@@ -690,6 +700,13 @@ const NotesRedesign = ({ sharedMode = false }) => {
         
         const normalizedContent = normalizeNoteContent(data.content || '');
         const sharedBlocks = htmlToBlocks(normalizedContent);
+        lastSavedSnapshotRef.current = buildSaveSnapshot(
+          data.content_id,
+          data.title || 'Untitled Note',
+          normalizedContent,
+          data.canvas_data || ''
+        );
+        setSaveError(false);
 
         setSelectedNote({
           id: data.content_id,
@@ -1603,6 +1620,13 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
   const selectNote = (n) => {
     const normalizedContent = normalizeNoteContent(n.content || '');
+    lastSavedSnapshotRef.current = buildSaveSnapshot(
+      n.id,
+      n.title || 'Untitled Note',
+      normalizedContent,
+      n.canvas_data || ''
+    );
+    setSaveError(false);
     setSelectedNote(n);
     setNoteTitle(n.title || 'Untitled Note');
     setNoteContent(normalizedContent);
@@ -1949,15 +1973,20 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
   const autoSave = useCallback(async () => {
     if (!selectedNote) return;
-    
+
+    const targetNoteId = selectedNote.id;
+    const saveSnapshot = buildSaveSnapshot(targetNoteId, noteTitle, noteContent, canvasData);
+    if (saveSnapshot === lastSavedSnapshotRef.current) return;
+
     
     if (isSharedContent) {
       if (!canEdit) return;
       
       setSaving(true);
+      setSaveError(false);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${API_URL}/update_shared_note/${selectedNote.id}`, {
+        const res = await fetch(`${API_URL}/update_shared_note/${targetNoteId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -1971,7 +2000,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
         });
 
         if (res.ok) {
+          lastSavedSnapshotRef.current = saveSnapshot;
           setSaving(false);
+          setSaveError(false);
           setAutoSaved(true);
           setTimeout(() => setAutoSaved(false), 2000);
         } else {
@@ -1979,16 +2010,19 @@ const NotesRedesign = ({ sharedMode = false }) => {
         }
       } catch (error) {
         setSaving(false);
-                showPopup("Error", "Failed to save changes");
+        setAutoSaved(false);
+        setSaveError(true);
+        console.warn('Shared note autosave failed:', error);
       }
     } else {
       
-      const noteStillExists = notes.find(n => n.id === selectedNote.id);
+      const noteStillExists = notesRef.current.find(n => n.id === targetNoteId);
       if (!noteStillExists) return;
       
       if (selectedNote.is_deleted || noteStillExists.is_deleted) return;
       
       setSaving(true);
+      setSaveError(false);
       
       try {
         const token = localStorage.getItem("token");
@@ -1999,7 +2033,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            note_id: selectedNote.id,
+            note_id: targetNoteId,
             title: noteTitle,
             content: noteContent,
             canvas_data: canvasData,
@@ -2007,19 +2041,26 @@ const NotesRedesign = ({ sharedMode = false }) => {
         });
         
         if (res.ok) {
+          lastSavedSnapshotRef.current = saveSnapshot;
           setSaving(false);
+          setSaveError(false);
           setAutoSaved(true);
           setTimeout(() => setAutoSaved(false), 2000);
 
           setNotes((prev) =>
             prev.map((n) =>
-              n.id === selectedNote.id ? { ...n, title: noteTitle, content: noteContent, canvas_data: canvasData } : n
+              n.id === targetNoteId ? { ...n, title: noteTitle, content: noteContent, canvas_data: canvasData } : n
             )
           );
+          setSelectedNote((prev) => (
+            prev?.id === targetNoteId
+              ? { ...prev, title: noteTitle, content: noteContent, canvas_data: canvasData }
+              : prev
+          ));
         } else if (res.status === 400) {
           setSaving(false);
           
-          setNotes(prev => prev.filter(n => n.id !== selectedNote.id));
+          setNotes(prev => prev.filter(n => n.id !== targetNoteId));
           setSelectedNote(null);
           setNoteTitle("");
           setNoteContent("");
@@ -2030,10 +2071,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
         }
       } catch (error) {
         setSaving(false);
-                showPopup("Error", "Failed to save note");
+        setAutoSaved(false);
+        setSaveError(true);
+        console.warn('Note autosave failed:', error);
       }
     }
-  }, [selectedNote, noteTitle, noteContent, canvasData, notes, isSharedContent, canEdit]);
+  }, [selectedNote, noteTitle, noteContent, canvasData, isSharedContent, canEdit]);
 
   
   useEffect(() => {
@@ -2042,7 +2085,13 @@ const NotesRedesign = ({ sharedMode = false }) => {
       saveTimeout.current = null;
     }
     
-    if (selectedNote && (isSharedContent ? canEdit : !selectedNote.is_deleted)) {
+    const currentSnapshot = selectedNote
+      ? buildSaveSnapshot(selectedNote.id, noteTitle, noteContent, canvasData)
+      : '';
+    const hasUnsavedChanges = currentSnapshot !== lastSavedSnapshotRef.current;
+
+    if (selectedNote && hasUnsavedChanges && (isSharedContent ? canEdit : !selectedNote.is_deleted)) {
+      setAutoSaved(false);
       saveTimeout.current = setTimeout(() => {
         if (selectedNote && (isSharedContent ? canEdit : !selectedNote.is_deleted)) {
           autoSave();
@@ -2057,6 +2106,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }
     };
   }, [noteContent, noteTitle, canvasData, selectedNote, autoSave, isSharedContent, canEdit]);
+
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
 
   
   useEffect(() => {
@@ -3511,6 +3564,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
               <div className="footer-right">
                 {saving ? (
                   <span className="saving-indicator">Saving...</span>
+                ) : saveError ? (
+                  <span className="save-error-indicator">Save interrupted — edit to retry</span>
                 ) : autoSaved ? (
                   <span className="saved-indicator">Saved <Check size={14} /></span>
                 ) : (

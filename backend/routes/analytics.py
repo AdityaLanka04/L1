@@ -638,7 +638,8 @@ def get_analytics_history(
 def get_global_leaderboard(limit: int = Query(10), db: Session = Depends(get_db)):
     try:
         top_users = db.query(models.UserGamificationStats).order_by(
-            models.UserGamificationStats.total_points.desc()
+            models.UserGamificationStats.total_points.desc(),
+            models.UserGamificationStats.user_id.asc(),
         ).limit(limit).all()
 
         leaderboard = []

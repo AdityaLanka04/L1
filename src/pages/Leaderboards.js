@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Clock, Target, TrendingUp, Award, Users } from 'lucide-react';
+import { Trophy, Users } from 'lucide-react';
 import './Leaderboards.css';
 import SocialHubChrome from '../components/SocialHubChrome';
 import { API_URL } from '../config';
@@ -11,59 +11,29 @@ const Leaderboards = () => {
   
   
   const [category, setCategory] = useState('global');
-  const [metric, setMetric] = useState('total_hours');
-  const [period, setPeriod] = useState('all_time');
 
   useEffect(() => {
     fetchLeaderboard();
-  }, [category, metric, period]);
+  }, [category]);
 
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${API_URL}/leaderboard?category=${category}&metric=${metric}&period=${period}&limit=50`,
+        `${API_URL}/leaderboard?category=${category}&limit=50`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       if (response.ok) {
         const data = await response.json();
-        setLeaderboard(data.leaderboard);
-        setCurrentUserRank(data.current_user_rank);
+        setLeaderboard(data.leaderboard || []);
+        setCurrentUserRank(data.current_user_rank || null);
       }
     } catch (error) { /* silenced */ } finally {
       setLoading(false);
     }
   };
 
-  const getMetricDisplay = (score, metricType) => {
-    switch (metricType) {
-      case 'total_hours':
-        return `${score}h`;
-      case 'accuracy':
-        return `${score}%`;
-      case 'streak':
-        return `${score} days`;
-      case 'lessons':
-        return `${score} lessons`;
-      default:
-        return score;
-    }
-  };
-
-  const getMetricIcon = (metricType) => {
-    switch (metricType) {
-      case 'total_hours':
-        return <Clock size={16} />;
-      case 'accuracy':
-        return <Target size={16} />;
-      case 'streak':
-        return <TrendingUp size={16} />;
-      case 'lessons':
-        return <Award size={16} />;
-      default:
-        return <Trophy size={16} />;
-    }
-  };
+  const getXpDisplay = (score) => `${Number(score || 0).toLocaleString()} XP`;
 
   const getAvatarInitial = (entry) => (
     (entry.first_name?.[0] || entry.username?.[0] || '?').toUpperCase()
@@ -81,20 +51,9 @@ const Leaderboards = () => {
             ],
           },
           {
-            label: 'Metric',
+            label: 'Ranking',
             items: [
-              { icon: Clock,      label: 'Study Time', onClick: () => setMetric('total_hours'), active: metric === 'total_hours' },
-              { icon: Target,     label: 'Accuracy',   onClick: () => setMetric('accuracy'),    active: metric === 'accuracy' },
-              { icon: TrendingUp, label: 'Streak',     onClick: () => setMetric('streak'),      active: metric === 'streak' },
-              { icon: Award,      label: 'Lessons',    onClick: () => setMetric('lessons'),     active: metric === 'lessons' },
-            ],
-          },
-          {
-            label: 'Period',
-            items: [
-              { icon: Clock, label: 'All Time',   onClick: () => setPeriod('all_time'), active: period === 'all_time' },
-              { icon: Clock, label: 'This Month', onClick: () => setPeriod('month'),    active: period === 'month' },
-              { icon: Clock, label: 'This Week',  onClick: () => setPeriod('week'),     active: period === 'week' },
+              { icon: Trophy, label: 'All-Time XP', active: true },
             ],
           },
         ]}
@@ -104,7 +63,7 @@ const Leaderboards = () => {
           <div className="view-heading">
             <span className="view-kicker">Rankings</span>
             <h2 className="view-title">Leaderboards</h2>
-            <p className="view-sub">See where you stand among all learners</p>
+            <p className="view-sub">See where you stand by all-time XP</p>
           </div>
         </div>
 
@@ -112,8 +71,8 @@ const Leaderboards = () => {
           <div className="current-user-rank">
             <div className="rank-badge">Your Rank: #{currentUserRank.rank}</div>
             <div className="rank-score">
-              {getMetricIcon(metric)}
-              <span>{getMetricDisplay(currentUserRank.score, metric)}</span>
+              <Trophy size={16} />
+              <span>{getXpDisplay(currentUserRank.score)}</span>
             </div>
           </div>
         )}
@@ -166,8 +125,8 @@ const Leaderboards = () => {
                   </div>
 
                   <div className="entry-score">
-                    {getMetricIcon(metric)}
-                    <span>{getMetricDisplay(entry.score, metric)}</span>
+                    <Trophy size={16} />
+                    <span>{getXpDisplay(entry.score)}</span>
                   </div>
                 </div>
               );

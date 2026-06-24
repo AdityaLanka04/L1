@@ -571,9 +571,6 @@ async def create_activity(
 @router.get("/leaderboard")
 async def get_leaderboard(
     category: str = Query("global", pattern="^(global|friends|subject|archetype)$"),
-    metric: str = Query("total_hours", pattern="^(total_hours|accuracy|streak|lessons)$"),
-    period: str = Query("all_time", pattern="^(weekly|monthly|all_time)$"),
-    subject: Optional[str] = Query(None),
     limit: int = Query(50, le=100),
     username: str = Depends(verify_token),
     db: Session = Depends(get_db)
@@ -591,31 +588,20 @@ async def get_leaderboard(
         else:
             user_ids = None
 
-        query = db.query(models.UserStats, models.User).join(
-            models.User, models.UserStats.user_id == models.User.id
+        query = db.query(models.UserGamificationStats, models.User).join(
+            models.User, models.UserGamificationStats.user_id == models.User.id
         )
 
         if user_ids:
-            query = query.filter(models.UserStats.user_id.in_(user_ids))
+            query = query.filter(models.UserGamificationStats.user_id.in_(user_ids))
 
-        if metric == "total_hours":
-            query = query.order_by(models.UserStats.total_hours.desc())
-            score_field = "total_hours"
-        elif metric == "accuracy":
-            query = query.order_by(models.UserStats.accuracy_percentage.desc())
-            score_field = "accuracy_percentage"
-        elif metric == "streak":
-            query = query.order_by(models.UserStats.day_streak.desc())
-            score_field = "day_streak"
-        else:
-            query = query.order_by(models.UserStats.total_lessons.desc())
-            score_field = "total_lessons"
-
-        results = query.limit(limit).all()
+        results = query.order_by(
+            models.UserGamificationStats.total_points.desc(),
+            models.UserGamificationStats.user_id.asc(),
+        ).limit(limit).all()
 
         leaderboard = []
         for rank, (stats, user) in enumerate(results, start=1):
-            score = getattr(stats, score_field)
             leaderboard.append({
                 "rank": rank,
                 "user_id": user.id,
@@ -623,21 +609,58 @@ async def get_leaderboard(
                 "first_name": user.first_name or "",
                 "last_name": user.last_name or "",
                 "picture_url": user.picture_url or "",
-                "score": round(score, 1) if isinstance(score, float) else score,
-                "metric": metric,
+                "score": stats.total_points or 0,
+                "total_points": stats.total_points or 0,
+                "level": stats.level or 1,
+                "experience": stats.experience or 0,
+                "metric": "xp",
                 "is_current_user": user.id == current_user.id
             })
 
         current_user_rank = next((item for item in leaderboard if item["is_current_user"]), None)
+        if current_user_rank is None:
+            current_stats = db.query(models.UserGamificationStats).filter(
+                models.UserGamificationStats.user_id == current_user.id
+            ).first()
+            if current_stats and (not user_ids or current_user.id in user_ids):
+                current_points = current_stats.total_points or 0
+                rank_query = db.query(models.UserGamificationStats).filter(
+                    (
+                        models.UserGamificationStats.total_points > current_points
+                    ) | (
+                        (models.UserGamificationStats.total_points == current_points)
+                        & (models.UserGamificationStats.user_id < current_user.id)
+                    )
+                )
+                if user_ids:
+                    rank_query = rank_query.filter(
+                        models.UserGamificationStats.user_id.in_(user_ids)
+                    )
+                current_user_rank = {
+                    "rank": rank_query.count() + 1,
+                    "user_id": current_user.id,
+                    "username": current_user.username,
+                    "first_name": current_user.first_name or "",
+                    "last_name": current_user.last_name or "",
+                    "picture_url": current_user.picture_url or "",
+                    "score": current_points,
+                    "total_points": current_points,
+                    "level": current_stats.level or 1,
+                    "experience": current_stats.experience or 0,
+                    "metric": "xp",
+                    "is_current_user": True,
+                }
 
         return {
             "leaderboard": leaderboard,
             "current_user_rank": current_user_rank,
             "category": category,
-            "metric": metric,
-            "period": period
+            "metric": "xp",
+            "period": "all_time"
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching leaderboard: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
