@@ -703,13 +703,6 @@ const AIChat = ({ sharedMode = false }) => {
   const [folderToDelete, setFolderToDelete] = useState(null);
   
   const [selectedFiles, setSelectedFiles] = useState([]);
-  
-  
-  const [agentInsights, setAgentInsights] = useState(null);
-  const [showWeaknesses, setShowWeaknesses] = useState(false);
-  const [showRecommendations, setShowRecommendations] = useState(false);
-  const [conversationMode, setConversationMode] = useState('tutoring');
-  const [agentAnalysis, setAgentAnalysis] = useState(null);
 
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
@@ -1303,105 +1296,6 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   
-  const sendMessageWithAgent = async (message, chatId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/ai-chat-agent/message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          message: message,
-          chat_id: chatId,
-          mode: conversationMode,
-          context: {
-            subject: userProfile?.main_subject || 'general',
-            difficulty_level: 'intermediate'
-          }
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        setAgentAnalysis(result.data.analysis);
-        
-        
-        if (result.data.analysis.confusion_detected) {
-          setAgentInsights({
-            type: 'confusion',
-            message: 'I noticed you might be confused. Let me break this down step by step.'
-          });
-        }
-        
-        
-        if (result.data.weaknesses && result.data.weaknesses.length > 0) {
-          setAgentInsights(prev => ({
-            ...prev,
-            weaknesses: result.data.weaknesses
-          }));
-        }
-        
-        if (result.data.recommendations && result.data.recommendations.length > 0) {
-          setAgentInsights(prev => ({
-            ...prev,
-            recommendations: result.data.recommendations
-          }));
-        }
-        
-        return result.data.response;
-      }
-    } catch (error) {
-            return null;
-    }
-  };
-
-  const getProgressReport = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${API_URL}/ai-chat-agent/progress-report?user_id=${userName}`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
-      
-      const result = await response.json();
-      if (result.success) {
-        return result.data;
-      }
-    } catch (error) {
-    // silenced
-  }
-  };
-
-  const switchConversationMode = async (newMode) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/ai-chat-agent/switch-mode`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          mode: newMode
-        })
-      });
-      
-      const result = await response.json();
-      if (result.success) {
-        setConversationMode(newMode);
-      }
-    } catch (error) {
-    // silenced
-  }
-  };
-
   const sendMessage = async (overrideMessage = null) => {
     const useOverride = typeof overrideMessage === 'string';
     const draftMessage = useOverride ? overrideMessage : inputMessage;
@@ -1557,11 +1451,6 @@ const AIChat = ({ sharedMode = false }) => {
       }
       
       
-      if (messageText && !messagedFiles.length) {
-        sendMessageWithAgent(messageText, currentChatId).catch(err => {
-        });
-      }
-      
       const backendIntentClass = data.intent_class || null;
       const tutorContract = parseTutorResponseContract(data.answer || '');
       const aiAnswerContent = tutorContract?.answer || stripTutorOptionMarkers(data.answer);
@@ -1594,7 +1483,6 @@ const AIChat = ({ sharedMode = false }) => {
         filesProcessed: data.files_processed || 0,
         fileSummaries: data.file_summaries || [],
         hasFileContext: data.has_file_context || false,
-        agentAnalysis: agentAnalysis,
         actionButtons: responseTutorMode ? [] : (data.action_buttons || []),
         contentFound: data.content_found || null,
         intentClass: backendIntentClass,
