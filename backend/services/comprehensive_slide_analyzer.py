@@ -10,7 +10,7 @@ from groq import Groq
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from activity_logger import log_ai_tokens
-from services.ai_usage import extract_usage_from_openai_like
+from services.ai_usage import estimate_usage, extract_usage_from_openai_like
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,9 @@ class ComprehensiveSlideAnalyzer:
                     max_tokens=max_tokens,
                     temperature=temperature
                 )
-                self._log_usage(response)
-                return response.choices[0].message.content
+                completion = response.choices[0].message.content
+                self._log_usage(response, prompt=prompt, completion=completion)
+                return completion
             except Exception as e:
                 err = str(e)
                 logger.error(f"AI call error (attempt {attempt + 1}/{retries}): {err}")
@@ -49,11 +50,13 @@ class ComprehensiveSlideAnalyzer:
                     return ""
         return ""
 
-    def _log_usage(self, response):
+    def _log_usage(self, response, prompt: str = "", completion: str = ""):
         if not self.current_user_id:
             return
         usage = extract_usage_from_openai_like(response)
-        if not usage:
+        token_source = "model_usage" if usage else "estimated"
+        usage = usage or estimate_usage(prompt, completion)
+        if not usage.get("total_tokens"):
             return
         try:
             log_ai_tokens(
@@ -63,7 +66,7 @@ class ComprehensiveSlideAnalyzer:
                 completion_tokens=usage.get("completion_tokens", 0),
                 total_tokens=usage.get("total_tokens", 0),
                 model=self.model,
-                metadata={"provider": "groq", "source": "slide_analysis"}
+                metadata={"provider": "groq", "source": "slide_analysis", "token_source": token_source}
             )
         except Exception:
             pass

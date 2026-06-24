@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from activity_context import clear_activity_context, set_activity_context
 from database import SessionLocal
 import models
 from services.ai_job_queue import (
@@ -25,6 +26,7 @@ from services.ai_job_queue import (
 )
 from services.ai_semantic_cache import get_semantic_cache, set_semantic_cache
 from services.storage_service import StorageService
+from services.token_limits import get_token_limit_state, token_limit_error_payload
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(levelname)s: %(message)s")
 logger = logging.getLogger("ai_worker")
@@ -148,27 +150,44 @@ def _process_chat_completion(job: models.AIJob, payload: dict[str, Any], db) -> 
     if not user:
         raise ValueError(f"User {job.user_id} not found")
 
+    token_state = get_token_limit_state(db, user)
+    if not token_state.get("allowed", True):
+        detail = token_limit_error_payload(token_state)["detail"]
+        raise ValueError(detail)
+
     from routes.chat import ask_simple
 
     job.progress_percent = 35
     job.progress_message = "Calling AI provider"
     db.commit()
 
-    chat_result = asyncio.run(
-        ask_simple(
-            user_id=user.username or user.email or str(user.id),
-            question=prompt,
-            original_question=payload.get("user_message") or prompt,
-            chat_id=str(payload["chat_session_id"]) if payload.get("chat_session_id") else None,
-            use_hs_context=bool(payload.get("use_hs_context", True)),
-            context_doc_ids=payload.get("context_doc_ids"),
-            tutor_mode=bool(payload.get("tutor_mode", False)),
-            tutor_reply_style=payload.get("tutor_reply_style") or "guided",
-            tutor_choice=payload.get("tutor_choice"),
-            db=db,
-            current_user=user,
+    activity_token = set_activity_context({
+        "user_id": str(job.user_id),
+        "tool_name": "ai_chat",
+        "action": "create",
+        "endpoint": "/api/ask_simple/",
+        "method": "WORKER",
+        "job_id": job.id,
+        "job_type": job.job_type,
+    })
+    try:
+        chat_result = asyncio.run(
+            ask_simple(
+                user_id=user.username or user.email or str(user.id),
+                question=prompt,
+                original_question=payload.get("user_message") or prompt,
+                chat_id=str(payload["chat_session_id"]) if payload.get("chat_session_id") else None,
+                use_hs_context=bool(payload.get("use_hs_context", True)),
+                context_doc_ids=payload.get("context_doc_ids"),
+                tutor_mode=bool(payload.get("tutor_mode", False)),
+                tutor_reply_style=payload.get("tutor_reply_style") or "guided",
+                tutor_choice=payload.get("tutor_choice"),
+                db=db,
+                current_user=user,
+            )
         )
-    )
+    finally:
+        clear_activity_context(activity_token)
     response = chat_result.get("answer") or ""
 
     if can_use_semantic_cache:

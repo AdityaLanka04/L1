@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from groq import Groq
 import os
 from activity_logger import log_ai_tokens
-from services.ai_usage import extract_usage_from_openai_like
+from services.ai_usage import estimate_usage, extract_usage_from_openai_like
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +47,16 @@ class ImportExportService:
             title = f"{title} +{rest} more"
         return title
 
-    def _log_groq_usage(self, user_id: int, tool_name: str, response):
+    def _log_groq_usage(self, user_id: int, tool_name: str, response, prompt: str = ""):
+        completion = ""
+        try:
+            completion = response.choices[0].message.content or ""
+        except Exception:
+            completion = ""
         usage = extract_usage_from_openai_like(response)
-        if not usage:
+        token_source = "model_usage" if usage else "estimated"
+        usage = usage or estimate_usage(prompt, completion)
+        if not usage.get("total_tokens"):
             return
         try:
             log_ai_tokens(
@@ -61,7 +68,8 @@ class ImportExportService:
                 model="llama-3.3-70b-versatile",
                 metadata={
                     "provider": "groq",
-                    "source": "import_export"
+                    "source": "import_export",
+                    "token_source": token_source,
                 }
             )
         except Exception:
@@ -183,8 +191,7 @@ Return ONLY a JSON array of flashcards with this exact format:
                 temperature=0.7,
                 max_tokens=2000
             )
-            self._log_groq_usage(user_id, "flashcards_ai", response)
-            self._log_groq_usage(user_id, "flashcards_ai", response)
+            self._log_groq_usage(user_id, "flashcards_ai", response, prompt=prompt)
             
             content = response.choices[0].message.content.strip()
             
@@ -270,9 +277,9 @@ Return ONLY a JSON array with this exact format:
                 temperature=0.7,
                 max_tokens=3000
             )
-            self._log_groq_usage(user_id, "media_notes_ai", response)
-            self._log_groq_usage(user_id, "quiz_ai", response)
-            self._log_groq_usage(user_id, "question_bank_ai", response)
+            self._log_groq_usage(user_id, "media_notes_ai", response, prompt=prompt)
+            self._log_groq_usage(user_id, "quiz_ai", response, prompt=prompt)
+            self._log_groq_usage(user_id, "question_bank_ai", response, prompt=prompt)
             
             content = response.choices[0].message.content.strip()
             if "```json" in content:
@@ -547,6 +554,7 @@ Return ONLY a JSON array:
                 temperature=0.7,
                 max_tokens=3000
             )
+            self._log_groq_usage(user_id, "quiz_ai", response, prompt=prompt)
             
             content = response.choices[0].message.content.strip()
             if "```json" in content:
@@ -778,6 +786,7 @@ Return ONLY a JSON array:
                 temperature=0.7,
                 max_tokens=3000
             )
+            self._log_groq_usage(user_id, "quiz_ai", response, prompt=prompt)
             
             content = response.choices[0].message.content.strip()
             if "```json" in content:
@@ -897,7 +906,7 @@ Write at least 500 words of educational content."""
                 temperature=0.7,
                 max_tokens=6000
             )
-            self._log_groq_usage(user_id, "notes_ai", response)
+            self._log_groq_usage(user_id, "notes_ai", response, prompt=prompt)
             
             ai_content = response.choices[0].message.content.strip()
             
@@ -1013,6 +1022,7 @@ Return ONLY a JSON array:
                 temperature=0.7,
                 max_tokens=2000
             )
+            self._log_groq_usage(user_id, "flashcards_ai", response, prompt=prompt)
             
             content = response.choices[0].message.content.strip()
             if "```json" in content:

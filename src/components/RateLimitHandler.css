@@ -1,0 +1,147 @@
+.token-limit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: color-mix(in srgb, #000 62%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.token-limit-modal {
+  position: relative;
+  width: min(440px, 100%);
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--panel) 96%, #000), color-mix(in srgb, var(--hover-bg) 72%, #000)),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 11%, transparent), transparent 68%);
+  box-shadow: 0 28px 80px color-mix(in srgb, #000 48%, transparent);
+  padding: 24px;
+  color: var(--text-primary);
+}
+
+.token-limit-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  background: transparent;
+  color: var(--text-secondary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.token-limit-close:hover {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.token-limit-kicker {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.token-limit-modal h2 {
+  margin: 0 36px 10px 0;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.token-limit-modal p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.token-limit-meter {
+  height: 10px;
+  margin-top: 20px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  background: color-mix(in srgb, #000 28%, transparent);
+  overflow: hidden;
+}
+
+.token-limit-meter-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 62%, var(--text-primary)));
+}
+
+.token-limit-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.token-limit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.token-limit-primary,
+.token-limit-secondary {
+  height: 40px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.token-limit-primary {
+  border: 1px solid color-mix(in srgb, var(--accent) 62%, transparent);
+  background: var(--accent);
+  color: #15110c;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.token-limit-secondary {
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.token-limit-primary:hover,
+.token-limit-secondary:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 560px) {
+  .token-limit-modal {
+    padding: 20px;
+  }
+
+  .token-limit-actions {
+    flex-direction: column-reverse;
+  }
+
+  .token-limit-primary,
+  .token-limit-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -7,7 +7,11 @@ from typing import Optional
 import requests
 from activity_context import get_activity_context
 from activity_logger import log_ai_tokens
-from services.ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
+from services.ai_usage import (
+    estimate_usage,
+    extract_usage_from_openai_like,
+    extract_usage_from_gemini_payload,
+)
 from services.api_key_pool import ApiKeyPool, ApiKeyPoolExhausted
 
 logger = logging.getLogger(__name__)
@@ -110,9 +114,10 @@ class UnifiedAIClient:
                             data = resp.json()
                             usage = extract_usage_from_gemini_payload(data)
                             self._record_key_success(self.gemini_key_pool, lease, usage)
-                            self._log_usage(usage, model=self.gemini_model, provider="gemini")
                             if "candidates" in data and data["candidates"]:
-                                return data["candidates"][0]["content"]["parts"][0]["text"]
+                                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                                self._log_usage(usage, model=self.gemini_model, provider="gemini", prompt=prompt, completion=text)
+                                return text
                             raise Exception("Gemini response has no candidates")
                         if resp.status_code == 429 or (resp.status_code == 400 and "quota" in resp.text.lower()):
                             self._mark_key_exhausted(self.gemini_key_pool, lease)
@@ -147,8 +152,9 @@ class UnifiedAIClient:
                 )
                 usage = extract_usage_from_openai_like(resp)
                 self._record_key_success(self.groq_key_pool, lease, usage)
-                self._log_usage(usage, model=self.groq_model, provider="groq")
-                return resp.choices[0].message.content.strip()
+                text = resp.choices[0].message.content.strip()
+                self._log_usage(usage, model=self.groq_model, provider="groq", prompt=prompt, completion=text)
+                return text
             except Exception as exc:
                 if self._is_quota_error(exc) and lease:
                     self._mark_key_exhausted(self.groq_key_pool, lease)
@@ -185,8 +191,9 @@ class UnifiedAIClient:
                             data = resp.json()
                             usage = extract_usage_from_openai_like(data)
                             self._record_key_success(self.openai_compat_key_pool, lease, usage)
-                            self._log_usage(usage, model=self.openai_compat_model, provider="hs_context")
-                            return data["choices"][0]["message"]["content"].strip()
+                            text = data["choices"][0]["message"]["content"].strip()
+                            self._log_usage(usage, model=self.openai_compat_model, provider="hs_context", prompt=prompt, completion=text)
+                            return text
                         if resp.status_code == 429:
                             self._mark_key_exhausted(self.openai_compat_key_pool, lease)
                             break
@@ -313,9 +320,10 @@ class UnifiedAIClient:
                             data = resp.json()
                             usage = extract_usage_from_gemini_payload(data)
                             self._record_key_success(self.gemini_key_pool, lease, usage)
-                            self._log_usage(usage, model=self.gemini_model, provider="gemini_vision")
                             if "candidates" in data and data["candidates"]:
-                                return data["candidates"][0]["content"]["parts"][0]["text"]
+                                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                                self._log_usage(usage, model=self.gemini_model, provider="gemini_vision", prompt=prompt, completion=text)
+                                return text
                             raise Exception("Gemini vision response has no candidates")
                         if resp.status_code == 429 or "quota" in resp.text.lower():
                             self._mark_key_exhausted(self.gemini_key_pool, lease)
@@ -374,8 +382,9 @@ class UnifiedAIClient:
                             data = resp.json()
                             usage = extract_usage_from_openai_like(data)
                             self._record_key_success(self.openai_compat_key_pool, lease, usage)
-                            self._log_usage(usage, model=self.openai_compat_model, provider="openai_vision")
-                            return data["choices"][0]["message"]["content"].strip()
+                            text = data["choices"][0]["message"]["content"].strip()
+                            self._log_usage(usage, model=self.openai_compat_model, provider="openai_vision", prompt=prompt, completion=text)
+                            return text
                         if resp.status_code == 429:
                             self._mark_key_exhausted(self.openai_compat_key_pool, lease)
                             break
@@ -416,25 +425,29 @@ class UnifiedAIClient:
 
         raise Exception("No AI client available for streaming")
 
-    def _log_usage(self, usage, model: str, provider: str):
-        if not usage:
-            return
+    def _log_usage(self, usage, model: str, provider: str, prompt: str = "", completion: str = ""):
+        token_source = "model_usage" if usage else "estimated"
+        usage = usage or estimate_usage(prompt, completion)
         try:
             ctx = get_activity_context()
             if not ctx:
+                return
+            total_tokens = int(usage.get("total_tokens", 0) or 0)
+            if total_tokens <= 0:
                 return
             log_ai_tokens(
                 user_id=ctx.get("user_id"),
                 tool_name=ctx.get("tool_name", "ai_unknown"),
                 prompt_tokens=usage.get("prompt_tokens", 0),
                 completion_tokens=usage.get("completion_tokens", 0),
-                total_tokens=usage.get("total_tokens", 0),
+                total_tokens=total_tokens,
                 model=model,
                 metadata={
                     "provider": provider,
                     "endpoint": ctx.get("endpoint"),
                     "method": ctx.get("method"),
                     "source_action": ctx.get("action"),
+                    "token_source": token_source,
                 },
             )
         except Exception as e:

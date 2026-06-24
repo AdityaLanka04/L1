@@ -53,3 +53,21 @@ def extract_usage_from_gemini_payload(payload: Any) -> Optional[Dict[str, int]]:
         "completion_tokens": int(completion_tokens or 0),
         "total_tokens": int(total_tokens or (prompt_tokens or 0) + (completion_tokens or 0)),
     }
+
+def estimate_usage(prompt: Any = "", completion: Any = "", minimum_total: int = 1) -> Dict[str, int]:
+    """Conservative fallback when a provider does not return usage metadata."""
+    prompt_text = "" if prompt is None else str(prompt)
+    completion_text = "" if completion is None else str(completion)
+    prompt_tokens = max(0, len(prompt_text) // 4)
+    completion_tokens = max(0, len(completion_text) // 4)
+    total_tokens = prompt_tokens + completion_tokens
+
+    if total_tokens < minimum_total:
+        completion_tokens = max(completion_tokens, minimum_total)
+        total_tokens = prompt_tokens + completion_tokens
+
+    return {
+        "prompt_tokens": int(prompt_tokens),
+        "completion_tokens": int(completion_tokens),
+        "total_tokens": int(total_tokens),
+    }

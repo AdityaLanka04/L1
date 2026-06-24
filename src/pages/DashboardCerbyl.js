@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Plus, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check, User, Bell, Sparkles, Trash2 } from 'lucide-react';
 import { API_URL } from '../config/api';
@@ -333,6 +333,48 @@ const DashboardCerbyl = () => {
       setShowFeatureResults(false);
     }
   };
+
+  const applySubscriptionOverview = useCallback((sub = {}) => {
+    const rawPlanId = sub.currentPlanId || sub.current_plan_id || sub.plan || 'starter';
+    const normalizedPlanId = String(rawPlanId || 'starter').trim().toLowerCase();
+    const plan = sub.currentPlan || (sub.plans || []).find((p) => String(p.id || '').trim().toLowerCase() === normalizedPlanId) || {};
+    const planId = normalizedPlanId || String(plan.id || 'starter').trim().toLowerCase();
+    const planIncludedTokens = Number(plan.included_tokens_monthly);
+    const fallbackIncludedTokens = Object.prototype.hasOwnProperty.call(PLAN_INCLUDED_TOKENS, planId)
+      ? PLAN_INCLUDED_TOKENS[planId]
+      : PLAN_INCLUDED_TOKENS.starter;
+    const includedTokens = Number.isFinite(planIncludedTokens) && planIncludedTokens > 0
+      ? planIncludedTokens
+      : Number(fallbackIncludedTokens);
+    const usedTokens = Number(sub.usage?.total_tokens || 0);
+
+    setSubscriptionUsage({
+      loading: false,
+      currentPlanId: planId,
+      currentPlanName: plan.name || PLAN_NAMES[planId] || 'Starter',
+      includedTokens,
+      usedTokens,
+      utilizationPct: includedTokens > 0 ? Math.round((usedTokens / includedTokens) * 1000) / 10 : 0,
+      isAdmin: Boolean(sub.isAdmin),
+      hasUnlimitedAccess: Boolean(sub.hasUnlimitedAccess || plan.unlimited || planId === 'unlimited'),
+      error: null
+    });
+  }, []);
+
+  const refreshSubscriptionUsage = useCallback(async ({ silent = true } = {}) => {
+    if (!userName) return;
+    if (!silent) {
+      setSubscriptionUsage(prev => ({ ...prev, loading: true, error: null }));
+    }
+    try {
+      const encodedUser = encodeURIComponent(userName);
+      const sub = await fetchJson(`${API_URL}/subscription/overview?user_id=${encodedUser}&include_usage=true`);
+      applySubscriptionOverview(sub || {});
+    } catch (e) {
+      setSubscriptionUsage(prev => ({ ...prev, loading: false, error: 'usage-unavailable' }));
+    }
+  }, [applySubscriptionOverview, userName]);
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [chatPromptDisplay, setChatPromptDisplay] = useState(QUICK_ASK_PROMPT);
   const [chatReplyDisplay, setChatReplyDisplay] = useState('');
@@ -546,37 +588,37 @@ const DashboardCerbyl = () => {
       }
 
       if (subscriptionResult.status === 'fulfilled') {
-        const sub = subscriptionResult.value || {};
-        const rawPlanId = sub.currentPlanId || sub.current_plan_id || sub.plan || 'starter';
-        const normalizedPlanId = String(rawPlanId || 'starter').trim().toLowerCase();
-        const plan = sub.currentPlan || (sub.plans || []).find((p) => String(p.id || '').trim().toLowerCase() === normalizedPlanId) || {};
-        const planId = normalizedPlanId || String(plan.id || 'starter').trim().toLowerCase();
-        const planIncludedTokens = Number(plan.included_tokens_monthly);
-        const fallbackIncludedTokens = Object.prototype.hasOwnProperty.call(PLAN_INCLUDED_TOKENS, planId)
-          ? PLAN_INCLUDED_TOKENS[planId]
-          : PLAN_INCLUDED_TOKENS.starter;
-        const includedTokens = Number.isFinite(planIncludedTokens) && planIncludedTokens > 0
-          ? planIncludedTokens
-          : Number(fallbackIncludedTokens);
-        const usedTokens = Number(sub.usage?.total_tokens || 0);
-        setSubscriptionUsage({
-          loading: false,
-          currentPlanId: planId,
-          currentPlanName: plan.name || PLAN_NAMES[planId] || 'Starter',
-          includedTokens,
-          usedTokens,
-          utilizationPct: includedTokens > 0 ? Math.round((usedTokens / includedTokens) * 1000) / 10 : 0,
-          isAdmin: Boolean(sub.isAdmin),
-          hasUnlimitedAccess: Boolean(sub.hasUnlimitedAccess || plan.unlimited || planId === 'unlimited'),
-          error: null
-        });
+        applySubscriptionOverview(subscriptionResult.value || {});
       } else {
         setSubscriptionUsage(prev => ({ ...prev, loading: false, error: 'usage-unavailable' }));
       }
     })();
 
     return () => { cancelled = true; };
-  }, [userName]);
+  }, [applySubscriptionOverview, userName]);
+
+  useEffect(() => {
+    if (!userName) return undefined;
+
+    const refresh = () => {
+      refreshSubscriptionUsage({ silent: true });
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refresh();
+      }
+    };
+
+    const intervalId = window.setInterval(refresh, 30000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [refreshSubscriptionUsage, userName]);
 
   const greet = greetingForHour(now.getHours()).toUpperCase();
   const displayName =

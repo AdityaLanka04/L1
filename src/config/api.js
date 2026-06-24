@@ -24,6 +24,19 @@ export const apiRequest = async (endpoint, options = {}) => {
   }
 
   if (response.status === 429) {
+    const body = await response.clone().json().catch(() => ({}));
+    if (body?.code === 'ai_token_limit_exceeded') {
+      const err = new Error(body.detail || 'AI token limit exceeded. Upgrade to continue using AI.');
+      err.isTokenLimit = true;
+      err.currentPlanId = body.current_plan_id;
+      err.currentPlanName = body.current_plan_name;
+      err.usedTokens = body.used_tokens;
+      err.includedTokens = body.included_tokens;
+      err.remainingTokens = body.remaining_tokens;
+      err.windowDays = body.window_days;
+      throw err;
+    }
+
     const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10);
     const tier = response.headers.get('X-RateLimit-Tier') || 'unknown';
     const limit = response.headers.get('X-RateLimit-Limit');

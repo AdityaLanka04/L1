@@ -47,6 +47,11 @@ _RULES: list[tuple[Optional[frozenset], Optional[str], Optional[str]]] = [
     (frozenset(["POST"]),           "/api/reset-password",              "auth_login"),
 
     (frozenset(["POST"]),           "/api/chat",                        "ai_heavy"),
+    (frozenset(["POST"]),           "/api/ask_simple",                  "ai_heavy"),
+    (frozenset(["POST"]),           "/api/ask_with_files",              "ai_heavy"),
+    (frozenset(["POST"]),           "/api/ai/jobs",                     "ai_heavy"),
+    (frozenset(["POST"]),           "/api/ai/file-route-jobs",          "ai_heavy"),
+    (frozenset(["POST"]),           "/api/ai/route-jobs",               "ai_heavy"),
     (frozenset(["POST"]),           "/api/send_message",                "ai_heavy"),
     (frozenset(["POST"]),           "/api/save_chat_message",           "ai_heavy"),
     (frozenset(["POST"]),           "/api/generate_flashcards",         "ai_heavy"),
@@ -67,6 +72,9 @@ _RULES: list[tuple[Optional[frozenset], Optional[str], Optional[str]]] = [
     (None,                          "/api/media/regenerate",            "ai_heavy"),
     (None,                          "/api/media/generate-title",        "ai_heavy"),
     (None,                          "/api/analyze_slide",               "ai_heavy"),
+    (None,                          "/api/context/ask",                 "ai_heavy"),
+    (None,                          "/api/generate_chat_title",         "ai_heavy"),
+    (None,                          "/api/generate_chat_summary",       "ai_heavy"),
     (None,                          "/api/intelligence/",               "ai_heavy"),
     (None,                          "/api/kt/predict",                  "ai_heavy"),
 
@@ -158,7 +166,12 @@ _SUBSCRIPTION_CACHE_TTL = max(30, int(os.getenv("RATE_LIMIT_SUBSCRIPTION_CACHE_T
 _subscription_lock = threading.Lock()
 _subscription_cache: dict[str, tuple[str, float]] = {}
 
-_EXACT_MATCH_PATHS = {"/api/health"}
+_EXACT_MATCH_PATHS = {
+    "/api/health",
+    "/api/ai/jobs",
+    "/api/ai/file-route-jobs",
+    "/api/ai/route-jobs",
+}
 
 def _parse_cidrs(raw: str) -> list[ipaddress._BaseNetwork]:
     networks: list[ipaddress._BaseNetwork] = []

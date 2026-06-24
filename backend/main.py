@@ -475,9 +475,11 @@ app.add_middleware(
 )
 
 from middleware.rate_limiter import RateLimitMiddleware
+from middleware.token_limit import TokenLimitMiddleware
 from middleware.security_headers import SecurityHeadersMiddleware
 from middleware.body_limit import BodySizeLimitMiddleware
 app.add_middleware(RateLimitMiddleware)
+app.add_middleware(TokenLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1024)

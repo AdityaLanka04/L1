@@ -10,7 +10,7 @@ import asyncio
 import logging
 from env_loader import load_backend_env
 from activity_logger import log_ai_tokens
-from services.ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
+from services.ai_usage import estimate_usage, extract_usage_from_openai_like, extract_usage_from_gemini_payload
 from services.api_key_pool import ApiKeyPoolExhausted, build_key_pool
 
 try:
@@ -149,7 +149,7 @@ class AIMediaProcessor:
                 usage = extract_usage_from_openai_like(response) or {}
                 if lease:
                     self.groq_key_pool.record_success(lease, usage.get("total_tokens"))
-                self._log_groq_usage(user_id, "media_notes_ai", response, usage_extra)
+                self._log_groq_usage(user_id, "media_notes_ai", response, usage_extra, prompt=json.dumps(messages))
                 return response
 
             except ApiKeyPoolExhausted:
@@ -171,16 +171,24 @@ class AIMediaProcessor:
                     raise
                 raise
 
-    def _log_groq_usage(self, user_id: Optional[int], tool_name: str, response, extra: Dict = None):
+    def _log_groq_usage(self, user_id: Optional[int], tool_name: str, response, extra: Dict = None, prompt: str = ""):
         if not user_id:
             return
+        completion = ""
+        try:
+            completion = response.choices[0].message.content or ""
+        except Exception:
+            completion = ""
         usage = extract_usage_from_openai_like(response)
-        if not usage:
+        token_source = "model_usage" if usage else "estimated"
+        usage = usage or estimate_usage(prompt, completion)
+        if not usage.get("total_tokens"):
             return
         try:
             metadata = {"provider": "groq", "source": "media_processing"}
             if extra:
                 metadata.update(extra)
+            metadata["token_source"] = token_source
             log_ai_tokens(
                 user_id=user_id,
                 tool_name=tool_name,
@@ -193,16 +201,20 @@ class AIMediaProcessor:
         except Exception:
             pass
 
-    def _log_gemini_usage(self, user_id: Optional[int], tool_name: str, response, extra: Dict = None):
+    def _log_gemini_usage(self, user_id: Optional[int], tool_name: str, response, extra: Dict = None, prompt: str = ""):
         if not user_id:
             return
+        completion = getattr(response, "text", "") or ""
         usage = extract_usage_from_gemini_payload(response)
-        if not usage:
+        token_source = "model_usage" if usage else "estimated"
+        usage = usage or estimate_usage(prompt, completion)
+        if not usage.get("total_tokens"):
             return
         try:
             metadata = {"provider": "gemini", "source": "media_processing"}
             if extra:
                 metadata.update(extra)
+            metadata["token_source"] = token_source
             log_ai_tokens(
                 user_id=user_id,
                 tool_name=tool_name,
@@ -583,7 +595,7 @@ Provide a JSON response with:
 8. language: detected language code"""
 
                 response = self.gemini_model.generate_content(prompt)
-                self._log_gemini_usage(user_id, "media_notes_ai", response, {"task": "analyze_transcript"})
+                self._log_gemini_usage(user_id, "media_notes_ai", response, {"task": "analyze_transcript"}, prompt=prompt)
                 result_text = response.text
                 
                 try:
@@ -689,7 +701,13 @@ Provide a JSON response with:
 
                     rate_limiter.record_gemini_call()
                     response = self.gemini_model.generate_content(f"{system_prompt}\n\n{prompt}")
-                    self._log_gemini_usage(user_id, "media_notes_ai", response, {"task": "generate_notes", "style": style, "fallback": "gemini"})
+                    self._log_gemini_usage(
+                        user_id,
+                        "media_notes_ai",
+                        response,
+                        {"task": "generate_notes", "style": style, "fallback": "gemini"},
+                        prompt=f"{system_prompt}\n\n{prompt}",
+                    )
                     html_content = self._strip_code_fences(response.text)
                     return {
                         "success": True,
@@ -1296,7 +1314,7 @@ Return ONLY valid JSON array."""
                 temperature=0.7,
                 max_tokens=2000
             )
-            self._log_groq_usage(user_id, "flashcards_ai", response, {"task": "media_flashcards"})
+            self._log_groq_usage(user_id, "flashcards_ai", response, {"task": "media_flashcards"}, prompt=prompt)
             
             result_text = response.choices[0].message.content
             
@@ -1356,7 +1374,7 @@ Return ONLY valid JSON array."""
                 temperature=0.7,
                 max_tokens=3000
             )
-            self._log_groq_usage(user_id, "quiz_ai", response, {"task": "media_quiz"})
+            self._log_groq_usage(user_id, "quiz_ai", response, {"task": "media_quiz"}, prompt=prompt)
             
             result_text = response.choices[0].message.content
             
