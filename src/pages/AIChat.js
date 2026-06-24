@@ -2295,17 +2295,21 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const normalizeMarkdownForRenderer = (text = '') => {
-    return String(text || '')
+    let normalized = String(text || '')
       // Some OpenAI-compatible providers escape markdown punctuation in plain text.
       // Restore only markdown control characters; leave LaTeX delimiters like \( and \[ intact.
-      .replace(/\\([*`>#.!+-])/g, '$1')
+      .replace(/\\([*`>#.!+\-])/g, '$1')
+      .replace(/\\#/g, '#')
       .replace(/([^\n])\s+(#{1,6}\s+)/g, '$1\n\n$2')
-      .replace(/^(#{1,6}\s+(?:Analysis of (?:the )?Uploaded Files|Comprehension Check|Summary|Key Points|Overview|Explanation|Answer))\s+/gim, '$1\n\n')
+      .replace(/^(#{1,6}\s+(?:Analysis of (?:the )?Uploaded Files|Breakdown of (?:the )?Information|Key Observations|Comprehension Check|Summary|Key Points|Overview|Explanation|Answer))\s+/gim, '$1\n\n')
+      .replace(/([^\n])\s+(#{1,6}\s+(?:Analysis of (?:the )?Uploaded Files|Breakdown of (?:the )?Information|Key Observations|Comprehension Check|Summary|Key Points|Overview|Explanation|Answer)\b)/gim, '$1\n\n$2')
       .replace(/\s+-\s+(?=(?:\*\*)?[A-Z0-9])/g, '\n- ')
       .replace(/(:\*\*)\s+-\s+/g, '$1\n  - ')
       .replace(/(\*\*)\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
       .replace(/([.:])\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
       .replace(/\s+(\*\s+\*\*[^*]+:\*\*)/g, '\n$1');
+
+    return normalized.replace(/\n{3,}/g, '\n\n');
   };
 
   const renderMarkdown = (text) => {
