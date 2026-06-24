@@ -46,22 +46,6 @@ const TUTOR_REPLY_MODES = [
   { id: 'quiz', label: 'Drill' },
 ];
 
-const TUTOR_VERDICT_SUMMARY = {
-  correct: 'Step accepted',
-  partly_correct: 'Almost there',
-  not_yet: 'Needs revision',
-  needs_attempt: 'Waiting for attempt',
-  not_applicable: 'Guided mode',
-};
-
-const TUTOR_VERDICT_NEXT_LABEL = {
-  correct: 'Next step',
-  partly_correct: 'Fix this',
-  not_yet: 'Try again',
-  needs_attempt: 'Your move',
-  not_applicable: 'Continue',
-};
-
 const SMART_ACTION_LIMIT = 8;
 
 const CORE_SMART_ACTIONS = [
@@ -456,77 +440,6 @@ function normalizeTutorState(rawState = null, replyMode = 'guided') {
     wrongStreak,
     masteryScore,
   };
-}
-
-function getTutorProgressDisplay(tutorState) {
-  const attempts = Math.max(0, Number(tutorState?.attempts || 0));
-  const correctCount = Math.max(0, Math.min(Number(tutorState?.correctCount || 0), Math.max(attempts, 1)));
-  const hasAttempt = attempts > 0;
-  const accuracy = hasAttempt ? Math.round((correctCount / attempts) * 100) : null;
-  const confidencePercent = Math.round(Math.max(0, Math.min(1, Number(tutorState?.confidence || 0))) * 100);
-  const masteryPercent = tutorState?.masteryScore === null ? null : Math.round(Math.max(0, Math.min(1, Number(tutorState?.masteryScore || 0))) * 100);
-  const stepLabel = tutorState?.totalSteps > 0
-    ? `Step ${Math.min(tutorState.currentStep, tutorState.totalSteps)}/${tutorState.totalSteps}`
-    : null;
-
-  return {
-    attempts,
-    correctCount,
-    accuracy,
-    confidencePercent,
-    masteryPercent,
-    stepLabel,
-    status: TUTOR_VERDICT_SUMMARY[tutorState?.verdict] || 'Guided mode',
-    nextLabel: TUTOR_VERDICT_NEXT_LABEL[tutorState?.verdict] || 'Continue',
-  };
-}
-
-function getTutorMissionDisplay(tutorState) {
-  const plan = tutorState?.lessonPlan;
-  const steps = Array.isArray(plan?.steps) ? plan.steps : [];
-  const currentStepNumber = plan?.currentStep || tutorState?.currentStep || 1;
-  const totalSteps = plan?.totalSteps || tutorState?.totalSteps || steps.length || 0;
-  const currentStep = steps.find((step) => Number(step.id) === Number(currentStepNumber))
-    || steps[Math.max(0, Math.min(steps.length - 1, currentStepNumber - 1))]
-    || null;
-  const skill = currentStep?.skill || tutorState?.skillsUsed?.[0] || tutorState?.objective || '';
-
-  return {
-    goal: plan?.goal || tutorState?.objective || 'Build understanding step by step',
-    stepLabel: totalSteps > 0 ? `Step ${Math.min(currentStepNumber, totalSteps)}/${totalSteps}` : 'Current mission',
-    title: currentStep?.title || tutorState?.objective || 'Next learning move',
-    skill,
-    nextAction: tutorState?.nextAction || 'Try the next small step',
-  };
-}
-
-function getTutorMistakeTopics(tutorState) {
-  const topics = [
-    ...(tutorState?.autoWeaknessTopics || []),
-    ...(tutorState?.misconceptions || []),
-  ].map((item) => String(item || '').trim()).filter(Boolean);
-  return [...new Set(topics.map((item) => item.toLowerCase()))]
-    .map((lower) => topics.find((item) => item.toLowerCase() === lower))
-    .filter(Boolean)
-    .slice(0, 5);
-}
-
-function getTutorSessionSummary(tutorState, progress) {
-  const skills = tutorState?.skillsUsed || [];
-  const mistakes = getTutorMistakeTopics(tutorState);
-  const mastery = progress.masteryPercent !== null ? `${progress.masteryPercent}% mastery` : 'Mastery building';
-  const streak = tutorState?.correctStreak > 0
-    ? `${tutorState.correctStreak} correct streak`
-    : tutorState?.wrongStreak > 0
-      ? `${tutorState.wrongStreak} needs-practice streak`
-      : 'No streak yet';
-
-  return [
-    mastery,
-    streak,
-    skills.length ? `${skills.slice(0, 2).join(', ')}` : '',
-    mistakes.length ? `${mistakes.length} weakness ${mistakes.length === 1 ? 'area' : 'areas'} tracked` : '',
-  ].filter(Boolean);
 }
 
 function normalizeLoadedMessage(message) {
@@ -3424,24 +3337,6 @@ const AIChat = ({ sharedMode = false }) => {
                         {renderMessageContent(message.content)}
                       </div>
 
-                      {message.type === 'ai' && tutorState && (() => {
-                        const mission = getTutorMissionDisplay(tutorState);
-                        return (
-                          <div className="ac-tutor-mission-panel">
-                            <div className="ac-tutor-mission-kicker">
-                              <span>{mission.stepLabel}</span>
-                              {mission.skill && <span>{mission.skill}</span>}
-                            </div>
-                            <div className="ac-tutor-mission-title">{mission.title}</div>
-                            <div className="ac-tutor-mission-goal">{mission.goal}</div>
-                            <div className="ac-tutor-mission-next">
-                              <span>Next move</span>
-                              <p>{mission.nextAction}</p>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                      
                       {message.files && message.files.length > 0 && (
                         <div className="ac-msg-attachments">
                           {message.files.map((file, index) => (
@@ -3501,85 +3396,6 @@ const AIChat = ({ sharedMode = false }) => {
                           ))}
                         </div>
                       )}
-
-                      {message.type === 'ai' && tutorState && (() => {
-                        const progress = getTutorProgressDisplay(tutorState);
-                        const mistakeTopics = getTutorMistakeTopics(tutorState);
-                        const summaryItems = getTutorSessionSummary(tutorState, progress);
-                        return (
-                          <div className={`ac-tutor-state-card verdict-${tutorState.verdict}`}>
-                            <div className="ac-tutor-state-header">
-                              <div className="ac-tutor-verdict-lockup">
-                                <span className="ac-tutor-verdict-dot" aria-hidden="true" />
-                                <div>
-                                  <div className="ac-tutor-state-label">{progress.status}</div>
-                                </div>
-                              </div>
-                              <div className="ac-tutor-score-pill" aria-label="Tutor progress score">
-                                {progress.correctCount}/{progress.attempts || 1}
-                              </div>
-                            </div>
-                            <div className="ac-tutor-state-focus">{tutorState.objective}</div>
-                            <div className="ac-tutor-state-next">
-                              <span>{progress.nextLabel}</span>
-                              <p>{tutorState.nextAction}</p>
-                            </div>
-                            {(tutorState.skillsUsed.length > 0 || mistakeTopics.length > 0) && (
-                              <div className="ac-tutor-chip-block">
-                                {tutorState.skillsUsed.length > 0 && (
-                                  <div className="ac-tutor-chip-row">
-                                    <span className="ac-tutor-chip-label">Skills</span>
-                                    {tutorState.skillsUsed.map((skill) => (
-                                      <span key={`skill:${skill}`} className="ac-tutor-chip">{skill}</span>
-                                    ))}
-                                  </div>
-                                )}
-                                {mistakeTopics.length > 0 && (
-                                  <div className="ac-tutor-chip-row ac-tutor-chip-row--mistakes">
-                                    <span className="ac-tutor-chip-label">What tripped you up</span>
-                                    {mistakeTopics.map((mistake) => (
-                                      <button
-                                        key={`mistake:${mistake}`}
-                                        type="button"
-                                        className="ac-tutor-chip ac-tutor-chip-btn"
-                                        onClick={() => {
-                                          activateChatDock(activeChatId);
-                                          navigate('/weakness-practice', {
-                                            state: {
-                                              topic: mistake,
-                                              difficulty: 'intermediate',
-                                              source: 'ai_tutor',
-                                            },
-                                          });
-                                        }}
-                                      >
-                                        {mistake}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {summaryItems.length > 0 && (
-                              <div className="ac-tutor-session-summary">
-                                {summaryItems.map((item) => (
-                                  <span key={item}>{item}</span>
-                                ))}
-                              </div>
-                            )}
-                            <div className="ac-tutor-state-stats" aria-label="Tutor progress">
-                              <span>{progress.attempts} attempt{progress.attempts === 1 ? '' : 's'}</span>
-                              <span>{progress.correctCount} correct</span>
-                              <span>{progress.accuracy === null ? 'No score yet' : `${progress.accuracy}% accuracy`}</span>
-                              <span>{progress.confidencePercent}% confidence</span>
-                              {progress.masteryPercent !== null && <span>{progress.masteryPercent}% mastery</span>}
-                            </div>
-                            <div className="ac-tutor-confidence-track" aria-hidden="true">
-                              <span style={{ width: `${progress.confidencePercent}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })()}
 
                       {message.type === 'ai' && tutorActions.length > 0 && (
                         <div className="ac-smart-actions ac-tutor-actions">
