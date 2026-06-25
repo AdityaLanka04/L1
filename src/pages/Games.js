@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Trophy, Target, Activity as ActivityIcon, Swords, Award, BarChart3,
-  MessageSquare, LayoutDashboard, LogOut, Zap
+  MessageSquare, LayoutDashboard, Zap, ChevronLeft, ChevronRight,
+  Gamepad2, Sparkles
 } from 'lucide-react';
-import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarStats, SidebarStatBox, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider, SidebarStripSpacer } from '../components/Sidebar';
 import AbstractFx from '../components/AbstractFx';
 import './Games.css';
 import { API_URL } from '../config';
@@ -325,90 +325,99 @@ const Games = () => {
         <AbstractFx variant="circles" />
         <div className="gm-bg-vignette" />
       </div>
-      <div className="gm-qb-body">
-        <div className={`gm-qb-shell ${sidebarCollapsed ? 'gm-qb-shell--collapsed' : ''}`}>
-          <SidebarShell
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
-            brandKicker="GAMES"
-            ariaLabel="Games navigation"
-            collapsedContent={(
-              <>
-                <SidebarStripButton icon={<Zap size={18} />} tip="Daily Challenge" onClick={() => { setSidebarCollapsed(false); setShowDailyChallengeModal(true); }} />
-                <SidebarStripButton icon={<Trophy size={18} />} tip="Leaderboards" onClick={() => navigate('/leaderboards')} />
-                <SidebarStripButton icon={<Target size={18} />} tip="Challenges" onClick={() => navigate('/challenges')} />
-                <SidebarStripButton icon={<Users size={18} />} tip="Friends" onClick={() => navigate('/friends')} />
-                <SidebarStripButton icon={<ActivityIcon size={18} />} tip="Activity Feed" onClick={() => navigate('/activity-feed')} />
-                <SidebarStripButton icon={<Swords size={18} />} tip="Social Hub" onClick={() => navigate('/social')} />
-                <SidebarStripSpacer />
-                <SidebarStripButton icon={<MessageSquare size={18} />} tip="AI Chat" onClick={() => navigate('/ai-chat')} />
-                <SidebarStripButton icon={<LayoutDashboard size={18} />} tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
-                <SidebarStripButton
-                  icon={<LogOut size={18} />}
-                  tip="Logout"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    navigate('/');
-                  }}
-                />
-              </>
-            )}
-          >
-            <SidebarSection heading="Quick Actions">
-              <SidebarMenuItem
-                icon={<Zap size={16} />}
-                label="Daily Challenge"
-                onClick={() => setShowDailyChallengeModal(true)}
-                badge={dailyChallenge && !isDailyChallengeComplete() ? <span className="gm-qb-nav-count">{Math.round(getDailyChallengeProgress())}%</span> : null}
-              />
-            </SidebarSection>
+      <header className="gm-topbar">
+        <span className="gm-topbar-tagline">learning unified</span>
+        <div className="gm-topbar-actions">
+          <button type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+          <button type="button" onClick={() => loadAllData(localStorage.getItem('username'))}>Refresh</button>
+          <button type="button" onClick={() => setSidebarCollapsed((prev) => !prev)}>
+            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
+          </button>
+          <button className="gm-topbar-accent" type="button" onClick={() => navigate('/challenges')}>Challenges</button>
+        </div>
+      </header>
 
-            <SidebarSection heading="Social">
-              <SidebarMenuItem icon={<Trophy size={16} />} label="Leaderboards" onClick={() => navigate('/leaderboards')} />
-              <SidebarMenuItem icon={<Target size={16} />} label="Challenges" onClick={() => navigate('/challenges')} />
-              <SidebarMenuItem icon={<Users size={16} />} label="Friends" onClick={() => navigate('/friends')} />
-              <SidebarMenuItem icon={<ActivityIcon size={16} />} label="Activity Feed" onClick={() => navigate('/activity-feed')} />
-              <SidebarMenuItem icon={<Swords size={16} />} label="Social Hub" onClick={() => navigate('/social')} />
-            </SidebarSection>
+      <div className={`gm-layout ${sidebarCollapsed ? 'gm-layout--collapsed' : ''}`}>
+        {!sidebarCollapsed && (
+          <aside className="gm-sidebar" aria-label="Games navigation">
+            <div className="gm-side-brand">
+              <div className="gm-side-logo">cerbyl</div>
+              <div className="gm-side-kicker">Games</div>
+              <button type="button" onClick={() => setSidebarCollapsed(true)} aria-label="Hide Games sidebar">
+                <ChevronLeft size={14} />
+              </button>
+            </div>
 
-            <SidebarSection heading="Stats">
-              <SidebarMenuItem
-                icon={<BarChart3 size={16} />}
-                label="Weekly Challenges"
-                onClick={() => { document.querySelector('.bingo-card')?.scrollIntoView({ behavior: 'smooth' }); }}
-                badge={<span className="gm-qb-nav-count">{completedCount}/{totalTasks}</span>}
-              />
-              <SidebarMenuItem
-                icon={<Award size={16} />}
-                label="Recent Activity"
-                onClick={() => { document.querySelector('.recent-card')?.scrollIntoView({ behavior: 'smooth' }); }}
-              />
-            </SidebarSection>
+            <div className="gm-side-panel">
+              <span className="gm-side-heading">Playground</span>
+              <button className="gm-side-item active" type="button" onClick={() => setShowDailyChallengeModal(true)}>
+                <Zap size={16} />
+                <span>Daily Challenge</span>
+                <strong>{Math.round(getDailyChallengeProgress())}%</strong>
+              </button>
+              <button className="gm-side-item" type="button" onClick={() => document.querySelector('.bingo-card')?.scrollIntoView({ behavior: 'smooth' })}>
+                <BarChart3 size={16} />
+                <span>Weekly Board</span>
+                <strong>{completedCount}/{totalTasks}</strong>
+              </button>
+              <button className="gm-side-item" type="button" onClick={() => document.querySelector('.recent-card')?.scrollIntoView({ behavior: 'smooth' })}>
+                <Award size={16} />
+                <span>Recent Activity</span>
+              </button>
+            </div>
 
-            <SidebarStats>
-              <SidebarStatBox value={gamificationStats.level} label="Level" />
-              <SidebarStatBox value={gamificationStats.total_points.toLocaleString()} label="Points" />
-              <SidebarStatBox value={gamificationStats.weekly_points} label="This Week" />
-            </SidebarStats>
+            <div className="gm-side-panel">
+              <span className="gm-side-heading">Compete & Connect</span>
+              <button className="gm-side-item" type="button" onClick={() => navigate('/leaderboards')}><Trophy size={16} /><span>Leaderboards</span></button>
+              <button className="gm-side-item" type="button" onClick={() => navigate('/challenges')}><Target size={16} /><span>Challenges</span></button>
+              <button className="gm-side-item" type="button" onClick={() => navigate('/friends')}><Users size={16} /><span>Friends</span></button>
+              <button className="gm-side-item" type="button" onClick={() => navigate('/activity-feed')}><ActivityIcon size={16} /><span>Activity Feed</span></button>
+              <button className="gm-side-item" type="button" onClick={() => navigate('/social')}><Swords size={16} /><span>Social Hub</span></button>
+            </div>
 
-            <SidebarActions>
-              <SidebarAction icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
-              <SidebarAction icon={<MessageSquare size={14} />} label="AI Chat" onClick={() => navigate('/ai-chat')} />
-              <SidebarAction
-                icon={<LogOut size={14} />}
-                label="Logout"
-                onClick={() => {
-                  localStorage.removeItem('token');
-                  localStorage.removeItem('username');
-                  navigate('/');
-                }}
-              />
-            </SidebarActions>
-          </SidebarShell>
+            <div className="gm-side-score">
+              <div><strong>{gamificationStats.level}</strong><span>Level</span></div>
+              <div><strong>{gamificationStats.total_points.toLocaleString()}</strong><span>Points</span></div>
+            </div>
 
-          <main className="gm-qb-main">
+            <div className="gm-side-footer">
+              <button type="button" onClick={() => navigate('/ai-chat')}><MessageSquare size={15} />AI Chat</button>
+              <button type="button" onClick={() => navigate('/dashboard-cerbyl')}><LayoutDashboard size={15} />Dashboard</button>
+            </div>
+          </aside>
+        )}
+
+        <main className="gm-main">
+          {sidebarCollapsed && (
+            <button className="gm-sidebar-reopen" type="button" onClick={() => setSidebarCollapsed(false)} aria-label="Show Games sidebar">
+              <ChevronRight size={16} />
+            </button>
+          )}
       <div className="games-container">
+        <section className="gm-hero">
+          <div className="gm-hero-copy">
+            <span className="gm-hero-kicker"><Gamepad2 size={14} /> Learning Arcade</span>
+            <h1>Turn progress into momentum.</h1>
+            <p>Complete focused challenges, build streaks, and climb the leaderboard while your real study activity powers every score.</p>
+            <div className="gm-hero-actions">
+              <button type="button" className="gm-primary-action" onClick={() => setShowDailyChallengeModal(true)}>
+                <Zap size={16} /> Open Daily Challenge
+              </button>
+              <button type="button" className="gm-secondary-action" onClick={() => navigate('/leaderboards')}>
+                <Trophy size={16} /> View Leaderboard
+              </button>
+            </div>
+          </div>
+          <div className="gm-hero-orbit" aria-hidden="true">
+            <div className="gm-orbit-ring gm-orbit-ring--outer" />
+            <div className="gm-orbit-ring gm-orbit-ring--inner" />
+            <div className="gm-orbit-core"><Sparkles size={28} /><strong>{gamificationStats.weekly_points}</strong><span>points this week</span></div>
+            <span className="gm-orbit-node gm-orbit-node--one"><Trophy size={15} /></span>
+            <span className="gm-orbit-node gm-orbit-node--two"><Target size={15} /></span>
+            <span className="gm-orbit-node gm-orbit-node--three"><Zap size={15} /></span>
+          </div>
+        </section>
+
         <div className="stats-cards">
           <div className="stat-card-main level-card">
             <div className="stat-card-gradient"></div>
@@ -615,8 +624,7 @@ const Games = () => {
           </div>
         </div>
       </div>
-          </main>
-        </div>
+        </main>
       </div>
 
       {showDailyChallengeModal && dailyChallenge && (

@@ -2,6 +2,26 @@
 
 let _installed = false;
 
+const parseTokenHeader = (response, name) => {
+  const value = response.headers.get(name);
+  if (value === null || value === '' || value === 'unlimited') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+export function getTokenUsageFromResponse(response) {
+  const usedTokens = parseTokenHeader(response, 'X-TokenLimit-Used');
+  const includedTokens = parseTokenHeader(response, 'X-TokenLimit-Limit');
+  if (usedTokens === null) return null;
+
+  return {
+    usedTokens,
+    includedTokens,
+    remainingTokens: parseTokenHeader(response, 'X-TokenLimit-Remaining'),
+    currentPlanId: response.headers.get('X-TokenLimit-Plan') || null,
+  };
+}
+
 export function installFetchInterceptor() {
   if (_installed || typeof window === 'undefined') return;
   _installed = true;
@@ -10,6 +30,15 @@ export function installFetchInterceptor() {
 
   window.fetch = async function interceptedFetch(input, init) {
     const response = await _originalFetch(input, init);
+    const tokenUsage = getTokenUsageFromResponse(response);
+
+    if (tokenUsage) {
+      window.dispatchEvent(
+        new CustomEvent('brainwave:token-usage-updated', {
+          detail: tokenUsage,
+        })
+      );
+    }
 
     if (response.status === 429) {
       const url =

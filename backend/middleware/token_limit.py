@@ -102,6 +102,22 @@ class TokenLimitMiddleware(BaseHTTPMiddleware):
                 )
 
             response = await call_next(request)
+
+            # The AI call may have recorded usage in a separate session while the
+            # request was running. End this session's read transaction and query
+            # again so response headers represent the tokens just consumed.
+            try:
+                db.rollback()
+                refreshed_user = _find_user(db, subject)
+                if refreshed_user:
+                    state = get_token_limit_state(db, refreshed_user)
+            except Exception as refresh_exc:
+                logger.warning(
+                    "Could not refresh token usage headers for %s: %s",
+                    request.url.path,
+                    refresh_exc,
+                )
+
             if not state.get("unlimited"):
                 response.headers["X-TokenLimit-Limit"] = str(state.get("included_tokens", 0))
                 response.headers["X-TokenLimit-Used"] = str(state.get("used_tokens", 0))

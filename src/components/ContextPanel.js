@@ -4,25 +4,33 @@ import { X, BookOpen, FileText, Trash2, ExternalLink, Sparkles, Lock, Users, Che
 import contextService from '../services/contextService';
 import './ContextPanel.css';
 
-const SELECTED_KEY = 'ctx_selected_doc_ids';
+const DEFAULT_SELECTED_KEY = 'ctx_selected_doc_ids';
 
-const loadSelected = () => {
-  try { return new Set(JSON.parse(localStorage.getItem(SELECTED_KEY) || '[]')); }
+const loadSelected = (selectionKey = DEFAULT_SELECTED_KEY) => {
+  try { return new Set(JSON.parse(localStorage.getItem(selectionKey) || '[]')); }
   catch { return new Set(); }
 };
 
-const saveSelected = (set) => {
-  localStorage.setItem(SELECTED_KEY, JSON.stringify([...set]));
+const saveSelected = (set, selectionKey = DEFAULT_SELECTED_KEY) => {
+  localStorage.setItem(selectionKey, JSON.stringify([...set]));
 };
 
-const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }) => {
+const ContextPanel = ({
+  isOpen,
+  onClose,
+  hsMode,
+  onHsModeToggle,
+  onDocUploaded,
+  onSelectionChange,
+  selectionKey = DEFAULT_SELECTED_KEY,
+}) => {
   const navigate = useNavigate();
 
   const [docs, setDocs]         = useState([]);
   const [hsDocs, setHsDocs]     = useState([]);
   const [loading, setLoading]   = useState(false);
   const [deleting, setDeleting] = useState(null);
-  const [selectedIds, setSelectedIds] = useState(loadSelected);
+  const [selectedIds, setSelectedIds] = useState(() => loadSelected(selectionKey));
 
   const activeContext = (() => {
     try { return JSON.parse(localStorage.getItem('active_context') || 'null'); } catch { return null; }
@@ -40,8 +48,11 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
   }, []);
 
   useEffect(() => {
-    if (isOpen) loadDocs();
-  }, [isOpen, loadDocs]);
+    if (isOpen) {
+      setSelectedIds(loadSelected(selectionKey));
+      loadDocs();
+    }
+  }, [isOpen, loadDocs, selectionKey]);
 
   const toggleDoc = (id, filename) => {
     setSelectedIds(prev => {
@@ -51,14 +62,16 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
         next.add(id);
         if (filename) contextService.setDocName(id, filename);
       }
-      saveSelected(next);
+      saveSelected(next, selectionKey);
+      onSelectionChange?.([...next]);
       return next;
     });
   };
 
   const clearSelection = () => {
     setSelectedIds(new Set());
-    saveSelected(new Set());
+    saveSelected(new Set(), selectionKey);
+    onSelectionChange?.([]);
   };
 
   const handleDelete = async (docId, filename) => {
@@ -70,7 +83,8 @@ const ContextPanel = ({ isOpen, onClose, hsMode, onHsModeToggle, onDocUploaded }
       setSelectedIds(prev => {
         const next = new Set(prev);
         next.delete(docId);
-        saveSelected(next);
+        saveSelected(next, selectionKey);
+        onSelectionChange?.([...next]);
         return next;
       });
     } catch (e) {

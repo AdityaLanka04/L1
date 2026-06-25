@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from email.message import EmailMessage
 from typing import List, Optional
 
-from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, Request
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import and_, bindparam, func, inspect, text
@@ -1384,11 +1384,13 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
 
 @router.get("/subscription/overview")
 async def get_subscription_overview(
+    response: Response,
     user_id: str = Query(...),
     include_usage: bool = Query(True),
     db: Session = Depends(get_db),
 ):
     try:
+        response.headers["Cache-Control"] = "no-store, max-age=0"
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")

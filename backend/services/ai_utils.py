@@ -34,6 +34,7 @@ class UnifiedAIClient:
         openai_compat_key_pool: ApiKeyPool = None,
         openai_compat_base_url: str = "https://api.openai.com/v1",
         openai_compat_model: str = "gpt-4o-mini",
+        groq_vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct",
     ):
         self.gemini_module = gemini_client
         self.groq_client = groq_client
@@ -46,6 +47,7 @@ class UnifiedAIClient:
         self.openai_compat_key_pool = openai_compat_key_pool
         self.openai_compat_base_url = openai_compat_base_url.rstrip("/")
         self.openai_compat_model = openai_compat_model
+        self.groq_vision_model = groq_vision_model
 
         if (openai_compat_api_key or self._has_pool(openai_compat_key_pool)) and not gemini_client and not groq_client and not self._has_pool(gemini_key_pool) and not self._has_pool(groq_key_pool):
             self.gemini_client = None
@@ -269,19 +271,91 @@ class UnifiedAIClient:
         if not images:
             return self.generate(prompt, max_tokens, temperature)
 
+        errors: list[str] = []
         if self.gemini_api_key or self._has_pool(self.gemini_key_pool):
             try:
                 return self._call_gemini_vision(prompt, images, max_tokens, temperature)
             except Exception as e:
+                errors.append(f"Gemini: {e}")
                 logger.warning(f"Gemini vision failed: {e}")
+
+        if self.groq_client or self._has_pool(self.groq_key_pool):
+            try:
+                return self._call_groq_vision(prompt, images, max_tokens, temperature)
+            except Exception as e:
+                errors.append(f"Groq: {e}")
+                logger.warning(f"Groq vision failed: {e}")
 
         if self.primary_ai == "openai_compat" and (self.openai_compat_api_key or self._has_pool(self.openai_compat_key_pool)):
             try:
                 return self._call_openai_compat_vision(prompt, images, max_tokens, temperature)
             except Exception as e:
+                errors.append(f"OpenAI-compatible: {e}")
                 logger.warning(f"OpenAI-compat vision failed: {e}")
 
-        raise NoVisionProviderError("No vision-capable AI provider is configured")
+        detail = "; ".join(errors) if errors else "No vision-capable AI provider is configured"
+        raise NoVisionProviderError(detail)
+
+    def _call_groq_vision(
+        self,
+        prompt: str,
+        images: list[dict],
+        max_tokens: int,
+        temperature: float,
+    ) -> str:
+        content: list[dict] = [{"type": "text", "text": prompt}]
+        for img in images[:5]:
+            b64 = base64.b64encode(img["data"]).decode("utf-8")
+            content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{img['mime_type']};base64,{b64}",
+                },
+            })
+
+        for _ in range(self._pool_attempts(self.groq_key_pool)):
+            lease = None
+            try:
+                client = self.groq_client
+                if self._has_pool(self.groq_key_pool):
+                    lease, api_key = self._reserve_key(
+                        self.groq_key_pool,
+                        None,
+                        prompt,
+                        max_tokens,
+                    )
+                    from groq import Groq
+                    client = Groq(api_key=api_key)
+                if client is None:
+                    raise NoVisionProviderError("No Groq client is configured")
+
+                response = client.chat.completions.create(
+                    model=self.groq_vision_model,
+                    messages=[{"role": "user", "content": content}],
+                    temperature=temperature,
+                    max_completion_tokens=max_tokens,
+                )
+                usage = extract_usage_from_openai_like(response)
+                self._record_key_success(self.groq_key_pool, lease, usage)
+                text = (response.choices[0].message.content or "").strip()
+                if not text:
+                    raise RuntimeError("Groq vision response was empty")
+                self._log_usage(
+                    usage,
+                    model=self.groq_vision_model,
+                    provider="groq_vision",
+                    prompt=prompt,
+                    completion=text,
+                )
+                return text
+            except Exception as exc:
+                if self._is_quota_error(exc) and lease:
+                    self._mark_key_exhausted(self.groq_key_pool, lease)
+                    continue
+                self._release_key(self.groq_key_pool, lease)
+                raise
+
+        raise RuntimeError("Groq vision request failed after all configured keys were exhausted")
 
     def _call_gemini_vision(
         self,

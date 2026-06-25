@@ -42,6 +42,9 @@ export async function pollAIJob(jobId, options = {}) {
   if (job.status !== 'completed') {
     throw new Error(job.error || 'AI job failed');
   }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('brainwave:token-usage-refresh'));
+  }
   return job.result || {};
 }
 

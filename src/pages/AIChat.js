@@ -37,6 +37,24 @@ import { enableChatDock } from '../utils/chatDock';
 import { queueChatCompletion, queueLegacyAIFileEndpoint, queuedAIJsonFetch, USE_AI_JOB_QUEUE } from '../services/aiJobService';
 
 const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
+const chatContextSelectionKey = (chatId) => (
+  chatId
+    ? `${CONTEXT_SELECTION_KEY}:chat:${chatId}`
+    : `${CONTEXT_SELECTION_KEY}:pending-chat`
+);
+
+const loadContextSelection = (chatId) => {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem(chatContextSelectionKey(chatId)) || '[]'
+    );
+    return Array.isArray(parsed)
+      ? parsed.map((value) => String(value).trim()).filter(Boolean)
+      : [];
+  } catch {
+    return [];
+  }
+};
 const TUTOR_MODE_KEY = 'ai_chat_tutor_mode_enabled';
 const TUTOR_REPLY_MODE_KEY = 'ai_chat_tutor_reply_mode';
 const TUTOR_REPLY_MODES = [
@@ -726,6 +744,7 @@ const AIChat = ({ sharedMode = false }) => {
     return TUTOR_REPLY_MODES.some((mode) => mode.id === savedMode) ? savedMode : 'guided';
   });
   const [userDocCount, setUserDocCount] = useState(0);
+  const [contextSelectionRevision, setContextSelectionRevision] = useState(0);
   const [activeActionKey, setActiveActionKey] = useState(null);
   const [actionNotice, setActionNotice] = useState('');
   const actionNoticeTimerRef = useRef(null);
@@ -999,13 +1018,20 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
   const SUPPORTED_DOCX_TYPES = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
   const SUPPORTED_TEXT_TYPES = ['text/plain', 'text/markdown', 'text/x-markdown'];
   const SUPPORTED_TEXT_EXTENSIONS = ['.txt', '.md', '.markdown'];
   const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
+  const isImageFile = (file) => {
+    const lowerName = (file?.name || '').toLowerCase();
+    return SUPPORTED_IMAGE_TYPES.includes((file?.type || '').toLowerCase())
+      || SUPPORTED_IMAGE_EXTENSIONS.some(ext => lowerName.endsWith(ext));
+  };
+
   const attachPreviewUrl = (file) => {
-    if (file.type.startsWith('image/')) {
+    if (isImageFile(file)) {
       file._previewUrl = URL.createObjectURL(file);
     }
     return file;
@@ -1015,7 +1041,7 @@ const AIChat = ({ sharedMode = false }) => {
     const incoming = Array.from(rawFiles);
     const valid = [];
     for (const file of incoming) {
-      const isImage = SUPPORTED_IMAGE_TYPES.includes(file.type);
+      const isImage = isImageFile(file);
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       const lowerName = file.name.toLowerCase();
       const isDocx = SUPPORTED_DOCX_TYPES.includes(file.type) || lowerName.endsWith('.docx');
@@ -1092,7 +1118,7 @@ const AIChat = ({ sharedMode = false }) => {
     return (
       <div className="ac-file-preview" aria-label="Files ready to send">
         {selectedFiles.map((file, index) => (
-          file.type.startsWith('image/') && file._previewUrl ? (
+          isImageFile(file) && file._previewUrl ? (
             <div key={`${file.name}-${file.size}-${index}`} className="ac-img-thumb-wrap">
               <img src={file._previewUrl} alt={file.name} className="ac-img-thumb" />
               <button
@@ -1365,6 +1391,8 @@ const AIChat = ({ sharedMode = false }) => {
     setMessages([]);
     clearAllFiles();
     isLoadingRef.current = false;
+    setActiveChatId(chatSessionId);
+    loadChatMessages(chatSessionId);
     navigate(`/ai-chat/${chatSessionId}`);
   };
 
@@ -1376,7 +1404,10 @@ const AIChat = ({ sharedMode = false }) => {
     const hasFiles = !useOverride && selectedFiles.length > 0;
     if ((!sanitizedMessage && !hasFiles) || loading || !userName) return;
 
-    let currentChatId = activeChatId;
+    const routeChatId = chatId ? Number.parseInt(chatId, 10) : null;
+    let currentChatId = Number.isFinite(routeChatId) && routeChatId > 0
+      ? routeChatId
+      : activeChatId;
     let isNewChat = false;
     
     
@@ -1406,6 +1437,15 @@ const AIChat = ({ sharedMode = false }) => {
         return;
       }
       isNewChat = true;
+
+      const pendingContextIds = loadContextSelection(null);
+      if (pendingContextIds.length > 0) {
+        localStorage.setItem(
+          chatContextSelectionKey(currentChatId),
+          JSON.stringify(pendingContextIds)
+        );
+        localStorage.removeItem(chatContextSelectionKey(null));
+      }
       
       justSentMessageRef.current = true;
       
@@ -1427,7 +1467,7 @@ const AIChat = ({ sharedMode = false }) => {
         type: file.type,
         size: file.size,
         previewUrl: file._previewUrl || null,
-        isImage: file.type.startsWith('image/'),
+        isImage: isImageFile(file),
       }))
     };
 
@@ -1439,14 +1479,7 @@ const AIChat = ({ sharedMode = false }) => {
 
     try {
       let selectedContextDocIds = [];
-      try {
-        const parsed = JSON.parse(localStorage.getItem(CONTEXT_SELECTION_KEY) || '[]');
-        selectedContextDocIds = Array.isArray(parsed)
-          ? parsed.map((v) => String(v).trim()).filter(Boolean)
-          : [];
-      } catch {
-        selectedContextDocIds = [];
-      }
+      selectedContextDocIds = loadContextSelection(currentChatId);
 
       const token = localStorage.getItem('token');
       if (!token) {
@@ -1519,6 +1552,10 @@ const AIChat = ({ sharedMode = false }) => {
       }
       
       
+      if (data.attachment_error) {
+        throw new Error(data.attachment_error);
+      }
+
       if (!data.answer) {
         throw new Error('No answer received from AI');
       }
@@ -1599,10 +1636,14 @@ const AIChat = ({ sharedMode = false }) => {
 
     } catch (error) {
       console.error('Error in sendMessage:', error);
+      const errorText = error?.message || 'The request could not be completed.';
+      const isAttachmentError = /(?:received|process|analy[sz]e).*(?:image|attachment)|(?:image|attachment).*(?:received|process|analy[sz]e)/i.test(errorText);
       const errorMessage = {
         id: `error_${Date.now()}`,
         type: 'ai',
-        content: `Sorry, I encountered an error: ${error.message}. Please try again.`,
+        content: isAttachmentError
+          ? errorText
+          : `Sorry, I encountered an error: ${errorText}. Please try again.`,
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -2038,6 +2079,7 @@ const AIChat = ({ sharedMode = false }) => {
       }
 
       if (response.ok) {
+        localStorage.removeItem(chatContextSelectionKey(chatToDelete.id));
         
         const wasActivChat = activeChatId === chatToDelete.id;
         setChatSessions(prev => prev.filter(chat => chat.id !== chatToDelete.id));
@@ -2896,7 +2938,13 @@ const AIChat = ({ sharedMode = false }) => {
             <span>{shareLinkCopied ? 'Link Copied' : 'Share'}</span>
           </button>
           <div className="ac-qb-context-action">
-            <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
+            <ContextSelector
+              hsMode={hsMode}
+              docCount={userDocCount}
+              refreshKey={contextSelectionRevision}
+              onOpen={() => setContextPanelOpen(true)}
+              selectionKey={chatContextSelectionKey(activeChatId)}
+            />
           </div>
         </div>
       </div>
@@ -3807,6 +3855,8 @@ const AIChat = ({ sharedMode = false }) => {
         hsMode={hsMode}
         onHsModeToggle={handleHsModeToggle}
         onDocUploaded={() => setUserDocCount(p => p + 1)}
+        onSelectionChange={() => setContextSelectionRevision((value) => value + 1)}
+        selectionKey={chatContextSelectionKey(activeChatId)}
       />
     </div>
   );

@@ -145,6 +145,48 @@ ACTIVITY_PATTERNS = [
     r"\bsummar(y|ize)\s*(my|of)\b",
 ]
 
+PROJECT_BUILD_ACTION_RE = re.compile(
+    r"\b(?:build|create|develop|implement|make|scaffold|code|ship|launch|set\s*up|spin\s*up)\b"
+    r"|\b(?:architect|design|prototype)\s+(?:an?|the|this|that|my|our)\b",
+    re.I,
+)
+
+PROJECT_BUILD_TARGET_RE = re.compile(
+    r"\b(?:"
+    r"software|mvp|prototype|app|application|website|web\s*app|mobile\s*app|"
+    r"dashboard|portal|platform|api|backend|frontend|full[-\s]*stack|service|"
+    r"microservice|system|tool|cli|bot|chatbot|agent|assistant|workflow|pipeline|"
+    r"automation|model|classifier|recommendation\s*engine|search\s*engine|"
+    r"game|extension|plugin|integration|database|data\s*warehouse|etl|"
+    r"python|javascript|typescript|react|next\.?js|node\.?js|fastapi|django|flask|"
+    r"machine\s*learning|deep\s*learning|ai"
+    r")\b",
+    re.I,
+)
+
+PROJECT_BUILD_DIRECT_RE = re.compile(
+    r"\b(?:"
+    r"help\s+me\s+(?:build|create|develop|implement|make|code)|"
+    r"(?:build|create|develop|implement|make|code)\s+me\s+|"
+    r"give\s+me\s+(?:the\s+)?(?:code|architecture|implementation|project\s+structure)\s+for"
+    r")\b",
+    re.I,
+)
+
+
+def _is_project_build_request(text: str) -> bool:
+    request = str(text or "").strip()
+    if not request:
+        return False
+    return bool(
+        PROJECT_BUILD_TARGET_RE.search(request)
+        and (
+            PROJECT_BUILD_ACTION_RE.search(request)
+            or PROJECT_BUILD_DIRECT_RE.search(request)
+        )
+    )
+
+
 def _is_repetitive(text: str, chat_history: list[dict]) -> bool:
     if not chat_history:
         return False
@@ -241,6 +283,107 @@ Return only JSON with keys: answer, tutor_state, options.
 """.strip()
     return await _agenerate(ai_client, repair_prompt, max_tokens=900, temperature=0.2)
 
+
+def _project_response_needs_repair(response: str) -> bool:
+    text = str(response or "").strip()
+    if len(text) < 500:
+        return True
+
+    lowered = text.lower()
+    file_mentions = re.findall(
+        r"\b[\w.-]+\.(?:py|js|jsx|ts|tsx|json|ya?ml|toml|sql|md|env|go|rs|java|kt|swift|html|css)\b",
+        text,
+        re.I,
+    )
+    has_file_tree = (
+        len(set(file_mentions)) >= 2
+        or bool(re.search(r"(?:^|\n)\s*[├└│]", text))
+        or bool(re.search(r"(?:^|\n)\s*[\w.-]+/[\w./-]+", text))
+    )
+    has_commands = bool(
+        re.search(
+            r"`[^`\n]*(?:"
+            r"npm|npx|pnpm|yarn|pip|python\s+-m|uvicorn|docker|cargo|go\s+run|"
+            r"dotnet|mvn|gradle|git|mkdir|make|composer|bundle|flutter|expo"
+            r")[^`\n]*`",
+            text,
+            re.I,
+        )
+        or re.search(
+            r"(?:^|\n)\s*(?:\\$|>)?\s*(?:"
+            r"npm|npx|pnpm|yarn|pip|python\s+-m|uvicorn|docker|cargo|go\s+run|"
+            r"dotnet|mvn|gradle|git|mkdir|make|composer|bundle|flutter|expo"
+            r")\s+",
+            text,
+            re.I,
+        )
+    )
+    has_verification = bool(
+        re.search(
+            r"\b(?:verify|verification|acceptance criteria|success criteria|definition of done)\b",
+            lowered,
+        )
+    )
+    required_signals = [
+        bool(re.search(r"\b(?:assumptions?|defaults?)\b", lowered)),
+        bool(re.search(r"\b(?:stack|architecture|data flow|components?)\b", lowered)),
+        has_file_tree,
+        has_commands,
+        has_verification,
+    ]
+    vague_handoff = bool(
+        re.search(
+            r"\b(?:"
+            r"what framework (?:do you|would you)|"
+            r"which (?:framework|database|model) (?:do you|would you)|"
+            r"provide (?:the|your) (?:framework|parameters|requirements)|"
+            r"let me know (?:the|your) (?:framework|stack|requirements)"
+            r")\b",
+            lowered,
+        )
+    )
+    return (
+        sum(required_signals) < 4
+        or not has_file_tree
+        or not has_commands
+        or not has_verification
+        or vague_handoff
+    )
+
+
+async def _repair_project_build_response(
+    ai_client,
+    broken_response: str,
+    user_input: str,
+) -> str:
+    repair_prompt = f"""
+Rewrite the response below as a concrete project-delivery blueprint.
+
+User request:
+{user_input}
+
+Weak response:
+{broken_response[:5000]}
+
+Requirements:
+- Infer sensible requirements, state assumptions, and choose one coherent stack.
+- Do not ask the user to select a framework, model, database, or basic parameters.
+- Start with the deliverable and selected defaults.
+- Include architecture and data flow.
+- Include a real file tree.
+- Give exact setup and run commands.
+- Give ordered implementation steps naming files, interfaces, and observable results.
+- Include core data entities, API routes/request shapes, environment variables, and a runnable vertical slice.
+- End with verification commands, measurable acceptance criteria, likely failure points, and the next milestone.
+- Separate optional enhancements from the runnable MVP.
+- Do not call anything latest unless it was verified.
+- Do not narrate this rewrite or mention the weak response.
+
+Return only the improved user-facing markdown response.
+""".strip()
+    return await _agenerate(ai_client, repair_prompt, max_tokens=3200, temperature=0.3)
+
+
 def _detect_query_domain(text: str) -> list[str]:
     text_lower = text.lower()
     domains = []
@@ -285,6 +428,9 @@ def detect_intent(state: TutorState) -> dict:
                 "intent": "comprehension_answer",
                 "comprehension_check": previous_check or session_state.get("next_action") or _extract_last_question(last_ai),
             }
+
+    if _is_project_build_request(state.get("user_input", "")):
+        return {"intent": "project_build"}
 
     if any(re.search(p, text) for p in GREETING_PATTERNS):
         if chat_history:
@@ -889,6 +1035,7 @@ def gate_and_retrieve(state: TutorState) -> dict:
     student = state.get("student_state")
     db_factory = state.get("_db_factory")
     user_id = state.get("user_id", "")
+    chat_id = state.get("chat_id")
     context_doc_ids = state.get("context_doc_ids") or []
     context_only = bool(state.get("context_only"))
 
@@ -957,10 +1104,13 @@ def gate_and_retrieve(state: TutorState) -> dict:
                 if activity_context:
                     structured_context.extend(activity_context)
 
-        if chroma_store.available() and intent not in ("recall",):
+        if chroma_store.available() and intent not in ("recall",) and chat_id is not None:
             try:
                 general_memories = chroma_store.retrieve_episodes(
-                    user_id, user_input, top_k=3
+                    user_id,
+                    user_input,
+                    top_k=3,
+                    chat_session_id=chat_id,
                 )
                 for m in general_memories:
                     if m not in memories:
@@ -1252,6 +1402,41 @@ def _build_instructional_task(state: TutorState) -> str:
             "If STRUCTURED LEARNING DATA contains their weak areas, past topics, notes, or flashcard sets — "
             "reference those specifically to suggest what to work on next. "
             "If there is NO data about them yet, just ask what they want to study — do NOT invent topics."
+        )
+
+    if intent == "project_build":
+        return (
+            "The student wants a project built or an implementation blueprint. Respond as a decisive senior engineer "
+            "who owns the path from idea to a working result.\n\n"
+            "AUTONOMY RULES:\n"
+            "- Do not make the student choose every framework, model, library, database, or folder name.\n"
+            "- Infer reasonable requirements from the request, state the important assumptions briefly, choose one "
+            "coherent default stack, and proceed.\n"
+            "- Do not present a menu of equivalent technologies. Name the selected option and give one short reason.\n"
+            "- Ask at most one blocking question, and only when proceeding could cause security/privacy risk, meaningful "
+            "cost, destructive data changes, legal/compliance issues, or an incompatible deployment decision.\n"
+            "- If a detail is merely unspecified, choose a conventional default and label it as an assumption.\n\n"
+            "DELIVERY CONTRACT:\n"
+            "1. Start with the concrete outcome being built and a short list of assumptions/defaults.\n"
+            "2. Specify the exact stack and, when relevant, the primary AI model/provider plus a fallback strategy. "
+            "Do not claim a version is latest unless the student supplied or verified it.\n"
+            "3. Give the architecture and data flow with named components and responsibilities.\n"
+            "4. Include a practical project/file tree using real filenames.\n"
+            "5. Provide an ordered implementation workflow. Every step must name the files to create/change, the exact "
+            "commands to run, and the observable result of that step.\n"
+            "6. Include the core interfaces: database entities, API routes, request/response shapes, environment variables, "
+            "and key functions/components appropriate to the project.\n"
+            "7. Provide enough starter code or pseudocode to establish one working end-to-end vertical slice. Prefer code "
+            "that can be copied and run over abstract suggestions.\n"
+            "8. End with verification commands, acceptance criteria, likely failure points, and the next implementation "
+            "milestone—not an open-ended request for more parameters.\n\n"
+            "QUALITY BAR:\n"
+            "- Be result-oriented and imperative: use 'Create', 'Run', 'Add', and 'Verify'. Avoid vague verbs such as "
+            "'consider', 'explore', 'you could', or 'look into'.\n"
+            "- Tie each recommendation to the requested product. Do not give a generic software-development checklist.\n"
+            "- Preserve scope discipline: produce a lean runnable MVP first, then clearly separate optional enhancements.\n"
+            "- If the request is too large for one response, fully specify and implement the first vertical slice, then "
+            "list the remaining milestones in dependency order."
         )
 
     if intent == "comprehension_answer":
@@ -1765,7 +1950,27 @@ async def build_prompt_and_respond(state: TutorState) -> dict:
             "4. Quote or paraphrase only what is present in those chunks."
         )
 
-    if state.get("tutor_mode") and intent not in ("greeting", "returning_greeting"):
+    if intent == "project_build" and not context_only:
+        system += (
+            "\n\nPROJECT DELIVERY MODE — HARD RULES:\n"
+            "1. Own the implementation workflow. Choose sensible defaults instead of asking the user to supply every parameter.\n"
+            "2. Select one coherent stack; do not answer with a technology shopping list.\n"
+            "3. State assumptions, then proceed. Ask no follow-up question unless a missing choice is genuinely blocking or risky.\n"
+            "4. Include concrete architecture, file tree, commands, core interfaces, implementation steps, and verification.\n"
+            "5. Each numbered step must identify what to create/change and what successful completion looks like.\n"
+            "6. Include a runnable end-to-end vertical slice or the most important starter code, not only explanations.\n"
+            "7. End with measurable acceptance criteria and the next milestone. Do not end with 'tell me your framework' or "
+            "'provide more details'.\n"
+            "8. Student-profile restrictions about inventing learning topics do not prevent you from choosing conventional "
+            "technical defaults required to build this project.\n"
+            "9. Be honest about unverified versions, prices, provider limits, and deployment facts; do not label anything "
+            "as latest without verification."
+        )
+
+    if (
+        state.get("tutor_mode")
+        and intent not in ("greeting", "returning_greeting", "project_build")
+    ):
         system += (
             "\n\nTUTOR MODE — HARD RULES:\n"
             "1. Prioritize guided learning over complete answer dumps.\n"
@@ -1815,7 +2020,21 @@ async def build_prompt_and_respond(state: TutorState) -> dict:
     full_prompt = f"{system}\n\n{prompt}"
 
     try:
-        response = await _agenerate(ai_client, full_prompt, max_tokens=2000, temperature=0.7)
+        max_tokens = 3200 if intent == "project_build" else 2000
+        temperature = 0.45 if intent == "project_build" else 0.7
+        response = await _agenerate(
+            ai_client,
+            full_prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+        if intent == "project_build" and _project_response_needs_repair(response):
+            logger.warning("[TUTOR GEN] Project response was too vague; rewriting to delivery contract")
+            response = await _repair_project_build_response(
+                ai_client,
+                response,
+                str(state.get("user_input") or ""),
+            )
         if state.get("tutor_mode") and _has_tutor_contract_leak(response):
             logger.warning("[TUTOR GEN] Contract/schema leakage detected; retrying tutor response repair")
             response = await _repair_tutor_contract_response(
@@ -1829,7 +2048,21 @@ async def build_prompt_and_respond(state: TutorState) -> dict:
         if ai_client is hs_ai and main_ai and main_ai is not ai_client:
             logger.error(f"HS context AI generation failed; falling back to main AI client: {e}")
             try:
-                response = await _agenerate(main_ai, full_prompt, max_tokens=2000, temperature=0.7)
+                response = await _agenerate(
+                    main_ai,
+                    full_prompt,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                )
+                if intent == "project_build" and _project_response_needs_repair(response):
+                    logger.warning(
+                        "[TUTOR GEN] Fallback project response was too vague; rewriting to delivery contract"
+                    )
+                    response = await _repair_project_build_response(
+                        main_ai,
+                        response,
+                        str(state.get("user_input") or ""),
+                    )
                 if state.get("tutor_mode") and _has_tutor_contract_leak(response):
                     logger.warning("[TUTOR GEN] Contract/schema leakage detected after fallback; retrying tutor response repair")
                     response = await _repair_tutor_contract_response(
@@ -2033,6 +2266,7 @@ async def persist_updates(state: TutorState) -> dict:
                     "knowledge_signal": str(round(knowledge_signal, 2)),
                     "teaching_style":   selected_style or "",
                     "source":           "chat",
+                    "chat_session_id":  str(state.get("chat_id")) if state.get("chat_id") is not None else "",
                 },
             )
             chroma_writes.append({"summary": memory_summary})

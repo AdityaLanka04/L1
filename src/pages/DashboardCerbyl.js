@@ -147,7 +147,10 @@ const routeForNotification = (notificationType) => {
 
 const fetchJson = async (url) => {
   const token = localStorage.getItem('token');
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const r = await fetch(url, {
+    cache: 'no-store',
+    headers: { Authorization: `Bearer ${token}` }
+  });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 };
@@ -185,6 +188,11 @@ const formatTokenCount = (value) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`;
   return n.toLocaleString();
+};
+
+const formatUsedTokenCount = (value) => {
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? Math.max(0, Math.round(n)).toLocaleString() : '0';
 };
 
 const hydrateProfile = (parsedProfile = {}, username = '') => {
@@ -603,6 +611,32 @@ const DashboardCerbyl = () => {
     const refresh = () => {
       refreshSubscriptionUsage({ silent: true });
     };
+    const onTokenUsageUpdated = (event) => {
+      const detail = event?.detail || {};
+      const usedTokens = Number(detail.usedTokens);
+      if (!Number.isFinite(usedTokens)) return;
+
+      setSubscriptionUsage(prev => {
+        const headerLimit = Number(detail.includedTokens);
+        const includedTokens = Number.isFinite(headerLimit) && headerLimit > 0
+          ? headerLimit
+          : prev.includedTokens;
+        const currentPlanId = detail.currentPlanId || prev.currentPlanId;
+
+        return {
+          ...prev,
+          loading: false,
+          currentPlanId,
+          currentPlanName: PLAN_NAMES[currentPlanId] || prev.currentPlanName,
+          includedTokens,
+          usedTokens,
+          utilizationPct: includedTokens > 0
+            ? Math.round((usedTokens / includedTokens) * 1000) / 10
+            : 0,
+          error: null
+        };
+      });
+    };
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         refresh();
@@ -611,11 +645,15 @@ const DashboardCerbyl = () => {
 
     const intervalId = window.setInterval(refresh, 30000);
     window.addEventListener('focus', refresh);
+    window.addEventListener('brainwave:token-usage-updated', onTokenUsageUpdated);
+    window.addEventListener('brainwave:token-usage-refresh', refresh);
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener('focus', refresh);
+      window.removeEventListener('brainwave:token-usage-updated', onTokenUsageUpdated);
+      window.removeEventListener('brainwave:token-usage-refresh', refresh);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [refreshSubscriptionUsage, userName]);
@@ -1447,7 +1485,7 @@ const DashboardCerbyl = () => {
             ? 'Admin unlimited AI access'
             : hasUnlimitedAccess
               ? 'Unlimited AI access'
-              : `${subscriptionUsage.currentPlanName} plan, ${formatTokenCount(subscriptionUsage.usedTokens)} of ${formatTokenCount(subscriptionUsage.includedTokens)} monthly tokens used. Upgrade now.`}
+              : `${subscriptionUsage.currentPlanName} plan, ${formatUsedTokenCount(subscriptionUsage.usedTokens)} of ${formatTokenCount(subscriptionUsage.includedTokens)} monthly tokens used. Upgrade now.`}
         >
           <div className="cb-usage-copy">
             <span className="cb-usage-heading">
@@ -1467,7 +1505,7 @@ const DashboardCerbyl = () => {
                       ? 'Loading'
                       : subscriptionUsage.error
                         ? 'Unavailable'
-                        : `${formatTokenCount(subscriptionUsage.usedTokens)} used / ${formatTokenCount(subscriptionUsage.includedTokens)}`}
+                        : `${formatUsedTokenCount(subscriptionUsage.usedTokens)} used / ${formatTokenCount(subscriptionUsage.includedTokens)}`}
                   </span>
                 </span>
               </>

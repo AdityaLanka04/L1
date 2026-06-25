@@ -26,12 +26,27 @@ def write_episode(user_id: str, summary: str, metadata: Optional[dict] = None):
     meta.setdefault("source", "chat")
     vs.upsert("episodic", str(uuid.uuid4()), summary, embedding, meta, user_id=str(user_id))
 
-def retrieve_episodes(user_id: str, query: str, top_k: int = 3) -> list[str]:
+def retrieve_episodes(
+    user_id: str,
+    query: str,
+    top_k: int = 3,
+    chat_session_id: Optional[int | str] = None,
+) -> list[str]:
     if not available():
         return []
     if vs.count("episodic", user_id=str(user_id)) == 0:
         return []
-    rows = vs.search("episodic", vs.embed(query), top_k, user_id=str(user_id))
+    # Ordinary chat memory must never cross conversation boundaries. Historical
+    # rows without a chat_session_id are intentionally excluded here.
+    if chat_session_id is None:
+        return []
+    rows = vs.search(
+        "episodic",
+        vs.embed(query),
+        top_k,
+        user_id=str(user_id),
+        where={"chat_session_id": str(chat_session_id)},
+    )
     return [r["content"] for r in rows]
 
 def retrieve_episodes_filtered(

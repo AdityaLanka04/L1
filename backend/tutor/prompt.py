@@ -21,7 +21,7 @@ def build_tutor_prompt(state: TutorState) -> str:
     selected_style     = state.get("selected_style", "")
     intent             = state.get("intent", "")
     context_only       = bool(state.get("context_only"))
-    tutor_mode         = bool(state.get("tutor_mode"))
+    tutor_mode         = bool(state.get("tutor_mode")) and intent != "project_build"
 
     is_greeting = intent in ("greeting", "returning_greeting")
 
@@ -41,7 +41,7 @@ def build_tutor_prompt(state: TutorState) -> str:
                 sections.append(_rag_section(rag_context))
             else:
                 logger.info("[TUTOR PROMPT] CONTEXT-ONLY mode with no RAG chunks")
-            if selected_style:
+            if selected_style and intent != "project_build":
                 sections.append(_style_section(selected_style))
         else:
             if chat_history:
@@ -60,7 +60,7 @@ def build_tutor_prompt(state: TutorState) -> str:
                 conf_section = _confidence_section(analysis)
                 if conf_section:
                     sections.append(conf_section)
-            if selected_style:
+            if selected_style and intent != "project_build":
                 sections.append(_style_section(selected_style))
 
     if tutor_mode and not is_greeting:
@@ -88,7 +88,11 @@ def _student_section(s: StudentState | None, intent: str = "", context_only: boo
     return "\n".join(lines)
 
 def _chat_history_section(history: list[dict]) -> str:
-    lines = ["[CONVERSATION HISTORY (recent messages)]"]
+    lines = [
+        "[CURRENT CHAT HISTORY (recent messages from this conversation only)]",
+        "Use this history to resolve short follow-ups such as 'give more', 'explain that', or 'continue'.",
+        "If the student's current message clearly introduces a new topic, answer the new topic and do not force the old topic into it.",
+    ]
     for msg in history[-6:]:
         lines.append(f"Student: {msg.get('user', '')}")
         ai_resp = msg.get("ai", "")
@@ -125,7 +129,10 @@ def _structured_context_section(context_lines: list[str]) -> str:
     return "\n".join(lines)
 
 def _memory_section(memories: list[str]) -> str:
-    lines = ["[RELEVANT HISTORY (from episodic memory)]"]
+    lines = [
+        "[SUPPLEMENTARY MEMORY FROM THIS CHAT ONLY]",
+        "This may support the current-chat history, but the student's latest message has priority.",
+    ]
     for m in memories:
         lines.append(f"- {m}")
     return "\n".join(lines)

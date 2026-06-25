@@ -472,6 +472,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-User-Id"],
+    expose_headers=[
+        "X-TokenLimit-Limit",
+        "X-TokenLimit-Used",
+        "X-TokenLimit-Remaining",
+        "X-TokenLimit-Plan",
+    ],
 )
 
 from middleware.rate_limiter import RateLimitMiddleware

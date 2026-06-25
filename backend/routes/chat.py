@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import logging
+import mimetypes
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,9 +47,33 @@ _INTERNAL_GRAPH_GUIDANCE_MARKERS = [
     "for `graphjson`, use schema:",
     "do not include any graph or diagram block unless the user explicitly asks for one.",
 ]
+_PERSON_IDENTITY_REQUEST_RE = re.compile(
+    r"\b(?:"
+    r"who\s+(?:is|are)\s+(?:this|that|he|she|they|the\s+(?:person|man|woman|boy|girl))"
+    r"|identify\s+(?:this|that|the)\s+(?:person|man|woman|boy|girl)"
+    r"|(?:what(?:'s| is)|tell\s+me)\s+(?:his|her|their|the\s+person'?s)\s+name"
+    r")\b",
+    re.IGNORECASE,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
+
+
+def _normalized_upload_mime(content_type: Optional[str], filename: str) -> str:
+    mime = (content_type or "").split(";", 1)[0].strip().lower()
+    if mime == "image/jpg":
+        return "image/jpeg"
+
+    guessed, _ = mimetypes.guess_type(filename or "")
+    if not mime or mime == "application/octet-stream":
+        mime = (guessed or "").lower()
+    return "image/jpeg" if mime == "image/jpg" else mime
+
+
+def _is_person_identity_request(question: str) -> bool:
+    return bool(_PERSON_IDENTITY_REQUEST_RE.search(question or ""))
+
 
 class TutorOptionPayload(BaseModel):
     label: Optional[str] = None
@@ -1364,7 +1389,6 @@ async def ask_with_files(
 ):
     try:
         selected_doc_ids = [x.strip() for x in (context_doc_ids or "").split(",") if x.strip()][:200]
-        context_only_mode = bool(selected_doc_ids)
         _assert_user_matches_request(user_id, current_user)
         user = current_user
         user_question = (original_question or question or "").strip()
@@ -1387,17 +1411,26 @@ async def ask_with_files(
         storage = StorageService.get_storage()
         storage_type = getattr(storage, "storage_type", "local")
 
+        if not files:
+            raise HTTPException(
+                status_code=422,
+                detail="No attachment reached the server. Please reattach the file and try again.",
+            )
+
+        unsupported_files: list[str] = []
         for upload in files[:_MAX_IMAGES_PER_MESSAGE]:
             raw = await upload.read()
             if not raw:
+                unsupported_files.append(f"{upload.filename or 'upload'}: empty file")
                 continue
 
-            mime = (upload.content_type or "").lower()
             fname = upload.filename or "upload"
             lower_fname = fname.lower()
+            mime = _normalized_upload_mime(upload.content_type, fname)
 
             if mime in _SUPPORTED_IMAGE_TYPES:
                 if len(raw) > _MAX_IMAGE_BYTES:
+                    unsupported_files.append(f"{fname}: image exceeds the 20 MB limit")
                     continue
                 safe_name = _safe_filename(user.id, fname)
                 storage_path = _store_chat_upload(storage, raw, f"chat_images/{user.id}/{safe_name}", safe_name, mime)
@@ -1451,7 +1484,6 @@ async def ask_with_files(
                     "storage_path": storage_path,
                     "is_image": False,
                 })
-
             elif mime in _SUPPORTED_TEXT_TYPES or lower_fname.endswith(_SUPPORTED_TEXT_EXTENSIONS):
                 safe_name = _safe_filename(user.id, fname)
                 content_type = mime or "text/plain"
@@ -1469,6 +1501,8 @@ async def ask_with_files(
                     "storage_path": storage_path,
                     "is_image": False,
                 })
+            else:
+                unsupported_files.append(f"{fname}: unsupported file type")
 
         if extraction_errors and not text_extracts and not image_payloads:
             raise HTTPException(
@@ -1478,6 +1512,12 @@ async def ask_with_files(
                     + "; ".join(extraction_errors)
                     + ". If this is a scanned PDF, upload a text-based PDF or run OCR first."
                 ),
+            )
+        if not saved_metadata:
+            detail = "; ".join(unsupported_files) or "no supported file content was received"
+            raise HTTPException(
+                status_code=422,
+                detail=f"The attachment could not be processed: {detail}. Please reattach a supported file.",
             )
 
         enriched_question = model_question.strip() or "Please analyze the attached content."
@@ -1511,27 +1551,71 @@ async def ask_with_files(
 
         response_text = ""
         ai_provider = "AI"
-        vision_unavailable = False
+        vision_error = ""
 
         from deps import unified_ai as _unified_ai
         from services.ai_utils import NoVisionProviderError
         ai_client = _unified_ai
 
-        if ai_client and image_payloads and not context_only_mode:
+        if image_payloads and _is_person_identity_request(user_question or model_question):
+            response_text = (
+                "I can’t identify or confirm a person’s identity from an image. "
+                "I can describe their visible appearance, clothing, setting, or actions instead."
+            )
+            ai_provider = "privacy_guard"
+
+        # A directly attached image belongs to the current message. Selected
+        # Vault/context documents must not suppress multimodal analysis.
+        if ai_client and image_payloads and not response_text:
             try:
-                response_text = await run_in_threadpool(
-                    ai_client.generate_with_images,
-                    enriched_question,
-                    image_payloads,
-                    2000,
-                    0.7,
-                )
+                response_text = (
+                    await run_in_threadpool(
+                        ai_client.generate_with_images,
+                        enriched_question,
+                        image_payloads,
+                        2000,
+                        0.7,
+                    )
+                    or ""
+                ).strip()
                 ai_provider = "vision"
-            except NoVisionProviderError:
-                vision_unavailable = True
-                logger.warning("No vision provider configured — answering text only")
+            except NoVisionProviderError as exc:
+                vision_error = str(exc) or "No vision-capable AI provider is configured"
+                logger.warning(
+                    "No vision provider configured; image response will not fall back to chat history"
+                )
             except Exception as e:
-                logger.warning(f"Vision call failed ({e}) — answering text only")
+                vision_error = f"Image analysis failed: {e}"
+                logger.warning(
+                    "Vision call failed (%s); image response will not fall back to chat history",
+                    e,
+                )
+
+        if image_payloads and not response_text:
+            return {
+                "answer": "",
+                "attachment_error": (
+                    "I received the image, but could not analyze it right now. "
+                    "Please retry in a moment."
+                ),
+                "attachment_error_detail": vision_error or "Vision service returned an empty response",
+                "ai_confidence": 0.0,
+                "topics_discussed": [],
+                "query_type": "multimodal_error",
+                "files_processed": len(saved_metadata),
+                "file_summaries": [
+                    {"file_name": m["filename"], "is_image": m["is_image"], "size": m["size"]}
+                    for m in saved_metadata
+                ],
+                "has_file_context": True,
+                "images_analyzed": 0,
+                "ai_provider": "vision_error",
+                "storage_type": storage_type,
+                "tutor_mode": bool(tutor_mode),
+                "tutor_reply_style": tutor_reply_style,
+                "tutor_options": [],
+                "tutor_state": None,
+            }
 
         if not response_text:
             tutor_input = (tutor_user_question if tutor_mode else model_question).strip() or "What can you help me with?"
@@ -1562,12 +1646,6 @@ async def ask_with_files(
             except Exception as e:
                 logger.error(f"Tutor graph failed in ask_with_files: {e}")
                 response_text = _context_only_fallback_answer(str(user.id), tutor_input, selected_doc_ids, use_hs_context)
-
-            if vision_unavailable and image_payloads:
-                response_text += (
-                    "\n\n> **Note:** Image analysis isn't available with the current AI provider "
-                    "(Gemini API key required). Your text question was answered above."
-                )
 
         if tutor_mode:
             response_text, tutor_options, tutor_state = _parse_tutor_response(
@@ -1661,6 +1739,7 @@ async def ask_with_files(
             "files_processed": len(saved_metadata),
             "file_summaries":  file_summaries,
             "has_file_context": bool(saved_metadata),
+            "images_analyzed": len(image_payloads) if ai_provider == "vision" else 0,
             "ai_provider":     ai_provider,
             "storage_type":     storage_type,
             "tutor_mode":      bool(tutor_mode),

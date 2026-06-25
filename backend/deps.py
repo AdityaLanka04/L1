@@ -40,6 +40,10 @@ GEMINI_API_KEY = os.getenv("GOOGLE_GENERATIVE_AI_KEY") or os.getenv("GEMINI_API_
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_MODEL = "gemini-2.0-flash"
 GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_VISION_MODEL = os.getenv(
+    "GROQ_VISION_MODEL",
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+)
 
 HS_CONTEXT_API_KEY  = os.getenv("HS_CONTEXT_API_KEY")
 HS_AI_BASE_URL      = os.getenv("HS_AI_BASE_URL", "https://api.groq.com/openai/v1")
@@ -71,6 +75,7 @@ def _init_ai_client() -> UnifiedAIClient:
         effective_gemini_key,
         gemini_key_pool=gemini_key_pool,
         groq_key_pool=groq_key_pool,
+        groq_vision_model=GROQ_VISION_MODEL,
     )
 
 def _init_hs_context_ai() -> UnifiedAIClient:
