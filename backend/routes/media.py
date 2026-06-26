@@ -46,7 +46,8 @@ UPLOAD_DIR = Path("uploads/slides")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 SLIDE_CACHE_DIR = Path(os.getenv("SLIDE_CACHE_DIR", "uploads/slide_cache"))
 SLIDE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-MEDIA_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
+MEDIA_UPLOAD_MAX_MB = max(1, int(os.getenv("MEDIA_UPLOAD_MAX_MB", "100")))
+MEDIA_UPLOAD_MAX_BYTES = MEDIA_UPLOAD_MAX_MB * 1024 * 1024
 
 router = APIRouter(prefix="/api", tags=["media"])
 
@@ -355,7 +356,10 @@ async def process_media(
             if not content:
                 raise HTTPException(status_code=400, detail="The uploaded file is empty")
             if len(content) > MEDIA_UPLOAD_MAX_BYTES:
-                raise HTTPException(status_code=413, detail="File is too large. Maximum upload size is 10MB")
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File is too large. Maximum upload size is {MEDIA_UPLOAD_MAX_MB}MB",
+                )
 
             storage = StorageService.get_storage()
             source_storage_type = getattr(storage, "storage_type", "local")

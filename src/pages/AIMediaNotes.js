@@ -15,7 +15,8 @@ import PodcastStudio from '../components/media/PodcastStudio';
 
 const asText = (value) => (value === null || value === undefined ? '' : String(value));
 const MEDIA_FILE_ACCEPT = 'audio/*,video/*,application/pdf,.pdf,.m4a,audio/mp4,audio/x-m4a';
-const MAX_MEDIA_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_MEDIA_FILE_SIZE_MB = 100;
+const MAX_MEDIA_FILE_SIZE = MAX_MEDIA_FILE_SIZE_MB * 1024 * 1024;
 const MEDIA_FILE_EXTENSIONS = new Set([
   'mp3', 'wav', 'm4a', 'webm', 'ogg', 'opus', 'mp4', 'mpeg', 'mpga',
   'mov', 'avi', 'mkv', 'pdf'
@@ -93,7 +94,7 @@ const AIMediaNotes = () => {
       return;
     }
     if (file.size > MAX_MEDIA_FILE_SIZE) {
-      alert('File is too large. The maximum upload size is 10MB.');
+      alert(`File is too large. The maximum upload size is ${MAX_MEDIA_FILE_SIZE_MB}MB.`);
       return;
     }
     setUploadedFile(file);

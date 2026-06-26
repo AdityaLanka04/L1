@@ -465,20 +465,8 @@ allowed_origins = [
     os.getenv("ALLOWED_ORIGINS", "https://cerbyl.com,https://www.cerbyl.com").split(",")
     if o.strip()
 ]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_dev_origins if _is_dev else allowed_origins,
-    allow_origin_regex=None if _is_dev else r"^https://brainwave-[a-z0-9]+-[a-z0-9]+\.vercel\.app$",
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-User-Id"],
-    expose_headers=[
-        "X-TokenLimit-Limit",
-        "X-TokenLimit-Used",
-        "X-TokenLimit-Remaining",
-        "X-TokenLimit-Plan",
-    ],
-)
+cors_origins = sorted(set(_dev_origins + allowed_origins))
+cors_origin_regex = r"^https://brainwave-[a-z0-9]+-[a-z0-9]+\.vercel\.app$"
 
 from middleware.rate_limiter import RateLimitMiddleware
 from middleware.token_limit import TokenLimitMiddleware
@@ -495,6 +483,21 @@ try:
     app.middleware("http")(log_request_activity)
 except ImportError:
     pass
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_origin_regex=cors_origin_regex,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-User-Id"],
+    expose_headers=[
+        "X-TokenLimit-Limit",
+        "X-TokenLimit-Used",
+        "X-TokenLimit-Remaining",
+        "X-TokenLimit-Plan",
+    ],
+)
 
 from routes import (
     auth,
