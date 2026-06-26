@@ -17,7 +17,7 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-weight: 400;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   z-index: 1;
 }
 
@@ -68,7 +68,7 @@
 }
 
 .cb-topbar {
-  position: sticky;
+  position: relative;
   top: 0;
   z-index: 5;
   display: grid;
@@ -530,16 +530,21 @@
 }
 
 .cb-shell {
-  position: relative;
+  position: absolute;
+  top: 60px;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 2;
   display: grid;
   grid-template-columns: 248px 1fr;
   gap: 24px;
   padding: 8px 28px 32px;
-  min-height: calc(100vh - 60px);
+  min-height: 0;
+  height: calc(100vh - 60px);
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .cb-shell--collapsed {
@@ -549,26 +554,39 @@
 .cb-side-slot {
   position: relative;
   width: 248px;
-  min-height: calc(100vh - 80px);
+  min-height: 0;
+  height: 100%;
 }
 
 .cb-side {
-  position: fixed;
-  top: 68px;
-  left: 28px;
+  position: relative;
+  top: auto;
   width: 248px;
   display: flex;
   flex-direction: column;
   gap: 18px;
   padding: 20px 18px;
-  height: calc(100vh - 88px);
+  height: 100%;
   background: color-mix(in srgb, var(--cb-panel) 96%, transparent);
   border: 1px solid var(--cb-line);
+  border-top-color: var(--cb-line-strong);
   border-radius: 18px;
+  box-shadow: inset 0 1px 0 var(--cb-line-strong);
   overflow: hidden;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   z-index: 2;
+}
+
+.cb-side::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 1px;
+  background: var(--cb-line-strong);
+  pointer-events: none;
 }
 
 .cb-brand {
@@ -985,20 +1003,64 @@
 .cb-main {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  height: 100%;
   min-width: 0;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
   z-index: 2;
+  padding-right: 0;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.cb-main::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.cb-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cb-main::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: transparent;
+  transition: background 0.3s ease;
+}
+
+.cb-main:hover,
+.cb-main:focus,
+.cb-main:active {
+  scrollbar-color: var(--accent) transparent;
+}
+
+.cb-main:hover::-webkit-scrollbar-thumb,
+.cb-main:focus::-webkit-scrollbar-thumb,
+.cb-main:active::-webkit-scrollbar-thumb {
+  background: var(--accent);
+}
+
+.cb-main::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 120%, white);
+}
+
+.cb-main::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
 }
 
 .cb-hero {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 18px 4px 6px;
+  gap: 14px;
+  padding: 12px 4px 4px;
 }
 
 .cb-hero-text {
@@ -1043,7 +1105,7 @@
   align-items: center;
   gap: 10px;
   max-width: 560px;
-  margin-top: 14px;
+  margin-top: 10px;
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
@@ -1272,7 +1334,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-auto-rows: 1fr;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
   min-width: 0;
 }
@@ -1281,8 +1343,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 22px 22px 18px;
+  gap: 10px;
+  padding: 18px 22px 16px;
   background:
     radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 55%),
     var(--cb-panel);
@@ -1291,7 +1353,7 @@
   text-align: left;
   cursor: pointer;
   transition: border-color .2s, transform .2s, box-shadow .2s;
-  min-height: 260px;
+  min-height: 240px;
   height: 100%;
   min-width: 0;
   color: inherit;
@@ -1985,7 +2047,8 @@
 
 .cb-heat-full {
   width: 100%;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: 296px;
   padding: 18px 24px 22px;
   margin-top: 0;
   display: flex;
@@ -2044,6 +2107,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  flex: 1;
   margin-top: 18px;
   overflow-x: auto;
   padding-bottom: 4px;
@@ -2153,7 +2218,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: 14px;
+  margin-top: auto;
   font-size: 10px;
   font-weight: 500;
   color: var(--cb-faint);

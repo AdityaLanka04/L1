@@ -2608,17 +2608,21 @@ const Flashcards = () => {
                 <div className="fc-study-card-inner">
                   <div className="fc-study-card-front">
                     <div className="fc-study-badge">Question</div>
-                    <MathRenderer content={previewCards[currentCard]?.question || ''} className="fc-study-card-text" />
-                    {previewCards[currentCard]?.is_edited && (
-                      <div className="fc-edited-badge" title={`Edited ${previewCards[currentCard]?.edited_at ? new Date(previewCards[currentCard].edited_at).toLocaleString() : ''}`}>
-                        EDITED
-                      </div>
-                    )}
+                    <div className="fc-study-card-scroll">
+                      <MathRenderer content={previewCards[currentCard]?.question || ''} className="fc-study-card-text" />
+                      {previewCards[currentCard]?.is_edited && (
+                        <div className="fc-edited-badge" title={`Edited ${previewCards[currentCard]?.edited_at ? new Date(previewCards[currentCard].edited_at).toLocaleString() : ''}`}>
+                          EDITED
+                        </div>
+                      )}
+                    </div>
                     <div className="fc-study-hint">Click to flip</div>
                   </div>
                   <div className="fc-study-card-back">
                     <div className="fc-study-badge">Answer</div>
-                    <MathRenderer content={previewCards[currentCard]?.answer || ''} className="fc-study-card-text" />
+                    <div className="fc-study-card-scroll">
+                      <MathRenderer content={previewCards[currentCard]?.answer || ''} className="fc-study-card-text" />
+                    </div>
                     <div className="fc-study-hint">Click to flip back</div>
                   </div>
                 </div>

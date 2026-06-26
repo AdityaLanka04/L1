@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Download, Zap, BookOpen, MessageSquare, Plus,
-  Trophy, Target, Flame, Clock, Brain, Cpu, Database,
+  Trophy, Target, Flame, Clock, Brain, Cpu, Database, LayoutDashboard,
   Network, Sparkles, TrendingUp, TrendingDown, CheckCircle,
   Layers, GitBranch, Info, AlertCircle, BarChart3, Activity
 } from 'lucide-react';
@@ -261,7 +261,11 @@ const Analytics = () => {
             <button key={v} className={`an-topbar-tab ${activeTab===v?'active':''}`} onClick={() => setActiveTab(v)}>{l}</button>
           ))}
         </div>
-        <div className="an-topbar-actions" style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'12px'}}>
+        <div className="an-topbar-actions" style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'8px',marginBottom:'12px'}}>
+          <button className="an-action-btn an-action-btn--text" onClick={() => navigate('/dashboard-cerbyl')} aria-label="Open dashboard" title="Open dashboard">
+            <LayoutDashboard size={13}/>
+            <span>Dashboard</span>
+          </button>
           <button className="an-action-btn" onClick={exportData} aria-label="Export analytics data" title="Export analytics data"><Download size={13}/></button>
           <button className="an-action-btn" onClick={() => navigate('/xp-roadmap')} aria-label="Open XP roadmap" title="Open XP roadmap"><Trophy size={13}/></button>
           <ThemeSwitcher />
