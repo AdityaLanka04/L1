@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import call_ai, call_ai_async, get_current_user, get_user_by_email, get_user_by_username
+from services.api_key_pool import ApiKeyPoolExhausted, is_provider_quota_error, provider_limit_exhausted
 from services.document_processor import extract_text_from_pdf_detailed
 from services.storage_service import StorageService
 
@@ -260,6 +261,8 @@ async def transcribe_audio(
         except HTTPException:
             raise
         except Exception as groq_error:
+            if is_provider_quota_error(groq_error):
+                raise provider_limit_exhausted("groq") from groq_error
             logger.error(f"Groq API error: {str(groq_error)}")
             raise HTTPException(status_code=500, detail="Transcription failed")
 
@@ -523,6 +526,8 @@ async def process_media(
 
     except HTTPException:
         raise
+    except ApiKeyPoolExhausted:
+        raise
     except Exception as e:
         logger.error(f"Media processing error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Processing failed")
@@ -636,6 +641,8 @@ async def regenerate_notes(
         }
 
     except HTTPException:
+        raise
+    except ApiKeyPoolExhausted:
         raise
     except Exception as e:
         logger.error(f"Error regenerating notes: {str(e)}")
@@ -1091,6 +1098,8 @@ async def analyze_slide(
         }
 
     except HTTPException:
+        raise
+    except ApiKeyPoolExhausted:
         raise
     except Exception as e:
         logger.error(f"Error analyzing slide: {str(e)}")

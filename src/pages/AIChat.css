@@ -897,6 +897,19 @@ html:has(.ai-chat-page) {
   line-height: 1.65;
 }
 
+.ai-chat-page .ac-message.ai.is-usage-limit .ac-message-bubble {
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--ac-border-subtle));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 58%),
+    var(--ac-bg-card);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.18);
+}
+
+.ai-chat-page .ac-message.ai.is-usage-limit .ac-message-content {
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
 .ai-chat-page .ac-message.has-tutor-ui .ac-message-content {
   font-size: 15px;
   line-height: 1.6;

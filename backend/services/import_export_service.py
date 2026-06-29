@@ -10,7 +10,12 @@ from groq import Groq
 import os
 from activity_logger import log_ai_tokens
 from services.ai_usage import estimate_usage, extract_usage_from_openai_like
-from services.api_key_pool import record_provider_usage
+from services.api_key_pool import (
+    ApiKeyPoolExhausted,
+    is_provider_quota_error,
+    provider_limit_exhausted,
+    record_provider_usage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +82,12 @@ class ImportExportService:
             )
         except Exception:
             pass
+
+    def _raise_if_groq_limit(self, error: Exception) -> None:
+        if isinstance(error, ApiKeyPoolExhausted):
+            raise error
+        if is_provider_quota_error(error):
+            raise provider_limit_exhausted("groq") from error
 
     def _strip_html_to_text(self, content: str) -> str:
         if not content:
@@ -233,6 +244,7 @@ Return ONLY a JSON array of flashcards with this exact format:
             }
             
         except Exception as e:
+            self._raise_if_groq_limit(e)
             logger.error(f"Error converting notes to flashcards: {e}")
             self.db.rollback()
             return {"success": False, "error": str(e)}
@@ -337,6 +349,7 @@ Return ONLY a JSON array with this exact format:
             }
             
         except Exception as e:
+            self._raise_if_groq_limit(e)
             logger.error(f"Error converting notes to questions: {e}")
             self.db.rollback()
             return {"success": False, "error": str(e)}
@@ -599,6 +612,7 @@ Return ONLY a JSON array:
             }
             
         except Exception as e:
+            self._raise_if_groq_limit(e)
             logger.error(f"Error converting flashcards to questions: {e}")
             self.db.rollback()
             return {"success": False, "error": str(e)}
@@ -831,6 +845,7 @@ Return ONLY a JSON array:
             }
             
         except Exception as e:
+            self._raise_if_groq_limit(e)
             logger.error(f"Error converting media to questions: {e}")
             self.db.rollback()
             return {"success": False, "error": str(e)}
@@ -978,6 +993,7 @@ Write at least 500 words of educational content."""
             }
             
         except Exception as e:
+            self._raise_if_groq_limit(e)
             logger.error(f"Error converting playlist to notes: {e}")
             self.db.rollback()
             return {"success": False, "error": str(e)}
@@ -1089,6 +1105,7 @@ Return ONLY a JSON array:
             }
             
         except Exception as e:
+            self._raise_if_groq_limit(e)
             logger.error(f"Error converting playlist to flashcards: {e}")
             self.db.rollback()
             return {"success": False, "error": str(e)}

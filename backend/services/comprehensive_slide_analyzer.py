@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from activity_logger import log_ai_tokens
 from services.ai_usage import estimate_usage, extract_usage_from_openai_like
-from services.api_key_pool import record_provider_usage
+from services.api_key_pool import is_provider_quota_error, provider_limit_exhausted, record_provider_usage
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,9 @@ class ComprehensiveSlideAnalyzer:
             except Exception as e:
                 err = str(e)
                 logger.error(f"AI call error (attempt {attempt + 1}/{retries}): {err}")
-                if "429" in err or "rate" in err.lower():
+                if is_provider_quota_error(e):
+                    if attempt >= retries - 1:
+                        raise provider_limit_exhausted("groq") from e
                     wait = (attempt + 1) * 5
                     logger.info(f"Rate limited — waiting {wait}s before retry")
                     time.sleep(wait)

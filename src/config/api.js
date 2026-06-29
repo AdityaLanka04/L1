@@ -1,3 +1,5 @@
+import { createUsageLimitError, getUsageLimitFromResponse } from '../utils/usageLimit';
+
 export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 export const apiRequest = async (endpoint, options = {}) => {
@@ -24,6 +26,11 @@ export const apiRequest = async (endpoint, options = {}) => {
   }
 
   if (response.status === 429) {
+    const usageLimit = await getUsageLimitFromResponse(response);
+    if (usageLimit) {
+      throw createUsageLimitError(usageLimit);
+    }
+
     const body = await response.clone().json().catch(() => ({}));
     if (body?.code === 'ai_token_limit_exceeded') {
       const err = new Error(body.detail || 'AI token limit exceeded. Upgrade to continue using AI.');

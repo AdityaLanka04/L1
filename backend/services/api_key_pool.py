@@ -336,6 +336,48 @@ def record_provider_usage(provider: str, actual_tokens: Optional[int]) -> None:
     add_provider_usage_delta(actual)
 
 
+def provider_limit_exhausted(
+    provider: str,
+    message: Optional[str] = None,
+    cooldown_seconds: Optional[int] = None,
+) -> ApiKeyPoolExhausted:
+    if cooldown_seconds is not None:
+        reset_at = (datetime.now(timezone.utc) + timedelta(seconds=cooldown_seconds)).isoformat()
+    else:
+        reset_at = _next_utc_midnight()
+    return ApiKeyPoolExhausted(
+        message or f"{provider} API usage limit exhausted",
+        provider=provider,
+        reset_at=reset_at,
+        reset_after_seconds=_seconds_until(reset_at),
+    )
+
+
+def get_provider_daily_reset(provider: str = "groq") -> dict:
+    reset_at = _next_utc_midnight()
+    return {
+        "provider": provider,
+        "reset_at": reset_at,
+        "reset_after_seconds": _seconds_until(reset_at),
+        "usage_day": _today(),
+        "timezone": "UTC",
+    }
+
+
+def is_provider_quota_error(error: Exception) -> bool:
+    text_value = str(error).lower()
+    return (
+        "429" in text_value
+        or "rate_limit" in text_value
+        or "rate limit" in text_value
+        or "tokens per day" in text_value
+        or "tpd" in text_value
+        or "tpm" in text_value
+        or "quota" in text_value
+        or "insufficient_quota" in text_value
+    )
+
+
 def get_usage_snapshot() -> dict:
     _ensure_usage_table()
     today = _today()

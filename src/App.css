@@ -53,3 +53,52 @@
   font-weight: 500;
   margin-top: 2px;
 }
+
+.usage-limit-popover {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--bg-top) 64%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.usage-limit-popover__panel {
+  width: min(440px, 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  border-top: 4px solid var(--accent);
+  background: color-mix(in srgb, var(--bg-card, var(--bg-top)) 94%, #050505 6%);
+  color: var(--text-primary);
+  box-shadow: 0 24px 80px color-mix(in srgb, #000 38%, transparent);
+  padding: 24px;
+}
+
+.usage-limit-popover__eyebrow {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.usage-limit-popover__panel p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 700;
+}
+
+.usage-limit-popover__panel button {
+  margin-top: 22px;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent);
+  color: var(--accent-contrast, #06110d);
+  font-weight: 900;
+  cursor: pointer;
+}

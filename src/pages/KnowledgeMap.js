@@ -16,6 +16,7 @@ import { API_URL } from '../config';
 import { queueChatCompletion, queuedAIJsonFetch, USE_AI_JOB_QUEUE } from '../services/aiJobService';
 import MathRenderer from '../components/MathRenderer';
 import { marked } from 'marked';
+import { formatUsageLimitMessage, getUsageLimitFromError, throwIfUsageLimitResponse } from '../utils/usageLimit';
 
 const GENERIC_EXPLORATION_MARKERS = new Set([
   'core principles',
@@ -57,6 +58,38 @@ const isGenericExplorationContent = (data) => {
 const KM_COMPREHENSION_CHECK_RE = /\b(comprehension\s+check|check\s+your\s+understanding|quick\s+(?:understanding\s+)?check|to\s+ensure\s+you'?re\s+following\s+along|can\s+you\s+briefly\s+(?:describe|explain|summari[sz]e)|how\s+(?:would|do)\s+you\s+(?:explain|describe|understand)|what\s+do\s+you\s+understand|try\s+(?:answering|explaining|summari[sz]ing))\b/i;
 const KM_NEW_QUESTION_START_RE = /^\s*(what|why|how|when|where|who|which|can|could|would|should|please|explain|tell|show|give|quiz|make|create|generate)\b/i;
 
+const cleanKnowledgeMapText = (value, fallback = '') => {
+  const text = String(value || '')
+    .replace(/^```(?:json|text)?\s*|\s*```$/gi, '')
+    .trim()
+    .replace(/^["'`]+|["'`]+$/g, '')
+    .replace(/(?<=[A-Za-z])[$@#](?=[A-Za-z])/g, ' ')
+    .replace(/(?<=[A-Za-z])[_/|](?=[A-Za-z])/g, ' ')
+    .replace(/[\u200b-\u200f\u202a-\u202e]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*[-–—]\s*Click\s+'?Explore'?.*$/i, '')
+    .replace(/\s+([,.;:!?%)\]])/g, '$1')
+    .replace(/([([%])\s+/g, '$1')
+    .trim();
+  return text || fallback;
+};
+
+const cleanKnowledgeMapList = (items = []) => (
+  Array.isArray(items) ? items : []
+).map((item) => cleanKnowledgeMapText(item)).filter(Boolean);
+
+const cleanExplorationData = (data = {}) => ({
+  ...data,
+  topic_name: cleanKnowledgeMapText(data.topic_name, 'Untitled Topic'),
+  description: cleanKnowledgeMapText(data.description),
+  context_path: cleanKnowledgeMapList(data.context_path),
+  ai_explanation: cleanKnowledgeMapText(data.ai_explanation),
+  key_concepts: cleanKnowledgeMapList(data.key_concepts),
+  why_important: cleanKnowledgeMapText(data.why_important),
+  real_world_examples: cleanKnowledgeMapList(data.real_world_examples),
+  learning_tips: cleanKnowledgeMapText(data.learning_tips),
+});
+
 const getLastKnowledgeMapTutorMessage = (messages = []) => {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
@@ -94,6 +127,8 @@ const getKnowledgeMapComprehensionCheck = (messages = []) => {
 
 const CustomNode = ({ data, selected }) => {
   const [activeAction, setActiveAction] = useState(null);
+  const nodeLabel = cleanKnowledgeMapText(data.label, 'Untitled Topic');
+  const nodeDescription = cleanKnowledgeMapText(data.description);
   const setAction = (action) => () => setActiveAction(action);
   const clearAction = () => setActiveAction(null);
   const handleActionBlur = (event) => {
@@ -119,8 +154,8 @@ const CustomNode = ({ data, selected }) => {
           <MapPin size={16} />
         </div>
         <div className="kr-node-text-flow">
-          <h4 className="kr-node-title-text">{data.label}</h4>
-          <p>{data.description}</p>
+          <h4 className="kr-node-title-text">{nodeLabel}</h4>
+          {nodeDescription && <p>{nodeDescription}</p>}
           {data.isExplored && (
             <span className="kr-explored-badge-flow">
               <Sparkles size={10} />
@@ -421,7 +456,7 @@ const createRoadmapFromChat = async () => {
   }, [location.state, userId, token, navigate, clearRoadmapState]);
 
   useEffect(() => {
-    const autoCreateTopic = String(location.state?.autoCreateTopic || '').trim();
+    const autoCreateTopic = cleanKnowledgeMapText(location.state?.autoCreateTopic);
     if (!autoCreateTopic) return;
     if (topicMapTriggeredRef.current) return;
     if (!userId || !token) return;
@@ -488,7 +523,8 @@ const createRoadmapFromChat = async () => {
   };
 
   const createRoadmap = async () => {
-    if (!rootTopic.trim()) {
+    const cleanedRootTopic = cleanKnowledgeMapText(rootTopic);
+    if (!cleanedRootTopic) {
       alert('Please enter a topic');
       return;
     }
@@ -503,7 +539,7 @@ const createRoadmapFromChat = async () => {
         },
         body: JSON.stringify({
           user_id: userId,
-          root_topic: rootTopic
+          root_topic: cleanedRootTopic
         })
       });
 
@@ -685,8 +721,8 @@ const createRoadmapFromChat = async () => {
                       y: parentNode.position.y + verticalSpacing
                     },
                     data: {
-                      label: child.topic_name,
-                      description: child.description,
+                      label: cleanKnowledgeMapText(child.topic_name, 'Untitled Topic'),
+                      description: cleanKnowledgeMapText(child.description),
                       depth: child.depth_level,
                       isExplored: child.is_explored,
                       expansionStatus: child.expansion_status,
@@ -845,8 +881,8 @@ const createRoadmapFromChat = async () => {
                 y: parentNode.position.y + verticalSpacing
               },
               data: {
-                label: child.topic_name,
-                description: child.description,
+                label: cleanKnowledgeMapText(child.topic_name, 'Untitled Topic'),
+                description: cleanKnowledgeMapText(child.description),
                 depth: child.depth_level,
                 isExplored: child.is_explored,
                 expansionStatus: child.expansion_status,
@@ -939,7 +975,7 @@ const createRoadmapFromChat = async () => {
 
   const exploreNode = useCallback(async (nodeId) => {
     if (exploredNodesCache.has(nodeId)) {
-      const cachedData = exploredNodesCache.get(nodeId);
+      const cachedData = cleanExplorationData(exploredNodesCache.get(nodeId));
       if (!isGenericExplorationContent(cachedData)) {
         setNodeExplanation(cachedData);
         return;
@@ -975,7 +1011,7 @@ const createRoadmapFromChat = async () => {
         const nodeData = data.node || data;
                 
         
-        const completeNodeData = {
+        const completeNodeData = cleanExplorationData({
           ...nodeData,
           topic_name: nodeData.topic_name,
           ai_explanation: nodeData.ai_explanation,
@@ -983,7 +1019,7 @@ const createRoadmapFromChat = async () => {
           why_important: nodeData.why_important,
           real_world_examples: nodeData.real_world_examples || [],
           learning_tips: nodeData.learning_tips
-        };
+        });
         
         
         setExploredNodesCache(prev => new Map(prev).set(nodeId, completeNodeData));
@@ -1042,6 +1078,8 @@ const createRoadmapFromChat = async () => {
 
     try {
       setLoading(true);
+      const cleanedTopic = cleanKnowledgeMapText(newNodeTopic, 'Untitled Topic');
+      const cleanedDescription = cleanKnowledgeMapText(newNodeDescription) || `Custom node: ${cleanedTopic}`;
       const response = await fetch(`${API_URL}/add_manual_node`, {
         method: 'POST',
         headers: {
@@ -1051,8 +1089,8 @@ const createRoadmapFromChat = async () => {
         body: JSON.stringify({
           roadmap_id: currentRoadmap.id,
           parent_id: addNodeParentId,
-          topic_name: newNodeTopic.trim(),
-          description: newNodeDescription.trim() || `Custom node: ${newNodeTopic.trim()}`
+          topic_name: cleanedTopic,
+          description: cleanedDescription
         })
       });
 
@@ -1089,8 +1127,8 @@ const createRoadmapFromChat = async () => {
               y: parentNode.position.y + verticalSpacing
             },
             data: {
-              label: newNode.topic_name,
-              description: newNode.description,
+              label: cleanKnowledgeMapText(newNode.topic_name, 'Untitled Topic'),
+              description: cleanKnowledgeMapText(newNode.description),
               depth: newNode.depth_level,
               isExplored: false,
               expansionStatus: 'unexpanded',
@@ -1561,6 +1599,7 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
         });
 
         if (!response.ok) {
+          await throwIfUsageLimitResponse(response);
           const errorText = await response.text().catch(() => '');
           throw new Error(errorText || 'Failed to get AI response');
         }
@@ -1577,11 +1616,15 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
         setChatMessages(prev => [...prev, aiMessage]);
       }
     } catch (error) {
-            const errorMessage = {
+      const usageLimit = getUsageLimitFromError(error);
+      const errorMessage = {
         id: `error_${Date.now()}`,
         type: 'assistant',
-        content: `Sorry, I encountered an error. Please try again.${error.message ? `\n\n${error.message}` : ''}`,
-        timestamp: new Date().toISOString()
+        content: usageLimit
+          ? formatUsageLimitMessage(usageLimit)
+          : `Sorry, I encountered an error. Please try again.${error.message ? `\n\n${error.message}` : ''}`,
+        timestamp: new Date().toISOString(),
+        usageLimit: Boolean(usageLimit),
       };
       setChatMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -1728,8 +1771,8 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
               y: 50 + (node.depth_level * verticalSpacing)
             },
             data: {
-              label: node.topic_name,
-              description: node.description,
+              label: cleanKnowledgeMapText(node.topic_name, 'Untitled Topic'),
+              description: cleanKnowledgeMapText(node.description),
               depth: node.depth_level,
               isExplored: node.is_explored,
               
@@ -1832,6 +1875,7 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
       htmlContent += `<hr style="border: none; border-top: 2px solid var(--border); margin: 24px 0;">`;
 
       const generateNodeContent = (node, depth = 0) => {
+        const cleanNode = cleanExplorationData(node);
         let content = '';
         const indent = depth * 24;
         
@@ -1841,57 +1885,57 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
         
         
         content += `<h${headingLevel} style="font-weight: 700; font-size: ${headingSize}px; margin-top: ${depth === 0 ? 32 : 24}px; margin-bottom: 12px; margin-left: ${indent}px; color: var(--accent);">`;
-        content += `<strong>${node.topic_name}</strong>`;
+        content += `<strong>${cleanNode.topic_name}</strong>`;
         content += `</h${headingLevel}>`;
 
         
-        if (node.description) {
-          content += `<p style="margin-left: ${indent}px; margin-bottom: 12px; color: var(--text-secondary); font-size: 14px;">${node.description}</p>`;
+        if (cleanNode.description) {
+          content += `<p style="margin-left: ${indent}px; margin-bottom: 12px; color: var(--text-secondary); font-size: 14px;">${cleanNode.description}</p>`;
         }
 
         
-        if (node.ai_explanation) {
+        if (cleanNode.ai_explanation) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px; padding: 16px; background: var(--panel); border-left: 4px solid var(--accent); border-radius: 4px;">`;
           content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Overview</h4>`;
-          content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${node.ai_explanation}</p>`;
+          content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${cleanNode.ai_explanation}</p>`;
           content += `</div>`;
         }
 
         
-        if (node.key_concepts && node.key_concepts.length > 0) {
+        if (cleanNode.key_concepts && cleanNode.key_concepts.length > 0) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px;">`;
           content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Key Concepts</h4>`;
           content += `<ul style="margin-left: 20px; color: var(--text-primary); line-height: 1.8;">`;
-          node.key_concepts.forEach(concept => {
+          cleanNode.key_concepts.forEach(concept => {
             content += `<li style="margin-bottom: 6px; font-size: 14px;">${concept}</li>`;
           });
           content += `</ul></div>`;
         }
 
         
-        if (node.why_important) {
+        if (cleanNode.why_important) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px;">`;
           content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Why This Matters</h4>`;
-          content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${node.why_important}</p>`;
+          content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${cleanNode.why_important}</p>`;
           content += `</div>`;
         }
 
         
-        if (node.real_world_examples && node.real_world_examples.length > 0) {
+        if (cleanNode.real_world_examples && cleanNode.real_world_examples.length > 0) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px;">`;
           content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Real-World Examples</h4>`;
           content += `<ul style="margin-left: 20px; color: var(--text-primary); line-height: 1.8;">`;
-          node.real_world_examples.forEach(example => {
+          cleanNode.real_world_examples.forEach(example => {
             content += `<li style="margin-bottom: 6px; font-size: 14px;">${example}</li>`;
           });
           content += `</ul></div>`;
         }
 
         
-        if (node.learning_tips) {
+        if (cleanNode.learning_tips) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px; padding: 12px; background: color-mix(in srgb, var(--success) 10%, transparent); border-radius: 4px; border: 1px solid var(--success);">`;
           content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">Learning Tips</h4>`;
-          content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${node.learning_tips}</p>`;
+          content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${cleanNode.learning_tips}</p>`;
           content += `</div>`;
         }
 
@@ -1963,13 +2007,14 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
   const activeNodePath = nodeExplanation
     ? getNodePathForContext(nodeExplanation.id || nodeExplanation.nodeId)
     : '';
+  const cleanNodeExplanation = nodeExplanation ? cleanExplorationData(nodeExplanation) : null;
   const activeNodeId = nodeExplanation ? (nodeExplanation.id || nodeExplanation.nodeId) : null;
   const activeNodeNotes = activeNodeId ? (manualNotes.get(activeNodeId) || '') : '';
-  const activeKeyConceptCount = Array.isArray(nodeExplanation?.key_concepts)
-    ? nodeExplanation.key_concepts.length
+  const activeKeyConceptCount = Array.isArray(cleanNodeExplanation?.key_concepts)
+    ? cleanNodeExplanation.key_concepts.length
     : 0;
-  const activeExamplesCount = Array.isArray(nodeExplanation?.real_world_examples)
-    ? nodeExplanation.real_world_examples.length
+  const activeExamplesCount = Array.isArray(cleanNodeExplanation?.real_world_examples)
+    ? cleanNodeExplanation.real_world_examples.length
     : 0;
   const hasActiveNotes = activeNodeNotes.trim().length > 0;
 
@@ -2187,7 +2232,7 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
                       </div>
                       <div className="kr-explanation-header-meta">
                         <span className="kr-explanation-kicker">Topic Deep Dive</span>
-                        <h3 className="kr-explanation-title">{nodeExplanation.topic_name}</h3>
+                        <h3 className="kr-explanation-title">{cleanNodeExplanation.topic_name}</h3>
                       </div>
                       <button 
                         className="kr-close-explanation"
@@ -2197,9 +2242,9 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
                         <X size={16} />
                       </button>
                     </div>
-                    <div className="kr-panel-path" title={activeNodePath || nodeExplanation.topic_name}>
+                    <div className="kr-panel-path" title={activeNodePath || cleanNodeExplanation.topic_name}>
                       <span>Path</span>
-                      <p>{activeNodePath || nodeExplanation.topic_name}</p>
+                      <p>{activeNodePath || cleanNodeExplanation.topic_name}</p>
                     </div>
                     <div className="kr-panel-metrics" aria-label="Topic summary">
                       <div className="kr-panel-metric">
@@ -2253,48 +2298,48 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
                     <div className="kr-sidebar-content">
                       {sidebarView === 'learn' && (
                         <div className="kr-sidebar-pane">
-                          {nodeExplanation.ai_explanation && (
+                          {cleanNodeExplanation.ai_explanation && (
                             <div className="kr-explanation-section kr-section-card kr-section-card--overview">
                               <div className="kr-section-card-head">
                                 <Info size={15} />
                                 <h4>Overview</h4>
                               </div>
-                              <p>{nodeExplanation.ai_explanation}</p>
+                              <p>{cleanNodeExplanation.ai_explanation}</p>
                             </div>
                           )}
 
-                          {nodeExplanation.key_concepts && nodeExplanation.key_concepts.length > 0 && (
+                          {cleanNodeExplanation.key_concepts && cleanNodeExplanation.key_concepts.length > 0 && (
                             <div className="kr-explanation-section kr-section-card">
                               <div className="kr-section-card-head">
                                 <Sparkles size={15} />
                                 <h4>Key Concepts</h4>
                               </div>
                               <div className="kr-concepts-grid">
-                                {nodeExplanation.key_concepts.map((concept, idx) => (
+                                {cleanNodeExplanation.key_concepts.map((concept, idx) => (
                                   <span className="kr-concept-chip" key={idx}>{concept}</span>
                                 ))}
                               </div>
                             </div>
                           )}
 
-                          {nodeExplanation.why_important && (
+                          {cleanNodeExplanation.why_important && (
                             <div className="kr-explanation-section kr-section-card">
                               <div className="kr-section-card-head">
                                 <MapPin size={15} />
                                 <h4>Why This Matters</h4>
                               </div>
-                              <p>{nodeExplanation.why_important}</p>
+                              <p>{cleanNodeExplanation.why_important}</p>
                             </div>
                           )}
 
-                          {nodeExplanation.real_world_examples && nodeExplanation.real_world_examples.length > 0 && (
+                          {cleanNodeExplanation.real_world_examples && cleanNodeExplanation.real_world_examples.length > 0 && (
                             <div className="kr-explanation-section kr-section-card">
                               <div className="kr-section-card-head">
                                 <Book size={15} />
                                 <h4>Real-World Examples</h4>
                               </div>
                               <div className="kr-example-stack">
-                                {nodeExplanation.real_world_examples.map((example, idx) => (
+                                {cleanNodeExplanation.real_world_examples.map((example, idx) => (
                                   <div className="kr-example-card" key={idx}>
                                     <span>{String(idx + 1).padStart(2, '0')}</span>
                                     <p>{example}</p>
@@ -2304,17 +2349,17 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
                             </div>
                           )}
 
-                          {nodeExplanation.learning_tips && (
+                          {cleanNodeExplanation.learning_tips && (
                             <div className="kr-explanation-section kr-section-card kr-section-card--tips">
                               <div className="kr-section-card-head">
                                 <Sparkles size={15} />
                                 <h4>Learning Tips</h4>
                               </div>
-                              <p>{nodeExplanation.learning_tips}</p>
+                              <p>{cleanNodeExplanation.learning_tips}</p>
                             </div>
                           )}
 
-                          {!nodeExplanation.ai_explanation && (!nodeExplanation.key_concepts || nodeExplanation.key_concepts.length === 0) && (
+                          {!cleanNodeExplanation.ai_explanation && (!cleanNodeExplanation.key_concepts || cleanNodeExplanation.key_concepts.length === 0) && (
                             <div className="kr-chat-placeholder">
                               <p>No generated learning content yet for this node.</p>
                             </div>
@@ -2327,7 +2372,7 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
                           <div className="kr-notes-panel-head">
                             <div>
                               <span>Personal Notes</span>
-                              <h4>{nodeExplanation.topic_name}</h4>
+                              <h4>{cleanNodeExplanation.topic_name}</h4>
                             </div>
                             {!editingNotes ? (
                               <button 
@@ -2347,7 +2392,7 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
                               </button>
                             )}
                           </div>
-                          <p className="kr-notes-context">{activeNodePath || nodeExplanation.topic_name}</p>
+                          <p className="kr-notes-context">{activeNodePath || cleanNodeExplanation.topic_name}</p>
                           {editingNotes ? (
                             <div className="kr-notes-editor-card">
                               <textarea
@@ -2389,11 +2434,11 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
                           <div className={`kr-chat-messages ${chatMessages.length === 0 ? 'kr-chat-messages-empty' : ''}`} ref={chatMessagesRef}>
                             {chatMessages.length === 0 ? (
                               <div className="kr-chat-placeholder">
-                                <p>Ask me anything about "{nodeExplanation.topic_name}"</p>
+                                <p>Ask me anything about "{cleanNodeExplanation.topic_name}"</p>
                               </div>
                             ) : (
                               chatMessages.map((message) => (
-                                <div key={message.id} className={`ac-message kr-topic-chat-message ${message.type === 'user' ? 'user' : 'ai'}`}>
+                                <div key={message.id} className={`ac-message kr-topic-chat-message ${message.type === 'user' ? 'user' : 'ai'} ${message.usageLimit ? 'is-usage-limit' : ''}`}>
                                   <div className="ac-message-bubble">
                                     <div className="ac-message-content kr-chat-message-content">
                                       {renderChatMessageContent(message.content)}
@@ -2430,7 +2475,7 @@ ${answeringComprehensionCheck ? `- The student is answering this previous compre
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
                                 onKeyDown={handleChatKeyDown}
-                                placeholder={`Ask about ${nodeExplanation.topic_name}...`}
+                                placeholder={`Ask about ${cleanNodeExplanation.topic_name}...`}
                                 className="ac-textarea kr-chat-input"
                                 disabled={chatLoading}
                                 rows="1"

@@ -39,6 +39,7 @@ from services.subscription_catalog import (
     list_plans,
     normalize_plan_id,
 )
+from services.token_limits import get_user_token_reset_at
 from services.token_usage_filters import BILLABLE_AI_USAGE_WHERE
 
 logger = logging.getLogger(__name__)
@@ -423,12 +424,58 @@ def _is_admin_email(email: Optional[str]) -> bool:
     }
     return bool(email and email.strip().lower() in admin_emails)
 
-def _subscription_usage_snapshot(db: Session, user_pk: int, days: int = 30) -> dict:
+def _seconds_until_iso(reset_at: Optional[str]) -> Optional[int]:
+    if not reset_at:
+        return None
+    try:
+        target = datetime.fromisoformat(str(reset_at).replace("Z", "+00:00"))
+        if target.tzinfo is None:
+            target = target.replace(tzinfo=timezone.utc)
+        return max(0, int((target.astimezone(timezone.utc) - datetime.now(timezone.utc)).total_seconds()))
+    except Exception:
+        return None
+
+
+def _oldest_usage_refresh_at(db: Session, user_pk: int, days: int) -> Optional[str]:
+    try:
+        since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        row = db.execute(
+            text(
+                """
+                SELECT timestamp
+                FROM user_activity_log
+                WHERE user_id = :uid AND timestamp >= :since
+                {billable_filter}
+                ORDER BY timestamp ASC
+                LIMIT 1
+                """
+                .format(billable_filter=BILLABLE_AI_USAGE_WHERE)
+            ),
+            {"uid": user_pk, "since": since},
+        ).mappings().first()
+        timestamp = (row or {}).get("timestamp")
+        if not timestamp:
+            return None
+        if isinstance(timestamp, str):
+            ts = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        else:
+            ts = timestamp
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        return (ts.astimezone(timezone.utc) + timedelta(days=days)).isoformat()
+    except Exception:
+        return None
+
+
+def _subscription_usage_snapshot(db: Session, user_pk: int, days: int = 30, included_tokens: int = 0) -> dict:
     snapshot = {
         "window_days": days,
         "total_tokens": 0,
         "ai_requests": 0,
         "top_tools": [],
+        "reset_at": None,
+        "reset_after_seconds": None,
+        "reset_after_hours": None,
     }
     try:
         since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
@@ -476,6 +523,19 @@ def _subscription_usage_snapshot(db: Session, user_pk: int, days: int = 30) -> d
             }
             for row in top_rows
         ]
+
+        if included_tokens > 0:
+            reset_at = get_user_token_reset_at(db, user_pk, included_tokens, days)
+            if not reset_at:
+                reset_at = _oldest_usage_refresh_at(db, user_pk, days)
+            reset_after_seconds = _seconds_until_iso(reset_at)
+            snapshot["reset_at"] = reset_at
+            snapshot["reset_after_seconds"] = reset_after_seconds
+            snapshot["reset_after_hours"] = (
+                round(reset_after_seconds / 3600, 1)
+                if reset_after_seconds is not None
+                else None
+            )
     except Exception:
         pass
     return snapshot
@@ -1411,18 +1471,21 @@ async def get_subscription_overview(
         )
         started_at = comprehensive_profile.subscription_started_at if comprehensive_profile else None
 
-        usage = _subscription_usage_snapshot(db, user.id, days=30) if include_usage else {
+        current_plan = get_plan(plan_id)
+        included_tokens = int(current_plan.get("included_tokens_monthly") or 0)
+        usage = _subscription_usage_snapshot(db, user.id, days=30, included_tokens=included_tokens) if include_usage else {
             "window_days": 30,
             "total_tokens": 0,
             "ai_requests": 0,
             "top_tools": [],
+            "reset_at": None,
+            "reset_after_seconds": None,
+            "reset_after_hours": None,
         }
-        current_plan = get_plan(plan_id)
         monthly_price = float(current_plan.get("monthly_price_usd") or 0.0)
         current_usage_cost = estimate_usage_cost_usd(plan_id, usage.get("total_tokens") or 0)
         usage_margin = round(monthly_price - current_usage_cost, 2)
         usage_margin_pct = round((usage_margin / monthly_price) * 100, 1) if monthly_price > 0 else None
-        included_tokens = int(current_plan.get("included_tokens_monthly") or 0)
         token_utilization_pct = round(
             ((usage.get("total_tokens") or 0) / included_tokens) * 100, 1
         ) if included_tokens > 0 else None

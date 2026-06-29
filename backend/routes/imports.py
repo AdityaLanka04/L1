@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username
+from services.api_key_pool import ApiKeyPoolExhausted
 from services.import_export_service import ImportExportService
 from services.storage_service import StorageService
 
@@ -245,6 +246,8 @@ async def convert_notes_to_flashcards(
             db.commit()
 
         return result
+    except ApiKeyPoolExhausted:
+        raise
     except Exception as e:
         logger.error(f"Error in notes_to_flashcards: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -284,6 +287,8 @@ async def convert_notes_to_questions(
             db.commit()
 
         return result
+    except ApiKeyPoolExhausted:
+        raise
     except Exception as e:
         logger.error(f"Error in notes_to_questions: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -407,6 +412,8 @@ async def convert_flashcards_to_questions(
             db.commit()
 
         return result
+    except ApiKeyPoolExhausted:
+        raise
     except Exception as e:
         logger.error(f"Error in flashcards_to_questions: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -514,6 +521,8 @@ async def convert_media_to_questions(
             db.commit()
 
         return result
+    except ApiKeyPoolExhausted:
+        raise
     except Exception as e:
         logger.error(f"Error in media_to_questions: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -549,6 +558,8 @@ async def convert_playlist_to_notes(
             db.commit()
 
         return result
+    except ApiKeyPoolExhausted:
+        raise
     except Exception as e:
         logger.error(f"Error in playlist_to_notes: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -586,6 +597,8 @@ async def convert_playlist_to_flashcards(
             db.commit()
 
         return result
+    except ApiKeyPoolExhausted:
+        raise
     except Exception as e:
         logger.error(f"Error in playlist_to_flashcards: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

@@ -129,6 +129,14 @@
   color: var(--text-primary);
 }
 
+.acd-msg.ai.is-usage-limit {
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 62%),
+    color-mix(in srgb, var(--hover-bg) 86%, transparent);
+  font-weight: 650;
+}
+
 .acd-empty {
   padding: 18px 12px;
   text-align: center;

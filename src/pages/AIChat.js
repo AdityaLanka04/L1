@@ -35,6 +35,7 @@ import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
 import { enableChatDock } from '../utils/chatDock';
 import { queueChatCompletion, queueLegacyAIFileEndpoint, queuedAIJsonFetch, USE_AI_JOB_QUEUE } from '../services/aiJobService';
+import { formatUsageLimitMessage, getUsageLimitFromError, throwIfUsageLimitResponse } from '../utils/usageLimit';
 
 const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
 const chatContextSelectionKey = (chatId) => (
@@ -1544,6 +1545,7 @@ const AIChat = ({ sharedMode = false }) => {
         });
 
         if (!response.ok) {
+          await throwIfUsageLimitResponse(response);
           const errorText = await response.text();
           throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
@@ -1636,15 +1638,19 @@ const AIChat = ({ sharedMode = false }) => {
 
     } catch (error) {
       console.error('Error in sendMessage:', error);
+      const usageLimit = getUsageLimitFromError(error);
       const errorText = error?.message || 'The request could not be completed.';
       const isAttachmentError = /(?:received|process|analy[sz]e).*(?:image|attachment)|(?:image|attachment).*(?:received|process|analy[sz]e)/i.test(errorText);
       const errorMessage = {
         id: `error_${Date.now()}`,
         type: 'ai',
-        content: isAttachmentError
+        content: usageLimit
+          ? formatUsageLimitMessage(usageLimit)
+          : isAttachmentError
           ? errorText
           : `Sorry, I encountered an error: ${errorText}. Please try again.`,
         timestamp: new Date().toISOString(),
+        usageLimit: Boolean(usageLimit),
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -2737,6 +2743,7 @@ const AIChat = ({ sharedMode = false }) => {
                 });
 
                 if (!response.ok) {
+                  await throwIfUsageLimitResponse(response);
                   throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
@@ -2772,11 +2779,15 @@ const AIChat = ({ sharedMode = false }) => {
           await loadChatSessions();
           
         } catch (error) {
-                    const errorMessage = {
+          const usageLimit = getUsageLimitFromError(error);
+          const errorMessage = {
             id: `error_${Date.now()}`,
             type: 'ai',
-            content: `Sorry, I encountered an error: ${error.message}. Please try again.`,
-            timestamp: new Date().toISOString()
+            content: usageLimit
+              ? formatUsageLimitMessage(usageLimit)
+              : `Sorry, I encountered an error: ${error.message}. Please try again.`,
+            timestamp: new Date().toISOString(),
+            usageLimit: Boolean(usageLimit),
           };
           setMessages(prev => [...prev, errorMessage]);
         } finally {
@@ -3357,6 +3368,7 @@ const AIChat = ({ sharedMode = false }) => {
                     message.type,
                     isTutorMessage ? 'has-tutor-ui' : '',
                     (smartActions.length > 0 || tutorActions.length > 0 || hasBackendActions) ? 'has-action-ui' : '',
+                    message.usageLimit ? 'is-usage-limit' : '',
                   ].filter(Boolean).join(' ');
                   return (
                   <div key={message.id} className={messageClasses}>

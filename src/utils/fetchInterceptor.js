@@ -20,6 +20,8 @@ export function getTokenUsageFromResponse(response) {
     remainingTokens: parseTokenHeader(response, 'X-TokenLimit-Remaining'),
     currentPlanId: response.headers.get('X-TokenLimit-Plan') || null,
     tokenDelta: parseTokenHeader(response, 'X-TokenUsage-Delta'),
+    resetAt: response.headers.get('X-TokenLimit-Reset') || null,
+    resetAfterSeconds: parseTokenHeader(response, 'X-TokenLimit-Reset-After'),
   };
 }
 
@@ -68,6 +70,8 @@ export function installFetchInterceptor() {
               includedTokens: body.included_tokens,
               remainingTokens: body.remaining_tokens,
               windowDays: body.window_days,
+              resetAt: body.reset_at,
+              resetAfterSeconds: body.reset_after_seconds,
             },
           })
         );

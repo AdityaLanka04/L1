@@ -8,6 +8,7 @@ import { queueChatCompletion, USE_AI_JOB_QUEUE } from '../services/aiJobService'
 import MathRenderer from './MathRenderer';
 import GraphRenderer, { detectGraphLanguage } from './GraphRenderer';
 import { disableChatDock, getChatDockState, listenChatDockUpdates } from '../utils/chatDock';
+import { formatUsageLimitMessage, getUsageLimitFromError, throwIfUsageLimitResponse } from '../utils/usageLimit';
 import './AIChatDock.css';
 
 const GRAPH_REQUEST_RE = /\b(graph|chart|plot|diagram|flowchart|mindmap|visuali[sz]e|trendline|trend line)\b/i;
@@ -284,7 +285,10 @@ const AIChatDock = () => {
           body: formData,
         });
 
-        if (!response.ok) throw new Error('Failed to send message');
+        if (!response.ok) {
+          await throwIfUsageLimitResponse(response);
+          throw new Error('Failed to send message');
+        }
 
         data = await response.json();
       }
@@ -297,14 +301,18 @@ const AIChatDock = () => {
           timestamp: new Date().toISOString(),
         },
       ]);
-    } catch {
+    } catch (error) {
+      const usageLimit = getUsageLimitFromError(error);
       setMessages((prev) => [
         ...prev,
         {
           id: `dock_err_${Date.now()}`,
           type: 'ai',
-          content: 'Could not send message. Try again.',
+          content: usageLimit
+            ? formatUsageLimitMessage(usageLimit)
+            : 'Could not send message. Try again.',
           timestamp: new Date().toISOString(),
+          usageLimit: Boolean(usageLimit),
         },
       ]);
     } finally {
@@ -362,7 +370,7 @@ const AIChatDock = () => {
               <div className="acd-empty">No messages yet</div>
             ) : (
               messages.map((message) => (
-                <div key={message.id} className={`acd-msg ${message.type}`}>
+                <div key={message.id} className={`acd-msg ${message.type} ${message.usageLimit ? 'is-usage-limit' : ''}`}>
                   {renderDockMessageContent(message.content)}
                 </div>
               ))

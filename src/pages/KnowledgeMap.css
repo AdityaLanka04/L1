@@ -611,7 +611,10 @@
 }
 
 .kr-node-title-text {
-  word-wrap: break-word;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .kr-node-text-flow p {
@@ -1285,11 +1288,23 @@
   border-color: color-mix(in srgb, var(--accent) 52%, transparent);
 }
 
+.kr-chat-section .ac-message.is-usage-limit .ac-message-bubble {
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 58%),
+    color-mix(in srgb, var(--bg-primary) 88%, var(--bg-secondary));
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.18);
+}
+
 .kr-chat-section .ac-message-content {
   color: var(--text-primary);
   font-size: 15px;
   line-height: 1.78;
   word-wrap: break-word;
+}
+
+.kr-chat-section .ac-message.is-usage-limit .ac-message-content {
+  font-weight: 650;
 }
 
 .kr-chat-section .ac-message-content p {

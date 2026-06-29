@@ -1,4 +1,5 @@
 import { API_URL, getAuthToken } from '../config';
+import { createUsageLimitError, getUsageLimitFromResponse } from '../utils/usageLimit';
 
 export const USE_AI_JOB_QUEUE = process.env.REACT_APP_USE_AI_JOB_QUEUE === 'true';
 
@@ -27,6 +28,8 @@ export async function pollAIJob(jobId, options = {}) {
       headers: authHeaders(),
     });
     if (!response.ok) {
+      const usageLimit = await getUsageLimitFromResponse(response);
+      if (usageLimit) throw createUsageLimitError(usageLimit);
       const errorText = await response.text();
       throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
@@ -55,6 +58,8 @@ export async function createAIJob(payload) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
+    const usageLimit = await getUsageLimitFromResponse(response);
+    if (usageLimit) throw createUsageLimitError(usageLimit);
     const errorText = await response.text();
     throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
   }
@@ -84,6 +89,8 @@ export async function queueLegacyAIEndpoint(path, options = {}) {
     }),
   });
   if (!response.ok) {
+    const usageLimit = await getUsageLimitFromResponse(response);
+    if (usageLimit) throw createUsageLimitError(usageLimit);
     const errorText = await response.text();
     throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
   }
@@ -164,6 +171,8 @@ export async function queueLegacyAIFileEndpoint(path, formBody = {}, files = [],
     body: formData,
   });
   if (!response.ok) {
+    const usageLimit = await getUsageLimitFromResponse(response);
+    if (usageLimit) throw createUsageLimitError(usageLimit);
     const errorText = await response.text();
     throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
   }

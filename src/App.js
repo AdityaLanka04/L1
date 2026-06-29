@@ -10,7 +10,13 @@ import LoadingSpinner from './components/LoadingSpinner';
 import GlobalNotifications from './components/GlobalNotifications';
 import RateLimitHandler from './components/RateLimitHandler';
 import { getChatDockState, listenChatDockUpdates } from './utils/chatDock';
+import {
+  formatUsageLimitMessage,
+  installUsageLimitFetchInterceptor,
+  listenUsageLimit,
+} from './utils/usageLimit';
 import './styles/ui-safety.css';
+import './App.css';
 
 // Pages are lazy-loaded so each route ships as its own chunk instead of
 // inflating the initial bundle with ~60 page components up front.
@@ -228,6 +234,12 @@ function AIChatDockMount() {
 
 function App() {
   const [notification, setNotification] = useState(null);
+  const [usageLimit, setUsageLimit] = useState(null);
+
+  useEffect(() => {
+    installUsageLimitFetchInterceptor();
+    return listenUsageLimit((limit) => setUsageLimit(limit || {}));
+  }, []);
 
   return (
     <ThemeProvider>
@@ -238,6 +250,15 @@ function App() {
             <RouteWarmup />
             <GlobalNotifications />
             <AIChatDockMount />
+            {usageLimit && (
+              <div className="usage-limit-popover" role="alert" aria-live="assertive">
+                <div className="usage-limit-popover__panel">
+                  <div className="usage-limit-popover__eyebrow">Usage limit reached</div>
+                  <p>{formatUsageLimitMessage(usageLimit)}</p>
+                  <button type="button" onClick={() => setUsageLimit(null)}>Got it</button>
+                </div>
+              </div>
+            )}
             {notification && (
               <ProactiveNotification
                 message={notification.message}

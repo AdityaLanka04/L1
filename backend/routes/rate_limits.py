@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from middleware.rate_limiter import TIERS, _AUTH_TIERS, _get_client_ip, _get_jwt_sub, get_subscription_tier
 from services.subscription_catalog import get_effective_rate_limit, list_plans
+from deps import get_current_user
+from services.api_key_pool import get_provider_daily_reset
+import models
 
 router = APIRouter(prefix="/api", tags=["rate-limits"])
 
@@ -95,3 +98,8 @@ def get_rate_limit_status(request: Request):
         "plan": plan_id,
         "tiers": result,
     }
+
+
+@router.get("/rate-limits/groq-daily-reset")
+def get_groq_daily_reset(_: models.User = Depends(get_current_user)):
+    return get_provider_daily_reset("groq")

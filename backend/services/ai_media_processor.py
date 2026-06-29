@@ -11,7 +11,13 @@ import logging
 from env_loader import load_backend_env
 from activity_logger import log_ai_tokens
 from services.ai_usage import estimate_usage, extract_usage_from_openai_like, extract_usage_from_gemini_payload
-from services.api_key_pool import ApiKeyPoolExhausted, build_key_pool, record_provider_usage
+from services.api_key_pool import (
+    ApiKeyPoolExhausted,
+    build_key_pool,
+    is_provider_quota_error,
+    provider_limit_exhausted,
+    record_provider_usage,
+)
 
 try:
     from langdetect import detect, LangDetectException
@@ -89,16 +95,7 @@ class AIMediaProcessor:
             logger.info("Using Groq exclusively for AI processing")
 
     def _is_groq_quota_error(self, error: Exception) -> bool:
-        text = str(error).lower()
-        return (
-            "429" in text
-            or "rate_limit" in text
-            or "rate limit" in text
-            or "tokens per day" in text
-            or "tpm" in text
-            or "tpd" in text
-            or "quota" in text
-        )
+        return is_provider_quota_error(error)
 
     def _estimate_groq_request_tokens(self, prompt: str, max_tokens: int) -> int:
         prompt_tokens = max(1, len(prompt or "") // 8)
@@ -343,6 +340,8 @@ class AIMediaProcessor:
                 "is_auto_generated": caption_result.get("is_auto_generated", False)
             }
             
+        except ApiKeyPoolExhausted:
+            raise
         except Exception as e:
             logger.error(f"YouTube processing error: {str(e)}")
             return {
@@ -509,6 +508,8 @@ class AIMediaProcessor:
             }
             
         except Exception as e:
+            if self._is_groq_quota_error(e):
+                raise provider_limit_exhausted("groq") from e
             logger.error(f"Groq transcription error: {str(e)}")
             return {
                 "success": False,
@@ -585,6 +586,8 @@ Format as valid JSON."""
                         "analysis": analysis
                     }
                     
+                except ApiKeyPoolExhausted:
+                    raise
                 except Exception as groq_error:
                     error_msg = str(groq_error)
                     if "429" in error_msg or "rate_limit" in error_msg.lower():
@@ -643,6 +646,8 @@ Provide a JSON response with:
             
             raise ValueError("No AI service available (both Groq and Gemini unavailable)")
             
+        except ApiKeyPoolExhausted:
+            raise
         except Exception as e:
             logger.error(f"AI analysis error: {str(e)}")
             return {
@@ -698,6 +703,8 @@ Provide a JSON response with:
                             "content": html_content.strip(),
                             "style": style
                         }
+                    except ApiKeyPoolExhausted:
+                        raise
                     except Exception as e:
                         groq_error = str(e)
                         is_retryable = "429" in groq_error or "rate" in groq_error.lower() or "timeout" in groq_error.lower()
@@ -745,6 +752,8 @@ Provide a JSON response with:
                 "provider": "local_fallback"
             }
             
+        except ApiKeyPoolExhausted:
+            raise
         except Exception as e:
             logger.error(f"Note generation error: {str(e)}")
             return {
@@ -1260,6 +1269,8 @@ Return ONLY HTML content (no markdown)."""
                         all_notes.append(response.choices[0].message.content)
                         break
                         
+                    except ApiKeyPoolExhausted:
+                        raise
                     except Exception as e:
                         if "429" in str(e) or "rate" in str(e).lower():
                             if attempt < max_retries - 1:
@@ -1298,6 +1309,8 @@ Return ONLY HTML content (no markdown)."""
                 "chunks_processed": len(chunks)
             }
             
+        except ApiKeyPoolExhausted:
+            raise
         except Exception as e:
             logger.error(f"Chunked note generation error: {str(e)}")
             return {
@@ -1350,6 +1363,8 @@ Return ONLY valid JSON array."""
             }
             
         except Exception as e:
+            if self._is_groq_quota_error(e):
+                raise provider_limit_exhausted("groq") from e
             logger.error(f"Flashcard generation error: {str(e)}")
             return {
                 "success": False,
@@ -1410,6 +1425,8 @@ Return ONLY valid JSON array."""
             }
             
         except Exception as e:
+            if self._is_groq_quota_error(e):
+                raise provider_limit_exhausted("groq") from e
             logger.error(f"Quiz generation error: {str(e)}")
             return {
                 "success": False,

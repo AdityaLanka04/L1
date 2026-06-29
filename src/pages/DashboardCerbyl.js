@@ -195,6 +195,44 @@ const formatUsedTokenCount = (value) => {
   return Number.isFinite(n) ? Math.max(0, Math.round(n)).toLocaleString() : '0';
 };
 
+const parseResetDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatResetClock = (value) => {
+  const date = parseResetDate(value);
+  if (!date) return 'Not available';
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
+
+const formatResetDateTime = (value) => {
+  const date = parseResetDate(value);
+  if (!date) return 'Not available';
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+};
+
+const formatResetCountdown = (secondsValue) => {
+  const seconds = Number(secondsValue);
+  if (!Number.isFinite(seconds) || seconds < 0) return 'Not available';
+  if (seconds < 60) return 'less than 1m';
+  const totalMinutes = Math.floor(seconds / 60);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [];
+  if (days) parts.push(`${days}d`);
+  if (hours) parts.push(`${hours}h`);
+  if (!days || minutes) parts.push(`${minutes}m`);
+  return parts.join(' ');
+};
+
 const hydrateProfile = (parsedProfile = {}, username = '') => {
   const parsed = parsedProfile || {};
   const storedDefault = localStorage.getItem(PFP_DEFAULT_KEY) || '';
@@ -290,6 +328,7 @@ const DashboardCerbyl = () => {
     includedTokens: 100000,
     usedTokens: 0,
     utilizationPct: 0,
+    groqResetAt: null,
     isAdmin: false,
     hasUnlimitedAccess: false,
     error: null
@@ -370,6 +409,7 @@ const DashboardCerbyl = () => {
         includedTokens,
         usedTokens,
         utilizationPct: includedTokens > 0 ? Math.round((usedTokens / includedTokens) * 1000) / 10 : 0,
+        groqResetAt: prev.groqResetAt,
         isAdmin: Boolean(sub.isAdmin),
         hasUnlimitedAccess: Boolean(sub.hasUnlimitedAccess || plan.unlimited || planId === 'unlimited'),
         error: null
@@ -476,7 +516,8 @@ const DashboardCerbyl = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60000);
+    setNow(new Date());
+    const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -673,6 +714,34 @@ const DashboardCerbyl = () => {
     };
   }, [refreshSubscriptionUsage, userName]);
 
+  useEffect(() => {
+    if (!userName) return undefined;
+
+    let cancelled = false;
+    const loadGroqReset = async () => {
+      try {
+        const reset = await fetchJson(`${API_URL}/rate-limits/groq-daily-reset`);
+        if (cancelled) return;
+        setSubscriptionUsage(prev => ({
+          ...prev,
+          groqResetAt: reset?.reset_at || prev.groqResetAt
+        }));
+      } catch (e) {
+        if (!cancelled) {
+          setSubscriptionUsage(prev => ({ ...prev, groqResetAt: prev.groqResetAt || null }));
+        }
+      }
+    };
+
+    loadGroqReset();
+    const intervalId = window.setInterval(loadGroqReset, 60000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [userName]);
+
   const greet = greetingForHour(now.getHours()).toUpperCase();
   const displayName =
     profile?.firstName ||
@@ -686,6 +755,13 @@ const DashboardCerbyl = () => {
   const hasUnlimitedAccess = subscriptionUsage.hasUnlimitedAccess;
   const isAdminUnlimited = subscriptionUsage.isAdmin && subscriptionUsage.hasUnlimitedAccess;
   const usagePct = Math.max(0, Math.min(100, Number(subscriptionUsage.utilizationPct || 0)));
+  const resetTimeText = formatResetClock(subscriptionUsage.groqResetAt);
+  const resetDateTimeText = formatResetDateTime(subscriptionUsage.groqResetAt);
+  const resetDate = parseResetDate(subscriptionUsage.groqResetAt);
+  const resetCountdownSeconds = resetDate
+    ? Math.max(0, Math.floor((resetDate.getTime() - now.getTime()) / 1000))
+    : null;
+  const resetCountdownText = formatResetCountdown(resetCountdownSeconds);
 
   useEffect(() => {
     const fullName = String(displayName || '').trim();
@@ -1500,12 +1576,17 @@ const DashboardCerbyl = () => {
             ? 'Admin unlimited AI access'
             : hasUnlimitedAccess
               ? 'Unlimited AI access'
-              : `${subscriptionUsage.currentPlanName} plan, ${formatUsedTokenCount(subscriptionUsage.usedTokens)} of ${formatTokenCount(subscriptionUsage.includedTokens)} monthly tokens used. Upgrade now.`}
+              : `${subscriptionUsage.currentPlanName} plan, ${formatUsedTokenCount(subscriptionUsage.usedTokens)} of ${formatTokenCount(subscriptionUsage.includedTokens)} monthly tokens used. Groq API tokens reset daily at ${resetTimeText}. Upgrade now.`}
         >
           <div className="cb-usage-copy">
             <span className="cb-usage-heading">
               <span className="cb-usage-label">Token limit</span>
-              <span className="cb-usage-plan">{isAdminUnlimited ? 'Admin' : subscriptionUsage.currentPlanName}</span>
+              <span className="cb-usage-plan-group">
+                <span className="cb-usage-plan">{isAdminUnlimited ? 'Admin' : subscriptionUsage.currentPlanName}</span>
+                {!hasUnlimitedAccess && (
+                  <span className="cb-usage-reset">Daily usage reset {resetTimeText}</span>
+                )}
+              </span>
             </span>
             {hasUnlimitedAccess ? (
               <span className="cb-usage-admin-text">Unlimited access</span>
@@ -1523,6 +1604,10 @@ const DashboardCerbyl = () => {
                         : `${formatUsedTokenCount(subscriptionUsage.usedTokens)} used / ${formatTokenCount(subscriptionUsage.includedTokens)}`}
                   </span>
                 </span>
+                <div className="cb-usage-hover-panel" aria-hidden="true">
+                  <span><strong>Daily usage reset</strong>{resetDateTimeText}</span>
+                  <span><strong>Time remaining</strong>{resetCountdownText}</span>
+                </div>
               </>
             )}
           </div>
