@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader, ArrowLeft, MessageSquare, LayoutDashboard, LogOut, Headphones, FolderOpen } from 'lucide-react';
+import { Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader, ArrowLeft, MessageSquare, LayoutDashboard, LogOut, Headphones, FolderOpen, Menu } from 'lucide-react';
 import './AudioVideoNotes.css';
 import { API_URL } from '../config';
 import { sanitizeHtml } from '../utils/sanitize';
@@ -18,7 +18,9 @@ const AudioVideoNotes = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  ));
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -146,6 +148,22 @@ const AudioVideoNotes = () => {
   return (
     <div className="audio-video-notes-page">
       <div className="avn-qb-body">
+        <button
+          className="avn-qb-mobile-menu-btn"
+          type="button"
+          onClick={() => setSidebarCollapsed(false)}
+          aria-label="Open audio and video notes sidebar"
+        >
+          <Menu size={18} />
+        </button>
+        {!sidebarCollapsed && (
+          <button
+            className="avn-qb-mobile-sidebar-backdrop"
+            type="button"
+            onClick={() => setSidebarCollapsed(true)}
+            aria-label="Close audio and video notes sidebar"
+          />
+        )}
         <div className={`avn-qb-shell ${sidebarCollapsed ? 'avn-qb-shell--collapsed' : ''}`}>
           <aside className={`avn-qb-sidebar ${sidebarCollapsed ? 'avn-qb-sidebar--collapsed' : ''}`} aria-label="Audio & Video Notes navigation">
             {sidebarCollapsed ? (

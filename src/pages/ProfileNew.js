@@ -405,7 +405,9 @@ const ProfileNew = () => {
   const [rateLimits, setRateLimits] = useState(null);
   const [typedName, setTypedName] = useState('');
   const [nameDone, setNameDone] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  ));
   const mainScrollRef = useRef(null);
 
   const scrollToSection = useCallback((id) => {

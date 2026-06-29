@@ -752,7 +752,9 @@ export default function ContextHub() {
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
 
   const [uploadOpen, setUploadOpen]   = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth > 768 : true
+  ));
   const [stats, setStats]             = useState({ myDocs: 0, communityDocs: 0 });
   const [libScope, setLibScope]       = useState('all');
   const [highlightedDocId, setHighlightedDocId] = useState(null);

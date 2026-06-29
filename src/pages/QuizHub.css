@@ -548,8 +548,35 @@
 }
 
 @media (max-width: 768px) {
+  .qh {
+    height: 100dvh;
+  }
+
   .qh-header {
     padding: 16px 20px;
+  }
+
+  .qh-layout-body {
+    display: block;
+    padding: 14px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .qh-layout-body .sb-sidebar {
+    display: none;
+  }
+
+  .qh-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    gap: 14px;
+    overflow: visible;
+  }
+
+  .qh-section {
+    min-width: 0;
   }
 
   .qh-logo {
@@ -561,12 +588,18 @@
   }
 
   .qh-section-title {
-    font-size: 32px;
+    font-size: clamp(32px, 13vw, 48px);
+    line-height: 1.02;
+    overflow-wrap: anywhere;
   }
 
   .qh-section-icon {
     width: 80px;
     height: 80px;
+  }
+
+  .qh-features {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

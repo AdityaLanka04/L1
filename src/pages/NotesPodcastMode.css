@@ -137,3 +137,28 @@ body.notes-podcast-page-open.podcast-fullscreen-open {
     transform: rotate(360deg);
   }
 }
+
+@media (max-width: 640px) {
+  .npm-page,
+  .npm-page .podcast-fullscreen-shell,
+  .npm-page .podcast-fullscreen {
+    min-height: 100dvh;
+  }
+
+  .npm-page .podcast-fullscreen {
+    width: 100%;
+    padding: 8px 0 0;
+  }
+
+  .npm-shell {
+    min-height: 100dvh;
+    padding: 16px;
+    align-items: stretch;
+  }
+
+  .npm-card {
+    width: 100%;
+    align-self: center;
+    padding: 20px;
+  }
+}

@@ -1529,4 +1529,22 @@
   .sh-nav-heading { display: none; }
   .sh-divider { width: 1px; height: 100%; margin: 0 4px; }
   .sh-new-btn { white-space: nowrap; flex-shrink: 0; margin: 0 0 0 4px; }
+
+  .bento-card {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .bento-card-content {
+    inset: auto !important;
+    width: 100%;
+    min-width: 0;
+    transform: none !important;
+  }
+
+  .bento-card-title,
+  .bento-card-subtitle {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
 }

@@ -248,7 +248,9 @@ const SearchHub = () => {
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
   const [userDocCount, setUserDocCount] = useState(0);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth > 768 : true
+  ));
 
   
   const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);

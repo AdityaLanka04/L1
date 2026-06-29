@@ -219,6 +219,44 @@
   border-color: #e0e0e0;
 }
 
+@media (max-width: 640px) {
+  .notes-redesign .smart-folders-panel {
+    width: calc(100vw - 24px) !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  .notes-redesign .smart-folders-panel .sf-header {
+    padding: 14px 16px !important;
+    gap: 12px !important;
+  }
+
+  .notes-redesign .smart-folders-panel .sf-header h3 {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .notes-redesign .smart-folders-panel .sf-content {
+    padding: 14px !important;
+  }
+
+  .notes-redesign .smart-folders-panel .sf-folder-item {
+    padding: 11px 12px !important;
+    gap: 10px !important;
+  }
+
+  .notes-redesign .smart-folders-panel .sf-folder-info,
+  .notes-redesign .smart-folders-panel .sf-note-item {
+    min-width: 0 !important;
+  }
+
+  .notes-redesign .smart-folders-panel .sf-note-date {
+    display: none !important;
+  }
+}
+
 [data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-header h3 {
   color: #333;
 }

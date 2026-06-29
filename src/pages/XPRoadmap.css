@@ -1686,6 +1686,8 @@
 
   .xpv-stage {
     min-height: 700px;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   .xpv-stage-header {
@@ -1698,6 +1700,11 @@
 
   .xpv-mission-node {
     width: 112px;
+  }
+
+  .xpv-node-layer {
+    left: 46px;
+    right: 46px;
   }
 
   .xpv-node-copy strong {
@@ -1728,5 +1735,28 @@
     right: 14px;
     bottom: 14px;
     width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .xpv-stage-header {
+    padding: 22px 20px 0;
+  }
+
+  .xpv-stage-header h1 {
+    font-size: 25px;
+  }
+
+  .xpv-node-layer {
+    left: 56px;
+    right: 56px;
+  }
+
+  .xpv-mission-node {
+    width: 104px;
+  }
+
+  .xpv-node-copy strong {
+    max-width: 96px;
   }
 }

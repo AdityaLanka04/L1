@@ -134,3 +134,37 @@
 .pcv-home-link:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 640px) {
+  .pcv-page {
+    min-height: 100dvh;
+    padding: 24px 14px;
+  }
+
+  .pcv-container {
+    gap: 18px;
+  }
+
+  .pcv-header h1 {
+    font-size: 24px;
+    line-height: 1.15;
+  }
+
+  .pcv-messages {
+    gap: 16px;
+  }
+
+  .pcv-message {
+    padding: 14px;
+  }
+
+  .pcv-message-user,
+  .pcv-message-ai {
+    max-width: 100%;
+  }
+
+  .pcv-message-content {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+}

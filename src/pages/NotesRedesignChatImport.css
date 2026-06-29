@@ -326,3 +326,66 @@
   to { transform: rotate(360deg); }
 }
 
+@media (max-width: 640px) {
+  .notes-redesign .chat-import-modal-new {
+    width: calc(100vw - 24px) !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  .notes-redesign .chat-import-modal-new .modal-header-new {
+    padding: 16px !important;
+    gap: 12px !important;
+  }
+
+  .notes-redesign .chat-import-modal-new .modal-header-new h2 {
+    font-size: 16px !important;
+    line-height: 1.15 !important;
+    letter-spacing: 1.2px !important;
+  }
+
+  .notes-redesign .chat-import-modal-new .modal-close-btn {
+    width: 36px !important;
+    height: 36px !important;
+    flex: 0 0 36px !important;
+  }
+
+  .notes-redesign .chat-import-modal-new .modal-content-new {
+    padding: 16px !important;
+  }
+
+  .notes-redesign .chat-import-modal-new .sessions-header-new {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .notes-redesign .chat-import-modal-new .selection-actions-new {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .notes-redesign .chat-import-modal-new .select-all-btn-new,
+  .notes-redesign .chat-import-modal-new .clear-all-btn-new {
+    padding: 9px 10px !important;
+    text-align: center !important;
+  }
+
+  .notes-redesign .chat-import-modal-new .mode-option-new,
+  .notes-redesign .chat-import-modal-new .session-item-new {
+    padding: 13px 12px !important;
+    gap: 10px !important;
+  }
+
+  .notes-redesign .chat-import-modal-new .modal-footer-new {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    padding: 16px !important;
+  }
+
+  .notes-redesign .chat-import-modal-new .cancel-btn-new,
+  .notes-redesign .chat-import-modal-new .import-btn-new {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}

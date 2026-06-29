@@ -722,7 +722,9 @@ const AIChat = ({ sharedMode = false }) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => (
+    typeof window === 'undefined' ? true : window.innerWidth > 720
+  ));
   const [greeting, setGreeting] = useState('');
   const [folders, setFolders] = useState([]);
   
@@ -2936,7 +2938,18 @@ const AIChat = ({ sharedMode = false }) => {
   return (
     <div className="ai-chat-page ac-qb-page">
       <div className="ac-qb-topbar">
-        <div className="ac-qb-tagline">Learning Unified</div>
+        <div className="ac-qb-topbar-left">
+          <button
+            className="ac-qb-mobile-menu-btn"
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open AI Chat sidebar"
+            title="Open sidebar"
+          >
+            {Icons.menu}
+          </button>
+          <div className="ac-qb-tagline">Learning Unified</div>
+        </div>
         <div className="ac-qb-topbar-right">
           <button
             className="ac-qb-strip-btn ac-share-btn"
@@ -2961,6 +2974,14 @@ const AIChat = ({ sharedMode = false }) => {
       </div>
 
       <div className={`ac-layout ac-qb-shell ${sidebarOpen ? '' : 'ac-qb-shell--collapsed'}`}>
+        {sidebarOpen && (
+          <button
+            className="ac-qb-mobile-sidebar-backdrop"
+            type="button"
+            aria-label="Close AI Chat sidebar"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
         {/* Sidebar */}
         <aside className={`ac-sidebar ac-qb-sidebar ${sidebarOpen ? '' : 'ac-qb-sidebar--collapsed'}`} aria-label="AI Chat navigation">
           {!sidebarOpen ? (

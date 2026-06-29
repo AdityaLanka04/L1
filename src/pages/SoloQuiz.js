@@ -18,7 +18,9 @@ const SoloQuiz = () => {
   const username = localStorage.getItem('username');
 
   const [activeTab, setActiveTab] = useState('generator');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  ));
   const [subject, setSubject] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
   const [contextPanelOpen, setContextPanelOpen] = useState(false);

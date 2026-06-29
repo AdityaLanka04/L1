@@ -12,7 +12,9 @@ import { API_URL } from '../config';
 const Games = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= 860 : false
+  ));
   
   const [gamificationStats, setGamificationStats] = useState({
     total_points: 0,

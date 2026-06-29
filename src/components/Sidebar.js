@@ -3,31 +3,52 @@ import '../styles/SidebarShell.css';
 
 export function SidebarShell({ collapsed, onToggleCollapse, brandKicker, brandLogo = 'cerbyl', children, collapsedContent, ariaLabel }) {
   return (
-    <aside className={`sb-sidebar ${collapsed ? 'sb-sidebar--collapsed' : ''}`} aria-label={ariaLabel}>
-      {collapsed ? (
-        <div className="sb-collapsed-strip">
-          {onToggleCollapse && (
-            <button type="button" className="sb-strip-btn" data-tip="Open sidebar" onClick={onToggleCollapse}>
-              <ChevronRight size={18} />
-            </button>
-          )}
-          {collapsedContent}
-        </div>
-      ) : (
-        <>
-          <div className="sb-sidebar-brand">
-            <div className="sb-sidebar-logo">{brandLogo}</div>
-            {brandKicker && <div className="sb-sidebar-kicker">{brandKicker}</div>}
+    <>
+      {onToggleCollapse && (
+        <button
+          type="button"
+          className="sb-mobile-sidebar-btn"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? 'Open sidebar' : 'Close sidebar'}
+          title={collapsed ? 'Open sidebar' : 'Close sidebar'}
+        >
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+      )}
+      {onToggleCollapse && !collapsed && (
+        <button
+          type="button"
+          className="sb-mobile-sidebar-backdrop"
+          onClick={onToggleCollapse}
+          aria-label="Close sidebar"
+        />
+      )}
+      <aside className={`sb-sidebar ${collapsed ? 'sb-sidebar--collapsed' : ''}`} aria-label={ariaLabel}>
+        {collapsed ? (
+          <div className="sb-collapsed-strip">
             {onToggleCollapse && (
-              <button type="button" className="sb-sidebar-close-btn" onClick={onToggleCollapse} aria-label="Collapse sidebar">
-                <ChevronLeft size={14} />
+              <button type="button" className="sb-strip-btn" data-tip="Open sidebar" onClick={onToggleCollapse}>
+                <ChevronRight size={18} />
               </button>
             )}
+            {collapsedContent}
           </div>
-          {children}
-        </>
-      )}
-    </aside>
+        ) : (
+          <>
+            <div className="sb-sidebar-brand">
+              <div className="sb-sidebar-logo">{brandLogo}</div>
+              {brandKicker && <div className="sb-sidebar-kicker">{brandKicker}</div>}
+              {onToggleCollapse && (
+                <button type="button" className="sb-sidebar-close-btn" onClick={onToggleCollapse} aria-label="Collapse sidebar">
+                  <ChevronLeft size={14} />
+                </button>
+              )}
+            </div>
+            {children}
+          </>
+        )}
+      </aside>
+    </>
   );
 }
 

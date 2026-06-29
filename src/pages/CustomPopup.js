@@ -47,7 +47,8 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        padding: '12px'
       }}
       onClick={handleClose}
     >
@@ -56,9 +57,11 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
           background: 'var(--bg-secondary, #1a1a1a)',
           border: '1px solid color-mix(in srgb, var(--accent, #D7B38C) 40%, transparent)',
           borderRadius: '12px',
-          padding: '32px 40px',
+          padding: 'clamp(22px, 6vw, 32px) clamp(18px, 7vw, 40px)',
           maxWidth: '450px',
-          width: '90%',
+          width: 'min(100%, 450px)',
+          maxHeight: 'calc(100dvh - 24px)',
+          overflowY: 'auto',
           textAlign: 'center',
           position: 'relative',
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
@@ -120,6 +123,11 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
             borderRadius: '8px',
             color: 'var(--bg-primary, #0f0f0f)',
             padding: '12px 32px',
+            width: 'min(100%, 220px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto',
             fontSize: '11px',
             fontWeight: '600',
             cursor: 'pointer',
