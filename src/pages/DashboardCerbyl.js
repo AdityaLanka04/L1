@@ -201,6 +201,24 @@ const parseResetDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
+const getNextDailyUsageResetDate = (from = new Date()) => (
+  new Date(Date.UTC(
+    from.getUTCFullYear(),
+    from.getUTCMonth(),
+    from.getUTCDate() + 1,
+    0,
+    0,
+    0,
+    0
+  ))
+);
+
+const getDailyUsageResetDate = (value, from = new Date()) => {
+  const parsed = parseResetDate(value);
+  if (parsed && parsed.getTime() > from.getTime()) return parsed;
+  return getNextDailyUsageResetDate(from);
+};
+
 const formatResetClock = (value) => {
   const date = parseResetDate(value);
   if (!date) return 'Not available';
@@ -728,7 +746,10 @@ const DashboardCerbyl = () => {
         }));
       } catch (e) {
         if (!cancelled) {
-          setSubscriptionUsage(prev => ({ ...prev, groqResetAt: prev.groqResetAt || null }));
+          setSubscriptionUsage(prev => ({
+            ...prev,
+            groqResetAt: prev.groqResetAt || getNextDailyUsageResetDate().toISOString()
+          }));
         }
       }
     };
@@ -755,12 +776,10 @@ const DashboardCerbyl = () => {
   const hasUnlimitedAccess = subscriptionUsage.hasUnlimitedAccess;
   const isAdminUnlimited = subscriptionUsage.isAdmin && subscriptionUsage.hasUnlimitedAccess;
   const usagePct = Math.max(0, Math.min(100, Number(subscriptionUsage.utilizationPct || 0)));
-  const resetTimeText = formatResetClock(subscriptionUsage.groqResetAt);
-  const resetDateTimeText = formatResetDateTime(subscriptionUsage.groqResetAt);
-  const resetDate = parseResetDate(subscriptionUsage.groqResetAt);
-  const resetCountdownSeconds = resetDate
-    ? Math.max(0, Math.floor((resetDate.getTime() - now.getTime()) / 1000))
-    : null;
+  const resetDate = getDailyUsageResetDate(subscriptionUsage.groqResetAt, now);
+  const resetTimeText = formatResetClock(resetDate);
+  const resetDateTimeText = formatResetDateTime(resetDate);
+  const resetCountdownSeconds = Math.max(0, Math.floor((resetDate.getTime() - now.getTime()) / 1000));
   const resetCountdownText = formatResetCountdown(resetCountdownSeconds);
 
   useEffect(() => {
