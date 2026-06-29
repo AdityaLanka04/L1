@@ -9,17 +9,16 @@ const GlobalNotifications = () => {
   }
 
   return (
-    <>
+    <div className="slide-notif-stack" aria-live="polite" aria-label="Notifications">
       {slideQueue.map((notif, index) => (
         <SlideNotification
           key={`${notif.id}-${notif.created_at || index}`}
           notification={notif}
           onClose={() => removeSlideNotification(notif.id)}
           onMarkRead={markNotificationAsRead}
-          style={{ top: `${80 + (index * 120)}px` }}
         />
       ))}
-    </>
+    </div>
   );
 };
 

@@ -1,17 +1,34 @@
-.slide-notif {
+.slide-notif-stack {
   position: fixed;
   top: 92px;
-  right: -440px;
+  right: 24px;
   width: min(400px, calc(100vw - 32px));
+  max-height: calc(100vh - 112px);
   z-index: 2147483000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 0 6px;
+  pointer-events: none;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 36%, transparent) transparent;
+}
+
+.slide-notif {
+  position: relative;
+  width: 100%;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
   opacity: 0;
+  pointer-events: auto;
+  transform: translateX(calc(100% + 32px));
 }
 
 .slide-notif.show {
-  right: 24px;
   opacity: 1;
+  transform: translateX(0);
 }
 
 .slide-notif-card {
@@ -161,13 +178,10 @@
 }
 
 @media (max-width: 768px) {
-  .slide-notif {
+  .slide-notif-stack {
     top: 72px;
-    right: -100vw;
-    width: calc(100vw - 24px);
-  }
-
-  .slide-notif.show {
     right: 12px;
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 88px);
   }
 }
