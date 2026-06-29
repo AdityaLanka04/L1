@@ -30,7 +30,18 @@ class ApiKeyEntry:
 
 
 class ApiKeyPoolExhausted(Exception):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        provider: str | None = None,
+        reset_at: str | None = None,
+        reset_after_seconds: int | None = None,
+    ):
+        super().__init__(message)
+        self.provider = provider
+        self.reset_at = reset_at
+        self.reset_after_seconds = reset_after_seconds
 
 
 class ApiKeyPool:
@@ -51,7 +62,10 @@ class ApiKeyPool:
 
     def reserve(self, estimated_tokens: int) -> ApiKeyLease:
         if not self.entries:
-            raise ApiKeyPoolExhausted(f"No {self.provider} API keys are configured")
+            raise ApiKeyPoolExhausted(
+                f"No {self.provider} API keys are configured",
+                provider=self.provider,
+            )
 
         today = _today()
         now = _now()
@@ -92,7 +106,54 @@ class ApiKeyPool:
                         reserved_tokens=reserve_tokens,
                     )
 
-        raise ApiKeyPoolExhausted(f"All {self.provider} API keys are over daily quota")
+        reset_at = self.next_available_at(reserve_tokens)
+        raise ApiKeyPoolExhausted(
+            f"All {self.provider} API keys are over daily quota",
+            provider=self.provider,
+            reset_at=reset_at,
+            reset_after_seconds=_seconds_until(reset_at),
+        )
+
+    def next_available_at(self, estimated_tokens: int = 1) -> str:
+        reserve_tokens = max(1, int(estimated_tokens or 1))
+        if not self.entries:
+            return _next_utc_midnight()
+
+        today = _today()
+        now_iso = _now()
+        next_times: list[str] = []
+
+        for entry in self.entries:
+            _ensure_usage_row(entry, today)
+            with engine.connect() as conn:
+                row = conn.execute(
+                    text(
+                        """
+                        SELECT daily_limit, used_tokens, exhausted_until
+                        FROM api_key_pool_usage
+                        WHERE provider = :provider
+                          AND key_fingerprint = :fingerprint
+                          AND usage_day = :usage_day
+                        """
+                    ),
+                    {
+                        "provider": entry.provider,
+                        "fingerprint": entry.fingerprint,
+                        "usage_day": today,
+                    },
+                ).mappings().first()
+
+            daily_limit = int((row or {}).get("daily_limit") or entry.daily_limit)
+            used_tokens = int((row or {}).get("used_tokens") or 0)
+            exhausted_until = (row or {}).get("exhausted_until")
+            candidates = [now_iso]
+            if used_tokens + reserve_tokens > daily_limit:
+                candidates.append(_next_utc_midnight())
+            if exhausted_until and str(exhausted_until) > now_iso:
+                candidates.append(str(exhausted_until))
+            next_times.append(max(candidates))
+
+        return min(next_times) if next_times else _next_utc_midnight()
 
     def record_success(self, lease: ApiKeyLease, actual_tokens: Optional[int]) -> None:
         if not lease:
@@ -510,3 +571,21 @@ def _today() -> str:
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _next_utc_midnight() -> str:
+    now = datetime.now(timezone.utc)
+    tomorrow = (now + timedelta(days=1)).date()
+    return datetime(tomorrow.year, tomorrow.month, tomorrow.day, tzinfo=timezone.utc).isoformat()
+
+
+def _seconds_until(reset_at: str | None) -> int | None:
+    if not reset_at:
+        return None
+    try:
+        target = datetime.fromisoformat(str(reset_at).replace("Z", "+00:00"))
+        if target.tzinfo is None:
+            target = target.replace(tzinfo=timezone.utc)
+        return max(0, int((target.astimezone(timezone.utc) - datetime.now(timezone.utc)).total_seconds()))
+    except Exception:
+        return None

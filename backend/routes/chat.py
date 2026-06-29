@@ -24,6 +24,7 @@ from deps import (
     get_db,
 )
 from services.document_processor import extract_text_from_pdf_detailed
+from services.api_key_pool import ApiKeyPoolExhausted
 from services.storage_service import StorageService
 from tutor.contract import tutor_contract_instruction
 from uid_utils import resolve_by_id_or_uid
@@ -58,6 +59,35 @@ _PERSON_IDENTITY_REQUEST_RE = re.compile(
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
+
+
+def _usage_limit_payload(exc: ApiKeyPoolExhausted) -> dict:
+    seconds = exc.reset_after_seconds
+    return {
+        "detail": "You've reached your usage limit.",
+        "code": "ai_provider_limit_exceeded",
+        "provider": exc.provider or "ai",
+        "reset_at": exc.reset_at,
+        "reset_after_seconds": seconds,
+        "reset_after_hours": round(seconds / 3600, 1) if seconds is not None else None,
+    }
+
+
+def _raise_if_usage_limit_error(exc: Exception) -> None:
+    current = exc
+    seen = set()
+    while current and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, ApiKeyPoolExhausted):
+            payload = _usage_limit_payload(current)
+            headers = {"X-AI-Limit-Code": "ai_provider_limit_exceeded"}
+            if current.reset_at:
+                headers["X-AI-Limit-Reset"] = str(current.reset_at)
+            if current.reset_after_seconds is not None:
+                headers["Retry-After"] = str(max(1, int(current.reset_after_seconds)))
+                headers["X-AI-Limit-Reset-After"] = str(max(0, int(current.reset_after_seconds)))
+            raise HTTPException(status_code=429, detail=payload, headers=headers)
+        current = current.__cause__ or current.__context__
 
 
 def _normalized_upload_mime(content_type: Optional[str], filename: str) -> str:
@@ -1364,6 +1394,7 @@ async def ask_simple(
     except HTTPException:
         raise
     except Exception as e:
+        _raise_if_usage_limit_error(e)
         logger.error(f"Error in /api/ask_simple/: {e}", exc_info=True)
         return {
             "answer": "I encountered an error processing your request.",
@@ -1585,6 +1616,7 @@ async def ask_with_files(
                     "No vision provider configured; image response will not fall back to chat history"
                 )
             except Exception as e:
+                _raise_if_usage_limit_error(e)
                 vision_error = f"Image analysis failed: {e}"
                 logger.warning(
                     "Vision call failed (%s); image response will not fall back to chat history",
@@ -1644,6 +1676,7 @@ async def ask_with_files(
                 else:
                     response_text = _context_only_fallback_answer(str(user.id), tutor_input, selected_doc_ids, use_hs_context)
             except Exception as e:
+                _raise_if_usage_limit_error(e)
                 logger.error(f"Tutor graph failed in ask_with_files: {e}")
                 response_text = _context_only_fallback_answer(str(user.id), tutor_input, selected_doc_ids, use_hs_context)
 
@@ -1751,6 +1784,7 @@ async def ask_with_files(
     except HTTPException:
         raise
     except Exception as e:
+        _raise_if_usage_limit_error(e)
         logger.error(f"Error in /api/ask_with_files/: {e}", exc_info=True)
         return {
             "answer": "I encountered an error processing your files. Please try again.",

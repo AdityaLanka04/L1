@@ -99,6 +99,8 @@ class TokenLimitMiddleware(BaseHTTPMiddleware):
                         "X-TokenLimit-Used": str(state.get("used_tokens", 0)),
                         "X-TokenLimit-Remaining": str(state.get("remaining_tokens", 0)),
                         "X-TokenLimit-Plan": str(state.get("plan_id", "")),
+                        "X-TokenLimit-Reset": str(state.get("reset_at") or ""),
+                        "X-TokenLimit-Reset-After": str(state.get("reset_after_seconds") or ""),
                     },
                 )
 
@@ -129,6 +131,10 @@ class TokenLimitMiddleware(BaseHTTPMiddleware):
                 response.headers["X-TokenLimit-Used"] = str(state.get("used_tokens", 0))
                 response.headers["X-TokenLimit-Remaining"] = str(state.get("remaining_tokens", 0))
                 response.headers["X-TokenLimit-Plan"] = str(state.get("plan_id", ""))
+                if state.get("reset_at"):
+                    response.headers["X-TokenLimit-Reset"] = str(state.get("reset_at"))
+                if state.get("reset_after_seconds") is not None:
+                    response.headers["X-TokenLimit-Reset-After"] = str(state.get("reset_after_seconds"))
             else:
                 response.headers["X-TokenLimit-Limit"] = "unlimited"
                 response.headers["X-TokenLimit-Remaining"] = "unlimited"

@@ -2,6 +2,7 @@ import base64
 import logging
 import json
 import time
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import requests
@@ -89,6 +90,14 @@ class UnifiedAIClient:
                 return self._call_groq(prompt, max_tokens, temperature)
             else:
                 raise Exception("No AI client available")
+        except ApiKeyPoolExhausted as e:
+            logger.error(f"Primary AI ({self.primary_ai}) quota exhausted: {e}")
+            try:
+                return self._fallback(prompt, max_tokens, temperature)
+            except ApiKeyPoolExhausted:
+                raise
+            except Exception:
+                raise e
         except Exception as e:
             logger.error(f"Primary AI ({self.primary_ai}) failed: {e}")
             return self._fallback(prompt, max_tokens, temperature)
@@ -122,6 +131,8 @@ class UnifiedAIClient:
                                 return text
                             raise Exception("Gemini response has no candidates")
                         if resp.status_code == 429 or (resp.status_code == 400 and "quota" in resp.text.lower()):
+                            if not lease:
+                                raise self._provider_limit_error("gemini")
                             self._mark_key_exhausted(self.gemini_key_pool, lease)
                             break
                         if attempt == 2:
@@ -161,6 +172,8 @@ class UnifiedAIClient:
                 if self._is_quota_error(exc) and lease:
                     self._mark_key_exhausted(self.groq_key_pool, lease)
                     continue
+                if self._is_quota_error(exc):
+                    raise self._provider_limit_error("groq") from exc
                 self._release_key(self.groq_key_pool, lease)
                 raise
         raise Exception("Groq request failed after all configured keys were exhausted")
@@ -197,6 +210,8 @@ class UnifiedAIClient:
                             self._log_usage(usage, model=self.openai_compat_model, provider="hs_context", prompt=prompt, completion=text)
                             return text
                         if resp.status_code == 429:
+                            if not lease:
+                                raise self._provider_limit_error("hs_context")
                             self._mark_key_exhausted(self.openai_compat_key_pool, lease)
                             break
                         self._release_key(self.openai_compat_key_pool, lease)
@@ -261,6 +276,28 @@ class UnifiedAIClient:
         text = str(exc).lower()
         return "429" in text or "quota" in text or "rate limit" in text or "rate_limit" in text
 
+    def _provider_limit_error(self, provider: str) -> ApiKeyPoolExhausted:
+        reset_at = self._next_utc_midnight()
+        return ApiKeyPoolExhausted(
+            f"{provider} API usage limit exhausted",
+            provider=provider,
+            reset_at=reset_at,
+            reset_after_seconds=self._seconds_until(reset_at),
+        )
+
+    @staticmethod
+    def _next_utc_midnight() -> str:
+        now = datetime.now(timezone.utc)
+        tomorrow = (now + timedelta(days=1)).date()
+        return datetime(tomorrow.year, tomorrow.month, tomorrow.day, tzinfo=timezone.utc).isoformat()
+
+    @staticmethod
+    def _seconds_until(reset_at: str) -> int:
+        target = datetime.fromisoformat(str(reset_at).replace("Z", "+00:00"))
+        if target.tzinfo is None:
+            target = target.replace(tzinfo=timezone.utc)
+        return max(0, int((target.astimezone(timezone.utc) - datetime.now(timezone.utc)).total_seconds()))
+
     def generate_with_images(
         self,
         prompt: str,
@@ -272,9 +309,14 @@ class UnifiedAIClient:
             return self.generate(prompt, max_tokens, temperature)
 
         errors: list[str] = []
+        usage_limit_error: ApiKeyPoolExhausted | None = None
         if self.gemini_api_key or self._has_pool(self.gemini_key_pool):
             try:
                 return self._call_gemini_vision(prompt, images, max_tokens, temperature)
+            except ApiKeyPoolExhausted as e:
+                usage_limit_error = e
+                errors.append(f"Gemini: {e}")
+                logger.warning(f"Gemini vision quota exhausted: {e}")
             except Exception as e:
                 errors.append(f"Gemini: {e}")
                 logger.warning(f"Gemini vision failed: {e}")
@@ -282,6 +324,10 @@ class UnifiedAIClient:
         if self.groq_client or self._has_pool(self.groq_key_pool):
             try:
                 return self._call_groq_vision(prompt, images, max_tokens, temperature)
+            except ApiKeyPoolExhausted as e:
+                usage_limit_error = e
+                errors.append(f"Groq: {e}")
+                logger.warning(f"Groq vision quota exhausted: {e}")
             except Exception as e:
                 errors.append(f"Groq: {e}")
                 logger.warning(f"Groq vision failed: {e}")
@@ -289,9 +335,16 @@ class UnifiedAIClient:
         if self.primary_ai == "openai_compat" and (self.openai_compat_api_key or self._has_pool(self.openai_compat_key_pool)):
             try:
                 return self._call_openai_compat_vision(prompt, images, max_tokens, temperature)
+            except ApiKeyPoolExhausted as e:
+                usage_limit_error = e
+                errors.append(f"OpenAI-compatible: {e}")
+                logger.warning(f"OpenAI-compat vision quota exhausted: {e}")
             except Exception as e:
                 errors.append(f"OpenAI-compatible: {e}")
                 logger.warning(f"OpenAI-compat vision failed: {e}")
+
+        if usage_limit_error:
+            raise usage_limit_error
 
         detail = "; ".join(errors) if errors else "No vision-capable AI provider is configured"
         raise NoVisionProviderError(detail)
@@ -352,6 +405,8 @@ class UnifiedAIClient:
                 if self._is_quota_error(exc) and lease:
                     self._mark_key_exhausted(self.groq_key_pool, lease)
                     continue
+                if self._is_quota_error(exc):
+                    raise self._provider_limit_error("groq") from exc
                 self._release_key(self.groq_key_pool, lease)
                 raise
 
@@ -400,6 +455,8 @@ class UnifiedAIClient:
                                 return text
                             raise Exception("Gemini vision response has no candidates")
                         if resp.status_code == 429 or "quota" in resp.text.lower():
+                            if not lease:
+                                raise self._provider_limit_error("gemini")
                             self._mark_key_exhausted(self.gemini_key_pool, lease)
                             break
                         if attempt == 2:
@@ -460,6 +517,8 @@ class UnifiedAIClient:
                             self._log_usage(usage, model=self.openai_compat_model, provider="openai_vision", prompt=prompt, completion=text)
                             return text
                         if resp.status_code == 429:
+                            if not lease:
+                                raise self._provider_limit_error("openai")
                             self._mark_key_exhausted(self.openai_compat_key_pool, lease)
                             break
                         self._release_key(self.openai_compat_key_pool, lease)

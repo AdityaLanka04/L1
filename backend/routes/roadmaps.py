@@ -30,6 +30,27 @@ router = APIRouter(
 def _normalize_topic_name(topic: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", str(topic or "").lower()).strip()
 
+def _clean_knowledge_map_text(value: Any, *, max_length: int = 160, fallback: str = "") -> str:
+    text = str(value or "").strip()
+    if not text:
+        return fallback
+
+    text = re.sub(r"^```(?:json|text)?\s*|\s*```$", "", text, flags=re.IGNORECASE)
+    text = text.strip(" \t\r\n\"'`")
+
+    # AI topic extraction sometimes uses symbols as accidental word separators.
+    text = re.sub(r"(?<=[A-Za-z])[$@#](?=[A-Za-z])", " ", text)
+    text = re.sub(r"(?<=[A-Za-z])[_/|](?=[A-Za-z])", " ", text)
+    text = re.sub(r"[\u200b-\u200f\u202a-\u202e]", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"\s*[-–—]\s*Click\s+'?Explore'?.*$", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+([,.;:!?%)\]])", r"\1", text)
+    text = re.sub(r"([([%])\s+", r"\1", text)
+
+    if max_length and len(text) > max_length:
+        text = text[:max_length].rsplit(" ", 1)[0].strip() or text[:max_length].strip()
+    return text or fallback
+
 def _topic_names_match(left: str, right: str) -> bool:
     normalized_left = _normalize_topic_name(left)
     normalized_right = _normalize_topic_name(right)
@@ -71,15 +92,16 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
     return profile
 
 def _create_roadmap_record(db: Session, user_id: int, root_topic: str, title: Optional[str] = None):
-    clean_topic = (root_topic or "").strip()
+    clean_topic = _clean_knowledge_map_text(root_topic, max_length=120)
     if not clean_topic:
         raise HTTPException(status_code=400, detail="root_topic required")
+    clean_title = _clean_knowledge_map_text(title, max_length=255, fallback=f"Exploring {clean_topic}")
 
     root_node = models.KnowledgeNode(
         user_id=user_id,
         parent_node_id=None,
         topic_name=clean_topic,
-        description=f"Explore {clean_topic} - Click 'Explore' to learn or 'Expand' to see subtopics",
+        description=f"Explore {clean_topic}",
         depth_level=0,
         ai_explanation=None,
         key_concepts=None,
@@ -95,7 +117,7 @@ def _create_roadmap_record(db: Session, user_id: int, root_topic: str, title: Op
 
     roadmap = models.KnowledgeRoadmap(
         user_id=user_id,
-        title=(title or f"Exploring {clean_topic}")[:255],
+        title=clean_title,
         root_topic=clean_topic,
         root_node_id=root_node.id,
         total_nodes=1,
@@ -191,7 +213,9 @@ async def _infer_root_topic_from_docs(docs: list[models.ContextDocument], extrac
             root_topic = (first or "Selected Documents").rsplit(".", 1)[0][:80]
     if not title:
         title = f"Exploring {root_topic}"
-    return root_topic[:120], title[:255]
+    root_topic = _clean_knowledge_map_text(root_topic, max_length=120, fallback="Selected Documents")
+    title = _clean_knowledge_map_text(title, max_length=255, fallback=f"Exploring {root_topic}")
+    return root_topic, title
 
 _GENERIC_EXPLORATION_TERMS = {
     "core principles",
@@ -328,9 +352,9 @@ def _topic_specific_exploration_fallback(
     context_path: str,
     description: Optional[str] = None,
 ) -> dict[str, Any]:
-    clean_topic = (topic or "this topic").strip()
-    clean_context = (context_path or clean_topic).strip()
-    useful_description = (description or "").strip()
+    clean_topic = _clean_knowledge_map_text(topic, max_length=120, fallback="this topic")
+    clean_context = _clean_knowledge_map_text(context_path, max_length=240, fallback=clean_topic)
+    useful_description = _clean_knowledge_map_text(description, max_length=180)
     if useful_description.lower().startswith("explore ") and "click" in useful_description.lower():
         useful_description = ""
 
@@ -374,29 +398,34 @@ def _normalize_exploration_payload(
 ) -> dict[str, Any]:
     fallback = _topic_specific_exploration_fallback(topic, context_path, description)
 
-    explanation = str(raw_data.get("explanation") or raw_data.get("ai_explanation") or "").strip()
+    explanation = _clean_knowledge_map_text(
+        raw_data.get("explanation") or raw_data.get("ai_explanation"),
+        max_length=1200,
+    )
     if len(explanation) < 80 or _looks_like_placeholder(explanation):
         explanation = fallback["explanation"]
 
     key_concepts = [
-        item for item in _coerce_string_list(raw_data.get("key_concepts"), max_items=7)
-        if not _looks_like_placeholder(item)
+        _clean_knowledge_map_text(item, max_length=140)
+        for item in _coerce_string_list(raw_data.get("key_concepts"), max_items=7)
+        if not _looks_like_placeholder(item) and _clean_knowledge_map_text(item, max_length=140)
     ]
     if len(key_concepts) < 3:
         key_concepts = fallback["key_concepts"]
 
-    why_important = str(raw_data.get("why_important") or "").strip()
+    why_important = _clean_knowledge_map_text(raw_data.get("why_important"), max_length=900)
     if len(why_important) < 40 or _looks_like_placeholder(why_important):
         why_important = fallback["why_important"]
 
     real_world_examples = [
-        item for item in _coerce_string_list(raw_data.get("real_world_examples"), max_items=4)
-        if not _looks_like_placeholder(item)
+        _clean_knowledge_map_text(item, max_length=280)
+        for item in _coerce_string_list(raw_data.get("real_world_examples"), max_items=4)
+        if not _looks_like_placeholder(item) and _clean_knowledge_map_text(item, max_length=280)
     ]
     if len(real_world_examples) < 2:
         real_world_examples = fallback["real_world_examples"]
 
-    learning_tips = str(raw_data.get("learning_tips") or "").strip()
+    learning_tips = _clean_knowledge_map_text(raw_data.get("learning_tips"), max_length=900)
     if len(learning_tips) < 40 or _looks_like_placeholder(learning_tips):
         learning_tips = fallback["learning_tips"]
 
@@ -424,15 +453,27 @@ def _serialize_explored_node(node: models.KnowledgeNode, context_path: Optional[
         "id": node.id,
         "nodeId": node.id,
         "parent_id": node.parent_node_id,
-        "topic_name": node.topic_name,
-        "description": node.description,
+        "topic_name": _clean_knowledge_map_text(node.topic_name, max_length=120),
+        "description": _clean_knowledge_map_text(node.description, max_length=180),
         "depth_level": node.depth_level,
-        "context_path": context_path or [],
-        "ai_explanation": node.ai_explanation,
-        "key_concepts": _coerce_string_list(node.key_concepts, max_items=10),
-        "why_important": node.why_important,
-        "real_world_examples": _coerce_string_list(node.real_world_examples, max_items=10),
-        "learning_tips": node.learning_tips,
+        "context_path": [
+            _clean_knowledge_map_text(item, max_length=120)
+            for item in (context_path or [])
+            if _clean_knowledge_map_text(item, max_length=120)
+        ],
+        "ai_explanation": _clean_knowledge_map_text(node.ai_explanation, max_length=1200),
+        "key_concepts": [
+            _clean_knowledge_map_text(item, max_length=140)
+            for item in _coerce_string_list(node.key_concepts, max_items=10)
+            if _clean_knowledge_map_text(item, max_length=140)
+        ],
+        "why_important": _clean_knowledge_map_text(node.why_important, max_length=900),
+        "real_world_examples": [
+            _clean_knowledge_map_text(item, max_length=280)
+            for item in _coerce_string_list(node.real_world_examples, max_items=10)
+            if _clean_knowledge_map_text(item, max_length=280)
+        ],
+        "learning_tips": _clean_knowledge_map_text(node.learning_tips, max_length=900),
         "is_explored": node.is_explored,
         "exploration_count": node.exploration_count,
     }
@@ -524,7 +565,11 @@ async def create_roadmap_from_context_docs(
 
         extracted_text = _extract_text_from_docs_for_topic(user.id, doc_ids)
         root_topic, inferred_title = await _infer_root_topic_from_docs(docs, extracted_text)
-        final_title = (title_hint or inferred_title or f"Exploring {root_topic}")[:255]
+        final_title = _clean_knowledge_map_text(
+            title_hint or inferred_title or f"Exploring {root_topic}",
+            max_length=255,
+            fallback=f"Exploring {root_topic}",
+        )
 
         roadmap, root_node = _create_roadmap_record(
             db=db,
@@ -590,8 +635,11 @@ Conversation:
 
 Topic:"""
 
-        root_topic = (await call_ai_async(prompt, max_tokens=50, temperature=0.3)).strip()
-        root_topic = root_topic.replace('"', "").replace("'", "")
+        root_topic = _clean_knowledge_map_text(
+            await call_ai_async(prompt, max_tokens=50, temperature=0.3),
+            max_length=120,
+            fallback=chat_session.title or "Chat Topic",
+        )
 
         return {
             "status": "success",
@@ -633,8 +681,8 @@ async def expand_knowledge_node(
                     {
                         "id": child.id,
                         "parent_id": child.parent_node_id,
-                        "topic_name": child.topic_name,
-                        "description": child.description,
+                        "topic_name": _clean_knowledge_map_text(child.topic_name, max_length=120),
+                        "description": _clean_knowledge_map_text(child.description, max_length=180),
                         "depth_level": child.depth_level,
                         "is_explored": child.is_explored,
                         "expansion_status": child.expansion_status,
@@ -738,12 +786,17 @@ Do not repeat, rename, or closely overlap with any existing immediate child topi
         unique_subtopics = []
         seen_names = list(existing_child_names)
         for subtopic in [*subtopics, *fallback_subtopics]:
-            name = str(subtopic.get("name", "")).strip()
+            name = _clean_knowledge_map_text(subtopic.get("name", ""), max_length=80)
             if not name:
                 continue
             if any(_topic_names_match(name, existing_name) for existing_name in seen_names):
                 continue
-            unique_subtopics.append({**subtopic, "name": name})
+            description = _clean_knowledge_map_text(
+                subtopic.get("description", ""),
+                max_length=100,
+                fallback=f"Explore {name}",
+            )
+            unique_subtopics.append({**subtopic, "name": name, "description": description})
             seen_names.append(name)
             if len(unique_subtopics) >= 5:
                 break
@@ -771,8 +824,8 @@ Do not repeat, rename, or closely overlap with any existing immediate child topi
                 user_id=node.user_id,
                 roadmap_id=roadmap.id if roadmap else node.roadmap_id,
                 parent_node_id=node.id,
-                topic_name=subtopic.get("name", ""),
-                description=subtopic.get("description", ""),
+                topic_name=_clean_knowledge_map_text(subtopic.get("name", ""), max_length=80),
+                description=_clean_knowledge_map_text(subtopic.get("description", ""), max_length=100),
                 depth_level=node.depth_level + 1,
                 ai_explanation=None,
                 key_concepts=None,
@@ -806,8 +859,8 @@ Do not repeat, rename, or closely overlap with any existing immediate child topi
                 {
                     "id": child.id,
                     "parent_id": child.parent_node_id,
-                    "topic_name": child.topic_name,
-                    "description": child.description,
+                    "topic_name": _clean_knowledge_map_text(child.topic_name, max_length=120),
+                    "description": _clean_knowledge_map_text(child.description, max_length=180),
                     "depth_level": child.depth_level,
                     "is_explored": child.is_explored,
                     "expansion_status": child.expansion_status,
@@ -1040,14 +1093,22 @@ async def get_knowledge_roadmap(
             {
                 "id": node.id,
                 "parent_id": node.parent_node_id,
-                "topic_name": node.topic_name,
-                "description": node.description,
+                "topic_name": _clean_knowledge_map_text(node.topic_name, max_length=120),
+                "description": _clean_knowledge_map_text(node.description, max_length=180),
                 "depth_level": node.depth_level,
-                "ai_explanation": node.ai_explanation,
-                "key_concepts": json.loads(node.key_concepts) if node.key_concepts else [],
-                "why_important": node.why_important,
-                "real_world_examples": json.loads(node.real_world_examples) if node.real_world_examples else [],
-                "learning_tips": node.learning_tips,
+                "ai_explanation": _clean_knowledge_map_text(node.ai_explanation, max_length=1200),
+                "key_concepts": [
+                    _clean_knowledge_map_text(item, max_length=140)
+                    for item in _coerce_string_list(node.key_concepts, max_items=10)
+                    if _clean_knowledge_map_text(item, max_length=140)
+                ],
+                "why_important": _clean_knowledge_map_text(node.why_important, max_length=900),
+                "real_world_examples": [
+                    _clean_knowledge_map_text(item, max_length=280)
+                    for item in _coerce_string_list(node.real_world_examples, max_items=10)
+                    if _clean_knowledge_map_text(item, max_length=280)
+                ],
+                "learning_tips": _clean_knowledge_map_text(node.learning_tips, max_length=900),
                 "is_explored": node.is_explored,
                 "exploration_count": node.exploration_count,
                 "expansion_status": node.expansion_status,
@@ -1259,8 +1320,8 @@ async def add_manual_node(
     try:
         roadmap_id = payload.get("roadmap_id")
         parent_id = payload.get("parent_id")
-        topic_name = payload.get("topic_name")
-        description = payload.get("description", "")
+        topic_name = _clean_knowledge_map_text(payload.get("topic_name"), max_length=80)
+        description = _clean_knowledge_map_text(payload.get("description", ""), max_length=120)
 
         if not all([roadmap_id, parent_id, topic_name]):
             raise HTTPException(status_code=400, detail="Missing required fields")
@@ -1306,8 +1367,8 @@ async def add_manual_node(
             "status": "success",
             "node": {
                 "id": new_node.id,
-                "topic_name": new_node.topic_name,
-                "description": new_node.description,
+                "topic_name": _clean_knowledge_map_text(new_node.topic_name, max_length=120),
+                "description": _clean_knowledge_map_text(new_node.description, max_length=180),
                 "depth_level": new_node.depth_level,
                 "parent_id": new_node.parent_node_id,
                 "is_explored": new_node.is_explored,

@@ -30,6 +30,7 @@ from sqlalchemy import text
 
 from database import SessionLocal, engine
 import models
+from services.api_key_pool import ApiKeyPoolExhausted
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -452,6 +453,36 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Brainwave Backend API", version="4.0.0", lifespan=lifespan)
 
+
+def _hours_from_seconds(seconds):
+    if seconds is None:
+        return None
+    try:
+        return round(max(0, int(seconds)) / 3600, 1)
+    except Exception:
+        return None
+
+
+@app.exception_handler(ApiKeyPoolExhausted)
+async def api_key_pool_exhausted_handler(request, exc: ApiKeyPoolExhausted):
+    reset_after = exc.reset_after_seconds
+    provider = exc.provider or "ai"
+    content = {
+        "detail": "You've reached your usage limit.",
+        "code": "ai_provider_limit_exceeded",
+        "provider": provider,
+        "reset_at": exc.reset_at,
+        "reset_after_seconds": reset_after,
+        "reset_after_hours": _hours_from_seconds(reset_after),
+    }
+    headers = {"X-AI-Limit-Code": "ai_provider_limit_exceeded"}
+    if exc.reset_at:
+        headers["X-AI-Limit-Reset"] = str(exc.reset_at)
+    if reset_after is not None:
+        headers["Retry-After"] = str(max(1, int(reset_after)))
+        headers["X-AI-Limit-Reset-After"] = str(max(0, int(reset_after)))
+    return JSONResponse(status_code=429, content=content, headers=headers)
+
 _env = os.getenv("ENVIRONMENT", "").strip().lower()
 _is_dev = _env != "production"
 if not _env:
@@ -496,7 +527,13 @@ app.add_middleware(
         "X-TokenLimit-Used",
         "X-TokenLimit-Remaining",
         "X-TokenLimit-Plan",
+        "X-TokenLimit-Reset",
+        "X-TokenLimit-Reset-After",
         "X-TokenUsage-Delta",
+        "X-AI-Limit-Code",
+        "X-AI-Limit-Reset",
+        "X-AI-Limit-Reset-After",
+        "Retry-After",
     ],
 )
 

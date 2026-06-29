@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import json
 import os
 import signal
 import time
@@ -11,6 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+
+from fastapi import HTTPException
 
 from activity_context import clear_activity_context, set_activity_context
 from database import SessionLocal
@@ -152,8 +155,7 @@ def _process_chat_completion(job: models.AIJob, payload: dict[str, Any], db) -> 
 
     token_state = get_token_limit_state(db, user)
     if not token_state.get("allowed", True):
-        detail = token_limit_error_payload(token_state)["detail"]
-        raise ValueError(detail)
+        raise ValueError(json.dumps(token_limit_error_payload(token_state)))
 
     from routes.chat import ask_simple
 
@@ -260,6 +262,11 @@ def _process_legacy_route(payload: dict[str, Any]) -> dict[str, Any]:
         response = client.post(path, json=payload.get("json_body") or {}, headers=headers)
 
     if response.status_code >= 400:
+        if response.status_code == 429:
+            try:
+                raise RuntimeError(json.dumps(response.json()))
+            except ValueError:
+                pass
         raise RuntimeError(f"Legacy AI route failed: {response.status_code} {response.text[:500]}")
 
     try:
@@ -321,6 +328,11 @@ def _process_legacy_file_route(payload: dict[str, Any]) -> dict[str, Any]:
             handle.close()
 
     if response.status_code >= 400:
+        if response.status_code == 429:
+            try:
+                raise RuntimeError(json.dumps(response.json()))
+            except ValueError:
+                pass
         raise RuntimeError(f"Legacy file AI route failed: {response.status_code} {response.text[:500]}")
 
     try:
@@ -332,6 +344,15 @@ def _process_legacy_file_route(payload: dict[str, Any]) -> dict[str, Any]:
         "route_result": result,
         "answer": result.get("answer") if isinstance(result, dict) else None,
     }
+
+
+def _serialize_job_error(exc: Exception) -> str:
+    if isinstance(exc, HTTPException):
+        detail = exc.detail
+        if isinstance(detail, dict):
+            return json.dumps(detail)
+        return str(detail)
+    return str(exc)
 
 
 def process_job(job_id: int) -> None:
@@ -395,7 +416,7 @@ def process_job(job_id: int) -> None:
             job = db.query(models.AIJob).filter(models.AIJob.id == job_id).first()
             if job:
                 attempts = job.attempts or 0
-                error_message = str(exc)
+                error_message = _serialize_job_error(exc)
                 job.last_error = error_message
                 job.error = error_message
                 job.updated_at = _now()

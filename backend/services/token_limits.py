@@ -59,6 +59,61 @@ def get_user_token_usage(db: Session, user_id: int, days: int = TOKEN_LIMIT_WIND
     return int((row or {}).get("total_tokens") or 0)
 
 
+def get_user_token_reset_at(
+    db: Session,
+    user_id: int,
+    included_tokens: int,
+    days: int = TOKEN_LIMIT_WINDOW_DAYS,
+) -> str | None:
+    if included_tokens <= 0:
+        return None
+
+    since_dt = datetime.now(timezone.utc) - timedelta(days=days)
+    since = since_dt.strftime("%Y-%m-%d %H:%M:%S")
+    rows = db.execute(
+        text(
+            """
+            SELECT timestamp, tokens_used
+            FROM user_activity_log
+            WHERE user_id = :uid AND timestamp >= :since
+            {billable_filter}
+            ORDER BY timestamp ASC
+            """.format(billable_filter=BILLABLE_AI_USAGE_WHERE)
+        ),
+        {"uid": user_id, "since": since},
+    ).mappings().all()
+
+    total = sum(int((row or {}).get("tokens_used") or 0) for row in rows)
+    if total < included_tokens:
+        return None
+
+    for row in rows:
+        total -= int((row or {}).get("tokens_used") or 0)
+        timestamp = (row or {}).get("timestamp")
+        if total < included_tokens and timestamp:
+            if isinstance(timestamp, str):
+                ts = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            else:
+                ts = timestamp
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            return (ts.astimezone(timezone.utc) + timedelta(days=days)).isoformat()
+
+    return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+
+
+def _seconds_until(reset_at: str | None) -> int | None:
+    if not reset_at:
+        return None
+    try:
+        target = datetime.fromisoformat(str(reset_at).replace("Z", "+00:00"))
+        if target.tzinfo is None:
+            target = target.replace(tzinfo=timezone.utc)
+        return max(0, int((target.astimezone(timezone.utc) - datetime.now(timezone.utc)).total_seconds()))
+    except Exception:
+        return None
+
+
 def get_user_plan_id(db: Session, user: models.User) -> str:
     if is_unlimited_user(user):
         return "unlimited"
@@ -79,6 +134,13 @@ def get_token_limit_state(db: Session, user: models.User) -> dict[str, Any]:
     used_tokens = get_user_token_usage(db, user.id)
     remaining_tokens = None if unlimited else max(0, included_tokens - used_tokens)
     allowed = unlimited or used_tokens < included_tokens
+    reset_at = None if unlimited else get_user_token_reset_at(
+        db,
+        user.id,
+        included_tokens,
+        TOKEN_LIMIT_WINDOW_DAYS,
+    )
+    reset_after_seconds = _seconds_until(reset_at)
 
     return {
         "allowed": allowed,
@@ -89,6 +151,13 @@ def get_token_limit_state(db: Session, user: models.User) -> dict[str, Any]:
         "remaining_tokens": remaining_tokens,
         "unlimited": unlimited,
         "window_days": TOKEN_LIMIT_WINDOW_DAYS,
+        "reset_at": reset_at,
+        "reset_after_seconds": reset_after_seconds,
+        "reset_after_hours": (
+            round(reset_after_seconds / 3600, 1)
+            if reset_after_seconds is not None
+            else None
+        ),
     }
 
 
@@ -105,4 +174,7 @@ def token_limit_error_payload(state: dict[str, Any]) -> dict[str, Any]:
         "included_tokens": state.get("included_tokens", 0),
         "remaining_tokens": state.get("remaining_tokens", 0),
         "window_days": state.get("window_days", TOKEN_LIMIT_WINDOW_DAYS),
+        "reset_at": state.get("reset_at"),
+        "reset_after_seconds": state.get("reset_after_seconds"),
+        "reset_after_hours": state.get("reset_after_hours"),
     }
