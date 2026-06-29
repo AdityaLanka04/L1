@@ -11,7 +11,7 @@ import logging
 from env_loader import load_backend_env
 from activity_logger import log_ai_tokens
 from services.ai_usage import estimate_usage, extract_usage_from_openai_like, extract_usage_from_gemini_payload
-from services.api_key_pool import ApiKeyPoolExhausted, build_key_pool
+from services.api_key_pool import ApiKeyPoolExhausted, build_key_pool, record_provider_usage
 
 try:
     from langdetect import detect, LangDetectException
@@ -149,7 +149,14 @@ class AIMediaProcessor:
                 usage = extract_usage_from_openai_like(response) or {}
                 if lease:
                     self.groq_key_pool.record_success(lease, usage.get("total_tokens"))
-                self._log_groq_usage(user_id, "media_notes_ai", response, usage_extra, prompt=json.dumps(messages))
+                self._log_groq_usage(
+                    user_id,
+                    "media_notes_ai",
+                    response,
+                    usage_extra,
+                    prompt=json.dumps(messages),
+                    key_pool_recorded=bool(lease),
+                )
                 return response
 
             except ApiKeyPoolExhausted:
@@ -171,7 +178,15 @@ class AIMediaProcessor:
                     raise
                 raise
 
-    def _log_groq_usage(self, user_id: Optional[int], tool_name: str, response, extra: Dict = None, prompt: str = ""):
+    def _log_groq_usage(
+        self,
+        user_id: Optional[int],
+        tool_name: str,
+        response,
+        extra: Dict = None,
+        prompt: str = "",
+        key_pool_recorded: bool = False,
+    ):
         if not user_id:
             return
         completion = ""
@@ -185,6 +200,8 @@ class AIMediaProcessor:
         if not usage.get("total_tokens"):
             return
         try:
+            if token_source == "model_usage" and not key_pool_recorded:
+                record_provider_usage("groq", usage.get("total_tokens", 0))
             metadata = {"provider": "groq", "source": "media_processing"}
             if extra:
                 metadata.update(extra)
@@ -211,6 +228,8 @@ class AIMediaProcessor:
         if not usage.get("total_tokens"):
             return
         try:
+            if token_source == "model_usage":
+                record_provider_usage("gemini", usage.get("total_tokens", 0))
             metadata = {"provider": "gemini", "source": "media_processing"}
             if extra:
                 metadata.update(extra)

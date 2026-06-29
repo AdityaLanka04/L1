@@ -19,6 +19,7 @@ export function getTokenUsageFromResponse(response) {
     includedTokens,
     remainingTokens: parseTokenHeader(response, 'X-TokenLimit-Remaining'),
     currentPlanId: response.headers.get('X-TokenLimit-Plan') || null,
+    tokenDelta: parseTokenHeader(response, 'X-TokenUsage-Delta'),
   };
 }
 

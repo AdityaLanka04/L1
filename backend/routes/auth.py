@@ -39,6 +39,7 @@ from services.subscription_catalog import (
     list_plans,
     normalize_plan_id,
 )
+from services.token_usage_filters import BILLABLE_AI_USAGE_WHERE
 
 logger = logging.getLogger(__name__)
 
@@ -439,7 +440,9 @@ def _subscription_usage_snapshot(db: Session, user_pk: int, days: int = 30) -> d
                     COALESCE(SUM(CASE WHEN tokens_used > 0 THEN 1 ELSE 0 END), 0) AS ai_requests
                 FROM user_activity_log
                 WHERE user_id = :uid AND timestamp >= :since
+                {billable_filter}
                 """
+                .format(billable_filter=BILLABLE_AI_USAGE_WHERE)
             ),
             {"uid": user_pk, "since": since},
         ).mappings().first()
@@ -456,10 +459,12 @@ def _subscription_usage_snapshot(db: Session, user_pk: int, days: int = 30) -> d
                     COALESCE(SUM(tokens_used), 0) AS tokens_used
                 FROM user_activity_log
                 WHERE user_id = :uid AND timestamp >= :since
+                {billable_filter}
                 GROUP BY tool_name
                 ORDER BY tokens_used DESC, usage_count DESC
                 LIMIT 6
                 """
+                .format(billable_filter=BILLABLE_AI_USAGE_WHERE)
             ),
             {"uid": user_pk, "since": since},
         ).mappings().all()

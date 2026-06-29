@@ -8,6 +8,7 @@ describe('getTokenUsageFromResponse', () => {
         'X-TokenLimit-Limit': '5000000',
         'X-TokenLimit-Remaining': '4821750',
         'X-TokenLimit-Plan': 'power',
+        'X-TokenUsage-Delta': '6023',
       },
     });
 
@@ -16,6 +17,7 @@ describe('getTokenUsageFromResponse', () => {
       includedTokens: 5000000,
       remainingTokens: 4821750,
       currentPlanId: 'power',
+      tokenDelta: 6023,
     });
   });
 

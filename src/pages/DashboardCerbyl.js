@@ -250,6 +250,7 @@ const hydrateProfile = (parsedProfile = {}, username = '') => {
 const DashboardCerbyl = () => {
   const navigate = useNavigate();
   const pfpUploadInputRef = useRef(null);
+  const tokenUsageExactModeRef = useRef(false);
 
   const [userName, setUserName] = useState(() => localStorage.getItem('username') || '');
   const [profile, setProfile] = useState(() => {
@@ -342,7 +343,7 @@ const DashboardCerbyl = () => {
     }
   };
 
-  const applySubscriptionOverview = useCallback((sub = {}) => {
+  const applySubscriptionOverview = useCallback((sub = {}, options = {}) => {
     const rawPlanId = sub.currentPlanId || sub.current_plan_id || sub.plan || 'starter';
     const normalizedPlanId = String(rawPlanId || 'starter').trim().toLowerCase();
     const plan = sub.currentPlan || (sub.plans || []).find((p) => String(p.id || '').trim().toLowerCase() === normalizedPlanId) || {};
@@ -354,18 +355,25 @@ const DashboardCerbyl = () => {
     const includedTokens = Number.isFinite(planIncludedTokens) && planIncludedTokens > 0
       ? planIncludedTokens
       : Number(fallbackIncludedTokens);
-    const usedTokens = Number(sub.usage?.total_tokens || 0);
+    const overviewUsedTokens = Number(sub.usage?.total_tokens || 0);
 
-    setSubscriptionUsage({
-      loading: false,
-      currentPlanId: planId,
-      currentPlanName: plan.name || PLAN_NAMES[planId] || 'Starter',
-      includedTokens,
-      usedTokens,
-      utilizationPct: includedTokens > 0 ? Math.round((usedTokens / includedTokens) * 1000) / 10 : 0,
-      isAdmin: Boolean(sub.isAdmin),
-      hasUnlimitedAccess: Boolean(sub.hasUnlimitedAccess || plan.unlimited || planId === 'unlimited'),
-      error: null
+    setSubscriptionUsage(prev => {
+      const keepExactDisplayedValue = options.silent && tokenUsageExactModeRef.current;
+      const usedTokens = keepExactDisplayedValue
+        ? Number(prev.usedTokens || 0)
+        : overviewUsedTokens;
+
+      return {
+        loading: false,
+        currentPlanId: planId,
+        currentPlanName: plan.name || PLAN_NAMES[planId] || 'Starter',
+        includedTokens,
+        usedTokens,
+        utilizationPct: includedTokens > 0 ? Math.round((usedTokens / includedTokens) * 1000) / 10 : 0,
+        isAdmin: Boolean(sub.isAdmin),
+        hasUnlimitedAccess: Boolean(sub.hasUnlimitedAccess || plan.unlimited || planId === 'unlimited'),
+        error: null
+      };
     });
   }, []);
 
@@ -377,7 +385,7 @@ const DashboardCerbyl = () => {
     try {
       const encodedUser = encodeURIComponent(userName);
       const sub = await fetchJson(`${API_URL}/subscription/overview?user_id=${encodedUser}&include_usage=true`);
-      applySubscriptionOverview(sub || {});
+      applySubscriptionOverview(sub || {}, { silent });
     } catch (e) {
       setSubscriptionUsage(prev => ({ ...prev, loading: false, error: 'usage-unavailable' }));
     }
@@ -614,7 +622,8 @@ const DashboardCerbyl = () => {
     const onTokenUsageUpdated = (event) => {
       const detail = event?.detail || {};
       const usedTokens = Number(detail.usedTokens);
-      if (!Number.isFinite(usedTokens)) return;
+      const tokenDelta = Number(detail.tokenDelta);
+      if (!Number.isFinite(usedTokens) && !Number.isFinite(tokenDelta)) return;
 
       setSubscriptionUsage(prev => {
         const headerLimit = Number(detail.includedTokens);
@@ -622,6 +631,12 @@ const DashboardCerbyl = () => {
           ? headerLimit
           : prev.includedTokens;
         const currentPlanId = detail.currentPlanId || prev.currentPlanId;
+        const nextUsedTokens = Number.isFinite(tokenDelta) && tokenDelta > 0
+          ? Number(prev.usedTokens || 0) + tokenDelta
+          : usedTokens;
+        if (Number.isFinite(tokenDelta) && tokenDelta > 0) {
+          tokenUsageExactModeRef.current = true;
+        }
 
         return {
           ...prev,
@@ -629,9 +644,9 @@ const DashboardCerbyl = () => {
           currentPlanId,
           currentPlanName: PLAN_NAMES[currentPlanId] || prev.currentPlanName,
           includedTokens,
-          usedTokens,
+          usedTokens: nextUsedTokens,
           utilizationPct: includedTokens > 0
-            ? Math.round((usedTokens / includedTokens) * 1000) / 10
+            ? Math.round((nextUsedTokens / includedTokens) * 1000) / 10
             : 0,
           error: null
         };

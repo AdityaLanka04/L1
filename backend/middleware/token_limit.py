@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.responses import JSONResponse, Response
 
 import models
+from activity_context import begin_provider_usage_delta, clear_provider_usage_delta, get_provider_usage_delta
 from database import SessionLocal
 from deps import ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, SECRET_KEY
 from middleware.rate_limiter import _classify
@@ -101,7 +102,12 @@ class TokenLimitMiddleware(BaseHTTPMiddleware):
                     },
                 )
 
-            response = await call_next(request)
+            provider_delta_token = begin_provider_usage_delta()
+            try:
+                response = await call_next(request)
+                provider_usage_delta = get_provider_usage_delta()
+            finally:
+                clear_provider_usage_delta(provider_delta_token)
 
             # The AI call may have recorded usage in a separate session while the
             # request was running. End this session's read transaction and query
@@ -127,6 +133,7 @@ class TokenLimitMiddleware(BaseHTTPMiddleware):
                 response.headers["X-TokenLimit-Limit"] = "unlimited"
                 response.headers["X-TokenLimit-Remaining"] = "unlimited"
                 response.headers["X-TokenLimit-Plan"] = str(state.get("plan_id", "unlimited"))
+            response.headers["X-TokenUsage-Delta"] = str(provider_usage_delta)
             return response
         except Exception as exc:
             logger.exception("Token limit check failed for %s: %s", request.url.path, exc)

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 import models
 from services.subscription_catalog import get_plan, normalize_plan_id
+from services.token_usage_filters import BILLABLE_AI_USAGE_WHERE
 
 
 DEFAULT_UNLIMITED_IDENTIFIERS = "aditya.s.lanka@gmail.com,rithvikkumar35@gmail.com,AL04"
@@ -50,7 +51,8 @@ def get_user_token_usage(db: Session, user_id: int, days: int = TOKEN_LIMIT_WIND
             SELECT COALESCE(SUM(tokens_used), 0) AS total_tokens
             FROM user_activity_log
             WHERE user_id = :uid AND timestamp >= :since
-            """
+            {billable_filter}
+            """.format(billable_filter=BILLABLE_AI_USAGE_WHERE)
         ),
         {"uid": user_id, "since": since},
     ).mappings().first()

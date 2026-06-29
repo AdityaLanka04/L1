@@ -7,6 +7,7 @@ from typing import Iterable, Optional
 
 from sqlalchemy import text
 
+from activity_context import add_provider_usage_delta
 from database import engine
 
 logger = logging.getLogger(__name__)
@@ -99,6 +100,7 @@ class ApiKeyPool:
         actual = max(0, int(actual_tokens or lease.reserved_tokens))
         adjustment = actual - lease.reserved_tokens
         if adjustment == 0:
+            add_provider_usage_delta(actual)
             return
         with engine.begin() as conn:
             row = conn.execute(
@@ -137,6 +139,7 @@ class ApiKeyPool:
                     "usage_day": _today(),
                 },
             )
+        add_provider_usage_delta(actual)
 
     def release(self, lease: ApiKeyLease) -> None:
         if not lease:
@@ -218,6 +221,58 @@ def build_key_pool(
 
     limit = _get_daily_limit(provider, default_daily_limit)
     return ApiKeyPool(provider=provider, keys=keys, daily_limit=limit)
+
+
+def record_provider_usage(provider: str, actual_tokens: Optional[int]) -> None:
+    """Add already-completed provider usage to the admin API key totals.
+
+    Some legacy call sites use a direct SDK client instead of reserving a key
+    through ApiKeyPool. They still receive exact provider usage metadata and log
+    that to the user's token usage. This helper keeps the admin API key page in
+    lockstep for those direct calls without changing their request flow.
+    """
+    actual = max(0, int(actual_tokens or 0))
+    if actual <= 0:
+        return
+
+    env_names_by_provider = {
+        "gemini": ("GEMINI_API_KEYS", "GOOGLE_GENERATIVE_AI_KEYS", "GOOGLE_GENERATIVE_AI_KEY", "GEMINI_API_KEY"),
+        "groq": ("GROQ_API_KEYS", "GROQ_API_KEY"),
+        "hs_context": ("HS_CONTEXT_API_KEYS",),
+    }
+    env_names = env_names_by_provider.get(provider)
+    if not env_names:
+        return
+
+    pool = build_key_pool(provider, env_names)
+    if not pool.entries:
+        return
+
+    today = _today()
+    now = _now()
+    entry = pool.entries[0]
+    _ensure_usage_row(entry, today)
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                UPDATE api_key_pool_usage
+                SET used_tokens = used_tokens + :actual_tokens,
+                    updated_at = :now
+                WHERE provider = :provider
+                  AND key_fingerprint = :fingerprint
+                  AND usage_day = :usage_day
+                """
+            ),
+            {
+                "actual_tokens": actual,
+                "now": now,
+                "provider": entry.provider,
+                "fingerprint": entry.fingerprint,
+                "usage_day": today,
+            },
+        )
+    add_provider_usage_delta(actual)
 
 
 def get_usage_snapshot() -> dict:

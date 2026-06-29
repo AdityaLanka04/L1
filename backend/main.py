@@ -496,6 +496,7 @@ app.add_middleware(
         "X-TokenLimit-Used",
         "X-TokenLimit-Remaining",
         "X-TokenLimit-Plan",
+        "X-TokenUsage-Delta",
     ],
 )
 

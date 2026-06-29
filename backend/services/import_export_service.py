@@ -10,6 +10,7 @@ from groq import Groq
 import os
 from activity_logger import log_ai_tokens
 from services.ai_usage import estimate_usage, extract_usage_from_openai_like
+from services.api_key_pool import record_provider_usage
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,8 @@ class ImportExportService:
         if not usage.get("total_tokens"):
             return
         try:
+            if token_source == "model_usage":
+                record_provider_usage("groq", usage.get("total_tokens", 0))
             log_ai_tokens(
                 user_id=user_id,
                 tool_name=tool_name,

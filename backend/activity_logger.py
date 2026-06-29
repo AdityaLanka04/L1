@@ -9,6 +9,7 @@ from sqlalchemy import text
 from activity_context import get_activity_context
 from database import engine
 from services.subscription_catalog import get_plan, normalize_plan_id
+from services.token_usage_filters import BILLABLE_AI_USAGE_WHERE
 
 _ACTIVITY_TABLE_READY = False
 _ACTIVITY_TABLE_LOCK = Lock()
@@ -129,11 +130,14 @@ def get_user_token_usage(user_id, days=30):
 
         with engine.connect() as conn:
             result = conn.execute(
-                text("""
+                text(
+                    """
                     SELECT COALESCE(SUM(tokens_used), 0) as total
                     FROM user_activity_log
                     WHERE user_id = :user_id AND timestamp >= :start_date
-                """),
+                    {billable_filter}
+                    """.format(billable_filter=BILLABLE_AI_USAGE_WHERE)
+                ),
                 {"user_id": resolved_user_id, "start_date": start_date},
             ).mappings().first()
 
