@@ -2971,18 +2971,54 @@
 @media (max-width: 768px) {
   .playlists-page .playlists-body {
     gap: 14px !important;
-    padding: 14px !important;
+    padding: 12px !important;
   }
 
   .playlists-page .playlists-sidebar {
     flex: none !important;
     width: 100% !important;
     max-width: none !important;
-    max-height: 42vh !important;
+    max-height: 150px !important;
+    min-height: 0 !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
   }
 
-  .pl-sidebar-brand {
+  .pl-sidebar-brand,
+  .playlists-page .sidebar-stats,
+  .playlists-page .pl-sidebar-actions,
+  .playlists-page .filter-help,
+  .playlists-page .filter-checkboxes {
     display: none;
+  }
+
+  .playlists-page .sidebar-section {
+    padding: 0;
+  }
+
+  .playlists-page .sidebar-heading {
+    margin-bottom: 8px;
+    font-size: 10px;
+  }
+
+  .playlists-page .sidebar-menu {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+
+  .playlists-page .menu-item {
+    min-height: 42px;
+    white-space: normal;
+    min-width: 0;
+    max-width: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 9px 8px;
+    gap: 6px;
+    font-size: 12px;
   }
 
   .playlists-page .playlists-sidebar.pl-sidebar--collapsed {

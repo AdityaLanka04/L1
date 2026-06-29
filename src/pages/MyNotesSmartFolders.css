@@ -219,6 +219,44 @@
   border-color: #e0e0e0;
 }
 
+@media (max-width: 640px) {
+  .my-notes-page-full .smart-folders-panel {
+    width: calc(100vw - 24px) !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  .my-notes-page-full .smart-folders-panel .sf-header {
+    padding: 14px 16px !important;
+    gap: 12px !important;
+  }
+
+  .my-notes-page-full .smart-folders-panel .sf-header h3 {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .my-notes-page-full .smart-folders-panel .sf-content {
+    padding: 14px !important;
+  }
+
+  .my-notes-page-full .smart-folders-panel .sf-folder-item {
+    padding: 11px 12px !important;
+    gap: 10px !important;
+  }
+
+  .my-notes-page-full .smart-folders-panel .sf-folder-info,
+  .my-notes-page-full .smart-folders-panel .sf-note-item {
+    min-width: 0 !important;
+  }
+
+  .my-notes-page-full .smart-folders-panel .sf-note-date {
+    display: none !important;
+  }
+}
+
 [data-theme-mode="light"] .my-notes-page-full .smart-folders-panel .sf-header {
   background: #f5f5f5;
   border-color: #e0e0e0;

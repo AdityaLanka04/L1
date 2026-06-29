@@ -110,7 +110,7 @@
 
 .lnd-track {
   display: flex;
-  width: 800vw;
+  width: max-content;
   height: calc(100vh - 52px);
   margin-top: 52px;
   transition: transform 0.52s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -967,30 +967,287 @@
 }
 
 @media (max-width: 768px) {
-  .lnd-header {
-    padding: 0 16px;
+  body .lnd-root {
+    width: 100vw !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    overflow: hidden !important;
   }
 
-  .lnd-slide {
-    padding: 20px 24px 36px;
+  body .lnd-root .lnd-header {
+    height: 82px !important;
+    min-height: 82px;
+    padding: 9px 14px 8px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-content: center;
+    align-items: center;
+    gap: 8px 10px !important;
+  }
+
+  body .lnd-root .lnd-brand {
+    font-size: 1.18rem;
+    flex: 0 0 auto;
+  }
+
+  body .lnd-root .lnd-login-btn {
+    margin-left: auto;
+    padding: 6px 11px;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    flex: 0 0 auto;
+  }
+
+  body .lnd-root .lnd-nav {
+    position: static;
+    order: 3;
+    left: auto;
+    transform: none;
+    width: 100%;
+    display: flex !important;
+    gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0 1px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body .lnd-root .lnd-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  body .lnd-root .lnd-npill {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    font-size: 0.58rem;
+    letter-spacing: 0.09em;
+  }
+
+  body .lnd-root .lnd-track {
+    height: calc(100dvh - 82px);
+    margin-top: 82px;
+  }
+
+  body .lnd-root .lnd-slide-wrap {
+    width: 100vw !important;
+    height: calc(100dvh - 82px) !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body .lnd-root .lnd-slide {
+    min-height: 100%;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 22px 22px 58px !important;
+    overflow: visible;
+  }
+
+  body .lnd-root .lnd-slide--home {
+    justify-content: center !important;
+    padding: 0 22px 56px !important;
+  }
+
+  body .lnd-root .lnd-home-content {
+    width: 100%;
+    max-width: 360px;
+    transform: translateY(-10px);
+  }
+
+  body .lnd-root .lnd-home-brand {
+    font-size: clamp(4.7rem, 24vw, 6.4rem);
+    line-height: 0.9;
+    margin-bottom: 18px;
+    letter-spacing: -0.055em;
+  }
+
+  body .lnd-root .lnd-home-tagline {
+    font-size: clamp(0.82rem, 4vw, 1rem);
+    letter-spacing: 0.2em;
+    margin-bottom: 22px;
+  }
+
+  body .lnd-root .lnd-home-hook {
+    font-size: 0.95rem;
+    line-height: 1.45;
+    margin-bottom: 30px;
+  }
+
+  body .lnd-root .lnd-home-cta {
+    min-height: 48px;
+    padding: 0 28px;
+    font-size: 0.76rem;
+  }
+
+  body .lnd-root .lnd-home-logo-mark {
+    left: 50% !important;
+    top: 58% !important;
+    width: min(115vw, 460px) !important;
+    height: min(115vw, 460px) !important;
+    transform: translate(-50%, -50%) !important;
+    opacity: 0.055 !important;
+  }
+
+  body .lnd-root .lnd-slide--team {
+    gap: 22px;
+  }
+
+  body .lnd-root .lnd-founders-row,
+  body .lnd-root .lnd-built-grid,
+  body .lnd-root .lnd-arch-grid,
+  body .lnd-root .lnd-feat-grid,
+  body .lnd-root .lnd-stat-row,
+  body .lnd-root .lnd-biz-layout,
+  body .lnd-root .lnd-why-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    max-width: 100%;
+    gap: 12px;
+  }
+
+  body .lnd-root .lnd-founders-divider {
+    width: 100%;
+    height: 1px;
+    margin: 4px 0;
+  }
+
+  body .lnd-root .lnd-founder-avatar {
+    width: 118px;
+    height: 118px;
+  }
+
+  body .lnd-root .lnd-curve {
+    width: 100%;
+    gap: 8px;
+    height: 150px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  body .lnd-root .lnd-curve-col {
+    width: 58px;
+    min-width: 58px;
+  }
+
+  body .lnd-root .lnd-arch-card,
+  body .lnd-root .lnd-feat-card,
+  body .lnd-root .lnd-stat-card,
+  body .lnd-root .lnd-price-card,
+  body .lnd-root .lnd-why-card {
+    padding: 16px;
+  }
+
+  body .lnd-root .lnd-table {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body .lnd-root .lnd-table-hd,
+  body .lnd-root .lnd-table-row {
+    min-width: 680px;
+  }
+
+  body .lnd-root .lnd-arrow {
+    position: fixed;
+    top: auto;
+    bottom: 16px;
+    transform: none;
+    width: 38px;
+    height: 38px;
+    background: color-mix(in srgb, #0a0a0b 82%, var(--accent));
+    backdrop-filter: blur(14px);
+  }
+
+  body .lnd-root .lnd-arrow--left {
+    left: 14px;
+  }
+
+  body .lnd-root .lnd-arrow--right {
+    right: 14px;
+  }
+
+  body .lnd-root .lnd-dots-nav {
+    bottom: 29px;
+    max-width: calc(100vw - 120px);
+    overflow: hidden;
   }
 }
 
 @media (max-width: 480px) {
-  .lnd-header {
-    padding: 0 12px;
-    height: 44px;
+  body .lnd-root .lnd-header {
+    height: 56px !important;
+    min-height: 56px;
+    padding: 10px 12px !important;
+    flex-wrap: nowrap !important;
   }
 
-  .lnd-slide {
-    padding: 16px 16px 28px;
+  body .lnd-root .lnd-nav {
+    display: none !important;
   }
 
-  .lnd-slide-title {
-    font-size: clamp(24px, 6vw, 40px);
+  body .lnd-root .lnd-track,
+  body .lnd-root .lnd-slide-wrap {
+    height: calc(100dvh - 56px) !important;
   }
 
-  .lnd-slide-sub {
+  body .lnd-root .lnd-track {
+    margin-top: 56px;
+  }
+
+  body .lnd-root .lnd-slide {
+    padding: 20px 18px 58px !important;
+  }
+
+  body .lnd-root .lnd-slide--home {
+    padding: 0 18px 58px !important;
+  }
+
+  body .lnd-root .lnd-slide-title {
+    font-size: clamp(24px, 9vw, 34px);
+    line-height: 1.12;
+  }
+
+  body .lnd-root .lnd-slide-sub {
     font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  body .lnd-root .lnd-slide-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+  }
+
+  body .lnd-root .lnd-slide-footnote {
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  body .lnd-root .lnd-home-brand {
+    font-size: clamp(4.3rem, 23vw, 5.8rem);
+  }
+
+  body .lnd-root .lnd-home-tagline {
+    font-size: 0.8rem;
+  }
+
+  body .lnd-root .lnd-market-headline {
+    font-size: clamp(42px, 15vw, 58px) !important;
+  }
+
+  body .lnd-root .lnd-comp-tabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  body .lnd-root .lnd-ctab {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    font-size: 0.64rem;
   }
 }

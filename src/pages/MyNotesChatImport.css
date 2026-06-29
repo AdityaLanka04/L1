@@ -408,3 +408,80 @@
   transform: none;
   box-shadow: none;
 }
+
+@media (max-width: 640px) {
+  .nt-import-modal {
+    width: calc(100vw - 24px) !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  .nt-import-header {
+    padding: 18px 16px 14px;
+    gap: 12px;
+  }
+
+  .nt-import-title {
+    font-size: 20px;
+  }
+
+  .nt-import-kicker {
+    letter-spacing: 2px;
+  }
+
+  .nt-import-close {
+    width: 36px;
+    height: 36px;
+  }
+
+  .nt-import-tabs {
+    overflow-x: auto;
+    padding: 12px 16px;
+    scrollbar-width: none;
+  }
+
+  .nt-import-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nt-import-tab {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+  }
+
+  .nt-import-subtitle {
+    padding: 10px 16px;
+  }
+
+  .nt-import-item {
+    padding: 13px 16px;
+    gap: 10px;
+  }
+
+  .nt-import-item-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .nt-import-item-meta {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .nt-import-footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 16px 16px;
+  }
+
+  .nt-import-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nt-import-btn {
+    justify-content: center;
+    width: 100%;
+  }
+}

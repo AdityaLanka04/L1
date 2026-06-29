@@ -313,7 +313,9 @@ const Vault = () => {
 
 
   const [activeTab, setActiveTab] = useState('deck');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  ));
   const [docSearch, setDocSearch] = useState('');
   const [currMode, setCurrMode]   = useState('uk');  
   const [currSubject, setCurrSubject] = useState(null);

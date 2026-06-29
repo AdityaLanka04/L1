@@ -1,7 +1,6 @@
 /*
  * Shared UI safety rules for route-level shells and global interaction affordances.
- * Keep this file narrow: it should correct systemic behavior without replacing
- * individual page design.
+ * This file must stay conservative: page-specific CSS owns layout.
  */
 
 :root {
@@ -15,8 +14,11 @@
 }
 
 html,
-body {
+body,
+#root {
+  max-width: 100%;
   overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
 }
 
 * {
@@ -36,6 +38,10 @@ body {
 :where(button, [role="button"], a[href], input, select, textarea):focus-visible {
   outline: 2px solid var(--accent, #6366f1);
   outline-offset: 2px;
+}
+
+:where(img, video, canvas, svg) {
+  max-width: 100%;
 }
 
 body :is(
@@ -61,29 +67,6 @@ body :is(
 }
 
 body :is(
-  .ai-chat-page,
-  .flashcards-page,
-  .notes-redesign,
-  .my-notes-page-full,
-  .qbd-container,
-  .qbd-rb-root.qbd-container,
-  .kr-page,
-  .with-social-chrome,
-  .activity-feed-page,
-  .pn-root,
-  .st-page,
-  .concept-web-page,
-  .quiz-battle-page,
-  .weakness-practice-page,
-  .weakness-tips-page,
-  .notes-hub-page,
-  .playlist-detail-page
-) {
-  height: 100dvh !important;
-  min-height: 100dvh !important;
-}
-
-body :is(
   .shc-main,
   .qbd-rb-main,
   .qbd-main,
@@ -101,14 +84,41 @@ body :is(
 }
 
 @media (max-width: 768px) {
-  body :is(
-    .qbd-container,
-    .qbd-rb-root.qbd-container,
-    .kr-page,
-    .pn-root,
-    .with-social-chrome,
-    .playlist-detail-page
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  :where(
+    table,
+    pre,
+    code,
+    .table-container,
+    .code-block-container,
+    .math-renderer,
+    .katex-display
   ) {
-    max-height: 100dvh !important;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  :where(
+    .modal-content,
+    .modal-content-new,
+    .share-modal-content,
+    .trial-modal-content
+  ) {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+@media (max-width: 480px) {
+  :where(input, select, textarea) {
+    font-size: 16px;
   }
 }

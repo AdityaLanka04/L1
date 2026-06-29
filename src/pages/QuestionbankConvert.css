@@ -429,3 +429,74 @@
 .qbd-container .iem-body::-webkit-scrollbar-thumb:hover {
   background: var(--iem-accent);
 }
+
+@media (max-width: 640px) {
+  .qbd-container .iem-overlay {
+    align-items: stretch;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .qbd-container .iem-modal {
+    width: 100%;
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+    align-self: center;
+  }
+
+  .qbd-container .iem-header {
+    padding: 16px;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .qbd-container .iem-header-content {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .qbd-container .iem-header h2 {
+    font-size: 20px;
+    line-height: 1.1;
+  }
+
+  .qbd-container .iem-header-subtitle {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .qbd-container .iem-close-btn {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+  }
+
+  .qbd-container .iem-body {
+    padding: 16px;
+  }
+
+  .qbd-container .iem-select-bar,
+  .qbd-container .iem-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .qbd-container .iem-conversion-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .qbd-container .iem-item-card {
+    padding: 12px;
+  }
+
+  .qbd-container .iem-settings,
+  .qbd-container .iem-result-details {
+    padding: 16px;
+  }
+
+  .qbd-container .iem-btn,
+  .qbd-container .iem-select-all-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

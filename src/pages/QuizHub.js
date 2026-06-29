@@ -15,7 +15,9 @@ const QuizHub = () => {
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
   const [userDocCount, setUserDocCount] = useState(0);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  ));
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';

@@ -175,3 +175,40 @@
 .pfv-home-link:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 640px) {
+  .pfv-page {
+    min-height: 100dvh;
+    padding: 24px 14px;
+  }
+
+  .pfv-container {
+    gap: 16px;
+  }
+
+  .pfv-header h1 {
+    font-size: 24px;
+    line-height: 1.15;
+  }
+
+  .pfv-card {
+    height: clamp(220px, 58dvh, 320px);
+  }
+
+  .pfv-card-face {
+    padding: 22px 18px;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+
+  .pfv-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .pfv-nav-btn {
+    width: 100%;
+    padding: 11px 12px;
+  }
+}

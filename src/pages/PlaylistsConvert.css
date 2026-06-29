@@ -429,3 +429,74 @@
 .playlists-container .iem-body::-webkit-scrollbar-thumb:hover {
   background: var(--iem-accent);
 }
+
+@media (max-width: 640px) {
+  .playlists-container .iem-overlay {
+    align-items: stretch;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .playlists-container .iem-modal {
+    width: 100%;
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+    align-self: center;
+  }
+
+  .playlists-container .iem-header {
+    padding: 16px;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .playlists-container .iem-header-content {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .playlists-container .iem-header h2 {
+    font-size: 20px;
+    line-height: 1.1;
+  }
+
+  .playlists-container .iem-header-subtitle {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .playlists-container .iem-close-btn {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+  }
+
+  .playlists-container .iem-body {
+    padding: 16px;
+  }
+
+  .playlists-container .iem-select-bar,
+  .playlists-container .iem-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .playlists-container .iem-conversion-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .playlists-container .iem-item-card {
+    padding: 12px;
+  }
+
+  .playlists-container .iem-settings,
+  .playlists-container .iem-result-details {
+    padding: 16px;
+  }
+
+  .playlists-container .iem-btn,
+  .playlists-container .iem-select-all-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

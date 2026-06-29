@@ -552,3 +552,69 @@
 .notes-redesign .iem-actions {
   background: linear-gradient(135deg, var(--bg-secondary), color-mix(in srgb, var(--accent) 5%, transparent)) !important;
 }
+
+@media (max-width: 640px) {
+  .notes-redesign .iem-modal {
+    width: calc(100vw - 24px) !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  .notes-redesign .iem-header {
+    padding: 16px !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .notes-redesign .iem-header-content {
+    min-width: 0 !important;
+    gap: 10px !important;
+  }
+
+  .notes-redesign .iem-header h2 {
+    font-size: 16px !important;
+    line-height: 1.15 !important;
+    letter-spacing: 1.2px !important;
+  }
+
+  .notes-redesign .iem-header-subtitle {
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+
+  .notes-redesign .iem-close-btn {
+    width: 36px !important;
+    height: 36px !important;
+    flex: 0 0 36px !important;
+  }
+
+  .notes-redesign .iem-body {
+    padding: 16px !important;
+  }
+
+  .notes-redesign .iem-select-bar,
+  .notes-redesign .iem-actions {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  .notes-redesign .iem-conversion-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .notes-redesign .iem-item-card {
+    padding: 12px !important;
+    margin: 6px !important;
+  }
+
+  .notes-redesign .iem-settings,
+  .notes-redesign .iem-result-details {
+    padding: 16px !important;
+  }
+
+  .notes-redesign .iem-btn,
+  .notes-redesign .iem-select-all-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}

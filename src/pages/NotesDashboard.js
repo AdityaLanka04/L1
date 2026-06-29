@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Search, Filter, FileText, Layout, Settings, ArrowLeft, MessageSquare, LayoutDashboard, LogOut} from 'lucide-react';
+  Plus, Search, Filter, FileText, Layout, Settings, ArrowLeft, MessageSquare, LayoutDashboard, LogOut, Menu} from 'lucide-react';
 import './NotesDashboard.css';
 import DatabaseViews from '../components/DatabaseViews';
 import AdvancedSearch from '../components/AdvancedSearch';
@@ -30,7 +30,9 @@ const NotesDashboard = () => {
   const [showTemplates, setShowTemplates] = useState(false);
   const [selectedFont, setSelectedFont] = useState('Inter');
   const [userName, setUserName] = useState('');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  ));
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -190,6 +192,22 @@ const NotesDashboard = () => {
   return (
     <div className="notes-dashboard" style={{ fontFamily: selectedFont }}>
       <div className="ndb-qb-body">
+        <button
+          className="ndb-qb-mobile-menu-btn"
+          type="button"
+          onClick={() => setSidebarCollapsed(false)}
+          aria-label="Open notes dashboard sidebar"
+        >
+          <Menu size={18} />
+        </button>
+        {!sidebarCollapsed && (
+          <button
+            className="ndb-qb-mobile-sidebar-backdrop"
+            type="button"
+            onClick={() => setSidebarCollapsed(true)}
+            aria-label="Close notes dashboard sidebar"
+          />
+        )}
         <div className={`ndb-qb-shell ${sidebarCollapsed ? 'ndb-qb-shell--collapsed' : ''}`}>
           <aside className={`ndb-qb-sidebar ${sidebarCollapsed ? 'ndb-qb-sidebar--collapsed' : ''}`} aria-label="Notes Dashboard navigation">
             {sidebarCollapsed ? (
