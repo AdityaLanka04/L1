@@ -1273,7 +1273,15 @@
 
 .playlists-card-actions-left {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.card-actions-sep {
+  width: 1px;
+  height: 16px;
+  background: color-mix(in srgb, var(--lp-accent) 20%, transparent);
+  flex-shrink: 0;
 }
 
 .playlists-card-actions-right {
@@ -1399,9 +1407,7 @@
   transform: scale(1.1);
 }
 
-.card-footer {
-  padding-top: 8px;
-}
+.card-footer { display: none; }
 
 .creator {
   display: flex;

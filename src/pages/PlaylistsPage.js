@@ -107,8 +107,8 @@ const PlaylistsPage = () => {
     } catch (error) { /* silenced */ }
   };
 
-  const handlePlaylistClick = (playlistId) => {
-    navigate(`/playlists/${playlistId}`);
+  const handlePlaylistClick = (playlistUid, playlistId) => {
+    navigate(`/playlists/${playlistUid || playlistId}`);
   };
 
   const handleFollowToggle = async (playlistId, currentlyFollowing) => {
@@ -591,7 +591,7 @@ const PlaylistsPage = () => {
                   <PlaylistCard
                     key={playlist.id}
                     playlist={playlist}
-                    onClick={() => handlePlaylistClick(playlist.id)}
+                    onClick={() => handlePlaylistClick(playlist.uid, playlist.id)}
                     onShare={() => setSharePlaylist(playlist)}
                     onGenerateNotes={() => handleAiConvert(playlist, 'notes')}
                     onGenerateFlashcards={() => handleAiConvert(playlist, 'flashcards')}
@@ -747,30 +747,18 @@ const PlaylistCard = ({
 
         <div className="playlists-card-actions">
           <div className="playlists-card-actions-left">
-            <button
-              className="playlists-card-action-btn ai"
-              onClick={(e) => {
-                e.stopPropagation();
-                onGenerateNotes();
-              }}
-              disabled={notesLoading || !hasItems}
-              title={hasItems ? 'Generate AI notes' : 'Add items to enable AI'}
-            >
-              {notesLoading ? <span className="lp-btn-spinner" /> : <FileText size={14} />}
-              <span>{notesLoading ? 'Generating' : 'AI Notes'}</span>
-            </button>
-            <button
-              className="playlists-card-action-btn ai"
-              onClick={(e) => {
-                e.stopPropagation();
-                onGenerateFlashcards();
-              }}
-              disabled={flashcardsLoading || !hasItems}
-              title={hasItems ? 'Generate AI flashcards' : 'Add items to enable AI'}
-            >
-              {flashcardsLoading ? <span className="lp-btn-spinner" /> : <Zap size={14} />}
-              <span>{flashcardsLoading ? 'Generating' : 'Flashcards'}</span>
-            </button>
+            <div className="creator">
+              {playlist.creator.picture_url ? (
+                <img src={playlist.creator.picture_url} alt="" />
+              ) : (
+                <div className="creator-avatar">
+                  {(playlist.creator.first_name?.[0] || playlist.creator.username[0]).toUpperCase()}
+                </div>
+              )}
+              <span className="creator-name">
+                {playlist.creator.first_name || playlist.creator.username}
+              </span>
+            </div>
           </div>
           <div className="playlists-card-actions-right">
             {!playlist.is_owner && (
@@ -808,21 +796,6 @@ const PlaylistCard = ({
                 {deleting ? <span className="lp-btn-spinner danger" /> : <Trash2 size={14} />}
               </button>
             )}
-          </div>
-        </div>
-
-        <div className="card-footer">
-          <div className="creator">
-            {playlist.creator.picture_url ? (
-              <img src={playlist.creator.picture_url} alt="" />
-            ) : (
-              <div className="creator-avatar">
-                {(playlist.creator.first_name?.[0] || playlist.creator.username[0]).toUpperCase()}
-              </div>
-            )}
-            <span className="creator-name">
-              {playlist.creator.first_name || playlist.creator.username}
-            </span>
           </div>
         </div>
       </div>
