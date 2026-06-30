@@ -42,7 +42,6 @@ const Games = () => {
   const [pointsToNextLevel, setPointsToNextLevel] = useState(100);
   const [dailyChallenge, setDailyChallenge] = useState(null);
   const [dailyChallengeProgress, setDailyChallengeProgress] = useState(0);
-  const [showDailyChallengeModal, setShowDailyChallengeModal] = useState(false);
 
   const bingoTasks = [
     { id: 1, title: 'Chat 50 Times', stat: 'ai_chats', target: 50, points: 50 },
@@ -352,7 +351,7 @@ const Games = () => {
 
             <div className="gm-side-panel">
               <span className="gm-side-heading">Playground</span>
-              <button className="gm-side-item active" type="button" onClick={() => setShowDailyChallengeModal(true)}>
+              <button className="gm-side-item active" type="button" onClick={() => document.querySelector('.dc-mission-card')?.scrollIntoView({ behavior: 'smooth' })}>
                 <Zap size={16} />
                 <span>Daily Challenge</span>
                 <strong>{Math.round(getDailyChallengeProgress())}%</strong>
@@ -402,8 +401,8 @@ const Games = () => {
             <h1>Turn progress into momentum.</h1>
             <p>Complete focused challenges, build streaks, and climb the leaderboard while your real study activity powers every score.</p>
             <div className="gm-hero-actions">
-              <button type="button" className="gm-primary-action" onClick={() => setShowDailyChallengeModal(true)}>
-                <Zap size={16} /> Open Daily Challenge
+              <button type="button" className="gm-primary-action" onClick={() => document.querySelector('.dc-mission-card')?.scrollIntoView({ behavior: 'smooth' })}>
+                <Zap size={16} /> Today's Mission
               </button>
               <button type="button" className="gm-secondary-action" onClick={() => navigate('/leaderboards')}>
                 <Trophy size={16} /> View Leaderboard
@@ -450,35 +449,53 @@ const Games = () => {
         </div>
 
         {dailyChallenge && (
-          <div className="daily-challenge-banner" onClick={() => setShowDailyChallengeModal(true)}>
-            <div className="daily-challenge-gradient"></div>
-            <div className="daily-challenge-content">
-              <div className="daily-challenge-icon">
-                {getChallengeIcon(dailyChallenge.icon)}
+          <div className={`dc-mission-card ${isDailyChallengeComplete() ? 'dc-complete' : 'dc-active'}`}>
+            <div className="dc-left">
+              <div className="dc-label-row">
+                <span className="dc-kicker">Today's Mission</span>
+                {isDailyChallengeComplete() && <span className="dc-done-badge">✓ Completed</span>}
               </div>
-              <div className="daily-challenge-info">
-                <div className="daily-challenge-header">
-                  <span className="daily-challenge-badge">daily challenge</span>
-                  {isDailyChallengeComplete() && <span className="challenge-complete-badge">completed</span>}
-                </div>
-                <h3 className="daily-challenge-title">{dailyChallenge.title}</h3>
-                <p className="daily-challenge-description">{dailyChallenge.description}</p>
-                <div className="daily-challenge-progress-container">
-                  <div className="daily-challenge-progress-bar">
-                    <div 
-                      className="daily-challenge-progress-fill" 
-                      style={{ width: `${getDailyChallengeProgress()}%` }}
-                    />
-                  </div>
-                  <span className="daily-challenge-progress-text">
-                    {weeklyProgress[dailyChallenge.type] || 0} / {dailyChallenge.target}
-                  </span>
+              <div className="dc-icon-title">
+                <div className="dc-icon">{getChallengeIcon(dailyChallenge.icon)}</div>
+                <div>
+                  <h3 className="dc-title">{dailyChallenge.title}</h3>
+                  <p className="dc-desc">{dailyChallenge.description}</p>
                 </div>
               </div>
-              <div className="daily-challenge-reward">
-                <span className="reward-label">reward</span>
-                <span className="reward-value">+{dailyChallenge.reward}</span>
-                <span className="reward-unit">pts</span>
+              <div className="dc-progress-row">
+                <div className="dc-bar-wrap">
+                  <div className="dc-bar-fill" style={{ width: `${getDailyChallengeProgress()}%` }} />
+                </div>
+                <span className="dc-nums">
+                  {weeklyProgress[dailyChallenge.type] || 0}
+                  <span className="dc-sep">/</span>
+                  {dailyChallenge.target}
+                </span>
+              </div>
+            </div>
+            <div className="dc-right">
+              <div className={`dc-ring ${isDailyChallengeComplete() ? 'dc-ring--done' : ''}`}>
+                <svg viewBox="0 0 80 80" className="dc-ring-svg">
+                  <defs>
+                    <linearGradient id="dc-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="var(--accent)" />
+                      <stop offset="100%" stopColor="var(--purple)" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="40" cy="40" r="34" className="dc-ring-bg" />
+                  <circle
+                    cx="40" cy="40" r="34"
+                    className="dc-ring-fg"
+                    strokeDasharray={`${2 * Math.PI * 34}`}
+                    strokeDashoffset={`${2 * Math.PI * 34 * (1 - getDailyChallengeProgress() / 100)}`}
+                  />
+                </svg>
+                <span className="dc-ring-pct">{Math.round(getDailyChallengeProgress())}%</span>
+              </div>
+              <div className="dc-reward">
+                <span className="dc-reward-label">Reward</span>
+                <span className="dc-reward-pts">+{dailyChallenge.reward}</span>
+                <span className="dc-reward-unit">points</span>
               </div>
             </div>
           </div>
@@ -505,10 +522,11 @@ const Games = () => {
                   statValue = Math.floor(weeklyProgress.study_minutes / 60);
                 }
 
+                const tier = task.points >= 200 ? 'high' : task.points >= 100 ? 'mid' : 'low';
                 return (
                   <div
                     key={task.id}
-                    className={`bingo-cell ${completed ? 'completed' : ''}`}
+                    className={`bingo-cell bingo-cell--${tier} ${completed ? 'completed' : ''}`}
                   >
                     <div className="cell-header">
                       <span className="cell-points">+{task.points}</span>
@@ -629,77 +647,6 @@ const Games = () => {
         </main>
       </div>
 
-      {showDailyChallengeModal && dailyChallenge && (
-        <div className="modal-overlay" onClick={() => setShowDailyChallengeModal(false)}>
-          <div className="daily-challenge-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-gradient"></div>
-            <button className="modal-close" onClick={() => setShowDailyChallengeModal(false)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-            
-            <div className="modal-icon-large">
-              {getChallengeIcon(dailyChallenge.icon)}
-            </div>
-            
-            <h2 className="modal-title">{dailyChallenge.title}</h2>
-            <p className="modal-description">{dailyChallenge.description}</p>
-            
-            <div className="modal-progress-section">
-              <div className="modal-progress-stats">
-                <div className="modal-stat">
-                  <span className="modal-stat-label">current</span>
-                  <span className="modal-stat-value">{weeklyProgress[dailyChallenge.type] || 0}</span>
-                </div>
-                <div className="modal-stat">
-                  <span className="modal-stat-label">target</span>
-                  <span className="modal-stat-value">{dailyChallenge.target}</span>
-                </div>
-                <div className="modal-stat">
-                  <span className="modal-stat-label">remaining</span>
-                  <span className="modal-stat-value">
-                    {Math.max(0, dailyChallenge.target - (weeklyProgress[dailyChallenge.type] || 0))}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="modal-progress-bar-container">
-                <div className="modal-progress-bar">
-                  <div 
-                    className="modal-progress-fill" 
-                    style={{ width: `${getDailyChallengeProgress()}%` }}
-                  />
-                </div>
-                <span className="modal-progress-percentage">{Math.round(getDailyChallengeProgress())}%</span>
-              </div>
-            </div>
-            
-            <div className="modal-reward-section">
-              <span className="modal-reward-label">challenge reward</span>
-              <div className="modal-reward-value">
-                <span className="reward-points">+{dailyChallenge.reward}</span>
-                <span className="reward-points-label">points</span>
-              </div>
-            </div>
-            
-            {isDailyChallengeComplete() ? (
-              <div className="modal-complete-message">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                  <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                <span>challenge completed</span>
-              </div>
-            ) : (
-              <button className="modal-action-btn" onClick={() => setShowDailyChallengeModal(false)}>
-                start challenge
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

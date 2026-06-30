@@ -53,11 +53,11 @@
   font-weight: 800;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-primary) 28%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 35%, transparent);
 }
 
 .shc-tagline span {
-  color: color-mix(in srgb, var(--accent) 70%, transparent);
+  color: var(--accent);
 }
 
 .shc-top-btn {
