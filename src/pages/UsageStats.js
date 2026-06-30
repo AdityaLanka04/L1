@@ -17,6 +17,7 @@ import {
   formatReset,
 } from './ProfileNew';
 import './ProfileNew.css';
+import '../components/SocialHubChrome.css';
 
 const TIER_GROUPS = [
   {
@@ -161,7 +162,7 @@ const UsageStats = () => {
       <GeoBackground />
 
       <div className="pn-topbar">
-        <div className="pn-topbar-center">usage</div>
+        <div className="pn-topbar-center"><span className="shc-tagline"><span>LEARNING,</span> UNIFIED</span></div>
         <div className="pn-topbar-actions">
           <button className="pn-top-action" onClick={() => navigate('/profile')} type="button">
             <span>Back to Profile</span>

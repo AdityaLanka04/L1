@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './StudyInsights.css';
+import '../components/SocialHubChrome.css';
 import { API_URL } from '../config';
 import { queuedAIJsonFetch } from '../services/aiJobService';
 import logo from '../assets/logo.svg';
@@ -101,6 +102,12 @@ const StudyInsights = () => {
   if (loading) {
     return (
       <div className="si-page">
+        <div className="shc-topbar">
+          <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+          <div className="shc-topbar-right">
+            <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+          </div>
+        </div>
         <div className="si-loading">
           <span className="si-loading-text">ANALYZING YOUR STUDY DATA</span>
           <div className="si-spinner">
@@ -116,6 +123,12 @@ const StudyInsights = () => {
   if (!insights) {
     return (
       <div className="si-page">
+        <div className="shc-topbar">
+          <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+          <div className="shc-topbar-right">
+            <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+          </div>
+        </div>
         <div className="si-error">
           <p>Unable to load insights</p>
           {error && <p className="si-error-detail">{error}</p>}
@@ -136,6 +149,12 @@ const StudyInsights = () => {
 
   return (
     <div className="si-page">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className="si-qb-body">
         <div className={`si-qb-shell ${sidebarCollapsed ? 'si-qb-shell--collapsed' : ''}`}>
           <aside className={`si-qb-sidebar ${sidebarCollapsed ? 'si-qb-sidebar--collapsed' : ''}`} aria-label="Study Insights navigation">

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { marked } from 'marked';
 import './PlaylistDetailPage.css';
+import '../components/SocialHubChrome.css';
 import { API_URL } from '../config';
 import { sanitizeHtml } from '../utils/sanitize';
 import MathRenderer from '../components/MathRenderer';
@@ -387,6 +388,12 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
   if (loading) {
     return (
       <div className="detail-loading playlist-detail-page">
+        <div className="shc-topbar">
+          <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+          <div className="shc-topbar-right">
+            <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+          </div>
+        </div>
         <div className="loading-spinner"></div>
       </div>
     );
@@ -395,6 +402,12 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
   if (!playlist) {
     return (
       <div className="detail-error playlist-detail-page">
+        <div className="shc-topbar">
+          <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+          <div className="shc-topbar-right">
+            <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+          </div>
+        </div>
         <h2>Playlist not found</h2>
         <button onClick={() => navigate('/playlists')} className="error-back-btn">
           <span>Back to Playlists</span>
@@ -422,6 +435,12 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
 
   return (
     <div className="playlist-detail-container playlist-detail-page">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className="detail-shell">
         <aside className="detail-sidebar">
           <div className="detail-sidebar-brand">

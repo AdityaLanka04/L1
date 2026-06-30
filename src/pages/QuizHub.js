@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Swords, ChevronRight, Zap, Trophy, Target, MessageSquare, LayoutDashboard, LogOut } from 'lucide-react';
 import './QuizHub.css';
+import '../components/SocialHubChrome.css';
 import ImportExportModal from '../components/ImportExportModal';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
@@ -42,6 +43,12 @@ const QuizHub = () => {
 
   return (
     <div className="qh">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <svg className="geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
         <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
         <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.8"/>

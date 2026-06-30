@@ -169,6 +169,55 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
             continue
         flashcards_by_topic.setdefault(topic_key, []).append(card)
 
+    # Write struggling flashcard topics into UserWeakArea so they persist
+    for topic_key, cards in flashcards_by_topic.items():
+        reviewed = [c for c in cards if c.times_reviewed and c.times_reviewed >= 2]
+        if not reviewed:
+            continue
+        total_reviews = sum(c.times_reviewed for c in reviewed)
+        total_correct = sum(c.correct_count or 0 for c in reviewed)
+        acc = round((total_correct / total_reviews) * 100, 1) if total_reviews else None
+        if acc is None or acc >= 70:
+            continue
+        try:
+            existing = db.query(models.UserWeakArea).filter(
+                models.UserWeakArea.user_id == user_id,
+                models.UserWeakArea.topic == topic_key,
+            ).first()
+            if existing:
+                if (existing.accuracy or 100) > acc:
+                    existing.accuracy = acc
+                    existing.weakness_score = max(existing.weakness_score or 0, round((100 - acc) * 0.7, 1))
+                    existing.status = "needs_practice"
+                    db.commit()
+            else:
+                wa = models.UserWeakArea(
+                    user_id=user_id,
+                    topic=topic_key,
+                    total_questions=total_reviews,
+                    correct_count=total_correct,
+                    incorrect_count=total_reviews - total_correct,
+                    accuracy=acc,
+                    weakness_score=round((100 - acc) * 0.7, 1),
+                    status="needs_practice",
+                    priority=4,
+                )
+                db.add(wa)
+                db.commit()
+            if topic_key not in areas_by_topic:
+                areas_by_topic[topic_key] = _build_area_payload(
+                    topic=topic_key,
+                    accuracy=acc,
+                    total_attempts=total_reviews,
+                    total_wrong=total_reviews - total_correct,
+                    weakness_score=round((100 - acc) * 0.7, 1),
+                    priority=4,
+                    status="needs_practice",
+                    sources=["flashcard"],
+                )
+        except Exception:
+            pass
+
     for topic, area in areas_by_topic.items():
         topic_key = _normalize_topic(topic)
         cards = flashcards_by_topic.get(topic_key, [])

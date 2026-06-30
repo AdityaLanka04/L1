@@ -10,6 +10,7 @@ import { API_URL } from '../config/api';
 import { queuedAIJsonFetch } from '../services/aiJobService';
 import AbstractFx from '../components/AbstractFx';
 import './ContextFileAnalysis.css';
+import '../components/SocialHubChrome.css';
 
 const FILE_INSIGHTS_KEY = 'ctx_file_action_stats';
 const DECK_KEY = 'ctx_selected_doc_ids';
@@ -337,6 +338,12 @@ const ContextFileAnalysis = () => {
 
   return (
     <div className="cfp-root">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <BgFx />
       <div className="cfp-inner">
         <div className="cfp-topbar">

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, BookOpen, Target, Brain, Award, TrendingUp, Bell, LogOut, Trash2 } from 'lucide-react';
 import './profile.css';
+import '../components/SocialHubChrome.css';
 import { API_URL } from '../config';
 const Profile = () => {
   const token = localStorage.getItem('token');
@@ -450,6 +451,12 @@ const Profile = () => {
 
   return (
     <div className="profile-page">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className="profile-container">
         <div className="profile-grid">
           {profileData.primaryArchetype && (

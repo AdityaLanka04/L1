@@ -5,6 +5,7 @@ import CanvasMode from '../components/CanvasMode';
 import { getRelativeTime } from '../utils/dateUtils';
 import { API_URL } from '../config';
 import './CanvasHub.css';
+import '../components/SocialHubChrome.css';
 
 const STORAGE_KEY = 'cerbyl_canvases';
 
@@ -119,6 +120,12 @@ const CanvasHub = () => {
 
   return (
     <div className="ch-root">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className="ch-body">
         <div className="ch-page-header">
           <div className="ch-page-header-left">

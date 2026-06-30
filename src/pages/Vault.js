@@ -13,6 +13,7 @@ import { queuedAIJsonFetch } from '../services/aiJobService';
 import AbstractFx from '../components/AbstractFx';
 import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarStats, SidebarStatBox, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripSpacer } from '../components/Sidebar';
 import './Vault.css';
+import '../components/SocialHubChrome.css';
 
 const DECK_SIZE = 8;
 const DECK_KEY  = 'ctx_selected_doc_ids';
@@ -1747,6 +1748,12 @@ const Vault = () => {
 
   return (
     <div className="vlt-root">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <AbstractFx variant="circles" />
 
       <div className="vlt-bg-fx" aria-hidden>

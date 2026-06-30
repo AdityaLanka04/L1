@@ -328,7 +328,7 @@ const Games = () => {
         <div className="gm-bg-vignette" />
       </div>
       <header className="gm-topbar">
-        <span className="gm-topbar-tagline">learning unified</span>
+        <span className="gm-topbar-tagline"><span>LEARNING,</span> UNIFIED</span>
         <div className="gm-topbar-actions">
           <button type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
           <button type="button" onClick={() => loadAllData(localStorage.getItem('username'))}>Refresh</button>

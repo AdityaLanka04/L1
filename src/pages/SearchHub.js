@@ -4,6 +4,7 @@ import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRigh
 import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider } from '../components/Sidebar';
 import { useTheme } from '../contexts/ThemeContext';
 import './SearchHub.css';
+import '../components/SocialHubChrome.css';
 import { API_URL } from '../config/api';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
@@ -2772,6 +2773,12 @@ const SearchHub = () => {
 
   return (
     <div className="sh-root">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className="sh-bg-fx" aria-hidden>
         <div className="sh-bg-orb sh-bg-orb-1" />
         <div className="sh-bg-orb sh-bg-orb-2" />

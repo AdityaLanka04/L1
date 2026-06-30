@@ -27,6 +27,7 @@ import {
   LogOut
 } from 'lucide-react';
 import './CustomizeDashboard.css';
+import '../components/SocialHubChrome.css';
 
 const WIDGET_DEFINITIONS = {
   'ai-tutor': {
@@ -822,6 +823,12 @@ const CustomizeDashboard = () => {
 
   return (
     <div className="cd-page">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <header className="cd-header">
         <div className="cd-header-left">
           <span className="cd-logo" onClick={() => navigate('/search-hub')}>

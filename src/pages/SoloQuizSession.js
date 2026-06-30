@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, Lightbulb, RefreshCw, AlertCircle, ChevronLeft, ChevronRight , Menu} from 'lucide-react';
 import './QuizBattleSession.css';
+import '../components/SocialHubChrome.css';
 import quizAgentService from '../services/quizAgentService';
 import MathRenderer from '../components/MathRenderer';
 import { extractQuestionText, normalizeQuestions } from '../utils/quizQuestionUtils';
@@ -541,6 +542,12 @@ const SoloQuizSession = () => {
 
   return (
     <div className="battle-session-page solo-session-page">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <svg className="geo-bg" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <circle cx="600" cy="400" r="360" fill="none" stroke="currentColor" strokeWidth="1"/>
         <circle cx="600" cy="400" r="260" fill="none" stroke="currentColor" strokeWidth="0.5"/>

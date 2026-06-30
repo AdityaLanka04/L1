@@ -7,6 +7,7 @@ import {
   Layers, GitBranch, Info, AlertCircle, BarChart3, Activity
 } from 'lucide-react';
 import './Analytics.css';
+import '../components/SocialHubChrome.css';
 import { API_URL } from '../config';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 
@@ -197,6 +198,12 @@ const Analytics = () => {
 
   if (loading) return (
     <div className="an-root">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className="an-loading">
         <div className="an-spin" /><p>LOADING</p>
       </div>
@@ -211,6 +218,13 @@ const Analytics = () => {
         <div className="an-orb an-orb-2" />
         <div className="an-orb an-orb-3" />
         <div className="an-grid-texture" />
+      </div>
+
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
       </div>
 
       <div className="an-shell">

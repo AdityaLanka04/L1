@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Clock, Target, Trophy, CheckCircle, XCircle, Loader , Menu} from 'lucide-react';
 import './QuizBattleSession.css';
+import '../components/SocialHubChrome.css';
 import { API_URL } from '../config';
 import { queuedAIJsonFetch } from '../services/aiJobService';
 import useSharedWebSocket from '../hooks/useSharedWebSocket';
@@ -523,6 +524,12 @@ const QuizBattleSession = () => {
 
   return (
     <div className="battle-session-page">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       {/* Live opponent notification */}
       {opponentNotification && (
         <div className={`opponent-notification ${opponentNotification.isCorrect ? 'correct' : 'incorrect'}`}>

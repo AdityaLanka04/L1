@@ -9,6 +9,7 @@ import { API_URL } from '../config/api';
 import contextService from '../services/contextService';
 import { useNavigate } from 'react-router-dom';
 import './Atlas.css';
+import '../components/SocialHubChrome.css';
 
 const PLANET_VERT = `
   varying vec2 vUv; varying vec3 vNormal; varying vec3 vViewDir;
@@ -805,6 +806,12 @@ export default function Atlas(){
   
   return (
     <div className="atl-root">
+      <div className="shc-topbar" style={{position:'fixed',top:0,left:0,right:0,zIndex:10,background:'rgba(10,8,6,0.7)',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)'}}>
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div ref={canvasRef} className="atl-canvas"/>
 
       {}

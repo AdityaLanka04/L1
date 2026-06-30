@@ -15,6 +15,7 @@ import {
 import contextService from '../services/contextService';
 import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider } from '../components/Sidebar';
 import './ContextHub.css';
+import '../components/SocialHubChrome.css';
 
 const FlagUK = ({ size = 28 }) => (
   <svg
@@ -1814,6 +1815,12 @@ export default function ContextHub() {
 
   return (
     <div className="ch-page" data-view={view}>
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className="ch-layout">
         <Sidebar />
         <main className="ch-main">

@@ -32,6 +32,7 @@ import { gsap } from 'gsap';
 import confetti from 'canvas-confetti';
 import * as PIXI from 'pixi.js';
 import './XPRoadmap.css';
+import '../components/SocialHubChrome.css';
 
 const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '');
 
@@ -766,6 +767,12 @@ const XPRoadmap = () => {
   if (loading) {
     return (
       <div className="xpv-loading">
+        <div className="shc-topbar">
+          <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+          <div className="shc-topbar-right">
+            <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+          </div>
+        </div>
         <div className="xpv-loader-core" aria-hidden="true">
           <span className="xpv-loader-ring xpv-loader-ring--outer" />
           <span className="xpv-loader-ring xpv-loader-ring--inner" />
@@ -783,6 +790,13 @@ const XPRoadmap = () => {
         <div className="xpv-bg-orb xpv-bg-orb-2" />
         <div className="xpv-bg-dots" />
         <div className="xpv-bg-vignette" />
+      </div>
+
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
       </div>
 
       {levelWave && <div className="xpv-level-wave" aria-hidden="true" />}

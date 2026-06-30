@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, Target, Brain, MessageSquare,
-  CheckCircle, Activity, Zap, RefreshCw, Cpu
+  CheckCircle, Activity, Zap, RefreshCw, Cpu,
+  LayoutDashboard, TrendingUp, Clock, FileText, Layers, MessageCircle, BookOpen
 } from 'lucide-react';
 import './Weaknesses.css';
 import { API_URL } from '../config';
@@ -20,6 +21,20 @@ const Weaknesses = () => {
   const [weakAreasData, setWeakAreasData] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activityFeed, setActivityFeed] = useState(null);
+  const [activityLoading, setActivityLoading] = useState(false);
+
+  const loadActivityFeed = async () => {
+    setActivityLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/study_insights/activity_feed?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) setActivityFeed(await res.json());
+    } catch (e) { /* silenced */ } finally {
+      setActivityLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!token) {
@@ -40,7 +55,7 @@ const Weaknesses = () => {
         setWeakAreasData(data);
       }
     } catch (error) {
-      console.error('Error loading weak areas:', error); 
+      console.error('Error loading weak areas:', error);
     } finally {
       setLoading(false);
     }
@@ -116,91 +131,122 @@ const Weaknesses = () => {
         <circle cx="1000" cy="600" r="2" fill="currentColor"/>
         <circle cx="1040" cy="560" r="1.5" fill="currentColor"/>
       </svg>
+
       <div className="wk-topbar">
-        <div className="wk-topbar-tagline">Learning Unified</div>
-        <div className="wk-topbar-actions">
-          <button className="wk-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-          </button>
-          <button className="wk-top-btn" type="button" onClick={loadWeakAreas}>
-            Refresh
-          </button>
-          <button className="wk-top-btn" type="button" onClick={() => setSidebarCollapsed(prev => !prev)}>
-            {sidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
-          </button>
-          <button className="wk-top-btn wk-top-btn-accent" type="button" onClick={() => navigate('/weakness-practice')}>
-            Practice
-          </button>
-        </div>
+        <div className="wk-topbar-tagline"><span>LEARNING,</span> UNIFIED</div>
       </div>
 
       <div className={`wk-layout ${sidebarCollapsed ? 'wk-layout-collapsed' : ''}`}>
-        {!sidebarCollapsed && (
-        <aside className="wk-sidebar">
-          <button
-            className="wk-side-collapse-btn"
-            type="button"
-            title="Hide sidebar"
-            aria-label="Hide Weak Areas sidebar"
-            onClick={() => setSidebarCollapsed(true)}
-          >
-            <ChevronLeft size={14} />
-          </button>
-          <nav className="wk-sidebar-nav">
+        {sidebarCollapsed ? (
+          <aside className="wk-sidebar-collapsed">
             <button
-              className={`wk-sidebar-item ${activeView === 'weak-areas' ? 'active' : ''}`}
-              onClick={() => setActiveView('weak-areas')}
+              className="wk-side-expand-btn"
+              type="button"
+              title="Expand sidebar"
+              onClick={() => setSidebarCollapsed(false)}
             >
+              <ChevronRight size={14} />
+            </button>
+            <button className="wk-side-icon-btn" title="Weak Areas" onClick={() => { setSidebarCollapsed(false); setActiveView('weak-areas'); }}>
               <Activity size={16} />
-              <span>Weak Areas</span>
-              {totalCount > 0 && <span className="wk-count">{totalCount}</span>}
             </button>
-            <button
-              className={`wk-sidebar-item ${activeView === 'intelligence' ? 'active' : ''}`}
-              onClick={() => setActiveView('intelligence')}
-            >
+            <button className="wk-side-icon-btn" title="Intelligence" onClick={() => { setSidebarCollapsed(false); setActiveView('intelligence'); }}>
               <Cpu size={16} />
-              <span>Intelligence</span>
             </button>
-            <button
-              className={`wk-sidebar-item ${activeView === 'how-i-learn' ? 'active' : ''}`}
-              onClick={() => setActiveView('how-i-learn')}
-            >
+            <button className="wk-side-icon-btn" title="How I Learn" onClick={() => { setSidebarCollapsed(false); setActiveView('how-i-learn'); }}>
               <Brain size={16} />
-              <span>How I Learn</span>
             </button>
-          </nav>
-
-          {activeView === 'weak-areas' && (
-            <button className="wk-nav-btn wk-nav-btn-accent" onClick={loadWeakAreas} style={{margin:'8px 12px',width:'calc(100% - 24px)'}}>
-              <RefreshCw size={15} />
-              Refresh
+            <button className="wk-side-icon-btn" title="Activity" onClick={() => { setSidebarCollapsed(false); setActiveView('activity'); if (!activityFeed) loadActivityFeed(); }}>
+              <Clock size={16} />
             </button>
-          )}
+            <button className="wk-side-icon-btn" title="Dashboard" onClick={() => navigate('/dashboard-cerbyl')}>
+              <LayoutDashboard size={16} />
+            </button>
+            <button className="wk-side-icon-btn wk-side-icon-btn--accent" title="Dashboard" onClick={() => navigate('/dashboard-cerbyl')}>
+              <LayoutDashboard size={16} />
+            </button>
+          </aside>
+        ) : (
+          <aside className="wk-sidebar">
+            <button
+              className="wk-side-collapse-btn"
+              type="button"
+              title="Hide sidebar"
+              aria-label="Hide Weak Areas sidebar"
+              onClick={() => setSidebarCollapsed(true)}
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <nav className="wk-sidebar-nav">
+              <button
+                className={`wk-sidebar-item ${activeView === 'weak-areas' ? 'active' : ''}`}
+                onClick={() => setActiveView('weak-areas')}
+              >
+                <Activity size={16} />
+                <span>Weak Areas</span>
+                {totalCount > 0 && <span className="wk-count">{totalCount}</span>}
+              </button>
+              <button
+                className={`wk-sidebar-item ${activeView === 'intelligence' ? 'active' : ''}`}
+                onClick={() => setActiveView('intelligence')}
+              >
+                <Cpu size={16} />
+                <span>Intelligence</span>
+              </button>
+              <button
+                className={`wk-sidebar-item ${activeView === 'how-i-learn' ? 'active' : ''}`}
+                onClick={() => setActiveView('how-i-learn')}
+              >
+                <Brain size={16} />
+                <span>How I Learn</span>
+              </button>
+              <button
+                className={`wk-sidebar-item ${activeView === 'activity' ? 'active' : ''}`}
+                onClick={() => { setActiveView('activity'); if (!activityFeed) loadActivityFeed(); }}
+              >
+                <Clock size={16} />
+                <span>Activity</span>
+              </button>
+              <button className="wk-sidebar-item" onClick={() => navigate('/dashboard-cerbyl')}>
+                <LayoutDashboard size={16} />
+                <span>Dashboard</span>
+              </button>
+            </nav>
 
-          {activeView === 'weak-areas' && totalCount > 0 && (
-            <div className="wk-sidebar-stats">
-              {criticalCount > 0 && (
-                <div className="wk-stat-pill wk-stat-critical">
-                  <span className="wk-stat-num">{criticalCount}</span>
-                  <span className="wk-stat-lbl">Critical</span>
-                </div>
-              )}
-              {needsPracticeCount > 0 && (
-                <div className="wk-stat-pill wk-stat-practice">
-                  <span className="wk-stat-num">{needsPracticeCount}</span>
-                  <span className="wk-stat-lbl">Practice</span>
-                </div>
-              )}
-              {improvingCount > 0 && (
-                <div className="wk-stat-pill wk-stat-improving">
-                  <span className="wk-stat-num">{improvingCount}</span>
-                  <span className="wk-stat-lbl">Improving</span>
-                </div>
-              )}
+            <div className="wk-sidebar-actions">
+              <button className="wk-nav-btn" onClick={loadWeakAreas}>
+                <RefreshCw size={15} />
+                Refresh
+              </button>
+              <button className="wk-nav-btn wk-nav-btn-accent" onClick={() => navigate('/dashboard-cerbyl')}>
+                <LayoutDashboard size={15} />
+                Dashboard
+              </button>
             </div>
-          )}
-        </aside>
+
+            {activeView === 'weak-areas' && totalCount > 0 && (
+              <div className="wk-sidebar-stats">
+                {criticalCount > 0 && (
+                  <div className="wk-stat-pill wk-stat-critical">
+                    <span className="wk-stat-num">{criticalCount}</span>
+                    <span className="wk-stat-lbl">Critical</span>
+                  </div>
+                )}
+                {needsPracticeCount > 0 && (
+                  <div className="wk-stat-pill wk-stat-practice">
+                    <span className="wk-stat-num">{needsPracticeCount}</span>
+                    <span className="wk-stat-lbl">Practice</span>
+                  </div>
+                )}
+                {improvingCount > 0 && (
+                  <div className="wk-stat-pill wk-stat-improving">
+                    <span className="wk-stat-num">{improvingCount}</span>
+                    <span className="wk-stat-lbl">Improving</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </aside>
         )}
 
         <main className="wk-main">
@@ -285,6 +331,28 @@ const Weaknesses = () => {
               </div>
             </>
           )}
+
+          {activeView === 'activity' && (
+            <>
+              <div className="wk-view-header">
+                <span className="wk-view-kicker">Recent Activity</span>
+                <h2 className="wk-view-title">Activity Feed</h2>
+                <p className="wk-view-sub">Everything you've studied — chats, notes, flashcards, quizzes</p>
+              </div>
+              {activityLoading ? (
+                <div className="wk-loading"><div className="wk-loading-dots"><span /><span /><span /></div><p>LOADING ACTIVITY</p></div>
+              ) : activityFeed?.activities?.length > 0 ? (
+                <div className="wk-activity-feed">
+                  {activityFeed.activities.map((act, i) => <ActivityRow key={i} act={act} />)}
+                </div>
+              ) : (
+                <div className="wk-empty">
+                  <Clock size={32} />
+                  <p>No activity yet. Start studying to see your feed here.</p>
+                </div>
+              )}
+            </>
+          )}
         </main>
       </div>
     </div>
@@ -296,6 +364,7 @@ export default Weaknesses;
 // ==================== WEAKNESS CARD ====================
 
 const WeaknessCard = ({ area, onClick }) => {
+  const navigate = useNavigate();
   const cat = area.category;
   const accuracy = area.accuracy ?? 0;
 
@@ -311,38 +380,41 @@ const WeaknessCard = ({ area, onClick }) => {
     improving: 'Improving',
   }[cat] || cat;
 
+  const CoverIcon = {
+    critical: Target,
+    needs_practice: Brain,
+    improving: TrendingUp,
+  }[cat] || Target;
+
   const hasMetrics = area.sources?.includes('quiz') || area.sources?.includes('flashcard');
   const correct = (area.total_attempts || 0) - (area.total_wrong || 0);
 
   return (
     <div className={`wk-card wk-card--${cat}`} onClick={onClick}>
-      <div className="wk-card-header">
-        <div className="wk-card-badges">
-          {area.sources?.includes('quiz') && <span className="wk-badge wk-badge--quiz">Quiz</span>}
-          {area.sources?.includes('flashcard') && <span className="wk-badge wk-badge--card">Cards</span>}
-          {area.sources?.includes('chat') && <span className="wk-badge wk-badge--chat">Chat</span>}
+      <div
+        className="wk-card-cover"
+        style={{
+          background: `linear-gradient(135deg, color-mix(in srgb, ${catColor} 22%, transparent) 0%, color-mix(in srgb, ${catColor} 8%, transparent) 100%)`,
+        }}
+      >
+        <div className="wk-card-cover-icon" style={{ color: catColor }}>
+          <CoverIcon size={40} />
         </div>
-        <span className="wk-card-cat" style={{ color: catColor }}>{catLabel}</span>
       </div>
 
-      <h3 className="wk-card-topic">{area.topic || 'Unknown Topic'}</h3>
+      <div className="wk-card-content">
+        <h3 className="wk-card-topic">{area.topic || 'Unknown Topic'}</h3>
 
-      {area.chat_analysis?.is_doubtful && (
-        <p className="wk-card-hint">
-          <MessageSquare size={11} />
-          Asked {area.chat_analysis.mentions} time{area.chat_analysis.mentions !== 1 ? 's' : ''} in chat
-        </p>
-      )}
+        <div className="wk-card-header">
+          <div className="wk-card-badges">
+            {area.sources?.includes('quiz') && <span className="wk-badge wk-badge--quiz">Quiz</span>}
+            {area.sources?.includes('flashcard') && <span className="wk-badge wk-badge--card">Cards</span>}
+            {area.sources?.includes('chat') && <span className="wk-badge wk-badge--chat">Chat</span>}
+          </div>
+          <span className="wk-card-cat" style={{ color: catColor }}>{catLabel}</span>
+        </div>
 
-      {area.flashcard_performance?.is_weak && (area.flashcard_performance?.struggling_cards?.length > 0) && (
-        <p className="wk-card-hint">
-          <Brain size={11} />
-          {area.flashcard_performance.struggling_cards.length} struggling card{area.flashcard_performance.struggling_cards.length !== 1 ? 's' : ''}
-        </p>
-      )}
-
-      {hasMetrics && (
-        <>
+        {hasMetrics && (
           <div className="wk-card-bar-wrap">
             <div className="wk-card-bar-track">
               <div
@@ -352,7 +424,9 @@ const WeaknessCard = ({ area, onClick }) => {
             </div>
             <span className="wk-card-pct" style={{ color: catColor }}>{accuracy}%</span>
           </div>
+        )}
 
+        {hasMetrics && (
           <div className="wk-card-metrics">
             <div className="wk-metric">
               <span className="wk-metric-val" style={{ color: '#10b981' }}>{correct}</span>
@@ -364,19 +438,67 @@ const WeaknessCard = ({ area, onClick }) => {
             </div>
             <div className="wk-metric">
               <span className="wk-metric-val">{area.total_attempts || 0}</span>
-              <span className="wk-metric-lbl">Total</span>
+              <span className="wk-metric-lbl">Attempts</span>
             </div>
           </div>
-        </>
-      )}
+        )}
 
-      <button
-        className="wk-card-btn"
-        onClick={(e) => { e.stopPropagation(); onClick(); }}
-      >
-        <Target size={13} />
-        Analyze
-      </button>
+        <div className="wk-card-action-row">
+          <button
+            className="wk-card-btn wk-card-btn--practice"
+            onClick={(e) => { e.stopPropagation(); navigate(`/weakness-tips/${encodeURIComponent(area.topic)}`); }}
+          >
+            Practice
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==================== ACTIVITY ROW ====================
+
+const ACTIVITY_ICONS = {
+  chat: MessageCircle,
+  note: FileText,
+  flashcard: Layers,
+  quiz: CheckCircle,
+  weak_area: Target,
+};
+const ACTIVITY_COLORS = {
+  chat: '#6366f1',
+  note: '#3b82f6',
+  flashcard: '#8b5cf6',
+  quiz: '#10b981',
+  weak_area: '#ef4444',
+};
+
+const fmtTs = (ts) => {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  return `${Math.floor(diffHr / 24)}d ago`;
+};
+
+const ActivityRow = ({ act }) => {
+  const Icon = ACTIVITY_ICONS[act.type] || Activity;
+  const color = ACTIVITY_COLORS[act.type] || '#6b7280';
+  return (
+    <div className="wk-act-row">
+      <div className="wk-act-icon" style={{ color }}><Icon size={15} /></div>
+      <div className="wk-act-body">
+        <span className="wk-act-topic">{act.topic}</span>
+        {act.detail ? <span className="wk-act-detail">{act.detail}</span> : null}
+      </div>
+      <div className="wk-act-meta">
+        <span className="wk-act-type">{act.type}</span>
+        <span className="wk-act-ts">{fmtTs(act.ts)}</span>
+      </div>
     </div>
   );
 };

@@ -6,6 +6,7 @@ import {
   MessageSquare, LayoutDashboard, LogOut
 } from 'lucide-react';
 import './SoloQuiz.css';
+import '../components/SocialHubChrome.css';
 import quizAgentService from '../services/quizAgentService';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
@@ -125,6 +126,12 @@ const SoloQuiz = () => {
 
   return (
     <div className="sq-page">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className={`sq-body ${sidebarCollapsed ? 'sq-body--collapsed' : ''}`}>
         <SidebarShell
           collapsed={sidebarCollapsed}

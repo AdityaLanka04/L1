@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, Search, Filter, FileText, Layout, Settings, ArrowLeft, MessageSquare, LayoutDashboard, LogOut, Menu} from 'lucide-react';
 import './NotesDashboard.css';
+import '../components/SocialHubChrome.css';
 import DatabaseViews from '../components/DatabaseViews';
 import AdvancedSearch from '../components/AdvancedSearch';
 import Templates from '../components/Templates';
@@ -191,6 +192,12 @@ const NotesDashboard = () => {
 
   return (
     <div className="notes-dashboard" style={{ fontFamily: selectedFont }}>
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className="ndb-qb-body">
         <button
           className="ndb-qb-mobile-menu-btn"

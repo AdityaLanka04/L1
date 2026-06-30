@@ -868,6 +868,56 @@ async def submit_question_answers(
         except Exception as _ae:
             logger.debug(f"[Quiz] agent event skipped: {_ae}")
 
+        # ── Write to UserWeakArea so Weaknesses page always has data ──
+        if topic:
+            try:
+                from datetime import timezone as _tz
+                _now = datetime.now(_tz.utc)
+                _existing = db.query(models.UserWeakArea).filter(
+                    models.UserWeakArea.user_id == question_set.user_id,
+                    models.UserWeakArea.topic == topic[:255],
+                ).first()
+                if _existing:
+                    _total = (_existing.total_questions or 0) + len(questions)
+                    _correct = (_existing.correct_count or 0) + correct_count
+                    _wrong = (_existing.incorrect_count or 0) + incorrect_count
+                    _acc = round(_correct / _total * 100, 1) if _total else 0.0
+                    _existing.total_questions = _total
+                    _existing.correct_count = _correct
+                    _existing.incorrect_count = _wrong
+                    _existing.accuracy = _acc
+                    _existing.weakness_score = max(_existing.weakness_score or 0.0, round((100 - _acc) * 0.8, 1))
+                    _existing.last_practiced = _now
+                    if score < 60:
+                        _existing.consecutive_wrong = (_existing.consecutive_wrong or 0) + incorrect_count
+                        _existing.status = "critical" if _acc < 50 else "needs_practice"
+                        _existing.priority = min(10, (_existing.priority or 5) + 1)
+                    elif score >= 80:
+                        _existing.status = "improving"
+                        _existing.improvement_rate = min(1.0, (_existing.improvement_rate or 0.0) + 0.1)
+                    db.commit()
+                elif score < 75:
+                    _status = "critical" if score < 50 else "needs_practice"
+                    _wa = models.UserWeakArea(
+                        user_id=question_set.user_id,
+                        topic=topic[:255],
+                        total_questions=len(questions),
+                        correct_count=correct_count,
+                        incorrect_count=incorrect_count,
+                        accuracy=round(score, 1),
+                        weakness_score=round((100 - score) * 0.8, 1),
+                        consecutive_wrong=incorrect_count,
+                        practice_sessions=1,
+                        last_practiced=_now,
+                        improvement_rate=0.0,
+                        status=_status,
+                        priority=8 if score < 50 else 5,
+                    )
+                    db.add(_wa)
+                    db.commit()
+            except Exception as _we:
+                logger.warning(f"UserWeakArea write failed: {_we}")
+
         return {
             "status": "success",
             "score": round(score, 1),

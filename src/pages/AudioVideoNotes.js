@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader, ArrowLeft, MessageSquare, LayoutDashboard, LogOut, Headphones, FolderOpen, Menu } from 'lucide-react';
 import './AudioVideoNotes.css';
+import '../components/SocialHubChrome.css';
 import { API_URL } from '../config';
 import { sanitizeHtml } from '../utils/sanitize';
 import { queueLegacyAIFileEndpoint, queuedAIFormFetch } from '../services/aiJobService';
@@ -147,6 +148,12 @@ const AudioVideoNotes = () => {
 
   return (
     <div className="audio-video-notes-page">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className="avn-qb-body">
         <button
           className="avn-qb-mobile-menu-btn"

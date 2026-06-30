@@ -33,7 +33,7 @@ const SocialHubChrome = ({
   return (
     <div className="shc-shell">
         <div className="shc-topbar">
-          <div className="shc-tagline">Learning, <span>Unified</span></div>
+          <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
           {topbarAction && (
             <div className="shc-topbar-right">
               <button className="shc-top-btn" type="button" onClick={() => navigate(topbarAction.path)}>

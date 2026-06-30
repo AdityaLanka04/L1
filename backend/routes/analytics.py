@@ -8,6 +8,7 @@ from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query
+from starlette.concurrency import run_in_threadpool
 
 try:
     from services.redis_cache import get_analytics as _cache_get, set_analytics as _cache_set
@@ -1433,6 +1434,74 @@ async def get_strengths_weaknesses(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal server error")
 
+@router.get("/study_insights/activity_feed")
+async def get_activity_feed(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        activities = []
+
+        chats = db.query(models.ChatSession).filter(
+            models.ChatSession.user_id == user.id
+        ).order_by(models.ChatSession.updated_at.desc()).limit(30).all()
+        for s in chats:
+            activities.append({
+                "type": "chat",
+                "topic": s.title or "Chat Session",
+                "ts": s.updated_at.isoformat() if s.updated_at else None,
+                "detail": f"{len(s.messages)} messages" if hasattr(s, 'messages') else "",
+            })
+
+        notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            models.Note.is_deleted == False,
+        ).order_by(models.Note.updated_at.desc()).limit(30).all()
+        for n in notes:
+            activities.append({
+                "type": "note",
+                "topic": n.title or "Untitled Note",
+                "ts": n.updated_at.isoformat() if n.updated_at else None,
+                "detail": "",
+            })
+
+        sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id,
+        ).order_by(models.FlashcardSet.updated_at.desc()).limit(30).all()
+        for fs in sets:
+            card_count = len(fs.flashcards) if hasattr(fs, 'flashcards') else 0
+            activities.append({
+                "type": "flashcard",
+                "topic": fs.title or "Flashcard Set",
+                "ts": fs.updated_at.isoformat() if fs.updated_at else None,
+                "detail": f"{card_count} cards",
+            })
+
+        weak_areas = db.query(models.UserWeakArea).filter(
+            models.UserWeakArea.user_id == user.id,
+        ).order_by(models.UserWeakArea.last_updated.desc()).limit(30).all()
+        for wa in weak_areas:
+            activities.append({
+                "type": "quiz",
+                "topic": wa.topic,
+                "ts": (wa.last_updated or wa.first_identified).isoformat() if (wa.last_updated or wa.first_identified) else None,
+                "detail": f"{round(wa.accuracy or 0)}% accuracy · score {round(wa.weakness_score or 0)}",
+                "weakness_score": wa.weakness_score or 0,
+                "status": wa.status or "needs_practice",
+            })
+
+        activities.sort(key=lambda x: x.get("ts") or "", reverse=True)
+
+        return {"status": "success", "activities": activities[:60]}
+
+    except Exception as e:
+        logger.error(f"Error getting activity feed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @router.get("/study_insights/topic_suggestions")
 async def get_topic_suggestions(
     user_id: str = Query(...),
@@ -1441,12 +1510,47 @@ async def get_topic_suggestions(
 ):
     try:
         from services.comprehensive_weakness_analyzer import generate_topic_suggestions
+        import json as _json
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
         result = generate_topic_suggestions(db, user.id, topic, models, unified_ai)
+
+        # Replace generic tips with AI-generated topic-specific ones
+        try:
+            stats = result.get("stats", {})
+            accuracy = stats.get("accuracy", 0)
+            attempts = stats.get("attempts", 0)
+            wrong = stats.get("wrong", 0)
+            ai_prompt = f"""You are an expert study coach. A student is struggling specifically with: "{topic}".
+
+Their performance data:
+- Accuracy: {accuracy:.0f}%
+- Total attempts: {attempts}
+- Wrong answers: {wrong}
+
+Generate 3 highly specific study recommendations and 3 concise study tips for mastering "{topic}" specifically.
+Do NOT give generic advice like "use spaced repetition" or "break into subtopics."
+Instead, focus on the actual content, common pitfalls, and mental models specific to "{topic}".
+
+Return ONLY valid JSON, no markdown:
+{{"suggestions":[{{"title":"...","description":"...","priority":"high"}},{{"title":"...","description":"...","priority":"medium"}},{{"title":"...","description":"...","priority":"low"}}],"study_tips":["...","...","..."]}}"""
+
+            raw = await run_in_threadpool(unified_ai.generate, ai_prompt, 800, 0.7)
+            text = raw.strip()
+            start = text.find("{")
+            end = text.rfind("}") + 1
+            if start != -1 and end > start:
+                parsed = _json.loads(text[start:end])
+                if parsed.get("suggestions"):
+                    result["suggestions"] = parsed["suggestions"]
+                if parsed.get("study_tips"):
+                    result["study_tips"] = parsed["study_tips"]
+        except Exception as _ai_err:
+            logger.warning(f"AI tips generation failed, using fallback: {_ai_err}")
+
         return result
 
     except Exception as e:

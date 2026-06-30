@@ -6,6 +6,7 @@ import {
   Gauge, ArrowRight, AlertCircle
 } from 'lucide-react';
 import './QuizBattle.css';
+import '../components/SocialHubChrome.css';
 import { API_URL } from '../config';
 import useSharedWebSocket from '../hooks/useSharedWebSocket';
 import BattleNotification from './BattleNotification.js';
@@ -255,6 +256,12 @@ const QuizBattle = () => {
 
   return (
     <div className="qb-page">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <div className="qb-shell">
         <aside className="qb-sidebar">
           <div className="qb-sidebar-brand">

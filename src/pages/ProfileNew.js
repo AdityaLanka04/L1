@@ -4,6 +4,7 @@ import { X, Check, Pencil, Award, BarChart3, Crown, Rocket, ShieldCheck, LogOut,
 import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarStats, SidebarStatBox, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider, SidebarStripSpacer } from '../components/Sidebar';
 import { API_URL } from '../config';
 import './ProfileNew.css';
+import '../components/SocialHubChrome.css';
 
 const PRESET_PFPS = [
   { id: 'cat', label: 'Cat', src: '/pfp/cat.png' },
@@ -892,7 +893,7 @@ const ProfileNew = () => {
       <GeoBackground />
 
       <div className="pn-topbar">
-        <div className="pn-topbar-center">profile</div>
+        <div className="pn-topbar-center"><span className="shc-tagline"><span>LEARNING,</span> UNIFIED</span></div>
         <div className="pn-topbar-actions">
           <button className="pn-top-action" onClick={() => navigate('/dashboard-cerbyl')} type="button">
             <span>Dashboard</span>

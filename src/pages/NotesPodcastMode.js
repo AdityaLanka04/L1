@@ -4,6 +4,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import PodcastStudio from '../components/media/PodcastStudio';
 import conversionAgentService from '../services/conversionAgentService';
 import './NotesPodcastMode.css';
+import '../components/SocialHubChrome.css';
 
 const parseNoteIds = (raw) =>
   (raw || '')
@@ -123,6 +124,12 @@ const NotesPodcastMode = () => {
 
   return (
     <div className="npm-page">
+      <div className="shc-topbar">
+        <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
+        <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
+        </div>
+      </div>
       <PodcastStudio
         results={podcastResults}
         userName={userName}
