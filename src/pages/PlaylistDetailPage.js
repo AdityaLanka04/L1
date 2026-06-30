@@ -153,7 +153,7 @@ const PlaylistDetailPage = () => {
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.id) {
-        navigate(`/playlists/${data.id}`);
+        navigate(`/playlists/${data.uid || data.id}`);
       }
     } catch (error) { /* silenced */ } finally {
       setForkLoading(false);
@@ -435,134 +435,33 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
 
   return (
     <div className="playlist-detail-container playlist-detail-page">
+      <svg className="pdp-geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="1150" cy="180" r="460" fill="none" stroke="currentColor" strokeWidth="1"/>
+        <circle cx="1150" cy="180" r="310" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+        <circle cx="1150" cy="180" r="170" fill="none" stroke="currentColor" strokeWidth="0.4"/>
+        <circle cx="180" cy="720" r="280" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+        <circle cx="180" cy="720" r="160" fill="none" stroke="currentColor" strokeWidth="0.4"/>
+        <line x1="0" y1="0" x2="1400" y2="900" stroke="currentColor" strokeWidth="0.4"/>
+        <line x1="0" y1="900" x2="750" y2="0" stroke="currentColor" strokeWidth="0.3"/>
+        <circle cx="1150" cy="180" r="4" fill="currentColor" opacity="0.5"/>
+        <circle cx="180" cy="720" r="3" fill="currentColor" opacity="0.5"/>
+        <circle cx="700" cy="450" r="2.5" fill="currentColor" opacity="0.4"/>
+        <circle cx="400" cy="130" r="2" fill="currentColor" opacity="0.3"/>
+        <circle cx="1050" cy="700" r="2" fill="currentColor" opacity="0.3"/>
+      </svg>
       <div className="shc-topbar">
         <div className="shc-tagline"><span>LEARNING,</span> UNIFIED</div>
         <div className="shc-topbar-right">
+          <button className="shc-top-btn" type="button" onClick={() => navigate('/playlists')}>Playlists</button>
           <button className="shc-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>Dashboard</button>
         </div>
       </div>
-      <div className="detail-shell">
-        <aside className="detail-sidebar">
-          <div className="detail-sidebar-brand">
-            <div className="detail-sidebar-logo">cerbyl</div>
-            <div className="detail-sidebar-kicker">PLAYLIST</div>
-          </div>
+      <div className="detail-main">
 
-          <button className="detail-sidebar-back" onClick={() => navigate('/playlists')}>
-            <ChevronRight size={14} />
-            <span>All Playlists</span>
-          </button>
-
-          <div className="detail-sidebar-divider"></div>
-
-          <div className="detail-sidebar-section">
-            <h3 className="detail-sidebar-heading">Actions</h3>
-            {playlist.is_owner ? (
-              <>
-                <button className="detail-sidebar-action primary" onClick={() => setShowAddItemModal(true)}>
-                  <Plus size={16} />
-                  <span>Add Item</span>
-                </button>
-                <button className="detail-sidebar-action" onClick={() => setShowShareModal(true)}>
-                  <Share2 size={16} />
-                  <span>Share</span>
-                </button>
-                <button
-                  className="detail-sidebar-action danger"
-                  onClick={handleDeletePlaylist}
-                  disabled={deleteLoading}
-                >
-                  <Trash2 size={16} />
-                  <span>{deleteLoading ? 'Deleting' : 'Delete'}</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className={`detail-sidebar-action ${isFollowing ? 'success' : 'primary'}`}
-                  onClick={handleFollowToggle}
-                  disabled={followLoading}
-                >
-                  {isFollowing ? <Check size={16} /> : <Heart size={16} />}
-                  <span>{followLoading ? 'Loading' : isFollowing ? 'Following' : 'Follow'}</span>
-                </button>
-                <button className="detail-sidebar-action" onClick={() => setShowShareModal(true)}>
-                  <Share2 size={16} />
-                  <span>Share</span>
-                </button>
-                <button className="detail-sidebar-action" onClick={handleForkPlaylist} disabled={forkLoading}>
-                  <GitFork size={16} />
-                  <span>{forkLoading ? 'Forking' : 'Fork'}</span>
-                </button>
-              </>
-            )}
-          </div>
-
-          <div className="detail-sidebar-divider"></div>
-
-          <div className="detail-sidebar-section">
-            <h3 className="detail-sidebar-heading">AI Tools</h3>
-            <button
-              className="detail-sidebar-action"
-              onClick={handleGenerateNotes}
-              disabled={aiLoading.notes || allItems.length === 0}
-            >
-              {aiLoading.notes ? <span className="detail-btn-spinner" /> : <FileText size={16} />}
-              <span>{aiLoading.notes ? 'Generating' : 'Notes'}</span>
-            </button>
-            <button
-              className="detail-sidebar-action"
-              onClick={handleGenerateFlashcards}
-              disabled={aiLoading.flashcards || allItems.length === 0}
-            >
-              {aiLoading.flashcards ? <span className="detail-btn-spinner" /> : <Zap size={16} />}
-              <span>{aiLoading.flashcards ? 'Generating' : 'Flashcards'}</span>
-            </button>
-            <button className="detail-sidebar-action" onClick={handleAskAI}>
-              <Sparkles size={16} />
-              <span>Ask AI</span>
-            </button>
-          </div>
-
-          <div className="detail-sidebar-progress">
-            <div className="detail-sidebar-progress-meta">
-              <span>Progress</span>
-              <strong>{Math.round(progressPercentage)}%</strong>
-            </div>
-            <div className="detail-sidebar-progress-track">
-              <div style={{ width: `${progressPercentage}%` }}></div>
-            </div>
-          </div>
-
-          <div className="detail-sidebar-stats">
-            <div className="detail-sidebar-stat">
-              <strong>{allItems.length}</strong>
-              <span>Items</span>
-            </div>
-            <div className="detail-sidebar-stat">
-              <strong>{requiredCount}</strong>
-              <span>Required</span>
-            </div>
-            <div className="detail-sidebar-stat">
-              <strong>{totalHours || 0}h</strong>
-              <span>Hours</span>
-            </div>
-          </div>
-        </aside>
-
-        <main className="detail-main">
       <div className="detail-header">
-        <div
-          className="header-banner"
-          style={{ background: `linear-gradient(135deg, ${playlist.cover_color}33 0%, ${playlist.cover_color}11 100%)` }}
-        >
-          <div className="banner-icon">
-            <BookOpen size={48} strokeWidth={1.5} />
-          </div>
-        </div>
-
         <div className="header-content">
           <div className="header-meta">
+            <span className="meta-badge meta-badge--kicker">Learning Playlist</span>
             <span className="meta-badge">
               {playlist.is_public ? <Globe size={12} /> : <Lock size={12} />}
               {playlist.is_public ? 'Public' : 'Private'}
@@ -570,43 +469,36 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
             {playlist.category && (
               <span className="meta-badge category">{playlist.category}</span>
             )}
-            {playlist.difficulty_level && (
-              <span className="meta-badge difficulty">{playlist.difficulty_level}</span>
-            )}
           </div>
 
           <h1 className="header-title">{playlist.title}</h1>
-          <p className="header-description">{playlist.description}</p>
+          {playlist.description && <p className="header-description">{playlist.description}</p>}
 
           <div className="header-stats">
             <div className="stat-item">
-              <BookOpen size={16} />
+              <BookOpen size={14} />
               <span>{playlist.items?.length || 0} items</span>
             </div>
             <div className="stat-item">
-              <Users size={16} />
+              <Users size={14} />
               <span>{playlist.follower_count || 0} followers</span>
             </div>
             {playlist.estimated_hours > 0 && (
               <div className="stat-item">
-                <Clock size={16} />
+                <Clock size={14} />
                 <span>{playlist.estimated_hours}h</span>
               </div>
             )}
-          </div>
-
-          <div className="header-creator">
-            <span className="creator-label">Created by</span>
-            {playlist.creator.picture_url ? (
-              <img src={playlist.creator.picture_url} alt="" className="creator-img" />
-            ) : (
-              <div className="creator-avatar">
-                {(playlist.creator.first_name?.[0] || playlist.creator.username[0]).toUpperCase()}
-              </div>
-            )}
-            <span className="creator-name">
-              {playlist.creator.first_name || playlist.creator.username}
-            </span>
+            <div className="stat-item stat-creator">
+              {playlist.creator.picture_url ? (
+                <img src={playlist.creator.picture_url} alt="" className="creator-img" />
+              ) : (
+                <div className="creator-avatar">
+                  {(playlist.creator.first_name?.[0] || playlist.creator.username[0]).toUpperCase()}
+                </div>
+              )}
+              <span>by {playlist.creator.first_name || playlist.creator.username}</span>
+            </div>
           </div>
 
           {progressPercentage > 0 && (
@@ -620,77 +512,70 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
               </div>
             </div>
           )}
+
+          <div className="header-actions">
+            {playlist.is_owner ? (
+              <>
+                <button className="ha-btn ha-btn--primary" type="button" onClick={() => setShowAddItemModal(true)}>
+                  <Plus size={14} /> Add Item
+                </button>
+                <button className="ha-btn" type="button" onClick={() => setShowShareModal(true)}>
+                  <Share2 size={14} /> Share
+                </button>
+                <button className="ha-btn ha-btn--danger" type="button" onClick={handleDeletePlaylist} disabled={deleteLoading}>
+                  <Trash2 size={14} /> {deleteLoading ? 'Deleting…' : 'Delete'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className={`ha-btn ${isFollowing ? 'ha-btn--success' : 'ha-btn--primary'}`}
+                  type="button" onClick={handleFollowToggle} disabled={followLoading}
+                >
+                  {isFollowing ? <Check size={14} /> : <Heart size={14} />}
+                  {followLoading ? '…' : isFollowing ? 'Following' : 'Follow'}
+                </button>
+                <button className="ha-btn" type="button" onClick={() => setShowShareModal(true)}>
+                  <Share2 size={14} /> Share
+                </button>
+                <button className="ha-btn" type="button" onClick={handleForkPlaylist} disabled={forkLoading}>
+                  <GitFork size={14} /> {forkLoading ? 'Forking…' : 'Fork'}
+                </button>
+              </>
+            )}
+            <span className="ha-sep" />
+            <button className="ha-btn ha-btn--ai" type="button" onClick={handleGenerateNotes} disabled={aiLoading.notes || allItems.length === 0}>
+              {aiLoading.notes ? <span className="detail-btn-spinner" /> : <FileText size={14} />} Notes
+            </button>
+            <button className="ha-btn ha-btn--ai" type="button" onClick={handleGenerateFlashcards} disabled={aiLoading.flashcards || allItems.length === 0}>
+              {aiLoading.flashcards ? <span className="detail-btn-spinner" /> : <Zap size={14} />} Flashcards
+            </button>
+            <button className="ha-btn ha-btn--ai" type="button" onClick={handleAskAI}>
+              <Sparkles size={14} /> Ask AI
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="detail-panels">
-        <div className="playlist-panel-card studio-card">
-          <div className="playlist-panel-header">
-            <div>
-              <span className="playlist-panel-eyebrow">Learning Studio</span>
-              <h3>AI Status</h3>
-            </div>
-            <Sparkles size={20} />
-          </div>
-
-          {aiResult && (
-            <div className={`studio-result ${aiResult.status}`}>
-              {aiResult.status === 'success' ? (
-                <>
-                  <span>AI {aiResult.type === 'notes' ? 'notes' : 'flashcards'} are ready.</span>
-                  {aiResult.type === 'notes' && aiResult.noteId && (
-                    <button onClick={() => navigate(`/notes/editor/${aiResult.noteId}`)}>
-                      Open Notes
-                    </button>
-                  )}
-                  {aiResult.type === 'flashcards' && (
-                    <button onClick={() => navigate('/flashcards')}>Open Flashcards</button>
-                  )}
-                </>
-              ) : (
-                <span>{aiResult.message}</span>
+      {aiResult && (
+        <div className={`pdp-ai-toast ${aiResult.status}`}>
+          <Sparkles size={15} />
+          {aiResult.status === 'success' ? (
+            <>
+              <span>AI {aiResult.type === 'notes' ? 'notes' : 'flashcards'} ready —</span>
+              {aiResult.type === 'notes' && aiResult.noteId && (
+                <button className="pdp-toast-link" onClick={() => navigate(`/notes/editor/${aiResult.noteId}`)}>Open Notes</button>
               )}
-              <button className="studio-close" onClick={() => setAiResult(null)}>
-                <X size={14} />
-              </button>
-            </div>
+              {aiResult.type === 'flashcards' && (
+                <button className="pdp-toast-link" onClick={() => navigate('/flashcards')}>Open Flashcards</button>
+              )}
+            </>
+          ) : (
+            <span>{aiResult.message}</span>
           )}
-
-          {!aiResult && (
-            <div className="studio-empty-state">
-              <Sparkles size={18} />
-              <span>Ready to generate notes, flashcards, or a study plan.</span>
-            </div>
-          )}
+          <button className="pdp-toast-close" onClick={() => setAiResult(null)}><X size={13} /></button>
         </div>
-
-        <div className="playlist-panel-card insights-card">
-          <div className="playlist-panel-header">
-            <div>
-              <span className="playlist-panel-eyebrow">Playlist Insights</span>
-              <h3>Snapshot</h3>
-            </div>
-          </div>
-          <div className="insights-grid">
-            <div className="insight-tile">
-              <span className="insight-label">Required Items</span>
-              <span className="insight-value">{requiredCount}</span>
-            </div>
-            <div className="insight-tile">
-              <span className="insight-label">Optional Items</span>
-              <span className="insight-value">{optionalCount}</span>
-            </div>
-            <div className="insight-tile">
-              <span className="insight-label">Total Hours</span>
-              <span className="insight-value">{totalHours || 0}h</span>
-            </div>
-            <div className="insight-tile">
-              <span className="insight-label">Completed</span>
-              <span className="insight-value">{completedItems.length}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
       <div className="detail-body">
         <div className="items-header">
@@ -828,17 +713,26 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
           </div>
         ) : (
           <div className="empty-items">
-            <BookOpen size={56} />
-            <h3>{allItems.length > 0 ? 'No matches' : 'No items yet'}</h3>
-            <p>
+            <div className="empty-icon-ring">
+              <div className="empty-icon-inner">
+                <BookOpen size={30} strokeWidth={1.5} />
+              </div>
+            </div>
+            <span className="empty-kicker">
+              {allItems.length > 0 ? 'Filter Results' : 'Empty Collection'}
+            </span>
+            <h3 className="empty-title">
+              {allItems.length > 0 ? 'No Matches Found' : 'No Items Yet'}
+            </h3>
+            <p className="empty-sub">
               {allItems.length > 0
-                ? 'Try adjusting your filters'
-                : playlist.is_owner 
-                  ? 'Start adding items to your playlist'
-                  : 'This playlist is empty'}
+                ? 'Try adjusting your filters to find what you\'re looking for'
+                : playlist.is_owner
+                  ? 'Start building your playlist — add notes, videos, quizzes and more'
+                  : 'This playlist hasn\'t been populated yet'}
             </p>
             {allItems.length > 0 && (
-              <button className="empty-btn" onClick={() => {
+              <button className="empty-action-btn" onClick={() => {
                 setItemFilter('all');
                 setShowOnlyRequired(false);
               }}>
@@ -848,7 +742,6 @@ Help me summarize the key concepts, recommend an order, and suggest a study plan
           </div>
         )}
       </div>
-        </main>
       </div>
 
       {showViewModal && itemContent && (
@@ -1082,48 +975,41 @@ const AddItemModal = ({ onClose, onAdd }) => {
 
   return (
     <div className="add-item-fullpage">
-      <div className="add-item-header">
-        <div className="add-item-header-left">
-          <p className="add-item-subtitle">ADD ITEMS TO PLAYLIST</p>
+      <div className="ai-header">
+        <div className="ai-header-left">
+          <span className="ai-kicker">Playlist</span>
+          <h1 className="ai-title">Add Items</h1>
         </div>
-        <div className="add-item-header-right">
-          <button className="add-item-close-btn" onClick={onClose}>
-            <X size={18} />
-            <span>Close</span>
-          </button>
-        </div>
+        <button className="ai-close" type="button" onClick={onClose}>
+          <X size={18} />
+        </button>
       </div>
 
       <div className="add-item-body">
         <div className="add-item-main">
           <div className="add-item-form-section">
-            <h2 className="section-heading">Item Details</h2>
+            <div className="ai-section-head">
+              <span className="ai-section-kicker">Step 1</span>
+              <h2 className="ai-section-title">Choose & Configure</h2>
+            </div>
             
             <form onSubmit={handleAddToQueue} className="add-item-form">
               <div className="form-field">
-                <label>Item Type</label>
-                <div className="type-selector-grid">
+                <label className="ai-field-label">Item Type</label>
+                <div className="ai-type-chips">
                   {itemTypes.map(type => {
                     const Icon = type.icon;
                     return (
                       <button
                         key={type.value}
                         type="button"
-                        className={`type-option-btn ${itemType === type.value ? 'active' : ''}`}
+                        className={`ai-type-chip ${itemType === type.value ? 'active' : ''}`}
                         onClick={() => {
                           setItemType(type.value);
-                          setFormData({
-                            title: '',
-                            url: '',
-                            description: '',
-                            is_required: true,
-                            notes: '',
-                            item_id: null,
-                            platform: ''
-                          });
+                          setFormData({ title: '', url: '', description: '', is_required: true, notes: '', item_id: null, platform: '' });
                         }}
                       >
-                        <Icon size={20} />
+                        <Icon size={15} />
                         <span>{type.label}</span>
                       </button>
                     );
@@ -1282,7 +1168,10 @@ const AddItemModal = ({ onClose, onAdd }) => {
         <div className="add-item-sidebar">
           <div className="queue-section">
             <div className="queue-header">
-              <h2 className="section-heading">Queue</h2>
+              <div className="ai-section-head">
+                <span className="ai-section-kicker">Step 2</span>
+                <h2 className="ai-section-title">Queue</h2>
+              </div>
               <span className="queue-count">{addedItems.length} items</span>
             </div>
 
