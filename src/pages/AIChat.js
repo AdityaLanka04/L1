@@ -751,6 +751,7 @@ const AIChat = ({ sharedMode = false }) => {
   const [activeActionKey, setActiveActionKey] = useState(null);
   const [actionNotice, setActionNotice] = useState('');
   const actionNoticeTimerRef = useRef(null);
+  const _newChatRef = useRef({ id: null, uid: null });
 
   const handleFolderCreation = async () => {
     if (!folderName.trim()) return;
@@ -1290,7 +1291,8 @@ const AIChat = ({ sharedMode = false }) => {
 
 
         setChatSessions(prev => [sessionData, ...prev]);
-        return sessionData.id;
+        _newChatRef.current = { id: sessionData.id, uid: sessionData.uid };
+        return sessionData.uid || sessionData.id;
       } else {
         console.error('❌ Failed to create chat, status:', response.status);
         return null;
@@ -1372,20 +1374,21 @@ const AIChat = ({ sharedMode = false }) => {
       setShowSearchDialog(false);
       setActiveChatId(null);
 
-      const newChatId = await createNewChat();
-      if (newChatId) {
+      await createNewChat();
+      const { id: newNumericId, uid: newChatUid } = _newChatRef.current;
+      if (newNumericId) {
         chatLoadRequestRef.current += 1;
         setMessages([]);
-        setActiveChatId(newChatId);
+        setActiveChatId(newNumericId);
         isLoadingRef.current = false;
-        navigate(`/ai-chat/${newChatId}`);
+        navigate(`/ai-chat/${newChatUid || newNumericId}`);
       }
     } finally {
       creatingChatRef.current = false;
     }
   };
 
-  const selectChat = (chatSessionId) => {
+  const selectChat = (chatSessionId, chatUid) => {
     if (chatLoadAbortRef.current) {
       chatLoadAbortRef.current.abort();
       chatLoadAbortRef.current = null;
@@ -1396,7 +1399,7 @@ const AIChat = ({ sharedMode = false }) => {
     isLoadingRef.current = false;
     setActiveChatId(chatSessionId);
     loadChatMessages(chatSessionId);
-    navigate(`/ai-chat/${chatSessionId}`);
+    navigate(`/ai-chat/${chatUid || chatSessionId}`);
   };
 
   
@@ -1407,10 +1410,18 @@ const AIChat = ({ sharedMode = false }) => {
     const hasFiles = !useOverride && selectedFiles.length > 0;
     if ((!sanitizedMessage && !hasFiles) || loading || !userName) return;
 
-    const routeChatId = chatId ? Number.parseInt(chatId, 10) : null;
-    let currentChatId = Number.isFinite(routeChatId) && routeChatId > 0
-      ? routeChatId
-      : activeChatId;
+    let currentChatId;
+    if (chatId) {
+      const numericId = Number.parseInt(chatId, 10);
+      if (Number.isFinite(numericId) && numericId > 0) {
+        currentChatId = numericId;
+      } else {
+        const match = chatSessions.find(s => s.uid === chatId || String(s.id) === chatId);
+        currentChatId = match?.id ?? activeChatId;
+      }
+    } else {
+      currentChatId = activeChatId;
+    }
     let isNewChat = false;
     
     
@@ -1431,30 +1442,32 @@ const AIChat = ({ sharedMode = false }) => {
     }
     
     if (!currentChatId) {
-      currentChatId = await createNewChat();
-      
-      if (!currentChatId) {
+      await createNewChat();
+      const { id: newId, uid: newUid } = _newChatRef.current;
+
+      if (!newId) {
         console.error('❌ Failed to create new chat');
         alert('Error: Failed to create new chat. Please try again.');
         if (!useOverride) setInputMessage(messageText);
         return;
       }
+      currentChatId = newId;
       isNewChat = true;
 
       const pendingContextIds = loadContextSelection(null);
       if (pendingContextIds.length > 0) {
         localStorage.setItem(
-          chatContextSelectionKey(currentChatId),
+          chatContextSelectionKey(newUid || newId),
           JSON.stringify(pendingContextIds)
         );
         localStorage.removeItem(chatContextSelectionKey(null));
       }
-      
+
       justSentMessageRef.current = true;
-      
-      setActiveChatId(currentChatId);
-      
-      navigate(`/ai-chat/${currentChatId}`, { replace: true });
+
+      setActiveChatId(newId);
+
+      navigate(`/ai-chat/${newUid || newId}`, { replace: true });
     } else {
       
       justSentMessageRef.current = true;
@@ -1620,7 +1633,8 @@ const AIChat = ({ sharedMode = false }) => {
         console.warn(`   Received: ${actualChatId}`);
         console.warn(`   Updating to use backend's chat_id`);
         setActiveChatId(actualChatId);
-        navigate(`/ai-chat/${actualChatId}`, { replace: true });
+        const mismatchSession = chatSessions.find(s => s.id === actualChatId);
+        navigate(`/ai-chat/${mismatchSession?.uid || actualChatId}`, { replace: true });
         currentChatId = actualChatId;
       } else {
       }
@@ -1678,14 +1692,23 @@ const AIChat = ({ sharedMode = false }) => {
   }, []);
 
   const activateChatDock = useCallback((chatSessionId = null) => {
-    const routeChatId = chatId ? Number(chatId) : 0;
+    let routeChatId = 0;
+    if (chatId) {
+      const numId = Number(chatId);
+      if (Number.isFinite(numId) && numId > 0) {
+        routeChatId = numId;
+      } else {
+        const match = chatSessions.find(s => s.uid === chatId);
+        routeChatId = match?.id ?? 0;
+      }
+    }
     const resolvedChatId = Number(chatSessionId || activeChatId || routeChatId || 0);
     if (!resolvedChatId) return;
     enableChatDock({
       chatId: resolvedChatId,
       title: 'Continue Chat',
     });
-  }, [activeChatId, chatId]);
+  }, [activeChatId, chatId, chatSessions]);
 
   const getChatActionContext = useCallback((messagesForContext = messages, chatSessionId = activeChatId) => {
     const currentSession = chatSessions.find((session) => Number(session.id) === Number(chatSessionId));
@@ -2806,8 +2829,7 @@ const AIChat = ({ sharedMode = false }) => {
 
   useEffect(() => {
     const numericChatId = chatId ? parseInt(chatId, 10) : null;
-    
-    
+
     if (numericChatId && !isNaN(numericChatId)) {
       // Skip reload if we just sent a message (to preserve messages and action buttons)
       if (justSentMessageRef.current && activeChatId === numericChatId) {
@@ -2816,13 +2838,30 @@ const AIChat = ({ sharedMode = false }) => {
         return;
       }
       justSentMessageRef.current = false;
-      
+
       // Only load messages if this is a different chat than what we have active
       if (activeChatId !== numericChatId) {
         setActiveChatId(numericChatId);
         setMessages([]);
         loadChatMessages(numericChatId);
       }
+    } else if (chatId && isNaN(numericChatId)) {
+      // uid string - resolve to numeric via chatSessions
+      const match = chatSessions.find(s => s.uid === chatId || String(s.id) === chatId);
+      if (match) {
+        if (justSentMessageRef.current && activeChatId === match.id) {
+          justSentMessageRef.current = false;
+          isLoadingRef.current = false;
+          return;
+        }
+        justSentMessageRef.current = false;
+        if (activeChatId !== match.id) {
+          setActiveChatId(match.id);
+          setMessages([]);
+          loadChatMessages(match.id);
+        }
+      }
+      // If no match yet (chatSessions not loaded), do nothing - will re-run when chatSessions loads
     } else if (chatId === undefined || chatId === null) {
       // Only reset if we're at /ai-chat with no ID (fresh start)
       // Don't reset if we just sent a message (new chat creation)
@@ -2834,7 +2873,7 @@ const AIChat = ({ sharedMode = false }) => {
       isLoadingRef.current = false;
       justSentMessageRef.current = false;
     }
-  }, [chatId]);
+  }, [chatId, chatSessions]);
 
   useEffect(() => {
     return () => {
@@ -3131,7 +3170,7 @@ const AIChat = ({ sharedMode = false }) => {
                         } ${
                           draggedChatId && draggedChatId !== session.id ? 'drag-source-dimmed' : ''
                         }`}
-                        onClick={() => selectChat(session.id)}
+                        onClick={() => selectChat(session.id, session.uid)}
                         draggable
                         onDragStart={(event) => handleChatDragStart(event, session.id)}
                         onDragEnd={handleChatDragEnd}
@@ -3216,7 +3255,7 @@ const AIChat = ({ sharedMode = false }) => {
                     <button
                       key={session.id}
                       className={`ac-search-dialog-item ${activeChatId === session.id ? 'active' : ''}`}
-                      onClick={() => { selectChat(session.id); setShowSearchDialog(false); setSearchQuery(''); }}
+                      onClick={() => { selectChat(session.id, session.uid); setShowSearchDialog(false); setSearchQuery(''); }}
                       type="button"
                     >
                       <span className="ac-search-dialog-item-icon">{Icons.chat}</span>

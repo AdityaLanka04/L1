@@ -3216,6 +3216,9 @@ const Flashcards = () => {
                               </div>
                               
                               <p className="fc-set-date-new">Created: {formatDate(set.created_at)}</p>
+                              {(set.share_code || set.id) && (
+                                <span className="fc-set-uid">#{set.share_code || set.id?.toString().padStart(6, '0')}</span>
+                              )}
                             </div>
 
                             <div className="fc-set-actions-new">
@@ -3227,10 +3230,6 @@ const Flashcards = () => {
                               </button>
                               <button className="fc-action-btn-new fc-action-study" onClick={() => loadFlashcardSet(set.id, 'study')} disabled={loadingSetId !== null}>
                                 <span>{loadingSetId === set.id ? '...' : 'STUDY'}</span>
-                              </button>
-                              <button className="fc-action-btn-new fc-action-ask" onClick={() => askAiAboutSet(set)} title={`Ask AI about ${formatTitle(set.title)}`} type="button">
-                                {FC_ICONS.chat}
-                                <span>ASK AI</span>
                               </button>
                             </div>
                           </div>
