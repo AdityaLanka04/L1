@@ -1630,7 +1630,6 @@ const LearningPathDetail = () => {
         </div>
         </div>
       </div>
-      </div>
 
       {showCompletionQuiz && (
         <div className="lpd-quiz-overlay">
