@@ -37,7 +37,6 @@ import {
   Youtube as YoutubeIcon,
 } from 'lucide-react';
 import learningPathService from '../services/learningPathService';
-import SocialHubChrome from '../components/SocialHubChrome';
 import './LearningPathDetail.css';
 
 const safeIcon = (Icon) => Icon || (() => null);
@@ -973,199 +972,108 @@ const LearningPathDetail = () => {
     return null;
   }
 
-  const sideSections = [
-    {
-      label: 'Path',
-      items: [
-        { icon: ChevronLeft, label: 'All Learning Paths', onClick: () => navigate('/learning-paths') },
-        { icon: Map, label: 'Knowledge Map', onClick: () => navigate('/knowledge-map') },
-      ],
-    },
-    {
-      label: 'Difficulty View',
-      items: [
-        {
-          icon: TrendingUp,
-          label: 'Beginner',
-          active: difficultyView === 'beginner',
-          onClick: () => handleDifficultyChange('beginner'),
-        },
-        {
-          icon: Target,
-          label: 'Intermediate',
-          active: difficultyView === 'intermediate',
-          onClick: () => handleDifficultyChange('intermediate'),
-        },
-        {
-          icon: Zap,
-          label: 'Advanced',
-          active: difficultyView === 'advanced',
-          onClick: () => handleDifficultyChange('advanced'),
-        },
-      ],
-    },
-    {
-      label: 'Progress',
-      items: [
-        { icon: CheckCircle, label: `${path.completed_nodes}/${path.total_nodes} nodes` },
-        { icon: BarChart3, label: `${Math.round(path.progress.completion_percentage)}% complete` },
-        { icon: Award, label: `${path.progress.total_xp_earned} XP earned` },
-      ],
-    },
-  ];
-
-  const footerItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard-cerbyl' },
-    { icon: MessageSquare, label: 'AI Chat', path: '/ai-chat' },
-  ];
-
   return (
-    <div className="lpd-container with-social-chrome">
+    <div className="lpd-shell">
+      {/* Geo background */}
+      <svg className="lpd-geo-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="1200" cy="150" r="420" fill="none" stroke="currentColor" strokeWidth="1"/>
+        <circle cx="1200" cy="150" r="280" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+        <circle cx="1200" cy="150" r="150" fill="none" stroke="currentColor" strokeWidth="0.4"/>
+        <circle cx="150" cy="750" r="260" fill="none" stroke="currentColor" strokeWidth="0.6"/>
+        <circle cx="150" cy="750" r="140" fill="none" stroke="currentColor" strokeWidth="0.4"/>
+        <line x1="0" y1="0" x2="1400" y2="900" stroke="currentColor" strokeWidth="0.3"/>
+        <line x1="0" y1="900" x2="700" y2="0" stroke="currentColor" strokeWidth="0.25"/>
+        <circle cx="1200" cy="150" r="4" fill="currentColor" opacity="0.5"/>
+        <circle cx="150" cy="750" r="3" fill="currentColor" opacity="0.4"/>
+      </svg>
+
       {actionLoading && (
         <div className="lpd-loading-overlay">
           <div className="lpd-loading-content">
-            <Loader className="lpd-spinner" size={48} />
-            <h3>GENERATING CONTENT</h3>
-            <p>Creating personalized learning materials</p>
+            <Loader className="lpd-spinner" size={40} />
+            <p>Generating content…</p>
           </div>
         </div>
       )}
 
-      <SocialHubChrome
-        brandKicker="Learning Path"
-        footerItems={footerItems}
-        sideSections={sideSections}
-        topbarAction={null}
-      >
-        <div className="lpd-detail-workspace">
-      <div className="lpd-header">
-        <div className="lpd-header-main">
-          <div className="lpd-title-row">
-            <h1 className="lpd-title">{path.title.toUpperCase()}</h1>
-            <button className="lpd-back-btn" onClick={() => navigate('/learning-paths')}>
-              <ChevronLeft size={16} />
-              <span>PATHS</span>
-            </button>
-          </div>
-          <p className="lpd-description">{path.description}</p>
-        </div>
-        
-        <div className="lpd-header-stats">
-          <div className="lpd-stat-badge lpd-difficulty" style={{
-            backgroundColor: path.difficulty === 'beginner' ? '#4ade80' :
-                           path.difficulty === 'advanced' ? '#f87171' : '#fbbf24'
-          }}>
-            {path.difficulty.toUpperCase()}
-          </div>
-          <div className="lpd-stat-badge">
-            <Clock size={14} />
-            <span>{Math.round(path.estimated_hours)}H</span>
-          </div>
-          <div className="lpd-stat-badge">
-            <BookOpen size={14} />
-            <span>{path.total_nodes} NODES</span>
-          </div>
-          <div className="lpd-stat-badge lpd-xp-badge">
-            <Award size={14} />
-            <span>{path.progress.total_xp_earned} XP</span>
+      {/* ── Node list sidebar ── */}
+      <aside className="lpd-sidebar">
+        <div className="lpd-sb-head">
+          <button className="lpd-sb-back" onClick={() => navigate('/learning-paths')}>
+            <ChevronLeft size={15} /> Paths
+          </button>
+          <div className="lpd-sb-path-name">{path.title}</div>
+          <div className="lpd-sb-overall">
+            <div className="lpd-sb-overall-bar">
+              <div className="lpd-sb-overall-fill" style={{ width: `${path.progress.completion_percentage}%` }} />
+            </div>
+            <span>{Math.round(path.progress.completion_percentage)}%</span>
           </div>
         </div>
 
-        <div className="lpd-progress-section">
-          <div className="lpd-progress-info">
-            <span className="lpd-progress-label">OVERALL PROGRESS</span>
-            <span className="lpd-progress-pct">{Math.round(path.progress.completion_percentage)}%</span>
-          </div>
-          <div className="lpd-progress-track">
-            <div
-              className="lpd-progress-bar"
-              style={{ width: `${path.progress.completion_percentage}%` }}
-            />
-          </div>
-          <div className="lpd-progress-details">
-            <span><CheckCircle size={14} /> {path.completed_nodes} / {path.total_nodes} completed</span>
-            <span><Award size={14} /> {path.progress.total_xp_earned} XP earned</span>
-          </div>
-        </div>
-      </div>
-
-      <div
-        ref={pathMainRef}
-        className={`lpd-main ${isResizingPathPanel ? 'lpd-main--resizing' : ''}`}
-        style={{ '--lpd-path-panel-width': `${pathPanelWidth}px` }}
-      >
-        <div className="lpd-sidebar">
-          <h3 className="lpd-sidebar-title">LEARNING PATH</h3>
-          <div className="lpd-nodes">
-            {nodes.map((node, index) => (
-              <div key={node.id} className="lpd-node-item">
-                {index < nodes.length - 1 && <div className="lpd-connector" />}
-                
-                <div
-                  className={`lpd-node ${
-                    node.progress.status === 'locked' ? 'lpd-locked' : ''
-                  } ${
-                    selectedNode?.id === node.id ? 'lpd-active' : ''
-                  }`}
-                  onClick={() => node.progress.status !== 'locked' && setSelectedNode(node)}
-                >
-                  <div className="lpd-node-icon">
-                    {getNodeStatusIcon(node.progress.status)}
-                  </div>
-                  
-                  <div className="lpd-node-content">
-                    <div className="lpd-node-header">
-                      <span className="lpd-node-num">{index + 1}</span>
-                      <h4>{node.title.toUpperCase()}</h4>
+        <nav className="lpd-sb-nodes">
+          {nodes.map((node, index) => {
+            const isActive = selectedNode?.id === node.id;
+            const isLocked = node.progress.status === 'locked';
+            const pct = node.progress.progress_pct || 0;
+            return (
+              <div
+                key={node.id}
+                className={`lpd-sb-node ${isActive ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
+                onClick={() => !isLocked && setSelectedNode(node)}
+              >
+                <div className="lpd-sb-node-icon">
+                  {node.progress.status === 'completed'
+                    ? <CheckCircle size={14} />
+                    : node.progress.status === 'in_progress'
+                    ? <Play size={14} />
+                    : isLocked
+                    ? <Lock size={14} />
+                    : <Circle size={14} />}
+                </div>
+                <div className="lpd-sb-node-body">
+                  <span className="lpd-sb-node-num">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span className="lpd-sb-node-title">{node.title}</span>
+                  {!isLocked && pct > 0 && (
+                    <div className="lpd-sb-node-bar">
+                      <div style={{ width: `${pct}%` }} />
                     </div>
-                    
-                    {node.progress.status !== 'locked' && (
-                      <div className="lpd-node-info">
-                        <span><Clock size={12} /> {node.estimated_minutes}min</span>
-                        {node.progress.xp_earned > 0 && (
-                          <span className="lpd-xp"><Award size={12} /> +{node.progress.xp_earned}</span>
-                        )}
-                        {node.progress.progress_pct > 0 && (
-                          <span className="lpd-progress-badge">{node.progress.progress_pct}%</span>
-                        )}
-                      </div>
-                    )}
-                    
-                    {(node.progress.status === 'in_progress' || (node.progress.status === 'unlocked' && node.progress.progress_pct > 0)) && (
-                      <div className="lpd-node-progress">
-                        <div className="lpd-progress-mini">
-                          <div
-                            className="lpd-progress-mini-fill"
-                            style={{ width: `${node.progress.progress_pct}%` }}
-                          />
-                        </div>
-                        <span className="lpd-progress-mini-text">{node.progress.progress_pct}%</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {selectedNode?.id === node.id && (
-                    <ChevronRight size={16} className="lpd-node-chevron" />
                   )}
                 </div>
               </div>
-            ))}
+            );
+          })}
+        </nav>
+
+        <div className="lpd-sb-footer">
+          <button className="lpd-sb-footer-btn" onClick={() => navigate('/dashboard-cerbyl')}>
+            <LayoutDashboard size={14} /> Dashboard
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main content ── */}
+      <div className="lpd-main-wrap">
+        {/* Hero header */}
+        <div className="lpd-hero">
+          <div className="lpd-hero-left">
+            <span className="lpd-hero-kicker">LEARNING PATH</span>
+            <h1 className="lpd-hero-title">{path.title}</h1>
+            {path.description && <p className="lpd-hero-desc">{path.description}</p>}
+          </div>
+          <div className="lpd-hero-right">
+            <div className="lpd-hero-pills">
+              <span className={`lpd-hero-pill lpd-hero-pill--${path.difficulty}`}>{path.difficulty}</span>
+              <span className="lpd-hero-pill"><Clock size={12} /> {Math.round(path.estimated_hours)}h</span>
+              <span className="lpd-hero-pill"><BookOpen size={12} /> {path.completed_nodes}/{path.total_nodes} nodes</span>
+              <span className="lpd-hero-pill lpd-hero-pill--xp"><Award size={12} /> {path.progress.total_xp_earned} XP</span>
+            </div>
           </div>
         </div>
 
-        <div
-          className="lpd-splitter"
-          role="separator"
-          aria-label="Resize learning path list"
-          aria-orientation="vertical"
-          aria-valuemin={PATH_PANEL_MIN_WIDTH}
-          aria-valuemax={PATH_PANEL_MAX_WIDTH}
-          aria-valuenow={pathPanelWidth}
-          tabIndex={0}
-          onPointerDown={handlePathPanelResizeStart}
-          onKeyDown={handlePathPanelResizeKeyDown}
-        />
-
+        <div className="lpd-main" ref={pathMainRef}>
         <div className="lpd-details">
           {selectedNode ? (
             <>
@@ -1720,9 +1628,9 @@ const LearningPathDetail = () => {
             </div>
           )}
         </div>
+        </div>
       </div>
       </div>
-      </SocialHubChrome>
 
       {showCompletionQuiz && (
         <div className="lpd-quiz-overlay">
