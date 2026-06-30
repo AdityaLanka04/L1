@@ -9,9 +9,19 @@ from sqlalchemy.orm import Session
 
 import models
 from deps import get_current_user, get_db, get_user_by_email, get_user_by_username
+from uid_utils import resolve_by_id_or_uid
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["playlists"])
+
+
+def _resolve_playlist(db: Session, playlist_id: str) -> models.LearningPlaylist:
+    playlist = resolve_by_id_or_uid(
+        db.query(models.LearningPlaylist), models.LearningPlaylist, str(playlist_id), uid_field="uid"
+    ).first()
+    if not playlist:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+    return playlist
 
 class PlaylistCreateRequest(BaseModel):
     model_config = {"extra": "ignore"}
@@ -119,6 +129,7 @@ async def get_playlists(
 
             result.append({
                 "id": p.id,
+                "uid": p.uid,
                 "title": p.title,
                 "description": p.description,
                 "category": p.category,
@@ -179,6 +190,7 @@ async def create_playlist(
 
         return {
             "id": new_playlist.id,
+            "uid": new_playlist.uid,
             "title": new_playlist.title,
             "description": new_playlist.description,
             "category": new_playlist.category,
@@ -201,35 +213,30 @@ async def create_playlist(
 
 @router.delete("/playlists/{playlist_id}")
 async def delete_playlist(
-    playlist_id: int,
+    playlist_id: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        playlist = db.query(models.LearningPlaylist).filter(
-            models.LearningPlaylist.id == playlist_id
-        ).first()
-
-        if not playlist:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+        playlist = _resolve_playlist(db, playlist_id)
 
         if playlist.creator_id != current_user.id:
             raise HTTPException(status_code=403, detail="Only creator can delete playlist")
 
         db.query(models.PlaylistFollower).filter(
-            models.PlaylistFollower.playlist_id == playlist_id
+            models.PlaylistFollower.playlist_id == playlist.id
         ).delete(synchronize_session=False)
         db.query(models.PlaylistFork).filter(
             or_(
-                models.PlaylistFork.original_playlist_id == playlist_id,
-                models.PlaylistFork.forked_playlist_id == playlist_id,
+                models.PlaylistFork.original_playlist_id == playlist.id,
+                models.PlaylistFork.forked_playlist_id == playlist.id,
             )
         ).delete(synchronize_session=False)
         db.query(models.PlaylistCollaborator).filter(
-            models.PlaylistCollaborator.playlist_id == playlist_id
+            models.PlaylistCollaborator.playlist_id == playlist.id
         ).delete(synchronize_session=False)
         db.query(models.PlaylistComment).filter(
-            models.PlaylistComment.playlist_id == playlist_id
+            models.PlaylistComment.playlist_id == playlist.id
         ).delete(synchronize_session=False)
 
         db.delete(playlist)
@@ -245,25 +252,20 @@ async def delete_playlist(
 
 @router.get("/playlists/{playlist_id}")
 async def get_playlist_detail(
-    playlist_id: int,
+    playlist_id: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        playlist = db.query(models.LearningPlaylist).filter(
-            models.LearningPlaylist.id == playlist_id
-        ).first()
-
-        if not playlist:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+        playlist = _resolve_playlist(db, playlist_id)
 
         items = db.query(models.PlaylistItem).filter(
-            models.PlaylistItem.playlist_id == playlist_id
+            models.PlaylistItem.playlist_id == playlist.id
         ).order_by(models.PlaylistItem.order_index).all()
 
         follower = db.query(models.PlaylistFollower).filter(
             and_(
-                models.PlaylistFollower.playlist_id == playlist_id,
+                models.PlaylistFollower.playlist_id == playlist.id,
                 models.PlaylistFollower.user_id == current_user.id,
             )
         ).first()
@@ -280,6 +282,7 @@ async def get_playlist_detail(
 
         return {
             "id": playlist.id,
+            "uid": playlist.uid,
             "title": playlist.title,
             "description": playlist.description,
             "category": playlist.category,
@@ -328,28 +331,23 @@ async def get_playlist_detail(
 
 @router.post("/playlists/{playlist_id}/items")
 async def add_playlist_item(
-    playlist_id: int,
+    playlist_id: str,
     item_data: PlaylistItemRequest,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        playlist = db.query(models.LearningPlaylist).filter(
-            models.LearningPlaylist.id == playlist_id
-        ).first()
-
-        if not playlist:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+        playlist = _resolve_playlist(db, playlist_id)
 
         if playlist.creator_id != current_user.id:
             raise HTTPException(status_code=403, detail="Only creator can add items")
 
         max_order = db.query(func.max(models.PlaylistItem.order_index)).filter(
-            models.PlaylistItem.playlist_id == playlist_id
+            models.PlaylistItem.playlist_id == playlist.id
         ).scalar() or -1
 
         item = models.PlaylistItem(
-            playlist_id=playlist_id,
+            playlist_id=playlist.id,
             order_index=max_order + 1,
             item_type=item_data.item_type,
             item_id=item_data.item_id,
@@ -376,18 +374,13 @@ async def add_playlist_item(
 
 @router.delete("/playlists/{playlist_id}/items/{item_id}")
 async def delete_playlist_item(
-    playlist_id: int,
+    playlist_id: str,
     item_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        playlist = db.query(models.LearningPlaylist).filter(
-            models.LearningPlaylist.id == playlist_id
-        ).first()
-
-        if not playlist:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+        playlist = _resolve_playlist(db, playlist_id)
 
         if playlist.creator_id != current_user.id:
             raise HTTPException(status_code=403, detail="Only creator can delete items")
@@ -395,7 +388,7 @@ async def delete_playlist_item(
         item = db.query(models.PlaylistItem).filter(
             and_(
                 models.PlaylistItem.id == item_id,
-                models.PlaylistItem.playlist_id == playlist_id,
+                models.PlaylistItem.playlist_id == playlist.id,
             )
         ).first()
 
@@ -415,21 +408,16 @@ async def delete_playlist_item(
 
 @router.post("/playlists/{playlist_id}/follow")
 async def follow_playlist(
-    playlist_id: int,
+    playlist_id: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        playlist = db.query(models.LearningPlaylist).filter(
-            models.LearningPlaylist.id == playlist_id
-        ).first()
-
-        if not playlist:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+        playlist = _resolve_playlist(db, playlist_id)
 
         existing = db.query(models.PlaylistFollower).filter(
             and_(
-                models.PlaylistFollower.playlist_id == playlist_id,
+                models.PlaylistFollower.playlist_id == playlist.id,
                 models.PlaylistFollower.user_id == current_user.id,
             )
         ).first()
@@ -438,7 +426,7 @@ async def follow_playlist(
             return {"message": "Already following this playlist"}
 
         follower = models.PlaylistFollower(
-            playlist_id=playlist_id,
+            playlist_id=playlist.id,
             user_id=current_user.id,
             completed_items=[],
         )
@@ -457,14 +445,16 @@ async def follow_playlist(
 
 @router.delete("/playlists/{playlist_id}/follow")
 async def unfollow_playlist(
-    playlist_id: int,
+    playlist_id: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
+        playlist = _resolve_playlist(db, playlist_id)
+
         follower = db.query(models.PlaylistFollower).filter(
             and_(
-                models.PlaylistFollower.playlist_id == playlist_id,
+                models.PlaylistFollower.playlist_id == playlist.id,
                 models.PlaylistFollower.user_id == current_user.id,
             )
         ).first()
@@ -473,10 +463,6 @@ async def unfollow_playlist(
             raise HTTPException(status_code=404, detail="Not following this playlist")
 
         db.delete(follower)
-
-        playlist = db.query(models.LearningPlaylist).filter(
-            models.LearningPlaylist.id == playlist_id
-        ).first()
 
         if playlist:
             playlist.follower_count = max(0, (playlist.follower_count or 0) - 1)
@@ -493,17 +479,12 @@ async def unfollow_playlist(
 
 @router.post("/playlists/{playlist_id}/fork")
 async def fork_playlist(
-    playlist_id: int,
+    playlist_id: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        original = db.query(models.LearningPlaylist).filter(
-            models.LearningPlaylist.id == playlist_id
-        ).first()
-
-        if not original:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+        original = _resolve_playlist(db, playlist_id)
 
         forked = models.LearningPlaylist(
             creator_id=current_user.id,
@@ -522,7 +503,7 @@ async def fork_playlist(
         db.flush()
 
         original_items = db.query(models.PlaylistItem).filter(
-            models.PlaylistItem.playlist_id == playlist_id
+            models.PlaylistItem.playlist_id == original.id
         ).order_by(models.PlaylistItem.order_index).all()
 
         for item in original_items:
@@ -541,7 +522,7 @@ async def fork_playlist(
             db.add(forked_item)
 
         fork_record = models.PlaylistFork(
-            original_playlist_id=playlist_id,
+            original_playlist_id=original.id,
             forked_playlist_id=forked.id,
             forked_by_id=current_user.id,
         )
@@ -551,7 +532,7 @@ async def fork_playlist(
         db.commit()
         db.refresh(forked)
 
-        return {"id": forked.id, "message": "Playlist forked successfully"}
+        return {"id": forked.id, "uid": forked.uid, "message": "Playlist forked successfully"}
     except HTTPException:
         raise
     except Exception as e:
@@ -561,18 +542,13 @@ async def fork_playlist(
 
 @router.get("/playlists/{playlist_id}/items/{item_id}/view")
 async def view_playlist_item(
-    playlist_id: int,
+    playlist_id: str,
     item_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        playlist = db.query(models.LearningPlaylist).filter(
-            models.LearningPlaylist.id == playlist_id
-        ).first()
-
-        if not playlist:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+        playlist = _resolve_playlist(db, playlist_id)
 
         if not playlist.is_public and playlist.creator_id != current_user.id:
             raise HTTPException(status_code=403, detail="Access denied")
@@ -580,7 +556,7 @@ async def view_playlist_item(
         item = db.query(models.PlaylistItem).filter(
             and_(
                 models.PlaylistItem.id == item_id,
-                models.PlaylistItem.playlist_id == playlist_id,
+                models.PlaylistItem.playlist_id == playlist.id,
             )
         ).first()
 
@@ -646,16 +622,18 @@ async def view_playlist_item(
 
 @router.post("/playlists/{playlist_id}/progress")
 async def update_playlist_progress(
-    playlist_id: int,
+    playlist_id: str,
     item_id: int,
     completed: bool,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
+        playlist = _resolve_playlist(db, playlist_id)
+
         follower = db.query(models.PlaylistFollower).filter(
             and_(
-                models.PlaylistFollower.playlist_id == playlist_id,
+                models.PlaylistFollower.playlist_id == playlist.id,
                 models.PlaylistFollower.user_id == current_user.id,
             )
         ).first()
@@ -674,7 +652,7 @@ async def update_playlist_progress(
         follower.last_accessed = datetime.now(timezone.utc)
 
         total_items = db.query(func.count(models.PlaylistItem.id)).filter(
-            models.PlaylistItem.playlist_id == playlist_id
+            models.PlaylistItem.playlist_id == playlist.id
         ).scalar()
 
         if total_items > 0:
@@ -684,11 +662,7 @@ async def update_playlist_progress(
                 follower.is_completed = True
                 follower.completed_at = datetime.now(timezone.utc)
 
-                playlist = db.query(models.LearningPlaylist).filter(
-                    models.LearningPlaylist.id == playlist_id
-                ).first()
-                if playlist:
-                    playlist.completion_count = (playlist.completion_count or 0) + 1
+                playlist.completion_count = (playlist.completion_count or 0) + 1
 
         db.commit()
 

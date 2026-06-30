@@ -165,6 +165,7 @@ def get_flashcard_history(
         result.append({
             "id": fs.id,
             "share_code": getattr(fs, "share_code", None),
+            "uid": getattr(fs, "public_token", None),
             "title": fs.title,
             "description": fs.description or "",
             "card_count": total_cards,

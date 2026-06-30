@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Bool
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database import Base
+from uid_utils import generate_uid
 
 
 class TopicMastery(Base):
@@ -346,6 +347,7 @@ class LearningPlaylist(Base):
     __tablename__ = "learning_playlists"
 
     id = Column(Integer, primary_key=True, index=True)
+    uid = Column(String(32), unique=True, index=True, nullable=True, default=generate_uid)
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
