@@ -198,7 +198,7 @@ const SlideExplorer = () => {
           userId,
           slideContent: slide.extracted_text || slide.title,
           analysisDepth: 'standard',
-          sessionId: `slide_analysis_${userId}_${Date.now()}`
+          sessionId: crypto.randomUUID()
         });
       } catch (agentError) {
         // silenced
@@ -310,7 +310,7 @@ const SlideExplorer = () => {
               <div className="se-slide-content-area">
                 <div className="se-slide-image-panel">
                   <img
-                    src={`${API_URL}/slide_image/${selectedSlide.id}/${currentSlide.slide_number}`}
+                    src={`${API_URL}/slide_image/${selectedSlide.id}/${currentSlide.slide_number}?token=${encodeURIComponent(token)}`}
                     alt={`Slide ${currentSlide.slide_number}`}
                     className="se-slide-img"
                     onError={(e) => {
@@ -435,15 +435,7 @@ const SlideExplorer = () => {
   return (
     <div className="se-page">
       <div className="se-topbar">
-        <div className="se-topbar-tagline">Learning Unified</div>
-        <div className="se-topbar-actions">
-          <button className="se-top-btn" type="button" onClick={() => navigate('/dashboard-cerbyl')}>
-            Dashboard
-          </button>
-          <button className="se-top-btn se-top-btn-accent" type="button" onClick={() => setActiveView('upload')} disabled={uploading}>
-            Upload New
-          </button>
-        </div>
+        <div className="se-topbar-tagline"><span>LEARNING,</span> UNIFIED</div>
       </div>
 
       <div className="se-main-layout">
@@ -462,9 +454,6 @@ const SlideExplorer = () => {
               <div className="se-strip-spacer" />
               <button className="se-strip-btn" data-tip="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} type="button">
                 <Home size={18} />
-              </button>
-              <button className="se-strip-btn" data-tip="AI Chat" onClick={() => navigate('/ai-chat')} type="button">
-                <MessageSquare size={18} />
               </button>
             </div>
           ) : (
@@ -528,10 +517,6 @@ const SlideExplorer = () => {
               <button className="se-side-action-btn" onClick={() => navigate('/dashboard-cerbyl')} type="button">
                 <Home size={14} />
                 <span>Dashboard</span>
-              </button>
-              <button className="se-side-action-btn" onClick={() => navigate('/ai-chat')} type="button">
-                <MessageSquare size={14} />
-                <span>AI Chat</span>
               </button>
             </div>
           </>

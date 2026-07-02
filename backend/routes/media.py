@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import call_ai, call_ai_async, get_current_user, get_user_by_email, get_user_by_username
+from deps import call_ai, call_ai_async, get_current_user, get_user_by_email, get_user_by_username, optional_security, SECRET_KEY, ALGORITHM, JWT_AUDIENCE
 from services.api_key_pool import ApiKeyPoolExhausted, is_provider_quota_error, provider_limit_exhausted
 from services.document_processor import extract_text_from_pdf_detailed
 from services.storage_service import StorageService
@@ -1152,9 +1152,25 @@ async def get_slide_file(
 async def get_slide_image(
     slide_id: int,
     page_number: int,
-    current_user: models.User = Depends(get_current_user),
+    token: Optional[str] = Query(default=None),
+    credentials=Depends(optional_security),
     db: Session = Depends(get_db),
 ):
+    from jose import JWTError, jwt as jose_jwt
+    from fastapi.security import HTTPAuthorizationCredentials
+    jwt_str = token or (credentials.credentials if credentials else None)
+    if not jwt_str:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    try:
+        payload = jose_jwt.decode(jwt_str, SECRET_KEY, algorithms=[ALGORITHM], audience=JWT_AUDIENCE)
+        username = payload.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    current_user = db.query(models.User).filter(models.User.username == username).first()
+    if not current_user:
+        current_user = db.query(models.User).filter(models.User.email == username).first()
+    if not current_user:
+        raise HTTPException(status_code=404, detail="User not found")
     import base64
 
     try:

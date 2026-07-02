@@ -43,12 +43,15 @@
 }
 
 .se-topbar-tagline {
-  font-size: 12px;
-  font-weight: 300;
-  letter-spacing: 0.06em;
-  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
-  text-transform: lowercase;
-  transform: translateY(-4px);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-primary) 35%, transparent);
+}
+
+.se-topbar-tagline span {
+  color: var(--accent);
 }
 
 
@@ -168,24 +171,23 @@
 .se-back-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 16px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 700;
-  font-family: 'Inter', sans-serif;
+  gap: 5px;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-primary) 38%, transparent);
+  font-size: 10px;
+  font-weight: 800;
+  font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.25em;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: color 0.14s;
 }
 
 .se-focus-btn:hover,
 .se-back-btn:hover {
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
 }
 
 .se-page::before {
