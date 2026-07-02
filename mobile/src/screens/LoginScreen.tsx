@@ -10,7 +10,7 @@ import { makeRedirectUri } from 'expo-auth-session';
 import { signIn, signInWithGoogle, AuthUser } from '../services/auth';
 import { register } from '../services/api';
 import HapticTouchable from '../components/HapticTouchable';
-import AmbientBubbles from '../components/AmbientBubbles';
+import GeoBackground from '../components/GeoBackground';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
@@ -120,9 +120,7 @@ export default function LoginScreen({ onLogin }: Props) {
     <SafeAreaView style={s.safe}>
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
         <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.6, 1]} style={StyleSheet.absoluteFill} />
-        <AmbientBubbles theme={selectedTheme} variant="auth" opacity={1} />
-        <View style={s.glowA} />
-        <View style={s.glowB} />
+        <GeoBackground />
       </View>
       <KeyboardAvoidingView style={s.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
@@ -133,11 +131,11 @@ export default function LoginScreen({ onLogin }: Props) {
         >
           <View style={s.content}>
             <View style={s.top}>
-              <View style={s.heroBadge}>
-                <Text style={s.heroBadgeText}>AI study operating system</Text>
-              </View>
               <Text style={s.brand}>cerbyl</Text>
-              <Text style={s.sub}>A cleaner, calmer way to learn with chat, notes, flashcards, and guided study flows.</Text>
+              <Text style={s.tagline}>
+                <Text style={s.taglineAccent}>LEARNING, </Text>
+                <Text style={s.taglineMuted}>UNIFIED</Text>
+              </Text>
             </View>
 
             <View style={s.panel}>
@@ -230,42 +228,13 @@ return StyleSheet.create({
   },
   content: {
     width: '100%',
-    maxWidth: Math.min(layout.contentMaxWidth, 560),
-    alignSelf: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: layout.isTablet ? layout.screenPadding : 12,
   },
-
-  glowA: {
-    position: 'absolute',
-    top: -60,
-    right: -20,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: rgbaFromHex(theme.accent, 0.08),
-  },
-  glowB: {
-    position: 'absolute',
-    bottom: 120,
-    left: -40,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: rgbaFromHex(theme.accent, 0.10),
-  },
-  top: { alignItems: 'center', marginBottom: 26, paddingHorizontal: 6 },
-  heroBadge: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: rgbaFromHex(theme.textPrimary, 0.03),
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    marginBottom: 16,
-  },
-  heroBadgeText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: theme.accent, letterSpacing: 1.4, textTransform: 'uppercase' },
-  brand: { fontFamily: 'Inter_900Black', fontSize: 42, color: theme.accentHover, marginTop: 4, letterSpacing: -1.4 },
-  sub:   { fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textSecondary, lineHeight: 22, textAlign: 'center', marginTop: 10, maxWidth: 320 },
+  top: { alignItems: 'center', marginBottom: 22 },
+  brand: { fontFamily: 'Inter_900Black', fontSize: 42, color: theme.accentHover, letterSpacing: -1.4 },
+  tagline: { marginTop: 8, fontFamily: 'Inter_900Black', fontSize: 10, letterSpacing: 4, textTransform: 'uppercase' },
+  taglineAccent: { color: theme.accent },
+  taglineMuted: { color: rgbaFromHex(theme.textPrimary, 0.35) },
 
   panel: {
     width: '100%',

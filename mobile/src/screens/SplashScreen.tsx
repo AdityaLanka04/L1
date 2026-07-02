@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 import { useFonts, Inter_900Black, Inter_400Regular } from '@expo-google-fonts/inter';
 import { LinearGradient } from 'expo-linear-gradient';
-import AmbientBubbles from '../components/AmbientBubbles';
+import GeoBackground from '../components/GeoBackground';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/theme';
 
@@ -11,14 +11,22 @@ type Props = { onFinish: () => void };
 export default function SplashScreen({ onFinish }: Props) {
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular });
   const opacity = useRef(new Animated.Value(0)).current;
+  const rotation = useRef(new Animated.Value(0)).current;
   const { selectedTheme } = useAppTheme();
   const s = createStyles(selectedTheme);
 
+  const spin = rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
   useEffect(() => {
     if (!fontsLoaded) return;
+
+    Animated.loop(
+      Animated.timing(rotation, { toValue: 1, duration: 2400, useNativeDriver: true })
+    ).start();
+
     Animated.sequence([
       Animated.timing(opacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.delay(1000),
+      Animated.delay(1200),
       Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start(() => onFinish());
   }, [fontsLoaded]);
@@ -26,9 +34,13 @@ export default function SplashScreen({ onFinish }: Props) {
   return (
     <View style={s.container}>
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
-      <AmbientBubbles theme={selectedTheme} variant="auth" opacity={0.88} />
+      <GeoBackground />
       <View style={[s.glow, { backgroundColor: rgbaFromHex(selectedTheme.accent, 0.14) }]} />
-      <Animated.View style={{ opacity }}>
+      <Animated.View style={{ opacity, alignItems: 'center' }}>
+        <Animated.Image
+          source={require('../../assets/logo.png')}
+          style={[s.logoImg, { transform: [{ rotate: spin }] }]}
+        />
         <Text style={s.logo}>cerbyl</Text>
         <Text style={s.sub}>your ai tutor</Text>
       </Animated.View>
@@ -51,6 +63,11 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
       height: 220,
       borderRadius: 110,
       top: '30%',
+    },
+    logoImg: {
+      width: 80,
+      height: 80,
+      marginBottom: 20,
     },
     logo: {
       fontFamily: 'Inter_900Black',
