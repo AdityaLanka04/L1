@@ -2987,7 +2987,7 @@ const AIChat = ({ sharedMode = false }) => {
           >
             {Icons.menu}
           </button>
-          <div className="ac-qb-tagline">Learning Unified</div>
+          <div className="ac-qb-tagline"><span>LEARNING,</span> UNIFIED</div>
         </div>
         <div className="ac-qb-topbar-right">
           <button

@@ -70,27 +70,32 @@
 }
 
 .ai-chat-page.ac-qb-page .ac-qb-context-action .context-selector-btn {
-  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent) !important;
-  background: color-mix(in srgb, var(--accent) 8%, transparent) !important;
-  border-radius: 10px !important;
-  padding: 8px 14px !important;
-  color: var(--text-primary) !important;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 4px 0 !important;
+  color: color-mix(in srgb, var(--text-primary) 38%, transparent) !important;
   opacity: 1 !important;
-  font-size: 12px !important;
-  letter-spacing: 0.08em !important;
-  transition: border-color 0.15s, background 0.15s, color 0.15s !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.25em !important;
+  text-transform: uppercase !important;
+  transition: color 0.14s !important;
 }
 
 .ai-chat-page.ac-qb-page .ac-qb-context-action .context-selector-btn:hover {
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
-  background: color-mix(in srgb, var(--accent) 14%, transparent) !important;
   color: var(--accent) !important;
+  background: transparent !important;
 }
 
 .ai-chat-page.ac-qb-page .ac-qb-context-action .context-selector-btn.hs-active {
-  border-color: color-mix(in srgb, #22c55e 40%, transparent) !important;
-  background: color-mix(in srgb, #22c55e 12%, transparent) !important;
   color: #22c55e !important;
+  background: transparent !important;
+}
+
+.ai-chat-page.ac-qb-page .ac-qb-context-action .context-selector-btn.has-doc {
+  color: var(--accent) !important;
+  background: transparent !important;
 }
 
 .search-hub-page .context-selector-btn {

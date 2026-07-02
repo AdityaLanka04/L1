@@ -81,11 +81,15 @@
 }
 
 .cb-tagline {
-  font-size: 12px;
-  font-weight: 300;
-  letter-spacing: 0.06em;
-  color: var(--cb-mute);
-  text-transform: lowercase;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-primary) 35%, transparent);
+}
+
+.cb-tagline span {
+  color: var(--accent);
 }
 
 .cb-usage-meter {

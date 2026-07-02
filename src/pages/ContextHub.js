@@ -13,7 +13,6 @@ import {
   Tag, ArrowRight, CheckSquare, Square, Filter, Target
 } from 'lucide-react';
 import contextService from '../services/contextService';
-import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripDivider } from '../components/Sidebar';
 import './ContextHub.css';
 import '../components/SocialHubChrome.css';
 
@@ -1047,74 +1046,101 @@ export default function ContextHub() {
 
   // ─── SIDEBAR ──────────────────────────────────────────────────────────────
   const Sidebar = () => (
-    <SidebarShell
-      collapsed={!sidebarOpen}
-      onToggleCollapse={() => setSidebarOpen((prev) => !prev)}
-      brandKicker="CONTEXT HUB"
-      ariaLabel="Context Hub navigation"
-      collapsedContent={(
+    <aside className={`ch-qb-sidebar ${!sidebarOpen ? 'ch-qb-sidebar--collapsed' : ''}`} aria-label="Context Hub navigation">
+      {!sidebarOpen ? (
+        <div className="ch-qb-collapsed-strip">
+          <button className="ch-qb-strip-btn ch-qb-strip-logo" data-tip="Open sidebar" onClick={() => setSidebarOpen(true)} type="button">
+            <ChevronRight size={18} />
+          </button>
+          <button className={`ch-qb-strip-btn ${view === 'upload' ? 'active' : ''}`} data-tip="Upload" onClick={() => setSearchParams({ view: 'upload' })} type="button">
+            <Upload size={18} />
+          </button>
+          <button className={`ch-qb-strip-btn ${view === 'library' ? 'active' : ''}`} data-tip="My Documents" onClick={() => { setSearchParams({ view: 'library' }); loadDocs(); }} type="button">
+            <FolderOpen size={18} />
+          </button>
+          <button className={`ch-qb-strip-btn ${view === 'landing' ? 'active' : ''}`} data-tip="Curriculum" onClick={goLanding} type="button">
+            <Library size={18} />
+          </button>
+          <button className={`ch-qb-strip-btn ${selectedCurriculum === 'uk' ? 'active' : ''}`} data-tip="UK High School" onClick={() => goCurriculum('uk')} type="button">
+            <FlagUK size={18} />
+          </button>
+          <button className={`ch-qb-strip-btn ${selectedCurriculum === 'us' ? 'active' : ''}`} data-tip="US High School" onClick={() => goCurriculum('us')} type="button">
+            <FlagUS size={18} />
+          </button>
+          <button className={`ch-qb-strip-btn ${urlViewParam === 'ask' ? 'active' : ''}`} data-tip="Ask Your Notes" onClick={() => setSearchParams({ view: 'ask' })} type="button">
+            <MessageCircle size={18} />
+          </button>
+        </div>
+      ) : (
         <>
-          <SidebarStripButton icon={<Upload size={18} />} tip="Upload" active={view === 'upload'} onClick={() => setSearchParams({ view: 'upload' })} />
-          <SidebarStripButton icon={<FolderOpen size={18} />} tip="My Documents" active={view === 'library'} onClick={() => { setSearchParams({ view: 'library' }); loadDocs(); }} />
-          <SidebarStripDivider />
-          <SidebarStripButton icon={<Library size={18} />} tip="Curriculum" active={view === 'landing'} onClick={goLanding} />
-          <SidebarStripButton icon={<FlagUK size={18} />} tip="UK High School" active={selectedCurriculum === 'uk'} onClick={() => goCurriculum('uk')} />
-          <SidebarStripButton icon={<FlagUS size={18} />} tip="US High School" active={selectedCurriculum === 'us'} onClick={() => goCurriculum('us')} />
-          <SidebarStripDivider />
-          <SidebarStripButton icon={<MessageCircle size={18} />} tip="Ask Your Notes" active={urlViewParam === 'ask'} onClick={() => setSearchParams({ view: 'ask' })} />
+          <div className="ch-qb-side-brand">
+            <div className="ch-qb-brand-wrap">
+              <div className="ch-qb-brand">cerbyl</div>
+              <div className="ch-qb-brand-kicker">Context Hub</div>
+            </div>
+            <button className="ch-qb-side-close-btn" onClick={() => setSidebarOpen(false)} title="Close sidebar" aria-label="Close sidebar" type="button">
+              <ChevronLeft size={14} />
+            </button>
+          </div>
+
+          <button className="ch-qb-new-btn" onClick={() => setSearchParams({ view: 'upload' })} type="button">
+            <Upload size={14} />
+            <span>Upload Document</span>
+          </button>
+
+          <div className="ch-qb-side-block ch-qb-side-block--grow">
+            <div className="ch-qb-side-label">Library</div>
+            <nav className="ch-qb-view-nav">
+              <button
+                className={`ch-qb-view-link ${view === 'library' || view === 'upload' ? 'ch-qb-view-link--active' : ''}`}
+                onClick={() => { setSearchParams({ view: 'library' }); loadDocs(); }}
+                type="button"
+              >
+                <FolderOpen size={16} />
+                <span>My Documents</span>
+              </button>
+            </nav>
+          </div>
+
+          <div className="ch-qb-side-block">
+            <div className="ch-qb-side-label">Curriculum</div>
+            <nav className="ch-qb-view-nav">
+              <button className={`ch-qb-view-link ${view === 'landing' ? 'ch-qb-view-link--active' : ''}`} onClick={goLanding} type="button">
+                <Library size={16} /><span>Browse All</span>
+              </button>
+              <button className={`ch-qb-view-link ${selectedCurriculum === 'uk' ? 'ch-qb-view-link--active' : ''}`} onClick={() => goCurriculum('uk')} type="button">
+                <FlagUK size={16} /><span>UK High School</span>
+              </button>
+              {selectedCurriculum === 'uk' && Object.entries(CURRICULA.uk.grades).map(([g, info], idx) => (
+                <button key={g} className={`ch-qb-view-link ch-qb-view-link--indent ${selectedGrade === Number(g) ? 'ch-qb-view-link--active' : ''}`} onClick={() => goGrade(Number(g))} type="button">
+                  <span className="ch-qb-grade-dot" style={{ background: GRADE_COLORS[idx] }} />
+                  <span>{info.label}</span>
+                </button>
+              ))}
+              <button className={`ch-qb-view-link ${selectedCurriculum === 'us' ? 'ch-qb-view-link--active' : ''}`} onClick={() => goCurriculum('us')} type="button">
+                <FlagUS size={16} /><span>US High School</span>
+              </button>
+              {selectedCurriculum === 'us' && Object.entries(CURRICULA.us.grades).map(([g, info], idx) => (
+                <button key={g} className={`ch-qb-view-link ch-qb-view-link--indent ${selectedGrade === Number(g) ? 'ch-qb-view-link--active' : ''}`} onClick={() => goGrade(Number(g))} type="button">
+                  <span className="ch-qb-grade-dot" style={{ background: GRADE_COLORS[idx] }} />
+                  <span>{info.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="ch-qb-side-block">
+            <div className="ch-qb-side-label">Tools</div>
+            <nav className="ch-qb-view-nav">
+              <button className={`ch-qb-view-link ${urlViewParam === 'ask' ? 'ch-qb-view-link--active' : ''}`} onClick={() => setSearchParams({ view: 'ask' })} type="button">
+                <MessageCircle size={16} /><span>Ask Your Notes</span>
+              </button>
+            </nav>
+          </div>
+
         </>
       )}
-    >
-      <SidebarSection>
-        <SidebarMenuItem
-          icon={<Upload size={16} />}
-          label="Upload"
-          active={view === 'upload'}
-          onClick={() => setSearchParams({ view: 'upload' })}
-        />
-        <SidebarMenuItem
-          icon={<FolderOpen size={16} />}
-          label="My Documents"
-          active={view === 'library'}
-          badge={stats.myDocs > 0 ? <span className="ch-sidebar-count">{stats.myDocs}</span> : null}
-          onClick={() => { setSearchParams({ view: 'library' }); loadDocs(); }}
-        />
-      </SidebarSection>
-
-      <SidebarSection heading="Curriculum">
-        <SidebarMenuItem icon={<Library size={16} />} label="Curriculum" active={view === 'landing'} onClick={goLanding} />
-        <SidebarMenuItem icon={<FlagUK size={18} />} label="UK High School" active={selectedCurriculum === 'uk'} onClick={() => goCurriculum('uk')} />
-        {selectedCurriculum === 'uk' && Object.entries(CURRICULA.uk.grades).map(([g, info], idx) => (
-          <div key={g} style={{ paddingLeft: '20px' }}>
-            <SidebarMenuItem
-              icon={<span className="ch-sidebar-nav-grade-dot" style={{ background: GRADE_COLORS[idx] }} />}
-              label={info.label}
-              active={selectedGrade === Number(g)}
-              onClick={() => goGrade(Number(g))}
-            />
-          </div>
-        ))}
-        <SidebarMenuItem icon={<FlagUS size={18} />} label="US High School" active={selectedCurriculum === 'us'} onClick={() => goCurriculum('us')} />
-        {selectedCurriculum === 'us' && Object.entries(CURRICULA.us.grades).map(([g, info], idx) => (
-          <div key={g} style={{ paddingLeft: '20px' }}>
-            <SidebarMenuItem
-              icon={<span className="ch-sidebar-nav-grade-dot" style={{ background: GRADE_COLORS[idx] }} />}
-              label={info.label}
-              active={selectedGrade === Number(g)}
-              onClick={() => goGrade(Number(g))}
-            />
-          </div>
-        ))}
-      </SidebarSection>
-
-      <SidebarSection>
-        <SidebarMenuItem icon={<MessageCircle size={16} />} label="Ask Your Notes" active={urlViewParam === 'ask'} onClick={() => setSearchParams({ view: 'ask' })} />
-      </SidebarSection>
-
-      <SidebarActions>
-        <SidebarAction icon={<Home size={14} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
-      </SidebarActions>
-    </SidebarShell>
+    </aside>
   );
 
   // ─── LANDING ──────────────────────────────────────────────────────────────

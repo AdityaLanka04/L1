@@ -8488,11 +8488,15 @@
 }
 
 .flashcards-page .fc-qb-tagline {
-  font-size: 12px;
-  font-weight: 300;
-  letter-spacing: 0.06em;
-  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
-  text-transform: lowercase;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-primary) 35%, transparent);
+}
+
+.flashcards-page .fc-qb-tagline span {
+  color: var(--accent);
 }
 
 
@@ -8509,6 +8513,62 @@
   display: flex;
   align-items: center;
   min-width: 0;
+}
+
+.flashcards-page .fc-qb-top-dash-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.flashcards-page .fc-qb-top-dash-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.flashcards-page .fc-qb-top-dash-btn:hover {
+  background: color-mix(in srgb, var(--fc-accent) 10%, transparent);
+  color: var(--fc-accent);
+  border-color: color-mix(in srgb, var(--fc-accent) 25%, transparent);
+}
+
+.flashcards-page .fc-qb-top-dash-btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--fc-accent) 30%, var(--border));
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 7px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s, visibility 0.12s;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.flashcards-page .fc-qb-top-dash-btn:hover::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 .flashcards-page .fc-qb-body {

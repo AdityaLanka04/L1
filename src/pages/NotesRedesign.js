@@ -3020,7 +3020,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       {selectedNote && !isFullscreen && (
         <div className="nr-qb-topbar">
-          <div className="nr-qb-tagline">Learning Unified</div>
+          <div className="nr-qb-tagline"><span>LEARNING,</span> UNIFIED</div>
           <div className="nr-qb-topbar-right">
             {!isSharedContent && (
               <button className="nr-qb-top-btn" onClick={() => navigate('/notes/my-notes')} type="button">

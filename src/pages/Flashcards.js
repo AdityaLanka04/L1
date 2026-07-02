@@ -3006,7 +3006,7 @@ const Flashcards = () => {
     <div className="flashcards-page">
       <GeoBackground />
       <div className="fc-qb-topbar">
-        <div className="fc-qb-tagline">Learning Unified</div>
+        <div className="fc-qb-tagline"><span>LEARNING,</span> UNIFIED</div>
         <div className="fc-qb-topbar-right">
           <div className="fc-qb-context-control">
             <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />

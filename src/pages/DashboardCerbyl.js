@@ -1588,7 +1588,7 @@ const DashboardCerbyl = () => {
 
       {}
       <div className="cb-topbar">
-        <div className="cb-tagline">Learning Unified</div>
+        <div className="cb-tagline"><span>LEARNING,</span> UNIFIED</div>
         <div
           className={`cb-usage-meter ${isAdminUnlimited ? 'cb-usage-meter--admin' : ''}`}
           aria-label={isAdminUnlimited

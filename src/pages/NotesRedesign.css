@@ -6067,11 +6067,15 @@ h1.note-title ::-moz-selection,
 }
 
 .notes-redesign .nr-qb-tagline {
-  font-size: 12px;
-  font-weight: 300;
-  letter-spacing: 0.06em;
-  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
-  text-transform: lowercase;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-primary) 35%, transparent);
+}
+
+.notes-redesign .nr-qb-tagline span {
+  color: var(--accent);
 }
 
 
