@@ -1,24 +1,24 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Cerbyl",
+    "slug": "cerbyl",
     "version": "1.0.0",
+    "scheme": "cerbyl",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0a0a0f"
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.cerbyl.app",
       "infoPlist": {
         "UISupportedInterfaceOrientations": [
-          "UIInterfaceOrientationPortrait",
-          "UIInterfaceOrientationLandscapeLeft",
-          "UIInterfaceOrientationLandscapeRight"
+          "UIInterfaceOrientationPortrait"
         ],
         "UISupportedInterfaceOrientations~ipad": [
           "UIInterfaceOrientationPortrait",
@@ -29,19 +29,26 @@
       }
     },
     "android": {
+      "package": "com.cerbyl.app",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/icon.png"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0a0a0f"
       },
+      "permissions": [],
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/icon.png"
     },
-    "scheme": "cerbyl",
     "plugins": [
       "expo-font",
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
   }
 }

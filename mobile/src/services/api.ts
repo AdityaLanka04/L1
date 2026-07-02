@@ -1,14 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const FALLBACK_API_URL = 'http://192.168.1.178:8000/api';
+const PRODUCTION_API_URL = 'https://YOUR_PRODUCTION_API_URL/api';
 
 function normalizeApiUrl(url: string): string {
   const trimmed = url.trim().replace(/\/+$/, '');
-  if (!trimmed) return FALLBACK_API_URL;
+  if (!trimmed) return PRODUCTION_API_URL;
   return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
 }
 
-export const API_URL = normalizeApiUrl(process.env.EXPO_PUBLIC_API_URL ?? FALLBACK_API_URL);
+export const API_URL = normalizeApiUrl(process.env.EXPO_PUBLIC_API_URL ?? PRODUCTION_API_URL);
 
 async function getToken(): Promise<string | null> {
   return AsyncStorage.getItem('token');
